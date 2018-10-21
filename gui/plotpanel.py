@@ -27,9 +27,9 @@ class PlotPanel(wx.Panel):
         self.axes.set_axis_off()
         self.canvas.draw()
 
-    def updateImage(self, layer):
+    def updateImage(self, data):
         self.axes.clear()
-        self.axes.imshow(layer, cmap=self.cmap, interpolation='none')
+        self.axes.imshow(data, cmap=self.cmap, interpolation='none')
         self.fig.tight_layout()
         self.canvas.draw()
         self.Refresh()
