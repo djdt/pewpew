@@ -1,7 +1,8 @@
 import argparse
 import sys
 import matplotlib.pyplot as plt
-from util.importers import AgilentImporter
+from util.importers import importAgilentBatch
+import matplotlib_scalebar.scalebar as ScaleBar
 
 
 def parse_args(args):
@@ -18,14 +19,22 @@ def parse_args(args):
 
 def main(args):
     print(args['batchdir'])
-    layer = AgilentImporter.getLayer(args['batchdir'])
+    layer = importAgilentBatch(args['batchdir'])
+
+    print(layer.shape)
+
+    x = 138 * 30
 
     if args['element'] is None:
         args['element'] = layer.dtype.names[0]
 
     plt.imshow(layer[args['element']], cmap=args['cmap'],
-               interpolation='none')
+               interpolation='none',
+               extent=(0, x, 0, x / 5))
+    plt.axis('off')
     plt.colorbar()
+
+    scalebar = ScaleBar()
 
     plt.tight_layout()
     plt.show()
