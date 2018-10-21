@@ -6,6 +6,8 @@ class Laser(object):
         "scantime": 1.0,  # s
         "speed": 1.0,     # um/s
         "spotsize": 1.0,  # um
+        "gradient": 1.0,
+        "intercept": 1.0
     }
 
     def __init__(self):
@@ -38,3 +40,6 @@ class Laser(object):
             data = self.data
 
         return (data - self.intercept) / self.gradient
+
+    def getScale(self):
+        x = self.data.shape
