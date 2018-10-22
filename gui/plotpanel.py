@@ -2,6 +2,7 @@ import matplotlib
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib_scalebar.scalebar import ScaleBar
 import wx
+import numpy as np
 
 
 class PlotPanel(wx.Panel):
@@ -26,7 +27,8 @@ class PlotPanel(wx.Panel):
         self._init_plot()
 
     def _init_plot(self):
-        self.axes.imshow([[0]], cmap=self.cmap)
+        data = np.load('gui/image.npy')
+        self.axes.imshow(data, cmap=self.cmap)
         self.axes.set_axis_off()
         self.axes.get_xaxis().set_visible(False)
         self.axes.get_yaxis().set_visible(False)
