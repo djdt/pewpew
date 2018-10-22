@@ -68,18 +68,28 @@ class MainWindow(wx.Frame):
         menuOpen = fileMenu.Append(wx.ID_OPEN, "&Open", "Open some data.")
         menuExit = fileMenu.Append(wx.ID_EXIT, "E&xit", "Quit the program.")
 
+        self.Bind(wx.EVT_MENU, self.onOpen, menuOpen)
+        self.Bind(wx.EVT_MENU, self.onExit, menuExit)
+
         menuBar.Append(fileMenu, "&File")
+
+        # Editmenu
+        editMenu = wx.Menu()
+        menuCalibrate = editMenu.Append(wx.ID_INFO, "&Calibration",
+                                        "Set calibration parameters.")
+        self.Bind(wx.EVT_MENU, self.onCalibrate, menuCalibrate)
+
+        menuBar.Append(editMenu, "&Edit")
 
         # Helpmenu
         helpMenu = wx.Menu()
         menuAbout = helpMenu.Append(wx.ID_ABOUT, "&About",
                                     "About this program.")
+        self.Bind(wx.EVT_MENU, self.onAbout, menuAbout)
+
         menuBar.Append(helpMenu, "&Help")
 
         # Binds
-        self.Bind(wx.EVT_MENU, self.onOpen, menuOpen)
-        self.Bind(wx.EVT_MENU, self.onExit, menuExit)
-        self.Bind(wx.EVT_MENU, self.onAbout, menuAbout)
 
         self.SetMenuBar(menuBar)
 
