@@ -85,8 +85,9 @@ class MainWindow(wx.Frame):
 
     def updateImage(self):
         data = self.laser.getData(self.elementCombo.GetStringSelection())
-        extent = self.laser.getExtents()
-        self.plot.updateImage(data, extent)
+        self.plot.updateImage(data, aspect=self.laser.getAspect(),
+                              extent=self.laser.getExtent())
+        self.plot.Refresh()
 
     def onMousePlot(self, e):
         pass

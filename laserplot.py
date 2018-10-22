@@ -1,8 +1,8 @@
 import argparse
 import sys
 import matplotlib.pyplot as plt
-from util.importers import importAgilentBatch
-# import matplotlib_scalebar.scalebar as ScaleBar
+from util.laser import Laser
+from matplotlib_scalebar.scalebar import ScaleBar
 import numpy as np
 
 
@@ -19,29 +19,23 @@ def parse_args(args):
 
 
 def main(args):
-    print(args['batchdir'])
-    layer = importAgilentBatch(args['batchdir'])
-
-    print(layer.shape)
+    laser = Laser()
+    laser.importData(args['batchdir'], importer='Agilent')
 
     if args['element'] is None:
-        args['element'] = layer.dtype.names[0]
-
-    pix_size = 0.25 * 120
-    magfactor = 15.0 / (pix_size)
-    print(pix_size)
-    print(magfactor)
-
+        args['element'] = laser.getElements()[0]
 
     # data = np.repeat(layer[args['element']], magfactor, axis=0)
-    data = layer[args['element']]
+    data = laser.getData(args['element'])
 
-    plt.imshow(data, cmap=args['cmap'],
-               interpolation='none', extent=(0, data.shape[1] * pix_size, 0, data.shape[0] * 30.0))
+    plt.imshow(data, cmap=args['cmap'], interpolation='none',
+               extent=laser.getExtent(), aspect=laser.getAspect())
     plt.axis('off')
     plt.colorbar()
 
-    # scalebar = ScaleBar()
+    scalebar = ScaleBar(1.0, 'um', color='white',
+                        frameon=False)
+    plt.gca().add_artist(scalebar)
 
     plt.tight_layout()
     plt.show()

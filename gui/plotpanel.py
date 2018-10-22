@@ -1,6 +1,6 @@
 import matplotlib
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
-import numpy as np
+from matplotlib_scalebar.scalebar import ScaleBar
 import wx
 
 
@@ -27,10 +27,14 @@ class PlotPanel(wx.Panel):
         self.axes.set_axis_off()
         self.canvas.draw()
 
-    def updateImage(self, data, extent=None):
+    def updateImage(self, data, aspect='auto', extent=None):
         self.axes.clear()
         self.axes.imshow(data, cmap=self.cmap, interpolation='none',
-                         extent=extent)
+                         extent=extent, aspect=aspect)
+        self.axes.set_axis_off()
+
+        scalebar = ScaleBar(1.0, 'um', frameon=False, color='white')
+        self.axes.add_artist(scalebar)
+
         self.fig.tight_layout()
         self.canvas.draw()
-        self.Refresh()
