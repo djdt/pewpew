@@ -37,7 +37,7 @@ def main(args):
                         frameon=False, location='lower right')
     plt.gca().add_artist(scalebar)
     plt.gca().annotate(isotopeFormat(args['isotope']),
-                       xy=(0.0, 1.0), xytext=(12, -12),
+                       xy=(0.05, 0.95), xytext=(5, -5),
                        xycoords='axes fraction', textcoords='offset pixels',
                        va='top', color='white')
 

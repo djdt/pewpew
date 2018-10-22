@@ -94,14 +94,16 @@ class MainWindow(wx.Frame):
         self.SetMenuBar(menuBar)
 
     def updateImage(self):
-        data = self.laser.getData(self.isotopeCombo.GetStringSelection())
-        self.plot.update(data, aspect=self.laser.getAspect(),
+        isotope = self.isotopeCombo.GetStringSelection()
+        data = self.laser.getData(isotope)
+        self.plot.update(data, label=isotope, aspect=self.laser.getAspect(),
                          extent=self.laser.getExtent())
         self.plot.Refresh()
 
     def onMousePlot(self, e):
         pass
 
+    # Menu Events
     def onComboIsotope(self, e):
         self.updateImage()
 
