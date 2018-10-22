@@ -19,15 +19,15 @@ class MainWindow(wx.Frame):
         boxLeft = wx.BoxSizer(wx.VERTICAL)
         boxRight = wx.BoxSizer(wx.VERTICAL)
 
-        # Left side (image and element selector)
+        # Left side (image and isotope selector)
         self.plot = PlotPanel(self)
         boxLeft.Add(self.plot, 1, wx.ALL | wx.EXPAND | wx.GROW, 5)
         self.Bind(wx.EVT_MOUSE_EVENTS, self.onMousePlot, self.plot)
 
-        self.elementCombo = wx.ComboBox(self, value="Elements")
-        self.elementCombo.SetEditable(False)
-        self.Bind(wx.EVT_COMBOBOX, self.onComboElements, self.elementCombo)
-        boxLeft.Add(self.elementCombo, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
+        self.isotopeCombo = wx.ComboBox(self, value="Isotope")
+        self.isotopeCombo.SetEditable(False)
+        self.Bind(wx.EVT_COMBOBOX, self.onComboIsotope, self.isotopeCombo)
+        boxLeft.Add(self.isotopeCombo, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
 
         # Right side, inputs
         boxRight.Add(wx.StaticText(self, label="Laser parameters"),
@@ -94,16 +94,19 @@ class MainWindow(wx.Frame):
         self.SetMenuBar(menuBar)
 
     def updateImage(self):
-        data = self.laser.getData(self.elementCombo.GetStringSelection())
-        self.plot.updateImage(data, aspect=self.laser.getAspect(),
-                              extent=self.laser.getExtent())
+        data = self.laser.getData(self.isotopeCombo.GetStringSelection())
+        self.plot.update(data, aspect=self.laser.getAspect(),
+                         extent=self.laser.getExtent())
         self.plot.Refresh()
 
     def onMousePlot(self, e):
         pass
 
-    def onComboElements(self, e):
+    def onComboIsotope(self, e):
         self.updateImage()
+
+    def onCalibrate(self, e):
+        pass
 
     def onOpen(self, e):
         dlg = wx.DirDialog(self, "Select batch directory.", "",
@@ -111,13 +114,13 @@ class MainWindow(wx.Frame):
         dlg.ShowModal()
         batchdir = dlg.GetPath()
         if not batchdir.endswith('.b'):
-            self.SetStatusTexSetStatusText("Invalid batch directory.")
+            self.SetStatusText("Invalid batch directory.")
         else:
             # Load the layer
             self.laser.importData(batchdir, importer='Agilent')
             # Update combo
-            self.elementCombo.SetItems(self.laser.getElements())
-            self.elementCombo.SetSelection(0)
+            self.isotopeCombo.SetItems(self.laser.getIsotopes())
+            self.isotopeCombo.SetSelection(0)
             # Update image
             self.updateImage()
         dlg.Destroy()

@@ -3,15 +3,15 @@ import sys
 import matplotlib.pyplot as plt
 from util.laser import Laser
 from matplotlib_scalebar.scalebar import ScaleBar
-import numpy as np
+from util.formatter import isotopeFormat
 
 
 def parse_args(args):
     parser = argparse.ArgumentParser("LaserPlot")
 
     parser.add_argument('batchdir', help='Agilent batch directory (.b).')
-    parser.add_argument('-e', '--element', default=None,
-                        help='Element to plot.')
+    parser.add_argument('-i', '--isotope', default=None,
+                        help='isotope to plot.')
     parser.add_argument('--cmap', default='magma',
                         choices=['viridis', 'plasma', 'inferno', 'magma'],
                         help='Colormap to use.')
@@ -22,11 +22,11 @@ def main(args):
     laser = Laser()
     laser.importData(args['batchdir'], importer='Agilent')
 
-    if args['element'] is None:
-        args['element'] = laser.getElements()[0]
+    if args['isotope'] is None:
+        args['isotope'] = laser.getIsotopes()[0]
 
-    # data = np.repeat(layer[args['element']], magfactor, axis=0)
-    data = laser.getData(args['element'])
+    # data = np.repeat(layer[args['isotope']], magfactor, axis=0)
+    data = laser.getData(args['isotope'])
 
     plt.imshow(data, cmap=args['cmap'], interpolation='none',
                extent=laser.getExtent(), aspect=laser.getAspect())
@@ -34,8 +34,12 @@ def main(args):
     plt.colorbar()
 
     scalebar = ScaleBar(1.0, 'um', color='white',
-                        frameon=False)
+                        frameon=False, location='lower right')
     plt.gca().add_artist(scalebar)
+    plt.gca().annotate(isotopeFormat(args['isotope']),
+                       xy=(0.0, 1.0), xytext=(12, -12),
+                       xycoords='axes fraction', textcoords='offset pixels',
+                       va='top', color='white')
 
     plt.tight_layout()
     plt.show()

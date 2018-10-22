@@ -20,7 +20,7 @@ class Laser(object):
         self.gradient = 1.0
         self.intercept = 0.0
 
-    def getElements(self):
+    def getIsotopes(self):
         return self.data.dtype.names
 
     def importData(self, path, importer='Agilent'):
