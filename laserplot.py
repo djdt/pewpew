@@ -2,7 +2,8 @@ import argparse
 import sys
 import matplotlib.pyplot as plt
 from util.importers import importAgilentBatch
-import matplotlib_scalebar.scalebar as ScaleBar
+# import matplotlib_scalebar.scalebar as ScaleBar
+import numpy as np
 
 
 def parse_args(args):
@@ -23,18 +24,24 @@ def main(args):
 
     print(layer.shape)
 
-    x = 138 * 30
-
     if args['element'] is None:
         args['element'] = layer.dtype.names[0]
 
-    plt.imshow(layer[args['element']], cmap=args['cmap'],
-               interpolation='none',
-               extent=(0, x, 0, x / 5))
+    pix_size = 0.25 * 120
+    magfactor = 15.0 / (pix_size)
+    print(pix_size)
+    print(magfactor)
+
+
+    # data = np.repeat(layer[args['element']], magfactor, axis=0)
+    data = layer[args['element']]
+
+    plt.imshow(data, cmap=args['cmap'],
+               interpolation='none', extent=(0, data.shape[1] * pix_size, 0, data.shape[0] * 30.0))
     plt.axis('off')
     plt.colorbar()
 
-    scalebar = ScaleBar()
+    # scalebar = ScaleBar()
 
     plt.tight_layout()
     plt.show()

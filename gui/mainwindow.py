@@ -83,13 +83,16 @@ class MainWindow(wx.Frame):
 
         self.SetMenuBar(menuBar)
 
+    def updateImage(self):
+        data = self.laser.getData(self.elementCombo.GetStringSelection())
+        extent = self.laser.getExtents()
+        self.plot.updateImage(data, extent)
+
     def onMousePlot(self, e):
         pass
 
     def onComboElements(self, e):
-        # Update image
-        self.plot.updateImage(self.laser.getData(
-            self.elementCombo.GetStringSelection()))
+        self.updateImage()
 
     def onOpen(self, e):
         dlg = wx.DirDialog(self, "Select batch directory.", "",
@@ -105,8 +108,7 @@ class MainWindow(wx.Frame):
             self.elementCombo.SetItems(self.laser.getElements())
             self.elementCombo.SetSelection(0)
             # Update image
-            self.plot.updateImage(self.laser.getData(
-                self.elementCombo.GetStringSelection()))
+            self.updateImage()
         dlg.Destroy()
 
     def onExit(self, e):

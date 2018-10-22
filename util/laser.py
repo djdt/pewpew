@@ -13,9 +13,9 @@ class Laser(object):
     def __init__(self):
         self.data = []
 
-        self.scantime = 1.0
-        self.speed = 1.0
-        self.spotsize = 1.0
+        self.scantime = 0.25
+        self.speed = 120.0
+        self.spotsize = 30.0
 
         self.gradient = 1.0
         self.intercept = 0.0
@@ -39,7 +39,10 @@ class Laser(object):
         else:
             data = self.data
 
+        # Return normalised via calibration
         return (data - self.intercept) / self.gradient
 
-    def getScale(self):
-        x = self.data.shape
+    def getExtents(self):
+        shape = self.data.shape
+        return (0, self.speed * self.scantime * shape[1],
+                self.spotsize * shape[0], 0)
