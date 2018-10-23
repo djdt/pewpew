@@ -28,27 +28,12 @@ def main(args):
 
     # data = np.repeat(layer[args['isotope']], magfactor, axis=0)
     data = laser.getData(args['isotope'])
-    fig = LaserFig(plt.gcf())
+    data = data[:, 35:-20]
+    fig = LaserFig(plt.gcf(), cmap=args['cmap'])
 
     fig.update(data, label=args['isotope'], extent=laser.getExtent(),
                aspect=laser.getAspect())
 
-    # plt.imshow(data, cmap=args['cmap'], interpolation='none',
-    #            extent=laser.getExtent(), aspect=laser.getAspect())
-    # plt.axis('off')
-    # plt.colorbar()
-
-    # scalebar = ScaleBar(1.0, 'um', color='white',
-    #                     frameon=False, location='lower right')
-    # plt.gca().add_artist(scalebar)
-    # plt.gca().annotate(isotopeFormat(args['isotope']),
-    #                    xy=(0.05, 0.95), xytext=(5, -5),
-    #                    xycoords='axes fraction', textcoords='offset pixels',
-    #                    va='top', color='white')
-
-    # plt.tight_layout()
-    # plt.show()
-    fig.show()
     plt.show()
 
 
