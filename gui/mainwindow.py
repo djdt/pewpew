@@ -58,6 +58,7 @@ class MainWindow(wx.Frame):
         box.Add(boxRight, 0, wx.EXPAND, 0)
         self.SetSizer(box)
         self.Layout()
+        self.Refresh()
 
     def createMenuBar(self):
 
