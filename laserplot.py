@@ -2,17 +2,22 @@ import argparse
 import sys
 import matplotlib.pyplot as plt
 from util.laser import Laser
-from matplotlib_scalebar.scalebar import ScaleBar
-from util.formatter import isotopeFormat
-from util.laserfig import LaserFig
+from util.laserimage import LaserImage
 
 
 def parse_args(args):
     parser = argparse.ArgumentParser("LaserPlot")
 
     parser.add_argument('batchdir', help='Agilent batch directory (.b).')
-    parser.add_argument('-i', '--isotope', default=None,
+    parser.add_argument('-i', '--isotopes', nargs='+', default=None,
                         help='isotope to plot.')
+    parser.add_argument('--list', action='store_true',
+                        help='List isotopes and exit.')
+    parser.add_argument('--scantime', default=0.25, type=float)
+    parser.add_argument('--speed', default=120.0, type=float)
+    parser.add_argument('--spotsize', default=30.0, type=float)
+    parser.add_argument('--gradient', default=1.0, type=float)
+    parser.add_argument('--intercept', default=0.0, type=float)
     parser.add_argument('--cmap', default='magma',
                         choices=['viridis', 'plasma', 'inferno', 'magma'],
                         help='Colormap to use.')
@@ -20,19 +25,31 @@ def parse_args(args):
 
 
 def main(args):
-    laser = Laser()
+    laser = Laser(spotsize=args['spotsize'], speed=args['speed'],
+                  scantime=args['scantime'], gradient=args['gradient'],
+                  intercept=args['intercept'])
     laser.importData(args['batchdir'], importer='Agilent')
 
-    if args['isotope'] is None:
-        args['isotope'] = laser.getIsotopes()[0]
+    if args['list']:
+        print('Isotopes:')
+        for i in laser.getIsotopes():
+            print('\t' + i)
+        sys.exit(0)
 
-    # data = np.repeat(layer[args['isotope']], magfactor, axis=0)
-    data = laser.getData(args['isotope'])
-    data = data[:, 35:-20]
-    fig = LaserFig(plt.gcf(), cmap=args['cmap'])
+    if args['isotopes'] is None:
+        args['isotopes'] = laser.getIsotopes()
 
-    fig.update(data, label=args['isotope'], extent=laser.getExtent(),
-               aspect=laser.getAspect())
+    fig, axes = plt.subplots(1, len(args['isotopes']))
+
+    if len(args['isotopes']) == 1:
+        axes = [axes]
+
+    for ax, label in zip(axes, args['isotopes']):
+        print(label)
+        data = laser.getData(label)
+        LaserImage(fig, ax, data, label=label,
+                   extent=laser.getExtent(), aspect=laser.getAspect(),
+                   cmap=args['cmap'])
 
     plt.show()
 

@@ -10,15 +10,16 @@ class Laser(object):
         "intercept": 1.0
     }
 
-    def __init__(self):
+    def __init__(self, scantime=0.25, speed=120.0, spotsize=30.0,
+                 gradient=1.0, intercept=0.0):
         self.data = []
 
-        self.scantime = 0.25  # s
-        self.speed = 120.0    # um/s
-        self.spotsize = 30.0  # um
+        self.scantime = scantime  # s
+        self.speed = speed        # um/s
+        self.spotsize = spotsize  # um
 
-        self.gradient = 1.0
-        self.intercept = 0.0
+        self.gradient = gradient
+        self.intercept = intercept
 
     def getIsotopes(self):
         return self.data.dtype.names
@@ -28,10 +29,6 @@ class Laser(object):
             self.data = importAgilentBatch(path)
         else:
             print(f'Laser.import: unknown importer \'{importer}\'!')
-
-    def calibrate(self, gradient, intercept):
-        self.gradient = gradient
-        self.intercept = intercept
 
     def getData(self, element=None):
         if element is not None:

@@ -5,39 +5,40 @@ from util.formatter import isotopeFormat
 
 
 class LaserImage(object):
-    def __init__(self, fig, initdata=[[0, 0], [0, 0]], cmap='magma'):
+    def __init__(self, fig, ax, data, extent=None, aspect='auto',
+                 colorbar=True, scalebar=True, label=None,
+                 cmap='magma'):
         self.fig = fig
-        self.cmap = cmap
+        self.ax = ax
 
-        self.ax = self.fig.add_subplot(111)
-        div = make_axes_locatable(self.ax)
-        self.cax = div.append_axes('right', size=0.1, pad=0.05)
-
-        self.im = self.ax.imshow(initdata, cmap=self.cmap,
-                                 interpolation='none')
-        self.fig.colorbar(self.im, cax=self.cax)
-
+        self.im = self.ax.imshow(data, cmap=cmap, interpolation='none',
+                                 extent=extent, aspect=aspect)
         self.ax.set_axis_off()
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
         self.ax.set_facecolor('black')
 
-    def update(self, data, label=None, aspect='auto', extent=None):
-        self.ax.clear()
-        self.cax.clear()
-        # Plot the image
-        self.im = self.ax.imshow(data, cmap=self.cmap,
-                                 interpolation='none',
-                                 extent=extent, aspect=aspect)
-        # Create / update colorbarc
+        if colorbar:
+            self.addColorBar()
+        if scalebar:
+            self.addScaleBar()
+
+        if label is not None:
+            self.addLabel(label)
+
+    def addColorBar(self):
+        self.has_colorbar = True
+        div = make_axes_locatable(self.ax)
+        self.cax = div.append_axes('right', size=0.1, pad=0.05)
         self.fig.colorbar(self.im, cax=self.cax)
-        # Draw scalebar
+
+    def addScaleBar(self):
         scalebar = ScaleBar(1.0, 'um', frameon=False, color='white')
         self.ax.add_artist(scalebar)
-        # Draw isotope label
-        if label is not None:
-            self.ax.annotate(isotopeFormat(label),
-                             xycoords='axes fraction', xy=(0.05, 1.0),
-                             textcoords='offset pixels', xytext=(0, -24),
-                             ha='center',
-                             color='white')
+
+    def addLabel(self, label):
+        self.ax.annotate(isotopeFormat(label),
+                         xycoords='axes fraction', xy=(0.05, 1.0),
+                         textcoords='offset pixels', xytext=(0, -24),
+                         ha='center',
+                         color='white')
