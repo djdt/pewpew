@@ -3,6 +3,7 @@ import sys
 import matplotlib.pyplot as plt
 from util.laser import Laser
 from util.laserimage import LaserImage
+import numpy as np
 
 
 def parse_args(args):
@@ -11,6 +12,8 @@ def parse_args(args):
     parser.add_argument('batchdir', help='Agilent batch directory (.b).')
     parser.add_argument('-i', '--isotopes', nargs='+', default=None,
                         help='isotope to plot.')
+    parser.add_argument('--export', action='store_true',
+                        help='Export selected isotopes to .npy.')
     parser.add_argument('--list', action='store_true',
                         help='List isotopes and exit.')
     parser.add_argument('--scantime', default=0.25, type=float)
@@ -19,7 +22,6 @@ def parse_args(args):
     parser.add_argument('--gradient', default=1.0, type=float)
     parser.add_argument('--intercept', default=0.0, type=float)
     parser.add_argument('--cmap', default='magma',
-                        choices=['viridis', 'plasma', 'inferno', 'magma'],
                         help='Colormap to use.')
     return vars(parser.parse_args(args))
 
@@ -38,6 +40,13 @@ def main(args):
 
     if args['isotopes'] is None:
         args['isotopes'] = laser.getIsotopes()
+
+    if args['export']:
+        print('Exporting:')
+        for i in args['isotopes']:
+            np.save(args['batchdir'].rstrip('/').replace('.b', f'.{i}.npy'),
+                    laser.getData(i))
+        sys.exit(0)
 
     fig, axes = plt.subplots(1, len(args['isotopes']))
 
