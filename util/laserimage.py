@@ -9,13 +9,13 @@ import numpy as np
 class LaserImage(object):
     def __init__(self, fig, ax, data, extent=None, aspect='auto',
                  colorbar='right', scalebar=True, label=None,
-                 vmin=None, vmax=None, cmap='magma'):
+                 vmin='auto', vmax='auto', cmap='magma'):
         self.fig = fig
         self.ax = ax
 
-        if vmin is None:
+        if vmin is 'auto':
             vmin = np.percentile(data, 1)
-        if vmax is None:
+        if vmax is 'auto':
             vmax = np.percentile(data, 99)
 
         self.im = self.ax.imshow(data, cmap=cmap, interpolation='none',
@@ -43,7 +43,7 @@ class LaserImage(object):
         else:
             orientation = 'horizontal'
         self.fig.colorbar(self.im, cax=self.cax, orientation=orientation,
-                          ticks=MaxNLocator(nbins=5))
+                          ticks=MaxNLocator(nbins=6))
 
     def addScaleBar(self):
         scalebar = ScaleBar(1.0, 'um', frameon=False, color='white')

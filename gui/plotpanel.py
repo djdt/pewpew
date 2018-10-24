@@ -15,10 +15,7 @@ class PlotPanel(wx.Panel):
         self.fig = Figure(frameon=False, facecolor='black')
         self.canvas = FigureCanvas(self, wx.ID_ANY, self.fig)
         initdata = np.load('gui/image.npy')
-        print(initdata)
-        self.image = LaserImage(self.fig, initdata=initdata)
-        self.fig.tight_layout()
-        self.canvas.draw()
+        self.update(initdata)
 
         # Now put all into a sizer
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -30,7 +27,10 @@ class PlotPanel(wx.Panel):
         self.canvas.callbacks.connect('motion_notify_event', self.onMotion)
 
     def update(self, data, label=None, aspect='auto', extent=None):
-        self.image.update(data, label, aspect, extent)
+        self.fig.clear()
+        self.axes = self.fig.add_subplot(111)
+        self.image = LaserImage(self.fig, self.axes, data,
+                                label=label, aspect=aspect, extent=extent)
         self.fig.tight_layout()
         self.canvas.draw()
 
