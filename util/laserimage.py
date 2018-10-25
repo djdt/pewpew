@@ -8,7 +8,8 @@ import numpy as np
 
 class LaserImage(object):
     def __init__(self, fig, ax, data, extent=None, aspect='auto',
-                 colorbar='right', scalebar=True, label=None,
+                 colorbar='right', colorbarlabel='',
+                 scalebar=True, label=None,
                  vmin='auto', vmax='auto', cmap='magma'):
         self.fig = fig
         self.ax = ax
@@ -34,7 +35,7 @@ class LaserImage(object):
         if label is not None:
             self.addLabel(label)
 
-    def addColorBar(self, pos):
+    def addColorBar(self, pos, label):
         self.has_colorbar = True
         div = make_axes_locatable(self.ax)
         self.cax = div.append_axes(pos, size=0.1, pad=0.05)
@@ -42,7 +43,8 @@ class LaserImage(object):
             orientation = 'vertical'
         else:
             orientation = 'horizontal'
-        self.fig.colorbar(self.im, cax=self.cax, orientation=orientation,
+        self.fig.colorbar(self.im, label=label,
+                          cax=self.cax, orientation=orientation,
                           ticks=MaxNLocator(nbins=6))
 
     def addScaleBar(self):
