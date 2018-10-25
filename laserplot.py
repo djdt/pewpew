@@ -30,7 +30,7 @@ def main(args):
     laser = Laser(spotsize=args['spotsize'], speed=args['speed'],
                   scantime=args['scantime'], gradient=args['gradient'],
                   intercept=args['intercept'])
-    laser.importData(args['batchdir'], importer='Agilent')
+    laser.importData(args['batchdir'], importer=args['importer'])
 
     if args['list']:
         print('Isotopes:')
