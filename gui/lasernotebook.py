@@ -5,9 +5,11 @@ from util.importers import importAgilentBatch
 from util.laser import LaserParams
 import os.path
 
+# Noteception, batch -> isotopes
+
 
 class LaserPage(PlotPage):
-    def __init__(self, parent, data, label, params):
+    def __init__(self, parent, data, isotope):
         PlotPage.__init__(self, parent)
         # self.fig = Figure(frameon=False, facecolor='black')
         # self.canvas = FigureCanvasWxAgg(self, wx.ID_ANY, self.fig)
@@ -15,9 +17,9 @@ class LaserPage(PlotPage):
         # sizer.Add(self.nb, 1, wx.EXPAND)
         # self.SetSizer(sizer)
         ax = self.fig.add_subplot(111)
-        LaserImage(self.fig, ax, data, label=label,
-                   aspect=params.aspect(),
-                   extent=params.extent(*data.shape))
+        LaserImage(self.fig, ax, data[label], label=label,
+                   aspect=data.aspect(),
+                   extent=data.extent())
         self.fig.tight_layout()
         self.canvas.draw()
 
@@ -49,4 +51,5 @@ class LaserNoteBook(PlotNoteBook):
 
         for i in data.dtype.names:
             name = f'{os.path.basename(batch)}:{i}'
-            self.add(name, i, data[i])
+            page = LaserPage(self.nb, data, label, self.params)
+            self.nb.AddPage(page, name)
