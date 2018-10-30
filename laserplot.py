@@ -1,8 +1,9 @@
 import argparse
 import sys
 import matplotlib.pyplot as plt
-from util.laser import Laser
+from util.laser import LaserData, LaserParams
 from util.laserimage import LaserImage
+from util.importers import importAgilentBatch
 import numpy as np
 
 
@@ -27,25 +28,26 @@ def parse_args(args):
 
 
 def main(args):
-    laser = Laser(spotsize=args['spotsize'], speed=args['speed'],
-                  scantime=args['scantime'], gradient=args['gradient'],
-                  intercept=args['intercept'])
-    laser.importData(args['batchdir'], importer=args['importer'])
+    param = LaserParams(spotsize=args['spotsize'], speed=args['speed'],
+                        scantime=args['scantime'], gradient=args['gradient'],
+                        intercept=args['intercept'])
+
+    laser = LaserData(importAgilentBatch(args['batchdir']), param)
 
     if args['list']:
         print('Isotopes:')
-        for i in laser.getIsotopes():
+        for i in laser.isotopes():
             print('\t' + i)
         sys.exit(0)
 
     if args['isotopes'] is None:
-        args['isotopes'] = laser.getIsotopes()
+        args['isotopes'] = laser.isotopes()
 
     if args['export']:
         print('Exporting:')
         for i in args['isotopes']:
             np.save(args['batchdir'].rstrip('/').replace('.b', f'.{i}.npy'),
-                    laser.getData(i))
+                    laser.get(i))
         sys.exit(0)
 
     fig, axes = plt.subplots(1, len(args['isotopes']))
@@ -55,9 +57,9 @@ def main(args):
 
     for ax, label in zip(axes, args['isotopes']):
         print(label)
-        data = laser.getData(label)
+        data = laser.get(label)
         LaserImage(fig, ax, data, label=label,
-                   extent=laser.getExtent(), aspect=laser.getAspect(),
+                   extent=laser.extent(), aspect=laser.aspect(),
                    cmap=args['cmap'])
 
     plt.show()

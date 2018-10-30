@@ -28,7 +28,7 @@ class LaserImage(object):
         self.ax.set_facecolor('black')
 
         if colorbar not in ['none', None]:
-            self.addColorBar(colorbar)
+            self.addColorBar(colorbar, colorbarlabel)
         if scalebar:
             self.addScaleBar()
 
