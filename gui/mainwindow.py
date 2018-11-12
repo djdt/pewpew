@@ -1,7 +1,8 @@
 import wx
 from util.laser import LaserParams
 # from gui.plotpanel import PlotPanel
-from gui.lasernotebook import LaserNoteBook
+# from gui.lasernotebook import LaserNoteBook
+from gui.batchnotebook import BatchNotebook
 
 
 class MainWindow(wx.Frame):
@@ -22,7 +23,7 @@ class MainWindow(wx.Frame):
 
         # Left side (image and isotope selector)
         # self.plot = PlotPanel(self)
-        self.nb = LaserNoteBook(self)
+        self.nb = BatchNotebook(self)
         # boxLeft.Add(self.nb, 1, wx.ALL | wx.EXPAND | wx.GROW, 5)
 
         # self.isotopeCombo = wx.ComboBox(self, value="Isotope")
@@ -41,17 +42,17 @@ class MainWindow(wx.Frame):
         gridParams.Add(wx.StaticText(self, label="Scantime (s)"),
                        0, wx.ALL | wx.ALIGN_CENTER, 5)
         # TODO add validators to check input
-        self.ctrlScantime = wx.TextCtrl(self, value=str(self.nb.params.scantime))
-        gridParams.Add(self.ctrlScantime, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        gridParams.Add(wx.StaticText(self, label="Speed (μm/s)"),
-                       0, wx.ALL | wx.ALIGN_CENTER, 5)
-        self.ctrlSpeed = wx.TextCtrl(self, value=str(self.nb.params.speed))
-        gridParams.Add(self.ctrlSpeed, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        gridParams.Add(wx.StaticText(self, label="Spotsize (μm)"),
-                       0, wx.ALL | wx.ALIGN_CENTER, 5)
-        self.ctrlSpotsize = wx.TextCtrl(self, value=str(self.nb.params.spotsize))
-        gridParams.Add(self.ctrlSpotsize, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        boxRight.Add(gridParams, 0, wx.EXPAND, 5)
+        # self.ctrlScantime = wx.TextCtrl(self, value=str(self.nb.params.scantime))
+        # gridParams.Add(self.ctrlScantime, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        # gridParams.Add(wx.StaticText(self, label="Speed (μm/s)"),
+        #                0, wx.ALL | wx.ALIGN_CENTER, 5)
+        # self.ctrlSpeed = wx.TextCtrl(self, value=str(self.nb.params.speed))
+        # gridParams.Add(self.ctrlSpeed, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        # gridParams.Add(wx.StaticText(self, label="Spotsize (μm)"),
+        #                0, wx.ALL | wx.ALIGN_CENTER, 5)
+        # self.ctrlSpotsize = wx.TextCtrl(self, value=str(self.nb.params.spotsize))
+        # gridParams.Add(self.ctrlSpotsize, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        # boxRight.Add(gridParams, 0, wx.EXPAND, 5)
 
         boxRight.Add(wx.StaticLine(self), 0, wx.ALL | wx.EXPAND, 5)
 
@@ -106,8 +107,8 @@ class MainWindow(wx.Frame):
         pass
 
     # Menu Events
-    def onComboIsotope(self, e):
-        self.updateImage()
+    # def onComboIsotope(self, e):
+    #     self.updateImage()
 
     def onCalibrate(self, e):
         pass
