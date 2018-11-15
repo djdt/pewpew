@@ -1,29 +1,48 @@
 from util.laserimage import LaserImage
 from util.laser import LaserData
-from gui.plotnotebook import PlotPage
+
+from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
+from matplotlib.figure import Figure
 
 import wx
-from wx.lib.agw.aui import AuiNotebook
+from wx.aui import AuiNotebook
 
 
-class LaserNoteBook(wx.Panel):
-    def __init__(self, parent, data, params):
+class LaserNoteBookPage(wx.Panel):
+    def __init__(self, parent, isotope):
         wx.Panel.__init__(self, parent, wx.ID_ANY)
-        self.nb = AuiNotebook(self)
+        self.isotope = isotope
+
+        self.fig = Figure(frameon=False, facecolor='black')
+        self.canvas = FigureCanvasWxAgg(self, wx.ID_ANY, self.fig)
         sizer = wx.BoxSizer()
-        sizer.Add(self.nb, 1, wx.EXPAND)
+        sizer.Add(self.canvas, 1, wx.EXPAND)
         self.SetSizer(sizer)
 
+    def draw(self, data):
+        self.fig.clear()
+        ax = self.fig.add_subplot(111)
+        LaserImage(self.fig, ax, data.get(self.isotope), label=self.isotope,
+                   aspect=data.aspect(), extent=data.extent())
+        self.canvas.draw()
+
+
+class LaserNoteBook(AuiNotebook):
+    def __init__(self, parent, data, params):
+        wx.Panel.__init__(self, parent, wx.ID_ANY)
         self.data = LaserData(data, params)
 
     def addIsotopes(self):
         for isotope in self.data.isotopes():
             page = self.add(isotope)
-            ax = page.fig.add_subplot(111)
-            LaserImage(page.fig, ax, self.data.get(isotope), label=isotope,
-                       aspect=self.data.aspect(), extent=self.data.extent())
+            page.draw(self.data)
 
-    def add(self, name):
-        page = PlotPage(self.nb)
-        self.nb.AddPage(page, name)
+    def add(self, isotope):
+        page = LaserNoteBookPage(self, isotope)
+        self.AddPage(page, isotope)
         return page
+
+    def update(self):
+        for i in range(0, self.GetPageCount()):
+            page = self.GetPage(i)
+            page.draw(self.data)

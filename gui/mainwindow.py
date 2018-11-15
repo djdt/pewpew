@@ -1,4 +1,5 @@
 import wx
+import wx.aui
 from util.laser import LaserParams
 # from gui.plotpanel import PlotPanel
 # from gui.lasernotebook import LaserNoteBook
@@ -8,6 +9,7 @@ from gui.batchnotebook import BatchNotebook
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
         # self.laser = Laser()
+        self.params = LaserParams()
 
         wx.Frame.__init__(self, parent, title=title, size=(700, 500))
         self.CreateStatusBar()
@@ -24,6 +26,8 @@ class MainWindow(wx.Frame):
         # Left side (image and isotope selector)
         # self.plot = PlotPanel(self)
         self.nb = BatchNotebook(self)
+        self.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CHANGED,
+                  self.onNoteBookChanged, self.nb)
         # boxLeft.Add(self.nb, 1, wx.ALL | wx.EXPAND | wx.GROW, 5)
 
         # self.isotopeCombo = wx.ComboBox(self, value="Isotope")
@@ -42,17 +46,22 @@ class MainWindow(wx.Frame):
         gridParams.Add(wx.StaticText(self, label="Scantime (s)"),
                        0, wx.ALL | wx.ALIGN_CENTER, 5)
         # TODO add validators to check input
-        # self.ctrlScantime = wx.TextCtrl(self, value=str(self.nb.params.scantime))
-        # gridParams.Add(self.ctrlScantime, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        # gridParams.Add(wx.StaticText(self, label="Speed (μm/s)"),
-        #                0, wx.ALL | wx.ALIGN_CENTER, 5)
-        # self.ctrlSpeed = wx.TextCtrl(self, value=str(self.nb.params.speed))
-        # gridParams.Add(self.ctrlSpeed, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        # gridParams.Add(wx.StaticText(self, label="Spotsize (μm)"),
-        #                0, wx.ALL | wx.ALIGN_CENTER, 5)
-        # self.ctrlSpotsize = wx.TextCtrl(self, value=str(self.nb.params.spotsize))
-        # gridParams.Add(self.ctrlSpotsize, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        # boxRight.Add(gridParams, 0, wx.EXPAND, 5)
+        self.ctrlScantime = wx.TextCtrl(self, value=str(self.params.scantime))
+        gridParams.Add(self.ctrlScantime, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        gridParams.Add(wx.StaticText(self, label="Speed (μm/s)"),
+                       0, wx.ALL | wx.ALIGN_CENTER, 5)
+        self.ctrlSpeed = wx.TextCtrl(self, value=str(self.params.speed))
+        gridParams.Add(self.ctrlSpeed, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        gridParams.Add(wx.StaticText(self, label="Spotsize (μm)"),
+                       0, wx.ALL | wx.ALIGN_CENTER, 5)
+        self.ctrlSpotsize = wx.TextCtrl(self, value=str(self.params.spotsize))
+        gridParams.Add(self.ctrlSpotsize, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+        bUpdate = wx.Button(self, label="Update")
+
+        boxRight.Add(gridParams, 0, wx.EXPAND, 5)
+        boxRight.Add(bUpdate, 0, wx.ALL | wx.ALIGN_CENTER, 5)
+
+        self.Bind(wx.EVT_BUTTON, self.onButtonUpdate, bUpdate)
 
         boxRight.Add(wx.StaticLine(self), 0, wx.ALL | wx.EXPAND, 5)
 
@@ -113,6 +122,21 @@ class MainWindow(wx.Frame):
     def onCalibrate(self, e):
         pass
 
+    def onButtonUpdate(self, e):
+        page = self.nb.GetCurrentPage()
+        page.data.params.speed = float(self.ctrlSpeed.GetValue())
+        page.data.params.spotsize = float(self.ctrlSpotsize.GetValue())
+        page.data.params.scantime = float(self.ctrlScantime.GetValue())
+
+        page.update()
+        self.Refresh()
+
+    def onNoteBookChanged(self, e):
+        params = self.nb.GetCurrentPage().data.params
+        self.ctrlSpeed.ChangeValue(str(params.speed))
+        self.ctrlScantime.ChangeValue(str(params.scantime))
+        self.ctrlSpotsize.ChangeValue(str(params.spotsize))
+
     def onOpen(self, e):
         dlg = wx.DirDialog(self, "Select batch directory.", "",
                            wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
@@ -122,7 +146,7 @@ class MainWindow(wx.Frame):
             self.SetStatusText("Invalid batch directory.")
         else:
             # Load the layer
-            self.nb.addBatch(batch, importer='agilent')
+            self.nb.addBatch(batch, importer='agilent', params=self.params)
             # laser = Laser()
             # laser.importData(batchdir, importer='agilent')
             # self.laser.importData(batchdir, importer='Agilent')
