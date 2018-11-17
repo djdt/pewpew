@@ -31,3 +31,8 @@ def coords2index(im, x, y, inverted=False):
         trans = trans.inverted()
 
     return trans.transform_point([y, x]).astype(int)
+
+
+def coords2value(im, x, y, inverted=False):
+    ix, iy = coords2index(im, x, y, inverted)
+    return im.get_array()[ix, iy]
