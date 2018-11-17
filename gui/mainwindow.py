@@ -4,6 +4,7 @@ from util.laser import LaserParams
 # from gui.plotpanel import PlotPanel
 # from gui.lasernotebook import LaserNoteBook
 from gui.batchnotebook import BatchNotebook
+from gui.controls import LaserControls
 
 
 class MainWindow(wx.Frame):
@@ -11,7 +12,7 @@ class MainWindow(wx.Frame):
         # self.laser = Laser()
         self.params = LaserParams()
 
-        wx.Frame.__init__(self, parent, title=title, size=(700, 500))
+        wx.Frame.__init__(self, parent, title=title, size=(1280, 800))
         self.CreateStatusBar()
 
         self.createMenuBar()
@@ -21,55 +22,20 @@ class MainWindow(wx.Frame):
         # Sizers and main panel
         box = wx.BoxSizer(wx.HORIZONTAL)
         # boxLeft = wx.BoxSizer(wx.VERTICAL)
-        boxRight = wx.BoxSizer(wx.VERTICAL)
 
         # Left side (image and isotope selector)
         # self.plot = PlotPanel(self)
         self.nb = BatchNotebook(self)
         self.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CHANGED,
                   self.onNoteBookChanged, self.nb)
-        # boxLeft.Add(self.nb, 1, wx.ALL | wx.EXPAND | wx.GROW, 5)
 
-        # self.isotopeCombo = wx.ComboBox(self, value="Isotope")
-        # self.isotopeCombo.SetEditable(False)
-        # self.Bind(wx.EVT_COMBOBOX, self.onComboIsotope, self.isotopeCombo)
-        # boxLeft.Add(self.isotopeCombo, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
+        self.controls = LaserControls(self, self.params)
+        self.Bind(wx.EVT_BUTTON, self.onControlUpdate, self.controls.button)
 
-        # Right side, inputs
-        boxRight.Add(wx.StaticText(self, label="Laser parameters"),
-                     0, wx.ALL | wx.CENTER, 5)
-
-        boxRight.Add(wx.StaticLine(self), 0, wx.ALL | wx.EXPAND, 5)
-
-        # # Grid for laser params
-        gridParams = wx.GridSizer(0, 2, 0, 0)
-        gridParams.Add(wx.StaticText(self, label="Scantime (s)"),
-                       0, wx.ALL | wx.ALIGN_CENTER, 5)
-        # TODO add validators to check input
-        self.ctrlScantime = wx.TextCtrl(self, value=str(self.params.scantime))
-        gridParams.Add(self.ctrlScantime, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        gridParams.Add(wx.StaticText(self, label="Speed (μm/s)"),
-                       0, wx.ALL | wx.ALIGN_CENTER, 5)
-        self.ctrlSpeed = wx.TextCtrl(self, value=str(self.params.speed))
-        gridParams.Add(self.ctrlSpeed, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        gridParams.Add(wx.StaticText(self, label="Spotsize (μm)"),
-                       0, wx.ALL | wx.ALIGN_CENTER, 5)
-        self.ctrlSpotsize = wx.TextCtrl(self, value=str(self.params.spotsize))
-        gridParams.Add(self.ctrlSpotsize, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-        bUpdate = wx.Button(self, label="Update")
-
-        boxRight.Add(gridParams, 0, wx.EXPAND, 5)
-        boxRight.Add(bUpdate, 0, wx.ALL | wx.ALIGN_CENTER, 5)
-
-        self.Bind(wx.EVT_BUTTON, self.onButtonUpdate, bUpdate)
-
-        boxRight.Add(wx.StaticLine(self), 0, wx.ALL | wx.EXPAND, 5)
-
-        box.Add(self.nb, 1, wx.EXPAND, 0)
-        box.Add(boxRight, 0, wx.EXPAND, 0)
+        box.Add(self.nb, 1, wx.EXPAND, 5)
+        box.Add(self.controls, 0, wx.EXPAND | wx.ALL, 5)
         self.SetSizer(box)
         self.Layout()
-        self.Refresh()
 
     def createMenuBar(self):
 
@@ -122,20 +88,16 @@ class MainWindow(wx.Frame):
     def onCalibrate(self, e):
         pass
 
-    def onButtonUpdate(self, e):
+    def onControlUpdate(self, e):
         page = self.nb.GetCurrentPage()
-        page.data.params.speed = float(self.ctrlSpeed.GetValue())
-        page.data.params.spotsize = float(self.ctrlSpotsize.GetValue())
-        page.data.params.scantime = float(self.ctrlScantime.GetValue())
+        params = self.controls.getParams()
+        page.data.params = params
 
         page.update()
-        self.Refresh()
 
     def onNoteBookChanged(self, e):
         params = self.nb.GetCurrentPage().data.params
-        self.ctrlSpeed.ChangeValue(str(params.speed))
-        self.ctrlScantime.ChangeValue(str(params.scantime))
-        self.ctrlSpotsize.ChangeValue(str(params.spotsize))
+        self.controls.updateParams(params)
 
     def onOpen(self, e):
         dlg = wx.DirDialog(self, "Select batch directory.", "",

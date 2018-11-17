@@ -14,6 +14,7 @@ class BatchNotebook(AuiNotebook):
         # sizer = wx.BoxSizer()
         # sizer.Add(self, 1, wx.EXPAND)
         # self.SetSizer(sizer)
+        self.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CLOSED, self.onPageClose)
 
     def add(self, name, data, params):
         page = LaserNoteBook(self, data, params)
@@ -27,3 +28,8 @@ class BatchNotebook(AuiNotebook):
             page.addIsotopes()
         else:
             wx.MessageDialog(self, f"Unknown importer {importer}!")
+
+    def onPageClose(self, e):
+        pageid = e.GetSelection()
+        self.DeletePage(pageid)
+        self.RemovePage(pageid)

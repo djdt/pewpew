@@ -16,21 +16,27 @@ class LaserNoteBookPage(wx.Panel):
         self.fig = Figure(frameon=False, facecolor='black')
         self.canvas = FigureCanvasWxAgg(self, wx.ID_ANY, self.fig)
         sizer = wx.BoxSizer()
-        sizer.Add(self.canvas, 1, wx.EXPAND)
+        sizer.Add(self.canvas, 1, wx.EXPAND | wx.ALL, 2)
         self.SetSizer(sizer)
 
     def draw(self, data):
         self.fig.clear()
         ax = self.fig.add_subplot(111)
-        LaserImage(self.fig, ax, data.get(self.isotope), label=self.isotope,
+        # Calibrate data
+        img = (data.get(self.isotope) - data.params.intercept)\
+            / data.params.gradient
+        LaserImage(self.fig, ax, img, label=self.isotope,
                    aspect=data.aspect(), extent=data.extent())
+        self.fig.tight_layout()
         self.canvas.draw()
 
 
 class LaserNoteBook(AuiNotebook):
     def __init__(self, parent, data, params):
-        wx.Panel.__init__(self, parent, wx.ID_ANY)
+        AuiNotebook.__init__(self, parent, wx.ID_ANY)
+
         self.data = LaserData(data, params)
+        self.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CLOSED, self.onPageClose)
 
     def addIsotopes(self):
         for isotope in self.data.isotopes():
@@ -46,3 +52,9 @@ class LaserNoteBook(AuiNotebook):
         for i in range(0, self.GetPageCount()):
             page = self.GetPage(i)
             page.draw(self.data)
+
+    def onPageClose(self, e):
+        pageid = e.GetSelection()
+        self.DeletePage(pageid)
+        self.RemovePage(pageid)
+        self.Refresh()
