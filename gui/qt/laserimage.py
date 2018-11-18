@@ -10,7 +10,8 @@ from util.plothelpers import coords2value
 class LaserImageDock(QtWidgets.QDockWidget):
     def __init__(self, title, parent=None):
         super().__init__(title, parent)
-        self.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable | QtWidgets.QDockWidget.DockWidgetMovable)
+        self.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable |
+                         QtWidgets.QDockWidget.DockWidgetMovable)
 
         self.fig = Figure(frameon=False)
         self.ax = self.fig.add_subplot(111)
@@ -21,8 +22,8 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
         self.setWidget(self.canvas)
 
-        # self.canvas.mpl_connect('motion_notify_event', self.updateStatusBar)
-        # self.canvas.mpl_connect('axes_leave_event', self.clearStatusBar)
+        self.canvas.mpl_connect('motion_notify_event', self.updateStatusBar)
+        self.canvas.mpl_connect('axes_leave_event', self.clearStatusBar)
 
     def drawImage(self, data, params, label):
         self.ax.clear()
@@ -36,10 +37,10 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
     def updateStatusBar(self, e):
         # TODO make sure no in the color bar axes
-        if e.inaxes:
+        if e.inaxes == self.ax:
             x, y = e.xdata, e.ydata
             v = coords2value(self.lase.im, x, y)
-            self.window().SetStatusText(f"{x:.2f},{y:.2f} [{v}]")
+            self.window().statusBar().showMessage(f"{x:.2f},{y:.2f} [{v}]")
 
     def clearStatusBar(self, e):
-        self.GetTopLevelParent().SetStatusText("")
+        self.window().statusBar().clearMessage()
