@@ -15,3 +15,11 @@ class TabbedDocks(QtWidgets.QMainWindow):
             if self.dockWidgetArea(d) == area and d != dock:
                 self.tabifyDockWidget(d, dock)
                 return
+
+    def tabifyAll(self, area=QtCore.Qt.LeftDockWidgetArea):
+        docks = self.findChildren(QtWidgets.QDockWidget)
+        # self.removeDockWidget(docks[0])
+        self.addDockWidget(docks[0], area)
+
+        for d in docks[1:]:
+            self.tabifyDockWidget(docks[0], d)

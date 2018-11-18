@@ -4,6 +4,9 @@ from util.laser import LaserParams
 # from gui.qt.tabs import BatchTabs
 from gui.qt.tabbeddocks import TabbedDocks
 from gui.qt.controls import Controls
+from gui.qt.laserimage import LaserImageDock
+
+from util.importers import importAgilentBatch
 
 VERSION = "0.0.1"
 
@@ -23,10 +26,6 @@ class MainWindow(QtWidgets.QMainWindow):
         layout = QtWidgets.QHBoxLayout()
 
         self.dockarea = TabbedDocks(self)
-        for i in range(1, 5):
-            d = QtWidgets.QDockWidget(str(i), self.dockarea)
-            d.setWidget(QtWidgets.QWidget())
-            self.dockarea.addDockWidget(d)
         layout.addWidget(self.dockarea)
 
         self.controls = Controls(self)
@@ -37,20 +36,30 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.statusBar().showMessage("Import or open data to begin.")
 
+        data = importAgilentBatch("/home/tom/Downloads/HER2 overnight.b")
+        for n in data.dtype.names:
+            w = LaserImageDock(n, self.dockarea)
+            w.drawImage(data[n], self.params, n)
+            self.dockarea.addDockWidget(w)
+
+
     def createMenus(self):
         # Actions
+        # File
         open_action = QtWidgets.QAction("&Open", self)
-        open_action.setStatusTip("Import LA-ICP-MS data.")
+        open_action.setStatusTip("Open LA-ICP-MS data.")
         open_action.triggered.connect(self.menuOpen)
 
         save_action = QtWidgets.QAction("&Save", self)
-        save_action.setStatusTip("Import LA-ICP-MS data.")
+        save_action.setStatusTip("Save to specified format.")
         save_action.triggered.connect(self.menuSave)
 
         exit_action = QtWidgets.QAction("E&xit", self)
-        exit_action.setStatusTip("Import LA-ICP-MS data.")
+        exit_action.setStatusTip("Quit the program.")
         exit_action.triggered.connect(self.menuExit)
 
+        # View
+        # Help
         about_action = QtWidgets.QAction("&About", self)
         about_action.setStatusTip("Import LA-ICP-MS data.")
         about_action.triggered.connect(self.menuAbout)
@@ -63,6 +72,8 @@ class MainWindow(QtWidgets.QMainWindow):
         file_menu.addAction(exit_action)
 
         edit_menu = self.menuBar().addMenu("&Edit")
+
+        view_menu = self.menuBar().addMenu("&View")
 
         help_menu = self.menuBar().addMenu("&Help")
         help_menu.addAction(about_action)

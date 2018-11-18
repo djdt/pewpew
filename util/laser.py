@@ -16,6 +16,11 @@ class LaserParams(object):
     def aspect(self):
         return 1.0 / ((self.speed * self.scantime) / self.spotsize)
 
+    def extent(self, data_shape):
+        x = data_shape[1] * self.pixelsize()[0]
+        y = data_shape[0] * self.pixelsize()[1]
+        return (0, x, 0, y)
+
 
 class LaserData(object):
     def __init__(self, data, params=LaserParams()):
