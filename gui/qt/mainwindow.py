@@ -3,7 +3,6 @@ from PyQt5 import QtCore, QtWidgets
 from util.laser import LaserParams
 # from gui.qt.tabs import BatchTabs
 from gui.qt.tabbeddocks import TabbedDocks
-from gui.qt.controls import Controls
 from gui.qt.parameterdlg import ParameterDialog
 from gui.qt.laserimage import LaserImageDock
 
@@ -17,7 +16,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.params = LaserParams()
+        self.parameters = LaserParams()
 
         self.setWindowTitle("Laser plot")
         self.resize(1280, 800)
@@ -27,12 +26,7 @@ class MainWindow(QtWidgets.QMainWindow):
         layout = QtWidgets.QHBoxLayout()
 
         self.dockarea = TabbedDocks(self)
-        # self.dockarea.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
-        #                             QtWidgets.QSizePolicy.Expanding)
         layout.addWidget(self.dockarea, 1)
-
-        self.controls = Controls(self)
-        layout.addWidget(self.controls, 0)
 
         widget.setLayout(layout)
 
@@ -41,10 +35,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         data = importAgilentBatch("/home/tom/Downloads/HER2 overnight.b")
         for n in data.dtype.names:
-            w = LaserImageDock(n, self.dockarea)
-            w.drawImage(data[n], self.params, n)
+            w = LaserImageDock(data[n], n, self.parameters,
+                               "/home/tom/Downloads/HER2 overnight.b",
+                               self.dockarea)
+            w.draw()
             self.dockarea.addDockWidget(w)
-
 
     def createMenus(self):
         # Actions
@@ -96,8 +91,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.close()
 
     def menuParameters(self, e):
-        dlg = ParameterDialog(self)
-        dlg.open()
+        dlg = ParameterDialog(self, self.parameters)
+        if dlg.exec():
+            self.parameters = dlg.parameters()
+            if dlg.checkAll.checkState() == QtCore.Qt.Checked:
+                docks = self.dockarea.findChildren(QtWidgets.QDockWidget)
+            else:
+                docks = self.dockarea.visibleDocks()
+            for d in docks:
+                d.params = self.parameters
+                d.draw()
 
     def menuAbout(self, e):
         QtWidgets.QMessageBox.about(

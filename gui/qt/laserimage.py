@@ -8,8 +8,14 @@ from util.plothelpers import coords2value
 
 
 class LaserImageDock(QtWidgets.QDockWidget):
-    def __init__(self, title, parent=None):
-        super().__init__(title, parent)
+    def __init__(self, data, isotope, params, source, parent=None):
+
+        self.data = data
+        self.isotope = isotope
+        self.params = params
+        self.source = source
+
+        super().__init__(isotope, parent)
         self.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable |
                          QtWidgets.QDockWidget.DockWidgetMovable)
 
@@ -25,13 +31,16 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.canvas.mpl_connect('motion_notify_event', self.updateStatusBar)
         self.canvas.mpl_connect('axes_leave_event', self.clearStatusBar)
 
-    def drawImage(self, data, params, label):
+    def draw(self, data=None):
         self.ax.clear()
 
-        img = (data - params.intercept) / params.gradient
-        self.lase = LaserImage(self.fig, self.ax, img, label=label,
-                               aspect=params.aspect(),
-                               extent=params.extent(data.shape))
+        if data is not None:
+            self.data = data
+
+        img = (self.data - self.params.intercept) / self.params.gradient
+        self.lase = LaserImage(self.fig, self.ax, img, label=self.isotope,
+                               aspect=self.params.aspect(),
+                               extent=self.params.extent(self.data.shape))
         self.fig.tight_layout()
         self.canvas.draw()
 

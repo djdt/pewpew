@@ -22,13 +22,20 @@ class ParameterDialog(QtWidgets.QDialog):
             setattr(self, p + "LineEdit", le)
         form.setLayout(formLayout)
 
-        self.buttonBox = QtWidgets.QDialogButtonBox(self)
-        self.buttonBox.addButton("&Update",
-                                 QtWidgets.QDialogButtonBox.AcceptRole)
-        self.buttonBox.addButton("Update &All",
-                                 QtWidgets.QDialogButtonBox.AcceptRole)
-        # self.buttonBox.addButton("&Close",
-        #                          QtWidgets.QDialogButtonBox.RejectRole)
+        self.checkAll = QtWidgets.QCheckBox("Apply parameters to all images.")
+
+        buttonBox = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok, self)
+        buttonBox.accepted.connect(self.accept)
+
         mainLayout.addWidget(form)
-        mainLayout.addWidget(self.buttonBox)
+        mainLayout.addWidget(self.checkAll)
+        mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
+
+    def parameters(self):
+        params = LaserParams()
+        for p in ParameterDialog.EDITABLE_PARAMS:
+            v = float(getattr(self, p + "LineEdit").text())
+            setattr(params, p, v)
+        return params
