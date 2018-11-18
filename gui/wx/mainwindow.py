@@ -53,8 +53,9 @@ class MainWindow(wx.Frame):
 
         # Editmenu
         editMenu = wx.Menu()
-        menuCalibrate = editMenu.Append(wx.ID_INFO, "&Calibration",
-                                        "Set calibration parameters.")
+        menuCalibrate = editMenu.Append(
+            wx.ID_INFO, "&Apply params",
+            "Apply laser parameters to all open batches.")
         self.Bind(wx.EVT_MENU, self.onCalibrate, menuCalibrate)
 
         menuBar.Append(editMenu, "&Edit")
@@ -77,16 +78,6 @@ class MainWindow(wx.Frame):
     #     self.plot.update(data, label=isotope, aspect=self.laser.getAspect(),
     #                      extent=self.laser.getExtent())
     #     self.plot.Refresh()
-
-    def onMousePlot(self, e):
-        pass
-
-    # Menu Events
-    # def onComboIsotope(self, e):
-    #     self.updateImage()
-
-    def onCalibrate(self, e):
-        pass
 
     def onControlUpdate(self, e):
         page = self.nb.GetCurrentPage()
@@ -121,6 +112,9 @@ class MainWindow(wx.Frame):
             # Update image
             # self.updateImage()
         dlg.Destroy()
+
+    def onSave(self, e):
+        pass
 
     def onExit(self, e):
         self.Close(True)
