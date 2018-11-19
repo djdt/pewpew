@@ -28,7 +28,7 @@ class LaserData(object):
         self.data = data
         self.isotope = isotope
         self.config = config
-        self.source = ""
+        self.source = source
 
     def calibrated(self):
         return (self.data - self.config.intercept) / self.config.gradient

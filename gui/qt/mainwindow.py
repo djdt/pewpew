@@ -84,12 +84,12 @@ class MainWindow(QtWidgets.QMainWindow):
         lds = []
         for path in paths:
             ext = os.path.splitext(path)[1].lower()
-            if ext == 'npz':
+            if ext == '.npz':
                 lds += importNpz(path)
-            elif ext == 'csv':
+            elif ext == '.csv':
                 lds.append(importCsv(path))
             else:
-                self.statusBar().setMessage(
+                self.statusBar().showMessage(
                     f"Unknown file type for {os.path.basename(path)}.")
         for ld in lds:
             dock = LaserImageDock(ld, self.dockarea)
@@ -113,7 +113,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 dock.draw()
                 self.dockarea.addDockWidget(dock)
         else:
-            self.statusBar().setMessage(
+            self.statusBar().showMessage(
                 f"Unabled to import {os.path.basename(path)}.")
 
     def menuExit(self):

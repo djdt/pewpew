@@ -6,13 +6,15 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from util.laserimage import LaserImage
 from util.plothelpers import coords2value
 
+import os.path
 
 class LaserImageDock(QtWidgets.QDockWidget):
     def __init__(self, laserdata, parent=None):
 
         self.laserdata = laserdata
+        name = os.path.splitext(os.path.basename(self.laserdata.source))[0]
 
-        super().__init__(self.laserdata.isotope, parent)
+        super().__init__(f"{name}:{self.laserdata.isotope}", parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable |
                          QtWidgets.QDockWidget.DockWidgetMovable)
