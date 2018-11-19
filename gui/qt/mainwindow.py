@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from util.laser import LaserData, LaserConfig
 from gui.qt.tabbeddocks import TabbedDocks
@@ -7,6 +7,8 @@ from gui.qt.laserimage import LaserImageDock
 
 from util.importer import importNpz, importCsv, importAgilentBatch
 from util.exporter import exportNpz, exportCsv
+
+import os.path
 
 VERSION = "0.0.1"
 
@@ -33,79 +35,91 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.statusBar().showMessage("Import or open data to begin.")
 
-        data = importAgilentBatch("/home/tom/Downloads/HER2 overnight.b/",
-                                  self.config)
-        for d in data:
-            w = LaserImageDock(d, self.dockarea)
-            w.draw()
-            self.dockarea.addDockWidget(w)
-
     def createMenus(self):
-        # Actions
         # File
-        open_action = QtWidgets.QAction("&Open", self)
-        open_action.setStatusTip("Open LA-ICP-MS data.")
-        open_action.triggered.connect(self.menuOpen)
+        filemenu = self.menuBar().addMenu("&File")
+        openaction = filemenu.addAction(
+            QtGui.QIcon.fromTheme('document-open'), "&Open")
+        openaction.setShortcut("Ctrl+O")
+        openaction.setStatusTip("Open LA-ICP-MS data.")
+        openaction.triggered.connect(self.menuOpen)
 
-        save_action = QtWidgets.QAction("&Save", self)
-        save_action.setStatusTip("Save to specified format.")
-        save_action.triggered.connect(self.menuSave)
+        saveaction = filemenu.addAction(
+            QtGui.QIcon.fromTheme('document-save'), "&Save")
+        saveaction.setShortcut("Ctrl+S")
+        saveaction.setStatusTip("Save to specified format.")
+        saveaction.triggered.connect(self.menuSave)
 
-        exit_action = QtWidgets.QAction("E&xit", self)
-        exit_action.setStatusTip("Quit the program.")
-        exit_action.triggered.connect(self.menuExit)
+        filemenu.addSeparator()
+
+        # File -> Import
+        importmenu = filemenu.addMenu("&Import")
+        importaction = importmenu.addAction("Agilent Batch")
+        importaction.setStatusTip("Import Agilent data (.b).")
+        importaction.triggered.connect(self.menuImportAgilent)
+
+        exitaction = filemenu.addAction(
+            QtGui.QIcon.fromTheme('application-exit'), "E&xit")
+        exitaction.setStatusTip("Quit the program.")
+        exitaction.triggered.connect(self.menuExit)
 
         # Edit
-        config_action = QtWidgets.QAction("&Config", self)
-        config_action.setStatusTip("Update the LA-ICP paramaters.")
-        config_action.triggered.connect(self.menuConfig)
+        editmenu = self.menuBar().addMenu("&Edit")
+        configaction = editmenu.addAction(
+            QtGui.QIcon.fromTheme('document-properties'), "Config")
+        configaction.setStatusTip("Update the LA-ICP paramaters.")
+        configaction.triggered.connect(self.menuConfig)
         # View
+        viewmenu = self.menuBar().addMenu("&View")
         # Help
-        about_action = QtWidgets.QAction("&About", self)
-        about_action.setStatusTip("Import LA-ICP-MS data.")
-        about_action.triggered.connect(self.menuAbout)
+        helpmenu = self.menuBar().addMenu("&Help")
+        aboutaction = helpmenu.addAction(
+            QtGui.QIcon.fromTheme('help-about'), "&About")
+        aboutaction.setStatusTip("Import LA-ICP-MS data.")
+        aboutaction.triggered.connect(self.menuAbout)
 
-        # Menus
-        file_menu = self.menuBar().addMenu("&File")
-        file_menu.addAction(open_action)
-        file_menu.addAction(save_action)
-        file_menu.addSeparator()
-        file_menu.addAction(exit_action)
-
-        edit_menu = self.menuBar().addMenu("&Edit")
-        edit_menu.addAction(config_action)
-
-        view_menu = self.menuBar().addMenu("&View")
-
-        help_menu = self.menuBar().addMenu("&Help")
-        help_menu.addAction(about_action)
-
-    def menuOpen(self, e):
+    def menuOpen(self):
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-            self, "Select file(s) to open.", "",
-            "(*.npz *.csv)")
+            self, "Select file(s) to open.", "", "(*.npz *.csv);;All files(*)")
         lds = []
         for path in paths:
-            if path.lower().endswith('npz'):
+            ext = os.path.splitext(path)[1].lower()
+            if ext == 'npz':
                 lds += importNpz(path)
-            else:
+            elif ext == 'csv':
                 lds.append(importCsv(path))
+            else:
+                self.statusBar().setMessage(
+                    f"Unknown file type for {os.path.basename(path)}.")
         for ld in lds:
             dock = LaserImageDock(ld, self.dockarea)
             dock.draw()
             self.dockarea.addDockWidget(dock)
 
-    def menuSave(self, e):
+    def menuSave(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save file.", "", "(*.npz)")
+            self, "Save file.", "", "Numpy Archive(*.npz);;All files(*)")
         lds = [d.laserdata for d in
                self.dockarea.findChildren(QtWidgets.QDockWidget)]
         exportNpz(path, lds)
 
-    def menuExit(self, e):
+    def menuImportAgilent(self):
+        path = QtWidgets.QFileDialog.getExistingDirectory(
+            self, "Batch directory", "")
+        if path.endswith('.b'):
+            lds = importAgilentBatch(path, self.config)
+            for ld in lds:
+                dock = LaserImageDock(ld, self.dockarea)
+                dock.draw()
+                self.dockarea.addDockWidget(dock)
+        else:
+            self.statusBar().setMessage(
+                f"Unabled to import {os.path.basename(path)}.")
+
+    def menuExit(self):
         self.close()
 
-    def menuConfig(self, e):
+    def menuConfig(self):
         dlg = ConfigDialog(self, self.config)
         if dlg.exec():
             self.config = dlg.config()
@@ -117,7 +131,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 d.config = self.config
                 d.draw()
 
-    def menuAbout(self, e):
+    def menuAbout(self):
         QtWidgets.QMessageBox.about(
             self, "About Laser plot",
             ("Visualiser / converter for LA-ICP-MS data.\n"

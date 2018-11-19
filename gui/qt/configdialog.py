@@ -13,7 +13,7 @@ class ConfigDialog(QtWidgets.QDialog):
 
         form = QtWidgets.QGroupBox()
         formLayout = QtWidgets.QFormLayout()
-        for p in LaserConfig.EDITABLE_PARAMS:
+        for p in LaserConfig.EDITABLE:
             le = QtWidgets.QLineEdit(str(getattr(configs, p, 0.0)))
             formLayout.addRow(p.capitalize() + ":", le)
             setattr(self, p + "LineEdit", le)
