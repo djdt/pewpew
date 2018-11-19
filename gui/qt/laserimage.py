@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -16,6 +16,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.source = source
 
         super().__init__(isotope, parent)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable |
                          QtWidgets.QDockWidget.DockWidgetMovable)
 
@@ -53,3 +54,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
     def clearStatusBar(self, e):
         self.window().statusBar().clearMessage()
+
+    def close(self):
+        super().close()
+        self.destroy()
