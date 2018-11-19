@@ -1,10 +1,10 @@
 from PyQt5 import QtCore, QtWidgets
 
-from util.laser import LaserParams
+from util.laser import LaserConfig
 
 
-class ParameterDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None, parameters=LaserParams()):
+class ConfigDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None, configs=LaserConfig()):
         super().__init__(parent)
 
         self.resize(540, 320)
@@ -13,13 +13,13 @@ class ParameterDialog(QtWidgets.QDialog):
 
         form = QtWidgets.QGroupBox()
         formLayout = QtWidgets.QFormLayout()
-        for p in LaserParams.EDITABLE_PARAMS:
-            le = QtWidgets.QLineEdit(str(getattr(parameters, p, 0.0)))
+        for p in LaserConfig.EDITABLE_PARAMS:
+            le = QtWidgets.QLineEdit(str(getattr(configs, p, 0.0)))
             formLayout.addRow(p.capitalize() + ":", le)
             setattr(self, p + "LineEdit", le)
         form.setLayout(formLayout)
 
-        self.checkAll = QtWidgets.QCheckBox("Apply parameters to all images.")
+        self.checkAll = QtWidgets.QCheckBox("Apply configs to all images.")
 
         buttonBox = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok, self)
@@ -30,9 +30,9 @@ class ParameterDialog(QtWidgets.QDialog):
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
 
-    def parameters(self):
-        params = LaserParams()
-        for p in LaserParams.EDITABLE_PARAMS:
+    def configs(self):
+        config = LaserConfig()
+        for p in LaserConfig.EDITABLE:
             v = float(getattr(self, p + "LineEdit").text())
-            setattr(params, p, v)
-        return params
+            setattr(config, p, v)
+        return config

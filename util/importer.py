@@ -2,8 +2,32 @@ import numpy as np
 import os
 import re
 
+from util.laser import LaserData, LaserConfig
 
-def importAgilentBatch(path):
+
+def importNpz(path):
+    lds = []
+    npz = np.load(path)
+
+    for isotope, config in zip(npz['isotopes'], npz['configs']):
+        lds.append(LaserData(
+            isotope=isotope, config=config, data=npz[isotope], source=path))
+    return lds
+
+
+def importCsv(path):
+    with open(path, 'r') as fp:
+        isotope = fp.readline().rstrip()
+        config = LaserConfig()
+        sconfig = fp.readline().split(',')
+        for sp in sconfig:
+            k, v = sp.split('=')
+            config[k] = v
+        data = np.loadtxt(fp)
+    return LaserData(isotope=isotope, config=config, data=data, source=path)
+
+
+def importAgilentBatch(path, config=LaserConfig()):
     data_files = []
     with os.scandir(path) as it:
         for entry in it:
@@ -18,7 +42,14 @@ def importAgilentBatch(path):
              skip_header=3, skip_footer=1) for f in data_files]
     layer = np.vstack(lines)
     # return layer[list(layer.dtype.names[1:])]  # Remove times
-    return layer[list(layer.dtype.names[1:])]  # Remove times
+
+    lds = []
+    for name in layer.dtype.names[1:]:  # Remove times
+        lds.append(LaserData(isotope=name, config=config, source=path,
+                             data=layer[name]))
+    return lds
+    # return layer[list(layer.dtype.names[1:])]  # Remove times
+
 
 def importCSVFromThatGermanThing(path):
     datare = re.compile(r'MainRuns;\d+;(\d+\w+);Counter;(.*)')
@@ -47,11 +78,3 @@ def importCSVFromThatGermanThing(path):
     for k in keys:
         structured[k] = data[k]
     return structured
-
-if __name__ == "__main__":
-
-    f = "/home/tom/Downloads/20180509_her2_1.csv"
-    data = importCSVFromThatGermanThing(f)
-    for i in data.dtype.names:
-        np.save(f"{os.path.basename(f)}.{i}.npy", data[i])
-

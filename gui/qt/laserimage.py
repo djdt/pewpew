@@ -8,14 +8,11 @@ from util.plothelpers import coords2value
 
 
 class LaserImageDock(QtWidgets.QDockWidget):
-    def __init__(self, data, isotope, params, source, parent=None):
+    def __init__(self, laserdata, parent=None):
 
-        self.data = data
-        self.isotope = isotope
-        self.params = params
-        self.source = source
+        self.laserdata = laserdata
 
-        super().__init__(isotope, parent)
+        super().__init__(self.laserdata.isotope, parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable |
                          QtWidgets.QDockWidget.DockWidgetMovable)
@@ -32,16 +29,16 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.canvas.mpl_connect('motion_notify_event', self.updateStatusBar)
         self.canvas.mpl_connect('axes_leave_event', self.clearStatusBar)
 
-    def draw(self, data=None):
+    def draw(self, laserdata=None):
         self.ax.clear()
 
-        if data is not None:
-            self.data = data
+        if laserdata is not None:
+            self.laserdata = laserdata
 
-        img = (self.data - self.params.intercept) / self.params.gradient
-        self.lase = LaserImage(self.fig, self.ax, img, label=self.isotope,
-                               aspect=self.params.aspect(),
-                               extent=self.params.extent(self.data.shape))
+        self.lase = LaserImage(self.fig, self.ax, self.laserdata.calibrated(),
+                               label=self.laserdata.isotope,
+                               aspect=self.laserdata.aspect(),
+                               extent=self.laserdata.extent())
         self.fig.tight_layout()
         self.canvas.draw()
 
