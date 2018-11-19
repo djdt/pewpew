@@ -1,12 +1,13 @@
 from PyQt5 import QtCore, QtWidgets
 
-from util.laser import LaserParams
-# from gui.qt.tabs import BatchTabs
+from util.laser import LaserData, LaserConfig
+from gui.qt.tabs import BatchTabs
 from gui.qt.tabbeddocks import TabbedDocks
 from gui.qt.parameterdlg import ParameterDialog
 from gui.qt.laserimage import LaserImageDock
 
 from util.importers import importAgilentBatch
+from util.exporters import saveNpz
 
 VERSION = "0.0.1"
 
@@ -16,7 +17,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.parameters = LaserParams()
+        self.config = LaserConfig()
 
         self.setWindowTitle("Laser plot")
         self.resize(1280, 800)
@@ -33,10 +34,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.statusBar().showMessage("Import or open data to begin.")
 
-        data = importAgilentBatch("/home/tom/Downloads/HER2 overnight.b")
+        data = importAgilentBatch("/home/tom/Downloads/M1 LUNG 100.b/")
         for n in data.dtype.names:
-            w = LaserImageDock(data[n], n, self.parameters,
-                               "/home/tom/Downloads/HER2 overnight.b",
+            w = LaserImageDock(data[n], n, self.config,
+                               "/home/tom/Downloads/M1 LUNG 100.b/",
                                self.dockarea)
             w.draw()
             self.dockarea.addDockWidget(w)
@@ -57,9 +58,9 @@ class MainWindow(QtWidgets.QMainWindow):
         exit_action.triggered.connect(self.menuExit)
 
         # Edit
-        params_action = QtWidgets.QAction("&Parameters", self)
-        params_action.setStatusTip("Update the LA-ICP paramaters.")
-        params_action.triggered.connect(self.menuParameters)
+        config_action = QtWidgets.QAction("&Config", self)
+        config_action.setStatusTip("Update the LA-ICP paramaters.")
+        config_action.triggered.connect(self.menuConfig)
         # View
         # Help
         about_action = QtWidgets.QAction("&About", self)
@@ -74,7 +75,7 @@ class MainWindow(QtWidgets.QMainWindow):
         file_menu.addAction(exit_action)
 
         edit_menu = self.menuBar().addMenu("&Edit")
-        edit_menu.addAction(params_action)
+        edit_menu.addAction(config_action)
 
         view_menu = self.menuBar().addMenu("&View")
 
@@ -82,24 +83,37 @@ class MainWindow(QtWidgets.QMainWindow):
         help_menu.addAction(about_action)
 
     def menuOpen(self, e):
-        pass
+        paths = QtWidgets.QFileDialog.getOpenFileNames(
+            self, "Select file(s) to open.", "",
+            "Numpy archive (*.npz);;Csv (*.csv)")
+        lds = []
+        for path in paths:
+            if path.lower().endswith('npz'):
+                lds += LaserData.open(path)
+            else:
+                lds.append(importCsv(path))
+
 
     def menuSave(self, e):
-        pass
+        path = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Save file.", "", "Numpy archive (*.npz)")
+        lds = [d.data for d in
+               self.dockarea.findChildren(QtWidgets.QDockWidget)]
+        LaserData.save(path, lds)
 
     def menuExit(self, e):
         self.close()
 
-    def menuParameters(self, e):
-        dlg = ParameterDialog(self, self.parameters)
+    def menuConfig(self, e):
+        dlg = ParameterDialog(self, self.config)
         if dlg.exec():
-            self.parameters = dlg.parameters()
+            self.config = dlg.config()
             if dlg.checkAll.checkState() == QtCore.Qt.Checked:
                 docks = self.dockarea.findChildren(QtWidgets.QDockWidget)
             else:
                 docks = self.dockarea.visibleDocks()
             for d in docks:
-                d.params = self.parameters
+                d.config = self.config
                 d.draw()
 
     def menuAbout(self, e):

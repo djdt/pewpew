@@ -4,9 +4,6 @@ from util.laser import LaserParams
 
 
 class ParameterDialog(QtWidgets.QDialog):
-    EDITABLE_PARAMS = ['spotsize', 'speed', 'scantime', 'gradient',
-                       'intercept']
-
     def __init__(self, parent=None, parameters=LaserParams()):
         super().__init__(parent)
 
@@ -16,7 +13,7 @@ class ParameterDialog(QtWidgets.QDialog):
 
         form = QtWidgets.QGroupBox()
         formLayout = QtWidgets.QFormLayout()
-        for p in ParameterDialog.EDITABLE_PARAMS:
+        for p in LaserParams.EDITABLE_PARAMS:
             le = QtWidgets.QLineEdit(str(getattr(parameters, p, 0.0)))
             formLayout.addRow(p.capitalize() + ":", le)
             setattr(self, p + "LineEdit", le)
@@ -35,7 +32,7 @@ class ParameterDialog(QtWidgets.QDialog):
 
     def parameters(self):
         params = LaserParams()
-        for p in ParameterDialog.EDITABLE_PARAMS:
+        for p in LaserParams.EDITABLE_PARAMS:
             v = float(getattr(self, p + "LineEdit").text())
             setattr(params, p, v)
         return params

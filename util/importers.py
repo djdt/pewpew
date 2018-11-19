@@ -2,6 +2,7 @@ import numpy as np
 import os
 import re
 
+
 def importAgilentBatch(path):
     data_files = []
     with os.scandir(path) as it:
@@ -16,8 +17,8 @@ def importAgilentBatch(path):
              f, delimiter=',', names=True,
              skip_header=3, skip_footer=1) for f in data_files]
     layer = np.vstack(lines)
+    # return layer[list(layer.dtype.names[1:])]  # Remove times
     return layer[list(layer.dtype.names[1:])]  # Remove times
-
 
 def importCSVFromThatGermanThing(path):
     datare = re.compile(r'MainRuns;\d+;(\d+\w+);Counter;(.*)')
