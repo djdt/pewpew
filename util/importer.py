@@ -2,7 +2,7 @@ import numpy as np
 import os
 import re
 
-from util.laser import LaserData, LaserConfig
+from util.laser import LaserData
 
 
 def importNpz(path):
@@ -18,7 +18,7 @@ def importNpz(path):
 def importCsv(path):
     with open(path, 'r') as fp:
         isotope = fp.readline().rstrip()
-        config = LaserConfig()
+        config = LaserData.DEFAULT_CONFIG
         sconfig = fp.readline().split(',')
         for sp in sconfig:
             k, v = sp.split('=')
@@ -27,7 +27,7 @@ def importCsv(path):
     return LaserData(isotope=isotope, config=config, data=data, source=path)
 
 
-def importAgilentBatch(path, config=LaserConfig()):
+def importAgilentBatch(path, config=LaserData.DEFAULT_CONFIG):
     data_files = []
     with os.scandir(path) as it:
         for entry in it:

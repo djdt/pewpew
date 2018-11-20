@@ -1,5 +1,7 @@
 from PyQt5 import QtCore, QtWidgets
 
+import matplotlib
+matplotlib.use('Qt5Agg')
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 
@@ -7,6 +9,7 @@ from util.laserimage import LaserImage
 from util.plothelpers import coords2value
 
 import os.path
+
 
 class LaserImageDock(QtWidgets.QDockWidget):
     def __init__(self, laserdata, parent=None):
@@ -23,21 +26,25 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.ax = self.fig.add_subplot(111)
         self.canvas = FigureCanvasQTAgg(self.fig)
         self.canvas.setStyleSheet("background-color:transparent;")
-        self.canvas.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
-                                  QtWidgets.QSizePolicy.Expanding)
+        self.canvas.setMinimumSize(100, 100)
+        self.canvas.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
+                                  QtWidgets.QSizePolicy.MinimumExpanding)
 
         self.setWidget(self.canvas)
 
         self.canvas.mpl_connect('motion_notify_event', self.updateStatusBar)
         self.canvas.mpl_connect('axes_leave_event', self.clearStatusBar)
 
-    def draw(self, laserdata=None):
-        self.ax.clear()
+    def draw(self, laserdata=None, cmap='magma'):
+        self.fig.clear()
+        self.ax = self.fig.add_subplot(111)
 
         if laserdata is not None:
             self.laserdata = laserdata
 
+        print(self.laserdata.aspect())
         self.lase = LaserImage(self.fig, self.ax, self.laserdata.calibrated(),
+                               colorbar='bottom', cmap=cmap,
                                label=self.laserdata.isotope,
                                aspect=self.laserdata.aspect(),
                                extent=self.laserdata.extent())

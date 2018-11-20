@@ -1,26 +1,26 @@
 from PyQt5 import QtCore, QtWidgets
 
-from util.laser import LaserConfig
+from util.laser import LaserData
 
 
 class ConfigDialog(QtWidgets.QDialog):
-    def __init__(self, parent=None, configs=LaserConfig()):
+    def __init__(self, parent=None, config=LaserData.DEFAULT_CONFIG):
         super().__init__(parent)
 
-        self.resize(540, 320)
+        self.config = config
 
         mainLayout = QtWidgets.QVBoxLayout()
-
+        # Form layout for line edits
         form = QtWidgets.QGroupBox()
         formLayout = QtWidgets.QFormLayout()
-        for p in LaserConfig.EDITABLE:
-            le = QtWidgets.QLineEdit(str(getattr(configs, p, 0.0)))
-            formLayout.addRow(p.capitalize() + ":", le)
-            setattr(self, p + "LineEdit", le)
+        for k, v in self.config.items():
+            le = QtWidgets.QLineEdit(str(v))
+            formLayout.addRow(k.capitalize() + ":", le)
+            setattr(self, k + "LineEdit", le)
         form.setLayout(formLayout)
-
+        # Checkbox
         self.checkAll = QtWidgets.QCheckBox("Apply configs to all images.")
-
+        # Ok button
         buttonBox = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok, self)
         buttonBox.accepted.connect(self.accept)
@@ -30,9 +30,10 @@ class ConfigDialog(QtWidgets.QDialog):
         mainLayout.addWidget(buttonBox)
         self.setLayout(mainLayout)
 
-    def configs(self):
-        config = LaserConfig()
-        for p in LaserConfig.EDITABLE:
-            v = float(getattr(self, p + "LineEdit").text())
-            setattr(config, p, v)
-        return config
+        self.resize(540, 320)
+
+    def accept(self):
+        for k in self.config.keys():
+            v = float(getattr(self, k + "LineEdit").text())
+            self.config[k] = v
+        super().accept()

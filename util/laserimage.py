@@ -27,11 +27,17 @@ class LaserImage(object):
 
         if colorbar not in ['none', None]:
             self.addColorBar(fig, ax, colorbar, colorbarlabel)
+
         if scalebar:
-            self.addScaleBar(ax)
+            scalebar = ScaleBar(1.0, 'um', frameon=False, color='white')
+            ax.add_artist(scalebar)
 
         if label is not None:
-            self.addLabel(label)
+            ax.annotate(isotopeFormat(label),
+                        xycoords='axes fraction', xy=(0.0, 1.0),
+                        textcoords='offset points', xytext=(16, -16),
+                        ha='center',
+                        color='white')
 
     def addColorBar(self, fig, ax, pos, label):
         div = make_axes_locatable(ax)

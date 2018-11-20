@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from util.laser import LaserData, LaserConfig
+from util.laser import LaserData
 from gui.qt.tabbeddocks import TabbedDocks
 from gui.qt.configdialog import ConfigDialog
 from gui.qt.laserimage import LaserImageDock
@@ -10,7 +10,7 @@ from util.exporter import exportNpz, exportCsv
 
 import os.path
 
-VERSION = "0.0.1"
+VERSION = "0.0.2"
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -18,7 +18,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.config = LaserConfig()
+        self.config = LaserData.DEFAULT_CONFIG
+        self.viewconfig = {'cmap': 'viridis'}
 
         self.setWindowTitle("Laser plot")
         self.resize(1280, 800)
@@ -71,6 +72,17 @@ class MainWindow(QtWidgets.QMainWindow):
         configaction.triggered.connect(self.menuConfig)
         # View
         viewmenu = self.menuBar().addMenu("&View")
+        cmapmenu = viewmenu.addMenu("&Colormap")
+        cmapmenu.setStatusTip("Change the image colormap.")
+        cmapgroup = QtWidgets.QActionGroup(cmapmenu)
+        for cmap in ['magma', 'viridis', 'plasma', 'nipy_spectral',
+                     'gnuplot2', 'CMRmap']:
+            action = cmapgroup.addAction(cmap)
+            action.setCheckable(True)
+            if cmap == 'magma':
+                action.setChecked(True)
+            cmapmenu.addAction(action)
+        cmapgroup.triggered.connect(self.menuColormap)
         # Help
         helpmenu = self.menuBar().addMenu("&Help")
         aboutaction = helpmenu.addAction(
@@ -89,11 +101,12 @@ class MainWindow(QtWidgets.QMainWindow):
             elif ext == '.csv':
                 lds.append(importCsv(path))
             else:
-                self.statusBar().showMessage(
-                    f"Unknown file type for {os.path.basename(path)}.")
+                QtWidgets.QMessageBox.warning(
+                    self, "Open failed",
+                    f"Invalid file type \'{os.path.basename(path)}\'.")
         for ld in lds:
             dock = LaserImageDock(ld, self.dockarea)
-            dock.draw()
+            dock.draw(cmap=self.viewconfig['cmap'])
             self.dockarea.addDockWidget(dock)
 
     def menuSave(self):
@@ -110,11 +123,12 @@ class MainWindow(QtWidgets.QMainWindow):
             lds = importAgilentBatch(path, self.config)
             for ld in lds:
                 dock = LaserImageDock(ld, self.dockarea)
-                dock.draw()
+                dock.draw(cmap=self.viewconfig['cmap'])
                 self.dockarea.addDockWidget(dock)
         else:
-            self.statusBar().showMessage(
-                f"Unabled to import {os.path.basename(path)}.")
+            QtWidgets.QMessageBox.warning(
+                self, "Import failed",
+                f"Invalid batch directory \'{os.path.basename(path)}\'.")
 
     def menuExit(self):
         self.close()
@@ -122,14 +136,19 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuConfig(self):
         dlg = ConfigDialog(self, self.config)
         if dlg.exec():
-            self.config = dlg.config()
+            self.config = dlg.config
             if dlg.checkAll.checkState() == QtCore.Qt.Checked:
                 docks = self.dockarea.findChildren(QtWidgets.QDockWidget)
             else:
                 docks = self.dockarea.visibleDocks()
             for d in docks:
-                d.config = self.config
-                d.draw()
+                d.laserdata.config = self.config
+                d.draw(cmap=self.viewconfig['cmap'])
+
+    def menuColormap(self, action):
+        self.viewconfig['cmap'] = action.text().lstrip('&')
+        for dock in self.dockarea.findChildren(QtWidgets.QDockWidget):
+            dock.draw(cmap=self.viewconfig['cmap'])
 
     def menuAbout(self):
         QtWidgets.QMessageBox.about(
