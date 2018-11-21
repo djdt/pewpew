@@ -42,7 +42,6 @@ class LaserImageDock(QtWidgets.QDockWidget):
         if laserdata is not None:
             self.laserdata = laserdata
 
-        print(self.laserdata.aspect())
         self.lase = LaserImage(self.fig, self.ax, self.laserdata.calibrated(),
                                colorbar='bottom', cmap=cmap,
                                label=self.laserdata.isotope,
