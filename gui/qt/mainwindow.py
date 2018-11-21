@@ -3,10 +3,10 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from util.laser import LaserData
 from gui.qt.tabbeddocks import TabbedDocks
 from gui.qt.configdialog import ConfigDialog
-from gui.qt.laserimage import LaserImageDock
+from gui.qt.laserimagedock import ImageDock, LaserImageDock, KrissKrossImageDock
 
 from util.importer import importNpz, importCsv, importAgilentBatch
-from util.exporter import exportNpz, exportCsv
+from util.exporter import exportNpz
 
 import os.path
 
@@ -19,7 +19,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
 
         self.config = LaserData.DEFAULT_CONFIG
-        self.viewconfig = {'cmap': 'viridis'}
+        self.viewconfig = {'cmap': 'magma'}
 
         self.setWindowTitle("Laser plot")
         self.resize(1280, 800)
@@ -55,9 +55,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # File -> Import
         importmenu = filemenu.addMenu("&Import")
-        importaction = importmenu.addAction("Agilent Batch")
+        importaction = importmenu.addAction("&Agilent Batch")
         importaction.setStatusTip("Import Agilent data (.b).")
         importaction.triggered.connect(self.menuImportAgilent)
+
+        importaction = importmenu.addAction("&Kriss Kross...")
+        importaction.setStatusTip("Start the Kriss Kross import wizard.")
+        importaction.triggered.connect(self.menuImportKrissKross)
 
         exitaction = filemenu.addAction(
             QtGui.QIcon.fromTheme('application-exit'), "E&xit")
@@ -113,7 +117,7 @@ class MainWindow(QtWidgets.QMainWindow):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save file.", "", "Numpy Archive(*.npz);;All files(*)")
         lds = [d.laserdata for d in
-               self.dockarea.findChildren(QtWidgets.QDockWidget)]
+               self.dockarea.findChildren(ImageDock)]
         exportNpz(path, lds)
 
     def menuImportAgilent(self):
@@ -130,6 +134,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 self, "Import failed",
                 f"Invalid batch directory \'{os.path.basename(path)}\'.")
 
+    def menuImportKrissKross(self):
+        pass
+
     def menuExit(self):
         self.close()
 
@@ -138,7 +145,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if dlg.exec():
             self.config = dlg.config
             if dlg.checkAll.checkState() == QtCore.Qt.Checked:
-                docks = self.dockarea.findChildren(QtWidgets.QDockWidget)
+                docks = self.dockarea.findChildren(ImageDock)
             else:
                 docks = self.dockarea.visibleDocks()
             for d in docks:
