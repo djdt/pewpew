@@ -21,8 +21,8 @@ class LaserData(object):
                 self.config['spotsize'])
 
     def aspect(self):
-        return 1.0 / ((self.config['speed'] * self.config['scantime'] /
-                       self.config['spotsize']))
+        return self.config['spotsize'] / \
+               (self.config['speed'] * self.config['scantime'])
 
     def extent(self):
         x = self.data.shape[1] * self.pixelsize()[0]

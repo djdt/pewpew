@@ -38,61 +38,61 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def createMenus(self):
         # File
-        filemenu = self.menuBar().addMenu("&File")
-        openaction = filemenu.addAction(
+        file_menu = self.menuBar().addMenu("&File")
+        open_action = file_menu.addAction(
             QtGui.QIcon.fromTheme('document-open'), "&Open")
-        openaction.setShortcut("Ctrl+O")
-        openaction.setStatusTip("Open LA-ICP-MS data.")
-        openaction.triggered.connect(self.menuOpen)
+        open_action.setShortcut("Ctrl+O")
+        open_action.setStatusTip("Open LA-ICP-MS data.")
+        open_action.triggered.connect(self.menuOpen)
 
-        saveaction = filemenu.addAction(
+        save_action = file_menu.addAction(
             QtGui.QIcon.fromTheme('document-save'), "&Save")
-        saveaction.setShortcut("Ctrl+S")
-        saveaction.setStatusTip("Save to specified format.")
-        saveaction.triggered.connect(self.menuSave)
+        save_action.setShortcut("Ctrl+S")
+        save_action.setStatusTip("Save to specified format.")
+        save_action.triggered.connect(self.menuSave)
 
-        filemenu.addSeparator()
+        file_menu.addSeparator()
 
         # File -> Import
-        importmenu = filemenu.addMenu("&Import")
-        importaction = importmenu.addAction("&Agilent Batch")
-        importaction.setStatusTip("Import Agilent data (.b).")
-        importaction.triggered.connect(self.menuImportAgilent)
+        import_menu = file_menu.addMenu("&Import")
+        import_action = import_menu.addAction("&Agilent Batch")
+        import_action.setStatusTip("Import Agilent data (.b).")
+        import_action.triggered.connect(self.menuImportAgilent)
 
-        importaction = importmenu.addAction("&Kriss Kross...")
-        importaction.setStatusTip("Start the Kriss Kross import wizard.")
-        importaction.triggered.connect(self.menuImportKrissKross)
+        import_action = import_menu.addAction("&Kriss Kross...")
+        import_action.setStatusTip("Start the Kriss Kross import wizard.")
+        import_action.triggered.connect(self.menuImportKrissKross)
 
-        exitaction = filemenu.addAction(
+        exit_action = file_menu.addAction(
             QtGui.QIcon.fromTheme('application-exit'), "E&xit")
-        exitaction.setStatusTip("Quit the program.")
-        exitaction.triggered.connect(self.menuExit)
+        exit_action.setStatusTip("Quit the program.")
+        exit_action.triggered.connect(self.menuExit)
 
         # Edit
-        editmenu = self.menuBar().addMenu("&Edit")
-        configaction = editmenu.addAction(
+        edit_menu = self.menuBar().addMenu("&Edit")
+        config_action = edit_menu.addAction(
             QtGui.QIcon.fromTheme('document-properties'), "Config")
-        configaction.setStatusTip("Update the LA-ICP paramaters.")
-        configaction.triggered.connect(self.menuConfig)
+        config_action.setStatusTip("Update the LA-ICP paramaters.")
+        config_action.triggered.connect(self.menuConfig)
         # View
-        viewmenu = self.menuBar().addMenu("&View")
-        cmapmenu = viewmenu.addMenu("&Colormap")
-        cmapmenu.setStatusTip("Change the image colormap.")
-        cmapgroup = QtWidgets.QActionGroup(cmapmenu)
+        view_menu = self.menuBar().addMenu("&View")
+        cmap_menu = view_menu.addMenu("&Colormap")
+        cmap_menu.setStatusTip("Change the image colormap.")
+        cmap_group = QtWidgets.QActionGroup(cmap_menu)
         for cmap in ['magma', 'viridis', 'plasma', 'nipy_spectral',
                      'gnuplot2', 'CMRmap']:
-            action = cmapgroup.addAction(cmap)
+            action = cmap_group.addAction(cmap)
             action.setCheckable(True)
             if cmap == 'magma':
                 action.setChecked(True)
-            cmapmenu.addAction(action)
-        cmapgroup.triggered.connect(self.menuColormap)
+            cmap_menu.addAction(action)
+        cmap_group.triggered.connect(self.menuColormap)
         # Help
-        helpmenu = self.menuBar().addMenu("&Help")
-        aboutaction = helpmenu.addAction(
+        help_menu = self.menuBar().addMenu("&Help")
+        about_action = help_menu.addAction(
             QtGui.QIcon.fromTheme('help-about'), "&About")
-        aboutaction.setStatusTip("Import LA-ICP-MS data.")
-        aboutaction.triggered.connect(self.menuAbout)
+        about_action.setStatusTip("Import LA-ICP-MS data.")
+        about_action.triggered.connect(self.menuAbout)
 
     def menuOpen(self):
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(

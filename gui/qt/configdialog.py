@@ -9,7 +9,7 @@ class ConfigDialog(QtWidgets.QDialog):
 
         self.config = config
 
-        mainLayout = QtWidgets.QVBoxLayout()
+        main_layout = QtWidgets.QVBoxLayout()
         # Form layout for line edits
         form = QtWidgets.QGroupBox()
         formLayout = QtWidgets.QFormLayout()
@@ -25,10 +25,10 @@ class ConfigDialog(QtWidgets.QDialog):
             QtWidgets.QDialogButtonBox.Ok, self)
         buttonBox.accepted.connect(self.accept)
 
-        mainLayout.addWidget(form)
-        mainLayout.addWidget(self.checkAll)
-        mainLayout.addWidget(buttonBox)
-        self.setLayout(mainLayout)
+        main_layout.addWidget(form)
+        main_layout.addWidget(self.checkAll)
+        main_layout.addWidget(buttonBox)
+        self.setLayout(main_layout)
 
         self.resize(540, 320)
 
