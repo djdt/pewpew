@@ -12,12 +12,12 @@ class ConfigDialog(QtWidgets.QDialog):
         main_layout = QtWidgets.QVBoxLayout()
         # Form layout for line edits
         form = QtWidgets.QGroupBox()
-        formLayout = QtWidgets.QFormLayout()
+        form_layout = QtWidgets.QFormLayout()
         for k, v in self.config.items():
             le = QtWidgets.QLineEdit(str(v))
-            formLayout.addRow(k.capitalize() + ":", le)
+            form_layout.addRow(k.capitalize() + ":", le)
             setattr(self, k + "LineEdit", le)
-        form.setLayout(formLayout)
+        form.setLayout(form_layout)
         # Checkbox
         self.checkAll = QtWidgets.QCheckBox("Apply configs to all images.")
         # Ok button
