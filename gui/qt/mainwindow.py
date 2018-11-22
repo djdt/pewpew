@@ -3,6 +3,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from util.laser import LaserData
 from gui.qt.tabbeddocks import TabbedDocks
 from gui.qt.configdialog import ConfigDialog
+from gui.qt.krisskrosswizard import KrissKrossWizard
 from gui.qt.laserimagedock import ImageDock, LaserImageDock, KrissKrossImageDock
 
 from util.importer import importNpz, importCsv, importAgilentBatch
@@ -135,15 +136,16 @@ class MainWindow(QtWidgets.QMainWindow):
                 f"Invalid batch directory \'{os.path.basename(path)}\'.")
 
     def menuImportKrissKross(self):
-        pass
+        kkw = KrissKrossWizard(self.config, self)
+        kkw.exec()
 
     def menuExit(self):
         self.close()
 
     def menuConfig(self):
-        dlg = ConfigDialog(self, self.config)
+        dlg = ConfigDialog(self.config, parent=self)
         if dlg.exec():
-            self.config = dlg.config
+            self.config = dlg.form.config
             if dlg.checkAll.checkState() == QtCore.Qt.Checked:
                 docks = self.dockarea.findChildren(ImageDock)
             else:

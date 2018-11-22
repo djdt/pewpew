@@ -1,7 +1,9 @@
 import numpy as np
 
+from util.laser import LaserData
 
-def krissKrossLayers(self, layers, aspect, warmup, horizontal_first=True):
+
+def krissKrossLayers(layers, aspect, warmup, horizontal_first=True):
 
         j = 0 if horizontal_first else 1
         aspect = int(aspect)
@@ -34,3 +36,21 @@ def krissKrossLayers(self, layers, aspect, warmup, horizontal_first=True):
         #     self.data[:, 1::2, 1::2] = self.data[::-1, 1::2, 1::2]
 
         return data
+
+
+class KrissKrossData(LaserData):
+    def __init__(self, data=None, isotope="", config=None, source=""):
+        super().__init__(self, data=data, isotpe=isotope,
+                         config=config, source=source)
+
+    def fromLayers(self, layers, warmup_time=12.0, horizontal_first=True):
+        warmup = int(warmup_time / self.config['scantime'])
+        self.data = krissKrossLayers(layers, self.aspect(),
+                                     warmup, horizontal_first)
+
+    def flatten(self):
+        return np.mean(self.data, axis=2)
+
+    def calibrated(self, flat=False):
+        return np.mean(super().calibrated(), axis=2) if flat \
+               else super().calibrated()
