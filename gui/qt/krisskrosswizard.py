@@ -1,6 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from util.importer import importNpz, importAgilentBatch
+from gui.qt.configdialog import ConfigForm
 
 
 class KrissKrossWizard(QtWidgets.QWizard):
@@ -125,3 +126,12 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
 class KrissKrossConfigPage(QtWidgets.QWizardPage):
     def __init__(self, config, parent=None):
         super().__init__(parent)
+
+        self.config = config
+
+        form = ConfigForm(self.config, self)
+        for k in self.config.keys():
+            self.registerField(k, getattr(self.form, k))
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(form)
+        self.setLayout(layout)
