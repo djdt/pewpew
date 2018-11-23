@@ -5,13 +5,15 @@ import re
 from util.laser import LaserData
 
 
-def importNpz(path):
+def importNpz(path, config_override=None):
     lds = []
     npz = np.load(path)
 
     for isotope, config in zip(npz['isotopes'], npz['configs']):
-        lds.append(LaserData(
-            isotope=isotope, config=config, data=npz[isotope], source=path))
+        ld = LaserData(
+            config=config_override if config_override is not None else config,
+            isotope=isotope, data=npz[isotope], source=path)
+        lds.append(ld)
     return lds
 
 
