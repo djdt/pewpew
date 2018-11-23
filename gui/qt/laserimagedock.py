@@ -39,7 +39,6 @@ class LaserImageDock(ImageDock):
 
         self.laserdata = laserdata
         name = os.path.splitext(os.path.basename(self.laserdata.source))[0]
-
         super().__init__(f"{name}:{self.laserdata.isotope}", parent)
 
         self.canvas.mpl_connect('motion_notify_event', self.updateStatusBar)
@@ -70,13 +69,12 @@ class LaserImageDock(ImageDock):
         self.window().statusBar().clearMessage()
 
 
-class KrissKrossImageDock(QtWidgets.QDockWidget):
+class KrissKrossImageDock(ImageDock):
     def __init__(self, kkdata, parent=None):
 
         self.kkdata = kkdata
-        name = os.path.splitext(os.path.basename(self.laserdata.source))[0]
-
-        super().__init__(f"{name}:kk:{self.laserdata.isotope}", parent)
+        name = os.path.splitext(os.path.basename(self.kkdata.source))[0]
+        super().__init__(f"{name}:kk:{self.kkdata.isotope}", parent)
 
         self.canvas.mpl_connect('motion_notify_event', self.updateStatusBar)
         self.canvas.mpl_connect('axes_leave_event', self.clearStatusBar)
@@ -91,9 +89,9 @@ class KrissKrossImageDock(QtWidgets.QDockWidget):
         self.lase = LaserImage(self.fig, self.ax,
                                self.kkdata.calibrated(flat=True),
                                colorbar='bottom', cmap=cmap,
-                               label=self.laserdata.isotope,
-                               aspect=self.laserdata.aspect(),
-                               extent=self.laserdata.extent())
+                               label=self.kkdata.isotope,
+                               aspect=self.kkdata.aspect(),
+                               extent=self.kkdata.extent())
         super().draw()
 
     def updateStatusBar(self, e):
