@@ -46,6 +46,7 @@ class LaserImageDock(ImageDock):
 
     def draw(self, laserdata=None, cmap='magma'):
         self.fig.clear()
+        self.canvas.draw()
         self.ax = self.fig.add_subplot(111)
 
         if laserdata is not None:

@@ -20,7 +20,7 @@ def krissKrossLayers(layers, aspect, warmup, horizontal_first=True):
             # Stretch array
             layer = np.repeat(layer, aspect, axis=0)
             # Flip vertical layers and trim
-            if (i + j) % 2 == 0:
+            if (i + j) % 2 == 1:
                 layer = layer.T
                 layer = layer[trim:, trim:]
             elif trim > 0:

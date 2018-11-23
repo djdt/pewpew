@@ -50,7 +50,8 @@ class KrissKrossWizard(QtWidgets.QWizard):
         for isotope, layers in layer_dict.items():
             kkd = KrissKrossData(isotope=isotope, config=config,
                                  source=self.field("paths")[0])
-            kkd.fromLayers([layer.data for layer in layers])
+            kkd.fromLayers([layer.data for layer in layers],
+                           horizontal_first=self.field("check_horizontal"))
             self.krisskrossdata.append(kkd)
 
         super().accept()

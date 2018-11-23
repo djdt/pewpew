@@ -37,6 +37,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.statusBar().showMessage("Import or open data to begin.")
 
+        config = {'scantime': 0.1, 'spotsize': 10, 'speed': 10, 'gradient': 1.0, 'intercept': 0.0}
+        lds = importAgilentBatch("/home/tom/Downloads/raw/Horz.b", config)
+        for ld in lds:
+            dock = LaserImageDock(ld, self.dockarea)
+            dock.draw(cmap=self.viewconfig['cmap'])
+            self.dockarea.addDockWidget(dock)
+
     def createMenus(self):
         # File
         file_menu = self.menuBar().addMenu("&File")
@@ -140,6 +147,7 @@ class MainWindow(QtWidgets.QMainWindow):
         kkw = KrissKrossWizard(self.config, self)
         if kkw.exec():
             for kkd in kkw.krisskrossdata:
+                print(kkd.data.shape)
                 dock = KrissKrossImageDock(kkd, self.dockarea)
                 dock.draw(cmap=self.viewconfig['cmap'])
                 self.dockarea.addDockWidget(dock)
