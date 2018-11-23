@@ -67,6 +67,7 @@ class MainWindow(QtWidgets.QMainWindow):
         exit_action = file_menu.addAction(
             QtGui.QIcon.fromTheme('application-exit'), "E&xit")
         exit_action.setStatusTip("Quit the program.")
+        exit_action.setShortcut("Ctrl+X")
         exit_action.triggered.connect(self.menuExit)
 
         # Edit
@@ -137,7 +138,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuImportKrissKross(self):
         kkw = KrissKrossWizard(self.config, self)
-        kkw.exec()
+        if kkw.exec():
+            for kkd in kkw.krisskrossdata:
+                dock = KrissKrossImageDock(kkd, self.dockarea)
+                dock.draw(cmap=self.viewconfig['cmap'])
+                self.dockarea.addDockWidget(dock)
 
     def menuExit(self):
         self.close()

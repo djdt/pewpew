@@ -40,7 +40,7 @@ def krissKrossLayers(layers, aspect, warmup, horizontal_first=True):
 
 class KrissKrossData(LaserData):
     def __init__(self, data=None, isotope="", config=None, source=""):
-        super().__init__(self, data=data, isotpe=isotope,
+        super().__init__(data=data, isotope=isotope,
                          config=config, source=source)
 
     def fromLayers(self, layers, warmup_time=12.0, horizontal_first=True):
