@@ -23,6 +23,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
 
     def accept(self):
         config = self.field("config")
+        print(config)
         layer_dict = {}
         if self.field("radio_numpy"):
             # Use the config from the first file
@@ -51,6 +52,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
             kkd = KrissKrossData(isotope=isotope, config=config,
                                  source=self.field("paths")[0])
             kkd.fromLayers([layer.data for layer in layers],
+                           warmup_time=float(self.field("lineedit_warmup")),
                            horizontal_first=self.field("check_horizontal"))
             self.krisskrossdata.append(kkd)
 
@@ -115,6 +117,14 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
         check_horizontal.setChecked(True)
         self.registerField("check_horizontal", check_horizontal)
 
+        self.lineedit_warmup = QtWidgets.QLineEdit(str(13.0))
+        self.lineedit_warmup.setValidator(QtGui.QDoubleValidator(0, 1e2, 2))
+        self.lineedit_warmup.textChanged.connect(self.completeChanged)
+        self.registerField("lineedit_warmup", self.lineedit_warmup)
+        warmup_layout = QtWidgets.QHBoxLayout()
+        warmup_layout.addWidget(QtWidgets.QLabel("Warmup (s):"))
+        warmup_layout.addWidget(self.lineedit_warmup)
+
         # Buttons
         button_file = QtWidgets.QPushButton("Open")
         button_file.clicked.connect(self.buttonAdd)
@@ -124,19 +134,12 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(button_file)
         button_layout.addWidget(button_dir)
-        button_box = QtWidgets.QWidget()
-        button_box.setLayout(button_layout)
-
-        # control_layout = QtWidgets.QVBoxLayout()
-        # control_layout.addWidget(check_horizontal)
-        # control_layout.addWidget(button_box)
-        # control_widget = QtWidgets.QWidget(self)
-        # control_widget.setLayout(control_layout)
+        box_layout.addLayout(button_layout)
 
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.addWidget(dir_box)
         main_layout.addWidget(check_horizontal)
-        main_layout.addWidget(button_box)
+        main_layout.addLayout(warmup_layout)
         self.setLayout(main_layout)
 
         self.registerField("paths", self, "paths")
@@ -171,14 +174,8 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
         elif self.field("radio_csv"):
             ext = '.csv'
 
-        print(self.field("radio_numpy"))
-        print(self.field("radio_agilent"))
-        print(self.field("radio_csv"))
-        print(ext)
-
         for f in files:
             if f.lower().endswith(ext):
-                print(f)
                 self.list.addItem(os.path.join(path, f))
 
     def keyPressEvent(self, event):
@@ -193,11 +190,7 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
         self.setFinalPage(self.field("radio_numpy"))
 
     def isComplete(self):
-        min_files = 2
-        # if self.field("radio_numpy"):
-        #     min_files = 1
-
-        return self.list.count() >= min_files
+        return self.list.count() >= 2 and len(self.lineedit_warmup.text()) > 0
 
     @QtCore.pyqtProperty(list)
     def paths(self):
@@ -211,21 +204,18 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
     def __init__(self, config, parent=None):
         super().__init__(parent)
 
-        self.config = config
-
-        self.form = ConfigForm(self.config, parent=self)
+        self.form = ConfigForm(config, parent=self)
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.form)
         self.setLayout(layout)
 
         self.registerField("config", self, "config")
 
-    def validatePage(self):
-        for k in self.config.keys():
-            v = float(getattr(self.form, k).text())
-            self.config[k] = v
-        return True
-
-    # @QtCore.pyqtProperty(dict)
-    # def config(self):
-    #     return self.config
+    @QtCore.pyqtProperty(QtCore.QVariant)
+    def config(self):
+        for k in self.form.config.keys():
+            v = getattr(self.form, k).text()
+            if v is not "":
+                self.form.config[k] = float(v)
+                print(v)
+        return self.form.config
