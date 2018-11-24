@@ -1,6 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from util.laser import LaserData
+from util.krisskross import KrissKrossData
 from gui.qt.tabbeddocks import TabbedDocks
 from gui.qt.configdialog import ConfigDialog
 from gui.qt.krisskrosswizard import KrissKrossWizard
@@ -37,12 +38,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.statusBar().showMessage("Import or open data to begin.")
 
-        config = {'scantime': 0.1, 'spotsize': 10, 'speed': 10, 'gradient': 1.0, 'intercept': 0.0}
-        lds = importAgilentBatch("/home/tom/Downloads/raw/Horz.b", config)
-        for ld in lds:
-            dock = LaserImageDock(ld, self.dockarea)
-            dock.draw(cmap=self.viewconfig['cmap'])
-            self.dockarea.addDockWidget(dock)
+        # config = {'scantime': 0.1, 'spotsize': 10, 'speed': 10, 'gradient': 1.0, 'intercept': 0.0}
+        # self.config = config
+        # lds = importAgilentBatch("/home/tom/Downloads/raw/Horz.b", config)
+        # lds2 = importAgilentBatch("/home/tom/Downloads/raw/Vert.b", config)
+        # for ld in lds:
+        #     dock = LaserImageDock(ld, self.dockarea)
+        #     dock.draw(cmap=self.viewconfig['cmap'])
+        #     self.dockarea.addDockWidget(dock)
+
+        # kkd = KrissKrossData(config=config)
+        # kkd.fromLayers((lds[1].data, lds2[1].data))
+        # dock = KrissKrossImageDock(kkd, self.dockarea)
+        # dock.draw(cmap=self.viewconfig['cmap'])
+        # self.dockarea.addDockWidget(dock)
 
     def createMenus(self):
         # File
