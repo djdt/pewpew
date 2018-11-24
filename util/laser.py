@@ -1,6 +1,6 @@
 class LaserData(object):
     DEFAULT_CONFIG = {
-        'spotsize': 30.0, 'scantime': 0.25, 'speed': 120.0,
+        'spotsize': 30.0, 'speed': 120.0, 'scantime': 0.25,
         'gradient': 1.0, 'intercept': 0.0}
 
     def __init__(self, data=None, isotope="", config=None,
