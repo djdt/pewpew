@@ -31,7 +31,7 @@ class LaserImage(object):
             scalebar = ScaleBar(1.0, 'um', frameon=False, color='white')
             ax.add_artist(scalebar)
 
-        if label is not None:
+        if label is not None and label is not "":
             ax.annotate(isotopeFormat(label),
                         xycoords='axes fraction', xy=(0.0, 1.0),
                         textcoords='offset points', xytext=(16, -16),
