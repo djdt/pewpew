@@ -1,6 +1,3 @@
-import numpy as np
-
-
 class LaserData(object):
     DEFAULT_CONFIG = {
         'spotsize': 30.0, 'scantime': 0.25, 'speed': 120.0,
