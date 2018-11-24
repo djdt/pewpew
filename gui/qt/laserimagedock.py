@@ -19,7 +19,7 @@ class ImageDock(QtWidgets.QDockWidget):
         self.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable |
                          QtWidgets.QDockWidget.DockWidgetMovable)
 
-        self.fig = Figure(frameon=False)
+        self.fig = Figure(frameon=False, figsize=(5, 5), dpi=100)
         self.ax = self.fig.add_subplot(111)
         self.canvas = FigureCanvasQTAgg(self.fig)
         self.canvas.setStyleSheet("background-color:transparent;")
@@ -60,7 +60,6 @@ class LaserImageDock(ImageDock):
         super().draw()
 
     def updateStatusBar(self, e):
-        # TODO make sure no in the color bar axes
         if e.inaxes == self.ax:
             x, y = e.xdata, e.ydata
             v = coords2value(self.lase.im, x, y)
