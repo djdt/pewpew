@@ -9,7 +9,8 @@ class ConfigForm(QtWidgets.QGroupBox):
 
         layout = QtWidgets.QFormLayout()
         for k, v in self.config.items():
-            le = QtWidgets.QLineEdit(str(v))
+            le = QtWidgets.QLineEdit()
+            le.setPlaceholderText(str(v))
             if k in ["gradient", "intercept"]:
                 le.setValidator(QtGui.QDoubleValidator(-1e10, 1e10, 8))
             else:
@@ -43,6 +44,7 @@ class ConfigDialog(QtWidgets.QDialog):
 
     def accept(self):
         for k in self.form.config.keys():
-            v = float(getattr(self.form, k).text())
-            self.form.config[k] = v
+            v = getattr(self.form, k).text()
+            if v is not "":
+                self.form.config[k] = float(v)
         super().accept()

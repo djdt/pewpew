@@ -19,6 +19,8 @@ class ImageDock(QtWidgets.QDockWidget):
         self.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable |
                          QtWidgets.QDockWidget.DockWidgetMovable)
 
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+
         self.fig = Figure(frameon=False, figsize=(5, 5), dpi=100)
         self.ax = self.fig.add_subplot(111)
         self.canvas = FigureCanvasQTAgg(self.fig)
@@ -33,6 +35,7 @@ class ImageDock(QtWidgets.QDockWidget):
         self.fig.tight_layout()
         self.canvas.draw()
 
+# Todo implement a custom context menu
 
 class LaserImageDock(ImageDock):
     def __init__(self, laserdata, parent=None):

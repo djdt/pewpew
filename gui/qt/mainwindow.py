@@ -1,12 +1,11 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from util.laser import LaserData
-from util.krisskross import KrissKrossData
 from gui.qt.tabbeddocks import TabbedDocks
 from gui.qt.configdialog import ConfigDialog
 from gui.qt.krisskrosswizard import KrissKrossWizard
 from gui.qt.laserimagedock import ImageDock, LaserImageDock, KrissKrossImageDock
 
+from util.laser import LaserData
 from util.importer import importNpz, importCsv, importAgilentBatch
 from util.exporter import exportNpz
 
@@ -21,7 +20,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
 
         self.config = LaserData.DEFAULT_CONFIG
-        self.viewconfig = {'cmap': 'magma'}
+        self.viewconfig = {'cmap': 'magma', 'cmap_range': (1, 99)}
 
         self.setWindowTitle("Laser plot")
         self.resize(1280, 800)
@@ -173,7 +172,10 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 docks = self.dockarea.visibleDocks()
             for d in docks:
-                d.laserdata.config = self.config
+                if type(d) == KrissKrossImageDock:
+                    d.kkdata.config = self.config
+                else:
+                    d.laserdata.config = self.config
                 d.draw(cmap=self.viewconfig['cmap'])
 
     def menuColormap(self, action):
