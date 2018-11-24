@@ -53,9 +53,10 @@ class KrissKrossData(LaserData):
         return np.mean(self.data, axis=2)
 
     def calibrated(self, flat=False):
-        print(self.data.shape)
-        return np.uean(super().calibrated(), axis=2) if flat \
-            else super().calibrated()
+        if flat:
+            return np.mean(super().calibrated(), axis=2)
+        else:
+            return super().calibrated()
 
     def extent(self):
         # Image data is stored [rows][cols]
