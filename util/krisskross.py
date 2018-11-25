@@ -49,14 +49,12 @@ class KrissKrossData(LaserData):
         self.data = krissKrossLayers(layers, self.aspect(),
                                      warmup, horizontal_first)
 
-    def flatten(self):
-        return np.mean(self.data, axis=2)
-
-    def calibrated(self, flat=False):
-        if flat:
-            return np.mean(super().calibrated(), axis=2)
-        else:
-            return super().calibrated()
+    def split(self):
+        lds = []
+        for data in np.dsplit(self.data, self.data.shape[2]):
+            lds.append(LaserData(data=data, isotope=self.isotope,
+                                 config=self.config, source=self.source))
+        return lds
 
     def extent(self):
         # Image data is stored [rows][cols]
