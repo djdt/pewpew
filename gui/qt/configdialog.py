@@ -40,7 +40,7 @@ class ConfigDialog(QtWidgets.QDialog):
         main_layout.addWidget(buttonBox)
         self.setLayout(main_layout)
 
-        self.resize(540, 320)
+        self.resize(480, 320)
 
     def accept(self):
         for k in self.form.config.keys():

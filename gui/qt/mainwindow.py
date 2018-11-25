@@ -115,6 +115,8 @@ class MainWindow(QtWidgets.QMainWindow):
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
             self, "Select file(s) to open.", "", "(*.npz *.csv);;All files(*)")
         lds = []
+        if len(paths) == 0:
+            return
         for path in paths:
             ext = os.path.splitext(path)[1].lower()
             if ext == '.npz':
@@ -133,6 +135,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuSave(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save file.", "", "Numpy Archive(*.npz);;All files(*)")
+        if path == "":
+            return
         lds = [d.laserdata for d in
                self.dockarea.findChildren(ImageDock)]
         exportNpz(path, lds)
@@ -140,6 +144,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuImportAgilent(self):
         path = QtWidgets.QFileDialog.getExistingDirectory(
             self, "Batch directory", "")
+        if path == "":
+            return
         if path.endswith('.b'):
             lds = importAgilentBatch(path, self.config)
             for ld in lds:
