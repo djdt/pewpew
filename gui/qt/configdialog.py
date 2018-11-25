@@ -29,14 +29,14 @@ class ConfigDialog(QtWidgets.QDialog):
         # Form layout for line edits
         self.form = ConfigForm(config, parent=self)
         # Checkbox
-        self.checkAll = QtWidgets.QCheckBox("Apply configs to all images.")
+        self.check_all = QtWidgets.QCheckBox("Apply configs to all images.")
         # Ok button
         buttonBox = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok, self)
         buttonBox.accepted.connect(self.accept)
 
         main_layout.addWidget(self.form)
-        main_layout.addWidget(self.checkAll)
+        main_layout.addWidget(self.check_all)
         main_layout.addWidget(buttonBox)
         self.setLayout(main_layout)
 

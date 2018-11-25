@@ -37,21 +37,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.statusBar().showMessage("Import or open data to begin.")
 
-        # config = {'scantime': 0.1, 'spotsize': 10, 'speed': 10, 'gradient': 1.0, 'intercept': 0.0}
-        # self.config = config
-        # lds = importAgilentBatch("/home/tom/Downloads/raw/Horz.b", config)
-        # lds2 = importAgilentBatch("/home/tom/Downloads/raw/Vert.b", config)
-        # for ld in lds:
-        #     dock = LaserImageDock(ld, self.dockarea)
-        #     dock.draw(cmap=self.viewconfig['cmap'])
-        #     self.dockarea.addDockWidget(dock)
-
-        # kkd = KrissKrossData(config=config)
-        # kkd.fromLayers((lds[1].data, lds2[1].data))
-        # dock = KrissKrossImageDock(kkd, self.dockarea)
-        # dock.draw(cmap=self.viewconfig['cmap'])
-        # self.dockarea.addDockWidget(dock)
-
     def createMenus(self):
         # File
         file_menu = self.menuBar().addMenu("&File")
@@ -67,8 +52,6 @@ class MainWindow(QtWidgets.QMainWindow):
         save_action.setStatusTip("Save to specified format.")
         save_action.triggered.connect(self.menuSave)
 
-        file_menu.addSeparator()
-
         # File -> Import
         import_menu = file_menu.addMenu("&Import")
         import_action = import_menu.addAction("&Agilent Batch")
@@ -78,6 +61,8 @@ class MainWindow(QtWidgets.QMainWindow):
         import_action = import_menu.addAction("&Kriss Kross...")
         import_action.setStatusTip("Start the Kriss Kross import wizard.")
         import_action.triggered.connect(self.menuImportKrissKross)
+
+        file_menu.addSeparator()
 
         exit_action = file_menu.addAction(
             QtGui.QIcon.fromTheme('application-exit'), "E&xit")
