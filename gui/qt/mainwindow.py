@@ -39,62 +39,70 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def createMenus(self):
         # File
-        file_menu = self.menuBar().addMenu("&File")
-        open_action = file_menu.addAction(
+        menu_file = self.menuBar().addMenu("&File")
+        action_open = menu_file.addAction(
             QtGui.QIcon.fromTheme('document-open'), "&Open")
-        open_action.setShortcut("Ctrl+O")
-        open_action.setStatusTip("Open images.")
-        open_action.triggered.connect(self.menuOpen)
+        action_open.setShortcut("Ctrl+O")
+        action_open.setStatusTip("Open images.")
+        action_open.triggered.connect(self.menuOpen)
 
-        save_action = file_menu.addAction(
+        action_save = menu_file.addAction(
             QtGui.QIcon.fromTheme('document-save'), "&Save All")
-        save_action.setShortcut("Ctrl+S")
-        save_action.setStatusTip("Save all images to an archive.")
-        save_action.triggered.connect(self.menuSave)
+        action_save.setShortcut("Ctrl+S")
+        action_save.setStatusTip("Save all images to an archive.")
+        action_save.triggered.connect(self.menuSave)
 
         # File -> Import
-        import_menu = file_menu.addMenu("&Import")
-        import_action = import_menu.addAction("&Agilent Batch")
-        import_action.setStatusTip("Import Agilent image data (.b).")
-        import_action.triggered.connect(self.menuImportAgilent)
+        menu_import = menu_file.addMenu("&Import")
+        action_import = menu_import.addAction("&Agilent Batch")
+        action_import.setStatusTip("Import Agilent image data (.b).")
+        action_import.triggered.connect(self.menuImportAgilent)
 
-        import_action = import_menu.addAction("&Kriss Kross...")
-        import_action.setStatusTip("Start the Kriss Kross import wizard.")
-        import_action.triggered.connect(self.menuImportKrissKross)
+        action_import = menu_import.addAction("&Kriss Kross...")
+        action_import.setStatusTip("Start the Kriss Kross import wizard.")
+        action_import.triggered.connect(self.menuImportKrissKross)
 
-        file_menu.addSeparator()
+        menu_file.addSeparator()
 
-        exit_action = file_menu.addAction(
+        action_exit = menu_file.addAction(
             QtGui.QIcon.fromTheme('application-exit'), "E&xit")
-        exit_action.setStatusTip("Quit the program.")
-        exit_action.setShortcut("Ctrl+X")
-        exit_action.triggered.connect(self.menuExit)
+        action_exit.setStatusTip("Quit the program.")
+        action_exit.setShortcut("Ctrl+X")
+        action_exit.triggered.connect(self.menuExit)
 
         # Edit
-        edit_menu = self.menuBar().addMenu("&Edit")
-        config_action = edit_menu.addAction(
+        menu_edit = self.menuBar().addMenu("&Edit")
+        action_config = menu_edit.addAction(
             QtGui.QIcon.fromTheme('document-properties'), "Config")
-        config_action.setStatusTip("Update the configs for visible images.")
-        config_action.triggered.connect(self.menuConfig)
+        action_config.setStatusTip("Update the configs for visible images.")
+        action_config.triggered.connect(self.menuConfig)
         # View
-        view_menu = self.menuBar().addMenu("&View")
-        cmap_menu = view_menu.addMenu("&Colormap")
-        cmap_menu.setStatusTip("Change the image colormap.")
-        cmap_group = QtWidgets.QActionGroup(cmap_menu)
+        menu_view = self.menuBar().addMenu("&View")
+        menu_cmap = menu_view.addMenu("&Colormap")
+        menu_cmap.setStatusTip("Change the image colormap.")
+        cmap_group = QtWidgets.QActionGroup(menu_cmap)
         for cmap in ['magma', 'viridis', 'plasma', 'nipy_spectral',
                      'gnuplot2', 'CMRmap']:
             action = cmap_group.addAction(cmap)
             action.setCheckable(True)
             if cmap == 'magma':
                 action.setChecked(True)
-            cmap_menu.addAction(action)
+            menu_cmap.addAction(action)
         cmap_group.triggered.connect(self.menuColormap)
+
+        menu_view.addSeparator()
+
+        action_refresh = menu_view.addAction(
+            QtGui.QIcon.fromTheme('view-refresh'), "Refresh")
+        action_refresh.setStatusTip("Redraw all images.")
+        action_refresh.setShortcut("F5")
+        action_refresh.triggered.connect(self.menuRefresh)
         # Help
-        help_menu = self.menuBar().addMenu("&Help")
-        about_action = help_menu.addAction(
+        menu_help = self.menuBar().addMenu("&Help")
+        action_about = menu_help.addAction(
             QtGui.QIcon.fromTheme('help-about'), "&About")
-        about_action.setStatusTip("About this program.")
-        about_action.triggered.connect(self.menuAbout)
+        action_about.setStatusTip("About this program.")
+        action_about.triggered.connect(self.menuAbout)
 
     def menuOpen(self):
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
@@ -172,6 +180,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuColormap(self, action):
         self.viewconfig['cmap'] = action.text().lstrip('&')
         for dock in self.dockarea.findChildren(QtWidgets.QDockWidget):
+            dock.draw(cmap=self.viewconfig['cmap'])
+
+    def menuRefresh(self):
+        docks = self.dockarea.findChildren(ImageDock)
+        for dock in docks:
             dock.draw(cmap=self.viewconfig['cmap'])
 
     def menuAbout(self):
