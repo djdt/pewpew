@@ -43,19 +43,19 @@ class MainWindow(QtWidgets.QMainWindow):
         open_action = file_menu.addAction(
             QtGui.QIcon.fromTheme('document-open'), "&Open")
         open_action.setShortcut("Ctrl+O")
-        open_action.setStatusTip("Open LA-ICP-MS data.")
+        open_action.setStatusTip("Open images.")
         open_action.triggered.connect(self.menuOpen)
 
         save_action = file_menu.addAction(
-            QtGui.QIcon.fromTheme('document-save'), "&Save")
+            QtGui.QIcon.fromTheme('document-save'), "&Save All")
         save_action.setShortcut("Ctrl+S")
-        save_action.setStatusTip("Save to specified format.")
+        save_action.setStatusTip("Save all images to an archive.")
         save_action.triggered.connect(self.menuSave)
 
         # File -> Import
         import_menu = file_menu.addMenu("&Import")
         import_action = import_menu.addAction("&Agilent Batch")
-        import_action.setStatusTip("Import Agilent data (.b).")
+        import_action.setStatusTip("Import Agilent image data (.b).")
         import_action.triggered.connect(self.menuImportAgilent)
 
         import_action = import_menu.addAction("&Kriss Kross...")
@@ -74,7 +74,7 @@ class MainWindow(QtWidgets.QMainWindow):
         edit_menu = self.menuBar().addMenu("&Edit")
         config_action = edit_menu.addAction(
             QtGui.QIcon.fromTheme('document-properties'), "Config")
-        config_action.setStatusTip("Update the LA-ICP paramaters.")
+        config_action.setStatusTip("Update the configs for visible images.")
         config_action.triggered.connect(self.menuConfig)
         # View
         view_menu = self.menuBar().addMenu("&View")
@@ -93,12 +93,12 @@ class MainWindow(QtWidgets.QMainWindow):
         help_menu = self.menuBar().addMenu("&Help")
         about_action = help_menu.addAction(
             QtGui.QIcon.fromTheme('help-about'), "&About")
-        about_action.setStatusTip("Import LA-ICP-MS data.")
+        about_action.setStatusTip("About this program.")
         about_action.triggered.connect(self.menuAbout)
 
     def menuOpen(self):
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-            self, "Select file(s) to open.", "", "(*.npz *.csv);;All files(*)")
+            self, "Open File(s).", "", "Numpy Archives(*.npz);;All files(*)")
         lds = []
         if len(paths) == 0:
             return
@@ -110,7 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 lds.append(importCsv(path))
             else:
                 QtWidgets.QMessageBox.warning(
-                    self, "Open failed",
+                    self, "Open Failed",
                     f"Invalid file type \'{os.path.basename(path)}\'.")
         for ld in lds:
             dock = LaserImageDock(ld, self.dockarea)
@@ -119,7 +119,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuSave(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save file.", "", "Numpy Archive(*.npz);;All files(*)")
+            self, "Save File", "", "Numpy archives(*.npz);;All files(*)")
         if path == "":
             return
         lds = [d.laserdata for d in
@@ -128,7 +128,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuImportAgilent(self):
         path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, "Batch directory", "")
+            self, "Batch Directory", "")
         if path == "":
             return
         if path.endswith('.b'):
@@ -139,7 +139,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.dockarea.addDockWidget(dock)
         else:
             QtWidgets.QMessageBox.warning(
-                self, "Import failed",
+                self, "Import Failed",
                 f"Invalid batch directory \'{os.path.basename(path)}\'.")
 
     def menuImportKrissKross(self):
