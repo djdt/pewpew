@@ -3,7 +3,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from gui.qt.tabbeddocks import TabbedDocks
 from gui.qt.configdialog import ConfigDialog
 from gui.qt.krisskrosswizard import KrissKrossWizard
-from gui.qt.laserimagedock import ImageDock, LaserImageDock, KrissKrossImageDock
+from gui.qt.imagedock import ImageDock, LaserImageDock, KrissKrossImageDock
 
 from util.laser import LaserData
 from util.importer import importNpz, importCsv, importAgilentBatch

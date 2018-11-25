@@ -122,6 +122,7 @@ class LaserImageDock(ImageDock):
         if dlg.exec():
             dlg.save(self.laserdata)
 
+
 class KrissKrossImageDock(ImageDock):
     def __init__(self, kkdata, parent=None):
 
