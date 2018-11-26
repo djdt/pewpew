@@ -169,7 +169,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg = ConfigDialog(self.config, parent=self)
         if dlg.exec():
             self.config = dlg.form.config
-            if dlg.checkAll.checkState() == QtCore.Qt.Checked:
+            if dlg.check_all.checkState() == QtCore.Qt.Checked:
                 docks = self.dockarea.findChildren(ImageDock)
             else:
                 docks = self.dockarea.visibleDocks()
@@ -179,7 +179,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuColormap(self, action):
         self.viewconfig['cmap'] = action.text().lstrip('&')
-        for dock in self.dockarea.findChildren(QtWidgets.QDockWidget):
+        for dock in self.dockarea.findChildren(ImageDock):
             dock.draw(cmap=self.viewconfig['cmap'])
 
     def menuRefresh(self):
