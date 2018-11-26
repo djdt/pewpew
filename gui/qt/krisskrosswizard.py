@@ -29,20 +29,16 @@ class KrissKrossWizard(QtWidgets.QWizard):
             # Use the config from the first file
             ld_group = importNpz(self.field("paths")[0])
             config = ld_group[0].config
-            for ld in ld_group:
-                layer_dict.setdefault(ld.isotope, []).append(ld)
-                # Import the rest of the files with overriden config
+            # Import the rest of the files with overriden config
             for path in self.field("paths")[1:]:
                 ld_group = importNpz(path, config)
                 for ld in ld_group:
                     layer_dict.setdefault(ld.isotope, []).append(ld)
-
         elif self.field("radio_agilent"):
             for path in self.field("paths"):
                 ld_group = importAgilentBatch(path, config)
                 for ld in ld_group:
                     layer_dict.setdefault(ld.isotope, []).append(ld)
-
         elif self.field("radio_csv"):
             for path in self.field("paths"):
                 # lds = importNpz(path, config)
@@ -147,14 +143,14 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
     def buttonAdd(self):
         if self.field("radio_numpy"):
             paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", "" "(*.npz)")
+                self, "Select Files", "" "Numpy archives(*.npz);;All files(*)")
         elif self.field("radio_agilent"):
             path = QtWidgets.QFileDialog.getExistingDirectory(
                 self, "Select Batch", "", QtWidgets.QFileDialog.ShowDirsOnly)
             paths = [path]
         elif self.field("radio_csv"):
             paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", "" "(*.csv)")
+                self, "Select Files", "" "CSV files(*.csv);;All files(*)")
 
         for path in paths:
             self.list.addItem(path)

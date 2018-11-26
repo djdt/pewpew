@@ -17,19 +17,7 @@ def importNpz(path, config_override=None):
     return lds
 
 
-def importCsv(path):
-    with open(path, 'r') as fp:
-        isotope = fp.readline().rstrip()
-        config = LaserData.DEFAULT_CONFIG
-        sconfig = fp.readline().split(',')
-        for sp in sconfig:
-            k, v = sp.split('=')
-            config[k] = v
-        data = np.loadtxt(fp)
-    return LaserData(isotope=isotope, config=config, data=data, source=path)
-
-
-def importAgilentBatch(path, config=LaserData.DEFAULT_CONFIG):
+def importAgilentBatch(path, config):
     data_files = []
     with os.scandir(path) as it:
         for entry in it:
@@ -39,18 +27,15 @@ def importAgilentBatch(path, config=LaserData.DEFAULT_CONFIG):
     # Sort by name
     data_files.sort()
 
-    lines = [np.genfromtxt(
-             f, delimiter=',', names=True,
+    lines = [np.genfromtxt(f, delimiter=',', names=True,
              skip_header=3, skip_footer=1) for f in data_files]
     layer = np.vstack(lines)
-    # return layer[list(layer.dtype.names[1:])]  # Remove times
 
     lds = []
     for name in layer.dtype.names[1:]:  # Remove times
         lds.append(LaserData(isotope=name, config=config, source=path,
                              data=layer[name]))
     return lds
-    # return layer[list(layer.dtype.names[1:])]  # Remove times
 
 
 def importCSVFromThatGermanThing(path):

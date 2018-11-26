@@ -51,8 +51,9 @@ class KrissKrossData(LaserData):
     def split(self):
         lds = []
         for data in np.dsplit(self.data, self.data.shape[2]):
-            lds.append(LaserData(data=data, isotope=self.isotope,
-                                 config=self.config, source=self.source))
+            # Strip the third dimension
+            lds.append(KrissKrossData(data=data, isotope=self.isotope,
+                                      config=self.config, source=self.source))
         return lds
 
     def calibrated(self, flat=True):
