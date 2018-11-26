@@ -6,10 +6,11 @@ from gui.qt.krisskrosswizard import KrissKrossWizard
 from gui.qt.imagedock import ImageDock, LaserImageDock, KrissKrossImageDock
 
 from util.laser import LaserData
-from util.importer import importNpz, importCsv, importAgilentBatch
+from util.importer import importNpz, importAgilentBatch
 from util.exporter import exportNpz
 
 import os.path
+import traceback
 
 VERSION = "0.1.0"
 
@@ -137,7 +138,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 if ext == '.npz':
                     lds += importNpz(path)
                 elif ext == '.csv':
-                    lds.append(importCsv(path))
+                    pass
+                    # lds.append(importCsv(path))
                 else:
                     QtWidgets.QMessageBox.warning(
                         self, "Open Failed",
@@ -207,7 +209,7 @@ class MainWindow(QtWidgets.QMainWindow):
             dock.draw(self.viewconfig)
 
     def menuColormapRange(self):
-        #TODO show dialog get range
+        # TODO show dialog get range
         pass
         # dlg = QtWidgets.QInputDialog
         # self.viewconfig['cmaprange'] = (range_min, range_max)
@@ -228,3 +230,10 @@ class MainWindow(QtWidgets.QMainWindow):
             ("Visualiser / converter for LA-ICP-MS data.\n"
              f"Version {VERSION}\n"
              "Developed by the UTS Bioimaging Group."))
+
+    def exceptHook(self, type, value, trace):
+        dlg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Critical,
+                                    type.__name__, str(value),
+                                    QtWidgets.QMessageBox.NoButton, self)
+        dlg.setInformativeText('\n'.join(traceback.format_tb(trace)))
+        dlg.exec()
