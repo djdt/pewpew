@@ -11,7 +11,7 @@ from util.exporter import exportNpz
 
 import os.path
 
-VERSION = "0.0.2"
+VERSION = "0.1.0"
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -79,7 +79,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # View
         menu_view = self.menuBar().addMenu("&View")
         menu_cmap = menu_view.addMenu("&Colormap")
-        menu_cmap.setStatusTip("Change the image colormap.")
+        menu_cmap.setStatusTip("Colormap of displayed images.")
         # View - colormap
         cmap_group = QtWidgets.QActionGroup(menu_cmap)
         for cmap in ['magma', 'viridis', 'plasma', 'nipy_spectral',
@@ -91,6 +91,7 @@ class MainWindow(QtWidgets.QMainWindow):
             menu_cmap.addAction(action)
         cmap_group.triggered.connect(self.menuColormap)
         menu_interp = menu_view.addMenu("&Interpolation")
+        menu_interp.setStatusTip("Interpolation of displayed images.")
         # View - interpolation
         interp_group = QtWidgets.QActionGroup(menu_interp)
         for interp in ['none', 'nearest', 'bilinear', 'bicubic',
@@ -169,7 +170,6 @@ class MainWindow(QtWidgets.QMainWindow):
         kkw = KrissKrossWizard(self.config, self)
         if kkw.exec():
             for kkd in kkw.krisskrossdata:
-                print(kkd.data.shape)
                 dock = KrissKrossImageDock(kkd, self.dockarea)
                 dock.draw(self.viewconfig)
                 self.dockarea.addDockWidget(dock)
