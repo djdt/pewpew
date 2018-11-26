@@ -9,11 +9,11 @@ def importNpz(path, config_override=None):
     lds = []
     npz = np.load(path)
 
-    for isotope, config in zip(npz['isotopes'], npz['configs']):
-        ld = LaserData(
+    for datatype, isotope, config in zip(
+            npz['datatypes'], npz['isotopes'], npz['configs']):
+        lds.append(datatype(
             config=config_override if config_override is not None else config,
-            isotope=isotope, data=npz[isotope], source=path)
-        lds.append(ld)
+            isotope=isotope, data=npz[isotope], source=path))
     return lds
 
 
