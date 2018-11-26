@@ -199,12 +199,26 @@ class KrissKrossImageDock(ImageDock):
 
     def onMenuExport(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-                self, "Enter File Basename", "", "CSV files(*.csv);;",
+                self, "Enter File Basename", "", "CSV files(*.csv);;"
                 "Numpy archives(*.npz);;PNG images(*.png);;All files(*)")
         if path:
             base, ext = os.path.splitext(path)
+            yes_to_all = False
             for i, ld in enumerate(self.laser.split()):
+                # Check for existing files and prompt for overwrite
                 layer_path = f"{base}_{i}{ext}"
+                if os.path.exists(layer_path) and not yes_to_all:
+                    result = QtWidgets.QMessageBox.question(
+                        self, "Overwrite File?",
+                        f"The file \"{os.path.basename(layer_path)}\" "
+                        "already exists. Do you wish to overwrite it?",
+                        QtWidgets.QMessageBox.Yes |
+                        QtWidgets.QMessageBox.YesToAll |
+                        QtWidgets.QMessageBox.No)
+                    if result == QtWidgets.QMessageBox.No:
+                        continue
+                    elif result == QtWidgets.QMessageBox.YesToAll:
+                        yes_to_all = True
                 if ext == ".npz":
                         exportNpz(layer_path, [ld])
                 elif ext == ".csv":
