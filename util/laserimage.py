@@ -12,7 +12,6 @@ def plotLaserImage(fig, ax, data, interpolation=None,
                    scalebar=True, label=None,
                    vmin='auto', vmax='auto', cmap='magma'):
 
-        print(interpolation)
         if vmin is 'auto':
             vmin = np.percentile(data, 1)
         if vmax is 'auto':

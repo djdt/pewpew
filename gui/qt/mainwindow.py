@@ -76,10 +76,12 @@ class MainWindow(QtWidgets.QMainWindow):
             QtGui.QIcon.fromTheme('document-properties'), "Config")
         action_config.setStatusTip("Update the configs for visible images.")
         action_config.triggered.connect(self.menuConfig)
+
         # View
         menu_view = self.menuBar().addMenu("&View")
         menu_cmap = menu_view.addMenu("&Colormap")
         menu_cmap.setStatusTip("Colormap of displayed images.")
+
         # View - colormap
         cmap_group = QtWidgets.QActionGroup(menu_cmap)
         for cmap in ['magma', 'viridis', 'plasma', 'nipy_spectral',
@@ -90,9 +92,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 action.setChecked(True)
             menu_cmap.addAction(action)
         cmap_group.triggered.connect(self.menuColormap)
+        menu_cmap.addSeparator()
+        action_cmap_range = menu_cmap.addAction("Range...")
+        action_cmap_range.setStatusTip(
+            "Set the minimum and maximum values of the colormap.")
+        action_cmap_range.triggered.connect(self.menuColormapRange)
+
+        # View - interpolation
         menu_interp = menu_view.addMenu("&Interpolation")
         menu_interp.setStatusTip("Interpolation of displayed images.")
-        # View - interpolation
         interp_group = QtWidgets.QActionGroup(menu_interp)
         for interp in ['none', 'nearest', 'bilinear', 'bicubic',
                        'spline16', 'spline36', 'gaussian']:
@@ -197,6 +205,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.viewconfig['cmap'] = action.text().replace('&', '')
         for dock in self.dockarea.findChildren(ImageDock):
             dock.draw(self.viewconfig)
+
+    def menuColormapRange(self):
+        #TODO show dialog get range
+        pass
+        # dlg = QtWidgets.QInputDialog
+        # self.viewconfig['cmaprange'] = (range_min, range_max)
 
     def menuInterpolation(self, action):
         self.viewconfig['interpolation'] = action.text().replace('&', '')
