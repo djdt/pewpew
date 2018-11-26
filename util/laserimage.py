@@ -6,17 +6,19 @@ from util.formatter import isotopeFormat
 import numpy as np
 
 
-def plotLaserImage(fig, ax, data, extent=None, aspect='auto',
+def plotLaserImage(fig, ax, data, interpolation=None,
+                   extent=None, aspect='auto',
                    colorbar=None, colorbarpos='bottom', colorbarlabel='',
                    scalebar=True, label=None,
                    vmin='auto', vmax='auto', cmap='magma'):
 
+        print(interpolation)
         if vmin is 'auto':
             vmin = np.percentile(data, 1)
         if vmax is 'auto':
             vmax = np.percentile(data, 99)
 
-        im = ax.imshow(data, cmap=cmap, interpolation='none',
+        im = ax.imshow(data, cmap=cmap, interpolation=interpolation,
                        vmin=vmin, vmax=vmax,
                        extent=extent, aspect=aspect)
 

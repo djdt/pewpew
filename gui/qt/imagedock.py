@@ -16,6 +16,10 @@ import os.path
 
 
 class ImageDock(QtWidgets.QDockWidget):
+    DEFAULT_VIEW_CONFIG = {'cmap': 'magma',
+                           'interpolation': 'none',
+                           'cmap_range': (1, 99)}
+
     def __init__(self, parent=None):
 
         self.laser = np.array([])
@@ -70,16 +74,15 @@ class ImageDock(QtWidgets.QDockWidget):
     def clearStatusBar(self, e):
         self.window().statusBar().clearMessage()
 
-    def draw(self, cmap='magma'):
+    def draw(self, viewconfig):
         self.fig.clear()
         self.ax = self.fig.add_subplot(111)
 
         self.image = plotLaserImage(
             self.fig, self.ax, self.laser.calibrated(),
-            colorbar='bottom', cmap=cmap,
-            label=self.laser.isotope,
-            aspect=self.laser.aspect(),
-            extent=self.laser.extent())
+            colorbar='bottom', label=self.laser.isotope,
+            cmap=viewconfig['cmap'], interpolation=viewconfig['interpolation'],
+            aspect=self.laser.aspect(), extent=self.laser.extent())
 
         self.fig.tight_layout()
         self.canvas.draw()
@@ -122,10 +125,10 @@ class LaserImageDock(ImageDock):
         name = os.path.splitext(os.path.basename(self.laser.source))[0]
         self.setWindowTitle(f"{name}:{self.laser.isotope}")
 
-    def draw(self, laserdata=None, cmap='magma'):
+    def draw(self, viewconfig, laserdata=None):
         if laserdata is not None:
             self.laser = laserdata
-        super().draw()
+        super().draw(viewconfig)
 
     def onMenuSaveAs(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
@@ -159,10 +162,10 @@ class KrissKrossImageDock(ImageDock):
         self.action_export.setStatusTip("Export layers to individual files.")
         self.action_export.triggered.connect(self.onMenuExport)
 
-    def draw(self, kkdata=None, cmap='magma'):
+    def draw(self, viewconfig, kkdata=None):
         if kkdata is not None:
             self.laser = kkdata
-        super().draw()
+        super().draw(viewconfig)
 
     def contextMenuEvent(self, event):
         context_menu = QtWidgets.QMenu(self)

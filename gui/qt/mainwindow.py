@@ -20,7 +20,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
 
         self.config = LaserData.DEFAULT_CONFIG
-        self.viewconfig = {'cmap': 'magma', 'cmap_range': (1, 99)}
+        self.viewconfig = ImageDock.DEFAULT_VIEW_CONFIG
 
         self.setWindowTitle("Laser plot")
         self.resize(1280, 800)
@@ -80,15 +80,27 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_view = self.menuBar().addMenu("&View")
         menu_cmap = menu_view.addMenu("&Colormap")
         menu_cmap.setStatusTip("Change the image colormap.")
+        # View - colormap
         cmap_group = QtWidgets.QActionGroup(menu_cmap)
         for cmap in ['magma', 'viridis', 'plasma', 'nipy_spectral',
                      'gnuplot2', 'CMRmap']:
             action = cmap_group.addAction(cmap)
             action.setCheckable(True)
-            if cmap == 'magma':
+            if cmap == self.viewconfig['cmap']:
                 action.setChecked(True)
             menu_cmap.addAction(action)
         cmap_group.triggered.connect(self.menuColormap)
+        menu_interp = menu_view.addMenu("&Interpolation")
+        # View - interpolation
+        interp_group = QtWidgets.QActionGroup(menu_interp)
+        for interp in ['none', 'nearest', 'bilinear', 'bicubic',
+                       'spline16', 'spline36', 'gaussian']:
+            action = interp_group.addAction(interp)
+            action.setCheckable(True)
+            if interp == self.viewconfig['interpolation']:
+                action.setChecked(True)
+            menu_interp.addAction(action)
+        interp_group.triggered.connect(self.menuInterpolation)
 
         menu_view.addSeparator()
 
@@ -126,7 +138,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         for ld in lds:
             dock = LaserImageDock(ld, self.dockarea)
-            dock.draw(cmap=self.viewconfig['cmap'])
+            dock.draw(self.viewconfig)
             self.dockarea.addDockWidget(dock)
 
     def menuSave(self):
@@ -146,7 +158,7 @@ class MainWindow(QtWidgets.QMainWindow):
             lds = importAgilentBatch(path, self.config)
             for ld in lds:
                 dock = LaserImageDock(ld, self.dockarea)
-                dock.draw(cmap=self.viewconfig['cmap'])
+                dock.draw(self.viewconfig)
                 self.dockarea.addDockWidget(dock)
         else:
             QtWidgets.QMessageBox.warning(
@@ -159,7 +171,7 @@ class MainWindow(QtWidgets.QMainWindow):
             for kkd in kkw.krisskrossdata:
                 print(kkd.data.shape)
                 dock = KrissKrossImageDock(kkd, self.dockarea)
-                dock.draw(cmap=self.viewconfig['cmap'])
+                dock.draw(self.viewconfig)
                 self.dockarea.addDockWidget(dock)
 
     def menuExit(self):
@@ -175,17 +187,22 @@ class MainWindow(QtWidgets.QMainWindow):
                 docks = self.dockarea.visibleDocks()
             for d in docks:
                 d.laser.config = self.config
-                d.draw(cmap=self.viewconfig['cmap'])
+                d.draw(self.viewconfig)
 
     def menuColormap(self, action):
-        self.viewconfig['cmap'] = action.text().lstrip('&')
+        self.viewconfig['cmap'] = action.text().replace('&', '')
         for dock in self.dockarea.findChildren(ImageDock):
-            dock.draw(cmap=self.viewconfig['cmap'])
+            dock.draw(self.viewconfig)
+
+    def menuInterpolation(self, action):
+        self.viewconfig['interpolation'] = action.text().replace('&', '')
+        for dock in self.dockarea.findChildren(ImageDock):
+            dock.draw(self.viewconfig)
 
     def menuRefresh(self):
         docks = self.dockarea.findChildren(ImageDock)
         for dock in docks:
-            dock.draw(cmap=self.viewconfig['cmap'])
+            dock.draw(self.viewconfig)
 
     def menuAbout(self):
         QtWidgets.QMessageBox.about(
