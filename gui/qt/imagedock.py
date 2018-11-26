@@ -199,16 +199,17 @@ class KrissKrossImageDock(ImageDock):
 
     def onMenuExport(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-                self, "Enter File Basename", "", "CSV files(*.csv);;"
-                "Numpy archives(*.npz);;PNG images(*.png);;All files(*)")
+                self, "Enter File Basename", "", "Numpy archives(*.npz);;"
+                "CSV files(*.csv);;PNG images(*.png);;All files(*)", "",
+                QtWidgets.QFileDialog.DontConfirmOverwrite)
         if path:
             base, ext = os.path.splitext(path)
             yes_to_all = False
-            for i, ld in enumerate(self.laser.split()):
+            for i, ld in enumerate(self.laser.split(), 1):
                 # Check for existing files and prompt for overwrite
-                layer_path = f"{base}_{i}{ext}"
+                layer_path = f"{base}_layer{i}{ext}"
                 if os.path.exists(layer_path) and not yes_to_all:
-                    result = QtWidgets.QMessageBox.question(
+                    result = QtWidgets.QMessageBox.warning(
                         self, "Overwrite File?",
                         f"The file \"{os.path.basename(layer_path)}\" "
                         "already exists. Do you wish to overwrite it?",
