@@ -110,16 +110,20 @@ class MainWindow(QtWidgets.QMainWindow):
         lds = []
         if len(paths) == 0:
             return
-        for path in paths:
-            ext = os.path.splitext(path)[1].lower()
-            if ext == '.npz':
-                lds += importNpz(path)
-            elif ext == '.csv':
-                lds.append(importCsv(path))
-            else:
-                QtWidgets.QMessageBox.warning(
-                    self, "Open Failed",
-                    f"Invalid file type \'{os.path.basename(path)}\'.")
+        try:
+            for path in paths:
+                ext = os.path.splitext(path)[1].lower()
+                if ext == '.npz':
+                    lds += importNpz(path)
+                elif ext == '.csv':
+                    lds.append(importCsv(path))
+                else:
+                    QtWidgets.QMessageBox.warning(
+                        self, "Open Failed",
+                        f"Invalid file type \'{os.path.basename(path)}\'.")
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Import Error", str(e))
+
         for ld in lds:
             dock = LaserImageDock(ld, self.dockarea)
             dock.draw(cmap=self.viewconfig['cmap'])
@@ -130,8 +134,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self, "Save File", "", "Numpy archives(*.npz);;All files(*)")
         if path == "":
             return
-        lds = [d.laserdata for d in
-               self.dockarea.findChildren(ImageDock)]
+        lds = [d.laser for d in self.dockarea.findChildren(ImageDock)]
         exportNpz(path, lds)
 
     def menuImportAgilent(self):
@@ -171,10 +174,7 @@ class MainWindow(QtWidgets.QMainWindow):
             else:
                 docks = self.dockarea.visibleDocks()
             for d in docks:
-                if type(d) == KrissKrossImageDock:
-                    d.kkdata.config = self.config
-                else:
-                    d.laserdata.config = self.config
+                d.laser.config = self.config
                 d.draw(cmap=self.viewconfig['cmap'])
 
     def menuColormap(self, action):
