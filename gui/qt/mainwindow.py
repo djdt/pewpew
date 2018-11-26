@@ -235,5 +235,8 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Critical,
                                     type.__name__, str(value),
                                     QtWidgets.QMessageBox.NoButton, self)
-        dlg.setInformativeText('\n'.join(traceback.format_tb(trace)))
+        dlg.setDetailedText(''.join(traceback.format_tb(trace)))
+        tedit = dlg.findChildren(QtWidgets.QTextEdit)
+        if tedit[0] is not None:
+            tedit[0].setFixedSize(640, 320)
         dlg.exec()
