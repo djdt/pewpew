@@ -136,7 +136,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         f"Invalid file type \'{os.path.basename(path)}\'.")
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Import Error", str(e))
-
+            return
         for ld in lds:
             dock = LaserImageDock(ld, self.dockarea)
             dock.draw(self.viewconfig)
@@ -156,7 +156,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if path == "":
             return
         if path.endswith('.b'):
-            lds = importAgilentBatch(path, self.config)
+            try:
+                lds = importAgilentBatch(path, self.config)
+            except Exception as e:
+                QtWidgets.QMessageBox.critical(self, "Import Error", str(e))
+                return
             for ld in lds:
                 dock = LaserImageDock(ld, self.dockarea)
                 dock.draw(self.viewconfig)
