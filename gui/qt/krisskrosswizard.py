@@ -147,6 +147,8 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
         elif self.field("radio_agilent"):
             path = QtWidgets.QFileDialog.getExistingDirectory(
                 self, "Select Batch", "", QtWidgets.QFileDialog.ShowDirsOnly)
+            if len(path) == 0:
+                return
             paths = [path]
         elif self.field("radio_csv"):
             paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
