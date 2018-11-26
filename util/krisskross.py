@@ -12,7 +12,6 @@ def krissKrossLayers(layers, aspect, warmup, horizontal_first=True):
         length = (layers[1].shape[0] * aspect,
                   layers[0].shape[0] * aspect)
 
-        print(aspect, trim, length)
         # Reshape the layers and stack into matrix
         transformed = []
         for i, layer in enumerate(layers):
@@ -55,6 +54,12 @@ class KrissKrossData(LaserData):
             lds.append(LaserData(data=data, isotope=self.isotope,
                                  config=self.config, source=self.source))
         return lds
+
+    def calibrated(self, flat=True):
+        if flat:
+            return np.mean(super().calibrated(), axis=2)
+        else:
+            return super().calibrated()
 
     def extent(self):
         # Image data is stored [rows][cols]
