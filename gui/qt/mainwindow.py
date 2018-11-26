@@ -6,6 +6,7 @@ from gui.qt.krisskrosswizard import KrissKrossWizard
 from gui.qt.imagedock import ImageDock, LaserImageDock, KrissKrossImageDock
 
 from util.laser import LaserData
+from util.krisskross import KrissKrossData
 from util.importer import importNpz, importAgilentBatch
 from util.exporter import exportNpz
 
@@ -74,8 +75,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # Edit
         menu_edit = self.menuBar().addMenu("&Edit")
         action_config = menu_edit.addAction(
-            QtGui.QIcon.fromTheme('document-properties'), "Config")
+            QtGui.QIcon.fromTheme('document-properties'), "&Config")
         action_config.setStatusTip("Update the configs for visible images.")
+        action_config.setShortcut("Ctrl+K")
         action_config.triggered.connect(self.menuConfig)
 
         # View
@@ -143,12 +145,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 else:
                     QtWidgets.QMessageBox.warning(
                         self, "Open Failed",
-                        f"Invalid file type \'{os.path.basename(path)}\'.")
+                        f"Invalid file type \"{os.path.basename(path)}\".")
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Import Error", str(e))
             return
         for ld in lds:
-            dock = LaserImageDock(ld, self.dockarea)
+            if type(ld) == KrissKrossData:
+                dock = KrissKrossImageDock(ld, self.dockarea)
+            else:
+                dock = LaserImageDock(ld, self.dockarea)
             dock.draw(self.viewconfig)
             self.dockarea.addDockWidget(dock)
 
@@ -178,7 +183,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             QtWidgets.QMessageBox.warning(
                 self, "Import Failed",
-                f"Invalid batch directory \'{os.path.basename(path)}\'.")
+                f"Invalid batch directory \"{os.path.basename(path)}\".")
 
     def menuImportKrissKross(self):
         kkw = KrissKrossWizard(self.config, self)
@@ -229,7 +234,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self, "About Laser plot",
             ("Visualiser / converter for LA-ICP-MS data.\n"
              f"Version {VERSION}\n"
-             "Developed by the UTS Bioimaging Group."))
+             "Developed by the UTS Elemental Bio-Imaging Group."))
 
     def exceptHook(self, type, value, trace):
         dlg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Critical,
