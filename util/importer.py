@@ -35,7 +35,6 @@ def importAgilentBatch(path, config):
             skip_header += 1
 
     cols = np.arange(1, line.count(',') + 1)
-    print(skip_header, cols)
 
     lines = [np.genfromtxt(f, delimiter=',', names=True, usecols=cols,
              skip_header=skip_header, invalid_raise=False) for f in data_files]

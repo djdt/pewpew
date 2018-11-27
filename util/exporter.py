@@ -9,3 +9,6 @@ def exportNpz(path, laserdata_list):
         savedict['configs'].append(ld.config)
         savedict[ld.isotope] = ld.data
     np.savez(path, **savedict)
+
+def exportVtr(path, kkdata, name="laser_plot export"):
+    x, y, z = kkdata.data.shape

@@ -11,6 +11,7 @@ from gui.qt.configdialog import ConfigDialog
 
 import numpy as np
 import os.path
+import copy
 
 # TODO, draw calls in config will reset cmap
 
@@ -41,6 +42,10 @@ class ImageDock(QtWidgets.QDockWidget):
         self.setWidget(self.canvas)
 
         # Context menu actions
+        self.action_copy = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme('edit-copy'), "Open Copy", self)
+        self.action_copy.setStatusTip("Open a copy of this image")
+        self.action_copy.triggered.connect(self.onMenuCopy)
         self.action_save = QtWidgets.QAction(
             QtGui.QIcon.fromTheme('document-save'), "Save", self)
         self.action_save.setStatusTip("Save image to archive.")
@@ -87,14 +92,24 @@ class ImageDock(QtWidgets.QDockWidget):
         self.fig.tight_layout()
         self.canvas.draw()
 
-    def contextMenuEvent(self, event):
+    def buildContextMenu(self):
         context_menu = QtWidgets.QMenu(self)
+        context_menu.addAction(self.action_copy)
+        context_menu.addSeparator()
         context_menu.addAction(self.action_save)
         context_menu.addAction(self.action_save_as)
+        context_menu.addSeparator()
         context_menu.addAction(self.action_config)
         context_menu.addSeparator()
         context_menu.addAction(self.action_close)
+        return context_menu
+
+    def contextMenuEvent(self, event):
+        context_menu = self.buildContextMenu()
         context_menu.exec(event.globalPos())
+
+    def onMenuCopy(self):
+        pass
 
     def onMenuSave(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
@@ -129,6 +144,11 @@ class LaserImageDock(ImageDock):
         if laserdata is not None:
             self.laser = laserdata
         super().draw(viewconfig)
+
+    def onMenuCopy(self):
+        dock_copy = LaserImageDock(self.laser, self.parent())
+        dock_copy.draw(self.window().viewconfig)
+        self.parent().addDockWidget(dock_copy)
 
     def onMenuSaveAs(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
@@ -168,14 +188,14 @@ class KrissKrossImageDock(ImageDock):
         super().draw(viewconfig)
 
     def contextMenuEvent(self, event):
-        context_menu = QtWidgets.QMenu(self)
-        context_menu.addAction(self.action_save)
-        context_menu.addAction(self.action_save_as)
-        context_menu.addAction(self.action_export)
-        context_menu.addAction(self.action_config)
-        context_menu.addSeparator()
-        context_menu.addAction(self.action_close)
+        context_menu = self.buildContextMenu()
+        context_menu.insertAction(self.action_config, self.action_export)
         context_menu.exec(event.globalPos())
+
+    def onMenuCopy(self):
+        dock_copy = KrissKrossImageDock(self.laser, self.parent())
+        dock_copy.draw(self.window().viewconfig)
+        self.parent().addDockWidget(dock_copy)
 
     def onMenuSaveAs(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
