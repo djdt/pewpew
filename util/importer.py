@@ -27,7 +27,7 @@ def importAgilentBatch(path, config):
     # Sort by name
     data_files.sort()
 
-    with open(data_files[0]) as fp:
+    with open(data_files[0], 'r') as fp:
         line = fp.readline()
         skip_header = 0
         while line and not line.startswith('Time [Sec]'):
