@@ -28,17 +28,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("Laser plot")
         self.resize(1280, 800)
 
-        widget = QtWidgets.QWidget(self)
+        widget = QtWidgets.QWidget()
         self.setCentralWidget(widget)
         layout = QtWidgets.QHBoxLayout()
 
         self.dockarea = TabbedDocks(self)
-        layout.addWidget(self.dockarea, 1)
+        layout.addWidget(self.dockarea)
 
         widget.setLayout(layout)
 
         self.createMenus()
         self.statusBar().showMessage("Import or open data to begin.")
+
+        lds = importAgilentBatch("/home/tom/Downloads/M1 LUNG 100.b", self.config)
+        for ld in lds:
+            dock = LaserImageDock(ld, self.dockarea)
+            dock.draw(self.viewconfig)
+            self.dockarea.addDockWidget(dock)
 
     def createMenus(self):
         # File
@@ -151,8 +157,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 dock = KrissKrossImageDock(ld, self.dockarea)
             else:
                 dock = LaserImageDock(ld, self.dockarea)
-            dock.draw(self.viewconfig)
             self.dockarea.addDockWidget(dock)
+            dock.draw(self.viewconfig)
 
     def menuSave(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
@@ -171,8 +177,8 @@ class MainWindow(QtWidgets.QMainWindow):
             lds = importAgilentBatch(path, self.config)
             for ld in lds:
                 dock = LaserImageDock(ld, self.dockarea)
-                dock.draw(self.viewconfig)
                 self.dockarea.addDockWidget(dock)
+                dock.draw(self.viewconfig)
         else:
             QtWidgets.QMessageBox.warning(
                 self, "Import Failed",
@@ -183,8 +189,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if kkw.exec():
             for kkd in kkw.krisskrossdata:
                 dock = KrissKrossImageDock(kkd, self.dockarea)
-                dock.draw(self.viewconfig)
                 self.dockarea.addDockWidget(dock)
+                dock.draw(self.viewconfig)
 
     def menuExit(self):
         self.close()

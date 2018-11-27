@@ -6,6 +6,8 @@ class TabbedDocks(QtWidgets.QMainWindow):
         super().__init__(parent)
 
         self.setDockNestingEnabled(True)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
+                           QtWidgets.QSizePolicy.Expanding)
 
     def addDockWidget(self, dock, area=QtCore.Qt.LeftDockWidgetArea):
         super().addDockWidget(area, dock)
@@ -23,6 +25,7 @@ class TabbedDocks(QtWidgets.QMainWindow):
 
         for d in docks[1:]:
             self.tabifyDockWidget(docks[0], d)
+            d.layout().invalidate()
 
     def visibleDocks(self):
         docks = self.findChildren(QtWidgets.QDockWidget)
