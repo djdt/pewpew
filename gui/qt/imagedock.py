@@ -11,9 +11,23 @@ from gui.qt.configdialog import ConfigDialog
 
 import numpy as np
 import os.path
-import copy
+
 
 # TODO, draw calls in config will reset cmap
+class Canvas(FigureCanvasQTAgg):
+    def __init__(self, fig, parent=None):
+        super().__init__(fig)
+        self.setParent(parent)
+        self.setStyleSheet("background-color:transparent;")
+        self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
+                           QtWidgets.QSizePolicy.MinimumExpanding)
+
+    def sizeHint(self):
+        w, h = self.get_width_height()
+        return QtCore.QSize(w, h)
+
+    def minimumSizeHint(self):
+        return QtCore.QSize(200, 200)
 
 
 class ImageDock(QtWidgets.QDockWidget):
@@ -31,15 +45,20 @@ class ImageDock(QtWidgets.QDockWidget):
         self.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable |
                          QtWidgets.QDockWidget.DockWidgetMovable)
 
-        self.fig = Figure(frameon=False, figsize=(5, 5), dpi=100)
+        self.fig = Figure(frameon=False, tight_layout=True,
+                          figsize=(5, 5), dpi=100)
         self.ax = self.fig.add_subplot(111)
-        self.canvas = FigureCanvasQTAgg(self.fig)
-        self.canvas.setStyleSheet("background-color:transparent;")
-        self.canvas.setMinimumSize(100, 100)
-        self.canvas.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
-                                  QtWidgets.QSizePolicy.MinimumExpanding)
+        self.canvas = Canvas(self.fig, self)
 
-        self.setWidget(self.canvas)
+        self.combo_isotope = QtWidgets.QComboBox()
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.canvas)
+        layout.addWidget(self.combo_isotope, 1, QtCore.Qt.AlignRight)
+
+        widget = QtWidgets.QWidget()
+        widget.setLayout(layout)
+        self.setWidget(widget)
 
         # Context menu actions
         self.action_copy = QtWidgets.QAction(
@@ -89,7 +108,6 @@ class ImageDock(QtWidgets.QDockWidget):
             cmap=viewconfig['cmap'], interpolation=viewconfig['interpolation'],
             aspect=self.laser.aspect(), extent=self.laser.extent())
 
-        self.fig.tight_layout()
         self.canvas.draw()
 
     def buildContextMenu(self):
