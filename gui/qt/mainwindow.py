@@ -134,21 +134,17 @@ class MainWindow(QtWidgets.QMainWindow):
         lds = []
         if len(paths) == 0:
             return
-        try:
-            for path in paths:
-                ext = os.path.splitext(path)[1].lower()
-                if ext == '.npz':
-                    lds += importNpz(path)
-                elif ext == '.csv':
-                    pass
-                    # lds.append(importCsv(path))
-                else:
-                    QtWidgets.QMessageBox.warning(
-                        self, "Open Failed",
-                        f"Invalid file type \"{os.path.basename(path)}\".")
-        except Exception as e:
-            QtWidgets.QMessageBox.critical(self, "Import Error", str(e))
-            return
+        for path in paths:
+            ext = os.path.splitext(path)[1].lower()
+            if ext == '.npz':
+                lds += importNpz(path)
+            elif ext == '.csv':
+                pass
+                # lds.append(importCsv(path))
+            else:
+                QtWidgets.QMessageBox.warning(
+                    self, "Open Failed",
+                    f"Invalid file type \"{os.path.basename(path)}\".")
         for ld in lds:
             if type(ld) == KrissKrossData:
                 dock = KrissKrossImageDock(ld, self.dockarea)
@@ -170,12 +166,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self, "Batch Directory", "")
         if path == "":
             return
-        if path.endswith('.b'):
-            try:
-                lds = importAgilentBatch(path, self.config)
-            except Exception as e:
-                QtWidgets.QMessageBox.critical(self, "Import Error", str(e))
-                return
+        if path.lower().endswith('.b'):
+            lds = importAgilentBatch(path, self.config)
             for ld in lds:
                 dock = LaserImageDock(ld, self.dockarea)
                 dock.draw(self.viewconfig)
