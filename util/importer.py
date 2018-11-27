@@ -21,18 +21,28 @@ def importAgilentBatch(path, config):
     data_files = []
     with os.scandir(path) as it:
         for entry in it:
-            if entry.name.endswith('.d') and entry.is_dir():
-                file_name = entry.name.replace('.d', '.csv')
+            if entry.name.lower().endswith('.d') and entry.is_dir():
+                file_name = entry.name[:entry.name.rfind('.')] + '.csv'
                 data_files.append(os.path.join(entry.path, file_name))
     # Sort by name
     data_files.sort()
 
-    lines = [np.genfromtxt(f, delimiter=',', names=True,
-             skip_header=3, skip_footer=1) for f in data_files]
+    with open(data_files[0]) as fp:
+        line = fp.readline()
+        skip_header = 0
+        while line and not line.startswith('Time [Sec]'):
+            line = fp.readline()
+            skip_header += 1
+
+    cols = np.arange(1, line.count(',') + 1)
+    print(skip_header, cols)
+
+    lines = [np.genfromtxt(f, delimiter=',', names=True, usecols=cols,
+             skip_header=skip_header, invalid_raise=False) for f in data_files]
     layer = np.vstack(lines)
 
     lds = []
-    for name in layer.dtype.names[1:]:  # Remove times
+    for name in layer.dtype.names:
         lds.append(LaserData(isotope=name, config=config, source=path,
                              data=layer[name]))
     return lds
