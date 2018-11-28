@@ -12,6 +12,7 @@ from gui.qt.configdialog import ConfigDialog
 import numpy as np
 import os.path
 
+
 # TODO, draw calls in config will reset cmap
 class Canvas(FigureCanvasQTAgg):
     def __init__(self, fig, parent=None):
