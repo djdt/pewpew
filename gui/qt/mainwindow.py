@@ -2,6 +2,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from gui.qt.tabbeddocks import TabbedDocks
 from gui.qt.configdialog import ConfigDialog
+from gui.qt.colorrangedialog import ColorRangeDialog
 from gui.qt.krisskrosswizard import KrissKrossWizard
 from gui.qt.imagedock import ImageDock, LaserImageDock, KrissKrossImageDock
 
@@ -207,9 +208,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuColormapRange(self):
         # TODO show dialog get range
-        pass
-        # dlg = QtWidgets.QInputDialog
-        # self.viewconfig['cmaprange'] = (range_min, range_max)
+        dlg = ColorRangeDialog(self.viewconfig['cmap_range'], self)
+        if dlg.exec():
+            cmap_range = dlg.getRangeAsFloatOrPercent()
+            self.viewconfig['cmap_range'] = (cmap_range)
+        for dock in self.dockarea.findChildren(ImageDock):
+            dock.draw(self.viewconfig)
 
     def menuInterpolation(self, action):
         self.viewconfig['interpolation'] = action.text().replace('&', '')

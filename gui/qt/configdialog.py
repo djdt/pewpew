@@ -24,6 +24,7 @@ class ConfigForm(QtWidgets.QGroupBox):
 class ConfigDialog(QtWidgets.QDialog):
     def __init__(self, config, parent=None):
         super().__init__(parent)
+        self.setWindowTitle("Configuration")
 
         main_layout = QtWidgets.QVBoxLayout()
         # Form layout for line edits

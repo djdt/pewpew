@@ -11,7 +11,6 @@ from gui.qt.configdialog import ConfigDialog
 
 import numpy as np
 import os.path
-import copy
 
 # TODO, draw calls in config will reset cmap
 
@@ -19,7 +18,7 @@ import copy
 class ImageDock(QtWidgets.QDockWidget):
     DEFAULT_VIEW_CONFIG = {'cmap': 'magma',
                            'interpolation': 'none',
-                           'cmap_range': ('1%', '99%')}
+                           'cmap_range': ('0%', '98%')}
 
     def __init__(self, parent=None):
 
@@ -87,6 +86,7 @@ class ImageDock(QtWidgets.QDockWidget):
             self.fig, self.ax, self.laser.calibrated(),
             colorbar='bottom', label=self.laser.isotope,
             cmap=viewconfig['cmap'], interpolation=viewconfig['interpolation'],
+            vmin=viewconfig['cmap_range'][0], vmax=viewconfig['cmap_range'][1],
             aspect=self.laser.aspect(), extent=self.laser.extent())
 
         self.fig.tight_layout()

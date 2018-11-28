@@ -12,10 +12,10 @@ def plotLaserImage(fig, ax, data, interpolation=None,
                    scalebar=True, label=None,
                    vmin='auto', vmax='auto', cmap='magma'):
 
-        if vmin is 'auto':
-            vmin = np.percentile(data, 1)
-        if vmax is 'auto':
-            vmax = np.percentile(data, 99)
+        if type(vmin) == str:
+            vmin = np.percentile(data, float(vmin.rstrip('%')))
+        if type(vmax) == str:
+            vmax = np.percentile(data, float(vmax.rstrip('%')))
 
         im = ax.imshow(data, cmap=cmap, interpolation=interpolation,
                        vmin=vmin, vmax=vmax,
