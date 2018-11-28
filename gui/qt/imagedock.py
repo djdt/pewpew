@@ -37,7 +37,7 @@ class ImageDock(QtWidgets.QDockWidget):
 
     def __init__(self, parent=None):
 
-        self.laser = np.array([])
+        self.laser = None
         self.image = np.array([])
 
         super().__init__(parent)
@@ -51,6 +51,7 @@ class ImageDock(QtWidgets.QDockWidget):
         self.canvas = Canvas(self.fig, self)
 
         self.combo_isotope = QtWidgets.QComboBox()
+        self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.canvas)
@@ -98,13 +99,16 @@ class ImageDock(QtWidgets.QDockWidget):
     def clearStatusBar(self, e):
         self.window().statusBar().clearMessage()
 
-    def draw(self, viewconfig):
+    def draw(self):
         self.fig.clear()
         self.ax = self.fig.add_subplot(111)
 
+        isotope = self.combo_isotope.currentText()
+        viewconfig = self.window().viewconfig
+
         self.image = plotLaserImage(
-            self.fig, self.ax, self.laser.calibrated(),
-            colorbar='bottom', label=self.laser.isotope,
+            self.fig, self.ax, self.laser.calibrated(isotope),
+            colorbar='bottom', label=isotope,
             cmap=viewconfig['cmap'], interpolation=viewconfig['interpolation'],
             vmin=viewconfig['cmap_range'][0], vmax=viewconfig['cmap_range'][1],
             aspect=self.laser.aspect(), extent=self.laser.extent())
@@ -150,24 +154,23 @@ class ImageDock(QtWidgets.QDockWidget):
     def onMenuClose(self):
         self.close()
 
+    def onComboIsotope(self, text):
+        self.draw()
+
 
 class LaserImageDock(ImageDock):
     def __init__(self, laserdata, parent=None):
 
         super().__init__(parent)
         self.laser = laserdata
+        self.combo_isotope.addItems(self.laser.data.dtype.names)
         name = os.path.splitext(os.path.basename(self.laser.source))[0]
-        self.setWindowTitle(f"{name}:{self.laser.isotope}")
-
-    def draw(self, viewconfig, laserdata=None):
-        if laserdata is not None:
-            self.laser = laserdata
-        super().draw(viewconfig)
+        self.setWindowTitle(name)
 
     def onMenuCopy(self):
         dock_copy = LaserImageDock(self.laser, self.parent())
-        dock_copy.draw(self.window().viewconfig)
-        self.parent().addDockWidget(dock_copy)
+        dock_copy.draw()
+        self.parent().splitDockWidget(self, dock_copy, QtCore.Qt.Horizontal)
 
     def onMenuSaveAs(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
@@ -193,18 +196,14 @@ class KrissKrossImageDock(ImageDock):
 
         super().__init__(parent)
         self.laser = kkdata
+        self.combo_isotope.addItems(self.laser.data.dtype.names)
         name = os.path.splitext(os.path.basename(self.laser.source))[0]
-        self.setWindowTitle(f"{name}:kk:{self.laser.isotope}")
+        self.setWindowTitle(f"{name}:kk")
 
         self.action_export = QtWidgets.QAction(
             QtGui.QIcon.fromTheme('document-send'), "Export layers", self)
         self.action_export.setStatusTip("Export layers to individual files.")
         self.action_export.triggered.connect(self.onMenuExport)
-
-    def draw(self, viewconfig, kkdata=None):
-        if kkdata is not None:
-            self.laser = kkdata
-        super().draw(viewconfig)
 
     def contextMenuEvent(self, event):
         context_menu = self.buildContextMenu()
@@ -213,8 +212,8 @@ class KrissKrossImageDock(ImageDock):
 
     def onMenuCopy(self):
         dock_copy = KrissKrossImageDock(self.laser, self.parent())
-        dock_copy.draw(self.window().viewconfig)
-        self.parent().addDockWidget(dock_copy)
+        dock_copy.draw()
+        self.parent().splitDockWidget(self, dock_copy, QtCore.Qt.Horizontal)
 
     def onMenuSaveAs(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(

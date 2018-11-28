@@ -3,15 +3,20 @@ class LaserData(object):
         'spotsize': 30.0, 'speed': 120.0, 'scantime': 0.25,
         'gradient': 1.0, 'intercept': 0.0}
 
-    def __init__(self, data=None, isotope="", config=None,
+    def __init__(self, data=None, config=None,
                  source=""):
         self.data = data
-        self.isotope = isotope
         self.config = LaserData.DEFAULT_CONFIG if config is None else config
         self.source = source
 
-    def calibrated(self):
-        return (self.data - self.config['intercept']) / self.config['gradient']
+    def get(self, isotope=None):
+        if isotope is None:
+            return self.data
+        return self.data[isotope]
+
+    def calibrated(self, isotope=None):
+        return (self.get(isotope) - self.config['intercept']) / \
+                self.config['gradient']
 
     def pixelsize(self):
         return (self.config['speed'] * self.config['scantime'],

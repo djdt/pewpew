@@ -39,9 +39,8 @@ def krissKrossLayers(layers, aspect, warmup, horizontal_first=True):
 
 
 class KrissKrossData(LaserData):
-    def __init__(self, data=None, isotope="", config=None, source=""):
-        super().__init__(data=data, isotope=isotope,
-                         config=config, source=source)
+    def __init__(self, data=None, config=None, source=""):
+        super().__init__(data=data, config=config, source=source)
 
     def fromLayers(self, layers, warmup_time=12.0, horizontal_first=True):
         warmup = int(warmup_time / self.config['scantime'])
@@ -52,15 +51,15 @@ class KrissKrossData(LaserData):
         lds = []
         for data in np.dsplit(self.data, self.data.shape[2]):
             # Strip the third dimension
-            lds.append(KrissKrossData(data=data, isotope=self.isotope,
-                                      config=self.config, source=self.source))
+            lds.append(KrissKrossData(data=data, config=self.config,
+                                      source=self.source))
         return lds
 
-    def calibrated(self, flat=True):
+    def calibrated(self, isotope=None, flat=True):
         if flat:
-            return np.mean(super().calibrated(), axis=2)
+            return np.mean(super().calibrated(isotope), axis=2)
         else:
-            return super().calibrated()
+            return super().calibrated(isotope)
 
     def extent(self):
         # Image data is stored [rows][cols]

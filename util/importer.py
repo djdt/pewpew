@@ -38,13 +38,13 @@ def importAgilentBatch(path, config):
 
     lines = [np.genfromtxt(f, delimiter=',', names=True, usecols=cols,
              skip_header=skip_header, invalid_raise=False) for f in data_files]
-    layer = np.vstack(lines)
+    # layer = np.vstack(lines)
 
-    lds = []
-    for name in layer.dtype.names:
-        lds.append(LaserData(isotope=name, config=config, source=path,
-                             data=layer[name]))
-    return lds
+    # lds = []
+    # for name in layer.dtype.names:
+    #     lds.append(LaserData(isotope=name, config=config, source=path,
+    #                          data=layer[name]))
+    return LaserData(data=np.vstack(lines), config=config, source=path)
 
 
 def importCSVFromThatGermanThing(path):
