@@ -161,7 +161,7 @@ class LaserImageDock(ImageDock):
             elif ext == ".csv":
                 np.savetxt(path, self.laser.calibrated(), delimiter=',')
             elif ext == ".png":
-                self.fig.savefig(path)
+                self.fig.savefig(path, transparent=True, frameon=False)
                 # TODO show a config dialog
             else:
                 QtWidgets.QMessageBox.warning(
