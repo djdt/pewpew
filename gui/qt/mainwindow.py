@@ -58,7 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
             QtGui.QIcon.fromTheme('document-save'), "&Save All")
         action_save.setShortcut("Ctrl+S")
         action_save.setStatusTip("Save all images to an archive.")
-        action_save.triggered.connect(self.menuSave)
+        action_save.triggered.connect(self.menuSaveAll)
 
         # File -> Import
         menu_import = menu_file.addMenu("&Import")
@@ -159,7 +159,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.dockarea.addDockWidget(dock)
             dock.draw()
 
-    def menuSave(self):
+    def menuSaveAll(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save File", "", "Numpy archives(*.npz);;All files(*)")
         if path == "":
@@ -173,11 +173,10 @@ class MainWindow(QtWidgets.QMainWindow):
         if path == "":
             return
         if path.lower().endswith('.b'):
-            lds = importAgilentBatch(path, self.config)
-            for ld in lds:
-                dock = LaserImageDock(ld, self.dockarea)
-                self.dockarea.addDockWidget(dock)
-                dock.draw()
+            ld = importAgilentBatch(path, self.config)
+            dock = LaserImageDock(ld, self.dockarea)
+            self.dockarea.addDockWidget(dock)
+            dock.draw()
         else:
             QtWidgets.QMessageBox.warning(
                 self, "Import Failed",

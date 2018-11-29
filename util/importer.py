@@ -9,6 +9,10 @@ def importNpz(path, config_override=None):
     lds = []
     npz = np.load(path)
 
+    # Get the data
+    # Create an empty array with correct dtype
+    # Add data
+
     for datatype, isotope, config in zip(
             npz['datatypes'], npz['isotopes'], npz['configs']):
         lds.append(datatype(
@@ -34,10 +38,15 @@ def importAgilentBatch(path, config):
             line = fp.readline()
             skip_header += 1
 
+        skip_footer = 0
+        if "Print" in fp.read().splitlines()[-1]:
+            skip_footer = 1
+
     cols = np.arange(1, line.count(',') + 1)
 
     lines = [np.genfromtxt(f, delimiter=',', names=True, usecols=cols,
-             skip_header=skip_header, invalid_raise=False) for f in data_files]
+             skip_header=skip_header, skip_footer=skip_footer)
+             for f in data_files]
     # layer = np.vstack(lines)
 
     # lds = []

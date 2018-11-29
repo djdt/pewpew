@@ -64,26 +64,26 @@ class ImageDock(QtWidgets.QDockWidget):
         # Context menu actions
         self.action_copy = QtWidgets.QAction(
             QtGui.QIcon.fromTheme('edit-copy'), "Open Copy", self)
-        self.action_copy.setStatusTip("Open a copy of this image")
+        self.action_copy.setStatusTip("Open a copy of these images")
         self.action_copy.triggered.connect(self.onMenuCopy)
         self.action_save = QtWidgets.QAction(
             QtGui.QIcon.fromTheme('document-save'), "Save", self)
-        self.action_save.setStatusTip("Save image to archive.")
+        self.action_save.setStatusTip("Save images to archive.")
         self.action_save.triggered.connect(self.onMenuSave)
 
         self.action_save_as = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme('document-save-as'), "Save As", self)
-        self.action_save_as.setStatusTip("Save image to a different format.")
+            QtGui.QIcon.fromTheme('document-save-as'), "Save All", self)
+        self.action_save_as.setStatusTip("Save images as a different format.")
         self.action_save_as.triggered.connect(self.onMenuSaveAs)
 
         self.action_config = QtWidgets.QAction(
             QtGui.QIcon.fromTheme('document-properties'), "Config", self)
-        self.action_config.setStatusTip("Edit image config.")
+        self.action_config.setStatusTip("Edit images config.")
         self.action_config.triggered.connect(self.onMenuConfig)
 
         self.action_close = QtWidgets.QAction(
             QtGui.QIcon.fromTheme('edit-delete'), "Close", self)
-        self.action_close.setStatusTip("Close the image.")
+        self.action_close.setStatusTip("Close the images.")
         self.action_close.triggered.connect(self.onMenuClose)
 
         # Canvas actions
@@ -118,9 +118,9 @@ class ImageDock(QtWidgets.QDockWidget):
     def buildContextMenu(self):
         context_menu = QtWidgets.QMenu(self)
         context_menu.addAction(self.action_copy)
-        context_menu.addSeparator()
+        # context_menu.addSeparator()
         context_menu.addAction(self.action_save)
-        context_menu.addAction(self.action_save_as)
+        # context_menu.addAction(self.action_save_all)
         context_menu.addSeparator()
         context_menu.addAction(self.action_config)
         context_menu.addSeparator()
@@ -172,23 +172,25 @@ class LaserImageDock(ImageDock):
         dock_copy.draw()
         self.parent().splitDockWidget(self, dock_copy, QtCore.Qt.Horizontal)
 
-    def onMenuSaveAs(self):
+    def onMenuSave(self):
+        # TODO Use a custom dialog that allows selection of
+        # all data or current image only
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
                 self, "Save As", "", "CSV files(*.csv);;"
-                "Numpy archives(*.npz);;PNG images(*.png);;All files(*)")
+                "PNG images(*.png);;All files(*)")
+        # This will be for current image only
         if path:
             ext = os.path.splitext(path)[1]
-            if ext == ".npz":
-                exportNpz(path, [self.laser])
-            elif ext == ".csv":
-                np.savetxt(path, self.laser.calibrated(), delimiter=',')
+            if ext == ".csv":
+                np.savetxt(path, self.laser.calibrated(
+                    self.combo_isotope.currentText()), delimiter=',')
             elif ext == ".png":
                 self.fig.savefig(path, transparent=True, frameon=False)
                 # TODO show a config dialog
             else:
                 QtWidgets.QMessageBox.warning(
-                        self, "Invalid Format",
-                        f"Unknown extention for \'{os.path.basename(path)}\'.")
+                    self, "Invalid Format",
+                    f"Unknown extention for \'{os.path.basename(path)}\'.")
 
 
 class KrissKrossImageDock(ImageDock):
