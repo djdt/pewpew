@@ -9,6 +9,9 @@ class LaserData(object):
         self.config = LaserData.DEFAULT_CONFIG if config is None else config
         self.source = source
 
+    def isotopes(self):
+        return self.data.dtype.names
+
     def get(self, isotope=None):
         if isotope is None:
             return self.data

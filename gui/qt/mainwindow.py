@@ -1,8 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from gui.qt.tabbeddocks import TabbedDocks
-from gui.qt.configdialog import ConfigDialog
-from gui.qt.colorrangedialog import ColorRangeDialog
+from gui.qt.dialogs import ConfigDialog, ColorRangeDialog
 from gui.qt.krisskrosswizard import KrissKrossWizard
 from gui.qt.imagedock import ImageDock, LaserImageDock, KrissKrossImageDock
 

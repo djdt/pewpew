@@ -64,21 +64,21 @@ class ImageDock(QtWidgets.QDockWidget):
         # Context menu actions
         self.action_copy = QtWidgets.QAction(
             QtGui.QIcon.fromTheme('edit-copy'), "Open Copy", self)
-        self.action_copy.setStatusTip("Open a copy of these images")
+        self.action_copy.setStatusTip("Open a copy of this data")
         self.action_copy.triggered.connect(self.onMenuCopy)
         self.action_save = QtWidgets.QAction(
             QtGui.QIcon.fromTheme('document-save'), "Save", self)
-        self.action_save.setStatusTip("Save images to archive.")
+        self.action_save.setStatusTip("Save data to archive.")
         self.action_save.triggered.connect(self.onMenuSave)
 
-        self.action_save_as = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme('document-save-as'), "Save As", self)
-        self.action_save_as.setStatusTip("Save images as a different format.")
-        self.action_save_as.triggered.connect(self.onMenuSaveAs)
+        self.action_export = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme('document-save-as'), "Export", self)
+        self.action_export.setStatusTip("Export data to different formats.")
+        self.action_export.triggered.connect(self.onMenuExport)
 
         self.action_config = QtWidgets.QAction(
             QtGui.QIcon.fromTheme('document-properties'), "Config", self)
-        self.action_config.setStatusTip("Edit images config.")
+        self.action_config.setStatusTip("Edit image config.")
         self.action_config.triggered.connect(self.onMenuConfig)
 
         self.action_close = QtWidgets.QAction(
@@ -120,7 +120,7 @@ class ImageDock(QtWidgets.QDockWidget):
         context_menu.addAction(self.action_copy)
         context_menu.addSeparator()
         context_menu.addAction(self.action_save)
-        context_menu.addAction(self.action_save_as)
+        context_menu.addAction(self.action_export)
         context_menu.addSeparator()
         context_menu.addAction(self.action_config)
         context_menu.addSeparator()
@@ -172,56 +172,55 @@ class LaserImageDock(ImageDock):
         dock_copy.draw()
         self.parent().splitDockWidget(self, dock_copy, QtCore.Qt.Horizontal)
 
-    def onMenuSaveAs(self):
-        dlg = ExportDialog(self.laser, self.combo_isotope.currentText(), self)
+    def onMenuExport(self):
+        dlg = ExportDialog(self.laser.source,
+                           self.combo_isotope.currentText(), self)
         if dlg.exec() != QtWidgets.QDialog.Accepted:
             return
         yes_to_all = False
+        isotopes = self.combo_isotope.currentText()
         if dlg.check_isotopes.isChecked():
-            for isotope in self.laser.isotopes():
-                path = dlg.getPath(isotope=isotope)
-                _, ext = os.splitext(path)
-                if os.path.exists(path) and not yes_to_all:
-                    result = QtWidgets.QMessageBox.warning(
-                        self, "Overwrite File?",
-                        f"The file \"{os.path.basename(path)}\" "
-                        "already exists. Do you wish to overwrite it?",
-                        QtWidgets.QMessageBox.Yes |
-                        QtWidgets.QMessageBox.YesToAll |
-                        QtWidgets.QMessageBox.No)
-                    if result == QtWidgets.QMessageBox.No:
-                        continue
-                    elif result == QtWidgets.QMessageBox.YesToAll:
-                        yes_to_all = True
-                if ext.lower() == ".csv":
-                        np.savetxt(path, self.laser.get(isotope),
-                                   delimiter=',')
-                elif ext.lower() == ".png":
-                        np.savetxt(path, self.laser.get(isotope),
-                                   delimiter=',')
-                else:
-                    QtWidgets.QMessageBox.warning(
-                        self, "Invalid Format",
-                        f"Unknown extention for \'{os.path.basename(path)}\'.")
-                    break
-        # TODO Use a custom dialog that allows selection of
-        # all data or current image only
-        # path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-        #         self, "Save As", "", "CSV files(*.csv);;"
-        #         "PNG images(*.png);;All files(*)")
-        # # This will be for current image only
-        # if path:
-        #     ext = os.path.splitext(path)[1]
-        #     if ext == ".csv":
-        #         np.savetxt(path, self.laser.calibrated(
-        #             self.combo_isotope.currentText()), delimiter=',')
-        #     elif ext == ".png":
-        #         self.fig.savefig(path, transparent=True, frameon=False)
-        #         # TODO show a config dialog
-        #     else:
-        #         QtWidgets.QMessageBox.warning(
-        #             self, "Invalid Format",
-        #             f"Unknown extention for \'{os.path.basename(path)}\'.")
+            isotopes = self.laser.isotopes()
+
+        for isotope in isotopes:
+            path = dlg.getPath(isotope=isotope)
+            _, ext = os.path.splitext(path)
+            if os.path.exists(path) and not yes_to_all:
+                result = QtWidgets.QMessageBox.warning(
+                    self, "Overwrite File?",
+                    f"The file \"{os.path.basename(path)}\" "
+                    "already exists. Do you wish to overwrite it?",
+                    QtWidgets.QMessageBox.Yes |
+                    QtWidgets.QMessageBox.YesToAll |
+                    QtWidgets.QMessageBox.No)
+                if result == QtWidgets.QMessageBox.No:
+                    continue
+                elif result == QtWidgets.QMessageBox.YesToAll:
+                    yes_to_all = True
+            if ext.lower() == ".csv":
+                    np.savetxt(path, self.laser.get(isotope),
+                               delimiter=',')
+            elif ext.lower() == ".png":
+                viewconfig = self.window().viewconfig
+                fig = Figure(frameon=False, tight_layout=True,
+                             figsize=(5, 5), dpi=100)
+                canvas = FigureCanvasQTAgg(fig)
+                ax = fig.add_subplot(111)
+                plotLaserImage(
+                    fig, ax, self.laser.calibrated(isotope), label=isotope,
+                    colorbar='bottom', cmap=viewconfig['cmap'],
+                    interpolation=viewconfig['interpolation'],
+                    vmin=viewconfig['cmap_range'][0],
+                    vmax=viewconfig['cmap_range'][1],
+                    aspect=self.laser.aspect(), extent=self.laser.extent())
+                fig.savefig(path, transparent=True, frameon=False)
+                fig.clear()
+                canvas.close()
+            else:
+                QtWidgets.QMessageBox.warning(
+                    self, "Invalid Format",
+                    f"Unknown extention for \'{os.path.basename(path)}\'.")
+                break
 
 
 class KrissKrossImageDock(ImageDock):
@@ -232,16 +231,6 @@ class KrissKrossImageDock(ImageDock):
         self.combo_isotope.addItems(self.laser.isotopes())
         name = os.path.splitext(os.path.basename(self.laser.source))[0]
         self.setWindowTitle(f"{name}:kk")
-
-        self.action_export = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme('document-send'), "Export layers", self)
-        self.action_export.setStatusTip("Export layers to individual files.")
-        self.action_export.triggered.connect(self.onMenuExport)
-
-    def contextMenuEvent(self, event):
-        context_menu = self.buildContextMenu()
-        context_menu.insertAction(self.action_config, self.action_export)
-        context_menu.exec(event.globalPos())
 
     def onMenuCopy(self):
         dock_copy = KrissKrossImageDock(self.laser, self.parent())
@@ -274,30 +263,30 @@ class KrissKrossImageDock(ImageDock):
         if dlg.exec() == QtWidgets.QDialog.Accepted:
             pass
 
-        if path:
-            base, ext = os.path.splitext(path)
-            yes_to_all = False
-            for i, ld in enumerate(self.laser.split(), 1):
-                # Check for existing files and prompt for overwrite
-                layer_path = f"{base}_layer{i}{ext}"
-                if os.path.exists(layer_path) and not yes_to_all:
-                    result = QtWidgets.QMessageBox.warning(
-                        self, "Overwrite File?",
-                        f"The file \"{os.path.basename(layer_path)}\" "
-                        "already exists. Do you wish to overwrite it?",
-                        QtWidgets.QMessageBox.Yes |
-                        QtWidgets.QMessageBox.YesToAll |
-                        QtWidgets.QMessageBox.No)
-                    if result == QtWidgets.QMessageBox.No:
-                        continue
-                    elif result == QtWidgets.QMessageBox.YesToAll:
-                        yes_to_all = True
-                if ext == ".npz":
-                        exportNpz(layer_path, [ld])
-                elif ext == ".csv":
-                        np.savetxt(layer_path, ld.data, delimiter=',')
-                else:
-                    QtWidgets.QMessageBox.warning(
-                        self, "Invalid Format",
-                        f"Unknown extention for \'{os.path.basename(path)}\'.")
-                    break
+        # if path:
+        #     base, ext = os.path.splitext(path)
+        #     yes_to_all = False
+        #     for i, ld in enumerate(self.laser.split(), 1):
+        #         # Check for existing files and prompt for overwrite
+        #         layer_path = f"{base}_layer{i}{ext}"
+        #         if os.path.exists(layer_path) and not yes_to_all:
+        #             result = QtWidgets.QMessageBox.warning(
+        #                 self, "Overwrite File?",
+        #                 f"The file \"{os.path.basename(layer_path)}\" "
+        #                 "already exists. Do you wish to overwrite it?",
+        #                 QtWidgets.QMessageBox.Yes |
+        #                 QtWidgets.QMessageBox.YesToAll |
+        #                 QtWidgets.QMessageBox.No)
+        #             if result == QtWidgets.QMessageBox.No:
+        #                 continue
+        #             elif result == QtWidgets.QMessageBox.YesToAll:
+        #                 yes_to_all = True
+        #         if ext == ".npz":
+        #                 exportNpz(layer_path, [ld])
+        #         elif ext == ".csv":
+        #                 np.savetxt(layer_path, ld.data, delimiter=',')
+        #         else:
+        #             QtWidgets.QMessageBox.warning(
+        #                 self, "Invalid Format",
+        #                 f"Unknown extention for \'{os.path.basename(path)}\'.")
+        #             break

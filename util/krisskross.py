@@ -42,6 +42,9 @@ class KrissKrossData(LaserData):
     def __init__(self, data=None, config=None, source=""):
         super().__init__(data=data, config=config, source=source)
 
+    def countLayers(self):
+        return self.data.shape[2]
+
     def fromLayers(self, layers, warmup_time=12.0, horizontal_first=True):
         warmup = int(warmup_time / self.config['scantime'])
         self.data = krissKrossLayers(layers, self.aspect(),
