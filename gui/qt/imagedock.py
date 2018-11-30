@@ -7,7 +7,7 @@ from util.laserimage import plotLaserImage
 from util.plothelpers import coords2value
 from util.exporter import exportNpz
 
-from gui.qt.configdialog import ConfigDialog
+from gui.qt.dialogs import ConfigDialog, ExportDialog
 
 import numpy as np
 import os.path
@@ -72,7 +72,7 @@ class ImageDock(QtWidgets.QDockWidget):
         self.action_save.triggered.connect(self.onMenuSave)
 
         self.action_save_as = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme('document-save-as'), "Save All", self)
+            QtGui.QIcon.fromTheme('document-save-as'), "Save As", self)
         self.action_save_as.setStatusTip("Save images as a different format.")
         self.action_save_as.triggered.connect(self.onMenuSaveAs)
 
@@ -118,9 +118,9 @@ class ImageDock(QtWidgets.QDockWidget):
     def buildContextMenu(self):
         context_menu = QtWidgets.QMenu(self)
         context_menu.addAction(self.action_copy)
-        # context_menu.addSeparator()
+        context_menu.addSeparator()
         context_menu.addAction(self.action_save)
-        # context_menu.addAction(self.action_save_all)
+        context_menu.addAction(self.action_save_as)
         context_menu.addSeparator()
         context_menu.addAction(self.action_config)
         context_menu.addSeparator()
@@ -163,7 +163,7 @@ class LaserImageDock(ImageDock):
 
         super().__init__(parent)
         self.laser = laserdata
-        self.combo_isotope.addItems(self.laser.data.dtype.names)
+        self.combo_isotope.addItems(self.laser.isotopes())
         name = os.path.splitext(os.path.basename(self.laser.source))[0]
         self.setWindowTitle(name)
 
@@ -172,25 +172,56 @@ class LaserImageDock(ImageDock):
         dock_copy.draw()
         self.parent().splitDockWidget(self, dock_copy, QtCore.Qt.Horizontal)
 
-    def onMenuSave(self):
+    def onMenuSaveAs(self):
+        dlg = ExportDialog(self.laser, self.combo_isotope.currentText(), self)
+        if dlg.exec() != QtWidgets.QDialog.Accepted:
+            return
+        yes_to_all = False
+        if dlg.check_isotopes.isChecked():
+            for isotope in self.laser.isotopes():
+                path = dlg.getPath(isotope=isotope)
+                _, ext = os.splitext(path)
+                if os.path.exists(path) and not yes_to_all:
+                    result = QtWidgets.QMessageBox.warning(
+                        self, "Overwrite File?",
+                        f"The file \"{os.path.basename(path)}\" "
+                        "already exists. Do you wish to overwrite it?",
+                        QtWidgets.QMessageBox.Yes |
+                        QtWidgets.QMessageBox.YesToAll |
+                        QtWidgets.QMessageBox.No)
+                    if result == QtWidgets.QMessageBox.No:
+                        continue
+                    elif result == QtWidgets.QMessageBox.YesToAll:
+                        yes_to_all = True
+                if ext.lower() == ".csv":
+                        np.savetxt(path, self.laser.get(isotope),
+                                   delimiter=',')
+                elif ext.lower() == ".png":
+                        np.savetxt(path, self.laser.get(isotope),
+                                   delimiter=',')
+                else:
+                    QtWidgets.QMessageBox.warning(
+                        self, "Invalid Format",
+                        f"Unknown extention for \'{os.path.basename(path)}\'.")
+                    break
         # TODO Use a custom dialog that allows selection of
         # all data or current image only
-        path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-                self, "Save As", "", "CSV files(*.csv);;"
-                "PNG images(*.png);;All files(*)")
-        # This will be for current image only
-        if path:
-            ext = os.path.splitext(path)[1]
-            if ext == ".csv":
-                np.savetxt(path, self.laser.calibrated(
-                    self.combo_isotope.currentText()), delimiter=',')
-            elif ext == ".png":
-                self.fig.savefig(path, transparent=True, frameon=False)
-                # TODO show a config dialog
-            else:
-                QtWidgets.QMessageBox.warning(
-                    self, "Invalid Format",
-                    f"Unknown extention for \'{os.path.basename(path)}\'.")
+        # path, _filter = QtWidgets.QFileDialog.getSaveFileName(
+        #         self, "Save As", "", "CSV files(*.csv);;"
+        #         "PNG images(*.png);;All files(*)")
+        # # This will be for current image only
+        # if path:
+        #     ext = os.path.splitext(path)[1]
+        #     if ext == ".csv":
+        #         np.savetxt(path, self.laser.calibrated(
+        #             self.combo_isotope.currentText()), delimiter=',')
+        #     elif ext == ".png":
+        #         self.fig.savefig(path, transparent=True, frameon=False)
+        #         # TODO show a config dialog
+        #     else:
+        #         QtWidgets.QMessageBox.warning(
+        #             self, "Invalid Format",
+        #             f"Unknown extention for \'{os.path.basename(path)}\'.")
 
 
 class KrissKrossImageDock(ImageDock):
@@ -198,7 +229,7 @@ class KrissKrossImageDock(ImageDock):
 
         super().__init__(parent)
         self.laser = kkdata
-        self.combo_isotope.addItems(self.laser.data.dtype.names)
+        self.combo_isotope.addItems(self.laser.isotopes())
         name = os.path.splitext(os.path.basename(self.laser.source))[0]
         self.setWindowTitle(f"{name}:kk")
 
@@ -238,10 +269,11 @@ class KrissKrossImageDock(ImageDock):
                     f"Unknown extention for \'{os.path.basename(path)}\'.")
 
     def onMenuExport(self):
-        path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-                self, "Enter File Basename", "", "Numpy archives(*.npz);;"
-                "CSV files(*.csv);;PNG images(*.png);;All files(*)", "",
-                QtWidgets.QFileDialog.DontConfirmOverwrite)
+        dlg = ExportDialog(self, self.laser.source,
+                           self.combo_isotope.currentText())
+        if dlg.exec() == QtWidgets.QDialog.Accepted:
+            pass
+
         if path:
             base, ext = os.path.splitext(path)
             yes_to_all = False
