@@ -141,8 +141,38 @@ class ImageDock(QtWidgets.QDockWidget):
         if path:
             exportNpz(path, [self.laser])
 
-    def onMenuSaveAs(self):
-        pass
+    def onMenuExport(self):
+        dlg = ExportDialog(self.laser.source,
+                           self.combo_isotope.currentText(), self)
+        if dlg.exec() != QtWidgets.QDialog.Accepted:
+            return
+
+        prompt_overwrite = True
+        isotopes = self.laser.isotopes() if \
+            dlg.check_isotopes.isChecked() else [None]
+
+        for isotope in isotopes:
+            if dlg.check_layers.isChecked():
+                for layer in range(self.laser.countLayers()):
+                    path = dlg.getPath(isotope=isotope, layer=layer+1)
+                    result = self._export(path, isotope=isotope, layer=layer,
+                                          prompt_overwrite=prompt_overwrite)
+                    if result == QtWidgets.QMessageBox.No:
+                        break
+                    elif result == QtWidgets.QMessageBox.NoToAll:
+                        return
+                    elif result == QtWidgets.QMessageBox.YesToAll:
+                        prompt_overwrite = False
+            else:
+                path = dlg.getPath(isotope=isotope, layer=layer+1)
+                result = self._export(path, isotope=isotope, layer=None,
+                                      prompt_overwrite=prompt_overwrite)
+                if result == QtWidgets.QMessageBox.No:
+                    break
+                elif result == QtWidgets.QMessageBox.NoToAll:
+                    return
+                elif result == QtWidgets.QMessageBox.YesToAll:
+                    prompt_overwrite = False
 
     def onMenuConfig(self):
         dlg = ConfigDialog(self.laser.config, parent=self)
@@ -172,57 +202,47 @@ class LaserImageDock(ImageDock):
         dock_copy.draw()
         self.parent().splitDockWidget(self, dock_copy, QtCore.Qt.Horizontal)
 
-    def onMenuExport(self):
-        dlg = ExportDialog(self.laser.source,
-                           self.combo_isotope.currentText(), self)
-        if dlg.exec() != QtWidgets.QDialog.Accepted:
-            return
+    def _export(self, path, isotope=None, layer=None, prompt_overwrite=True):
+        if isotope is None:
+            isotope = self.combo_isotope.currentText()
 
-        yes_to_all = False
-        buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
-        isotopes = [self.combo_isotope.currentText()]
+        result = QtWidgets.QMessageBox.Yes
+        if prompt_overwrite and os.path.exists(path):
+            result = QtWidgets.QMessageBox.warning(
+                self, "Overwrite File?",
+                f"The file \"{os.path.basename(path)}\" "
+                "already exists. Do you wish to overwrite it?",
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.YesToAll |
+                QtWidgets.QMessageBox.No)
+            if result == QtWidgets.QMessageBox.No:
+                return QtWidgets.QMessageBox.No
 
-        if dlg.check_isotopes.isChecked():
-            isotopes = self.laser.isotopes()
-            buttons |= QtWidgets.QMessageBox.YesToAll
+        ext = os.path.splitext(path)[1].lower()
+        if ext == '.csv':
+            np.savetxt(path, self.laser.calibrated(isotope), delimiter=',')
+        elif ext == '.png':
+            viewconfig = self.window().viewconfig
+            fig = Figure(frameon=False, tight_layout=True,
+                         figsize=(5, 5), dpi=100)
+            canvas = FigureCanvasQTAgg(fig)
+            ax = fig.add_subplot(111)
+            plotLaserImage(
+                fig, ax, self.laser.calibrated(isotope), label=isotope,
+                colorbar='bottom', cmap=viewconfig['cmap'],
+                interpolation=viewconfig['interpolation'],
+                vmin=viewconfig['cmap_range'][0],
+                vmax=viewconfig['cmap_range'][1],
+                aspect=self.laser.aspect(), extent=self.laser.extent())
+            fig.savefig(path, transparent=True, frameon=False)
+            fig.clear()
+            canvas.close()
+        else:
+            QtWidgets.QMessageBox.warning(
+                self, "Invalid Format",
+                f"Unknown extention for \'{os.path.basename(path)}\'.")
+            return QtWidgets.QMessageBox.NoToAll
 
-        for isotope in isotopes:
-            path = dlg.getPath(isotope=isotope if
-                               dlg.check_isotopes.isChecked() else None)
-            _, ext = os.path.splitext(path)
-            if os.path.exists(path) and not yes_to_all:
-                result = QtWidgets.QMessageBox.warning(
-                    self, "Overwrite File?",
-                    f"The file \"{os.path.basename(path)}\" "
-                    "already exists. Do you wish to overwrite it?", buttons)
-                if result == QtWidgets.QMessageBox.No:
-                    continue
-                elif result == QtWidgets.QMessageBox.YesToAll:
-                    yes_to_all = True
-            if ext.lower() == ".csv":
-                    np.savetxt(path, self.laser.get(isotope),
-                               delimiter=',')
-            elif ext.lower() == ".png":
-                viewconfig = self.window().viewconfig
-                fig = Figure(frameon=False, tight_layout=True,
-                             figsize=(5, 5), dpi=100)
-                canvas = FigureCanvasQTAgg(fig)
-                ax = fig.add_subplot(111)
-                plotLaserImage(
-                    fig, ax, self.laser.calibrated(isotope), label=isotope,
-                    colorbar='bottom', cmap=viewconfig['cmap'],
-                    interpolation=viewconfig['interpolation'],
-                    vmin=viewconfig['cmap_range'][0],
-                    vmax=viewconfig['cmap_range'][1],
-                    aspect=self.laser.aspect(), extent=self.laser.extent())
-                fig.savefig(path, transparent=True, frameon=False)
-                fig.clear()
-                canvas.close()
-            else:
-                QtWidgets.QMessageBox.warning(
-                    self, "Invalid Format",
-                    f"Unknown extention for \'{os.path.basename(path)}\'.")
-                break
+        return result
 
 
 class KrissKrossImageDock(ImageDock):
@@ -239,72 +259,49 @@ class KrissKrossImageDock(ImageDock):
         dock_copy.draw()
         self.parent().splitDockWidget(self, dock_copy, QtCore.Qt.Horizontal)
 
-    def onMenuSaveAs(self):
-        path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-                self, "Save As", "", "CSV files(*.csv);;"
-                "Numpy archives(*.npz);;PNG images(*.png);;"
-                "Rectilinear VTK(*.vtr);;All files(*)")
-        if path:
-            ext = os.path.splitext(path)[1]
-            if ext == ".npz":
-                exportNpz(path, [self.laser])
-            elif ext == ".csv":
-                np.savetxt(path, self.laser.calibrated(), delimiter=',')
-            # elif ext == ".vtr":
-            # elif ext == ".png":
-            #     # TODO show a config dialog
-            #     pass
-            else:
-                QtWidgets.QMessageBox.warning(
-                    self, "Invalid Format",
-                    f"Unknown extention for \'{os.path.basename(path)}\'.")
+    def _export(self, path, isotope=None, layer=None, prompt_overwrite=True):
+        if isotope is None:
+            isotope = self.combo_isotope.currentText()
 
-    def onMenuExport(self):
-        dlg = ExportDialog(self.laser.source,
-                           self.combo_isotope.currentText(), self)
-        if dlg.exec() != QtWidgets.QDialog.Accepted:
-            return
-        yes_to_all = False
-        isotopes = self.combo_isotope.currentText()
-        if dlg.check_isotopes.isChecked():
-            isotopes = self.laser.isotopes()
+        result = QtWidgets.QMessageBox.Yes
+        if prompt_overwrite and os.path.exists(path):
+            result = QtWidgets.QMessageBox.warning(
+                self, "Overwrite File?",
+                f"The file \"{os.path.basename(path)}\" "
+                "already exists. Do you wish to overwrite it?",
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.YesToAll |
+                QtWidgets.QMessageBox.No)
+            if result == QtWidgets.QMessageBox.No:
+                return QtWidgets.QMessageBox.No
 
-        for isotope in isotopes:
-            path = dlg.getPath(isotope=isotope)
-            _, ext = os.path.splitext(path)
-            if os.path.exists(path) and not yes_to_all:
-                result = QtWidgets.QMessageBox.warning(
-                    self, "Overwrite File?",
-                    f"The file \"{os.path.basename(path)}\" "
-                    "already exists. Do you wish to overwrite it?",
-                    QtWidgets.QMessageBox.Yes |
-                    QtWidgets.QMessageBox.YesToAll |
-                    QtWidgets.QMessageBox.No)
-                if result == QtWidgets.QMessageBox.No:
-                    continue
-                elif result == QtWidgets.QMessageBox.YesToAll:
-                    yes_to_all = True
-            if ext.lower() == ".csv":
-                    np.savetxt(path, self.laser.get(isotope),
-                               delimiter=',')
-            elif ext.lower() == ".png":
-                viewconfig = self.window().viewconfig
-                fig = Figure(frameon=False, tight_layout=True,
-                             figsize=(5, 5), dpi=100)
-                canvas = FigureCanvasQTAgg(fig)
-                ax = fig.add_subplot(111)
-                plotLaserImage(
-                    fig, ax, self.laser.calibrated(isotope), label=isotope,
-                    colorbar='bottom', cmap=viewconfig['cmap'],
-                    interpolation=viewconfig['interpolation'],
-                    vmin=viewconfig['cmap_range'][0],
-                    vmax=viewconfig['cmap_range'][1],
-                    aspect=self.laser.aspect(), extent=self.laser.extent())
-                fig.savefig(path, transparent=True, frameon=False)
-                fig.clear()
-                canvas.close()
-            else:
-                QtWidgets.QMessageBox.warning(
-                    self, "Invalid Format",
-                    f"Unknown extention for \'{os.path.basename(path)}\'.")
-                break
+        ext = os.path.splitext(path)[1].lower()
+        if layer is None:
+            data = self.laser.calibrated(isotope)
+        else:
+            data = self.laser.calibrated(isotope, flat=False)[:, :, layer]
+        if ext == '.csv':
+            np.savetxt(path, data, delimiter=',')
+
+        elif ext == '.png':
+            viewconfig = self.window().viewconfig
+            fig = Figure(frameon=False, tight_layout=True,
+                         figsize=(5, 5), dpi=100)
+            canvas = FigureCanvasQTAgg(fig)
+            ax = fig.add_subplot(111)
+            plotLaserImage(
+                fig, ax, self.laser.calibrated(isotope), label=isotope,
+                colorbar='bottom', cmap=viewconfig['cmap'],
+                interpolation=viewconfig['interpolation'],
+                vmin=viewconfig['cmap_range'][0],
+                vmax=viewconfig['cmap_range'][1],
+                aspect=self.laser.aspect(), extent=self.laser.extent())
+            fig.savefig(path, transparent=True, frameon=False)
+            fig.clear()
+            canvas.close()
+        else:
+            QtWidgets.QMessageBox.warning(
+                self, "Invalid Format",
+                f"Unknown extention for \'{os.path.basename(path)}\'.")
+            return QtWidgets.QMessageBox.NoToAll
+
+        return result
