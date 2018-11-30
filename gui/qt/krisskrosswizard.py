@@ -2,7 +2,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from util.krisskross import KrissKrossData
 from util.importer import importNpz, importAgilentBatch
-from gui.qt.configdialog import ConfigForm
+from gui.qt.dialogs import ConfigForm
 
 import os
 
