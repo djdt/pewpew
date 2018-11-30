@@ -9,15 +9,10 @@ def importNpz(path, config_override=None):
     lds = []
     npz = np.load(path)
 
-    # Get the data
-    # Create an empty array with correct dtype
-    # Add data
-
-    for datatype, isotope, config in zip(
-            npz['datatypes'], npz['isotopes'], npz['configs']):
-        lds.append(datatype(
+    for i, (type, config) in enumerate(zip(npz['_type'], npz['_config'])):
+        lds.append(type(
             config=config_override if config_override is not None else config,
-            isotope=isotope, data=npz[isotope], source=path))
+            data=npz[f'_data{i}'], source=path))
     return lds
 
 
