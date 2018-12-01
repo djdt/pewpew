@@ -39,8 +39,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.statusBar().showMessage("Import or open data to begin.")
 
-        ld = importAgilentBatch("/home/tom/Downloads/M1 LUNG 100.b", self.config)
-        dock = LaserImageDock(ld, self.dockarea)
+        config = {'spotsize': 10.0, 'speed': 10.0, 'scantime': 0.1,
+                  'gradient': 1.0, 'intercept': 0.0}
+        lds = [importAgilentBatch("/home/tom/Downloads/raw/Horz.b", config),
+               importAgilentBatch("/home/tom/Downloads/raw/Vert.b", config)]
+        kd = KrissKrossData(None, self.dockarea)
+        kd.fromLayers(lds)
+        dock = KrissKrossImageDock(kd)
         dock.draw()
         self.dockarea.addDockWidget(dock)
 
