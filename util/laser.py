@@ -12,9 +12,14 @@ class LaserData(object):
     def isotopes(self):
         return self.data.dtype.names
 
+    # TODO this will have to be rewritten as calibration is isotope dependant
     def calibrated(self):
-        return (self.data - self.config['intercept']) / \
-                self.config['gradient']
+        # dtype = self.data.dtype
+        # print(f'({len(dtype)},)<f8')
+        # return ((self.data.view(dtype=f'({len(dtype)},)<f8')
+        #         - self.config['intercept'])
+        #         / self.config['gradient']).view(dtype)
+        return self.data
 
     def pixelsize(self):
         return (self.config['speed'] * self.config['scantime'],

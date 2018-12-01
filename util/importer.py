@@ -40,15 +40,16 @@ def importAgilentBatch(path, config):
     cols = np.arange(1, line.count(',') + 1)
 
     lines = [np.genfromtxt(f, delimiter=',', names=True, usecols=cols,
-             skip_header=skip_header, skip_footer=skip_footer)
+             skip_header=skip_header, skip_footer=skip_footer,
+             dtype=np.float64)
              for f in data_files]
-    # layer = np.vstack(lines)
+    data = np.vstack(lines)
 
     # lds = []
     # for name in layer.dtype.names:
     #     lds.append(LaserData(isotope=name, config=config, source=path,
     #                          data=layer[name]))
-    return LaserData(data=np.vstack(lines), config=config, source=path)
+    return LaserData(data, config=config, source=path)
 
 
 def importCSVFromThatGermanThing(path):

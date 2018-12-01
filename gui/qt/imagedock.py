@@ -107,7 +107,7 @@ class ImageDock(QtWidgets.QDockWidget):
         viewconfig = self.window().viewconfig
 
         self.image = plotLaserImage(
-            self.fig, self.ax, self.laser.calibrated(isotope),
+            self.fig, self.ax, self.laser.calibrated()[isotope],
             colorbar='bottom', label=isotope,
             cmap=viewconfig['cmap'], interpolation=viewconfig['interpolation'],
             vmin=viewconfig['cmap_range'][0], vmax=viewconfig['cmap_range'][1],
@@ -148,11 +148,11 @@ class ImageDock(QtWidgets.QDockWidget):
             return
 
         prompt_overwrite = True
-        isotopes = self.laser.isotopes() if \
-            dlg.check_isotopes.isChecked() else [None]
+        isotopes = self.laser.isotopes() if dlg.check_isotopes.isChecked() \
+            and dlg.check_isotopes.isEnabled() else [None]
 
         for isotope in isotopes:
-            if dlg.check_layers.isChecked():
+            if dlg.check_layers.isChecked() and dlg.check_layers.isEnabled():
                 for layer in range(self.laser.countLayers()):
                     path = dlg.getPath(isotope=isotope, layer=layer+1)
                     result = self._export(path, isotope=isotope, layer=layer,
@@ -219,9 +219,9 @@ class LaserImageDock(ImageDock):
 
         ext = os.path.splitext(path)[1].lower()
         if ext == '.csv':
-            np.savetxt(path, self.laser.calibrated(isotope), delimiter=',')
+            np.savetxt(path, self.laser.calibrated()[isotope], delimiter=',')
         elif ext == '.png':
-            exportPng(self.laser.calibrated(isotope), isotope,
+            exportPng(self.laser.calibrated()[isotope], isotope,
                       self.laser.aspect(),
                       self.laser.extent(), self.window().viewconfig)
         else:
@@ -263,9 +263,9 @@ class KrissKrossImageDock(ImageDock):
                 return result
 
         if layer is None:
-            export_data = np.mean(self.laser.calibrated(isotope), axis=2)
+            export_data = np.mean(self.laser.calibrated()[isotope], axis=2)
         else:
-            export_data = self.laser.calibrated(isotope)[:, :, layer]
+            export_data = self.laser.calibrated()[isotope][:, :, layer]
 
         ext = os.path.splitext(path)[1].lower()
         if ext == '.csv':

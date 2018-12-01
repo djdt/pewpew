@@ -33,31 +33,31 @@ def exportPng(path, data, isotope, aspect, extent, viewconfig):
 def exportVtr(path, data, extent, spotsize):
     nx, ny, nz = data.shape
 
-    header = (f"<?xml version=\"1.0\"?>\n"
+    header = ("<?xml version=\"1.0\"?>\n"
               "<VTKFile type=\"RectilinearGrid\" version=\"1.0\" "
               "byte_order=\"LittleEndian\" header_type=\"UInt64\">\n"
-              "<RectilinearGrid WholeExtent=\"0 {nx} 0 {ny} 0 {nz}\">\n"
-              "<Piece Extent=\"0 {nx} 0 {ny} 0 {nz}\">\n")
+              f"<RectilinearGrid WholeExtent=\"0 {nx} 0 {ny} 0 {nz}\">\n"
+              f"<Piece Extent=\"0 {nx} 0 {ny} 0 {nz}\">\n")
 
     x_coords = np.linspace(extent[0], extent[1], nx)
     y_coords = np.linspace(extent[2], extent[3], ny)
     z_coords = np.linspace(0, nz * spotsize, nz)
 
     with open(path, 'wb') as fp:
-        fp.write(header)
-        fp.write("<Coordinates>\n")
+        fp.write(bytes(header))
+        fp.write(b"<Coordinates>\n")
         for name, coords in zip(
                 ['x_coordinates', 'y_coordinates', 'z_coordinates'],
                 [x_coords, y_coords, z_coords]):
             fp.write("<DataArray Name=\"{name}\" "
                      "type=\"Float64\" format=\"binary\">\n")
-            fp.write(base64.b64encode(coords))
+            fp.write(str(base64.b64encode(coords)))
             fp.write("</DataArray>\n")
         fp.write("</Coordinates>\n")
         fp.write(f"<PointData scalars=\"Isotopes\">\n")
-        for isotope in data.dtype.names():
+        for isotope in data.dtype.names:
             fp.write(f"<DataArray Name=\"{isotope}\" "
                      "type=\"Float64\" format=\"binary\"/>\n")
-            fp.write(base64.b64encode(data[isotope]))
+            fp.write(str(base64.b64encode(np.ascontiguousarray(data[isotope]))))
             fp.write("</DataArray>\n")
         fp.write("</PointData>\n</Piece>\n</RectilinearGrid>\n</VTKFile>\n")
