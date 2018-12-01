@@ -263,10 +263,9 @@ class KrissKrossImageDock(ImageDock):
                 return result
 
         if layer is None:
-            export_data = self.laser.calibrated(isotope)
+            export_data = np.mean(self.laser.calibrated(isotope), axis=2)
         else:
-            export_data = self.laser.calibrated(
-                    isotope, flat=False)[:, :, layer]
+            export_data = self.laser.calibrated(isotope)[:, :, layer]
 
         ext = os.path.splitext(path)[1].lower()
         if ext == '.csv':
@@ -277,7 +276,7 @@ class KrissKrossImageDock(ImageDock):
                       self.laser.extent(), self.window().viewconfig)
         elif ext == '.vtr':
             if layer is None:
-                exportVtr(path, export_data, self.laser.extent(),
+                exportVtr(path, self.laser.calibrated(), self.laser.extent(),
                           self.laser.config['spotsize'])
             else:
                 QtWidgets.QMessageBox.warning(

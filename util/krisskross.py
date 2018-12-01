@@ -45,7 +45,7 @@ class KrissKrossData(LaserData):
     def countLayers(self):
         return self.data.shape[2]
 
-    def fromLayers(self, layers, warmup_time=12.0, horizontal_first=True):
+    def fromLayers(self, layers, warmup_time=13.0, horizontal_first=True):
         warmup = int(warmup_time / self.config['scantime'])
         self.data = krissKrossLayers(layers, self.aspect(),
                                      warmup, horizontal_first)
@@ -57,12 +57,6 @@ class KrissKrossData(LaserData):
             lds.append(KrissKrossData(data=data, config=self.config,
                                       source=self.source))
         return lds
-
-    def calibrated(self, isotope=None, flat=True):
-        if flat:
-            return np.mean(super().calibrated(isotope), axis=2)
-        else:
-            return super().calibrated(isotope)
 
     def extent(self):
         # Image data is stored [rows][cols]
