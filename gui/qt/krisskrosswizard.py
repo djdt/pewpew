@@ -23,7 +23,6 @@ class KrissKrossWizard(QtWidgets.QWizard):
 
     def accept(self):
         config = self.field("config")
-        print(config)
         layer_dict = {}
         if self.field("radio_numpy"):
             # Use the config from the first file
