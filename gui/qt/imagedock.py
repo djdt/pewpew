@@ -107,7 +107,7 @@ class ImageDock(QtWidgets.QDockWidget):
         viewconfig = self.window().viewconfig
 
         self.image = plotLaserImage(
-            self.fig, self.ax, self.laser.calibrated()[isotope],
+            self.fig, self.ax, self.laser.calibrated(isotope),
             colorbar='bottom', label=isotope,
             cmap=viewconfig['cmap'], interpolation=viewconfig['interpolation'],
             vmin=viewconfig['cmap_range'][0], vmax=viewconfig['cmap_range'][1],
@@ -219,9 +219,9 @@ class LaserImageDock(ImageDock):
 
         ext = os.path.splitext(path)[1].lower()
         if ext == '.csv':
-            np.savetxt(path, self.laser.calibrated()[isotope], delimiter=',')
+            np.savetxt(path, self.laser.calibrated(isotope), delimiter=',')
         elif ext == '.png':
-            exportPng(self.laser.calibrated()[isotope], isotope,
+            exportPng(self.laser.calibrated(isotope), isotope,
                       self.laser.aspect(),
                       self.laser.extent(), self.window().viewconfig)
         else:
@@ -263,16 +263,15 @@ class KrissKrossImageDock(ImageDock):
                 return result
 
         if layer is None:
-            export_data = np.mean(self.laser.calibrated()[isotope], axis=2)
+            export_data = np.mean(self.laser.calibrated(isotope), axis=2)
         else:
-            export_data = self.laser.calibrated()[isotope][:, :, layer]
+            export_data = self.laser.calibrated(isotope)[:, :, layer]
 
         ext = os.path.splitext(path)[1].lower()
         if ext == '.csv':
             np.savetxt(path, export_data, delimiter=',')
         elif ext == '.png':
-            exportPng(export_data, isotope,
-                      self.laser.aspect(),
+            exportPng(export_data, isotope, self.laser.aspect(),
                       self.laser.extent(), self.window().viewconfig)
         elif ext == '.vtr':
             if layer is None:
@@ -286,7 +285,7 @@ class KrissKrossImageDock(ImageDock):
         else:
             QtWidgets.QMessageBox.warning(
                 self, "Invalid Format",
-                f"Unknown extention for \'{os.path.basename(path)}\'.")
+                f"Unknown extention for \"{os.path.basename(path)}\".")
             return QtWidgets.QMessageBox.NoToAll
 
         return result
