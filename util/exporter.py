@@ -58,6 +58,6 @@ def exportVtr(path, data, extent, spotsize):
         for isotope in data.dtype.names():
             fp.write(f"<DataArray Name=\"{isotope}\" "
                      "type=\"Float64\" format=\"binary\"/>\n")
-            fp.write(base64.b64encode(data.calibrated(isotope, flat=False)))
+            fp.write(base64.b64encode(data[isotope]))
             fp.write("</DataArray>\n")
         fp.write("</PointData>\n</Piece>\n</RectilinearGrid>\n</VTKFile>\n")
