@@ -5,7 +5,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 
 from util.laserimage import plotLaserImage
 from util.plothelpers import coords2value
-from util.exporter import exportNpz, exportVtr
+from util.exporter import exportNpz, exportPng, exportVtr
 
 from gui.qt.dialogs import ConfigDialog, ExportDialog
 
@@ -215,27 +215,15 @@ class LaserImageDock(ImageDock):
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.YesToAll |
                 QtWidgets.QMessageBox.No)
             if result == QtWidgets.QMessageBox.No:
-                return QtWidgets.QMessageBox.No
+                return result
 
         ext = os.path.splitext(path)[1].lower()
         if ext == '.csv':
             np.savetxt(path, self.laser.calibrated(isotope), delimiter=',')
         elif ext == '.png':
-            viewconfig = self.window().viewconfig
-            fig = Figure(frameon=False, tight_layout=True,
-                         figsize=(5, 5), dpi=100)
-            canvas = FigureCanvasQTAgg(fig)
-            ax = fig.add_subplot(111)
-            plotLaserImage(
-                fig, ax, self.laser.calibrated(isotope), label=isotope,
-                colorbar='bottom', cmap=viewconfig['cmap'],
-                interpolation=viewconfig['interpolation'],
-                vmin=viewconfig['cmap_range'][0],
-                vmax=viewconfig['cmap_range'][1],
-                aspect=self.laser.aspect(), extent=self.laser.extent())
-            fig.savefig(path, transparent=True, frameon=False)
-            fig.clear()
-            canvas.close()
+            exportPng(self.laser.calibrated(isotope), isotope,
+                      self.laser.aspect(),
+                      self.laser.extent(), self.window().viewconfig)
         else:
             QtWidgets.QMessageBox.warning(
                 self, "Invalid Format",
@@ -272,7 +260,7 @@ class KrissKrossImageDock(ImageDock):
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.YesToAll |
                 QtWidgets.QMessageBox.No)
             if result == QtWidgets.QMessageBox.No:
-                return QtWidgets.QMessageBox.No
+                return result
 
         if layer is None:
             export_data = self.laser.calibrated(isotope)
@@ -284,28 +272,16 @@ class KrissKrossImageDock(ImageDock):
         if ext == '.csv':
             np.savetxt(path, export_data, delimiter=',')
         elif ext == '.png':
-            viewconfig = self.window().viewconfig
-            fig = Figure(frameon=False, tight_layout=True,
-                         figsize=(5, 5), dpi=100)
-            canvas = FigureCanvasQTAgg(fig)
-            ax = fig.add_subplot(111)
-            plotLaserImage(
-                fig, ax, export_data, label=isotope,
-                colorbar='bottom', cmap=viewconfig['cmap'],
-                interpolation=viewconfig['interpolation'],
-                vmin=viewconfig['cmap_range'][0],
-                vmax=viewconfig['cmap_range'][1],
-                aspect=self.laser.aspect(), extent=self.laser.extent())
-            fig.savefig(path, transparent=True, frameon=False)
-            fig.clear()
-            canvas.close()
+            exportPng(export_data, isotope,
+                      self.laser.aspect(),
+                      self.laser.extent(), self.window().viewconfig)
         elif ext == '.vtr':
             if layer is None:
                 exportVtr(path, self.laser)
             else:
                 QtWidgets.QMessageBox.warning(
                     self, "Export Error",
-                    f"VTR does not support layer output.")
+                    f"VTR does not support single layer output.")
                 return QtWidgets.QMessageBox.NoToAll
         else:
             QtWidgets.QMessageBox.warning(

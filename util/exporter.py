@@ -1,6 +1,10 @@
 import numpy as np
 import base64
 
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_agg import FigureCanvasAgg
+from util.laserimage import plotLaserImage
+
 
 def exportNpz(path, laserdata_list):
     savedict = {'_type': [], '_config': []}
@@ -9,6 +13,21 @@ def exportNpz(path, laserdata_list):
         savedict['_config'].append(ld.config)
         savedict[f'_data{i}'] = ld.data
     np.savez(path, **savedict)
+
+
+def exportPng(path, data, isotope, aspect, extent, viewconfig):
+    fig = Figure(frameon=False, tight_layout=True,
+                 figsize=(5, 5), dpi=100)
+    canvas = FigureCanvasAgg(fig)
+    ax = fig.add_subplot(111)
+    plotLaserImage(fig, ax, data, label=isotope, colorbar='bottom',
+                   cmap=viewconfig['cmap'], aspect=aspect, extent=extent,
+                   interpolation=viewconfig['interpolation'],
+                   vmin=viewconfig['cmap_range'][0],
+                   vmax=viewconfig['cmap_range'][1])
+    fig.savefig(path, transparent=True, frameon=False)
+    fig.clear()
+    canvas.close()
 
 
 def exportVtr(path, kkdata):
