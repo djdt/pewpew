@@ -1,7 +1,11 @@
+import numpy as np
+from collections import defaultdict
+
+
 class LaserData(object):
     DEFAULT_CONFIG = {
         'spotsize': 30.0, 'speed': 120.0, 'scantime': 0.25,
-        'gradient': 1.0, 'intercept': 0.0}
+        'gradient': defaultdict(1.0), 'intercept': defaultdict(0.0)}
 
     def __init__(self, data=None, config=None,
                  source=""):
@@ -12,14 +16,17 @@ class LaserData(object):
     def isotopes(self):
         return self.data.dtype.names
 
-    # TODO this will have to be rewritten as calibration is isotope dependant
-    def calibrated(self):
-        # dtype = self.data.dtype
-        # print(f'({len(dtype)},)<f8')
-        # return ((self.data.view(dtype=f'({len(dtype)},)<f8')
-        #         - self.config['intercept'])
-        #         / self.config['gradient']).view(dtype)
-        return self.data
+    def calibrated(self, isotope=None):
+        if isotope is None:
+            data = np.empty(self.data.shape, dtype=self.data.dtype)
+            for name in self.data.names:
+                data[name] = ((self.data[name]
+                              - self.config['intercepts'][name])
+                              / self.config['gradients'][name])
+        else:
+            data = ((self.data[isotope] - self.config['intercepts'][isotope])
+                    / self.config['gradients'][isotope])
+        return data
 
     def pixelsize(self):
         return (self.config['speed'] * self.config['scantime'],
