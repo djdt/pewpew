@@ -12,13 +12,8 @@ class LaserData(object):
     def isotopes(self):
         return self.data.dtype.names
 
-    def get(self, isotope=None):
-        if isotope is None:
-            return self.data
-        return self.data[isotope]
-
-    def calibrated(self, isotope=None):
-        return (self.get(isotope) - self.config['intercept']) / \
+    def calibrated(self):
+        return (self.data - self.config['intercept']) / \
                 self.config['gradient']
 
     def pixelsize(self):
