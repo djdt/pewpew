@@ -277,7 +277,8 @@ class KrissKrossImageDock(ImageDock):
                       self.laser.extent(), self.window().viewconfig)
         elif ext == '.vtr':
             if layer is None:
-                exportVtr(path, self.laser)
+                exportVtr(path, export_data, self.laser.extent(),
+                          self.laser.config['spotsize'])
             else:
                 QtWidgets.QMessageBox.warning(
                     self, "Export Error",
