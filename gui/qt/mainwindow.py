@@ -17,7 +17,6 @@ VERSION = "0.1.0"
 
 
 class MainWindow(QtWidgets.QMainWindow):
-
     def __init__(self):
         super().__init__()
 
@@ -39,10 +38,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.statusBar().showMessage("Import or open data to begin.")
 
-        config = {'spotsize': 10.0, 'speed': 10.0, 'scantime': 0.1,
-                  'gradient': 1.0, 'intercept': 0.0}
-        lds = [importAgilentBatch("/home/tom/Downloads/raw/Horz.b", config),
-               importAgilentBatch("/home/tom/Downloads/raw/Vert.b", config)]
+        config = {
+            'spotsize': 10.0,
+            'speed': 10.0,
+            'scantime': 0.1,
+            'gradient': 1.0,
+            'intercept': 0.0
+        }
+        lds = [
+            importAgilentBatch("/home/tom/Downloads/raw/Horz.b", config),
+            importAgilentBatch("/home/tom/Downloads/raw/Vert.b", config)
+        ]
         kd = KrissKrossData(None, self.dockarea)
         kd.fromLayers(lds)
         dock = KrissKrossImageDock(kd)
@@ -97,8 +103,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # View - colormap
         cmap_group = QtWidgets.QActionGroup(menu_cmap)
-        for cmap in ['magma', 'viridis', 'plasma', 'nipy_spectral',
-                     'gnuplot2', 'CMRmap']:
+        for cmap in [
+                'magma', 'viridis', 'plasma', 'nipy_spectral', 'gnuplot2',
+                'CMRmap'
+        ]:
             action = cmap_group.addAction(cmap)
             action.setCheckable(True)
             if cmap == self.viewconfig['cmap']:
@@ -115,8 +123,10 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_interp = menu_view.addMenu("&Interpolation")
         menu_interp.setStatusTip("Interpolation of displayed images.")
         interp_group = QtWidgets.QActionGroup(menu_interp)
-        for interp in ['none', 'nearest', 'bilinear', 'bicubic',
-                       'spline16', 'spline36', 'gaussian']:
+        for interp in [
+                'none', 'nearest', 'bilinear', 'bicubic', 'spline16',
+                'spline36', 'gaussian'
+        ]:
             action = interp_group.addAction(interp)
             action.setCheckable(True)
             if interp == self.viewconfig['interpolation']:

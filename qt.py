@@ -15,13 +15,14 @@ if __name__ == "__main__":
     config['spotsize'] = 10
     config['speed'] = 10
     config['scantime'] = 0.1
-    lds = [importAgilentBatch("/home/tom/Downloads/raw/Horz.b", config),
-           importAgilentBatch("/home/tom/Downloads/raw/Vert.b", config)]
+    lds = [
+        importAgilentBatch("/home/tom/Downloads/raw/Horz.b", config),
+        importAgilentBatch("/home/tom/Downloads/raw/Vert.b", config)
+    ]
     kd = KrissKrossData(None, config=config)
     kd.fromLayers([ld.data for ld in lds])
 
-    exportVtr("/home/tom/Downloads/a.vtr",
-              kd.calibrated(), kd.extent(),
+    exportVtr("/home/tom/Downloads/a.vtr", kd.calibrated(), kd.extent(),
               kd.config['spotsize'])
 
     # window = MainWindow()

@@ -31,9 +31,11 @@ class Canvas(FigureCanvasQTAgg):
 
 
 class ImageDock(QtWidgets.QDockWidget):
-    DEFAULT_VIEW_CONFIG = {'cmap': 'magma',
-                           'interpolation': 'none',
-                           'cmap_range': ('0%', '98%')}
+    DEFAULT_VIEW_CONFIG = {
+        'cmap': 'magma',
+        'interpolation': 'none',
+        'cmap_range': ('0%', '98%')
+    }
 
     def __init__(self, parent=None):
 
@@ -42,11 +44,11 @@ class ImageDock(QtWidgets.QDockWidget):
 
         super().__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable |
-                         QtWidgets.QDockWidget.DockWidgetMovable)
+        self.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable
+                         | QtWidgets.QDockWidget.DockWidgetMovable)
 
-        self.fig = Figure(frameon=False, tight_layout=True,
-                          figsize=(5, 5), dpi=100)
+        self.fig = Figure(
+            frameon=False, tight_layout=True, figsize=(5, 5), dpi=100)
         self.ax = self.fig.add_subplot(111)
         self.canvas = Canvas(self.fig, self)
 
@@ -107,11 +109,17 @@ class ImageDock(QtWidgets.QDockWidget):
         viewconfig = self.window().viewconfig
 
         self.image = plotLaserImage(
-            self.fig, self.ax, self.laser.calibrated(isotope),
-            colorbar='bottom', label=isotope,
-            cmap=viewconfig['cmap'], interpolation=viewconfig['interpolation'],
-            vmin=viewconfig['cmap_range'][0], vmax=viewconfig['cmap_range'][1],
-            aspect=self.laser.aspect(), extent=self.laser.extent())
+            self.fig,
+            self.ax,
+            self.laser.calibrated(isotope),
+            colorbar='bottom',
+            label=isotope,
+            cmap=viewconfig['cmap'],
+            interpolation=viewconfig['interpolation'],
+            vmin=viewconfig['cmap_range'][0],
+            vmax=viewconfig['cmap_range'][1],
+            aspect=self.laser.aspect(),
+            extent=self.laser.extent())
 
         self.canvas.draw()
 
@@ -136,14 +144,13 @@ class ImageDock(QtWidgets.QDockWidget):
 
     def onMenuSave(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-                self, "Save", "",
-                "Numpy archive(*.npz);;All files(*)")
+            self, "Save", "", "Numpy archive(*.npz);;All files(*)")
         if path:
             exportNpz(path, [self.laser])
 
     def onMenuExport(self):
-        dlg = ExportDialog(self.laser.source,
-                           self.combo_isotope.currentText(), self)
+        dlg = ExportDialog(self.laser.source, self.combo_isotope.currentText(),
+                           self)
         if dlg.exec() != QtWidgets.QDialog.Accepted:
             return
 
@@ -154,9 +161,12 @@ class ImageDock(QtWidgets.QDockWidget):
         for isotope in isotopes:
             if dlg.check_layers.isChecked() and dlg.check_layers.isEnabled():
                 for layer in range(self.laser.countLayers()):
-                    path = dlg.getPath(isotope=isotope, layer=layer+1)
-                    result = self._export(path, isotope=isotope, layer=layer,
-                                          prompt_overwrite=prompt_overwrite)
+                    path = dlg.getPath(isotope=isotope, layer=layer + 1)
+                    result = self._export(
+                        path,
+                        isotope=isotope,
+                        layer=layer,
+                        prompt_overwrite=prompt_overwrite)
                     if result == QtWidgets.QMessageBox.No:
                         continue
                     elif result == QtWidgets.QMessageBox.NoToAll:
@@ -164,9 +174,12 @@ class ImageDock(QtWidgets.QDockWidget):
                     elif result == QtWidgets.QMessageBox.YesToAll:
                         prompt_overwrite = False
             else:
-                path = dlg.getPath(isotope=isotope, layer=layer+1)
-                result = self._export(path, isotope=isotope, layer=None,
-                                      prompt_overwrite=prompt_overwrite)
+                path = dlg.getPath(isotope=isotope, layer=layer + 1)
+                result = self._export(
+                    path,
+                    isotope=isotope,
+                    layer=None,
+                    prompt_overwrite=prompt_overwrite)
                 if result == QtWidgets.QMessageBox.No:
                     continue
                 elif result == QtWidgets.QMessageBox.NoToAll:
@@ -212,8 +225,8 @@ class LaserImageDock(ImageDock):
                 self, "Overwrite File?",
                 f"The file \"{os.path.basename(path)}\" "
                 "already exists. Do you wish to overwrite it?",
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.YesToAll |
-                QtWidgets.QMessageBox.No)
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.YesToAll
+                | QtWidgets.QMessageBox.No)
             if result == QtWidgets.QMessageBox.No:
                 return result
 
@@ -221,9 +234,10 @@ class LaserImageDock(ImageDock):
         if ext == '.csv':
             np.savetxt(path, self.laser.calibrated(isotope), delimiter=',')
         elif ext == '.png':
-            exportPng(self.laser.calibrated(isotope), isotope,
-                      self.laser.aspect(),
-                      self.laser.extent(), self.window().viewconfig)
+            exportPng(
+                self.laser.calibrated(isotope), isotope, self.laser.aspect(),
+                self.laser.extent(),
+                self.window().viewconfig)
         else:
             QtWidgets.QMessageBox.warning(
                 self, "Invalid Format",
@@ -257,8 +271,8 @@ class KrissKrossImageDock(ImageDock):
                 self, "Overwrite File?",
                 f"The file \"{os.path.basename(path)}\" "
                 "already exists. Do you wish to overwrite it?",
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.YesToAll |
-                QtWidgets.QMessageBox.No)
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.YesToAll
+                | QtWidgets.QMessageBox.No)
             if result == QtWidgets.QMessageBox.No:
                 return result
 
@@ -272,7 +286,8 @@ class KrissKrossImageDock(ImageDock):
             np.savetxt(path, export_data, delimiter=',')
         elif ext == '.png':
             exportPng(export_data, isotope, self.laser.aspect(),
-                      self.laser.extent(), self.window().viewconfig)
+                      self.laser.extent(),
+                      self.window().viewconfig)
         elif ext == '.vtr':
             if layer is None:
                 exportVtr(path, self.laser.calibrated(), self.laser.extent(),

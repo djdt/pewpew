@@ -8,7 +8,7 @@ import os
 
 
 class KrissKrossWizard(QtWidgets.QWizard):
-    def __init__(self,  config, parent=None):
+    def __init__(self, config, parent=None):
         super().__init__(parent)
 
         self.krisskrossdata = []
@@ -44,8 +44,8 @@ class KrissKrossWizard(QtWidgets.QWizard):
                 pass
 
         for isotope, layers in layer_dict.items():
-            kkd = KrissKrossData(isotope=isotope, config=config,
-                                 source=self.field("paths")[0])
+            kkd = KrissKrossData(
+                isotope=isotope, config=config, source=self.field("paths")[0])
             kkd.fromLayers([layer.data for layer in layers],
                            warmup_time=float(self.field("lineedit_warmup")),
                            horizontal_first=self.field("check_horizontal"))
@@ -142,7 +142,8 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
     def buttonAdd(self):
         if self.field("radio_numpy"):
             paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", "" "Numpy archives(*.npz);;All files(*)")
+                self, "Select Files", ""
+                "Numpy archives(*.npz);;All files(*)")
         elif self.field("radio_agilent"):
             path = QtWidgets.QFileDialog.getExistingDirectory(
                 self, "Select Batch", "", QtWidgets.QFileDialog.ShowDirsOnly)
@@ -151,7 +152,8 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
             paths = [path]
         elif self.field("radio_csv"):
             paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", "" "CSV files(*.csv);;All files(*)")
+                self, "Select Files", ""
+                "CSV files(*.csv);;All files(*)")
 
         for path in paths:
             self.list.addItem(path)

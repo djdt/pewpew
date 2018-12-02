@@ -10,9 +10,12 @@ def importNpz(path, config_override=None):
     npz = np.load(path)
 
     for i, (type, config) in enumerate(zip(npz['_type'], npz['_config'])):
-        lds.append(type(
-            config=config_override if config_override is not None else config,
-            data=npz[f'_data{i}'], source=path))
+        lds.append(
+            type(
+                config=config_override
+                if config_override is not None else config,
+                data=npz[f'_data{i}'],
+                source=path))
     return lds
 
 
@@ -39,10 +42,16 @@ def importAgilentBatch(path, config):
 
     cols = np.arange(1, line.count(',') + 1)
 
-    lines = [np.genfromtxt(f, delimiter=',', names=True, usecols=cols,
-             skip_header=skip_header, skip_footer=skip_footer,
-             dtype=np.float64)
-             for f in data_files]
+    lines = [
+        np.genfromtxt(
+            f,
+            delimiter=',',
+            names=True,
+            usecols=cols,
+            skip_header=skip_header,
+            skip_footer=skip_footer,
+            dtype=np.float64) for f in data_files
+    ]
     data = np.vstack(lines)
 
     # lds = []
