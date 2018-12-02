@@ -1,5 +1,5 @@
 import numpy as np
-import base64
+import struct
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
@@ -36,28 +36,46 @@ def exportVtr(path, data, extent, spotsize):
     header = ("<?xml version=\"1.0\"?>\n"
               "<VTKFile type=\"RectilinearGrid\" version=\"1.0\" "
               "byte_order=\"LittleEndian\" header_type=\"UInt64\">\n"
-              f"<RectilinearGrid WholeExtent=\"0 {nx} 0 {ny} 0 {nz}\">\n"
-              f"<Piece Extent=\"0 {nx} 0 {ny} 0 {nz}\">\n")
+              f"<RectilinearGrid WholeExtent=\"0 {nx-1} 0 {ny-1} 0 {nz-1}\">\n"
+              f"<Piece Extent=\"0 {nx-1} 0 {ny-1} 0 {nz-1}\">\n")
 
-    x_coords = np.linspace(extent[0], extent[1], nx)
-    y_coords = np.linspace(extent[2], extent[3], ny)
-    z_coords = np.linspace(0, nz * spotsize, nz)
+    coords = [np.linspace(extent[2], extent[3], nx),
+              np.linspace(extent[0], extent[1], ny),
+              np.linspace(0, nz * -spotsize, nz)]
+
+    offset = 0
+
+    coordinates = "<Coordinates>\n"
+    for i, coord in zip(['x', 'y', 'z'], coords):
+        coordinates += (f"<DataArray Name=\"{i}_coordinates\" type=\"Float64\""
+                        f" format=\"appended\" offset=\"{offset}\"/>\n")
+        offset += coord.size * coord.itemsize + 8  # 8 for blocksize
+    coordinates += "</Coordinates>\n"
+
+    point_data = "<PointData Scalars=\"{data.dtype.names[0]}\">\n"
+    for name in data.dtype.names:
+        point_data += (f"<DataArray Name=\"{name}\" type=\"Float64\""
+                       f" format=\"appended\" offset=\"{offset}\"/>\n")
+        offset += data[name].size * data[name].itemsize + 8  # 8 for blocksize
+    point_data += "</PointData>\n"
 
     with open(path, 'wb') as fp:
-        fp.write(header.encode('utf-8'))
-        fp.write("<Coordinates>\n".encode('utf-8'))
-        for name, coords in zip(
-                ['x_coordinates', 'y_coordinates', 'z_coordinates'],
-                [x_coords, y_coords, z_coords]):
-            fp.write((f"<DataArray Name=\"{name}\" "
-                      "type=\"Float64\" format=\"appended\">\n").encode('utf-8')
-            fp.write(base64.b64encode(coords)))
-            fp.write("</DataArray>\n")
-        fp.write("</Coordinates>\n")
-        fp.write(f"<PointData scalars=\"Isotopes\">\n")
-        for isotope in data.dtype.names:
-            fp.write(f"<DataArray Name=\"{isotope}\" "
-                     "type=\"Float64\" format=\"binary\"/>\n")
-            fp.write(str(base64.b64encode(np.ascontiguousarray(data[isotope]))))
-            fp.write("</DataArray>\n")
-        fp.write("</PointData>\n</Piece>\n</RectilinearGrid>\n</VTKFile>\n")
+        fp.write(header.encode())
+        fp.write(coordinates.encode())
+        fp.write(point_data.encode())
+        fp.write(("</Piece>\n</RectilinearGrid>\n"
+                  "<AppendedData encoding=\"raw\">\n_").encode())
+
+        for coord in coords:
+            fp.write(struct.pack('<Q', coord.size * coord.itemsize))
+            binary = struct.pack(f'<{coord.size}d',
+                                 *np.ravel(coord, order='F'))
+            fp.write(binary)
+
+        for name in data.dtype.names:
+            fp.write(struct.pack('<Q', data[name].size * data[name].itemsize))
+            binary = struct.pack(f'<{data[name].size}d',
+                                 *np.ravel(data[name], order='F'))
+            fp.write(binary)
+
+        fp.write("</AppendedData>\n</VTKFile>".encode())
