@@ -5,7 +5,8 @@ from collections import defaultdict
 class LaserData(object):
     DEFAULT_CONFIG = {
         'spotsize': 30.0, 'speed': 120.0, 'scantime': 0.25,
-        'gradient': defaultdict(1.0), 'intercept': defaultdict(0.0)}
+        'gradients': defaultdict(lambda: 1.0),
+        'intercepts': defaultdict(lambda: 0.0)}
 
     def __init__(self, data=None, config=None,
                  source=""):
@@ -19,7 +20,7 @@ class LaserData(object):
     def calibrated(self, isotope=None):
         if isotope is None:
             data = np.empty(self.data.shape, dtype=self.data.dtype)
-            for name in self.data.names:
+            for name in self.data.dtype.names:
                 data[name] = ((self.data[name]
                               - self.config['intercepts'][name])
                               / self.config['gradients'][name])

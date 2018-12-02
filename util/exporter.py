@@ -44,14 +44,14 @@ def exportVtr(path, data, extent, spotsize):
     z_coords = np.linspace(0, nz * spotsize, nz)
 
     with open(path, 'wb') as fp:
-        fp.write(bytes(header))
-        fp.write(b"<Coordinates>\n")
+        fp.write(header.encode('utf-8'))
+        fp.write("<Coordinates>\n".encode('utf-8'))
         for name, coords in zip(
                 ['x_coordinates', 'y_coordinates', 'z_coordinates'],
                 [x_coords, y_coords, z_coords]):
-            fp.write("<DataArray Name=\"{name}\" "
-                     "type=\"Float64\" format=\"binary\">\n")
-            fp.write(str(base64.b64encode(coords)))
+            fp.write((f"<DataArray Name=\"{name}\" "
+                      "type=\"Float64\" format=\"appended\">\n").encode('utf-8')
+            fp.write(base64.b64encode(coords)))
             fp.write("</DataArray>\n")
         fp.write("</Coordinates>\n")
         fp.write(f"<PointData scalars=\"Isotopes\">\n")

@@ -5,13 +5,16 @@
 
 from util.importer import importAgilentBatch
 from util.exporter import exportVtr
+from util.laser import LaserData
 from util.krisskross import KrissKrossData
 
 if __name__ == "__main__":
     # app = QApplication(sys.argv)
 
-    config = {'spotsize': 10.0, 'speed': 10.0, 'scantime': 0.1,
-              'gradient': 1.0, 'intercept': 0.0}
+    config = LaserData.DEFAULT_CONFIG
+    config['spotsize'] = 10
+    config['speed'] = 10
+    config['scantime'] = 0.1
     lds = [importAgilentBatch("/home/tom/Downloads/raw/Horz.b", config),
            importAgilentBatch("/home/tom/Downloads/raw/Vert.b", config)]
     kd = KrissKrossData(None, config=config)
