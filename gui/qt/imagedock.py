@@ -150,6 +150,7 @@ class ImageDock(QtWidgets.QDockWidget):
 
     def onMenuExport(self):
         dlg = ExportDialog(self.laser.source, self.combo_isotope.currentText(),
+                           len(self.laser.isotopes()), self.laser.layers(),
                            self)
         if dlg.exec() != QtWidgets.QDialog.Accepted:
             return
@@ -233,6 +234,8 @@ class LaserImageDock(ImageDock):
         ext = os.path.splitext(path)[1].lower()
         if ext == '.csv':
             np.savetxt(path, self.laser.calibrated(isotope), delimiter=',')
+        elif ext == '.npz':
+            exportNpz(path, [self.laser])
         elif ext == '.png':
             exportPng(
                 self.laser.calibrated(isotope), isotope, self.laser.aspect(),
@@ -277,26 +280,23 @@ class KrissKrossImageDock(ImageDock):
                 return result
 
         if layer is None:
-            export_data = np.mean(self.laser.calibrated(isotope), axis=2)
+            export_data = self.laser.calibrated(isotope, flatten=True)
         else:
-            export_data = self.laser.calibrated(isotope)[:, :, layer]
+            export_data = self.laser.calibrated(
+                isotope, flatten=False)[:, :, layer]
 
         ext = os.path.splitext(path)[1].lower()
         if ext == '.csv':
             np.savetxt(path, export_data, delimiter=',')
+        elif ext == '.npz':
+            exportNpz(path, [self.laser])
         elif ext == '.png':
             exportPng(export_data, isotope, self.laser.aspect(),
                       self.laser.extent(),
                       self.window().viewconfig)
         elif ext == '.vtr':
-            if layer is None:
-                exportVtr(path, self.laser.calibrated(), self.laser.extent(),
-                          self.laser.config['spotsize'])
-            else:
-                QtWidgets.QMessageBox.warning(
-                    self, "Export Error",
-                    f"VTR does not support single layer output.")
-                return QtWidgets.QMessageBox.NoToAll
+            exportVtr(path, self.laser.calibrated(flatten=False),
+                      self.laser.extent(), self.laser.config['spotsize'])
         else:
             QtWidgets.QMessageBox.warning(
                 self, "Invalid Format",
