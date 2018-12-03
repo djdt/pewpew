@@ -27,9 +27,10 @@ class KrissKrossWizard(QtWidgets.QWizard):
             # Use the config from the first file
             ld_group = importNpz(self.field("paths")[0])
             config = ld_group[0].config
+            calibration = ld_group[0].calbration
             # Import the rest of the files with overriden config
             for path in self.field("paths")[1:]:
-                ld_group = importNpz(path, config)
+                ld_group = importNpz(path, config, calibration)
                 for ld in ld_group:
                     layer_dict.setdefault(ld.isotope, []).append(ld)
         elif self.field("radio_agilent"):
@@ -204,13 +205,13 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
 
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setPlaceholderText(str(config['spotsize']))
-        self.lineedit_spotsize.setValidator(0, 1e3, 4)
+        self.lineedit_spotsize.setValidator(QtGui.QDoubleValidator(0, 1e3, 4))
         self.lineedit_speed = QtWidgets.QLineEdit()
         self.lineedit_speed.setPlaceholderText(str(config['speed']))
-        self.lineedit_speed.setValidator(0, 1e3, 4)
+        self.lineedit_speed.setValidator(QtGui.QDoubleValidator(0, 1e3, 4))
         self.lineedit_scantime = QtWidgets.QLineEdit()
         self.lineedit_scantime.setPlaceholderText(str(config['scantime']))
-        self.lineedit_scantime.setValidator(0, 1e3, 4)
+        self.lineedit_scantime.setValidator(QtGui.QDoubleValidator(0, 1e3, 4))
 
         # Form layout for line edits
         form_layout = QtWidgets.QFormLayout()
