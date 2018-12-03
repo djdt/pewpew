@@ -43,7 +43,10 @@ class KrissKrossData(LaserData):
 
     def calibrated(self, isotope=None, flatten=True):
         """Returns a flattened array (via mean) by default."""
-        return np.mean(super().calibrated(isotope), axis=2)
+        if flatten:
+            return np.mean(super().calibrated(isotope), axis=2)
+        else:
+            return super().calibrated(isotope)
 
     def split(self):
         lds = []
