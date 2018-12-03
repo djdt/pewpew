@@ -44,3 +44,6 @@ class LaserData(object):
         x = self.data.shape[1] * self.pixelsize()[0]
         y = self.data.shape[0] * self.pixelsize()[1]
         return (0, x, 0, y)
+
+    def layers(self):
+        return 1

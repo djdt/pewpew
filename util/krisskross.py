@@ -29,11 +29,6 @@ def krissKrossLayers(layers, aspect, warmup, horizontal_first=True):
 
     data = np.dstack(transformed)
 
-    # TODO find a way to do this, less copy() required
-    # if self.params['rastered']:
-    #     self.data[1::2, :, 0::2] = self.data[1::2, ::-1, 0::2]
-    #     self.data[:, 1::2, 1::2] = self.data[::-1, 1::2, 1::2]
-
     return data
 
 
@@ -41,13 +36,14 @@ class KrissKrossData(LaserData):
     def __init__(self, data=None, config=None, source=""):
         super().__init__(data=data, config=config, source=source)
 
-    def countLayers(self):
-        return self.data.shape[2]
-
     def fromLayers(self, layers, warmup_time=13.0, horizontal_first=True):
         warmup = int(warmup_time / self.config['scantime'])
         self.data = krissKrossLayers(layers, self.aspect(), warmup,
                                      horizontal_first)
+
+    def calibrated(self, isotope=None, flatten=True):
+        """Returns a flattened array (via mean) by default."""
+        return np.mean(super().calibrated(isotope), axis=2)
 
     def split(self):
         lds = []
@@ -63,3 +59,6 @@ class KrissKrossData(LaserData):
         x = self.data.shape[1] * self.pixelsize()[0]
         y = self.data.shape[0] * self.pixelsize()[1] / self.aspect()
         return (0, x, 0, y)
+
+    def layers(self):
+        return self.data.shape[2]
