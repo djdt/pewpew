@@ -216,10 +216,14 @@ class ExportDialog(QtWidgets.QDialog):
         return path + ext
 
     def onButtonFile(self):
+        filter = ("CSV files(*.csv);;Numpy archives(*.npz);;"
+                  "PNG images(*.png);;")
+        if self.num_layers > 1:
+            filter += "Rectilinear VTKs(*.vtr);;"
+        filter += "All files(*)"
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Export As", self.lineedit_file.text(), "CSV files(*.csv);;"
-            "PNG images(*.png);;All files(*)", "CSV files(*.csv)",
-            QtWidgets.QFileDialog.DontConfirmOverwrite)
+            self, "Export As", self.lineedit_file.text(), filter,
+            "CSV files(*.csv)", QtWidgets.QFileDialog.DontConfirmOverwrite)
         if path:
             self.lineedit_file.setText(path)
 
