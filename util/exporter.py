@@ -12,7 +12,7 @@ def exportNpz(path, laserdata_list):
         savedict['_type'].append(type(ld))
         savedict['_config'].append(ld.config)
         savedict[f'_data{i}'] = ld.data
-    np.savez(path, **savedict)
+    np.savez_compressed(path, **savedict)
 
 
 def exportPng(path, data, isotope, aspect, extent, viewconfig):
