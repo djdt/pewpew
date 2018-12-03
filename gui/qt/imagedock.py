@@ -118,6 +118,7 @@ class ImageDock(QtWidgets.QDockWidget):
             self.ax,
             self.laser.calibrated(isotope),
             colorbar='bottom',
+            colorbarlabel=self.laser.calibration['units'].get(isotope, ""),
             label=isotope,
             cmap=viewconfig['cmap'],
             interpolation=viewconfig['interpolation'],
@@ -196,7 +197,10 @@ class ImageDock(QtWidgets.QDockWidget):
 
     def onMenuCalibration(self):
         dlg = CalibrationDialog(
-            self.laser.calibration, self.laser.isotopes(), parent=self)
+            self.laser.calibration,
+            self.combo_isotope.currentText(),
+            self.laser.isotopes(),
+            parent=self)
         if dlg.exec():
             self.laser.calibration = dlg.calibration
             self.draw()
