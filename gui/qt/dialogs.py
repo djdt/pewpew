@@ -226,6 +226,7 @@ class ExportDialog(QtWidgets.QDialog):
             "CSV files(*.csv)", QtWidgets.QFileDialog.DontConfirmOverwrite)
         if path:
             self.lineedit_file.setText(path)
+            self.inputChanged()
 
     def inputChanged(self):
         self.updateChecks()
