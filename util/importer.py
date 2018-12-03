@@ -1,25 +1,43 @@
 import numpy as np
 import os
-import re
 
 from util.laser import LaserData
 
 
-def importNpz(path, config_override=None):
+def importNpz(path, config_override=None, calibration_override=None):
+    """Imports the numpy archive given. Both the config and calibration are
+    read from the archive but can be overriden.
+
+    path -> path to numpy archive
+    config_override -> if not None will be applied to all imports
+    calibration -> if not None will be applied to all imports
+
+    returns list of LaserData/KrissKrossData"""
     lds = []
     npz = np.load(path)
 
-    for i, (type, config) in enumerate(zip(npz['_type'], npz['_config'])):
+    for i, (type, config, calibration) in \
+            enumerate(zip(npz['_type'], npz['_config'], npz['_calibration'])):
         lds.append(
             type(
+                data=npz[f'_data{i}'],
                 config=config_override
                 if config_override is not None else config,
-                data=npz[f'_data{i}'],
+                calibration=calibration_override
+                if calibration_override is not None else calibration,
                 source=path))
     return lds
 
 
-def importAgilentBatch(path, config):
+def importAgilentBatch(path, config, calibration):
+    """Scans the given path for .d directories containg a  similarly named
+       .csv file. These are imported as lines and sorted by their name.
+
+       path -> path to the .b directory
+       config -> config to be applied
+       calibration -> calibration to be applied
+
+       returns LaserData"""
     data_files = []
     with os.scandir(path) as it:
         for entry in it:
@@ -54,37 +72,76 @@ def importAgilentBatch(path, config):
     ]
     data = np.vstack(lines)
 
-    # lds = []
-    # for name in layer.dtype.names:
-    #     lds.append(LaserData(isotope=name, config=config, source=path,
-    #                          data=layer[name]))
-    return LaserData(data, config=config, source=path)
+    return LaserData(data, config=config, calibration=calibration, source=path)
 
 
-def importCSVFromThatGermanThing(path):
-    datare = re.compile(r'MainRuns;\d+;(\d+\w+);Counter;(.*)')
+def importThermoiCapBatch(path, config, calibration):
+    """Imports all the CSV files in the given directory. These are imported as
+    lines in the image and are sorted by name.
 
-    isotopes = []
-    data = {}
-    with open(path, 'r') as fp:
-        for line in fp.readlines():
-            m = datare.match(line)
-            if m is not None:
-                i = m.group(1)
-                linedata = np.fromstring(m.group(2), sep=';', dtype=float)
-                isotopes.append(i)
-                if i not in data.keys():
-                    data[i] = []
-                data[i].append(linedata)
+    path -> path to directory containing CSVs
+    config -> config to apply
+    calibration -> calibration to apply
 
-    # Read the keys to ensure order is same
-    keys = list(data.keys())
-    # Stack lines to form 2d
-    for k in keys:
-        data[k] = np.vstack(data[k]).transpose()
-    # Build a named array out of data
-    dtype = [(k, float) for k in keys]
-    structured = np.empty(data[keys[0]].shape, dtype)
-    for k in keys:
-        structured[k] = data[k]
-    return structured
+    returns LaserData"""
+    data_files = []
+    with os.scandir(path) as it:
+        for entry in it:
+            if entry.name.lower().endswith('.csv') and entry.is_file():
+                data_files.append(entry.path)
+    # Sort by name
+    data_files.sort()
+
+    with open(data_files[0], 'r') as fp:
+        line = fp.readline()
+        skip_header = 0
+        while line and not line.startswith('Time'):
+            line = fp.readline()
+            skip_header += 1
+
+        delimiter = line[-1]
+
+    cols = np.arange(1, line.count(delimiter))
+
+    lines = [
+        np.genfromtxt(
+            f,
+            delimiter=delimiter,
+            names=True,
+            usecols=cols,
+            skip_header=skip_header,
+            dtype=np.float64) for f in data_files
+    ]
+    # We need to skip the first row as it contains junk
+    data = np.vstack(lines)[1:]
+
+    return LaserData(data, config=config, calibration=calibration, source=path)
+
+
+# def importCSVFromThatGermanThing(path):
+#     datare = re.compile(r'MainRuns;\d+;(\d+\w+);Counter;(.*)')
+
+#     isotopes = []
+#     data = {}
+#     with open(path, 'r') as fp:
+#         for line in fp.readlines():
+#             m = datare.match(line)
+#             if m is not None:
+#                 i = m.group(1)
+#                 linedata = np.fromstring(m.group(2), sep=';', dtype=float)
+#                 isotopes.append(i)
+#                 if i not in data.keys():
+#                     data[i] = []
+#                 data[i].append(linedata)
+
+#     # Read the keys to ensure order is same
+#     keys = list(data.keys())
+#     # Stack lines to form 2d
+#     for k in keys:
+#         data[k] = np.vstack(data[k]).transpose()
+#     # Build a named array out of data
+#     dtype = [(k, float) for k in keys]
+#     structured = np.empty(data[keys[0]].shape, dtype)
+#     for k in keys:
+#         structured[k] = data[k]
+#     return structured
