@@ -98,12 +98,7 @@ class CalibrationDialog(QtWidgets.QDialog):
         self.setWindowTitle("Calibration")
         self.calibration = calibration
 
-        self.combo_isotopes = QtWidgets.QComboBox()
-        self.combo_isotopes.addItems(isotopes)
-        self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
-        self.previous_index = self.combo_isotopes.findText(current_isotope)
-        self.combo_isotopes.setCurrentIndex(self.previous_index)
-
+        # LIne edits
         self.lineedit_gradient = QtWidgets.QLineEdit()
         self.lineedit_gradient.setValidator(
             QtGui.QDoubleValidator(-1e10, 1e10, 4))
@@ -114,15 +109,21 @@ class CalibrationDialog(QtWidgets.QDialog):
         self.lineedit_intercept.setPlaceholderText("0.0")
         self.lineedit_unit = QtWidgets.QLineEdit()
         self.lineedit_unit.setPlaceholderText("<None>")
-        self.updateLineEdits()
 
+        # Form layout for line edits
         form_layout = QtWidgets.QFormLayout()
         form_layout.addRow("Gradient:", self.lineedit_gradient)
         form_layout.addRow("Intercept:", self.lineedit_intercept)
         form_layout.addRow("Unit:", self.lineedit_unit)
 
-        # Form layout for line edits
+        # Isotope combo
+        self.combo_isotopes = QtWidgets.QComboBox()
+        self.combo_isotopes.addItems(isotopes)
+        self.previous_index = self.combo_isotopes.findText(current_isotope)
+        self.combo_isotopes.setCurrentIndex(self.previous_index)
+        self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
 
+        # Dialog buttons
         buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok,
                                                self)
         buttonBox.accepted.connect(self.accept)
@@ -132,6 +133,8 @@ class CalibrationDialog(QtWidgets.QDialog):
         main_layout.addWidget(self.combo_isotopes, 1, QtCore.Qt.AlignRight)
         main_layout.addWidget(buttonBox)
         self.setLayout(main_layout)
+
+        self.updateLineEdits()
 
     def updateLineEdits(self):
         new = self.combo_isotopes.currentText()
