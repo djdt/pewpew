@@ -20,6 +20,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
 
+        # Defaults for when applying to multiple images
         self.config = LaserData.DEFAULT_CONFIG
         self.viewconfig = ImageDock.DEFAULT_VIEW_CONFIG
 
@@ -38,20 +39,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.statusBar().showMessage("Import or open data to begin.")
 
-        config = {
-            'spotsize': 10.0,
-            'speed': 10.0,
-            'scantime': 0.1,
-            'gradient': 1.0,
-            'intercept': 0.0
-        }
+        self.config['spotsize'] = 10
+        self.config['speed'] = 10
+        self.config['scantime'] = 0.1
         lds = [
-            importAgilentBatch("/home/tom/Downloads/raw/Horz.b", config),
-            importAgilentBatch("/home/tom/Downloads/raw/Vert.b", config)
+            importAgilentBatch("/home/tom/Downloads/raw/Horz.b", self.config),
+            importAgilentBatch("/home/tom/Downloads/raw/Vert.b", self.config)
         ]
-        kd = KrissKrossData(None, self.dockarea)
-        kd.fromLayers(lds)
-        dock = KrissKrossImageDock(kd)
+        kd = KrissKrossData(
+            data=None,
+            config=self.config,
+            calibration=None,
+            source="/home/tom/Downloads/temp/kk.npz")
+        kd.fromLayers([ld.data for ld in lds])
+        dock = KrissKrossImageDock(kd, self.dockarea)
         dock.draw()
         self.dockarea.addDockWidget(dock)
 
@@ -90,6 +91,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Edit
         menu_edit = self.menuBar().addMenu("&Edit")
+        # action_calibration = menu_edit.addAction(
+        #     QtGui.QIcon.fromTheme('go-top'), "&Calibration")
+        # action_calibration.setStatusTip(
+        #     "Update the calibrations for visible images.")
+        # action_calibration.triggered.connect(self.menuCalibration)
         action_config = menu_edit.addAction(
             QtGui.QIcon.fromTheme('document-properties'), "&Config")
         action_config.setStatusTip("Update the configs for visible images.")
@@ -210,7 +216,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuConfig(self):
         dlg = ConfigDialog(self.config, parent=self)
         if dlg.exec():
-            self.config = dlg.form.config
+            self.config = dlg.config
             if dlg.check_all.checkState() == QtCore.Qt.Checked:
                 docks = self.dockarea.findChildren(ImageDock)
             else:

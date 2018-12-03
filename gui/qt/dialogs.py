@@ -1,4 +1,4 @@
-from PyQt5 import QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 import os.path
 
 #######################
@@ -92,53 +92,139 @@ class ColorRangeDialog(QtWidgets.QDialog):
 ############
 
 
-class ConfigForm(QtWidgets.QGroupBox):
-    def __init__(self, config, title=None, parent=None):
-        super().__init__(title, parent)
+class CalibrationDialog(QtWidgets.QDialog):
+    def __init__(self, calibration, current_isotope, isotopes, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Calibration")
+        self.calibration = calibration
 
-        self.config = config
+        self.combo_isotopes = QtWidgets.QComboBox()
+        self.combo_isotopes.addItems(isotopes)
+        self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
+        self.current_index = self.combo_isotopes.findText(current_isotope)
+        self.combo_isotopes.setCurrentIndex(self.currentIndex)
 
-        layout = QtWidgets.QFormLayout()
-        for k, v in self.config.items():
-            le = QtWidgets.QLineEdit()
-            le.setPlaceholderText(str(v))
-            if k in ["gradient", "intercept"]:
-                le.setValidator(QtGui.QDoubleValidator(-1e10, 1e10, 8))
-            else:
-                le.setValidator(QtGui.QDoubleValidator(0, 1e3, 4))
-            layout.addRow(k.capitalize() + ":", le)
-            setattr(self, k, le)
+        self.lineedit_gradient = QtWidgets.QLineEdit()
+        self.lineedit_gradient.setValidator(
+            QtGui.QDoubleValidator(-1e10, 1e10, 4))
+        self.lineedit_gradient.setPlaceholderText("1.0")
+        self.lineedit_intercept = QtWidgets.QLineEdit()
+        self.lineedit_intercept.setValidator(
+            QtGui.QDoubleValidator(-1e10, 1e10, 4))
+        self.lineedit_intercept.setPlaceholderText("0.0")
+        self.lineedit_unit = QtWidgets.QLineEdit()
+        self.lineedit_unit.setPlaceholderText("<None>")
+        self.updateLineEdits()
 
-        self.setLayout(layout)
+        form_layout = QtWidgets.QFormLayout()
+        form_layout.addRow("Gradient:", self.lineedit_gradient)
+        form_layout.addRow("Intercept:", self.lineedit_intercept)
+        form_layout.addRow("Unit:", self.lineedit_unit)
+
+        # Form layout for line edits
+
+        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok,
+                                               self)
+        buttonBox.accepted.connect(self.accept)
+
+        main_layout = QtWidgets.QVBoxLayout()
+        main_layout.addLayout(form_layout)
+        main_layout.addWidget(self.combo_isotopes, 1, QtCore.Qt.AlignRight)
+        main_layout.addWidget(buttonBox)
+        self.setLayout(main_layout)
+
+    def updateLineEdits(self):
+        new = self.combo_isotopes.currentText()
+
+        if new in self.calibration['gradients']:
+            self.lineedit_gradient.setText(
+                str(self.calibration['gradients'][new]))
+        else:
+            self.lineedit_gradient.clear()
+        if new in self.calibration['intercepts']:
+            self.lineedit_intercept.setText(
+                str(self.calibration['intercepts'][new]))
+        else:
+            self.lineedit_intercept.clear()
+        if new in self.calibration['units']:
+            self.lineedit_unit.setText(
+                str(self.calibration['units'][new]))
+        else:
+            self.lineedit_unit.clear()
+
+    def updateCalibration(self, isotope):
+        gradient = self.lineedit_gradient.text()
+        intercept = self.lineedit_intercept.text()
+        unit = self.lineedit_unit.text()
+
+        if gradient == "" or float(gradient) == 1.0:
+            self.calibration['gradients'].pop(isotope, None)
+        else:
+            self.calibration['gradients'][isotope] = float(gradient)
+        if intercept == "" or float(intercept) == 0.0:
+            self.calibration['intercepts'].pop(isotope, None)
+        else:
+            self.calibration['intercepts'][isotope] = float(intercept)
+        if unit == "":
+            self.calibration['units'].pop(isotope, None)
+        else:
+            self.calibration['units'][isotope] = unit
+
+    def comboChanged(self):
+        previous = self.combo_isotopes.itemText(self.current_index)
+        self.current_index = self.combo_isotopes.currentIndex()
+        self.updateCalibration(previous)
+        self.updateLineEdits()
+
+    def accept(self):
+        self.updateCalibration(self.combo_isotopes.currentText())
+        super().accept()
 
 
 class ConfigDialog(QtWidgets.QDialog):
     def __init__(self, config, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Configuration")
+        self.config = config
 
-        main_layout = QtWidgets.QVBoxLayout()
+        # Line edits
+        self.lineedit_spotsize = QtWidgets.QLineEdit()
+        self.lineedit_spotsize.setPlaceholderText(str(config['spotsize']))
+        self.lineedit_spotsize.setValidator(QtGui.QDoubleValidator(0, 1e3, 2))
+        self.lineedit_speed = QtWidgets.QLineEdit()
+        self.lineedit_speed.setPlaceholderText(str(config['speed']))
+        self.lineedit_speed.setValidator(QtGui.QDoubleValidator(0, 1e3, 2))
+        self.lineedit_scantime = QtWidgets.QLineEdit()
+        self.lineedit_scantime.setPlaceholderText(str(config['scantime']))
+        self.lineedit_scantime.setValidator(QtGui.QDoubleValidator(0, 1e3, 4))
+
         # Form layout for line edits
-        self.form = ConfigForm(config, parent=self)
+        form_layout = QtWidgets.QFormLayout()
+        form_layout.addRow("Spotsize (μm):", self.lineedit_spotsize)
+        form_layout.addRow("Speed (μm):", self.lineedit_speed)
+        form_layout.addRow("Scantime (s):", self.lineedit_scantime)
+
+        # self.form = ConfigForm(config, parent=self)
         # Checkbox
-        self.check_all = QtWidgets.QCheckBox("Apply configs to all images.")
+        self.check_all = QtWidgets.QCheckBox("Apply config to all images.")
         # Ok button
         buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok,
                                                self)
         buttonBox.accepted.connect(self.accept)
 
-        main_layout.addWidget(self.form)
+        main_layout = QtWidgets.QVBoxLayout()
+        main_layout.addLayout(form_layout)
         main_layout.addWidget(self.check_all)
         main_layout.addWidget(buttonBox)
         self.setLayout(main_layout)
 
-        self.resize(480, 320)
-
     def accept(self):
-        for k in self.form.config.keys():
-            v = getattr(self.form, k).text()
-            if v is not "":
-                self.form.config[k] = float(v)
+        if self.lineedit_spotsize.text() != "":
+            self.config['spotsize'] = float(self.lineedit_spotsize.text())
+        if self.lineedit_speed.text() != "":
+            self.config['speed'] = float(self.lineedit_speed.text())
+        if self.lineedit_scantime.text() != "":
+            self.config['scantime'] = float(self.lineedit_scantime.text())
         super().accept()
 
 
@@ -155,7 +241,7 @@ class ExportDialog(QtWidgets.QDialog):
                  num_layers=1,
                  parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Exporter")
+        self.setWindowTitle("Export")
         self.current_isotope = current_isotope
         self.num_isotopes = num_isotopes
         self.num_layers = num_layers

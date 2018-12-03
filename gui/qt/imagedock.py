@@ -7,7 +7,7 @@ from util.laserimage import plotLaserImage
 from util.plothelpers import coords2value
 from util.exporter import exportNpz, exportPng, exportVtr
 
-from gui.qt.dialogs import ConfigDialog, ExportDialog
+from gui.qt.dialogs import CalibrationDialog, ConfigDialog, ExportDialog
 
 import numpy as np
 import os.path
@@ -78,6 +78,11 @@ class ImageDock(QtWidgets.QDockWidget):
         self.action_export.setStatusTip("Export data to different formats.")
         self.action_export.triggered.connect(self.onMenuExport)
 
+        self.action_calibration = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme('go-top'), "Calibration", self)
+        self.action_calibration.setStatusTip("Edit image calibration.")
+        self.action_calibration.triggered.connect(self.onMenuCalibration)
+
         self.action_config = QtWidgets.QAction(
             QtGui.QIcon.fromTheme('document-properties'), "Config", self)
         self.action_config.setStatusTip("Edit image config.")
@@ -130,6 +135,7 @@ class ImageDock(QtWidgets.QDockWidget):
         context_menu.addAction(self.action_save)
         context_menu.addAction(self.action_export)
         context_menu.addSeparator()
+        context_menu.addAction(self.action_calibration)
         context_menu.addAction(self.action_config)
         context_menu.addSeparator()
         context_menu.addAction(self.action_close)
@@ -156,12 +162,12 @@ class ImageDock(QtWidgets.QDockWidget):
             return
 
         prompt_overwrite = True
-        isotopes = self.laser.isotopes() if dlg.check_isotopes.isChecked() \
-            and dlg.check_isotopes.isEnabled() else [None]
+        isotopes = self.laser.isotopes() \
+            if dlg.check_isotopes.isChecked() else [None]
 
         for isotope in isotopes:
-            if dlg.check_layers.isChecked() and dlg.check_layers.isEnabled():
-                for layer in range(self.laser.countLayers()):
+            if dlg.check_layers.isChecked():
+                for layer in range(self.laser.layers()):
                     path = dlg.getPath(isotope=isotope, layer=layer + 1)
                     result = self._export(
                         path,
@@ -175,7 +181,7 @@ class ImageDock(QtWidgets.QDockWidget):
                     elif result == QtWidgets.QMessageBox.YesToAll:
                         prompt_overwrite = False
             else:
-                path = dlg.getPath(isotope=isotope, layer=layer + 1)
+                path = dlg.getPath(isotope=isotope)
                 result = self._export(
                     path,
                     isotope=isotope,
@@ -188,11 +194,18 @@ class ImageDock(QtWidgets.QDockWidget):
                 elif result == QtWidgets.QMessageBox.YesToAll:
                     prompt_overwrite = False
 
+    def onMenuCalibration(self):
+        dlg = CalibrationDialog(
+            self.laser.calibration, self.laser.isotopes(), parent=self)
+        if dlg.exec():
+            self.laser.calibration = dlg.calibration
+            self.draw()
+
     def onMenuConfig(self):
         dlg = ConfigDialog(self.laser.config, parent=self)
         dlg.check_all.setEnabled(False)
         if dlg.exec():
-            self.laser.config = dlg.form.config
+            self.laser.config = dlg.config
             self.draw()
 
     def onMenuClose(self):

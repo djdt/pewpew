@@ -27,7 +27,7 @@ class LaserData(object):
                                - self.calibration['intercepts'].get(name, 0.0))
                               / self.calibration['gradients'].get(name, 0.0))
         else:
-            data = ((self.data[isotope] - self.calibrated['intercepts'].get(
+            data = ((self.data[isotope] - self.calibration['intercepts'].get(
                 isotope, 0.0)) / self.calibration['gradients'].get(
                     isotope, 1.0))
         return data

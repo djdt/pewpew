@@ -2,7 +2,6 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from util.krisskross import KrissKrossData
 from util.importer import importNpz, importAgilentBatch
-from gui.qt.dialogs import ConfigForm
 
 import os
 
@@ -203,18 +202,33 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
     def __init__(self, config, parent=None):
         super().__init__(parent)
 
-        self.form = ConfigForm(config, parent=self)
+        self.lineedit_spotsize = QtWidgets.QLineEdit()
+        self.lineedit_spotsize.setPlaceholderText(str(config['spotsize']))
+        self.lineedit_spotsize.setValidator(0, 1e3, 4)
+        self.lineedit_speed = QtWidgets.QLineEdit()
+        self.lineedit_speed.setPlaceholderText(str(config['speed']))
+        self.lineedit_speed.setValidator(0, 1e3, 4)
+        self.lineedit_scantime = QtWidgets.QLineEdit()
+        self.lineedit_scantime.setPlaceholderText(str(config['scantime']))
+        self.lineedit_scantime.setValidator(0, 1e3, 4)
+
+        # Form layout for line edits
+        form_layout = QtWidgets.QFormLayout()
+        form_layout.addRow("Spotsize (μm):", self.lineedit_spotsize)
+        form_layout.addRow("Speed (μm):", self.lineedit_speed)
+        form_layout.addRow("Scantime (s):", self.lineedit_scantime)
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.form)
+        layout.addLayout(form_layout)
         self.setLayout(layout)
 
         self.registerField("config", self, "config")
 
     @QtCore.pyqtProperty(QtCore.QVariant)
     def config(self):
-        for k in self.form.config.keys():
-            v = getattr(self.form, k).text()
-            if v is not "":
-                self.form.config[k] = float(v)
-                print(v)
-        return self.form.config
+        if self.lineedit_spotsize.text() != "":
+            self.config['spotsize'] = float(self.lineedit_spotsize.text())
+        if self.lineedit_speed.text() != "":
+            self.config['speed'] = float(self.lineedit_speed.text())
+        if self.lineedit_scantime.text() != "":
+            self.config['scantime'] = float(self.lineedit_scantime.text())
+        return self.config
