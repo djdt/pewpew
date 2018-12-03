@@ -148,10 +148,17 @@ class ConfigDialog(QtWidgets.QDialog):
 
 
 class ExportDialog(QtWidgets.QDialog):
-    def __init__(self, source, current_isotope, parent=None):
+    def __init__(self,
+                 source,
+                 current_isotope,
+                 num_isotopes=1,
+                 num_layers=1,
+                 parent=None):
         super().__init__(parent)
         self.setWindowTitle("Exporter")
         self.current_isotope = current_isotope
+        self.num_isotopes = num_isotopes
+        self.num_layers = num_layers
 
         default_name = os.path.splitext(source)[0] + ".csv"
 
@@ -170,9 +177,12 @@ class ExportDialog(QtWidgets.QDialog):
 
         self.check_isotopes = QtWidgets.QCheckBox("Save all isotopes.")
         self.check_isotopes.stateChanged.connect(self.inputChanged)
+        if self.num_isotopes < 2:
+            self.check_isotopes.setEnabled(False)
         self.check_layers = QtWidgets.QCheckBox("Save all layers.")
         self.check_layers.stateChanged.connect(self.inputChanged)
-        self.check_layers.setEnabled(False)
+        if self.num_layers < 2:
+            self.check_layers.setEnabled(False)
 
         button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Save
@@ -213,7 +223,7 @@ class ExportDialog(QtWidgets.QDialog):
         if path:
             self.lineedit_file.setText(path)
 
-    def optionsChanged(self):
+    def inputChanged(self):
         self.updateChecks()
         self.redrawPreview()
 
@@ -221,20 +231,20 @@ class ExportDialog(QtWidgets.QDialog):
         ext = os.path.splitext(self.lineedit_file.text())[1].lower()
 
         if ext == '.vtr':
-            self.check_layers.setEnabled(False)
             self.check_isotopes.setEnabled(False)
-            self.check_layers.setChecked(False)
             self.check_isotopes.setChecked(False)
+            self.check_layers.setEnabled(False)
+            self.check_layers.setChecked(False)
         elif ext == '.npz':
-            self.check_layers.setEnabled(False)
             self.check_isotopes.setEnabled(False)
-            self.check_layers.setChecked(False)
             self.check_isotopes.setChecked(False)
+            self.check_layers.setEnabled(False)
+            self.check_layers.setChecked(False)
         else:
-            self.check_layers.setEnabled(True)
-            self.check_isotopes.setEnabled(True)
-
-        self.redrawPreview()
+            if self.num_isotopes > 1:
+                self.check_isotopes.setEnabled(True)
+            if self.num_layers > 1:
+                self.check_layers.setEnabled(True)
 
     def redrawPreview(self):
         path = self.getPath(
