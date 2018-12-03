@@ -33,8 +33,9 @@ def krissKrossLayers(layers, aspect, warmup, horizontal_first=True):
 
 
 class KrissKrossData(LaserData):
-    def __init__(self, data=None, config=None, source=""):
-        super().__init__(data=data, config=config, source=source)
+    def __init__(self, data=None, config=None, calibration=None, source=""):
+        super().__init__(
+            data=data, config=config, calibration=calibration, source=source)
 
     def fromLayers(self, layers, warmup_time=13.0, horizontal_first=True):
         warmup = int(warmup_time / self.config['scantime'])
@@ -54,7 +55,10 @@ class KrissKrossData(LaserData):
             # Strip the third dimension
             lds.append(
                 KrissKrossData(
-                    data=data, config=self.config, source=self.source))
+                    data=data,
+                    config=self.config,
+                    calibration=self.calibration,
+                    source=self.source))
         return lds
 
     def extent(self):

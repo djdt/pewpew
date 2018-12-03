@@ -1,19 +1,19 @@
 import numpy as np
-from collections import defaultdict
 
 
 class LaserData(object):
+    DEFAULT_CALIBRATION = {'gradients': {}, 'intercepts': {}, 'units': {}}
     DEFAULT_CONFIG = {
         'spotsize': 30.0,
         'speed': 120.0,
         'scantime': 0.25,
-        'gradients': defaultdict(lambda: 1.0),
-        'intercepts': defaultdict(lambda: 0.0)
     }
 
-    def __init__(self, data=None, config=None, source=""):
+    def __init__(self, data=None, config=None, calibration=None, source=""):
         self.data = data
         self.config = LaserData.DEFAULT_CONFIG if config is None else config
+        self.calibration = LaserData.DEFAULT_CALIBRATION \
+            if calibration is None else calibration
         self.source = source
 
     def isotopes(self):
@@ -23,12 +23,13 @@ class LaserData(object):
         if isotope is None:
             data = np.empty(self.data.shape, dtype=self.data.dtype)
             for name in self.data.dtype.names:
-                data[name] = (
-                    (self.data[name] - self.config['intercepts'][name]) /
-                    self.config['gradients'][name])
+                data[name] = ((self.data[name]
+                               - self.calibration['intercepts'].get(name, 0.0))
+                              / self.calibration['gradients'].get(name, 0.0))
         else:
-            data = ((self.data[isotope] - self.config['intercepts'][isotope]) /
-                    self.config['gradients'][isotope])
+            data = ((self.data[isotope] - self.calibrated['intercepts'].get(
+                isotope, 0.0)) / self.calibration['gradients'].get(
+                    isotope, 1.0))
         return data
 
     def pixelsize(self):
