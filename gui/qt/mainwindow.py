@@ -43,8 +43,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.config['speed'] = 10
         self.config['scantime'] = 0.1
         lds = [
-            importAgilentBatch("/home/tom/Downloads/raw/Horz.b", self.config),
-            importAgilentBatch("/home/tom/Downloads/raw/Vert.b", self.config)
+            importAgilentBatch("/home/tom/Downloads/raw/Horz.b", self.config,
+                               None),
+            importAgilentBatch("/home/tom/Downloads/raw/Vert.b", self.config,
+                               None)
         ]
         kd = KrissKrossData(
             data=None,
@@ -193,7 +195,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if path == "":
             return
         if path.lower().endswith('.b'):
-            ld = importAgilentBatch(path, self.config)
+            ld = importAgilentBatch(path, self.config, self.calibration)
             dock = LaserImageDock(ld, self.dockarea)
             self.dockarea.addDockWidget(dock)
             dock.draw()

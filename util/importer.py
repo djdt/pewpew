@@ -29,7 +29,7 @@ def importNpz(path, config_override=None, calibration_override=None):
     return lds
 
 
-def importAgilentBatch(path, config, calibration):
+def importAgilentBatch(path, config, calibration=None):
     """Scans the given path for .d directories containg a  similarly named
        .csv file. These are imported as lines and sorted by their name.
 
@@ -75,7 +75,7 @@ def importAgilentBatch(path, config, calibration):
     return LaserData(data, config=config, calibration=calibration, source=path)
 
 
-def importThermoiCapBatch(path, config, calibration):
+def importThermoiCapBatch(path, config, calibration=None):
     """Imports all the CSV files in the given directory. These are imported as
     lines in the image and are sorted by name.
 
