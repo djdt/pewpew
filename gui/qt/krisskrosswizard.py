@@ -203,6 +203,8 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
     def __init__(self, config, parent=None):
         super().__init__(parent)
 
+        self.dconfig = config
+
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setPlaceholderText(str(config['spotsize']))
         self.lineedit_spotsize.setValidator(QtGui.QDoubleValidator(0, 1e3, 4))
@@ -227,9 +229,9 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
     @QtCore.pyqtProperty(QtCore.QVariant)
     def config(self):
         if self.lineedit_spotsize.text() != "":
-            self.config['spotsize'] = float(self.lineedit_spotsize.text())
+            self.dconfig['spotsize'] = float(self.lineedit_spotsize.text())
         if self.lineedit_speed.text() != "":
-            self.config['speed'] = float(self.lineedit_speed.text())
+            self.dconfig['speed'] = float(self.lineedit_speed.text())
         if self.lineedit_scantime.text() != "":
-            self.config['scantime'] = float(self.lineedit_scantime.text())
-        return self.config
+            self.dconfig['scantime'] = float(self.lineedit_scantime.text())
+        return self.dconfig
