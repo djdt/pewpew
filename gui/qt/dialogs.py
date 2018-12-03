@@ -101,8 +101,8 @@ class CalibrationDialog(QtWidgets.QDialog):
         self.combo_isotopes = QtWidgets.QComboBox()
         self.combo_isotopes.addItems(isotopes)
         self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
-        self.current_index = self.combo_isotopes.findText(current_isotope)
-        self.combo_isotopes.setCurrentIndex(self.currentIndex)
+        self.previous_index = self.combo_isotopes.findText(current_isotope)
+        self.combo_isotopes.setCurrentIndex(self.previous_index)
 
         self.lineedit_gradient = QtWidgets.QLineEdit()
         self.lineedit_gradient.setValidator(
@@ -171,10 +171,10 @@ class CalibrationDialog(QtWidgets.QDialog):
             self.calibration['units'][isotope] = unit
 
     def comboChanged(self):
-        previous = self.combo_isotopes.itemText(self.current_index)
-        self.current_index = self.combo_isotopes.currentIndex()
+        previous = self.combo_isotopes.itemText(self.previous_index)
         self.updateCalibration(previous)
         self.updateLineEdits()
+        self.previous_index = self.combo_isotopes.currentIndex()
 
     def accept(self):
         self.updateCalibration(self.combo_isotopes.currentText())
