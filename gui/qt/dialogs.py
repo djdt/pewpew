@@ -60,16 +60,16 @@ class ColorRangeDialog(QtWidgets.QDialog):
         form_layout.addRow("Minimum:", self.lineedit_min)
         form_layout.addRow("Maximum:", self.lineedit_max)
 
-        buttonBox = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok
-            | QtWidgets.QDialogButtonBox.Cancel, self)
-        buttonBox.accepted.connect(self.accept)
-        buttonBox.rejected.connect(self.reject)
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Cancel
+            | QtWidgets.QDialogButtonBox.Ok
+            | QtWidgets.QDialogButtonBox.Apply, self)
+        self.button_box.clicked.connect(self.buttonClicked)
 
         main_layout = QtWidgets.QVBoxLayout()
 
         main_layout.addLayout(form_layout)
-        main_layout.addWidget(buttonBox)
+        main_layout.addWidget(self.button_box)
         self.setLayout(main_layout)
 
     def getRangeAsFloatOrPercent(self):
@@ -85,6 +85,18 @@ class ColorRangeDialog(QtWidgets.QDialog):
             maximum = int(maximum)
 
         return (minimum, maximum)
+
+    def buttonClicked(self, button):
+        sb = self.button_box.standardButton(button)
+
+        if sb == QtWidgets.QDialogButtonBox.Apply:
+            cmap_range = self.getRangeAsFloatOrPercent()
+            self.parent().viewconfig['cmap_range'] = cmap_range
+            self.parent().refresh()
+        elif sb == QtWidgets.QDialogButtonBox.Ok:
+            self.accept()
+        else:
+            self.reject()
 
 
 ############
