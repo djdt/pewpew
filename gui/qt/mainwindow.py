@@ -15,6 +15,11 @@ import traceback
 
 VERSION = "0.1.0"
 
+COLORMAPS = [('Perceptually uniform sequential colormap.',
+              ['viridis', 'magma']), ('Sequential colormap.', ['gray', 'hot']),
+             ('Diverging colormap.', ['Spectral', 'seismic']),
+             ('Miscellaneous colormap.', ['nipy_spectral'])]
+
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -116,15 +121,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # View - colormap
         cmap_group = QtWidgets.QActionGroup(menu_cmap)
-        for cmap in [
-                'magma', 'viridis', 'plasma', 'nipy_spectral', 'gnuplot2',
-                'CMRmap'
-        ]:
-            action = cmap_group.addAction(cmap)
-            action.setCheckable(True)
-            if cmap == self.viewconfig['cmap']:
-                action.setChecked(True)
-            menu_cmap.addAction(action)
+        for cmap_type, cmaps in COLORMAPS:
+            for cmap in cmaps:
+                action = cmap_group.addAction(cmap)
+                action.setStatusTip(cmap_type)
+                action.setCheckable(True)
+                if cmap == self.viewconfig['cmap']:
+                    action.setChecked(True)
+                menu_cmap.addAction(action)
         cmap_group.triggered.connect(self.menuColormap)
         menu_cmap.addSeparator()
         action_cmap_range = menu_cmap.addAction("Range...")
@@ -160,6 +164,14 @@ class MainWindow(QtWidgets.QMainWindow):
             QtGui.QIcon.fromTheme('help-about'), "&About")
         action_about.setStatusTip("About this program.")
         action_about.triggered.connect(self.menuAbout)
+
+    def refresh(self, visible_only=False):
+        if visible_only:
+            docks = self.dockarea.visibleDocks()
+        else:
+            docks = self.dockarea.findChildren(ImageDock)
+        for d in docks:
+            d.draw()
 
     def menuOpen(self):
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
@@ -251,8 +263,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuColormap(self, action):
         self.viewconfig['cmap'] = action.text().replace('&', '')
-        for dock in self.dockarea.findChildren(ImageDock):
-            dock.draw()
+        self.refresh()
 
     def menuColormapRange(self):
         # TODO show dialog get range
@@ -260,18 +271,14 @@ class MainWindow(QtWidgets.QMainWindow):
         if dlg.exec():
             cmap_range = dlg.getRangeAsFloatOrPercent()
             self.viewconfig['cmap_range'] = (cmap_range)
-        for dock in self.dockarea.findChildren(ImageDock):
-            dock.draw()
+            self.refresh()
 
     def menuInterpolation(self, action):
         self.viewconfig['interpolation'] = action.text().replace('&', '')
-        for dock in self.dockarea.findChildren(ImageDock):
-            dock.draw()
+        self.refresh()
 
     def menuRefresh(self):
-        docks = self.dockarea.findChildren(ImageDock)
-        for dock in docks:
-            dock.draw()
+        self.refresh()
 
     def menuAbout(self):
         QtWidgets.QMessageBox.about(
