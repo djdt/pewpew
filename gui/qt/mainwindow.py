@@ -44,22 +44,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.statusBar().showMessage("Import or open data to begin.")
 
-        self.config['spotsize'] = 10
-        self.config['speed'] = 10
-        self.config['scantime'] = 0.1
-        lds = [
-            importAgilentBatch("/home/tom/Downloads/raw/Horz.b", self.config,
-                               None),
-            importAgilentBatch("/home/tom/Downloads/raw/Vert.b", self.config,
-                               None)
-        ]
-        kd = KrissKrossData(
-            data=None,
-            config=self.config,
-            calibration=None,
-            source="/home/tom/Downloads/temp/kk.npz")
-        kd.fromLayers([ld.data for ld in lds])
-        dock = KrissKrossImageDock(kd, self.dockarea)
+        # self.config['spotsize'] = 10
+        # self.config['speed'] = 10
+        # self.config['scantime'] = 0.1
+        # lds = [
+        #     importAgilentBatch("/home/tom/Downloads/raw/Horz.b", self.config,
+        #                        None),
+        #     importAgilentBatch("/home/tom/Downloads/raw/Vert.b", self.config,
+        #                        None)
+        # ]
+        # kd = KrissKrossData(
+        #     data=None,
+        #     config=self.config,
+        #     calibration=None,
+        #     source="/home/tom/Downloads/temp/kk.npz")
+        # kd.fromLayers([ld.data for ld in lds])
+        # dock = KrissKrossImageDock(kd, self.dockarea)
+        ld = importThermoiCapCSV("/home/tom/Downloads/20180509_her2_1.csv",
+                                 self.config, None)
+        dock = LaserImageDock(ld, self.dockarea)
         dock.draw()
         self.dockarea.addDockWidget(dock)
 
@@ -296,3 +299,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if tedit[0] is not None:
             tedit[0].setFixedSize(640, 320)
         dlg.exec()
+
+    def closeEvent(self, event):
+        for dock in self.dockarea.findChildren(ImageDock):
+            dock.close()
+        super().closeEvent(event)
