@@ -75,8 +75,9 @@ def importAgilentBatch(path, config, calibration=None):
     return LaserData(data, config=config, calibration=calibration, source=path)
 
 
-def importThermoiCapLaserExport(path, config, calibration=None):
-    """Imports all the CSV files in the given directory. These are imported as
+def importThermoiCapLaser(path, config, calibration=None):
+    """Imports data exported using \"Laser Data Reduction\".
+    CSVs in the given directory are imported as
     lines in the image and are sorted by name.
 
     path -> path to directory containing CSVs
@@ -118,7 +119,15 @@ def importThermoiCapLaserExport(path, config, calibration=None):
     return LaserData(data, config=config, calibration=calibration, source=path)
 
 
-def importThermoiCapCSVExport(path, config, calibration=None):
+def importThermoiCapCSV(path, config, calibration=None):
+    """Imports data exported using the CSV export function.
+    Exports must include the \"Counts\" column.
+
+    path -> path to CSV
+    config -> config to apply
+    calibration -> calibration to apply
+
+    returns LaserData"""
     data = {}
     with open(path, 'r') as fp:
         # Find delimiter
