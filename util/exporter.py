@@ -7,10 +7,11 @@ from util.laserimage import plotLaserImage
 
 
 def exportNpz(path, laserdata_list):
-    savedict = {'_type': [], '_config': []}
+    savedict = {'_type': [], '_config': [], '_calibration': []}
     for i, ld in enumerate(laserdata_list):
         savedict['_type'].append(type(ld))
         savedict['_config'].append(ld.config)
+        savedict['_calibration'].append(ld.calibration)
         savedict[f'_data{i}'] = ld.data
     np.savez_compressed(path, **savedict)
 
