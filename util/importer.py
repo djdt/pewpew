@@ -75,7 +75,7 @@ def importAgilentBatch(path, config, calibration=None):
     return LaserData(data, config=config, calibration=calibration, source=path)
 
 
-def importThermoiCapBatch(path, config, calibration=None):
+def importThermoiCapLaserExport(path, config, calibration=None):
     """Imports all the CSV files in the given directory. These are imported as
     lines in the image and are sorted by name.
 
@@ -118,30 +118,30 @@ def importThermoiCapBatch(path, config, calibration=None):
     return LaserData(data, config=config, calibration=calibration, source=path)
 
 
-# def importCSVFromThatGermanThing(path):
-#     datare = re.compile(r'MainRuns;\d+;(\d+\w+);Counter;(.*)')
+def importThermoiCapCSVExport(path, config, calibration=None):
+    data = {}
+    with open(path, 'r') as fp:
+        # Find delimiter
+        line = fp.readline()
+        delimiter = line[0]
+        # Skip row
+        line = fp.readline()
+        # First real row
+        line = fp.readline()
+        while line:
+            _, _, isotope, data_type, line_data = line.split(delimiter, 5)
+            if data_type == "Counter":
+                data.get(isotope, []).append(
+                    np.fromstring(line_data, sep=delimiter, dtype=np.float64))
 
-#     isotopes = []
-#     data = {}
-#     with open(path, 'r') as fp:
-#         for line in fp.readlines():
-#             m = datare.match(line)
-#             if m is not None:
-#                 i = m.group(1)
-#                 linedata = np.fromstring(m.group(2), sep=';', dtype=float)
-#                 isotopes.append(i)
-#                 if i not in data.keys():
-#                     data[i] = []
-#                 data[i].append(linedata)
-
-#     # Read the keys to ensure order is same
-#     keys = list(data.keys())
-#     # Stack lines to form 2d
-#     for k in keys:
-#         data[k] = np.vstack(data[k]).transpose()
-#     # Build a named array out of data
-#     dtype = [(k, float) for k in keys]
-#     structured = np.empty(data[keys[0]].shape, dtype)
-#     for k in keys:
-#         structured[k] = data[k]
-#     return structured
+    # Read the keys to ensure order is same
+    keys = list(data.keys())
+    # Stack lines to form 2d
+    for k in keys:
+        data[k] = np.vstack(data[k]).transpose()
+    # Build a named array out of data
+    dtype = [(k, np.float64) for k in keys]
+    structured = np.empty(data[keys[0]].shape, dtype)
+    for k in keys:
+        structured[k] = data[k]
+    return structured
