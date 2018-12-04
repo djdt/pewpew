@@ -7,7 +7,7 @@ from gui.qt.imagedock import ImageDock, LaserImageDock, KrissKrossImageDock
 
 from util.laser import LaserData
 from util.krisskross import KrissKrossData
-from util.importer import importNpz, importAgilentBatch
+from util.importer import importNpz, importAgilentBatch, importThermoiCapCSV
 from util.exporter import exportNpz
 
 import os.path
@@ -78,6 +78,11 @@ class MainWindow(QtWidgets.QMainWindow):
         action_import = menu_import.addAction("&Agilent Batch")
         action_import.setStatusTip("Import Agilent image data (.b).")
         action_import.triggered.connect(self.menuImportAgilent)
+
+        action_import = menu_import.addAction("&Thermo iCap CSV")
+        action_import.setStatusTip(
+            "Import data exported using the CSV export function.")
+        action_import.triggered.connect(self.menuImportThermoiCap)
 
         action_import = menu_import.addAction("&Kriss Kross...")
         action_import.setStatusTip("Start the Kriss Kross import wizard.")
@@ -203,6 +208,23 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.warning(
                 self, "Import Failed",
                 f"Invalid batch directory \"{os.path.basename(path)}\".")
+
+    def menuImportThermoiCap(self):
+        paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
+            self, "CSV files(*.csv);;All files(*)", "")
+
+        if len(paths) == 0:
+            return
+        for path in paths:
+            if path.lower().endswith('.csv'):
+                ld = importThermoiCapCSV(path, config=self.config)
+                dock = LaserImageDock(ld, self.dockarea)
+                self.dockarea.addDockWidget(dock)
+                dock.draw()
+            else:
+                QtWidgets.QMessageBox.warning(
+                    self, "Import Failed",
+                    f"Invalid file format for \"{os.path.basename(path)}\".")
 
     def menuImportKrissKross(self):
         kkw = KrissKrossWizard(self.config, self)
