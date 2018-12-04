@@ -27,6 +27,6 @@ class TabbedDocks(QtWidgets.QMainWindow):
             self.tabifyDockWidget(docks[0], d)
             d.layout().invalidate()
 
-    def visibleDocks(self):
-        docks = self.findChildren(QtWidgets.QDockWidget)
+    def visibleDocks(self, dock_type=QtWidgets.QDockWidget):
+        docks = self.findChildren(dock_type)
         return [d for d in docks if not d.visibleRegion().isEmpty()]

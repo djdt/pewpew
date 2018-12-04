@@ -276,6 +276,9 @@ class KrissKrossImageDock(ImageDock):
         name = os.path.splitext(os.path.basename(self.laser.source))[0]
         self.setWindowTitle(f"{name}:kk")
 
+        # Config cannot be changed for krisskross images
+        self.action_config.setEnabled(False)
+
     def onMenuCopy(self):
         dock_copy = KrissKrossImageDock(self.laser, self.parent())
         dock_copy.draw()
