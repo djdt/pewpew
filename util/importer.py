@@ -131,17 +131,18 @@ def importThermoiCapCSV(path, config, calibration=None):
     data = {}
     with open(path, 'r') as fp:
         # Find delimiter
-        line = fp.readline()
-        delimiter = line[0]
+        line = fp.readline().strip()
+        delimiter = line[-1]
         # Skip row
         line = fp.readline()
         # First real row
         line = fp.readline()
         while line:
-            _, _, isotope, data_type, line_data = line.split(delimiter, 5)
+            _, _, isotope, data_type, line_data = line.split(delimiter, 4)
             if data_type == "Counter":
-                data.get(isotope, []).append(
+                data.setdefault(isotope, []).append(
                     np.fromstring(line_data, sep=delimiter, dtype=np.float64))
+            line = fp.readline()
 
     # Read the keys to ensure order is same
     keys = list(data.keys())
@@ -153,4 +154,5 @@ def importThermoiCapCSV(path, config, calibration=None):
     structured = np.empty(data[keys[0]].shape, dtype)
     for k in keys:
         structured[k] = data[k]
-    return structured
+    return LaserData(
+        structured, config=config, calibration=calibration, source=path)
