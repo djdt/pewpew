@@ -63,7 +63,8 @@ class KrissKrossStartPage(QtWidgets.QWizardPage):
         label = QtWidgets.QLabel(
             "This wizard will import SRR-LA-ICP-MS data. To begin, select "
             "the type of data to import. You may then import, reorder and "
-            "configure the imported data.")
+            "configure the imported data. Once imported KrissKross image "
+            "configurations cannot be changed.")
         label.setWordWrap(True)
 
         mode_box = QtWidgets.QGroupBox("Data type", self)

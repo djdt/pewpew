@@ -242,12 +242,11 @@ class MainWindow(QtWidgets.QMainWindow):
                     f"Invalid file format for \"{os.path.basename(path)}\".")
 
     def menuImportKrissKross(self):
-        kkw = KrissKrossWizard(self.config, self)
+        kkw = KrissKrossWizard(self.config, parent=self)
         if kkw.exec():
-            for kkd in kkw.krisskrossdata:
-                dock = KrissKrossImageDock(kkd, self.dockarea)
-                self.dockarea.addDockWidget(dock)
-                dock.draw()
+            dock = KrissKrossImageDock(kkw.data, self.dockarea)
+            self.dockarea.addDockWidget(dock)
+            dock.draw()
 
     def menuExit(self):
         self.close()
@@ -257,9 +256,9 @@ class MainWindow(QtWidgets.QMainWindow):
         if dlg.exec():
             self.config = dlg.config
             if dlg.check_all.checkState() == QtCore.Qt.Checked:
-                docks = self.dockarea.findChildren(ImageDock)
+                docks = self.dockarea.findChildren(LaserImageDock)
             else:
-                docks = self.dockarea.visibleDocks()
+                docks = self.dockarea.visibleDocks(LaserImageDock)
             for d in docks:
                 d.laser.config = self.config
                 d.draw()
