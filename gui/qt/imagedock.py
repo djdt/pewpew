@@ -34,7 +34,7 @@ class ImageDock(QtWidgets.QDockWidget):
     DEFAULT_VIEW_CONFIG = {
         'cmap': 'magma',
         'interpolation': 'none',
-        'cmap_range': ('0%', '98%')
+        'cmap_range': ('2%', '98%')
     }
 
     def __init__(self, parent=None):
