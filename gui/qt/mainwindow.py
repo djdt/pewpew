@@ -215,7 +215,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if path == "":
             return
         if path.lower().endswith('.b'):
-            ld = importAgilentBatch(path, self.config, self.calibration)
+            ld = importAgilentBatch(path, self.config)
             dock = LaserImageDock(ld, self.dockarea)
             self.dockarea.addDockWidget(dock)
             dock.draw()
