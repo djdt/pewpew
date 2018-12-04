@@ -10,7 +10,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
     def __init__(self, config, parent=None):
         super().__init__(parent)
 
-        self.krisskrossdata = []
+        self.data = None
 
         self.addPage(KrissKrossStartPage())
         self.addPage(KrissKrossImportPage())
@@ -22,34 +22,35 @@ class KrissKrossWizard(QtWidgets.QWizard):
 
     def accept(self):
         config = self.field("config")
-        layer_dict = {}
-        if self.field("radio_numpy"):
-            # Use the config from the first file
-            ld_group = importNpz(self.field("paths")[0])
-            config = ld_group[0].config
-            calibration = ld_group[0].calbration
-            # Import the rest of the files with overriden config
-            for path in self.field("paths")[1:]:
-                ld_group = importNpz(path, config, calibration)
-                for ld in ld_group:
-                    layer_dict.setdefault(ld.isotope, []).append(ld)
-        elif self.field("radio_agilent"):
-            for path in self.field("paths"):
-                ld_group = importAgilentBatch(path, config)
-                for ld in ld_group:
-                    layer_dict.setdefault(ld.isotope, []).append(ld)
-        elif self.field("radio_csv"):
-            for path in self.field("paths"):
-                # lds = importNpz(path, config)
-                pass
+        calibration = None
+        paths = self.field("paths")
+        layers = []
 
-        for isotope, layers in layer_dict.items():
-            kkd = KrissKrossData(
-                isotope=isotope, config=config, source=self.field("paths")[0])
-            kkd.fromLayers([layer.data for layer in layers],
-                           warmup_time=float(self.field("lineedit_warmup")),
-                           horizontal_first=self.field("check_horizontal"))
-            self.krisskrossdata.append(kkd)
+        if self.field("radio_numpy"):
+            for path in paths:
+                lds = importNpz(path)
+                if len(lds) > 1:
+                    QtWidgets.QMessageBox.warning(
+                        self, "Import Error",
+                        f"Archive \"{os.path.basename(path)}\" "
+                        "contains more than one image.")
+                    return
+                layers.append(lds[0])
+            # Read the config and calibration from the frist file
+            config = self.layers[0].config
+            calibration = self.layers[0].calibration
+        elif self.field("radio_agilent"):
+            for path in paths:
+                layers.append(importAgilentBatch(path, None))
+        elif self.field("radio_thermo"):
+            for path in paths:
+                layers.append(importAgilentBatch(path, None))
+
+        self.data = KrissKrossData(
+            None, config=config, calibration=calibration, source=paths[0])
+        self.data.fromLayers([layer.data for layer in layers],
+                             warmup_time=float(self.field("lineedit_warmup")),
+                             horizontal_first=self.field("check_horizontal"))
 
         super().accept()
 
@@ -69,19 +70,17 @@ class KrissKrossStartPage(QtWidgets.QWizardPage):
 
         radio_numpy = QtWidgets.QRadioButton("&Numpy archives", self)
         radio_agilent = QtWidgets.QRadioButton("&Agilent batches", self)
-        radio_csv = QtWidgets.QRadioButton("&CSV layers", self)
+        radio_thermo = QtWidgets.QRadioButton("&Thermo iCap CSV exports", self)
         radio_numpy.setChecked(True)
-        # Todo redo csv imports
-        radio_csv.setEnabled(False)
 
         self.registerField("radio_numpy", radio_numpy)
         self.registerField("radio_agilent", radio_agilent)
-        self.registerField("radio_csv", radio_csv)
+        self.registerField("radio_thermo", radio_thermo)
 
         box_layout = QtWidgets.QVBoxLayout()
         box_layout.addWidget(radio_numpy)
         box_layout.addWidget(radio_agilent)
-        box_layout.addWidget(radio_csv)
+        box_layout.addWidget(radio_thermo)
         mode_box.setLayout(box_layout)
 
         main_layout = QtWidgets.QVBoxLayout()
@@ -150,7 +149,7 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
             if len(path) == 0:
                 return
             paths = [path]
-        elif self.field("radio_csv"):
+        elif self.field("radio_thermo"):
             paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
                 self, "Select Files", ""
                 "CSV files(*.csv);;All files(*)")
@@ -170,7 +169,7 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
         ext = '.npz'
         if self.field("radio_agilent"):
             ext = '.b'
-        elif self.field("radio_csv"):
+        elif self.field("radio_thermo"):
             ext = '.csv'
 
         for f in files:
