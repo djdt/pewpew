@@ -141,7 +141,10 @@ def importThermoiCapCSV(path, config, calibration=None):
             _, _, isotope, data_type, line_data = line.split(delimiter, 4)
             if data_type == "Counter":
                 data.setdefault(isotope, []).append(
-                    np.fromstring(line_data, sep=delimiter, dtype=np.float64))
+                    np.genfromtxt([line_data],
+                                  delimiter=delimiter,
+                                  dtype=np.float64,
+                                  filling_values=0.0))
             line = fp.readline().strip()
 
     # Read the keys to ensure order is same
