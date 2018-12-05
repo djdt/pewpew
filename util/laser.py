@@ -25,6 +25,9 @@ class LaserData(object):
         self.name = name
         self.source = source
 
+    def isotopes(self):
+        return self.data.dtype.names
+
     def calibrated(self, isotope=None):
         if isotope is None:
             data = np.empty(self.data.shape, dtype=self.data.dtype)
