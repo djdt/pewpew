@@ -7,6 +7,7 @@ class LaserData(object):
         'spotsize': 30.0,
         'speed': 120.0,
         'scantime': 0.25,
+        'trim': [0.0, 0.0],
     }
 
     def __init__(self, data=None, config=None, calibration=None, source=""):
