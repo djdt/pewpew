@@ -218,7 +218,7 @@ class ImageDock(QtWidgets.QDockWidget):
 
     def onMenuConfig(self):
         dlg = ConfigDialog(self.laser.config, parent=self)
-        # dlg.check_all.setEnabled(False)
+        dlg.check_all.setEnabled(False)
         if dlg.exec() == ConfigDialog.Accepted:
             self.laser.config['spotsize'] = dlg.spotsize
             self.laser.config['speed'] = dlg.speed
@@ -227,6 +227,7 @@ class ImageDock(QtWidgets.QDockWidget):
 
     def onMenuTrim(self):
         dlg = TrimDialog(self.laser.trimAs('s'), parent=self)
+        dlg.check_all.setEnabled(False)
         if dlg.exec() == TrimDialog.Accepted:
             self.laser.setTrim(dlg.trim, dlg.combo_trim.currentText())
             self.draw()
