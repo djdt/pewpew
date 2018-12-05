@@ -19,18 +19,12 @@ def plotLaserImage(fig,
                    label=None,
                    vmin='0%',
                    vmax='100%',
-                   trim=[0, 0],
                    cmap='magma'):
 
     if type(vmin) == str:
         vmin = np.percentile(data, float(vmin.rstrip('%')))
     if type(vmax) == str:
         vmax = np.percentile(data, float(vmax.rstrip('%')))
-
-    if trim[1] == 0:
-        data = data[:, trim[0]:]
-    else:
-        data = data[:, trim[0]:-trim[1]]
 
     im = ax.imshow(
         data,

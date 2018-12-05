@@ -39,6 +39,24 @@ class LaserData(object):
                     isotope, 1.0))
         return data
 
+    def get(self, isotope=None, calibrated=False, trimmed=False):
+        if calibrated:
+            data = self.calibrated(isotope)
+        else:
+            if isotope is not None:
+                data = self.data[isotope]
+            else:
+                data = self.data
+
+        if trimmed:
+            trim = self.config['trim']
+            if trim[1] > 0:
+                data = data[:, trim[0]:-trim[1]]
+            else:
+                data = data[:, trim[0]:]
+
+        return data
+
     def pixelsize(self):
         return (self.config['speed'] * self.config['scantime'],
                 self.config['spotsize'])
