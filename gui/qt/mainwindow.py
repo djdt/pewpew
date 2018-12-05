@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from gui.qt.tabbeddocks import TabbedDocks
-from gui.qt.dialogs import ConfigDialog, ColorRangeDialog
+from gui.qt.dialogs import ConfigDialog, ColorRangeDialog, TrimDialog
 from gui.qt.krisskrosswizard import KrissKrossWizard
 from gui.qt.imagedock import ImageDock, LaserImageDock, KrissKrossImageDock
 
@@ -239,6 +239,17 @@ class MainWindow(QtWidgets.QMainWindow):
                 docks = self.dockarea.visibleDocks(LaserImageDock)
             for d in docks:
                 d.laser.config = self.config
+                d.draw()
+
+    def menuTrim(self):
+        dlg = TrimDialog([0, 0], parent=self)
+        if dlg.exec():
+            # if dlg.check_all.checkState() == QtCore.Qt.Checked:
+            #     docks = self.dockarea.findChildren(LaserImageDock)
+            # else:
+            docks = self.dockarea.visibleDocks(LaserImageDock)
+            for d in docks:
+                d.laser.setTrim(dlg.trim, dlg.combo_trim.currentText())
                 d.draw()
 
     def menuColormap(self, action):
