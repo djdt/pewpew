@@ -246,7 +246,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh()
 
     def menuColormapRange(self):
-        # TODO show dialog get range
         dlg = ColorRangeDialog(self.viewconfig['cmap_range'], self)
         if dlg.exec():
             cmap_range = dlg.getRangeAsFloatOrPercent()

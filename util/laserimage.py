@@ -17,8 +17,9 @@ def plotLaserImage(fig,
                    colorbarlabel='',
                    scalebar=True,
                    label=None,
-                   vmin='auto',
-                   vmax='auto',
+                   vmin='0%',
+                   vmax='100%',
+                   trim=[0, 0],
                    cmap='magma'):
 
     if type(vmin) == str:

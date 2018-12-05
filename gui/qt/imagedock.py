@@ -22,12 +22,33 @@ class Canvas(FigureCanvasQTAgg):
         self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
                            QtWidgets.QSizePolicy.MinimumExpanding)
 
+        self.rubber_band = None
+        self.rubber_band_origin = QtCore.QSize()
+
     def sizeHint(self):
         w, h = self.get_width_height()
         return QtCore.QSize(w, h)
 
     def minimumSizeHint(self):
         return QtCore.QSize(200, 200)
+
+    # def mousePressEvent(self, event):
+    #     print('press')
+    #     if self.rubber_band is None:
+    #         self.rubber_band = QtWidgets.QRubberBand(
+    #             QtWidgets.QRubberBand.Rectangle, self)
+    #         self.rubber_band_origin = event.pos()
+    #     self.rubber_band.setGeometry(QtCore.QRect(self.rubber_band_origin, QtCore.QSize()))
+    #     self.rubber_band.show()
+
+    # def mouseMoveEvent(self, event):
+    #     if self.rubber_band is not None:
+    #         geometry = QtCore.QRect(self.rubber_band_origin, event.pos())
+    #         self.rubber_band.setGeometry(geometry.normalized())
+
+#     def mouseReleaseEvent(self, event):
+#         if self.rubber_band:
+#             self.rubber_band.hide()
 
 
 class ImageDock(QtWidgets.QDockWidget):
@@ -124,6 +145,7 @@ class ImageDock(QtWidgets.QDockWidget):
             interpolation=viewconfig['interpolation'],
             vmin=viewconfig['cmap_range'][0],
             vmax=viewconfig['cmap_range'][1],
+            trim=self.laser.trim(),
             aspect=self.laser.aspect(),
             extent=self.laser.extent())
 
@@ -207,8 +229,8 @@ class ImageDock(QtWidgets.QDockWidget):
 
     def onMenuConfig(self):
         dlg = ConfigDialog(self.laser.config, parent=self)
-        dlg.check_all.setEnabled(False)
-        if dlg.exec():
+        # dlg.check_all.setEnabled(False)
+        if dlg.exec() == ConfigDialog.Accepted:
             self.laser.config = dlg.config
             self.draw()
 
