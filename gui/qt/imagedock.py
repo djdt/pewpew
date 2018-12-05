@@ -5,7 +5,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 
 from util.laserimage import plotLaserImage
 from util.plothelpers import coords2value
-from util.exporter import exportNpz, exportPng, exportVtr
+from util.exporter import exportCsv, exportNpz, exportPng, exportVtr
 
 from gui.qt.dialogs import (CalibrationDialog, ConfigDialog, ExportDialog,
                             TrimDialog)
@@ -125,7 +125,7 @@ class ImageDock(QtWidgets.QDockWidget):
         self.image = plotLaserImage(
             self.fig,
             self.ax,
-            self.laser.calibrated(isotope),
+            self.laser.get(isotope, calibrated=True, trimmed=True),
             colorbar='bottom',
             colorbarlabel=self.laser.calibration['units'].get(isotope, ""),
             label=isotope,
@@ -133,9 +133,8 @@ class ImageDock(QtWidgets.QDockWidget):
             interpolation=viewconfig['interpolation'],
             vmin=viewconfig['cmap_range'][0],
             vmax=viewconfig['cmap_range'][1],
-            trim=self.laser.config['trim'],
             aspect=self.laser.aspect(),
-            extent=self.laser.extent())
+            extent=self.laser.extent(trimmed=True))
 
         self.canvas.draw()
 
@@ -270,14 +269,17 @@ class LaserImageDock(ImageDock):
 
         ext = os.path.splitext(path)[1].lower()
         if ext == '.csv':
-            np.savetxt(path, self.laser.calibrated(isotope), delimiter=',')
+            exportCsv(path,
+                      self.laser.get(isotope, calibrated=True, trimmed=True),
+                      isotope, self.laser.config)
         elif ext == '.npz':
             exportNpz(path, [self.laser])
         elif ext == '.png':
-            exportPng(
-                self.laser.calibrated(isotope), isotope, self.laser.aspect(),
-                self.laser.extent(),
-                self.window().viewconfig)
+            exportPng(path,
+                      self.laser.get(isotope, calibrated=True, trimmed=True),
+                      isotope, self.laser.aspect(),
+                      self.laser.extent(trimmed=True),
+                      self.window().viewconfig)
         else:
             QtWidgets.QMessageBox.warning(
                 self, "Invalid Format",
@@ -321,23 +323,24 @@ class KrissKrossImageDock(ImageDock):
                 return result
 
         if layer is None:
-            export_data = self.laser.calibrated(isotope, flatten=True)
+            export_data = self.laser.get(
+                isotope, calibrated=True, flattened=True)
         else:
-            export_data = self.laser.calibrated(
-                isotope, flatten=False)[:, :, layer]
+            export_data = self.laser.get(
+                isotope, calibrated=True, flattened=False)[:, :, layer]
 
         ext = os.path.splitext(path)[1].lower()
         if ext == '.csv':
             np.savetxt(path, export_data, delimiter=',')
+            exportCsv(path, export_data, isotope, self.laser.config)
         elif ext == '.npz':
             exportNpz(path, [self.laser])
         elif ext == '.png':
-            exportPng(export_data, isotope, self.laser.aspect(),
-                      self.laser.extent(),
+            exportPng(path, export_data, isotope, self.laser.aspect(),
+                      self.laser.extent(trimmed=True),
                       self.window().viewconfig)
         elif ext == '.vtr':
-            exportVtr(path, self.laser.calibrated(flatten=False),
-                      self.laser.extent(), self.laser.config['spotsize'])
+            exportVtr(path, self.laser)
         else:
             QtWidgets.QMessageBox.warning(
                 self, "Invalid Format",

@@ -65,9 +65,13 @@ class LaserData(object):
         return self.config['spotsize'] / \
                (self.config['speed'] * self.config['scantime'])
 
-    def extent(self):
+    def extent(self, trimmed=False):
         # Image data is stored [rows][cols]
-        x = self.data.shape[1] * self.pixelsize()[0]
+        x_shape = self.data.shape[1]
+        if trimmed:
+            trim = self.config['trim']
+            x_shape -= (trim[0] + trim[1])
+        x = x_shape * self.pixelsize()[0]
         y = self.data.shape[0] * self.pixelsize()[1]
         return (0, x, 0, y)
 

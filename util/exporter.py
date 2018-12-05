@@ -6,6 +6,14 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 from util.laserimage import plotLaserImage
 
 
+def exportCsv(path, data, isotope, config):
+    header = (f"LaserPlot Export;{isotope}\n"
+              f"spotsize={config['spotsize']};speed={config['speed']};"
+              f"scantime={config['scantime']}\n")
+
+    np.savetxt(path, data, delimiter=',', header=header)
+
+
 def exportNpz(path, laserdata_list):
     savedict = {'_type': [], '_config': [], '_calibration': []}
     for i, ld in enumerate(laserdata_list):
@@ -34,18 +42,20 @@ def exportPng(path, data, isotope, aspect, extent, viewconfig):
         vmax=viewconfig['cmap_range'][1])
     fig.savefig(path, transparent=True, frameon=False)
     fig.clear()
-    canvas.close()
+    canvas.close_event()
 
 
-def exportVtr(path, data, extent, spotsize):
+def exportVtr(path, krisskrossdata):
+    data = krisskrossdata.get(calibrated=True, flattened=False)
     nx, ny, nz = data.shape
     extent_str = f"0 {nx-1} 0 {ny-1} 0 {nz-1}"
     endian = "LittleEndian" if sys.byteorder == 'little' else "BigEndian"
 
+    extent = krisskrossdata.extent()
     coords = [
         np.linspace(extent[2], extent[3], nx),
         np.linspace(extent[0], extent[1], ny),
-        np.linspace(0, nz * -spotsize, nz)
+        np.linspace(0, nz * -krisskrossdata.config['spotsize'], nz)
     ]
 
     offset = 0
@@ -64,11 +74,13 @@ def exportVtr(path, data, extent, spotsize):
             offset += coord.size * coord.itemsize + 8  # 8 for blocksize
         fp.write("</Coordinates>\n".encode())
 
-        fp.write(f"<PointData Scalars=\"{data.dtype.names[0]}\">\n".encode())
-        for name in data.dtype.names:
-            fp.write((f"<DataArray Name=\"{name}\" type=\"Float64\" "
+        fp.write(f"<PointData Scalars=\"{krisskrossdata.isotopes()[0]}\">\n".
+                 encode())
+        for isotope in krisskrossdata.isotopes():
+            fp.write((f"<DataArray Name=\"{isotope}\" type=\"Float64\" "
                       f"format=\"appended\" offset=\"{offset}\"/>\n").encode())
-            offset += data[name].size * data[name].itemsize + 8  # blocksize
+            offset += (
+                data[isotope].size * data[isotope].itemsize + 8)  # blocksize
         fp.write("</PointData>\n".encode())
 
         fp.write(("</Piece>\n"
@@ -80,8 +92,8 @@ def exportVtr(path, data, extent, spotsize):
             fp.write(np.uint64(coord.size * coord.itemsize))
             fp.write(coord)
 
-        for name in data.dtype.names:
-            fp.write(np.uint64(data[name].size * data[name].itemsize))
-            fp.write(data[name].ravel('F'))
+        for isotope in krisskrossdata.isotopes():
+            fp.write(np.uint64(data[isotope].size * data[isotope].itemsize))
+            fp.write(data[isotope].ravel('F'))
 
         fp.write(("</AppendedData>\n" "</VTKFile>").encode())
