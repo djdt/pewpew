@@ -39,7 +39,31 @@ class IntOrPercentValidator(QtGui.QIntValidator):
         return (QtGui.QValidator.Acceptable, input, pos)
 
 
-class ColorRangeDialog(QtWidgets.QDialog):
+class OkApplyCancelDialog(QtWidgets.QDialog):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Cancel
+            | QtWidgets.QDialogButtonBox.Ok
+            | QtWidgets.QDialogButtonBox.Apply, self)
+        self.button_box.clicked.connect(self.buttonClicked)
+
+    def buttonClicked(self, button):
+        sb = self.button_box.standardButton(button)
+
+        if sb == QtWidgets.QDialogButtonBox.Apply:
+            self.apply()
+        elif sb == QtWidgets.QDialogButtonBox.Ok:
+            self.accept()
+        else:
+            self.reject()
+
+    def apply(self):
+        pass
+
+
+class ColorRangeDialog(OkApplyCancelDialog):
     def __init__(self, current_range, parent=None):
         self.range = current_range
         super().__init__(parent)
@@ -59,12 +83,6 @@ class ColorRangeDialog(QtWidgets.QDialog):
         form_layout = QtWidgets.QFormLayout()
         form_layout.addRow("Minimum:", self.lineedit_min)
         form_layout.addRow("Maximum:", self.lineedit_max)
-
-        self.button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Cancel
-            | QtWidgets.QDialogButtonBox.Ok
-            | QtWidgets.QDialogButtonBox.Apply, self)
-        self.button_box.clicked.connect(self.buttonClicked)
 
         main_layout = QtWidgets.QVBoxLayout()
 
@@ -86,25 +104,13 @@ class ColorRangeDialog(QtWidgets.QDialog):
 
         return (minimum, maximum)
 
-    def buttonClicked(self, button):
-        sb = self.button_box.standardButton(button)
-
-        if sb == QtWidgets.QDialogButtonBox.Apply:
-            cmap_range = self.getRangeAsFloatOrPercent()
-            self.parent().viewconfig['cmap_range'] = cmap_range
-            self.parent().refresh()
-        elif sb == QtWidgets.QDialogButtonBox.Ok:
-            self.accept()
-        else:
-            self.reject()
+    def apply(self):
+        cmap_range = self.getRangeAsFloatOrPercent()
+        self.parent().viewconfig['cmap_range'] = cmap_range
+        self.parent().draw()
 
 
-############
-#  Config  #
-############
-
-
-class CalibrationDialog(QtWidgets.QDialog):
+class CalibrationDialog(OkApplyCancelDialog):
     def __init__(self, calibration, current_isotope, isotopes, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Calibration")
@@ -136,14 +142,10 @@ class CalibrationDialog(QtWidgets.QDialog):
         self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
 
         # Dialog buttons
-        buttonBox = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok,
-                                               self)
-        buttonBox.accepted.connect(self.accept)
-
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.addLayout(form_layout)
         main_layout.addWidget(self.combo_isotopes, 1, QtCore.Qt.AlignRight)
-        main_layout.addWidget(buttonBox)
+        main_layout.addWidget(self.button_box)
         self.setLayout(main_layout)
 
         self.updateLineEdits()
@@ -190,26 +192,33 @@ class CalibrationDialog(QtWidgets.QDialog):
         self.updateLineEdits()
         self.previous_index = self.combo_isotopes.currentIndex()
 
+    def apply(self):
+        self.updateCalibration(self.combo_isotopes.currentText())
+        self.parent().laser.calibration = self.calibration
+        self.parent().draw()
+
     def accept(self):
         self.updateCalibration(self.combo_isotopes.currentText())
         super().accept()
 
 
-class ConfigDialog(QtWidgets.QDialog):
+class ConfigDialog(OkApplyCancelDialog):
     def __init__(self, config, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Configuration")
-        self.config = config
+        self.spotsize = config['spotsize']
+        self.speed = config['speed']
+        self.scantime = config['scantime']
 
         # Line edits
         self.lineedit_spotsize = QtWidgets.QLineEdit()
-        self.lineedit_spotsize.setPlaceholderText(str(config['spotsize']))
+        self.lineedit_spotsize.setPlaceholderText(str(self.spotsize))
         self.lineedit_spotsize.setValidator(QtGui.QDoubleValidator(0, 1e3, 2))
         self.lineedit_speed = QtWidgets.QLineEdit()
-        self.lineedit_speed.setPlaceholderText(str(config['speed']))
+        self.lineedit_speed.setPlaceholderText(str(self.speed))
         self.lineedit_speed.setValidator(QtGui.QDoubleValidator(0, 1e3, 2))
         self.lineedit_scantime = QtWidgets.QLineEdit()
-        self.lineedit_scantime.setPlaceholderText(str(config['scantime']))
+        self.lineedit_scantime.setPlaceholderText(str(self.scantime))
         self.lineedit_scantime.setValidator(QtGui.QDoubleValidator(0, 1e3, 4))
 
         # Form layout for line edits
@@ -218,64 +227,41 @@ class ConfigDialog(QtWidgets.QDialog):
         form_layout.addRow("Speed (μm):", self.lineedit_speed)
         form_layout.addRow("Scantime (s):", self.lineedit_scantime)
 
-        # trim_layout = QtWidgets.QHBoxLayout()
-        # trim_layout.addWidget(self.button_trim)
-        # trim_layout.addWidget(QtWidgets.QLabel("Left (μm):"))
-        # trim_layout.addWidget(self.lineedit_trim_left)
-        # trim_layout.addWidget(QtWidgets.QLabel("Right (μm):"))
-        # trim_layout.addWidget(self.lineedit_trim_right)
-        # trim_.setLayout(trim_layout)
-
         # Checkbox
         self.check_all = QtWidgets.QCheckBox("Apply config to all images.")
         # Ok button
-        button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok,
-                                                self)
-        button_box.accepted.connect(self.accept)
-
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.addLayout(form_layout)
-        # main_layout.addWidget(trim_group)
         main_layout.addWidget(self.check_all)
-        main_layout.addWidget(button_box)
+        main_layout.addWidget(self.button_box)
         self.setLayout(main_layout)
 
-    # def trimAsRows(self, config):
-    #     # Get values or default ones
-    #     left, right = (self.lineedit_trim_left.text(),
-    #                    self.lineedit_trim_right.text())
-    #     left = float(left) if left != "" else self.config['trim'][0]
-    #     right = float(right) if right != "" else self.config['trim'][1]
+    def updateConfig(self):
+        if self.lineedit_spotsize.text() != "":
+            self.spotsize = float(self.lineedit_spotsize.text())
+        if self.lineedit_speed.text() != "":
+            self.speed = float(self.lineedit_speed.text())
+        if self.lineedit_scantime.text() != "":
+            self.scantime = float(self.lineedit_scantime.text())
 
-    #     # Convert to unit
-    #     unit = self.combo_isotopes.currentText()
-    #     if unit == "s":
-    #         return (left * config['scantime'], right * config['scantime'])
-    #     elif unit == "μm":
-    #         um_per_row = config['speed'] * config['spotsize']
-    #         return (left * um_per_row, right * um_per_row)
-    #     else:
-    #         return (int(left), int(right))
+    def apply(self):
+        self.updateConfig()
+        self.parent().laser.config['spotsize'] = self.spotsize
+        self.parent().laser.config['speed'] = self.speed
+        self.parent().laser.config['scantime'] = self.scantime
+        self.parent().draw()
 
     def accept(self):
-        if self.lineedit_spotsize.text() != "":
-            self.config['spotsize'] = float(self.lineedit_spotsize.text())
-        if self.lineedit_speed.text() != "":
-            self.config['speed'] = float(self.lineedit_speed.text())
-        if self.lineedit_scantime.text() != "":
-            self.config['scantime'] = float(self.lineedit_scantime.text())
-        # if self.lineedit_trim_left.text() != "" and \
-        #    self.lineedit_trim_right.text() != "":
-        #     self.config['trim'] = self.trimAsRows(self.config)
+        self.updateConfig()
         super().accept()
 
 
-class TrimDialog(QtWidgets.QDialog):
+class TrimDialog(OkApplyCancelDialog):
     def __init__(self, trim=[0, 0], parent=None):
         super().__init__(parent)
         self.setWindowTitle("Trim")
         self.trim = trim
-        # Trims
+
         self.lineedit_left = QtWidgets.QLineEdit()
         self.lineedit_left.setPlaceholderText(str(trim[0]))
         self.lineedit_left.setValidator(QtGui.QIntValidator(0, 1e9))
@@ -284,7 +270,9 @@ class TrimDialog(QtWidgets.QDialog):
         self.lineedit_right.setValidator(QtGui.QIntValidator(0, 1e9))
 
         self.combo_trim = QtWidgets.QComboBox()
-        self.combo_trim.addItems(['rows', 'μm', 's'])
+        self.combo_trim.addItems(['rows', 's', 'μm'])
+        self.combo_trim.setCurrentIndex(1)
+        self.combo_trim.currentIndexChanged.connect(self.comboTrim)
 
         layout_trim = QtWidgets.QHBoxLayout()
         layout_trim.addWidget(QtWidgets.QLabel("Left:"))
@@ -293,13 +281,13 @@ class TrimDialog(QtWidgets.QDialog):
         layout_trim.addWidget(self.lineedit_right)
         layout_trim.addWidget(self.combo_trim)
 
-        button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok,
-                                                self)
-        button_box.accepted.connect(self.accept)
+        self.check_all = QtWidgets.QCheckBox("Apply trim to all images.")
 
         layout_main = QtWidgets.QVBoxLayout()
         layout_main.addLayout(layout_trim)
-        layout_main.addWidget(button_box)
+        layout_main.addWidget(self.check_all)
+        layout_main.addWidget(self.button_box)
+        self.setLayout(layout_main)
 
     def comboTrim(self):
         if self.combo_trim.currentText() == "rows":
@@ -309,13 +297,20 @@ class TrimDialog(QtWidgets.QDialog):
             self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
             self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
 
+    def updateTrim(self):
+        if self.lineedit_left.text() != "":
+            self.trim[0] = float(self.lineedit_left.text())
+        if self.lineedit_right.text() != "":
+            self.trim[1] = float(self.lineedit_right.text())
+
+    def apply(self):
+        self.updateTrim()
+        self.parent().laser.setTrim(self.trim, self.combo_trim.currentText())
+        self.parent().draw()
+
     def accept(self):
-        self.accept()
-
-
-#############
-#  Save As  #
-#############
+        self.updateTrim()
+        super().accept()
 
 
 class ExportDialog(QtWidgets.QDialog):

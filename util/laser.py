@@ -14,14 +14,12 @@ class LaserData(object):
                  data=None,
                  config=None,
                  calibration=None,
-                 trim=[0, 0],
                  name="",
                  source=""):
         self.data = data
         self.config = LaserData.DEFAULT_CONFIG if config is None else config
         self.calibration = LaserData.DEFAULT_CALIBRATION \
             if calibration is None else calibration
-        self.trim = trim
         self.name = name
         self.source = source
 
@@ -60,16 +58,16 @@ class LaserData(object):
         Valid units are 'rows', 'μm' and 's'."""
         if unit == "μm":
             width = self.pixelsize()[0]
-            self.trim = [trim[0] / width, trim[1] / width]
+            trim = [trim[0] / width, trim[1] / width]
         elif unit == "s":
             width = self.config['scantime']
             trim = [trim[0] / width, trim[1] / width]
-        self.trim = [int(trim[0]), int(trim[1])]
+        self.config['trim'] = [int(trim[0]), int(trim[1])]
 
     def trimAs(self, unit):
         """Returns the trim in given unit.
         Valid units are 'rows', 'μm' and 's'."""
-        trim = self.trim
+        trim = self.config['trim']
         if unit == "μm":
             width = self.pixelsize()[0]
             trim = [trim[0] * width, trim[1] * width]

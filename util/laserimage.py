@@ -27,6 +27,11 @@ def plotLaserImage(fig,
     if type(vmax) == str:
         vmax = np.percentile(data, float(vmax.rstrip('%')))
 
+    if trim[1] == 0:
+        data = data[:, trim[0]:]
+    else:
+        data = data[:, trim[0]:-trim[1]]
+
     im = ax.imshow(
         data,
         cmap=cmap,

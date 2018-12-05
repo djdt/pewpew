@@ -95,6 +95,12 @@ class MainWindow(QtWidgets.QMainWindow):
         action_config.setShortcut("Ctrl+K")
         action_config.triggered.connect(self.menuConfig)
 
+        action_trim = menu_edit.addAction(
+            QtGui.QIcon.fromTheme('edit-cut'), "&Trim")
+        action_trim.setStatusTip("Update trim for visible images.")
+        action_trim.setShortcut("Ctrl+T")
+        action_trim.triggered.connect(self.menuTrim)
+
         # View
         menu_view = self.menuBar().addMenu("&View")
         menu_cmap = menu_view.addMenu("&Colormap")
@@ -146,7 +152,7 @@ class MainWindow(QtWidgets.QMainWindow):
         action_about.setStatusTip("About this program.")
         action_about.triggered.connect(self.menuAbout)
 
-    def refresh(self, visible_only=False):
+    def draw(self, visible_only=False):
         if visible_only:
             docks = self.dockarea.visibleDocks()
         else:
@@ -231,44 +237,54 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuConfig(self):
         dlg = ConfigDialog(self.config, parent=self)
+        # Remove the apply button
+        dlg.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.Ok
+                                          | QtWidgets.QDialogButtonBox.Cancel)
         if dlg.exec():
-            self.config = dlg.config
+            self.config['spotsize'] = dlg.spotsize
+            self.config['speed'] = dlg.speed
+            self.config['scantime'] = dlg.scantime
             if dlg.check_all.checkState() == QtCore.Qt.Checked:
                 docks = self.dockarea.findChildren(LaserImageDock)
             else:
                 docks = self.dockarea.visibleDocks(LaserImageDock)
             for d in docks:
-                d.laser.config = self.config
+                d.laser.config['spotsize'] = dlg.spotsize
+                d.laser.config['speed'] = dlg.speed
+                d.laser.config['scantime'] = dlg.scantime
                 d.draw()
 
     def menuTrim(self):
         dlg = TrimDialog([0, 0], parent=self)
+        # Remove the apply button
+        dlg.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.Ok
+                                          | QtWidgets.QDialogButtonBox.Cancel)
         if dlg.exec():
-            # if dlg.check_all.checkState() == QtCore.Qt.Checked:
-            #     docks = self.dockarea.findChildren(LaserImageDock)
-            # else:
-            docks = self.dockarea.visibleDocks(LaserImageDock)
+            if dlg.check_all.checkState() == QtCore.Qt.Checked:
+                docks = self.dockarea.findChildren(LaserImageDock)
+            else:
+                docks = self.dockarea.visibleDocks(LaserImageDock)
             for d in docks:
                 d.laser.setTrim(dlg.trim, dlg.combo_trim.currentText())
                 d.draw()
 
     def menuColormap(self, action):
         self.viewconfig['cmap'] = action.text().replace('&', '')
-        self.refresh()
+        self.draw()
 
     def menuColormapRange(self):
         dlg = ColorRangeDialog(self.viewconfig['cmap_range'], self)
         if dlg.exec():
             cmap_range = dlg.getRangeAsFloatOrPercent()
             self.viewconfig['cmap_range'] = (cmap_range)
-            self.refresh()
+            self.draw()
 
     def menuInterpolation(self, action):
         self.viewconfig['interpolation'] = action.text().replace('&', '')
-        self.refresh()
+        self.draw()
 
     def menuRefresh(self):
-        self.refresh()
+        self.draw()
 
     def menuAbout(self):
         QtWidgets.QMessageBox.about(

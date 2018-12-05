@@ -7,7 +7,8 @@ from util.laserimage import plotLaserImage
 from util.plothelpers import coords2value
 from util.exporter import exportNpz, exportPng, exportVtr
 
-from gui.qt.dialogs import CalibrationDialog, ConfigDialog, ExportDialog
+from gui.qt.dialogs import (CalibrationDialog, ConfigDialog, ExportDialog,
+                            TrimDialog)
 
 import numpy as np
 import os.path
@@ -31,24 +32,6 @@ class Canvas(FigureCanvasQTAgg):
 
     def minimumSizeHint(self):
         return QtCore.QSize(200, 200)
-
-    # def mousePressEvent(self, event):
-    #     print('press')
-    #     if self.rubber_band is None:
-    #         self.rubber_band = QtWidgets.QRubberBand(
-    #             QtWidgets.QRubberBand.Rectangle, self)
-    #         self.rubber_band_origin = event.pos()
-    #     self.rubber_band.setGeometry(QtCore.QRect(self.rubber_band_origin, QtCore.QSize()))
-    #     self.rubber_band.show()
-
-    # def mouseMoveEvent(self, event):
-    #     if self.rubber_band is not None:
-    #         geometry = QtCore.QRect(self.rubber_band_origin, event.pos())
-    #         self.rubber_band.setGeometry(geometry.normalized())
-
-#     def mouseReleaseEvent(self, event):
-#         if self.rubber_band:
-#             self.rubber_band.hide()
 
 
 class ImageDock(QtWidgets.QDockWidget):
@@ -109,6 +92,11 @@ class ImageDock(QtWidgets.QDockWidget):
         self.action_config.setStatusTip("Edit image config.")
         self.action_config.triggered.connect(self.onMenuConfig)
 
+        self.action_trim = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme('edit-cut'), "Trim", self)
+        self.action_trim.setStatusTip("Edit image trim.")
+        self.action_trim.triggered.connect(self.onMenuTrim)
+
         self.action_close = QtWidgets.QAction(
             QtGui.QIcon.fromTheme('edit-delete'), "Close", self)
         self.action_close.setStatusTip("Close the images.")
@@ -145,7 +133,7 @@ class ImageDock(QtWidgets.QDockWidget):
             interpolation=viewconfig['interpolation'],
             vmin=viewconfig['cmap_range'][0],
             vmax=viewconfig['cmap_range'][1],
-            # trim=self.laser.trim(),
+            trim=self.laser.config['trim'],
             aspect=self.laser.aspect(),
             extent=self.laser.extent())
 
@@ -160,6 +148,7 @@ class ImageDock(QtWidgets.QDockWidget):
         context_menu.addSeparator()
         context_menu.addAction(self.action_calibration)
         context_menu.addAction(self.action_config)
+        context_menu.addAction(self.action_trim)
         context_menu.addSeparator()
         context_menu.addAction(self.action_close)
         return context_menu
@@ -231,7 +220,15 @@ class ImageDock(QtWidgets.QDockWidget):
         dlg = ConfigDialog(self.laser.config, parent=self)
         # dlg.check_all.setEnabled(False)
         if dlg.exec() == ConfigDialog.Accepted:
-            self.laser.config = dlg.config
+            self.laser.config['spotsize'] = dlg.spotsize
+            self.laser.config['speed'] = dlg.speed
+            self.laser.config['scantime'] = dlg.scantime
+            self.draw()
+
+    def onMenuTrim(self):
+        dlg = TrimDialog(self.laser.trimAs('s'), parent=self)
+        if dlg.exec() == TrimDialog.Accepted:
+            self.laser.setTrim(dlg.trim, dlg.combo_trim.currentText())
             self.draw()
 
     def onMenuClose(self):
@@ -300,6 +297,7 @@ class KrissKrossImageDock(ImageDock):
 
         # Config cannot be changed for krisskross images
         self.action_config.setEnabled(False)
+        self.action_trim.setEnabled(False)
 
     def onMenuCopy(self):
         dock_copy = KrissKrossImageDock(self.laser, self.parent())
