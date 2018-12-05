@@ -145,7 +145,7 @@ class ImageDock(QtWidgets.QDockWidget):
             interpolation=viewconfig['interpolation'],
             vmin=viewconfig['cmap_range'][0],
             vmax=viewconfig['cmap_range'][1],
-            trim=self.laser.trim(),
+            # trim=self.laser.trim(),
             aspect=self.laser.aspect(),
             extent=self.laser.extent())
 
