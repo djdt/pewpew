@@ -6,6 +6,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from util.laserimage import plotLaserImage
 from util.plothelpers import coords2value
 from util.exporter import exportCsv, exportNpz, exportPng, exportVtr
+from util.formatter import isotopeFormat
 
 from gui.qt.dialogs import (CalibrationDialog, ConfigDialog, ExportDialog,
                             TrimDialog)
@@ -129,7 +130,7 @@ class ImageDock(QtWidgets.QDockWidget):
             self.laser.get(isotope, calibrated=True, trimmed=True),
             colorbar='bottom',
             colorbarlabel=self.laser.calibration['units'].get(isotope, ""),
-            label=isotope,
+            label=isotopeFormat(isotope),
             fontsize=viewconfig['fontsize'],
             cmap=viewconfig['cmap'],
             interpolation=viewconfig['interpolation'],
