@@ -42,12 +42,20 @@ class KrissKrossData(LaserData):
         self.data = krissKrossLayers(layers, self.aspect(), warmup,
                                      horizontal_first)
 
-    def calibrated(self, isotope=None, flatten=True):
+    def calibrated(self, isotope=None, flattened=True):
         """Returns a flattened array (via mean) by default."""
-        if flatten:
+        if flattened:
             return np.mean(super().calibrated(isotope), axis=2)
         else:
             return super().calibrated(isotope)
+
+    def get(self,
+            isotope=None,
+            calibrated=False,
+            trimmed=False,
+            flattened=True):
+        data = self.calibrated(isotope=isotope, flattened=flattened)
+        return data
 
     def split(self):
         lds = []
