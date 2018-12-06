@@ -5,6 +5,7 @@ from gui.qt.dialogs import ConfigDialog, ColorRangeDialog, TrimDialog
 from gui.qt.krisskrosswizard import KrissKrossWizard
 from gui.qt.imagedock import ImageDock, LaserImageDock, KrissKrossImageDock
 
+from util.colormaps import COLORMAPS
 from util.laser import LaserData
 from util.krisskross import KrissKrossData
 from util.importer import importNpz, importAgilentBatch, importThermoiCapCSV
@@ -17,17 +18,6 @@ VERSION = "0.2.0"
 # TODO implement a smart way to open docks
 # check height / width and number to open, can we split them and not violate
 # minimum size?
-
-COLORMAPS = [('Perceptually uniform sequential colormap.',
-              ['viridis', 'magma']), ('Sequential colormap.', ['gray', 'hot']),
-             ('Diverging colormap.', ['coolwarm', 'RdYlBu_r']),
-             ('Miscellaneous colormap.', ['nipy_spectral'])]
-
-# TODO colormap reimp
-# perceptually uniform viridis, maga
-# diverging RdBu_r, RdYlBu_r, Spectral_r (all colorbrewer)
-# default[custom spectral] + black, mike16
-# colormap.py, ('Type', print safe, colorblind safe, name, mpl name or code)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -117,14 +107,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # View - colormap
         cmap_group = QtWidgets.QActionGroup(menu_cmap)
-        for cmap_type, cmaps in COLORMAPS:
-            for cmap in cmaps:
-                action = cmap_group.addAction(cmap)
-                action.setStatusTip(cmap_type)
-                action.setCheckable(True)
-                if cmap == self.viewconfig['cmap']:
-                    action.setChecked(True)
-                menu_cmap.addAction(action)
+        for name, cmap, print_safe, cb_safe, description in COLORMAPS:
+            action = cmap_group.addAction(name)
+            if print_safe:
+                description += " Print safe."
+            elif cb_safe:
+                description += " Colorblind safe."
+            action.setStatusTip(description)
+            action.setCheckable(True)
+            if cmap == self.viewconfig['cmap']:
+                action.setChecked(True)
+            menu_cmap.addAction(action)
         cmap_group.triggered.connect(self.menuColormap)
         menu_cmap.addSeparator()
         action_cmap_range = menu_cmap.addAction("Range...")
@@ -282,8 +275,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 d.draw()
 
     def menuColormap(self, action):
-        self.viewconfig['cmap'] = action.text().replace('&', '')
-        self.draw()
+        text = action.text().replace('&', '')
+        for name, cmap, _, _, _ in COLORMAPS:
+            if name == text:
+                self.viewconfig['cmap'] = cmap
+                self.draw()
+                return
 
     def menuColormapRange(self):
         dlg = ColorRangeDialog(self.viewconfig['cmap_range'], self)
