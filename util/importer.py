@@ -136,7 +136,7 @@ def importThermoiCapCSV(path, config, calibration=None):
         # Skip row
         line = fp.readline()
         # First real row
-        line = fp.readline().strip()
+        line = fp.readline()
         while line:
             _, _, isotope, data_type, line_data = line.split(delimiter, 4)
             if data_type == "Counter":
@@ -145,13 +145,14 @@ def importThermoiCapCSV(path, config, calibration=None):
                                   delimiter=delimiter,
                                   dtype=np.float64,
                                   filling_values=0.0))
-            line = fp.readline().strip()
+            line = fp.readline()
 
     # Read the keys to ensure order is same
     keys = list(data.keys())
     # Stack lines to form 2d
     for k in keys:
-        data[k] = np.vstack(data[k]).transpose()
+        # Last line is junk
+        data[k] = np.vstack(data[k])[:, :-1].transpose()
     # Build a named array out of data
     dtype = [(k, np.float64) for k in keys]
     structured = np.empty(data[keys[0]].shape, dtype)
