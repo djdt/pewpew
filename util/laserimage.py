@@ -59,16 +59,38 @@ def plotLaserImage(
         ax.add_artist(scalebar)
 
     if label is not None and label is not "":
-        offset = 1.6 * fontsize
-        ax.annotate(
-            isotopeFormat(label),
-            xycoords='axes fraction',
-            xy=(0.0, 1.0),
-            textcoords='offset points',
-            xytext=(offset, -offset),
-            ha='center',
-            color='white',
-            fontsize=fontsize)
+        from matplotlib.offsetbox import \
+            AuxTransformBox, TextArea, VPacker, HPacker, AnchoredOffsetbox
+        empty = AuxTransformBox(ax.transData)
+        text = TextArea(
+            label,
+            minimumdescent=False,
+            textprops={
+                'color': 'white',
+                'fontproperties': {
+                    'size': fontsize
+                }
+            })
+        box = AnchoredOffsetbox(
+            loc='upper left',
+            child=VPacker(
+                children=[empty, text], align='center', pad=0, sep=5),
+            frameon=False,
+            pad=0.2,
+            border_pad=0.1)
+        box.axes = ax
+        box.set_figure(fig)
+        box.draw(fig.renderer())
+        # offset = 1.6 * fontsize
+        # ax.annotate(
+        #     isotopeFormat(label),
+        #     xycoords='axes fraction',
+        #     xy=(0.0, 1.0),
+        #     textcoords='offset points',
+        #     xytext=(offset, -offset),
+        #     ha='center',
+        #     color='white',
+        #     fontsize=fontsize)
 
     if colorbar is not None:
         div = make_axes_locatable(ax)

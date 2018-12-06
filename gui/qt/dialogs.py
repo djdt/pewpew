@@ -229,7 +229,6 @@ class ConfigDialog(OkApplyCancelDialog):
 
         # Checkbox
         self.check_all = QtWidgets.QCheckBox("Apply config to all images.")
-        # Ok button
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.addLayout(form_layout)
         main_layout.addWidget(self.check_all)
