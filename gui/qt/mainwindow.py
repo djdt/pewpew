@@ -10,12 +10,13 @@ from util.krisskross import KrissKrossData
 from util.importer import importNpz, importAgilentBatch, importThermoiCapCSV
 from util.exporter import exportNpz
 
-from matplotlib import rcParams
-
 import os.path
 import traceback
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
+# TODO implement a smart way to open docks
+# check height / width and number to open, can we split them and not violate
+# minimum size?
 
 COLORMAPS = [('Perceptually uniform sequential colormap.',
               ['viridis', 'magma']), ('Sequential colormap.', ['gray', 'hot']),
