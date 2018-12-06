@@ -20,8 +20,14 @@ VERSION = "0.2.0"
 
 COLORMAPS = [('Perceptually uniform sequential colormap.',
               ['viridis', 'magma']), ('Sequential colormap.', ['gray', 'hot']),
-             ('Diverging colormap.', ['Spectral', 'seismic']),
+             ('Diverging colormap.', ['coolwarm', 'RdYlBu_r']),
              ('Miscellaneous colormap.', ['nipy_spectral'])]
+
+# TODO colormap reimp
+# perceptually uniform viridis, maga
+# diverging RdBu_r, RdYlBu_r, Spectral_r (all colorbrewer)
+# default[custom spectral] + black, mike16
+# colormap.py, ('Type', print safe, colorblind safe, name, mpl name or code)
 
 
 class MainWindow(QtWidgets.QMainWindow):
