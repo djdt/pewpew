@@ -21,8 +21,8 @@ class Canvas(FigureCanvasQTAgg):
         super().__init__(fig)
         self.setParent(parent)
         self.setStyleSheet("background-color:transparent;")
-        self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding,
-                           QtWidgets.QSizePolicy.MinimumExpanding)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
+                           QtWidgets.QSizePolicy.Expanding)
 
         self.rubber_band = None
         self.rubber_band_origin = QtCore.QSize()
@@ -32,7 +32,7 @@ class Canvas(FigureCanvasQTAgg):
         return QtCore.QSize(w, h)
 
     def minimumSizeHint(self):
-        return QtCore.QSize(200, 200)
+        return QtCore.QSize(250, 250)
 
 
 class ImageDock(QtWidgets.QDockWidget):
@@ -160,7 +160,20 @@ class ImageDock(QtWidgets.QDockWidget):
         context_menu.exec(event.globalPos())
 
     def onMenuCopy(self):
-        pass
+        dock_copy = type(self)(self.laser, self.parent())
+        dock_copy.draw()
+        # Split in direction with most space
+        size = self.size()
+        minsize = self.minimumSizeHint()
+        if size.width() > size.height() and size.width() > 2 * minsize.width():
+            self.parent().splitDockWidget(
+                self, dock_copy, QtCore.Qt.Horizontal)
+        elif size.height() > 2 * minsize.height():
+            self.parent().splitDockWidget(
+                self, dock_copy, QtCore.Qt.Vertical)
+        # Split only if there is enough space
+        else:
+            self.parent().tabifyDockWidget(self, dock_copy)
 
     def onMenuSave(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
@@ -250,11 +263,6 @@ class LaserImageDock(ImageDock):
         name = os.path.splitext(os.path.basename(self.laser.source))[0]
         self.setWindowTitle(name)
 
-    def onMenuCopy(self):
-        dock_copy = LaserImageDock(self.laser, self.parent())
-        dock_copy.draw()
-        self.parent().splitDockWidget(self, dock_copy, QtCore.Qt.Horizontal)
-
     def _export(self, path, isotope=None, layer=None, prompt_overwrite=True):
         if isotope is None:
             isotope = self.combo_isotope.currentText()
@@ -306,9 +314,13 @@ class KrissKrossImageDock(ImageDock):
         self.action_trim.setEnabled(False)
 
     def onMenuCopy(self):
-        dock_copy = KrissKrossImageDock(self.laser, self.parent())
+        dock_copy = type(self)(self.laser, self.parent())
         dock_copy.draw()
-        self.parent().splitDockWidget(self, dock_copy, QtCore.Qt.Horizontal)
+        # Split by longest length
+        size = self.size()
+        self.parent().splitDockWidget(
+            self, dock_copy,
+            QtCore.Qt.Horizontal if size[0] > size[1] else QtCore.Qt.Vertical)
 
     def _export(self, path, isotope=None, layer=None, prompt_overwrite=True):
         if isotope is None:
