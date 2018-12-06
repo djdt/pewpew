@@ -2,7 +2,6 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib_scalebar.scalebar import ScaleBar
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from util.formatter import isotopeFormat
 import numpy as np
 
 
@@ -59,38 +58,18 @@ def plotLaserImage(
         ax.add_artist(scalebar)
 
     if label is not None and label is not "":
-        from matplotlib.offsetbox import \
-            AuxTransformBox, TextArea, VPacker, HPacker, AnchoredOffsetbox
-        empty = AuxTransformBox(ax.transData)
-        text = TextArea(
+        from matplotlib.offsetbox import AnchoredText
+        text = AnchoredText(
             label,
-            minimumdescent=False,
-            textprops={
-                'color': 'white',
-                'fontproperties': {
-                    'size': fontsize
-                }
-            })
-        box = AnchoredOffsetbox(
-            loc='upper left',
-            child=VPacker(
-                children=[empty, text], align='center', pad=0, sep=5),
-            frameon=False,
+            'upper left',
             pad=0.2,
-            border_pad=0.1)
-        box.axes = ax
-        box.set_figure(fig)
-        box.draw(fig.renderer())
-        # offset = 1.6 * fontsize
-        # ax.annotate(
-        #     isotopeFormat(label),
-        #     xycoords='axes fraction',
-        #     xy=(0.0, 1.0),
-        #     textcoords='offset points',
-        #     xytext=(offset, -offset),
-        #     ha='center',
-        #     color='white',
-        #     fontsize=fontsize)
+            borderpad=0.4,
+            frameon=False,
+            prop={
+                'color': 'white',
+                'size': fontsize
+            })
+        ax.add_artist(text)
 
     if colorbar is not None:
         div = make_axes_locatable(ax)
