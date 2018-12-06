@@ -38,7 +38,8 @@ class ImageDock(QtWidgets.QDockWidget):
     DEFAULT_VIEW_CONFIG = {
         'cmap': 'magma',
         'interpolation': 'none',
-        'cmap_range': ('2%', '98%')
+        'cmap_range': ('2%', '98%'),
+        'fontsize': 10,
     }
 
     def __init__(self, parent=None):
@@ -129,6 +130,7 @@ class ImageDock(QtWidgets.QDockWidget):
             colorbar='bottom',
             colorbarlabel=self.laser.calibration['units'].get(isotope, ""),
             label=isotope,
+            fontsize=viewconfig['fontsize'],
             cmap=viewconfig['cmap'],
             interpolation=viewconfig['interpolation'],
             vmin=viewconfig['cmap_range'][0],

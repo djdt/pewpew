@@ -6,20 +6,23 @@ from util.formatter import isotopeFormat
 import numpy as np
 
 
-def plotLaserImage(fig,
-                   ax,
-                   data,
-                   interpolation=None,
-                   extent=None,
-                   aspect='auto',
-                   colorbar=None,
-                   colorbarpos='bottom',
-                   colorbarlabel='',
-                   scalebar=True,
-                   label=None,
-                   vmin='0%',
-                   vmax='100%',
-                   cmap='magma'):
+def plotLaserImage(
+        fig,
+        ax,
+        data,
+        interpolation=None,
+        extent=None,
+        aspect='auto',
+        colorbar=None,
+        colorbarpos='bottom',
+        colorbarlabel='',
+        scalebar=True,
+        label=None,
+        fontsize=10,
+        vmin='0%',
+        vmax='100%',
+        cmap='magma',
+):
 
     if data.size == 0:
         data = np.load('./gui/image.npy')
@@ -47,18 +50,25 @@ def plotLaserImage(fig,
     ax.axis('scaled')
 
     if scalebar:
-        scalebar = ScaleBar(1.0, 'um', frameon=False, color='white')
+        scalebar = ScaleBar(
+            1.0,
+            'um',
+            frameon=False,
+            color='white',
+            font_properties={'size': fontsize})
         ax.add_artist(scalebar)
 
     if label is not None and label is not "":
+        offset = 1.6 * fontsize
         ax.annotate(
             isotopeFormat(label),
             xycoords='axes fraction',
             xy=(0.0, 1.0),
             textcoords='offset points',
-            xytext=(16, -16),
+            xytext=(offset, -offset),
             ha='center',
-            color='white')
+            color='white',
+            fontsize=fontsize)
 
     if colorbar is not None:
         div = make_axes_locatable(ax)

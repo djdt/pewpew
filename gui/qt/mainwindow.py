@@ -10,6 +10,8 @@ from util.krisskross import KrissKrossData
 from util.importer import importNpz, importAgilentBatch, importThermoiCapCSV
 from util.exporter import exportNpz
 
+from matplotlib import rcParams
+
 import os.path
 import traceback
 
@@ -137,6 +139,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 action.setChecked(True)
             menu_interp.addAction(action)
         interp_group.triggered.connect(self.menuInterpolation)
+
+        action_fontsize = menu_view.addAction("Fontsize")
+        action_fontsize.setStatusTip("Set size of font used in images.")
+        action_fontsize.triggered.connect(self.menuFontsize)
 
         menu_view.addSeparator()
 
@@ -282,6 +288,19 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuInterpolation(self, action):
         self.viewconfig['interpolation'] = action.text().replace('&', '')
         self.draw()
+
+    def menuFontsize(self):
+        fontsize, ok = QtWidgets.QInputDialog.getInt(
+            self,
+            "Fontsize",
+            "Fontsize",
+            value=self.viewconfig['fontsize'],
+            min=0,
+            max=100,
+            step=1)
+        if ok:
+            self.viewconfig['fontsize'] = fontsize
+            self.draw()
 
     def menuRefresh(self):
         self.draw()
