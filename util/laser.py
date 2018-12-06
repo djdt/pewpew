@@ -1,6 +1,3 @@
-import numpy as np
-
-
 class LaserData(object):
     DEFAULT_CALIBRATION = {'gradients': {}, 'intercepts': {}, 'units': {}}
     DEFAULT_CONFIG = {
@@ -26,33 +23,27 @@ class LaserData(object):
     def isotopes(self):
         return self.data.dtype.names
 
-    def calibrated(self, isotope=None):
-        if isotope is None:
-            data = np.empty(self.data.shape, dtype=self.data.dtype)
-            for name in self.data.dtype.names:
-                data[name] = ((self.data[name] -
-                               self.calibration['intercepts'].get(name, 0.0)) /
-                              self.calibration['gradients'].get(name, 0.0))
-        else:
-            data = ((self.data[isotope] - self.calibration['intercepts'].get(
-                isotope, 0.0)) / self.calibration['gradients'].get(
-                    isotope, 1.0))
-        return data
-
     def get(self, isotope=None, calibrated=False, trimmed=False):
-        if calibrated:
-            data = self.calibrated(isotope)
+        # Calibration
+        if isotope is None:
+            data = self.data
+            if calibrated:
+                for name in data.dtype.names:
+                    intercept = self.calibration['intercepts'].get(name, 0.0)
+                    gradient = self.calibration['gradients'].get(name, 1.0)
+                    data[name] = (data[name] - intercept) / gradient
         else:
-            if isotope is not None:
-                data = self.data[isotope]
-            else:
-                data = self.data
-
+            data = self.data[isotope]
+            if calibrated:
+                intercept = self.calibration['intercepts'].get(isotope, 0.0)
+                gradient = self.calibration['gradients'].get(isotope, 1.0)
+                data = (data - intercept) / gradient
+        # Trimming
         if trimmed:
             trim = self.config['trim']
             if trim[1] > 0:
                 data = data[:, trim[0]:-trim[1]]
-            else:
+            elif trim[0] > 0:
                 data = data[:, trim[0]:]
 
         return data
@@ -73,7 +64,7 @@ class LaserData(object):
             x_shape -= (trim[0] + trim[1])
         x = x_shape * self.pixelsize()[0]
         y = self.data.shape[0] * self.pixelsize()[1]
-        return (0, x, 0, y)
+        return [0, x, 0, y]
 
     def setTrim(self, trim, unit='rows'):
         """Set the trim value using the provided unit.
