@@ -4,6 +4,30 @@ import os
 from util.laser import LaserData
 
 
+def importCsv(path, config_override=None, calibration=None):
+    with open(path, 'r') as fp:
+        line = fp.readline().strip()
+        isotope = fp.readline().strip()
+        line = fp.readline().strip()
+        if config_override is None:
+            config = LaserData.DEFAULT_CONFIG
+            tokens = line.split(';')
+            for token in tokens:
+                k, v = token.split('=')
+                config[k] = float(v)
+        else:
+            config = config_override
+        # Remove any trim
+        config['trim'] = [0, 0]
+
+        data = np.genfromtxt(fp, delimiter=',', dtype=np.float64)
+
+    structured = np.empty(data.shape, dtype=[(isotope, np.float64)])
+    structured[k] = data
+    return LaserData(
+        data=structured, config=config, calibration=calibration, source=path)
+
+
 def importNpz(path, config_override=None, calibration_override=None):
     """Imports the numpy archive given. Both the config and calibration are
     read from the archive but can be overriden.
