@@ -7,7 +7,7 @@ from util.laserimage import plotLaserImage
 
 
 def exportCsv(path, data, isotope, config):
-    header = (f"LaserPlot Export;{isotope}\n"
+    header = (f"Pew Pew Export\n{isotope}\n"
               f"spotsize={config['spotsize']};speed={config['speed']};"
               f"scantime={config['scantime']}\n")
 

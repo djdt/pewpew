@@ -1,9 +1,9 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from gui.qt.tabbeddocks import TabbedDocks
-from gui.qt.dialogs import ConfigDialog, ColorRangeDialog, TrimDialog
-from gui.qt.krisskrosswizard import KrissKrossWizard
-from gui.qt.imagedock import ImageDock, LaserImageDock, KrissKrossImageDock
+from gui.tabbeddocks import TabbedDocks
+from gui.dialogs import ConfigDialog, ColorRangeDialog, TrimDialog
+from gui.krisskrosswizard import KrissKrossWizard
+from gui.imagedock import ImageDock, LaserImageDock, KrissKrossImageDock
 
 from util.colormaps import COLORMAPS
 from util.laser import LaserData
@@ -28,7 +28,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.config = LaserData.DEFAULT_CONFIG
         self.viewconfig = ImageDock.DEFAULT_VIEW_CONFIG
 
-        self.setWindowTitle("Laser plot")
+        self.setWindowTitle("Pew Pew")
         self.resize(1280, 800)
 
         widget = QtWidgets.QWidget()

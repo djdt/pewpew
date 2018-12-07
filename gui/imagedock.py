@@ -8,8 +8,8 @@ from util.plothelpers import coords2value
 from util.exporter import exportCsv, exportNpz, exportPng, exportVtr
 from util.formatter import isotopeFormat
 
-from gui.qt.dialogs import (CalibrationDialog, ConfigDialog, ExportDialog,
-                            TrimDialog)
+from gui.dialogs import (CalibrationDialog, ConfigDialog, ExportDialog,
+                         TrimDialog)
 
 import numpy as np
 import os.path
@@ -166,11 +166,10 @@ class ImageDock(QtWidgets.QDockWidget):
         size = self.size()
         minsize = self.minimumSizeHint()
         if size.width() > size.height() and size.width() > 2 * minsize.width():
-            self.parent().splitDockWidget(
-                self, dock_copy, QtCore.Qt.Horizontal)
+            self.parent().splitDockWidget(self, dock_copy,
+                                          QtCore.Qt.Horizontal)
         elif size.height() > 2 * minsize.height():
-            self.parent().splitDockWidget(
-                self, dock_copy, QtCore.Qt.Vertical)
+            self.parent().splitDockWidget(self, dock_copy, QtCore.Qt.Vertical)
         # Split only if there is enough space
         else:
             self.parent().tabifyDockWidget(self, dock_copy)
