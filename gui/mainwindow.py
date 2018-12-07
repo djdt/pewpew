@@ -314,7 +314,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self, "About Laser plot",
             ("Visualiser / converter for LA-ICP-MS data.\n"
              f"Version {VERSION}\n"
-             "Developed by the UTS Elemental Bio-Imaging Group."))
+             "Developed by the UTS Elemental Bio-Imaging Group.\n"
+             "https://github.com/djdt/pewpew"))
 
     def exceptHook(self, type, value, trace):
         dlg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Critical,
