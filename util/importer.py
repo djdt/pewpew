@@ -7,7 +7,7 @@ from util.laser import LaserData
 def importCsv(path, config_override=None, calibration=None):
     with open(path, 'r') as fp:
         line = fp.readline().strip()
-        isotope = fp.readline().strip()
+        isotope = fp.readline().strip().lstrip('#')
         line = fp.readline().strip()
         if config_override is None:
             config = LaserData.DEFAULT_CONFIG
