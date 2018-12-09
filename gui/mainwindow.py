@@ -298,8 +298,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuColormapRange(self):
         dlg = ColorRangeDialog(self.viewconfig['cmap_range'], self)
         if dlg.exec():
-            cmap_range = dlg.getRangeAsFloatOrPercent()
-            self.viewconfig['cmap_range'] = (cmap_range)
+            self.viewconfig['cmap_range'] = dlg.range
             self.draw()
 
     def menuInterpolation(self, action):
