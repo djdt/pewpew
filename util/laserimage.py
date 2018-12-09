@@ -1,4 +1,5 @@
 from matplotlib.ticker import MaxNLocator
+from matplotlib.offsetbox import AnchoredText
 from matplotlib_scalebar.scalebar import ScaleBar
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -58,7 +59,6 @@ def plotLaserImage(
         ax.add_artist(scalebar)
 
     if label is not None and label is not "":
-        from matplotlib.offsetbox import AnchoredText
         text = AnchoredText(
             label,
             'upper left',
