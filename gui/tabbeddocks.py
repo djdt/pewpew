@@ -9,14 +9,53 @@ class TabbedDocks(QtWidgets.QMainWindow):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
                            QtWidgets.QSizePolicy.Expanding)
 
-    def addDockWidget(self, dock, area=QtCore.Qt.LeftDockWidgetArea):
-        super().addDockWidget(area, dock)
-        # Find a child dock in same area to tab
-        docks = self.findChildren(QtWidgets.QDockWidget)
-        for d in docks:
-            if self.dockWidgetArea(d) == area and d != dock:
-                self.tabifyDockWidget(d, dock)
-                return
+    def orderedDocks(self, docks):
+        """Returns docks sorted by leftmost / topmost."""
+        return sorted(
+            docks,
+            key=
+            lambda x: (x.geometry().topLeft().x(), x.geometry().topLeft().y()))
+
+    def largestDock(self, docks):
+        largest = 0
+        dock = None
+        for d in self.orderedDocks(docks):
+            size = d.size()
+            if size.width() > largest:
+                largest = size.width()
+                dock = d
+            if size.height() > largest:
+                largest = size.height()
+                dock = d
+        return dock
+
+    def addDockWidgets(self, docks, area=QtCore.Qt.LeftDockWidgetArea):
+        # Add a new dock widget
+        super().addDockWidget(area, docks[0])
+        origin = self.largestDock(self.visibleDocks())
+        if origin is not None:
+            self.smartSplitDock(origin, docks[0])
+        docks[0].draw()
+        docks[0].show()
+        for dock in docks[1:]:
+            super().addDockWidget(area, dock)
+            self.smartSplitDock(
+                self.largestDock(
+                    [d for d in docks if not d.visibleRegion().isEmpty()]),
+                dock)
+            dock.draw()
+            dock.show()
+
+    def smartSplitDock(self, first, second):
+        size = first.size()
+        minsize = second.minimumSizeHint()
+        if size.width() > size.height() and size.width() > 2 * minsize.width():
+            self.splitDockWidget(first, second, QtCore.Qt.Horizontal)
+        elif size.height() > 2 * minsize.height():
+            self.splitDockWidget(first, second, QtCore.Qt.Vertical)
+        elif first != second:
+            # Split only if there is enough space
+            self.tabifyDockWidget(first, second)
 
     def tabifyAll(self, area=QtCore.Qt.LeftDockWidgetArea):
         docks = self.findChildren(QtWidgets.QDockWidget)
