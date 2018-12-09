@@ -211,14 +211,7 @@ class ImageDock(QtWidgets.QDockWidget):
                     prompt_overwrite = False
 
     def onMenuCalibration(self):
-        dlg = CalibrationDialog(
-            self.laser.calibration,
-            self.combo_isotope.currentText(),
-            self.laser.isotopes(),
-            parent=self)
-        if dlg.exec():
-            self.laser.calibration = dlg.calibration
-            self.draw()
+        pass
 
     def onMenuConfig(self):
         dlg = ConfigDialog(self.laser.config, parent=self)
@@ -230,11 +223,7 @@ class ImageDock(QtWidgets.QDockWidget):
             self.draw()
 
     def onMenuTrim(self):
-        dlg = TrimDialog(self.laser.trimAs('s'), parent=self)
-        dlg.check_all.setEnabled(False)
-        if dlg.exec() == TrimDialog.Accepted:
-            self.laser.setTrim(dlg.trim, dlg.combo_trim.currentText())
-            self.draw()
+        pass
 
     def onMenuClose(self):
         self.close()
@@ -249,8 +238,24 @@ class LaserImageDock(ImageDock):
         super().__init__(parent)
         self.laser = laserdata
         self.combo_isotope.addItems(self.laser.isotopes())
-        name = os.path.splitext(os.path.basename(self.laser.source))[0]
-        self.setWindowTitle(name)
+        self.setWindowTitle(self.laser.name)
+
+    def onMenuCalibration(self):
+        dlg = CalibrationDialog(
+            self.laser.calibration,
+            self.combo_isotope.currentText(),
+            self.laser.isotopes(),
+            parent=self)
+        if dlg.exec():
+            self.laser.calibration = dlg.calibration
+            self.draw()
+
+    def onMenuTrim(self):
+        dlg = TrimDialog(self.laser.trimAs('s'), parent=self)
+        dlg.check_all.setEnabled(False)
+        if dlg.exec() == TrimDialog.Accepted:
+            self.laser.setTrim(dlg.trim, dlg.combo_trim.currentText())
+            self.draw()
 
     def _export(self, path, isotope=None, layer=None, prompt_overwrite=True):
         if isotope is None:
@@ -289,27 +294,15 @@ class LaserImageDock(ImageDock):
         return result
 
 
-class KrissKrossImageDock(ImageDock):
+class KrissKrossImageDock(LaserImageDock):
     def __init__(self, kkdata, parent=None):
 
-        super().__init__(parent)
-        self.laser = kkdata
-        self.combo_isotope.addItems(self.laser.isotopes())
-        name = os.path.splitext(os.path.basename(self.laser.source))[0]
-        self.setWindowTitle(f"{name}:kk")
+        super().__init__(kkdata, parent)
+        self.setWindowTitle(f"kk:{self.laser.name}")
 
         # Config cannot be changed for krisskross images
         self.action_config.setEnabled(False)
         self.action_trim.setEnabled(False)
-
-    def onMenuCopy(self):
-        dock_copy = type(self)(self.laser, self.parent())
-        dock_copy.draw()
-        # Split by longest length
-        size = self.size()
-        self.parent().splitDockWidget(
-            self, dock_copy,
-            QtCore.Qt.Horizontal if size[0] > size[1] else QtCore.Qt.Vertical)
 
     def _export(self, path, isotope=None, layer=None, prompt_overwrite=True):
         if isotope is None:
