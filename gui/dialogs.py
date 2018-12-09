@@ -39,6 +39,34 @@ class IntOrPercentValidator(QtGui.QIntValidator):
         return (QtGui.QValidator.Acceptable, input, pos)
 
 
+class PercentValidator(QtGui.QValidator):
+    def __init__(self, min_value=0, max_value=100, parent=None):
+        super().__init__(parent)
+        self.min_value = min_value
+        self.max_value = max_value
+
+    def validate(self, input, pos):
+        if len(input.rstrip('%')) == 0:
+            return (QtGui.QValidator.Intermediate, input, pos)
+
+        if not input.endswith('%'):
+            input += '%'
+        elif input.count('%') > 1:
+            return (QtGui.QValidator.Invalid, input, pos)
+
+        try:
+            i = int(input.rstrip('%'))
+        except ValueError:
+            return (QtGui.QValidator.Invalid, input, pos)
+
+        if i < self.min_value:
+            return (QtGui.QValidator.Intermediate, input, pos)
+        elif i > self.max_value:
+            return (QtGui.QValidator.Invalid, input, pos)
+
+        return (QtGui.QValidator.Acceptable, input, pos)
+
+
 class OkApplyCancelDialog(QtWidgets.QDialog):
     def __init__(self, parent):
         super().__init__(parent)
@@ -71,14 +99,14 @@ class ColorRangeDialog(OkApplyCancelDialog):
 
         self.lineedit_min = QtWidgets.QLineEdit()
         self.lineedit_min.setPlaceholderText(str(current_range[0]))
-        self.lineedit_min.setToolTip("Enter absolute value or percentile.")
+        self.lineedit_min.setToolTip("Percentile for minium colormap value.")
         self.lineedit_min.setValidator(
-            IntOrPercentValidator(min_int=0, parent=self))
+            PercentValidator(parent=self.lineedit_min))
         self.lineedit_max = QtWidgets.QLineEdit()
         self.lineedit_max.setPlaceholderText(str(current_range[1]))
         self.lineedit_min.setValidator(
-            IntOrPercentValidator(min_int=0, parent=self))
-        self.lineedit_max.setToolTip("Enter absolute value or percentile.")
+            PercentValidator(parent=self.lineedit_max))
+        self.lineedit_max.setToolTip("Percentile for maximum colormap value.")
 
         form_layout = QtWidgets.QFormLayout()
         form_layout.addRow("Minimum:", self.lineedit_min)
@@ -90,24 +118,34 @@ class ColorRangeDialog(OkApplyCancelDialog):
         main_layout.addWidget(self.button_box)
         self.setLayout(main_layout)
 
-    def getRangeAsFloatOrPercent(self):
-        minimum = self.lineedit_min.text()
-        if len(minimum) == 0:
-            minimum = self.range[0]
-        elif not minimum.endswith('%'):
-            minimum = int(minimum)
-        maximum = self.lineedit_max.text()
-        if len(maximum) == 0:
-            maximum = self.range[1]
-        elif not maximum.endswith('%'):
-            maximum = int(maximum)
+    # def getRangeAsFloatOrPercent(self):
+    #     minimum = self.lineedit_min.text()
+    #     if len(minimum) == 0:
+    #         minimum = self.range[0]
+    #     elif not minimum.endswith('%'):
+    #         minimum = int(minimum)
+    #     maximum = self.lineedit_max.text()
+    #     if len(maximum) == 0:
+    #         maximum = self.range[1]
+    #     elif not maximum.endswith('%'):
+    #         maximum = int(maximum)
 
-        return (minimum, maximum)
+    #     return (minimum, maximum)
 
     def apply(self):
-        cmap_range = self.getRangeAsFloatOrPercent()
+        min_text, max_text = self.lineedit_min.text(), self.lineedit_max.text()
+        cmap_range = [min_text if min_text != "" else self.range[0],
+                      max_text if max_text != "" else self.range[1]]
         self.parent().viewconfig['cmap_range'] = cmap_range
         self.parent().draw()
+
+    def accept(self):
+        min_text, max_text = self.lineedit_min.text(), self.lineedit_max.text()
+        if min_text != "":
+            self.range[0] = min_text
+        if max_text != "":
+            self.range[1] = max_text
+        super().accept()
 
 
 class CalibrationDialog(OkApplyCancelDialog):
