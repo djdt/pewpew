@@ -15,6 +15,7 @@ import os.path
 import traceback
 
 VERSION = "0.2.0"
+
 # TODO implement a smart way to open docks
 # check height / width and number to open, can we split them and not violate
 # minimum size?
@@ -75,10 +76,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu_file.addSeparator()
 
+        action_close = menu_file.addAction(
+            QtGui.QIcon.fromTheme('edit-delete'), 'Close All')
+        action_close.setStatusTip('Close all open images.')
+        action_close.setShortcut('Ctrl+X')
+        action_close.triggered.connect(self.menuCloseAll)
+
+        menu_file.addSeparator()
+
         action_exit = menu_file.addAction(
             QtGui.QIcon.fromTheme('application-exit'), "E&xit")
         action_exit.setStatusTip("Quit the program.")
-        action_exit.setShortcut("Ctrl+X")
+        action_exit.setShortcut("Ctrl+Q")
         action_exit.triggered.connect(self.menuExit)
 
         # Edit
@@ -183,13 +192,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 QtWidgets.QMessageBox.warning(
                     self, "Open Failed",
                     f"Invalid file type \"{os.path.basename(path)}\".")
+        docks = []
         for ld in lds:
             if type(ld) == KrissKrossData:
-                dock = KrissKrossImageDock(ld, self.dockarea)
+                docks.append(KrissKrossImageDock(ld, self.dockarea))
             else:
-                dock = LaserImageDock(ld, self.dockarea)
-            self.dockarea.addDockWidget(dock)
-            dock.draw()
+                docks.append(LaserImageDock(ld, self.dockarea))
+        self.dockarea.addDockWidgets(docks)
 
     def menuSaveAll(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
@@ -207,8 +216,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if path.lower().endswith('.b'):
             ld = importAgilentBatch(path, self.config)
             dock = LaserImageDock(ld, self.dockarea)
-            self.dockarea.addDockWidget(dock)
-            dock.draw()
+            self.dockarea.addDockWidgets([dock])
         else:
             QtWidgets.QMessageBox.warning(
                 self, "Import Failed",
@@ -220,23 +228,28 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if len(paths) == 0:
             return
+        docks = []
         for path in paths:
             if path.lower().endswith('.csv'):
                 ld = importThermoiCapCSV(path, config=self.config)
-                dock = LaserImageDock(ld, self.dockarea)
-                self.dockarea.addDockWidget(dock)
-                dock.draw()
+                docks.append(LaserImageDock(ld, self.dockarea))
             else:
                 QtWidgets.QMessageBox.warning(
                     self, "Import Failed",
                     f"Invalid file format for \"{os.path.basename(path)}\".")
+                break
+
+        self.dockarea.addDockWidgets(docks)
 
     def menuImportKrissKross(self):
         kkw = KrissKrossWizard(self.config, parent=self)
         if kkw.exec():
             dock = KrissKrossImageDock(kkw.data, self.dockarea)
-            self.dockarea.addDockWidget(dock)
-            dock.draw()
+            self.dockarea.addDockWidgets([dock])
+
+    def menuCloseAll(self):
+        for dock in self.dockarea.findChildren(ImageDock):
+            dock.close()
 
     def menuExit(self):
         self.close()
