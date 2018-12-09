@@ -162,17 +162,7 @@ class ImageDock(QtWidgets.QDockWidget):
     def onMenuCopy(self):
         dock_copy = type(self)(self.laser, self.parent())
         dock_copy.draw()
-        # Split in direction with most space
-        size = self.size()
-        minsize = self.minimumSizeHint()
-        if size.width() > size.height() and size.width() > 2 * minsize.width():
-            self.parent().splitDockWidget(self, dock_copy,
-                                          QtCore.Qt.Horizontal)
-        elif size.height() > 2 * minsize.height():
-            self.parent().splitDockWidget(self, dock_copy, QtCore.Qt.Vertical)
-        # Split only if there is enough space
-        else:
-            self.parent().tabifyDockWidget(self, dock_copy)
+        self.parent().smartSplitDock(self, dock_copy)
 
     def onMenuSave(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
