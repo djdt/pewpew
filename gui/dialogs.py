@@ -1,43 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import os.path
 
-#######################
-#  Colorrange dialog  #
-#######################
-
-
-class IntOrPercentValidator(QtGui.QIntValidator):
-    def __init__(self, min_int=None, max_int=None, parent=None):
-        super().__init__(parent)
-        self.min_int = min_int
-        self.max_int = max_int
-
-    def validate(self, input, pos):
-        if len(input) == 0:
-            return (QtGui.QValidator.Intermediate, input, pos)
-
-        if input.endswith('%'):
-            if input.count('%') > 1:
-                return (QtGui.QValidator.Invalid, input, pos)
-            min_int = 0
-            max_int = 100
-        else:
-            min_int = self.min_int
-            max_int = self.max_int
-
-        try:
-            i = int(input.rstrip('%'))
-        except ValueError:
-            return (QtGui.QValidator.Invalid, input, pos)
-
-        if min_int is not None and i < min_int:
-            return (QtGui.QValidator.Intermediate, input, pos)
-
-        if max_int is not None and i > max_int:
-            return (QtGui.QValidator.Invalid, input, pos)
-
-        return (QtGui.QValidator.Acceptable, input, pos)
-
 
 class PercentValidator(QtGui.QValidator):
     def __init__(self, min_value=0, max_value=100, parent=None):
@@ -118,24 +81,12 @@ class ColorRangeDialog(OkApplyCancelDialog):
         main_layout.addWidget(self.button_box)
         self.setLayout(main_layout)
 
-    # def getRangeAsFloatOrPercent(self):
-    #     minimum = self.lineedit_min.text()
-    #     if len(minimum) == 0:
-    #         minimum = self.range[0]
-    #     elif not minimum.endswith('%'):
-    #         minimum = int(minimum)
-    #     maximum = self.lineedit_max.text()
-    #     if len(maximum) == 0:
-    #         maximum = self.range[1]
-    #     elif not maximum.endswith('%'):
-    #         maximum = int(maximum)
-
-    #     return (minimum, maximum)
-
     def apply(self):
         min_text, max_text = self.lineedit_min.text(), self.lineedit_max.text()
-        cmap_range = [min_text if min_text != "" else self.range[0],
-                      max_text if max_text != "" else self.range[1]]
+        cmap_range = [
+            min_text if min_text != "" else self.range[0],
+            max_text if max_text != "" else self.range[1]
+        ]
         self.parent().viewconfig['cmap_range'] = cmap_range
         self.parent().draw()
 
@@ -145,7 +96,6 @@ class ColorRangeDialog(OkApplyCancelDialog):
             self.range[0] = min_text
         if max_text != "":
             self.range[1] = max_text
-        print(self.range)
         super().accept()
 
 

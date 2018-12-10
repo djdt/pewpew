@@ -14,12 +14,16 @@ from util.exporter import exportNpz
 import os.path
 import traceback
 
-# TODO implement a smart way to open docks
-# check height / width and number to open, can we split them and not violate
-# minimum size?
-
 
 class MainWindow(QtWidgets.QMainWindow):
+    INTERPOLATIONS = ['none', 'bilinear', 'bicubic', 'gaussian', 'lanczos']
+    DEFAULT_VIEW_CONFIG = {
+        'cmap': 'magma',
+        'interpolation': 'bilinear',
+        'cmap_range': ['2%', '98%'],
+        'fontsize': 10,
+    }
+
     def __init__(self, version):
         super().__init__()
 
@@ -27,7 +31,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Defaults for when applying to multiple images
         self.config = LaserData.DEFAULT_CONFIG
-        self.viewconfig = ImageDock.DEFAULT_VIEW_CONFIG
+        self.viewconfig = MainWindow.DEFAULT_VIEW_CONFIG
 
         self.setWindowTitle("Pew Pew")
         self.resize(1280, 800)
@@ -138,10 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_interp = menu_view.addMenu("&Interpolation")
         menu_interp.setStatusTip("Interpolation of displayed images.")
         interp_group = QtWidgets.QActionGroup(menu_interp)
-        for interp in [
-                'none', 'nearest', 'bilinear', 'bicubic', 'spline16',
-                'spline36', 'gaussian'
-        ]:
+        for interp in MainWindow.INTERPOLATIONS:
             action = interp_group.addAction(interp)
             action.setCheckable(True)
             if interp == self.viewconfig['interpolation']:

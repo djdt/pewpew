@@ -36,13 +36,6 @@ class Canvas(FigureCanvasQTAgg):
 
 
 class ImageDock(QtWidgets.QDockWidget):
-    DEFAULT_VIEW_CONFIG = {
-        'cmap': 'magma',
-        'interpolation': 'none',
-        'cmap_range': ['2%', '98%'],
-        'fontsize': 10,
-    }
-
     def __init__(self, parent=None):
 
         self.laser = None
