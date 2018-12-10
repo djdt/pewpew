@@ -61,9 +61,8 @@ def plotLaserImage(
     if label is not None and label is not "":
         text = AnchoredText(
             label,
-            'upper left',
             pad=0.2,
-            borderpad=0.4,
+            borderpad=0.1,
             frameon=False,
             prop={
                 'color': 'white',
