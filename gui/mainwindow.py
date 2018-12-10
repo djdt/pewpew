@@ -124,7 +124,7 @@ class MainWindow(QtWidgets.QMainWindow):
             action = cmap_group.addAction(name)
             if print_safe:
                 description += " Print safe."
-            elif cb_safe:
+            if cb_safe:
                 description += " Colorblind safe."
             action.setStatusTip(description)
             action.setCheckable(True)
