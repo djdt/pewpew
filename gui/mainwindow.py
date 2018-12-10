@@ -14,16 +14,16 @@ from util.exporter import exportNpz
 import os.path
 import traceback
 
-VERSION = "0.2.0"
-
 # TODO implement a smart way to open docks
 # check height / width and number to open, can we split them and not violate
 # minimum size?
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    def __init__(self):
+    def __init__(self, version):
         super().__init__()
+
+        self.version = version
 
         # Defaults for when applying to multiple images
         self.config = LaserData.DEFAULT_CONFIG
@@ -325,7 +325,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.about(
             self, "About Laser plot",
             ("Visualiser / converter for LA-ICP-MS data.\n"
-             f"Version {VERSION}\n"
+             f"Version {self.version}\n"
              "Developed by the UTS Elemental Bio-Imaging Group.\n"
              "https://github.com/djdt/pewpew"))
 
