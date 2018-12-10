@@ -15,16 +15,15 @@ ppSpectral = LinearSegmentedColormap.from_list(
                    (0.835294, 0.243137, 0.309804),
                    (0.619608, 0.003922, 0.258824)])
 
-
 register_cmap('ppSpectral', cmap=ppSpectral)
 
-COLORMAPS = [('Viridis', 'viridis', True, True,
+COLORMAPS = [('Magma', 'magma', True, True,
               'Perceptually uniform colormap from R.'),
-             ('Magma', 'magma', True, True,
+             ('Viridis', 'viridis', True, True,
               'Perceptually uniform colormap from R.'),
              ('Blue Red', 'RdBu_r', False, True,
               'Diverging colormap from colorbrewer.'),
              ('Blue Yellow Red', 'RdYlBu_r', False, True,
               'Diverging colormap from colorbrewer.'),
              ('PP Spectral', 'ppSpectral', False, False,
-              'Custom colormap based on colorbrewer.')]
+              'Custom rainbow colormap based on colorbrewer Spectral.')]
