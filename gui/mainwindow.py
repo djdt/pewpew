@@ -16,10 +16,10 @@ import traceback
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    INTERPOLATIONS = ['none', 'bilinear', 'bicubic', 'gaussian', 'lanczos']
+    INTERPOLATIONS = ['none', 'bilinear', 'bicubic', 'gaussian', 'spline16']
     DEFAULT_VIEW_CONFIG = {
         'cmap': 'magma',
-        'interpolation': 'bilinear',
+        'interpolation': 'none',
         'cmap_range': ['2%', '98%'],
         'fontsize': 10,
     }
