@@ -296,7 +296,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
 
     def menuColormapRange(self):
-        dlg = ColorRangeDialog(self.viewconfig['cmap_range'], self)
+        dlg = ColorRangeDialog(self.viewconfig['cmap_range'], parent=self)
         if dlg.exec():
             self.viewconfig['cmap_range'] = dlg.range
             self.draw()

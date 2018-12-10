@@ -29,6 +29,7 @@ def plotLaserImage(
         aspect = 'auto'
         extent = (0, data.shape[1], 0, data.shape[0])
 
+    print(vmin, vmax)
     if type(vmin) == str:
         vmin = np.percentile(data, float(vmin.rstrip('%')))
     if type(vmax) == str:

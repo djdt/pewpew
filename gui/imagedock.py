@@ -24,8 +24,8 @@ class Canvas(FigureCanvasQTAgg):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
                            QtWidgets.QSizePolicy.Expanding)
 
-        self.rubber_band = None
-        self.rubber_band_origin = QtCore.QSize()
+        # self.rubber_band = None
+        # self.rubber_band_origin = QtCore.QSize()
 
     def sizeHint(self):
         w, h = self.get_width_height()
@@ -39,7 +39,7 @@ class ImageDock(QtWidgets.QDockWidget):
     DEFAULT_VIEW_CONFIG = {
         'cmap': 'magma',
         'interpolation': 'none',
-        'cmap_range': ('2%', '98%'),
+        'cmap_range': ['2%', '98%'],
         'fontsize': 10,
     }
 

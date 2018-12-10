@@ -145,6 +145,7 @@ class ColorRangeDialog(OkApplyCancelDialog):
             self.range[0] = min_text
         if max_text != "":
             self.range[1] = max_text
+        print(self.range)
         super().accept()
 
 
