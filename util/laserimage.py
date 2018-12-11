@@ -53,6 +53,7 @@ def plotLaserImage(
         scalebar = ScaleBar(
             1.0,
             'um',
+            location='upper right',
             frameon=False,
             color='white',
             font_properties={'size': fontsize})
@@ -61,6 +62,7 @@ def plotLaserImage(
     if label is not None and label is not "":
         text = AnchoredText(
             label,
+            'upper left',
             pad=0.2,
             borderpad=0.1,
             frameon=False,
