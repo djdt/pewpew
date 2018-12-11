@@ -28,7 +28,7 @@ def importCsv(path, config_override=None, calibration=None):
         data=structured,
         config=config,
         calibration=calibration,
-        name=os.path.splitext(os.path.basename(path))[1],
+        name=os.path.splitext(os.path.basename(path))[0],
         source=path,
     )
 
@@ -55,7 +55,7 @@ def importNpz(path, config_override=None, calibration_override=None):
                 calibration=calibration_override
                 if calibration_override is not None
                 else calibration,
-                name=os.path.splitext(os.path.basename(path))[1],
+                name=os.path.splitext(os.path.basename(path))[0],
                 source=path,
             )
         )
@@ -111,7 +111,7 @@ def importAgilentBatch(path, config, calibration=None):
         data,
         config=config,
         calibration=calibration,
-        name=os.path.splitext(os.path.basename(path))[1],
+        name=os.path.splitext(os.path.basename(path))[0],
         source=path,
     )
 
@@ -208,6 +208,6 @@ def importThermoiCapCSV(path, config, calibration=None):
         structured,
         config=config,
         calibration=calibration,
-        name=os.path.splitext(os.path.basename(path))[1],
+        name=os.path.splitext(os.path.basename(path))[0],
         source=path,
     )
