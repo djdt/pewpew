@@ -31,9 +31,11 @@ class KrissKrossWizard(QtWidgets.QWizard):
                 lds = importNpz(path)
                 if len(lds) > 1:
                     QtWidgets.QMessageBox.warning(
-                        self, "Import Error",
-                        f"Archive \"{os.path.basename(path)}\" "
-                        "contains more than one image.")
+                        self,
+                        "Import Error",
+                        f'Archive "{os.path.basename(path)}" '
+                        "contains more than one image.",
+                    )
                     return
                 layers.append(lds[0])
             # Read the config and calibration from the frist file
@@ -47,10 +49,17 @@ class KrissKrossWizard(QtWidgets.QWizard):
                 layers.append(importAgilentBatch(path, None))
 
         self.data = KrissKrossData(
-            None, config=config, calibration=calibration, source=paths[0])
-        self.data.fromLayers([layer.data for layer in layers],
-                             warmup_time=float(self.field("lineedit_warmup")),
-                             horizontal_first=self.field("check_horizontal"))
+            None,
+            config=config,
+            calibration=calibration,
+            name=os.path.splitext(os.path.basename(paths[0])),
+            source=paths[0],
+        )
+        self.data.fromLayers(
+            [layer.data for layer in layers],
+            warmup_time=float(self.field("lineedit_warmup")),
+            horizontal_first=self.field("check_horizontal"),
+        )
 
         super().accept()
 
@@ -64,7 +73,8 @@ class KrissKrossStartPage(QtWidgets.QWizardPage):
             "This wizard will import SRR-LA-ICP-MS data. To begin, select "
             "the type of data to import. You may then import, reorder and "
             "configure the imported data. Once imported KrissKross image "
-            "configurations cannot be changed.")
+            "configurations cannot be changed."
+        )
         label.setWordWrap(True)
 
         mode_box = QtWidgets.QGroupBox("Data type", self)
@@ -142,44 +152,47 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
     def buttonAdd(self):
         if self.field("radio_numpy"):
             paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", ""
-                "Numpy archives(*.npz);;All files(*)")
+                self, "Select Files", "" "Numpy archives(*.npz);;All files(*)"
+            )
         elif self.field("radio_agilent"):
             path = QtWidgets.QFileDialog.getExistingDirectory(
-                self, "Select Batch", "", QtWidgets.QFileDialog.ShowDirsOnly)
+                self, "Select Batch", "", QtWidgets.QFileDialog.ShowDirsOnly
+            )
             if len(path) == 0:
                 return
             paths = [path]
         elif self.field("radio_thermo"):
             paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", ""
-                "CSV files(*.csv);;All files(*)")
+                self, "Select Files", "" "CSV files(*.csv);;All files(*)"
+            )
 
         for path in paths:
             self.list.addItem(path)
 
     def buttonAddAll(self):
         path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, "Select Directory", "",
-            QtWidgets.QFileDialog.DontUseNativeDialog)
+            self, "Select Directory", "", QtWidgets.QFileDialog.DontUseNativeDialog
+        )
         if len(path) == 0:
             return
         files = os.listdir(path)
         files.sort()
 
-        ext = '.npz'
+        ext = ".npz"
         if self.field("radio_agilent"):
-            ext = '.b'
+            ext = ".b"
         elif self.field("radio_thermo"):
-            ext = '.csv'
+            ext = ".csv"
 
         for f in files:
             if f.lower().endswith(ext):
                 self.list.addItem(os.path.join(path, f))
 
     def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_Delete or \
-           event.key() == QtCore.Qt.Key_Backspace:
+        if (
+            event.key() == QtCore.Qt.Key_Delete
+            or event.key() == QtCore.Qt.Key_Backspace
+        ):
             for item in self.list.selectedItems():
                 self.list.takeItem(self.list.row(item))
         super().keyPressEvent(event)
@@ -206,13 +219,13 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
         self.dconfig = config
 
         self.lineedit_spotsize = QtWidgets.QLineEdit()
-        self.lineedit_spotsize.setPlaceholderText(str(config['spotsize']))
+        self.lineedit_spotsize.setPlaceholderText(str(config["spotsize"]))
         self.lineedit_spotsize.setValidator(QtGui.QDoubleValidator(0, 1e3, 4))
         self.lineedit_speed = QtWidgets.QLineEdit()
-        self.lineedit_speed.setPlaceholderText(str(config['speed']))
+        self.lineedit_speed.setPlaceholderText(str(config["speed"]))
         self.lineedit_speed.setValidator(QtGui.QDoubleValidator(0, 1e3, 4))
         self.lineedit_scantime = QtWidgets.QLineEdit()
-        self.lineedit_scantime.setPlaceholderText(str(config['scantime']))
+        self.lineedit_scantime.setPlaceholderText(str(config["scantime"]))
         self.lineedit_scantime.setValidator(QtGui.QDoubleValidator(0, 1e3, 4))
 
         # Form layout for line edits
@@ -229,9 +242,9 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
     @QtCore.pyqtProperty(QtCore.QVariant)
     def config(self):
         if self.lineedit_spotsize.text() != "":
-            self.dconfig['spotsize'] = float(self.lineedit_spotsize.text())
+            self.dconfig["spotsize"] = float(self.lineedit_spotsize.text())
         if self.lineedit_speed.text() != "":
-            self.dconfig['speed'] = float(self.lineedit_speed.text())
+            self.dconfig["speed"] = float(self.lineedit_speed.text())
         if self.lineedit_scantime.text() != "":
-            self.dconfig['scantime'] = float(self.lineedit_scantime.text())
+            self.dconfig["scantime"] = float(self.lineedit_scantime.text())
         return self.dconfig
