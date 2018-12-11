@@ -208,6 +208,6 @@ def importThermoiCapCSV(path, config, calibration=None):
         structured,
         config=config,
         calibration=calibration,
-        name=os.path.splitext(os.path.basename(path)),
+        name=os.path.splitext(os.path.basename(path))[1],
         source=path,
     )

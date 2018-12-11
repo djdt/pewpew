@@ -52,7 +52,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
             None,
             config=config,
             calibration=calibration,
-            name=os.path.splitext(os.path.basename(paths[0])),
+            name=os.path.splitext(os.path.basename(paths[0]))[1],
             source=paths[0],
         )
         self.data.fromLayers(
