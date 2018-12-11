@@ -15,7 +15,7 @@ def krissKrossLayers(layers, aspect, warmup, horizontal_first=True):
     transformed = []
     for i, layer in enumerate(layers):
         # Trim data of warmup time and excess
-        layer = layer[:, warmup:warmup + length[(i + j) % 2]]
+        layer = layer[:, warmup : warmup + length[(i + j) % 2]]
         # Stretch array
         layer = np.repeat(layer, aspect, axis=0)
         # Flip vertical layers and trim
@@ -33,22 +33,17 @@ def krissKrossLayers(layers, aspect, warmup, horizontal_first=True):
 
 
 class KrissKrossData(LaserData):
-    def __init__(self, data=None, config=None, calibration=None, source=""):
+    def __init__(self, data=None, config=None, calibration=None, name="", source=""):
         super().__init__(
-            data=data, config=config, calibration=calibration, source=source)
+            data=data, config=config, calibration=calibration, name=name, source=source
+        )
 
     def fromLayers(self, layers, warmup_time=13.0, horizontal_first=True):
-        warmup = int(warmup_time / self.config['scantime'])
-        self.data = krissKrossLayers(layers, self.aspect(), warmup,
-                                     horizontal_first)
+        warmup = int(warmup_time / self.config["scantime"])
+        self.data = krissKrossLayers(layers, self.aspect(), warmup, horizontal_first)
 
-    def get(self,
-            isotope=None,
-            calibrated=False,
-            trimmed=False,
-            flattened=True):
-        data = super().get(
-            isotope=isotope, calibrated=calibrated, trimmed=trimmed)
+    def get(self, isotope=None, calibrated=False, trimmed=False, flattened=True):
+        data = super().get(isotope=isotope, calibrated=calibrated, trimmed=trimmed)
         if flattened:
             data = np.mean(data, axis=2)
         return data
@@ -62,7 +57,9 @@ class KrissKrossData(LaserData):
                     data=data,
                     config=self.config,
                     calibration=self.calibration,
-                    source=self.source))
+                    source=self.source,
+                )
+            )
         return lds
 
     def extent(self, trimmed=False):
