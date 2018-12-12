@@ -8,7 +8,7 @@ from gui.imagedock import ImageDock, LaserImageDock, KrissKrossImageDock
 from util.colormaps import COLORMAPS
 from util.laser import LaserData
 from util.krisskross import KrissKrossData
-from util.importer import importNpz, importAgilentBatch, importThermoiCapCSV
+from util.importer import importCsv, importNpz, importAgilentBatch, importThermoiCapCSV
 from util.exporter import exportNpz
 
 import os.path
@@ -101,11 +101,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Edit
         menu_edit = self.menuBar().addMenu("&Edit")
-        # action_calibration = menu_edit.addAction(
-        #     QtGui.QIcon.fromTheme('go-top'), "&Calibration")
-        # action_calibration.setStatusTip(
-        #     "Update the calibrations for visible images.")
-        # action_calibration.triggered.connect(self.menuCalibration)
         action_config = menu_edit.addAction(
             QtGui.QIcon.fromTheme("document-properties"), "&Config"
         )
@@ -186,7 +181,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuOpen(self):
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-            self, "Open File(s).", "", "Numpy Archives(*.npz);;All files(*)"
+            self,
+            "Open File(s).",
+            "",
+            "CSV files(*.csv);;Numpy Archives(*.npz);;All files(*)",
+            "All files(*)",
         )
         lds = []
         if len(paths) == 0:
@@ -196,8 +195,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if ext == ".npz":
                 lds += importNpz(path)
             elif ext == ".csv":
-                pass
-                # lds.append(importCsv(path))
+                lds.append(importCsv(path))
             else:
                 QtWidgets.QMessageBox.warning(
                     self,
@@ -222,19 +220,32 @@ class MainWindow(QtWidgets.QMainWindow):
         exportNpz(path, lds)
 
     def menuImportAgilent(self):
-        path = QtWidgets.QFileDialog.getExistingDirectory(self, "Batch Directory", "")
-        if path == "":
+        # Multiple directory select dialog
+        dlg = QtWidgets.QFileDialog(self, "Batch Directories", "")
+        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
+        dlg.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
+        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+        for view in dlg.findChildren((QtWidgets.QListView, QtWidgets.QTreeView)):
+            if isinstance(view.model(), QtWidgets.QFileSystemModel):
+                view.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+
+        if dlg.exec():
+            paths = dlg.selectedFiles()
+        if len(paths) == 0:
             return
-        if path.lower().endswith(".b"):
-            ld = importAgilentBatch(path, self.config)
-            dock = LaserImageDock(ld, self.dockarea)
-            self.dockarea.addDockWidgets([dock])
-        else:
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Import Failed",
-                f'Invalid batch directory "{os.path.basename(path)}".',
-            )
+        docks = []
+        for path in paths:
+            if path.lower().endswith(".b"):
+                ld = importAgilentBatch(path, self.config)
+                docks.append(LaserImageDock(ld, self.dockarea))
+            else:
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Import Failed",
+                    f'Invalid batch directory "{os.path.basename(path)}".',
+                )
+                break
+        self.dockarea.addDockWidgets(docks)
 
     def menuImportThermoiCap(self):
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
@@ -255,7 +266,6 @@ class MainWindow(QtWidgets.QMainWindow):
                     f'Invalid file format for "{os.path.basename(path)}".',
                 )
                 break
-
         self.dockarea.addDockWidgets(docks)
 
     def menuImportKrissKross(self):
