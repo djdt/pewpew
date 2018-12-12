@@ -6,15 +6,16 @@ class TabbedDocks(QtWidgets.QMainWindow):
         super().__init__(parent)
 
         self.setDockNestingEnabled(True)
-        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
-                           QtWidgets.QSizePolicy.Expanding)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
 
     def orderedDocks(self, docks):
         """Returns docks sorted by leftmost / topmost."""
         return sorted(
             docks,
-            key=
-            lambda x: (x.geometry().topLeft().x(), x.geometry().topLeft().y()))
+            key=lambda x: (x.geometry().topLeft().x(), x.geometry().topLeft().y()),
+        )
 
     def largestDock(self, docks):
         largest = 0
@@ -40,9 +41,9 @@ class TabbedDocks(QtWidgets.QMainWindow):
         for dock in docks[1:]:
             super().addDockWidget(area, dock)
             self.smartSplitDock(
-                self.largestDock(
-                    [d for d in docks if not d.visibleRegion().isEmpty()]),
-                dock)
+                self.largestDock([d for d in docks if not d.visibleRegion().isEmpty()]),
+                dock,
+            )
             dock.draw()
             dock.show()
 

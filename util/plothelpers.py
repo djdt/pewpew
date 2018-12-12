@@ -20,12 +20,13 @@ def coords2index(im, x, y, inverted=False):
     i, j : Index coordinates of the array associated with the image.
     """
     xmin, xmax, ymin, ymax = im.get_extent()
-    if im.origin == 'upper':
+    if im.origin == "upper":
         ymin, ymax = ymax, ymin
     data_extent = mtransforms.Bbox([[ymin, xmin], [ymax, xmax]])
     array_extent = mtransforms.Bbox([[0, 0], im.get_array().shape[:2]])
-    trans = mtransforms.BboxTransformFrom(data_extent) + \
-        mtransforms.BboxTransformTo(array_extent)
+    trans = mtransforms.BboxTransformFrom(data_extent) + mtransforms.BboxTransformTo(
+        array_extent
+    )
 
     if inverted:
         trans = trans.inverted()

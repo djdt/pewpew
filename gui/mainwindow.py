@@ -16,12 +16,12 @@ import traceback
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    INTERPOLATIONS = ['none', 'bilinear', 'bicubic', 'gaussian', 'spline16']
+    INTERPOLATIONS = ["none", "bilinear", "bicubic", "gaussian", "spline16"]
     DEFAULT_VIEW_CONFIG = {
-        'cmap': 'magma',
-        'interpolation': 'none',
-        'cmap_range': ['2%', '98%'],
-        'fontsize': 10,
+        "cmap": "magma",
+        "interpolation": "none",
+        "cmap_range": ["2%", "98%"],
+        "fontsize": 10,
     }
 
     def __init__(self, version):
@@ -52,13 +52,15 @@ class MainWindow(QtWidgets.QMainWindow):
         # File
         menu_file = self.menuBar().addMenu("&File")
         action_open = menu_file.addAction(
-            QtGui.QIcon.fromTheme('document-open'), "&Open")
+            QtGui.QIcon.fromTheme("document-open"), "&Open"
+        )
         action_open.setShortcut("Ctrl+O")
         action_open.setStatusTip("Open images.")
         action_open.triggered.connect(self.menuOpen)
 
         action_save = menu_file.addAction(
-            QtGui.QIcon.fromTheme('document-save'), "&Save All")
+            QtGui.QIcon.fromTheme("document-save"), "&Save All"
+        )
         action_save.setShortcut("Ctrl+S")
         action_save.setStatusTip("Save all images to an archive.")
         action_save.triggered.connect(self.menuSaveAll)
@@ -71,7 +73,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         action_import = menu_import.addAction("&Thermo iCap CSV")
         action_import.setStatusTip(
-            "Import data exported using the CSV export function.")
+            "Import data exported using the CSV export function."
+        )
         action_import.triggered.connect(self.menuImportThermoiCap)
 
         action_import = menu_import.addAction("&Kriss Kross...")
@@ -81,15 +84,17 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_file.addSeparator()
 
         action_close = menu_file.addAction(
-            QtGui.QIcon.fromTheme('edit-delete'), 'Close All')
-        action_close.setStatusTip('Close all open images.')
-        action_close.setShortcut('Ctrl+X')
+            QtGui.QIcon.fromTheme("edit-delete"), "Close All"
+        )
+        action_close.setStatusTip("Close all open images.")
+        action_close.setShortcut("Ctrl+X")
         action_close.triggered.connect(self.menuCloseAll)
 
         menu_file.addSeparator()
 
         action_exit = menu_file.addAction(
-            QtGui.QIcon.fromTheme('application-exit'), "E&xit")
+            QtGui.QIcon.fromTheme("application-exit"), "E&xit"
+        )
         action_exit.setStatusTip("Quit the program.")
         action_exit.setShortcut("Ctrl+Q")
         action_exit.triggered.connect(self.menuExit)
@@ -102,13 +107,13 @@ class MainWindow(QtWidgets.QMainWindow):
         #     "Update the calibrations for visible images.")
         # action_calibration.triggered.connect(self.menuCalibration)
         action_config = menu_edit.addAction(
-            QtGui.QIcon.fromTheme('document-properties'), "&Config")
+            QtGui.QIcon.fromTheme("document-properties"), "&Config"
+        )
         action_config.setStatusTip("Update the configs for visible images.")
         action_config.setShortcut("Ctrl+K")
         action_config.triggered.connect(self.menuConfig)
 
-        action_trim = menu_edit.addAction(
-            QtGui.QIcon.fromTheme('edit-cut'), "&Trim")
+        action_trim = menu_edit.addAction(QtGui.QIcon.fromTheme("edit-cut"), "&Trim")
         action_trim.setStatusTip("Update trim for visible images.")
         action_trim.setShortcut("Ctrl+T")
         action_trim.triggered.connect(self.menuTrim)
@@ -128,14 +133,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 description += " Colorblind safe."
             action.setStatusTip(description)
             action.setCheckable(True)
-            if cmap == self.viewconfig['cmap']:
+            if cmap == self.viewconfig["cmap"]:
                 action.setChecked(True)
             menu_cmap.addAction(action)
         cmap_group.triggered.connect(self.menuColormap)
         menu_cmap.addSeparator()
         action_cmap_range = menu_cmap.addAction("Range...")
         action_cmap_range.setStatusTip(
-            "Set the minimum and maximum values of the colormap.")
+            "Set the minimum and maximum values of the colormap."
+        )
         action_cmap_range.triggered.connect(self.menuColormapRange)
 
         # View - interpolation
@@ -145,7 +151,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for interp in MainWindow.INTERPOLATIONS:
             action = interp_group.addAction(interp)
             action.setCheckable(True)
-            if interp == self.viewconfig['interpolation']:
+            if interp == self.viewconfig["interpolation"]:
                 action.setChecked(True)
             menu_interp.addAction(action)
         interp_group.triggered.connect(self.menuInterpolation)
@@ -157,14 +163,16 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_view.addSeparator()
 
         action_refresh = menu_view.addAction(
-            QtGui.QIcon.fromTheme('view-refresh'), "Refresh")
+            QtGui.QIcon.fromTheme("view-refresh"), "Refresh"
+        )
         action_refresh.setStatusTip("Redraw all images.")
         action_refresh.setShortcut("F5")
         action_refresh.triggered.connect(self.menuRefresh)
         # Help
         menu_help = self.menuBar().addMenu("&Help")
         action_about = menu_help.addAction(
-            QtGui.QIcon.fromTheme('help-about'), "&About")
+            QtGui.QIcon.fromTheme("help-about"), "&About"
+        )
         action_about.setStatusTip("About this program.")
         action_about.triggered.connect(self.menuAbout)
 
@@ -178,21 +186,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuOpen(self):
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-            self, "Open File(s).", "", "Numpy Archives(*.npz);;All files(*)")
+            self, "Open File(s).", "", "Numpy Archives(*.npz);;All files(*)"
+        )
         lds = []
         if len(paths) == 0:
             return
         for path in paths:
             ext = os.path.splitext(path)[1].lower()
-            if ext == '.npz':
+            if ext == ".npz":
                 lds += importNpz(path)
-            elif ext == '.csv':
+            elif ext == ".csv":
                 pass
                 # lds.append(importCsv(path))
             else:
                 QtWidgets.QMessageBox.warning(
-                    self, "Open Failed",
-                    f"Invalid file type \"{os.path.basename(path)}\".")
+                    self,
+                    "Open Failed",
+                    f'Invalid file type "{os.path.basename(path)}".',
+                )
         docks = []
         for ld in lds:
             if type(ld) == KrissKrossData:
@@ -203,41 +214,46 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuSaveAll(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save File", "", "Numpy archives(*.npz);;All files(*)")
+            self, "Save File", "", "Numpy archives(*.npz);;All files(*)"
+        )
         if path == "":
             return
         lds = [d.laser for d in self.dockarea.findChildren(ImageDock)]
         exportNpz(path, lds)
 
     def menuImportAgilent(self):
-        path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, "Batch Directory", "")
+        path = QtWidgets.QFileDialog.getExistingDirectory(self, "Batch Directory", "")
         if path == "":
             return
-        if path.lower().endswith('.b'):
+        if path.lower().endswith(".b"):
             ld = importAgilentBatch(path, self.config)
             dock = LaserImageDock(ld, self.dockarea)
             self.dockarea.addDockWidgets([dock])
         else:
             QtWidgets.QMessageBox.warning(
-                self, "Import Failed",
-                f"Invalid batch directory \"{os.path.basename(path)}\".")
+                self,
+                "Import Failed",
+                f'Invalid batch directory "{os.path.basename(path)}".',
+            )
 
     def menuImportThermoiCap(self):
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-            self, "CSV files(*.csv);;All files(*)", "")
+            self, "CSV files(*.csv);;All files(*)", ""
+        )
 
         if len(paths) == 0:
             return
         docks = []
         for path in paths:
-            if path.lower().endswith('.csv'):
+            if path.lower().endswith(".csv"):
                 ld = importThermoiCapCSV(path, config=self.config)
                 docks.append(LaserImageDock(ld, self.dockarea))
             else:
                 QtWidgets.QMessageBox.warning(
-                    self, "Import Failed",
-                    f"Invalid file format for \"{os.path.basename(path)}\".")
+                    self,
+                    "Import Failed",
+                    f'Invalid file format for "{os.path.basename(path)}".',
+                )
                 break
 
         self.dockarea.addDockWidgets(docks)
@@ -258,27 +274,29 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuConfig(self):
         dlg = ConfigDialog(self.config, parent=self)
         # Remove the apply button
-        dlg.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.Ok
-                                          | QtWidgets.QDialogButtonBox.Cancel)
+        dlg.button_box.setStandardButtons(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+        )
         if dlg.exec():
-            self.config['spotsize'] = dlg.spotsize
-            self.config['speed'] = dlg.speed
-            self.config['scantime'] = dlg.scantime
+            self.config["spotsize"] = dlg.spotsize
+            self.config["speed"] = dlg.speed
+            self.config["scantime"] = dlg.scantime
             if dlg.check_all.checkState() == QtCore.Qt.Checked:
                 docks = self.dockarea.findChildren(LaserImageDock)
             else:
                 docks = self.dockarea.visibleDocks(LaserImageDock)
             for d in docks:
-                d.laser.config['spotsize'] = dlg.spotsize
-                d.laser.config['speed'] = dlg.speed
-                d.laser.config['scantime'] = dlg.scantime
+                d.laser.config["spotsize"] = dlg.spotsize
+                d.laser.config["speed"] = dlg.speed
+                d.laser.config["scantime"] = dlg.scantime
                 d.draw()
 
     def menuTrim(self):
         dlg = TrimDialog([0, 0], parent=self)
         # Remove the apply button
-        dlg.button_box.setStandardButtons(QtWidgets.QDialogButtonBox.Ok
-                                          | QtWidgets.QDialogButtonBox.Cancel)
+        dlg.button_box.setStandardButtons(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+        )
         if dlg.exec():
             if dlg.check_all.checkState() == QtCore.Qt.Checked:
                 docks = self.dockarea.findChildren(LaserImageDock)
@@ -289,21 +307,21 @@ class MainWindow(QtWidgets.QMainWindow):
                 d.draw()
 
     def menuColormap(self, action):
-        text = action.text().replace('&', '')
+        text = action.text().replace("&", "")
         for name, cmap, _, _, _ in COLORMAPS:
             if name == text:
-                self.viewconfig['cmap'] = cmap
+                self.viewconfig["cmap"] = cmap
                 self.draw()
                 return
 
     def menuColormapRange(self):
-        dlg = ColorRangeDialog(self.viewconfig['cmap_range'], parent=self)
+        dlg = ColorRangeDialog(self.viewconfig["cmap_range"], parent=self)
         if dlg.exec():
-            self.viewconfig['cmap_range'] = dlg.range
+            self.viewconfig["cmap_range"] = dlg.range
             self.draw()
 
     def menuInterpolation(self, action):
-        self.viewconfig['interpolation'] = action.text().replace('&', '')
+        self.viewconfig["interpolation"] = action.text().replace("&", "")
         self.draw()
 
     def menuFontsize(self):
@@ -311,12 +329,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
             "Fontsize",
             "Fontsize",
-            value=self.viewconfig['fontsize'],
+            value=self.viewconfig["fontsize"],
             min=0,
             max=100,
-            step=1)
+            step=1,
+        )
         if ok:
-            self.viewconfig['fontsize'] = fontsize
+            self.viewconfig["fontsize"] = fontsize
             self.draw()
 
     def menuRefresh(self):
@@ -324,17 +343,25 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuAbout(self):
         QtWidgets.QMessageBox.about(
-            self, "About Laser plot",
-            ("Visualiser / converter for LA-ICP-MS data.\n"
-             f"Version {self.version}\n"
-             "Developed by the UTS Elemental Bio-Imaging Group.\n"
-             "https://github.com/djdt/pewpew"))
+            self,
+            "About Laser plot",
+            (
+                "Visualiser / converter for LA-ICP-MS data.\n"
+                f"Version {self.version}\n"
+                "Developed by the UTS Elemental Bio-Imaging Group.\n"
+                "https://github.com/djdt/pewpew"
+            ),
+        )
 
     def exceptHook(self, type, value, trace):
-        dlg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Critical,
-                                    type.__name__, str(value),
-                                    QtWidgets.QMessageBox.NoButton, self)
-        dlg.setDetailedText(''.join(traceback.format_tb(trace)))
+        dlg = QtWidgets.QMessageBox(
+            QtWidgets.QMessageBox.Critical,
+            type.__name__,
+            str(value),
+            QtWidgets.QMessageBox.NoButton,
+            self,
+        )
+        dlg.setDetailedText("".join(traceback.format_tb(trace)))
         tedit = dlg.findChildren(QtWidgets.QTextEdit)
         if tedit[0] is not None:
             tedit[0].setFixedSize(640, 320)

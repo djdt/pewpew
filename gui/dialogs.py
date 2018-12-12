@@ -9,16 +9,16 @@ class PercentValidator(QtGui.QValidator):
         self.max_value = max_value
 
     def validate(self, input, pos):
-        if len(input.rstrip('%')) == 0:
+        if len(input.rstrip("%")) == 0:
             return (QtGui.QValidator.Intermediate, input, pos)
 
-        if not input.endswith('%'):
-            input += '%'
-        elif input.count('%') > 1:
+        if not input.endswith("%"):
+            input += "%"
+        elif input.count("%") > 1:
             return (QtGui.QValidator.Invalid, input, pos)
 
         try:
-            i = int(input.rstrip('%'))
+            i = int(input.rstrip("%"))
         except ValueError:
             return (QtGui.QValidator.Invalid, input, pos)
 
@@ -37,7 +37,9 @@ class OkApplyCancelDialog(QtWidgets.QDialog):
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Cancel
             | QtWidgets.QDialogButtonBox.Ok
-            | QtWidgets.QDialogButtonBox.Apply, self)
+            | QtWidgets.QDialogButtonBox.Apply,
+            self,
+        )
         self.button_box.clicked.connect(self.buttonClicked)
 
     def buttonClicked(self, button):
@@ -63,12 +65,10 @@ class ColorRangeDialog(OkApplyCancelDialog):
         self.lineedit_min = QtWidgets.QLineEdit()
         self.lineedit_min.setPlaceholderText(str(current_range[0]))
         self.lineedit_min.setToolTip("Percentile for minium colormap value.")
-        self.lineedit_min.setValidator(
-            PercentValidator(parent=self.lineedit_min))
+        self.lineedit_min.setValidator(PercentValidator(parent=self.lineedit_min))
         self.lineedit_max = QtWidgets.QLineEdit()
         self.lineedit_max.setPlaceholderText(str(current_range[1]))
-        self.lineedit_min.setValidator(
-            PercentValidator(parent=self.lineedit_max))
+        self.lineedit_min.setValidator(PercentValidator(parent=self.lineedit_max))
         self.lineedit_max.setToolTip("Percentile for maximum colormap value.")
 
         form_layout = QtWidgets.QFormLayout()
@@ -85,9 +85,9 @@ class ColorRangeDialog(OkApplyCancelDialog):
         min_text, max_text = self.lineedit_min.text(), self.lineedit_max.text()
         cmap_range = [
             min_text if min_text != "" else self.range[0],
-            max_text if max_text != "" else self.range[1]
+            max_text if max_text != "" else self.range[1],
         ]
-        self.parent().viewconfig['cmap_range'] = cmap_range
+        self.parent().viewconfig["cmap_range"] = cmap_range
         self.parent().draw()
 
     def accept(self):
@@ -107,12 +107,10 @@ class CalibrationDialog(OkApplyCancelDialog):
 
         # LIne edits
         self.lineedit_gradient = QtWidgets.QLineEdit()
-        self.lineedit_gradient.setValidator(
-            QtGui.QDoubleValidator(-1e10, 1e10, 4))
+        self.lineedit_gradient.setValidator(QtGui.QDoubleValidator(-1e10, 1e10, 4))
         self.lineedit_gradient.setPlaceholderText("1.0")
         self.lineedit_intercept = QtWidgets.QLineEdit()
-        self.lineedit_intercept.setValidator(
-            QtGui.QDoubleValidator(-1e10, 1e10, 4))
+        self.lineedit_intercept.setValidator(QtGui.QDoubleValidator(-1e10, 1e10, 4))
         self.lineedit_intercept.setPlaceholderText("0.0")
         self.lineedit_unit = QtWidgets.QLineEdit()
         self.lineedit_unit.setPlaceholderText("<None>")
@@ -142,18 +140,16 @@ class CalibrationDialog(OkApplyCancelDialog):
     def updateLineEdits(self):
         new = self.combo_isotopes.currentText()
 
-        if new in self.calibration['gradients']:
-            self.lineedit_gradient.setText(
-                str(self.calibration['gradients'][new]))
+        if new in self.calibration["gradients"]:
+            self.lineedit_gradient.setText(str(self.calibration["gradients"][new]))
         else:
             self.lineedit_gradient.clear()
-        if new in self.calibration['intercepts']:
-            self.lineedit_intercept.setText(
-                str(self.calibration['intercepts'][new]))
+        if new in self.calibration["intercepts"]:
+            self.lineedit_intercept.setText(str(self.calibration["intercepts"][new]))
         else:
             self.lineedit_intercept.clear()
-        if new in self.calibration['units']:
-            self.lineedit_unit.setText(str(self.calibration['units'][new]))
+        if new in self.calibration["units"]:
+            self.lineedit_unit.setText(str(self.calibration["units"][new]))
         else:
             self.lineedit_unit.clear()
 
@@ -163,17 +159,17 @@ class CalibrationDialog(OkApplyCancelDialog):
         unit = self.lineedit_unit.text()
 
         if gradient == "" or float(gradient) == 1.0:
-            self.calibration['gradients'].pop(isotope, None)
+            self.calibration["gradients"].pop(isotope, None)
         else:
-            self.calibration['gradients'][isotope] = float(gradient)
+            self.calibration["gradients"][isotope] = float(gradient)
         if intercept == "" or float(intercept) == 0.0:
-            self.calibration['intercepts'].pop(isotope, None)
+            self.calibration["intercepts"].pop(isotope, None)
         else:
-            self.calibration['intercepts'][isotope] = float(intercept)
+            self.calibration["intercepts"][isotope] = float(intercept)
         if unit == "":
-            self.calibration['units'].pop(isotope, None)
+            self.calibration["units"].pop(isotope, None)
         else:
-            self.calibration['units'][isotope] = unit
+            self.calibration["units"][isotope] = unit
 
     def comboChanged(self):
         previous = self.combo_isotopes.itemText(self.previous_index)
@@ -195,9 +191,9 @@ class ConfigDialog(OkApplyCancelDialog):
     def __init__(self, config, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Configuration")
-        self.spotsize = config['spotsize']
-        self.speed = config['speed']
-        self.scantime = config['scantime']
+        self.spotsize = config["spotsize"]
+        self.speed = config["speed"]
+        self.scantime = config["scantime"]
 
         # Line edits
         self.lineedit_spotsize = QtWidgets.QLineEdit()
@@ -234,9 +230,9 @@ class ConfigDialog(OkApplyCancelDialog):
 
     def apply(self):
         self.updateConfig()
-        self.parent().laser.config['spotsize'] = self.spotsize
-        self.parent().laser.config['speed'] = self.speed
-        self.parent().laser.config['scantime'] = self.scantime
+        self.parent().laser.config["spotsize"] = self.spotsize
+        self.parent().laser.config["speed"] = self.speed
+        self.parent().laser.config["scantime"] = self.scantime
         self.parent().draw()
 
     def accept(self):
@@ -258,7 +254,7 @@ class TrimDialog(OkApplyCancelDialog):
         self.lineedit_right.setValidator(QtGui.QIntValidator(0, 1e9))
 
         self.combo_trim = QtWidgets.QComboBox()
-        self.combo_trim.addItems(['rows', 's', 'μm'])
+        self.combo_trim.addItems(["rows", "s", "μm"])
         self.combo_trim.setCurrentIndex(1)
         self.combo_trim.currentIndexChanged.connect(self.comboTrim)
 
@@ -302,12 +298,9 @@ class TrimDialog(OkApplyCancelDialog):
 
 
 class ExportDialog(QtWidgets.QDialog):
-    def __init__(self,
-                 source,
-                 current_isotope,
-                 num_isotopes=1,
-                 num_layers=1,
-                 parent=None):
+    def __init__(
+        self, source, current_isotope, num_isotopes=1, num_layers=1, parent=None
+    ):
         super().__init__(parent)
         self.setWindowTitle("Export")
         self.current_isotope = current_isotope
@@ -319,8 +312,8 @@ class ExportDialog(QtWidgets.QDialog):
         self.lineedit_file = QtWidgets.QLineEdit(default_name)
         self.lineedit_file.setMinimumWidth(300)
         self.lineedit_file.setSizePolicy(
-            QtWidgets.QSizePolicy.MinimumExpanding,
-            QtWidgets.QSizePolicy.Minimum)
+            QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.lineedit_file.textEdited.connect(self.inputChanged)
         button_file = QtWidgets.QPushButton("Select...")
         button_file.pressed.connect(self.onButtonFile)
@@ -339,8 +332,8 @@ class ExportDialog(QtWidgets.QDialog):
             self.check_layers.setEnabled(False)
 
         button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Save
-            | QtWidgets.QDialogButtonBox.Cancel)
+            QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
+        )
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
 
@@ -370,14 +363,18 @@ class ExportDialog(QtWidgets.QDialog):
         return path + ext
 
     def onButtonFile(self):
-        filter = ("CSV files(*.csv);;Numpy archives(*.npz);;"
-                  "PNG images(*.png);;")
+        filter = "CSV files(*.csv);;Numpy archives(*.npz);;" "PNG images(*.png);;"
         if self.num_layers > 1:
             filter += "Rectilinear VTKs(*.vtr);;"
         filter += "All files(*)"
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Export As", self.lineedit_file.text(), filter,
-            "CSV files(*.csv)", QtWidgets.QFileDialog.DontConfirmOverwrite)
+            self,
+            "Export As",
+            self.lineedit_file.text(),
+            filter,
+            "CSV files(*.csv)",
+            QtWidgets.QFileDialog.DontConfirmOverwrite,
+        )
         if path:
             self.lineedit_file.setText(path)
             self.inputChanged()
@@ -389,12 +386,12 @@ class ExportDialog(QtWidgets.QDialog):
     def updateChecks(self):
         ext = os.path.splitext(self.lineedit_file.text())[1].lower()
 
-        if ext == '.vtr':
+        if ext == ".vtr":
             self.check_isotopes.setEnabled(False)
             self.check_isotopes.setChecked(False)
             self.check_layers.setEnabled(False)
             self.check_layers.setChecked(False)
-        elif ext == '.npz':
+        elif ext == ".npz":
             self.check_isotopes.setEnabled(False)
             self.check_isotopes.setChecked(False)
             self.check_layers.setEnabled(False)
@@ -407,7 +404,7 @@ class ExportDialog(QtWidgets.QDialog):
 
     def redrawPreview(self):
         path = self.getPath(
-            isotope=self.current_isotope
-            if self.check_isotopes.isChecked() else None,
-            layer=1 if self.check_layers.isChecked() else None)
+            isotope=self.current_isotope if self.check_isotopes.isChecked() else None,
+            layer=1 if self.check_layers.isChecked() else None,
+        )
         self.lineedit_preview.setText(os.path.basename(path))
