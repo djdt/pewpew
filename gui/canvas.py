@@ -1,6 +1,7 @@
 from PyQt5 import QtCore, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
+import numpy as np
 
 from util.laserimage import plotLaserImage
 from util.plothelpers import coords2value
@@ -12,7 +13,7 @@ class Canvas(FigureCanvasQTAgg):
         self.fig = Figure(frameon=False, tight_layout=True,
                           figsize=(5, 5), dpi=100)
         self.ax = self.fig.add_subplot(111)
-        self.image = None
+        self.image = np.array([], dtype=np.float64)
 
         super().__init__(self.fig)
         self.setParent(parent)
