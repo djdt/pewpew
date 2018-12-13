@@ -231,21 +231,19 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if dlg.exec():
             paths = dlg.selectedFiles()
-        if len(paths) == 0:
-            return
-        docks = []
-        for path in paths:
-            if path.lower().endswith(".b"):
-                ld = importAgilentBatch(path, self.config)
-                docks.append(LaserImageDock(ld, self.dockarea))
-            else:
-                QtWidgets.QMessageBox.warning(
-                    self,
-                    "Import Failed",
-                    f'Invalid batch directory "{os.path.basename(path)}".',
-                )
-                break
-        self.dockarea.addDockWidgets(docks)
+            docks = []
+            for path in paths:
+                if path.lower().endswith(".b"):
+                    ld = importAgilentBatch(path, self.config)
+                    docks.append(LaserImageDock(ld, self.dockarea))
+                else:
+                    QtWidgets.QMessageBox.warning(
+                        self,
+                        "Import Failed",
+                        f'Invalid batch directory "{os.path.basename(path)}".',
+                    )
+                    break
+            self.dockarea.addDockWidgets(docks)
 
     def menuImportThermoiCap(self):
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(

@@ -9,6 +9,24 @@ import numpy as np
 import os.path
 
 
+class ImageDockTitleBar(QtWidgets.QWidget):
+    def __init__(self, title, parent=None):
+        super().__init__(parent)
+
+        label = QtWidgets.QLineEdit(title)
+        label.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(label)
+
+        self.setLayout(layout)
+
+    def mouseDoubleClickEvent(self, event):
+        print("ASDASD")
+
+
 class ImageDock(QtWidgets.QDockWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -31,6 +49,8 @@ class ImageDock(QtWidgets.QDockWidget):
         widget = QtWidgets.QWidget()
         widget.setLayout(layout)
         self.setWidget(widget)
+
+        self.setTitleBarWidget(ImageDockTitleBar("test", self))
 
         # Context menu actions
         self.action_copy = QtWidgets.QAction(
@@ -73,8 +93,6 @@ class ImageDock(QtWidgets.QDockWidget):
         )
         self.action_close.setStatusTip("Close the images.")
         self.action_close.triggered.connect(self.onMenuClose)
-
-        # Canvas actions
 
     def draw(self):
         self.canvas.clear()
