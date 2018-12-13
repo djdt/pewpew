@@ -8,27 +8,11 @@ from util.plothelpers import coords2value
 from util.exporter import exportCsv, exportNpz, exportPng, exportVtr
 from util.formatter import isotopeFormat
 
+from gui.canvas import Canvas
 from gui.dialogs import CalibrationDialog, ConfigDialog, ExportDialog, TrimDialog
 
 import numpy as np
 import os.path
-
-
-class Canvas(FigureCanvasQTAgg):
-    def __init__(self, fig, parent=None):
-        super().__init__(fig)
-        self.setParent(parent)
-        self.setStyleSheet("background-color:transparent;")
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
-        )
-
-    def sizeHint(self):
-        w, h = self.get_width_height()
-        return QtCore.QSize(w, h)
-
-    def minimumSizeHint(self):
-        return QtCore.QSize(250, 250)
 
 
 class ImageDock(QtWidgets.QDockWidget):
@@ -44,9 +28,7 @@ class ImageDock(QtWidgets.QDockWidget):
             | QtWidgets.QDockWidget.DockWidgetMovable
         )
 
-        self.fig = Figure(frameon=False, tight_layout=True, figsize=(5, 5), dpi=100)
-        self.ax = self.fig.add_subplot(111)
-        self.canvas = Canvas(self.fig, self)
+        self.canvas = Canvas(parent=self)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
@@ -106,7 +88,7 @@ class ImageDock(QtWidgets.QDockWidget):
         self.canvas.mpl_connect("axes_leave_event", self.clearStatusBar)
 
     def updateStatusBar(self, e):
-        if e.inaxes == self.ax:
+        if e.inaxes == self.canvas.ax:
             x, y = e.xdata, e.ydata
             v = coords2value(self.image, x, y)
             self.window().statusBar().showMessage(f"{x:.2f},{y:.2f} [{v}]")
@@ -115,15 +97,14 @@ class ImageDock(QtWidgets.QDockWidget):
         self.window().statusBar().clearMessage()
 
     def draw(self):
-        self.fig.clear()
-        self.ax = self.fig.add_subplot(111)
+        self.canvas.clear()
 
         isotope = self.combo_isotope.currentText()
         viewconfig = self.window().viewconfig
 
         self.image = plotLaserImage(
-            self.fig,
-            self.ax,
+            self.canvas.fig,
+            self.canvas.ax,
             self.laser.get(isotope, calibrated=True, trimmed=True),
             colorbar="bottom",
             colorbarlabel=self.laser.calibration["units"].get(isotope, ""),
