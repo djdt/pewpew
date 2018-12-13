@@ -1,12 +1,6 @@
-import re
-
-isore = re.compile(r"(\d*)([A-Z][a-z]*)(\d*)")
-
-
-def isotopeFormat(isotope):
-
-    m = isore.match(isotope)
-    element = m.group(2)
-    mass = m.group(1) if m.group(1) is not "" else m.group(3)
-
+def formatIsotopeTex(isotope):
+    element = isotope.translate(None, "0123456789")
+    mass = isotope.translate(
+        None, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    )
     return f"$^{{{mass}}}${element}"
