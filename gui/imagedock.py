@@ -1,12 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-
-from util.laserimage import plotLaserImage
-from util.plothelpers import coords2value
 from util.exporter import exportCsv, exportNpz, exportPng, exportVtr
-from util.formatter import isotopeFormat
 
 from gui.canvas import Canvas
 from gui.dialogs import CalibrationDialog, ConfigDialog, ExportDialog, TrimDialog
@@ -17,10 +11,6 @@ import os.path
 
 class ImageDock(QtWidgets.QDockWidget):
     def __init__(self, parent=None):
-
-        self.laser = None
-        self.image = np.array([])
-
         super().__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setFeatures(
@@ -28,6 +18,7 @@ class ImageDock(QtWidgets.QDockWidget):
             | QtWidgets.QDockWidget.DockWidgetMovable
         )
 
+        self.laser = None
         self.canvas = Canvas(parent=self)
 
         self.combo_isotope = QtWidgets.QComboBox()
@@ -84,41 +75,12 @@ class ImageDock(QtWidgets.QDockWidget):
         self.action_close.triggered.connect(self.onMenuClose)
 
         # Canvas actions
-        self.canvas.mpl_connect("motion_notify_event", self.updateStatusBar)
-        self.canvas.mpl_connect("axes_leave_event", self.clearStatusBar)
-
-    def updateStatusBar(self, e):
-        if e.inaxes == self.canvas.ax:
-            x, y = e.xdata, e.ydata
-            v = coords2value(self.image, x, y)
-            self.window().statusBar().showMessage(f"{x:.2f},{y:.2f} [{v}]")
-
-    def clearStatusBar(self, e):
-        self.window().statusBar().clearMessage()
 
     def draw(self):
         self.canvas.clear()
-
         isotope = self.combo_isotope.currentText()
         viewconfig = self.window().viewconfig
-
-        self.image = plotLaserImage(
-            self.canvas.fig,
-            self.canvas.ax,
-            self.laser.get(isotope, calibrated=True, trimmed=True),
-            colorbar="bottom",
-            colorbarlabel=self.laser.calibration["units"].get(isotope, ""),
-            label=isotopeFormat(isotope),
-            fontsize=viewconfig["fontsize"],
-            cmap=viewconfig["cmap"],
-            interpolation=viewconfig["interpolation"],
-            vmin=viewconfig["cmap_range"][0],
-            vmax=viewconfig["cmap_range"][1],
-            aspect=self.laser.aspect(),
-            extent=self.laser.extent(trimmed=True),
-        )
-
-        self.canvas.draw()
+        self.canvas.plot(self.laser, isotope, viewconfig)
 
     def buildContextMenu(self):
         context_menu = QtWidgets.QMenu(self)
