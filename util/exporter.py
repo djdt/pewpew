@@ -17,8 +17,9 @@ def exportCsv(path, data, isotope, config):
 
 
 def exportNpz(path, laserdata_list):
-    savedict = {"_type": [], "_config": [], "_calibration": []}
+    savedict = {"_name": [], "_type": [], "_config": [], "_calibration": []}
     for i, ld in enumerate(laserdata_list):
+        savedict["_name"].append(ld.name)
         savedict["_type"].append(type(ld))
         savedict["_config"].append(ld.config)
         savedict["_calibration"].append(ld.calibration)
