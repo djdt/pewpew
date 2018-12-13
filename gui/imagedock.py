@@ -10,21 +10,31 @@ import os.path
 
 
 class ImageDockTitleBar(QtWidgets.QWidget):
+
+    nameChanged = QtCore.pyqtSignal("QString")
+
     def __init__(self, title, parent=None):
         super().__init__(parent)
 
-        label = QtWidgets.QLineEdit(title)
-        label.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
+        self.title = QtWidgets.QLabel(title)
+        self.parent().windowTitleChanged.connect(self.setTitle)
 
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(label)
+        layout.addWidget(self.title)
 
         self.setLayout(layout)
 
+    def setTitle(self, title):
+        if "&" not in title:
+            self.title.setText(title)
+
     def mouseDoubleClickEvent(self, event):
-        print("ASDASD")
+        if self.title.underMouse():
+            name, ok = QtWidgets.QInputDialog.getText(
+                self, "Rename", "Name:", QtWidgets.QLineEdit.Normal, self.title.text()
+            )
+            if ok:
+                self.nameChanged.emit(name)
 
 
 class ImageDock(QtWidgets.QDockWidget):
@@ -50,7 +60,9 @@ class ImageDock(QtWidgets.QDockWidget):
         widget.setLayout(layout)
         self.setWidget(widget)
 
-        self.setTitleBarWidget(ImageDockTitleBar("test", self))
+        self.title_bar = ImageDockTitleBar("test", self)
+        self.title_bar.nameChanged.connect(self.titleNameChanged)
+        self.setTitleBarWidget(self.title_bar)
 
         # Context menu actions
         self.action_copy = QtWidgets.QAction(
@@ -132,11 +144,12 @@ class ImageDock(QtWidgets.QDockWidget):
 
     def onMenuExport(self):
         dlg = ExportDialog(
+            self.laser.name,
             self.laser.source,
             self.combo_isotope.currentText(),
             len(self.laser.isotopes()),
             self.laser.layers(),
-            self,
+            parent=self,
         )
         if dlg.exec() != QtWidgets.QDialog.Accepted:
             return
@@ -192,6 +205,11 @@ class ImageDock(QtWidgets.QDockWidget):
 
     def onComboIsotope(self, text):
         self.draw()
+
+    def titleNameChanged(self, name):
+        self.setWindowTitle(name)
+        if self.laser is not None:
+            self.laser.name = name
 
 
 class LaserImageDock(ImageDock):

@@ -299,7 +299,7 @@ class TrimDialog(OkApplyCancelDialog):
 
 class ExportDialog(QtWidgets.QDialog):
     def __init__(
-        self, source, current_isotope, num_isotopes=1, num_layers=1, parent=None
+        self, name, source, current_isotope, num_isotopes=1, num_layers=1, parent=None
     ):
         super().__init__(parent)
         self.setWindowTitle("Export")
@@ -307,7 +307,7 @@ class ExportDialog(QtWidgets.QDialog):
         self.num_isotopes = num_isotopes
         self.num_layers = num_layers
 
-        default_name = os.path.splitext(source)[0] + ".csv"
+        default_name = os.path.dirname(source) + name + ".csv"
 
         self.lineedit_file = QtWidgets.QLineEdit(default_name)
         self.lineedit_file.setMinimumWidth(300)
