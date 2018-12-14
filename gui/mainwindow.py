@@ -4,6 +4,7 @@ from gui.tabbeddocks import TabbedDocks
 from gui.dialogs import ConfigDialog, ColorRangeDialog, TrimDialog
 from gui.krisskrosswizard import KrissKrossWizard
 from gui.imagedock import ImageDock, LaserImageDock, KrissKrossImageDock
+from gui.tools import CalibrationTool
 
 from util.colormaps import COLORMAPS
 from util.laser import LaserData
@@ -113,6 +114,14 @@ class MainWindow(QtWidgets.QMainWindow):
         action_trim.setShortcut("Ctrl+T")
         action_trim.triggered.connect(self.menuTrim)
 
+        menu_edit.addSeparator()
+
+        action_calibration = menu_edit.addAction(
+            QtGui.QIcon.fromTheme(""), "&Standards"
+        )
+        action_calibration.setStatusTip("Generate calibration curve from a standard.")
+        action_calibration.triggered.connect(self.menuStandardsTool)
+
         # View
         menu_view = self.menuBar().addMenu("&View")
         menu_cmap = menu_view.addMenu("&Colormap")
@@ -163,6 +172,7 @@ class MainWindow(QtWidgets.QMainWindow):
         action_refresh.setStatusTip("Redraw all images.")
         action_refresh.setShortcut("F5")
         action_refresh.triggered.connect(self.menuRefresh)
+
         # Help
         menu_help = self.menuBar().addMenu("&Help")
         action_about = menu_help.addAction(
@@ -313,6 +323,11 @@ class MainWindow(QtWidgets.QMainWindow):
             for d in docks:
                 d.laser.setTrim(dlg.trim, dlg.combo_trim.currentText())
                 d.draw()
+
+    def menuStandardsTool(self):
+        docks = self.dockarea.visibleDocks()
+        dlg = CalibrationTool(docks[0] if len(docks) > 0 else None, parent=self)
+        dlg.exec()
 
     def menuColormap(self, action):
         text = action.text().replace("&", "")
