@@ -35,23 +35,34 @@ def importNpz(path, config_override=None, calibration_override=None):
 
     path -> path to numpy archive
     config_override -> if not None will be applied to all imports
-    calibration -> if not None will be applied to all imports
+    calibration_override -> if not None will be applied to all imports
 
     returns list of LaserData/KrissKrossData"""
     lds = []
     npz = np.load(path)
 
-    for i, key in enumerate(["_name", "_type", "_config", "_calibration"]):
-        name = npz.get("_name", os.path.splitext(os.path.basename(path))[0])
-        type = npz.get("_type", LaserData)
-        if config_override is not None:
-            config = config_override
-        else:
-            config = npz.get("_config", LaserData.DEFAULT_CONFIG)
-        if calibration_override is not None:
-            calibration = calibration_override
-        else:
-            calibration = npz.get("_calibration", LaserData.DEFAULT_CALIBRATION)
+    num_files = sum(1 for d in npz.files if "_data" in d)
+    for i in range(0, num_files):
+        name = (
+            npz["_name"][i]
+            if "_name" in npz.files
+            else os.path.splitext(os.path.basename(path))[0]
+        )
+        type = npz["_type"][i] if "_type" in npz.files else LaserData
+        config = (
+            (npz["_config"][i] if "_config" in npz.files else LaserData.DEFAULT_CONFIG)
+            if config_override is None
+            else config_override
+        )
+        calibration = (
+            (
+                npz["_calibration"][i]
+                if "_calibration" in npz.files
+                else LaserData.DEFAULT_CALIBRATION
+            )
+            if calibration_override is None
+            else calibration_override
+        )
         lds.append(
             type(
                 data=npz[f"_data{i}"],
