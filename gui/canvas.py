@@ -9,7 +9,7 @@ from util.formatter import formatIsotopeTex
 
 
 class Canvas(FigureCanvasQTAgg):
-    def __init__(self, parent=None):
+    def __init__(self, connect_mouse_events=True, parent=None):
         self.fig = Figure(frameon=False, tight_layout=True,
                           figsize=(5, 5), dpi=100)
         self.ax = self.fig.add_subplot(111)
@@ -21,8 +21,9 @@ class Canvas(FigureCanvasQTAgg):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
                            QtWidgets.QSizePolicy.Expanding)
 
-        self.mpl_connect("motion_notify_event", self.updateStatusBar)
-        self.mpl_connect("axes_leave_event", self.clearStatusBar)
+        if connect_mouse_events:
+            self.mpl_connect("motion_notify_event", self.updateStatusBar)
+            self.mpl_connect("axes_leave_event", self.clearStatusBar)
 
     def close(self):
         self.mpl_disconncet("motion_notify_event")
