@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class LaserData(object):
     DEFAULT_CALIBRATION = {"gradients": {}, "intercepts": {}, "units": {}}
     DEFAULT_CONFIG = {
@@ -8,7 +11,9 @@ class LaserData(object):
     }
 
     def __init__(self, data=None, config=None, calibration=None, name="", source=""):
-        self.data = data
+        self.data = (
+            np.array([[0]], dtype=[("NONE", np.float64)]) if data is None else data
+        )
         self.config = LaserData.DEFAULT_CONFIG if config is None else config
         self.calibration = (
             LaserData.DEFAULT_CALIBRATION if calibration is None else calibration
