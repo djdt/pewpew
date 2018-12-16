@@ -1,6 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from gui.tabbeddocks import TabbedDocks
+from gui.dockarea import DockArea
 from gui.dialogs import ConfigDialog, ColorRangeDialog, TrimDialog
 from gui.krisskrosswizard import KrissKrossWizard
 from gui.imagedock import ImageDock, LaserImageDock, KrissKrossImageDock
@@ -41,7 +41,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(widget)
         layout = QtWidgets.QHBoxLayout()
 
-        self.dockarea = TabbedDocks(self)
+        self.dockarea = DockArea(self)
         layout.addWidget(self.dockarea)
 
         widget.setLayout(layout)
@@ -325,9 +325,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 d.draw()
 
     def menuStandardsTool(self):
-        docks = self.dockarea.visibleDocks()
-        dlg = CalibrationTool(docks[0] if len(docks) > 0 else None, parent=self)
-        dlg.exec()
+        dlg = CalibrationTool(self.dockarea, self.viewconfig, parent=self)
+        dlg.show()
 
     def menuColormap(self, action):
         text = action.text().replace("&", "")

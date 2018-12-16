@@ -5,14 +5,18 @@ from matplotlib.lines import Line2D
 
 from gui.canvas import Canvas
 
+from util.laser import LaserData
 from util.laserimage import plotLaserImage
 
 
 class CalibrationTool(QtWidgets.QDialog):
-    def __init__(self, laser, parent=None):
+    def __init__(self, dockarea, viewconfig, parent=None):
         super().__init__(parent)
 
-        self.laser = laser
+        self.dockarea = dockarea
+        docks = dockarea.visibleDocks()
+        self.laser = LaserData() if len(docks) != 1 else docks[0].laser
+        self.viewconfig = viewconfig
 
         # Left side
         self.lineedit_levels = QtWidgets.QLineEdit()
@@ -60,21 +64,21 @@ class CalibrationTool(QtWidgets.QDialog):
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
         self.button_laser.pressed.connect(self.onButtonLaser)
 
-        self.canvas = Canvas(parent=self)
+        self.canvas = Canvas(connect_mouse_events=False, parent=self)
 
         # Trim
-        trim = [0, 0]
         self.lineedit_left = QtWidgets.QLineEdit()
-        self.lineedit_left.setPlaceholderText(str(trim[0]))
-        self.lineedit_left.setValidator(QtGui.QIntValidator(0, 1e9))
+        self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
+        self.lineedit_left.editingFinished.connect(self.onLineEditTrim)
         self.lineedit_right = QtWidgets.QLineEdit()
-        self.lineedit_right.setPlaceholderText(str(trim[1]))
-        self.lineedit_right.setValidator(QtGui.QIntValidator(0, 1e9))
+        self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
+        self.lineedit_right.editingFinished.connect(self.onLineEditTrim)
 
         self.combo_trim = QtWidgets.QComboBox()
         self.combo_trim.addItems(["rows", "s", "μm"])
         self.combo_trim.setCurrentIndex(1)
         self.combo_trim.currentIndexChanged.connect(self.onComboTrim)
+        self.updateTrim()
 
         layout_box_trim = QtWidgets.QHBoxLayout()
         layout_box_trim.addWidget(QtWidgets.QLabel("Left:"))
@@ -118,17 +122,16 @@ class CalibrationTool(QtWidgets.QDialog):
     def draw(self):
 
         isotope = self.combo_isotope.currentText()
-        viewconfig = self.window().viewconfig
 
         self.image = plotLaserImage(
             self.canvas.fig,
             self.canvas.ax,
             self.laser.get(isotope, calibrated=True, trimmed=True),
             scalebar=False,
-            cmap=viewconfig["cmap"],
-            interpolation=viewconfig["interpolation"],
-            vmin=viewconfig["cmap_range"][0],
-            vmax=viewconfig["cmap_range"][1],
+            cmap=self.viewconfig["cmap"],
+            interpolation="none",
+            vmin=self.viewconfig["cmap_range"][0],
+            vmax=self.viewconfig["cmap_range"][1],
             aspect=self.laser.aspect(),
             extent=self.laser.extent(trimmed=True),
         )
@@ -154,11 +157,43 @@ class CalibrationTool(QtWidgets.QDialog):
 
         self.canvas.draw()
 
+    def updateTrim(self):
+        trim = self.laser.trimAs(self.combo_trim.currentText())
+        self.lineedit_left.setText(self.laser.trimAs(str(trim[0])))
+        self.lineedit_right.setText(self.laser.trimAs(str(trim[1])))
+
+    def onLineEditTrim(self, text):
+        trim = [int(self.lineedit_left.text()), int(self.lineedit_right.text())]
+        self.laser.setTrim(trim, self.combo_trim.currentText())
+
     def onComboTrim(self, text):
-        pass
+        if self.combo_trim.currentText() == "rows":
+            self.lineedit_left.setValidator(QtGui.QIntValidator(0, 1e9))
+            self.lineedit_right.setValidator(QtGui.QIntValidator(0, 1e9))
+        else:
+            self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
+            self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
 
     def onComboIsotope(self, text):
-        pass
+        self.draw()
 
     def onButtonLaser(self):
-        pass
+        self.hide()
+        self.dockarea.activateWindow()
+        self.dockarea.setFocus(QtCore.Qt.OtherFocusReason)
+        self.dockarea.startMouseSelect()
+        self.dockarea.mouseSelectFinished.connect(self.mouseSelectFinished)
+
+    @QtCore.pyqtSlot('QWidget*')
+    def mouseSelectFinished(self, widget):
+        if widget is not None and hasattr(widget, 'laser'):
+            self.laser = widget.laser
+            self.combo_isotope.clear()
+            self.combo_isotope.addItems(self.laser.isotopes())
+            self.updateTrim()
+
+        self.dockarea.mouseSelectFinished.disconnect(self.mouseSelectFinished)
+        self.activateWindow()
+        self.setFocus(QtCore.Qt.OtherFocusReason)
+        self.show()
+        self.draw()
