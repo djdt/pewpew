@@ -1,7 +1,12 @@
 from PyQt5 import QtCore, QtWidgets
 
+from gui.events import MousePressRedirectFilter
 
-class TabbedDocks(QtWidgets.QMainWindow):
+
+class DockArea(QtWidgets.QMainWindow):
+
+    mouseSelectFinished = QtCore.pyqtSignal('QWidget*')
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -9,6 +14,26 @@ class TabbedDocks(QtWidgets.QMainWindow):
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
         )
+
+        self.mouse_select = False
+        self.mouse_filter = MousePressRedirectFilter(self)
+
+    def addDockWidgets(self, docks, area=QtCore.Qt.LeftDockWidgetArea):
+        # Add a new dock widget
+        super().addDockWidget(area, docks[0])
+        origin = self.largestDock(self.visibleDocks())
+        if origin is not None:
+            self.smartSplitDock(origin, docks[0])
+        docks[0].draw()
+        docks[0].show()
+        for dock in docks[1:]:
+            super().addDockWidget(area, dock)
+            self.smartSplitDock(
+                self.largestDock([d for d in docks if not d.visibleRegion().isEmpty()]),
+                dock,
+            )
+            dock.draw()
+            dock.show()
 
     def orderedDocks(self, docks):
         """Returns docks sorted by leftmost / topmost."""
@@ -30,23 +55,6 @@ class TabbedDocks(QtWidgets.QMainWindow):
                 dock = d
         return dock
 
-    def addDockWidgets(self, docks, area=QtCore.Qt.LeftDockWidgetArea):
-        # Add a new dock widget
-        super().addDockWidget(area, docks[0])
-        origin = self.largestDock(self.visibleDocks())
-        if origin is not None:
-            self.smartSplitDock(origin, docks[0])
-        docks[0].draw()
-        docks[0].show()
-        for dock in docks[1:]:
-            super().addDockWidget(area, dock)
-            self.smartSplitDock(
-                self.largestDock([d for d in docks if not d.visibleRegion().isEmpty()]),
-                dock,
-            )
-            dock.draw()
-            dock.show()
-
     def smartSplitDock(self, first, second):
         size = first.size()
         minsize = second.minimumSizeHint()
@@ -57,6 +65,29 @@ class TabbedDocks(QtWidgets.QMainWindow):
         elif first != second:
             # Split only if there is enough space
             self.tabifyDockWidget(first, second)
+
+    def mousePressEvent(self, event):
+        if self.mouse_select is True:
+            widget = None
+            for dock in self.findChildren(QtWidgets.QDockWidget):
+                if dock.underMouse():
+                    widget = dock
+                    break
+            self.mouseSelectFinished.emit(widget)
+            self.endMouseSelect()
+        super().mousePressEvent(event)
+
+    def startMouseSelect(self):
+        self.mouse_select = True
+        for dock in self.findChildren(QtWidgets.QDockWidget):
+            if hasattr(dock, 'canvas'):
+                dock.canvas.installEventFilter(self.mouse_filter)
+
+    def endMouseSelect(self):
+        self.mouse_select = False
+        for dock in self.findChildren(QtWidgets.QDockWidget):
+            if hasattr(dock, 'canvas'):
+                dock.canvas.removeEventFilter(self.mouse_filter)
 
     def tabifyAll(self, area=QtCore.Qt.LeftDockWidgetArea):
         docks = self.findChildren(QtWidgets.QDockWidget)
