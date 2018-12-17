@@ -28,12 +28,10 @@ class CalibrationTool(QtWidgets.QDialog):
         self.lineedit_levels.setValidator(QtGui.QIntValidator(2, 20))
         self.lineedit_levels.editingFinished.connect(self.onLineEditLevels)
 
-        self.lineedit_units = QtWidgets.QLineEdit()
-
         layout_cal_form = QtWidgets.QFormLayout()
         layout_cal_form.addRow("Calibration Levels:", self.lineedit_levels)
-        layout_cal_form.addRow("Units:", self.lineedit_units)
 
+        # Table
         self.table = QtWidgets.QTableWidget()
         self.table.setColumnCount(2)
         self.table.setHorizontalHeaderLabels(["Concentration", "Counts"])
@@ -41,14 +39,24 @@ class CalibrationTool(QtWidgets.QDialog):
         self.table.horizontalHeader().setSectionResizeMode(
             QtWidgets.QHeaderView.Stretch
         )
+        self.table.itemChanged.connect(self.onTableItemChanged)
+
+        self.lineedit_units = QtWidgets.QLineEdit()
+        self.combo_weighting = QtWidgets.QComboBox()
+        self.combo_weighting.addItems(["x", "1/x", "1/(x^2)"])
+        self.combo_weighting.currentIndexChanged.connect(self.onComboWeighting)
+
+        layout_table_form = QtWidgets.QFormLayout()
+        layout_table_form.addRow("Units:", self.lineedit_units)
+        layout_table_form.addRow("Weighting:", self.combo_weighting)
 
         # Results
-        self.lineedit_rsq = QtWidgets.QLineEdit("0.0000")
-        self.lineedit_rsq.setReadOnly(True)
-        self.lineedit_intercept = QtWidgets.QLineEdit("1.0000")
-        self.lineedit_intercept.setReadOnly(True)
-        self.lineedit_gradient = QtWidgets.QLineEdit("0.0000")
+        self.lineedit_gradient = QtWidgets.QLineEdit()
         self.lineedit_gradient.setReadOnly(True)
+        self.lineedit_intercept = QtWidgets.QLineEdit()
+        self.lineedit_intercept.setReadOnly(True)
+        self.lineedit_rsq = QtWidgets.QLineEdit()
+        self.lineedit_rsq.setReadOnly(True)
 
         layout_result_form = QtWidgets.QFormLayout()
         layout_result_form.addRow("RSQ:", self.lineedit_rsq)
@@ -61,6 +69,7 @@ class CalibrationTool(QtWidgets.QDialog):
         layout_left = QtWidgets.QVBoxLayout()
         layout_left.addLayout(layout_cal_form)
         layout_left.addWidget(self.table)
+        layout_left.addLayout(layout_table_form)
         layout_left.addWidget(box_result)
 
         # Right side
@@ -94,6 +103,7 @@ class CalibrationTool(QtWidgets.QDialog):
 
         # Bar
         self.combo_isotope = QtWidgets.QComboBox()
+        self.combo_isotope.addItems(self.laser.isotopes())
         self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
 
         layout_canvas_bar = QtWidgets.QHBoxLayout()
@@ -121,7 +131,6 @@ class CalibrationTool(QtWidgets.QDialog):
         layout_main.addWidget(buttons)
         self.setLayout(layout_main)
 
-        self.combo_isotope.addItems(self.laser.isotopes())
         self.updateTrim()
         self.updateTableRows()
         self.updateTableLevels()
@@ -179,27 +188,53 @@ class CalibrationTool(QtWidgets.QDialog):
         ys = []
 
         for level in range(0, self.levels):
-            xs.append(float(self.table.item(level, 0).text()))
-            ys.append(float(self.table.item(level, 1).text()))
-        # np.ployfit
-        m, b, r2 = weighted_linreg(xs, ys, w=None)
-        self.lineedit_gradient.setText(str(m))
-        self.lineedit_intercept.setText(str(b))
-        self.lineedit_rsq.setText(str(r2))
+            x = self.table.item(level, 0).text()
+            y = self.table.item(level, 1).text()
+            # If data is missing, clear result
+            if x == "" or y == "":
+                self.lineedit_gradient.setText("")
+                self.lineedit_intercept.setText("")
+                self.lineedit_rsq.setText("")
+                return
+            xs.append(float(x))
+            ys.append(float(y))
+
+        weight_selected = self.combo_weighting.currentText()
+        if weight_selected == "1/x":
+            weights = 1.0 / np.array(xs, dtype=np.float64)
+        elif weight_selected == "1/(x^2)":
+            weights = 1.0 / (np.array(xs, dtype=np.float64) ** 2)
+        else:
+            weights = None
+
+        m, b, r2 = weighted_linreg(xs, ys, w=weights)
+        self.lineedit_gradient.setText(f"{m:.4f}")
+        self.lineedit_intercept.setText(f"{b:.4f}")
+        self.lineedit_rsq.setText(f"{r2:.4f}")
 
     def updateTableRows(self):
+        row_count = self.table.rowCount()
         self.table.setRowCount(self.levels)
         self.table.setVerticalHeaderLabels(self.level_names)
 
-        for level in range(0, self.levels):
-            item = QtWidgets.QTableWidgetItem()
-            item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
-            self.table.setItem(level, 1, item)
+        # Add needed rows
+        if row_count < self.levels:
+            for level in range(row_count, self.levels):
+                editable_item = QtWidgets.QTableWidgetItem()
+                self.table.setItem(level, 0, editable_item)
+                uneditable_item = QtWidgets.QTableWidgetItem()
+                uneditable_item.setFlags(
+                    uneditable_item.flags() & ~QtCore.Qt.ItemIsEditable
+                )
+                self.table.setItem(level, 1, uneditable_item)
 
     def updateTableLevels(self):
         data = self.laser.get(
             self.combo_isotope.currentText(), calibrated=False, trimmed=True
         )
+        # Default one empty array
+        if len(data) == 1:
+            return
         sections = np.array_split(data, self.levels, axis=0)
 
         for level in range(0, self.levels):
@@ -210,6 +245,29 @@ class CalibrationTool(QtWidgets.QDialog):
         trim = self.laser.trimAs(self.combo_trim.currentText())
         self.lineedit_left.setText(str(trim[0]))
         self.lineedit_right.setText(str(trim[1]))
+
+    def onButtonLaser(self):
+        self.hide()
+        self.dockarea.activateWindow()
+        self.dockarea.setFocus(QtCore.Qt.OtherFocusReason)
+        self.dockarea.startMouseSelect()
+        self.dockarea.mouseSelectFinished.connect(self.mouseSelectFinished)
+
+    def onComboTrim(self, text):
+        if self.combo_trim.currentText() == "rows":
+            self.lineedit_left.setValidator(QtGui.QIntValidator(0, 1e9))
+            self.lineedit_right.setValidator(QtGui.QIntValidator(0, 1e9))
+        else:
+            self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
+            self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
+
+    def onComboIsotope(self, text):
+        self.updateTableLevels()
+        self.updateResults()
+        self.draw()
+
+    def onComboWeighting(self, text):
+        self.updateResults()
 
     def onLineEditTrim(self):
         if self.lineedit_left.text() == "" or self.lineedit_right.text() == "":
@@ -229,25 +287,9 @@ class CalibrationTool(QtWidgets.QDialog):
         self.updateResults()
         self.draw()
 
-    def onComboTrim(self, text):
-        if self.combo_trim.currentText() == "rows":
-            self.lineedit_left.setValidator(QtGui.QIntValidator(0, 1e9))
-            self.lineedit_right.setValidator(QtGui.QIntValidator(0, 1e9))
-        else:
-            self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
-            self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
-
-    def onComboIsotope(self, text):
-        self.updateTableLevels()
-        self.updateResults()
-        self.draw()
-
-    def onButtonLaser(self):
-        self.hide()
-        self.dockarea.activateWindow()
-        self.dockarea.setFocus(QtCore.Qt.OtherFocusReason)
-        self.dockarea.startMouseSelect()
-        self.dockarea.mouseSelectFinished.connect(self.mouseSelectFinished)
+    def onTableItemChanged(self, item):
+        if item.text() != "":
+            self.updateResults()
 
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget):
