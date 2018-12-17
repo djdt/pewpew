@@ -5,6 +5,7 @@ from matplotlib.lines import Line2D
 
 from gui.canvas import Canvas
 
+from util.calc import weighted_linreg
 from util.laser import LaserData
 from util.laserimage import plotLaserImage
 
@@ -164,12 +165,13 @@ class CalibrationTool(QtWidgets.QDialog):
             self.canvas.ax.annotate(
                 self.level_names[i],
                 (0.0, frac),
-                xytext=(self.viewconfig["fontsize"], -self.viewconfig["fontsize"]),
+                xytext=(4, -4),
                 textcoords="offset points",
                 xycoords="axes fraction",
                 horizontalalignment="left",
-                verticalalignment="center",
+                verticalalignment="top",
                 color="white",
+                fontsize=12,
             )
 
     def updateResults(self):
@@ -180,7 +182,10 @@ class CalibrationTool(QtWidgets.QDialog):
             xs.append(float(self.table.item(level, 0).text()))
             ys.append(float(self.table.item(level, 1).text()))
         # np.ployfit
-        # np.linalg.lstsq
+        m, b, r2 = weighted_linreg(xs, ys, w=None)
+        self.lineedit_gradient.setText(str(m))
+        self.lineedit_intercept.setText(str(b))
+        self.lineedit_rsq.setText(str(r2))
 
     def updateTableRows(self):
         self.table.setRowCount(self.levels)
@@ -212,6 +217,7 @@ class CalibrationTool(QtWidgets.QDialog):
         trim = [float(self.lineedit_left.text()), float(self.lineedit_right.text())]
         self.laser.setTrim(trim, self.combo_trim.currentText())
         self.updateTableLevels()
+        self.updateResults()
         self.draw()
 
     def onLineEditLevels(self):
@@ -220,6 +226,7 @@ class CalibrationTool(QtWidgets.QDialog):
         self.levels = int(self.lineedit_levels.text())
         self.updateTableRows()
         self.updateTableLevels()
+        self.updateResults()
         self.draw()
 
     def onComboTrim(self, text):
@@ -231,6 +238,8 @@ class CalibrationTool(QtWidgets.QDialog):
             self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
 
     def onComboIsotope(self, text):
+        self.updateTableLevels()
+        self.updateResults()
         self.draw()
 
     def onButtonLaser(self):
@@ -248,6 +257,7 @@ class CalibrationTool(QtWidgets.QDialog):
             self.combo_isotope.addItems(self.laser.isotopes())
             self.updateTrim()
             self.updateTableLevels()
+            self.updateResults()
 
         self.dockarea.mouseSelectFinished.disconnect(self.mouseSelectFinished)
         self.activateWindow()
