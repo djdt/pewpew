@@ -15,7 +15,7 @@ def weighted_rsq(x, y, w=None):
     return c[0, 1]**2
 
 
-def weighted_linearregression(x, y, w=None):
+def weighted_linreg(x, y, w=None):
     m, b = np.polyfit(x, y, 1, w=w)
     r2 = weighted_rsq(x, y, w)
     return m, b, r2
@@ -26,6 +26,6 @@ if __name__ == "__main__":
     b = np.array([10, 30, 30, 40])
     w = np.array([1, 0.1, 1, 1])
 
-    print('good', weighted_linearregression(a, a))
-    print('bad', weighted_linearregression(a, b))
-    print('bad weighted', weighted_linearregression(a, b, w))
+    print('good', weighted_linreg(a, a))
+    print('bad', weighted_linreg(a, b))
+    print('bad weighted', weighted_linreg(a, b, w))
