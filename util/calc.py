@@ -1,20 +1,31 @@
 import numpy as np
 
-def weighted_polyfit(xs, ys, weights=None):
-    coeffs, residuals = np.polyfit(xs, ys, 1, w=weights, full=True)
-    p = np.poly1d(coeffs)
-    yhat = p(xs)                         # or [p(z) for z in x]
-    ybar = np.sum(ys)/len(ys)          # or sum(y)/len(y)
-    ssreg = np.sum((yhat-ybar)**2)   # or sum([ (yihat - ybar)**2 for yihat in yhat])
-    sstot = np.sum((ys - ybar)**2)    # or sum([ (yi - ybar)**2 for yi in y])
-    return coeffs, ssreg / sstot, residuals
+
+def weighted_rsq(x, y, w=None):
+    c = np.cov(x, y, aweights=w)
+    d = np.diag(c)
+    stddev = np.sqrt(d.real)
+    c /= stddev[:, None]
+    c /= stddev[None, :]
+
+    np.clip(c.real, -1, 1, out=c.real)
+    if np.iscomplexobj(c):
+        np.clip(c.imag, -1, 1, out=c.imag)
+
+    return c[0, 1]**2
+
+
+def weighted_linearregression(x, y, w=None):
+    m, b = np.polyfit(x, y, 1, w=w)
+    r2 = weighted_rsq(x, y, w)
+    return m, b, r2
 
 
 if __name__ == "__main__":
-    a = np.array([3, -0.5, 2, 7])
-    b = np.array([2.5, 0, 2, 8])
-    w = np.array([1, 5, 1, 2])
+    a = np.array([1, 2, 3, 4])
+    b = np.array([10, 30, 30, 40])
+    w = np.array([1, 0.1, 1, 1])
 
-    print('good', weighted_polyfit(a, a))
-    print('bad', weighted_polyfit(a, b))
-    print('bad weighted', weighted_polyfit(a, b, w))
+    print('good', weighted_linearregression(a, a))
+    print('bad', weighted_linearregression(a, b))
+    print('bad weighted', weighted_linearregression(a, b, w))
