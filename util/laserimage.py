@@ -24,6 +24,9 @@ def plotLaserImage(
     cmap="magma",
 ):
 
+    if data.size == 0:
+        data = np.array([[0]], dtype=np.float64)
+
     if type(vmin) == str:
         vmin = np.percentile(data, float(vmin.rstrip("%")))
     if type(vmax) == str:

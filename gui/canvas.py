@@ -42,8 +42,8 @@ class Canvas(FigureCanvasQTAgg):
             fontsize=viewconfig["fontsize"],
             cmap=viewconfig["cmap"],
             interpolation=viewconfig["interpolation"],
-            vmin=viewconfig["cmap_range"][0],
-            vmax=viewconfig["cmap_range"][1],
+            vmin=viewconfig["cmaprange"][0],
+            vmax=viewconfig["cmaprange"][1],
             aspect=laser.aspect(),
             extent=laser.extent(trimmed=True),
         )

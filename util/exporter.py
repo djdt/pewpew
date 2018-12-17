@@ -41,8 +41,8 @@ def exportPng(path, data, isotope, aspect, extent, viewconfig):
         aspect=aspect,
         extent=extent,
         interpolation=viewconfig["interpolation"],
-        vmin=viewconfig["cmap_range"][0],
-        vmax=viewconfig["cmap_range"][1],
+        vmin=viewconfig["cmaprange"][0],
+        vmax=viewconfig["cmaprange"][1],
     )
     fig.savefig(path, transparent=True, frameon=False)
     fig.clear()

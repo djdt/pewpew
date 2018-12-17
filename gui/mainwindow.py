@@ -21,7 +21,7 @@ class MainWindow(QtWidgets.QMainWindow):
     DEFAULT_VIEW_CONFIG = {
         "cmap": "magma",
         "interpolation": "none",
-        "cmap_range": ["2%", "98%"],
+        "cmaprange": ["2%", "98%"],
         "fontsize": 10,
     }
 
@@ -337,9 +337,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
 
     def menuColormapRange(self):
-        dlg = ColorRangeDialog(self.viewconfig["cmap_range"], parent=self)
+        dlg = ColorRangeDialog(self.viewconfig["cmaprange"], parent=self)
         if dlg.exec():
-            self.viewconfig["cmap_range"] = dlg.range
+            self.viewconfig["cmaprange"] = dlg.range
             self.draw()
 
     def menuInterpolation(self, action):

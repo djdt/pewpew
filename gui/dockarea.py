@@ -67,6 +67,7 @@ class DockArea(QtWidgets.QMainWindow):
             self.tabifyDockWidget(first, second)
 
     def mousePressEvent(self, event):
+        super().mousePressEvent(event)
         if self.mouse_select is True:
             widget = None
             for dock in self.findChildren(QtWidgets.QDockWidget):
@@ -75,7 +76,13 @@ class DockArea(QtWidgets.QMainWindow):
                     break
             self.mouseSelectFinished.emit(widget)
             self.endMouseSelect()
-        super().mousePressEvent(event)
+
+    def keyPressEvent(self, event):
+        super().keyPressEvent(event)
+        if self.mouse_select is True:
+            if event.key() == QtCore.Qt.Key_Escape:
+                self.mouseSelectFinished.emit(None)
+                self.endMouseSelect()
 
     def startMouseSelect(self):
         self.mouse_select = True

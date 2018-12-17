@@ -12,16 +12,20 @@ from util.laserimage import plotLaserImage
 class CalibrationTool(QtWidgets.QDialog):
     def __init__(self, dockarea, viewconfig, parent=None):
         super().__init__(parent)
+        self.setWindowTitle("Calibration Standards Tools")
 
         self.dockarea = dockarea
         docks = dockarea.visibleDocks()
         self.laser = LaserData() if len(docks) != 1 else docks[0].laser
         self.viewconfig = viewconfig
+        self.levels = 5
+        self.level_names = [c for c in "ABCDEFGHIJKLMNOPQRST"]
 
         # Left side
         self.lineedit_levels = QtWidgets.QLineEdit()
-        self.lineedit_levels.setText("5")
-        self.lineedit_levels.setValidator(QtGui.QIntValidator(0, 20))
+        self.lineedit_levels.setText(str(self.levels))
+        self.lineedit_levels.setValidator(QtGui.QIntValidator(2, 20))
+        self.lineedit_levels.editingFinished.connect(self.onLineEditLevels)
 
         self.lineedit_units = QtWidgets.QLineEdit()
 
@@ -36,8 +40,6 @@ class CalibrationTool(QtWidgets.QDialog):
         self.table.horizontalHeader().setSectionResizeMode(
             QtWidgets.QHeaderView.Stretch
         )
-        self.table.setRowCount(int(self.lineedit_levels.text()))
-        self.table.setVerticalHeaderLabels([c for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"])
 
         # Results
         self.lineedit_rsq = QtWidgets.QLineEdit("0.0000")
@@ -78,7 +80,6 @@ class CalibrationTool(QtWidgets.QDialog):
         self.combo_trim.addItems(["rows", "s", "μm"])
         self.combo_trim.setCurrentIndex(1)
         self.combo_trim.currentIndexChanged.connect(self.onComboTrim)
-        self.updateTrim()
 
         layout_box_trim = QtWidgets.QHBoxLayout()
         layout_box_trim.addWidget(QtWidgets.QLabel("Left:"))
@@ -119,9 +120,17 @@ class CalibrationTool(QtWidgets.QDialog):
         layout_main.addWidget(buttons)
         self.setLayout(layout_main)
 
+        self.combo_isotope.addItems(self.laser.isotopes())
+        self.updateTrim()
+        self.updateTableRows()
+        self.updateTableLevels()
+        self.draw()
+
     def draw(self):
 
         isotope = self.combo_isotope.currentText()
+
+        self.canvas.clear()
 
         self.image = plotLaserImage(
             self.canvas.fig,
@@ -130,24 +139,32 @@ class CalibrationTool(QtWidgets.QDialog):
             scalebar=False,
             cmap=self.viewconfig["cmap"],
             interpolation="none",
-            vmin=self.viewconfig["cmap_range"][0],
-            vmax=self.viewconfig["cmap_range"][1],
+            vmin=self.viewconfig["cmaprange"][0],
+            vmax=self.viewconfig["cmaprange"][1],
             aspect=self.laser.aspect(),
             extent=self.laser.extent(trimmed=True),
         )
-        for i in np.linspace(0, 1.0, 7):
+
+        self.drawLevels()
+        self.canvas.draw()
+
+    def drawLevels(self):
+        ax_fraction = 1.0 / self.levels
+        # Draw lines
+        for frac in np.linspace(1.0 - ax_fraction, ax_fraction, self.levels - 1):
             rect = Line2D(
-                (0.0, 1.0),
-                (i, i),
+                (-0.1, 1.1),
+                (frac, frac),
                 transform=self.canvas.ax.transAxes,
                 linewidth=2.0,
-                color="white",
+                color="blue",
             )
             self.canvas.ax.add_artist(rect)
+        for i, frac in enumerate(np.linspace(1.0, ax_fraction, self.levels)):
             self.canvas.ax.annotate(
-                f"{i}",
-                (0.0, i),
-                xytext=(10, 0),
+                self.level_names[i],
+                (0.0, frac),
+                xytext=(self.viewconfig["fontsize"], -self.viewconfig["fontsize"]),
                 textcoords="offset points",
                 xycoords="axes fraction",
                 horizontalalignment="left",
@@ -155,16 +172,55 @@ class CalibrationTool(QtWidgets.QDialog):
                 color="white",
             )
 
-        self.canvas.draw()
+    def updateResults(self):
+        xs = []
+        ys = []
+
+        for level in range(0, self.levels):
+            xs.append(float(self.table.item(level, 0).text()))
+            ys.append(float(self.table.item(level, 1).text()))
+        # np.ployfit
+        # np.linalg.lstsq
+
+    def updateTableRows(self):
+        self.table.setRowCount(self.levels)
+        self.table.setVerticalHeaderLabels(self.level_names)
+
+        for level in range(0, self.levels):
+            item = QtWidgets.QTableWidgetItem()
+            item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
+            self.table.setItem(level, 1, item)
+
+    def updateTableLevels(self):
+        data = self.laser.get(
+            self.combo_isotope.currentText(), calibrated=False, trimmed=True
+        )
+        sections = np.array_split(data, self.levels, axis=0)
+
+        for level in range(0, self.levels):
+            mean_conc = np.mean(sections[level])
+            self.table.item(level, 1).setText(f"{mean_conc:.4f}")
 
     def updateTrim(self):
         trim = self.laser.trimAs(self.combo_trim.currentText())
-        self.lineedit_left.setText(self.laser.trimAs(str(trim[0])))
-        self.lineedit_right.setText(self.laser.trimAs(str(trim[1])))
+        self.lineedit_left.setText(str(trim[0]))
+        self.lineedit_right.setText(str(trim[1]))
 
-    def onLineEditTrim(self, text):
-        trim = [int(self.lineedit_left.text()), int(self.lineedit_right.text())]
+    def onLineEditTrim(self):
+        if self.lineedit_left.text() == "" or self.lineedit_right.text() == "":
+            return
+        trim = [float(self.lineedit_left.text()), float(self.lineedit_right.text())]
         self.laser.setTrim(trim, self.combo_trim.currentText())
+        self.updateTableLevels()
+        self.draw()
+
+    def onLineEditLevels(self):
+        if self.lineedit_levels.text() == "":
+            return
+        self.levels = int(self.lineedit_levels.text())
+        self.updateTableRows()
+        self.updateTableLevels()
+        self.draw()
 
     def onComboTrim(self, text):
         if self.combo_trim.currentText() == "rows":
@@ -184,16 +240,22 @@ class CalibrationTool(QtWidgets.QDialog):
         self.dockarea.startMouseSelect()
         self.dockarea.mouseSelectFinished.connect(self.mouseSelectFinished)
 
-    @QtCore.pyqtSlot('QWidget*')
+    @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget):
-        if widget is not None and hasattr(widget, 'laser'):
+        if widget is not None and hasattr(widget, "laser"):
             self.laser = widget.laser
             self.combo_isotope.clear()
             self.combo_isotope.addItems(self.laser.isotopes())
             self.updateTrim()
+            self.updateTableLevels()
 
         self.dockarea.mouseSelectFinished.disconnect(self.mouseSelectFinished)
         self.activateWindow()
         self.setFocus(QtCore.Qt.OtherFocusReason)
         self.show()
         self.draw()
+
+    def keyPressEvent(self, event):
+        if event.key() in [QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter]:
+            return
+        super().keyPressEvent(event)
