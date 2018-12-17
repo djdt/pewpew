@@ -12,7 +12,7 @@ def weighted_rsq(x, y, w=None):
     if np.iscomplexobj(c):
         np.clip(c.imag, -1, 1, out=c.imag)
 
-    return c[0, 1]**2
+    return c[0, 1] ** 2
 
 
 def weighted_linreg(x, y, w=None):
@@ -26,6 +26,6 @@ if __name__ == "__main__":
     b = np.array([10, 30, 30, 40])
     w = np.array([1, 0.1, 1, 1])
 
-    print('good', weighted_linreg(a, a))
-    print('bad', weighted_linreg(a, b))
-    print('bad weighted', weighted_linreg(a, b, w))
+    print("good", weighted_linreg(a, a))
+    print("bad", weighted_linreg(a, b))
+    print("bad weighted", weighted_linreg(a, b, w))
