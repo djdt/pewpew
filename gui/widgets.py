@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 import numpy as np
 
@@ -13,6 +13,10 @@ class CalibrationTable(QtWidgets.QTableWidget):
         self.setHorizontalHeaderLabels(["Concentration", "Counts"])
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+
+        QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+c"), self).activated.connect(
+            self._copy
+        )
 
     def complete(self):
         for row in range(0, self.rowCount()):
@@ -71,3 +75,34 @@ class CalibrationTable(QtWidgets.QTableWidget):
             weights = None
 
         return weighted_linreg(x, y, w=weights)
+
+    def _copy(self):
+        selection = sorted(self.selectedIndexes(), key=lambda i: (i.row(), i.column()))
+        data = "<!--StartFragment-->\n<table><tr>\n"
+
+        prev = None
+        for i in selection:
+            if prev is not None and prev.row() != i.row():  # New row
+                data += "</tr>\n<tr>\n"
+            try:
+                data += " <td x:num{float(i.data())}</td>\n"
+            except ValueError:
+                data += " <td>{i.data()}</td>\n"
+            prev = i
+
+        data += "</tr>\n></table><!--EndFragment-->\n"
+
+        mime = QtCore.QMimeData()
+        mime.setHtml(data)
+        QtWidgets.QApplication.clipboard().setMimeData(mime)
+
+        # text = ""
+        # for i in range(0, len(selection)):
+        #     display_text = selection[i].data(QtCore.Qt.DisplayRole)
+        #     if display_text is not None:
+        #         text += display_text
+        #     if i > 0 or selection[i - 1].row() != selection[i].row():
+        #         text += "\n"
+        #     else:
+        #         text += "\t"
+        # QtWidgets.QApplication.clipboard().setText(text)
