@@ -3,9 +3,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 import numpy as np
 
+from util.formatter import formatIsotopeTex
 from util.laserimage import plotLaserImage
 from util.plothelpers import coords2value
-from util.formatter import formatIsotopeTex
 
 
 class Canvas(FigureCanvasQTAgg):

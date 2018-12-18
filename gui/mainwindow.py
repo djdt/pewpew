@@ -1,16 +1,16 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from gui.dockarea import DockArea
 from gui.dialogs import ConfigDialog, ColorRangeDialog, TrimDialog
-from gui.krisskrosswizard import KrissKrossWizard
-from gui.imagedock import ImageDock, LaserImageDock, KrissKrossImageDock
+from gui.docks import ImageDock, LaserImageDock, KrissKrossImageDock
 from gui.tools import CalibrationTool
+from gui.windows import DockArea
+from gui.wizards import KrissKrossWizard
 
 from util.colormaps import COLORMAPS
-from util.laser import LaserData
-from util.krisskross import KrissKrossData
-from util.importer import importCsv, importNpz, importAgilentBatch, importThermoiCapCSV
 from util.exporter import exportNpz
+from util.importer import importCsv, importNpz, importAgilentBatch, importThermoiCapCSV
+from util.krisskross import KrissKrossData
+from util.laser import LaserData
 
 import os.path
 import traceback
