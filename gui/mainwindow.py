@@ -19,7 +19,7 @@ import traceback
 class MainWindow(QtWidgets.QMainWindow):
     INTERPOLATIONS = ["none", "bilinear", "bicubic", "gaussian", "spline16"]
     DEFAULT_VIEW_CONFIG = {
-        "cmap": "magma",
+        "cmap": "ppSpectral",
         "interpolation": "none",
         "cmaprange": ["2%", "98%"],
         "fontsize": 10,

@@ -20,8 +20,8 @@ class CalibrationTable(QtWidgets.QTableWidget):
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
 
     def complete(self):
-        for row in self.rowCount():
-            for column in self.columnCount():
+        for row in range(0, self.rowCount()):
+            for column in range(0, self.columnCount()):
                 if self.item(row, column).text() == "":
                     return False
         return True
@@ -38,7 +38,7 @@ class CalibrationTable(QtWidgets.QTableWidget):
                 item = QtWidgets.QTableWidgetItem()
                 # Non editable item
                 item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
-                self.setItem(row, 0, item)
+                self.setItem(row, 1, item)
 
     def updateCounts(self, data):
         # Default one empty array
@@ -52,13 +52,13 @@ class CalibrationTable(QtWidgets.QTableWidget):
 
     def concentrations(self):
         return np.array(
-            [float(self.item(row, 0).text()) for row in self.rowCount()],
+            [float(self.item(row, 0).text()) for row in range(0, self.rowCount())],
             dtype=np.float64,
         )
 
     def counts(self):
         return np.array(
-            [float(self.item(row, 1).text()) for row in self.rowCount()],
+            [float(self.item(row, 1).text()) for row in range(0, self.rowCount())],
             dtype=np.float64,
         )
 
@@ -202,11 +202,9 @@ class CalibrationTool(QtWidgets.QDialog):
         self.draw()
 
     def draw(self):
-
-        isotope = self.combo_isotope.currentText()
-
         self.canvas.clear()
 
+        isotope = self.combo_isotope.currentText()
         self.image = plotLaserImage(
             self.canvas.fig,
             self.canvas.ax,
@@ -252,7 +250,7 @@ class CalibrationTool(QtWidgets.QDialog):
     def updateResults(self):
         if not self.table.complete():
             return
-        m, b, r2 = self.table.calculateResults()
+        m, b, r2 = self.table.calibrationResults()
         self.lineedit_gradient.setText(f"{m:.4f}")
         self.lineedit_intercept.setText(f"{b:.4f}")
         self.lineedit_rsq.setText(f"{r2:.4f}")
@@ -276,6 +274,7 @@ class CalibrationTool(QtWidgets.QDialog):
         else:
             self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
             self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
+        self.updateTrim()
 
     def onComboIsotope(self, text):
         self.table.updateCounts(self.laser.get(
@@ -306,7 +305,7 @@ class CalibrationTool(QtWidgets.QDialog):
 
     def onTableItemChanged(self, item):
         if item.text() != "":
-            self.table.updateResults()
+            self.updateResults()
 
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget):
