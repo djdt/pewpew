@@ -11,12 +11,13 @@ from util.laserimage import plotLaserImage
 
 
 class CalibrationTable(QtWidgets.QTableWidget):
+    ROW_LABELS = [c for c in "ABCDEFGHIJKLMNOPQRST"]
+
     def __init__(self, parent=None):
-        super().__init__(5, 2, parent)
+        super().__init__(0, 2, parent)
         self.setHorizontalHeaderLabels(["Concentration", "Counts"])
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
-        self.itemChanged.connect(self.onTableItemChanged)
 
     def complete(self):
         for row in self.rowCount():
@@ -29,8 +30,8 @@ class CalibrationTable(QtWidgets.QTableWidget):
         current_rows = self.rowCount()
         super().setRowCount(rows)
 
-        if current_rows > rows:
-            self.setVerticalHeaderLabels(self.level_names)
+        if current_rows < rows:
+            self.setVerticalHeaderLabels(CalibrationTable.ROW_LABELS)
             for row in range(current_rows, rows):
                 item = QtWidgets.QTableWidgetItem()
                 self.setItem(row, 0, item)
@@ -86,21 +87,20 @@ class CalibrationTool(QtWidgets.QDialog):
         docks = dockarea.visibleDocks()
         self.laser = LaserData() if len(docks) != 1 else docks[0].laser
         self.viewconfig = viewconfig
-        self.levels = 5
-        self.level_names = [c for c in "ABCDEFGHIJKLMNOPQRST"]
 
         # Left side
         # TODO change to a spinbox
-        self.lineedit_levels = QtWidgets.QLineEdit()
-        self.lineedit_levels.setText(str(self.levels))
-        self.lineedit_levels.setValidator(QtGui.QIntValidator(2, 20))
-        self.lineedit_levels.editingFinished.connect(self.onLineEditLevels)
+        self.spinbox_levels = QtWidgets.QSpinBox()
+        self.spinbox_levels.setMaximum(20)
+        self.spinbox_levels.setValue(5)
+        self.spinbox_levels.valueChanged.connect(self.onSpinBoxLevels)
 
         layout_cal_form = QtWidgets.QFormLayout()
-        layout_cal_form.addRow("Calibration Levels:", self.lineedit_levels)
+        layout_cal_form.addRow("Calibration Levels:", self.spinbox_levels)
 
         # Table
-        self.table = QtWidgets.QTableWidget()
+        self.table = CalibrationTable(self)
+        self.table.itemChanged.connect(self.onTableItemChanged)
 
         self.lineedit_units = QtWidgets.QLineEdit()
         self.combo_weighting = QtWidgets.QComboBox()
@@ -193,8 +193,12 @@ class CalibrationTool(QtWidgets.QDialog):
         self.setLayout(layout_main)
 
         self.updateTrim()
-        self.updateTableRows()
-        self.updateTableLevels()
+        self.table.setRowCount(5)
+        self.table.updateCounts(
+            self.laser.get(
+                self.combo_isotope.currentText(), calibrated=False, trimmed=True
+            )
+        )
         self.draw()
 
     def draw(self):
@@ -220,9 +224,10 @@ class CalibrationTool(QtWidgets.QDialog):
         self.canvas.draw()
 
     def drawLevels(self):
-        ax_fraction = 1.0 / self.levels
+        levels = self.spinbox_levels.value()
+        ax_fraction = 1.0 / levels
         # Draw lines
-        for frac in np.linspace(1.0 - ax_fraction, ax_fraction, self.levels - 1):
+        for frac in np.linspace(1.0 - ax_fraction, ax_fraction, levels - 1):
             rect = Line2D(
                 (-0.1, 1.1),
                 (frac, frac),
@@ -231,9 +236,9 @@ class CalibrationTool(QtWidgets.QDialog):
                 color="blue",
             )
             self.canvas.ax.add_artist(rect)
-        for i, frac in enumerate(np.linspace(1.0, ax_fraction, self.levels)):
+        for i, frac in enumerate(np.linspace(1.0, ax_fraction, levels)):
             self.canvas.ax.annotate(
-                self.level_names[i],
+                CalibrationTable.ROW_LABELS[i],
                 (0.0, frac),
                 xytext=(4, -4),
                 textcoords="offset points",
@@ -273,7 +278,8 @@ class CalibrationTool(QtWidgets.QDialog):
             self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
 
     def onComboIsotope(self, text):
-        self.updateTableLevels()
+        self.table.updateCounts(self.laser.get(
+            self.combo_isotope.currentText(), calibrated=False, trimmed=True))
         self.updateResults()
         self.draw()
 
@@ -283,24 +289,24 @@ class CalibrationTool(QtWidgets.QDialog):
     def onLineEditTrim(self):
         if self.lineedit_left.text() == "" or self.lineedit_right.text() == "":
             return
-        trim = [float(self.lineedit_left.text()), float(self.lineedit_right.text())]
+        trim = [float(self.lineedit_left.text()),
+                float(self.lineedit_right.text())]
         self.laser.setTrim(trim, self.combo_trim.currentText())
-        self.updateTableLevels()
+        self.table.updateCounts(self.laser.get(
+            self.combo_isotope.currentText(), calibrated=False, trimmed=True))
         self.updateResults()
         self.draw()
 
-    def onLineEditLevels(self):
-        if self.lineedit_levels.text() == "":
-            return
-        self.levels = int(self.lineedit_levels.text())
-        self.updateTableRows()
-        self.updateTableLevels()
+    def onSpinBoxLevels(self):
+        self.table.setRowCount(self.spinbox_levels.value())
+        self.table.updateCounts(self.laser.get(
+            self.combo_isotope.currentText(), calibrated=False, trimmed=True))
         self.updateResults()
         self.draw()
 
     def onTableItemChanged(self, item):
         if item.text() != "":
-            self.updateResults()
+            self.table.updateResults()
 
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget):
@@ -309,7 +315,8 @@ class CalibrationTool(QtWidgets.QDialog):
             self.combo_isotope.clear()
             self.combo_isotope.addItems(self.laser.isotopes())
             self.updateTrim()
-            self.updateTableLevels()
+            self.table.updateCounts(self.laser.get(
+                self.combo_isotope.currentText(), calibrated=False, trimmed=True))
             self.updateResults()
 
         self.dockarea.mouseSelectFinished.disconnect(self.mouseSelectFinished)
