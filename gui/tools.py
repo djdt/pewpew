@@ -32,19 +32,6 @@ class CalibrationTable(QtWidgets.QTableWidget):
                 item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
                 self.setItem(row, 0, item)
 
-    def updateTableLevels(self):
-        data = self.laser.get(
-            self.combo_isotope.currentText(), calibrated=False, trimmed=True
-        )
-        # Default one empty array
-        if len(data) == 1:
-            return
-        sections = np.array_split(data, self.levels, axis=0)
-
-        for level in range(0, self.levels):
-            mean_conc = np.mean(sections[level])
-            self.table.item(level, 1).setText(f"{mean_conc:.4f}")
-
 
 class CalibrationTool(QtWidgets.QDialog):
     def __init__(self, dockarea, viewconfig, parent=None):
