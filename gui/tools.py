@@ -18,6 +18,13 @@ class CalibrationTable(QtWidgets.QTableWidget):
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         self.itemChanged.connect(self.onTableItemChanged)
 
+    def complete(self):
+        for row in self.rowCount():
+            for column in self.columnCount():
+                if self.item(row, column).text() == "":
+                    return False
+        return True
+
     def setRowCount(self, rows):
         current_rows = self.rowCount()
         super().setRowCount(rows)
@@ -31,6 +38,43 @@ class CalibrationTable(QtWidgets.QTableWidget):
                 # Non editable item
                 item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
                 self.setItem(row, 0, item)
+
+    def updateCounts(self, data):
+        # Default one empty array
+        if len(data) == 1:
+            return
+        sections = np.array_split(data, self.rowCount(), axis=0)
+
+        for row in range(0, self.rowCount()):
+            mean_conc = np.mean(sections[row])
+            self.item(row, 1).setText(str(mean_conc))
+
+    def concentrations(self):
+        return np.array(
+            [float(self.item(row, 0).text()) for row in self.rowCount()],
+            dtype=np.float64,
+        )
+
+    def counts(self):
+        return np.array(
+            [float(self.item(row, 1).text()) for row in self.rowCount()],
+            dtype=np.float64,
+        )
+
+    def calibrationResults(self, weighting="x"):
+        """Returns tuple of the gradient intercept and r^2 for the current data.
+        Does not check if the table is complete and can be parsed."""
+        x = self.concentrations()
+        y = self.counts()
+
+        if weighting == "1/x":
+            weights = 1.0 / np.array(x, dtype=np.float64)
+        elif weighting == "1/(x^2)":
+            weights = 1.0 / (np.array(x, dtype=np.float64) ** 2)
+        else:  # Default is no weighting
+            weights = None
+
+        return weighted_linreg(x, y, w=weights)
 
 
 class CalibrationTool(QtWidgets.QDialog):
@@ -46,6 +90,7 @@ class CalibrationTool(QtWidgets.QDialog):
         self.level_names = [c for c in "ABCDEFGHIJKLMNOPQRST"]
 
         # Left side
+        # TODO change to a spinbox
         self.lineedit_levels = QtWidgets.QLineEdit()
         self.lineedit_levels.setText(str(self.levels))
         self.lineedit_levels.setValidator(QtGui.QIntValidator(2, 20))
@@ -200,62 +245,12 @@ class CalibrationTool(QtWidgets.QDialog):
             )
 
     def updateResults(self):
-        xs = []
-        ys = []
-
-        for level in range(0, self.levels):
-            x = self.table.item(level, 0).text()
-            y = self.table.item(level, 1).text()
-            # If data is missing, clear result
-            if x == "" or y == "":
-                self.lineedit_gradient.setText("")
-                self.lineedit_intercept.setText("")
-                self.lineedit_rsq.setText("")
-                return
-            xs.append(float(x))
-            ys.append(float(y))
-
-        weight_selected = self.combo_weighting.currentText()
-        if weight_selected == "1/x":
-            weights = 1.0 / np.array(xs, dtype=np.float64)
-        elif weight_selected == "1/(x^2)":
-            weights = 1.0 / (np.array(xs, dtype=np.float64) ** 2)
-        else:
-            weights = None
-
-        m, b, r2 = weighted_linreg(xs, ys, w=weights)
+        if not self.table.complete():
+            return
+        m, b, r2 = self.table.calculateResults()
         self.lineedit_gradient.setText(f"{m:.4f}")
         self.lineedit_intercept.setText(f"{b:.4f}")
         self.lineedit_rsq.setText(f"{r2:.4f}")
-
-    def updateTableRows(self):
-        row_count = self.table.rowCount()
-        self.table.setRowCount(self.levels)
-        self.table.setVerticalHeaderLabels(self.level_names)
-
-        # Add needed rows
-        if row_count < self.levels:
-            for level in range(row_count, self.levels):
-                editable_item = QtWidgets.QTableWidgetItem()
-                self.table.setItem(level, 0, editable_item)
-                uneditable_item = QtWidgets.QTableWidgetItem()
-                uneditable_item.setFlags(
-                    uneditable_item.flags() & ~QtCore.Qt.ItemIsEditable
-                )
-                self.table.setItem(level, 1, uneditable_item)
-
-    def updateTableLevels(self):
-        data = self.laser.get(
-            self.combo_isotope.currentText(), calibrated=False, trimmed=True
-        )
-        # Default one empty array
-        if len(data) == 1:
-            return
-        sections = np.array_split(data, self.levels, axis=0)
-
-        for level in range(0, self.levels):
-            mean_conc = np.mean(sections[level])
-            self.table.item(level, 1).setText(f"{mean_conc:.4f}")
 
     def updateTrim(self):
         trim = self.laser.trimAs(self.combo_trim.currentText())
