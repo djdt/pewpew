@@ -22,10 +22,11 @@ def weighted_linreg(x, y, w=None):
 
 
 if __name__ == "__main__":
-    a = np.array([1, 2, 3, 4])
-    b = np.array([10, 30, 30, 40])
-    w = np.array([1, 0.1, 1, 1])
+    a = np.array([1, 2, 3, 4, 5, 6, 7])
+    b = np.array([5, 10, 14, 21, 28, 29, 34])
+    w = np.array([1, 1, 1, 1, 0.1, 1, 1])
 
-    print("good", weighted_linreg(a, a))
-    print("bad", weighted_linreg(a, b))
-    print("bad weighted", weighted_linreg(a, b, w))
+    print('non weighted', weighted_linreg(a, b))
+    print('r2 pass', round(weighted_linreg(a, b)[2], 10) == 0.9817581301)
+    print('weighted', weighted_linreg(a, b, w))
+    print('r2 pass', round(weighted_linreg(a, b, w)[2], 10) == 0.9939799307)
