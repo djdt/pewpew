@@ -10,10 +10,46 @@ from util.laser import LaserData
 from util.laserimage import plotLaserImage
 
 
+class CalibrationTable(QtWidgets.QTableWidget):
+    def __init__(self, parent=None):
+        super().__init__(5, 2, parent)
+        self.setHorizontalHeaderLabels(["Concentration", "Counts"])
+        self.horizontalHeader().setStretchLastSection(True)
+        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        self.itemChanged.connect(self.onTableItemChanged)
+
+    def setRowCount(self, rows):
+        current_rows = self.rowCount()
+        super().setRowCount(rows)
+
+        if current_rows > rows:
+            self.setVerticalHeaderLabels(self.level_names)
+            for row in range(current_rows, rows):
+                item = QtWidgets.QTableWidgetItem()
+                self.setItem(row, 0, item)
+                item = QtWidgets.QTableWidgetItem()
+                # Non editable item
+                item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
+                self.setItem(row, 0, item)
+
+    def updateTableLevels(self):
+        data = self.laser.get(
+            self.combo_isotope.currentText(), calibrated=False, trimmed=True
+        )
+        # Default one empty array
+        if len(data) == 1:
+            return
+        sections = np.array_split(data, self.levels, axis=0)
+
+        for level in range(0, self.levels):
+            mean_conc = np.mean(sections[level])
+            self.table.item(level, 1).setText(f"{mean_conc:.4f}")
+
+
 class CalibrationTool(QtWidgets.QDialog):
     def __init__(self, dockarea, viewconfig, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Calibration Standards Tools")
+        self.setWindowTitle("Calibration Standards Tool")
 
         self.dockarea = dockarea
         docks = dockarea.visibleDocks()
@@ -33,13 +69,6 @@ class CalibrationTool(QtWidgets.QDialog):
 
         # Table
         self.table = QtWidgets.QTableWidget()
-        self.table.setColumnCount(2)
-        self.table.setHorizontalHeaderLabels(["Concentration", "Counts"])
-        self.table.horizontalHeader().setStretchLastSection(True)
-        self.table.horizontalHeader().setSectionResizeMode(
-            QtWidgets.QHeaderView.Stretch
-        )
-        self.table.itemChanged.connect(self.onTableItemChanged)
 
         self.lineedit_units = QtWidgets.QLineEdit()
         self.combo_weighting = QtWidgets.QComboBox()
