@@ -78,23 +78,30 @@ class CalibrationTable(QtWidgets.QTableWidget):
 
     def _copy(self):
         selection = sorted(self.selectedIndexes(), key=lambda i: (i.row(), i.column()))
-        data = "<!--StartFragment-->\n<table><tr>\n"
+        data = ('<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
+                '<table><tr>')
+        text = ""
 
         prev = None
         for i in selection:
             if prev is not None and prev.row() != i.row():  # New row
-                data += "</tr>\n<tr>\n"
-            try:
-                data += " <td x:num{float(i.data())}</td>\n"
-            except ValueError:
-                data += " <td>{i.data()}</td>\n"
+                data += "</tr><tr>"
+                text += "\n"
+            value = "" if i.data() is None else i.data()
+            data += f"<td>{value}</td>"
+            if i.column() != 0:
+                text += "\t"
+            text += f"{value}"
             prev = i
-
-        data += "</tr>\n></table><!--EndFragment-->\n"
+        data += "</tr></table>"
 
         mime = QtCore.QMimeData()
         mime.setHtml(data)
+        mime.setText(text)
         QtWidgets.QApplication.clipboard().setMimeData(mime)
+
+    def _paste(self):
+        pass
 
         # text = ""
         # for i in range(0, len(selection)):
