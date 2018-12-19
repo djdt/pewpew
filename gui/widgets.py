@@ -2,24 +2,23 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 import numpy as np
 
+from gui.validators import DoubleValidatedDelegate
+
 from util.calc import weighted_linreg
 
 
 class CopyableTable(QtWidgets.QTableWidget):
-    def __init__(self, rows, columns, parent=None):
-        super().__init__(rows, columns, parent)
-
     def keyPressEvent(self, event):
         if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
             self._advance()
-        elif event.key() == QtGui.QKeySequence.Copy:
-            self._copy()
-        elif event.key() == QtGui.QKeySequence.Cut:
-            self._cut()
-        elif event.key() == QtGui.QKeySequence.Paste:
-            self._paste()
         elif event.key() in [QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete]:
             self._delete()
+        elif event.matches(QtGui.QKeySequence.Copy):
+            self._copy()
+        elif event.matches(QtGui.QKeySequence.Cut):
+            self._cut()
+        elif event.matches(QtGui.QKeySequence.Paste):
+            self._paste()
         else:
             super().keyPressEvent(event)
 
@@ -30,8 +29,10 @@ class CopyableTable(QtWidgets.QTableWidget):
 
     def _copy(self):
         selection = sorted(self.selectedIndexes(), key=lambda i: (i.row(), i.column()))
-        data = ('<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
-                '<table><tr>')
+        data = (
+            '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
+            "<table><tr>"
+        )
         text = ""
 
         prev = None
@@ -81,13 +82,7 @@ class CalibrationTable(CopyableTable):
         self.setHorizontalHeaderLabels(["Concentration", "Counts"])
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
-
-        QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+c"), self).activated.connect(
-            self._copy
-        )
-        QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+v"), self).activated.connect(
-            self._paste
-        )
+        self.setItemDelegate(DoubleValidatedDelegate())
 
     def complete(self):
         for row in range(0, self.rowCount()):
@@ -110,6 +105,16 @@ class CalibrationTable(CopyableTable):
                 item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
                 self.setItem(row, 1, item)
 
+    def concentrations(self):
+        return [self.item(row, 0).text() for row in range(0, self.rowCount())]
+
+    def counts(self):
+        return [self.item(row, 1).text() for row in range(0, self.rowCount())]
+
+    def updateConcentrations(self, data):
+        for row in range(0, self.rowCount()):
+            self.item(row, 0).setText(data[row] if data is not None else "")
+
     def updateCounts(self, data):
         # Default one empty array
         if len(data) == 1:
@@ -118,30 +123,18 @@ class CalibrationTable(CopyableTable):
 
         for row in range(0, self.rowCount()):
             mean_conc = np.mean(sections[row])
-            self.item(row, 1).setText(str(mean_conc))
-
-    def concentrations(self):
-        return np.array(
-            [float(self.item(row, 0).text()) for row in range(0, self.rowCount())],
-            dtype=np.float64,
-        )
-
-    def counts(self):
-        return np.array(
-            [float(self.item(row, 1).text()) for row in range(0, self.rowCount())],
-            dtype=np.float64,
-        )
+            self.item(row, 1).setText(f"{mean_conc:.4f}")
 
     def calibrationResults(self, weighting="x"):
         """Returns tuple of the gradient intercept and r^2 for the current data.
         Does not check if the table is complete and can be parsed."""
-        x = self.concentrations()
-        y = self.counts()
+        x = np.array(self.concentrations(), dtype=np.float64)
+        y = np.array(self.counts(), dtype=np.float64)
 
         if weighting == "1/x":
-            weights = 1.0 / np.array(x, dtype=np.float64)
+            weights = 1.0 / x
         elif weighting == "1/(x^2)":
-            weights = 1.0 / (np.array(x, dtype=np.float64) ** 2)
+            weights = 1.0 / (x ** 2)
         else:  # Default is no weighting
             weights = None
 

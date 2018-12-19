@@ -1,6 +1,8 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import os.path
 
+from gui.validators import PercentValidator
+
 
 class OkApplyCancelDialog(QtWidgets.QDialog):
     def __init__(self, parent):

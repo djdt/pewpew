@@ -1,4 +1,4 @@
-from PyQt5 import QtGui
+from PyQt5 import QtGui, QtWidgets
 
 
 class PercentValidator(QtGui.QValidator):
@@ -29,3 +29,8 @@ class PercentValidator(QtGui.QValidator):
         return (QtGui.QValidator.Acceptable, input, pos)
 
 
+class DoubleValidatedDelegate(QtWidgets.QStyledItemDelegate):
+    def createEditor(self, parent, option, index):
+        line_edit = QtWidgets.QLineEdit(parent)
+        line_edit.setValidator(QtGui.QDoubleValidator(0, 1e12, 4))
+        return line_edit
