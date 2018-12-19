@@ -2,9 +2,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 import numpy as np
 
-from gui.validators import DoubleValidatedDelegate
-
 from util.calc import weighted_linreg
+from gui.validators import DoublePrecisionDelegate
 
 
 class CopyableTable(QtWidgets.QTableWidget):
@@ -82,7 +81,7 @@ class CalibrationTable(CopyableTable):
         self.setHorizontalHeaderLabels(["Concentration", "Counts"])
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
-        self.setItemDelegate(DoubleValidatedDelegate())
+        self.setItemDelegate(DoublePrecisionDelegate(4))
 
     def complete(self):
         for row in range(0, self.rowCount()):
@@ -99,8 +98,10 @@ class CalibrationTable(CopyableTable):
             self.setVerticalHeaderLabels(CalibrationTable.ROW_LABELS)
             for row in range(current_rows, rows):
                 item = QtWidgets.QTableWidgetItem()
+                item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
                 self.setItem(row, 0, item)
                 item = QtWidgets.QTableWidgetItem()
+                item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
                 # Non editable item
                 item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
                 self.setItem(row, 1, item)

@@ -1,4 +1,4 @@
-from PyQt5 import QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class PercentValidator(QtGui.QValidator):
@@ -29,8 +29,19 @@ class PercentValidator(QtGui.QValidator):
         return (QtGui.QValidator.Acceptable, input, pos)
 
 
-class DoubleValidatedDelegate(QtWidgets.QStyledItemDelegate):
-    def createEditor(self, parent, option, index):
-        line_edit = QtWidgets.QLineEdit(parent)
-        line_edit.setValidator(QtGui.QDoubleValidator(0, 1e12, 4))
-        return line_edit
+class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
+    def __init__(self, decimals, parent=None):
+        super().__init__(parent)
+        self.decimals = decimals
+
+    # def createEditor(self, parent, option, index):
+    #     line_edit = QtWidgets.QLineEdit(parent)
+    #     line_edit.setValidator(QtGui.QDoubleValidator(0, 1e99, self.decimals))
+    #     return line_edit
+
+    def displayText(self, value, locale):
+        try:
+            value = float(value)
+            return f"{value:.{self.decimals}f}"
+        except (TypeError, ValueError):
+            return super().displayText(value, locale)
