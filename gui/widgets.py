@@ -5,7 +5,75 @@ import numpy as np
 from util.calc import weighted_linreg
 
 
-class CalibrationTable(QtWidgets.QTableWidget):
+class CopyableTable(QtWidgets.QTableWidget):
+    def __init__(self, rows, columns, parent=None):
+        super().__init__(rows, columns, parent)
+
+    def keyPressEvent(self, event):
+        if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
+            self._advance()
+        elif event.key() == QtGui.QKeySequence.Copy:
+            self._copy()
+        elif event.key() == QtGui.QKeySequence.Cut:
+            self._cut()
+        elif event.key() == QtGui.QKeySequence.Paste:
+            self._paste()
+        elif event.key() in [QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete]:
+            self._delete()
+        else:
+            super().keyPressEvent(event)
+
+    def _advance(self):
+        row = self.currentRow()
+        if row + 1 < self.rowCount():
+            self.setCurrentCell(row + 1, self.currentColumn())
+
+    def _copy(self):
+        selection = sorted(self.selectedIndexes(), key=lambda i: (i.row(), i.column()))
+        data = ('<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
+                '<table><tr>')
+        text = ""
+
+        prev = None
+        for i in selection:
+            if prev is not None and prev.row() != i.row():  # New row
+                data += "</tr><tr>"
+                text += "\n"
+            value = "" if i.data() is None else i.data()
+            data += f"<td>{value}</td>"
+            if i.column() != 0:
+                text += "\t"
+            text += f"{value}"
+            prev = i
+        data += "</tr></table>"
+
+        mime = QtCore.QMimeData()
+        mime.setHtml(data)
+        mime.setText(text)
+        QtWidgets.QApplication.clipboard().setMimeData(mime)
+
+    def _cut(self):
+        self._copy()
+        self._delete()
+
+    def _delete(self):
+        for i in self.selectedItems():
+            i.setText("")
+
+    def _paste(self):
+        text = QtWidgets.QApplication.clipboard().text("plain")
+        selection = self.selectedIndexes()
+        start_row = min(selection, key=lambda i: i.row()).row()
+        start_column = min(selection, key=lambda i: i.column()).column()
+
+        for row, row_text in enumerate(text[0].split("\n")):
+            for column, text in enumerate(row_text.split("\t")):
+                item = self.item(start_row + row, start_column + column)
+                if item is not None and QtCore.Qt.ItemIsEditable | item.flags():
+                    item.setText(text)
+
+
+class CalibrationTable(CopyableTable):
     ROW_LABELS = [c for c in "ABCDEFGHIJKLMNOPQRST"]
 
     def __init__(self, parent=None):
@@ -16,6 +84,9 @@ class CalibrationTable(QtWidgets.QTableWidget):
 
         QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+c"), self).activated.connect(
             self._copy
+        )
+        QtWidgets.QShortcut(QtGui.QKeySequence("Ctrl+v"), self).activated.connect(
+            self._paste
         )
 
     def complete(self):
@@ -75,41 +146,3 @@ class CalibrationTable(QtWidgets.QTableWidget):
             weights = None
 
         return weighted_linreg(x, y, w=weights)
-
-    def _copy(self):
-        selection = sorted(self.selectedIndexes(), key=lambda i: (i.row(), i.column()))
-        data = ('<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
-                '<table><tr>')
-        text = ""
-
-        prev = None
-        for i in selection:
-            if prev is not None and prev.row() != i.row():  # New row
-                data += "</tr><tr>"
-                text += "\n"
-            value = "" if i.data() is None else i.data()
-            data += f"<td>{value}</td>"
-            if i.column() != 0:
-                text += "\t"
-            text += f"{value}"
-            prev = i
-        data += "</tr></table>"
-
-        mime = QtCore.QMimeData()
-        mime.setHtml(data)
-        mime.setText(text)
-        QtWidgets.QApplication.clipboard().setMimeData(mime)
-
-    def _paste(self):
-        pass
-
-        # text = ""
-        # for i in range(0, len(selection)):
-        #     display_text = selection[i].data(QtCore.Qt.DisplayRole)
-        #     if display_text is not None:
-        #         text += display_text
-        #     if i > 0 or selection[i - 1].row() != selection[i].row():
-        #         text += "\n"
-        #     else:
-        #         text += "\t"
-        # QtWidgets.QApplication.clipboard().setText(text)
