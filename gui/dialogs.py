@@ -281,7 +281,7 @@ class ExportDialog(QtWidgets.QDialog):
         self.num_isotopes = num_isotopes
         self.num_layers = num_layers
 
-        default_name = os.path.dirname(source) + name + ".csv"
+        default_name = os.path.join(os.path.dirname(source), name) + ".csv"
 
         self.lineedit_file = QtWidgets.QLineEdit(default_name)
         self.lineedit_file.setMinimumWidth(300)
@@ -381,4 +381,6 @@ class ExportDialog(QtWidgets.QDialog):
             isotope=self.current_isotope if self.check_isotopes.isChecked() else None,
             layer=1 if self.check_layers.isChecked() else None,
         )
-        self.lineedit_preview.setText(os.path.basename(path))
+        if not os.path.isdir(path):
+            path = os.path.basename(path)
+        self.lineedit_preview.setText(path)
