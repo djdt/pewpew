@@ -4,6 +4,7 @@ import numpy as np
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
 from matplotlib.patches import Rectangle
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from gui.canvas import Canvas
 from gui.widgets import CalibrationTable
@@ -186,28 +187,30 @@ class CalibrationTool(QtWidgets.QDialog):
             self.canvas.ax.add_artist(line)
 
         # Bookend for text
-        rect = Rectangle(
-            (0.0, 0.0), 0.06, 1.0, transform=self.canvas.ax.transAxes, facecolor="black"
-        )
-        self.canvas.ax.add_patch(rect)
+        div = make_axes_locatable(self.canvas.ax)
+        cax = div.append_axes('left', size=0.2, pad=0, sharey=self.canvas.ax)
+        cax.get_xaxis().set_visible(False)
+        cax.get_yaxis().set_visible(False)
+        cax.set_facecolor("black")
 
         for i, frac in enumerate(np.linspace(1.0, ax_fraction, levels)):
             text = Text(
-                x=0.03,
+                x=0.5,
                 y=frac - (ax_fraction / 2.0),
                 text=CalibrationTable.ROW_LABELS[i],
-                transform=self.canvas.ax.transAxes,
+                transform=cax.transAxes,
                 color="white",
                 fontsize=12,
                 horizontalalignment="center",
                 verticalalignment="center",
             )
-            self.canvas.ax.add_artist(text)
+            cax.add_artist(text)
 
     def updateResults(self):
         if not self.table.complete():
             return
-        m, b, r2 = self.table.calibrationResults(self.combo_weighting.currentText())
+        m, b, r2 = self.table.calibrationResults(
+            self.combo_weighting.currentText())
         self.lineedit_gradient.setText(f"{m:.4f}")
         self.lineedit_intercept.setText(f"{b:.4f}")
         self.lineedit_rsq.setText(f"{r2:.4f}")
@@ -248,7 +251,8 @@ class CalibrationTool(QtWidgets.QDialog):
         self.concentrations[self.previous_isotope] = self.table.concentrations()
 
         self.table.updateConcentrations(self.concentrations.get(isotope, None))
-        self.table.updateCounts(self.laser.get(isotope, calibrated=False, trimmed=True))
+        self.table.updateCounts(self.laser.get(
+            isotope, calibrated=False, trimmed=True))
         self.updateResults()
         self.draw()
         self.previous_isotope = isotope
@@ -259,7 +263,8 @@ class CalibrationTool(QtWidgets.QDialog):
     def onLineEditTrim(self):
         if self.lineedit_left.text() == "" or self.lineedit_right.text() == "":
             return
-        trim = [float(self.lineedit_left.text()), float(self.lineedit_right.text())]
+        trim = [float(self.lineedit_left.text()),
+                float(self.lineedit_right.text())]
         self.laser.setTrim(trim, self.combo_trim.currentText())
         self.table.updateCounts(
             self.laser.get(
