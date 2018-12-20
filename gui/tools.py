@@ -3,7 +3,6 @@ import numpy as np
 
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
-from matplotlib.patches import Rectangle
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from gui.canvas import Canvas
@@ -19,8 +18,8 @@ class CalibrationTool(QtWidgets.QDialog):
         self.setWindowTitle("Calibration Standards Tool")
 
         self.dockarea = dockarea
-        docks = dockarea.visibleDocks()
-        self.laser = LaserData() if len(docks) != 1 else docks[0].laser
+        docks = dockarea.orderedDocks(dockarea.visibleDocks())
+        self.laser = LaserData() if len(docks) < 1 else docks[0].laser
         self.viewconfig = viewconfig
         self.previous_isotope = None
         self.concentrations = {}
@@ -316,3 +315,9 @@ class CalibrationTool(QtWidgets.QDialog):
         if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
             return
         super().keyPressEvent(event)
+
+    def accept(self):
+        pass
+
+    def apply(self):
+        pass
