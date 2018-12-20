@@ -2,6 +2,7 @@ import numpy as np
 import os
 
 from util.laser import LaserData
+from util.exceptions import PewPewImportError
 
 
 def importCsv(path, isotope="Unknown", config=None, calibration=None, read_config=True):
@@ -11,12 +12,19 @@ def importCsv(path, isotope="Unknown", config=None, calibration=None, read_confi
             isotope = fp.readline().strip().lstrip("# ")
             # Read the config from the file
             if read_config:
-                config = LaserData.DEFAULT_CONFIG
-                line = fp.readline().strip()
-                for token in line.split(";"):
-                    k, v = token.split("=")
-                    config[k] = float(v)
-        data = np.genfromtxt(fp, delimiter=",", dtype=np.float64, comments="#")
+                try:
+                    config = LaserData.DEFAULT_CONFIG
+                    line = fp.readline().strip()
+                    for token in line.split(";"):
+                        k, v = token.split("=")
+                        config[k] = float(v)
+                except (KeyError, ValueError) as e:
+                    raise PewPewImportError("Could not parse config.", path) from e
+
+        try:
+            data = np.genfromtxt(fp, delimiter=",", dtype=np.float64, comments="#")
+        except ValueError as e:
+            raise PewPewImportError("could not parse data.", path) from e
 
     structured = np.empty(data.shape, dtype=[(isotope, np.float64)])
     structured[isotope] = data
