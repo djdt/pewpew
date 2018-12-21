@@ -4,6 +4,7 @@ import numpy as np
 
 from util.calc import weighted_linreg
 from gui.validators import DoublePrecisionDelegate
+import traceback
 
 
 class CopyableTable(QtWidgets.QTableWidget):
@@ -140,3 +141,54 @@ class CalibrationTable(CopyableTable):
             weights = None
 
         return weighted_linreg(x, y, w=weights)
+
+
+class DetailedError(QtWidgets.QMessageBox):
+    def __init__(
+        self,
+        level=QtWidgets.QMessageBox.Warning,
+        title="Error",
+        message="",
+        detailed_message=None,
+        parent=None,
+    ):
+        super().__init__(level, title, message, QtWidgets.QMessageBox.NoButton, parent)
+
+        if detailed_message is not None:
+            self.setDetailedText(detailed_message)
+            textedit = self.findChildren(QtWidgets.QTextEdit)
+            if textedit[0] is not None:
+                textedit[0].setFixedSize(640, 320)
+
+    def info(title="Error", message="", detailed_message=None, parent=None):
+        return DetailedError(
+            QtWidgets.QMessageBox.Information, title, message, detailed_message, parent
+        ).exec()
+
+    def warning(title="Error", message="", detailed_message=None, parent=None):
+        return DetailedError(
+            QtWidgets.QMessageBox.Warning, title, message, detailed_message, parent
+        ).exec()
+
+    def critical(title="Error", message="", detailed_message=None, parent=None):
+        return DetailedError(
+            QtWidgets.QMessageBox.Critical, title, message, detailed_message, parent
+        ).exec()
+
+    def exception(
+        exception,
+        level=QtWidgets.QMessageBox.Critical,
+        title=None,
+        message=None,
+        parent=None,
+    ):
+        if title is None:
+            title = type(exception).__name__
+        if message is None:
+            message = str(exception)
+        detailed_message = " ".join(
+            traceback.format_exception(
+                type(exception), exception, exception.__traceback__
+            )
+        )
+        return DetailedError(level, title, message, detailed_message, parent).exec()

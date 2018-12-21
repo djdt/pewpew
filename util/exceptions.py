@@ -2,7 +2,13 @@ class PewPewError(Exception):
     pass
 
 
-class PewPewImportError(PewPewError):
-    def __init__(self, message, file):
-        self.file = file
-        self.message = message
+class PewPewFileError(PewPewError):
+    pass
+
+
+class PewPewDataError(PewPewError):
+    pass
+
+
+class PewPewConfigError(PewPewError):
+    pass

@@ -4,6 +4,7 @@ from gui.dialogs import ConfigDialog, ColorRangeDialog, TrimDialog
 from gui.docks import ImageDock, LaserImageDock, KrissKrossImageDock
 from gui.tools import CalibrationTool
 from gui.windows import DockArea
+from gui.widgets import DetailedError
 from gui.wizards import KrissKrossWizard
 
 from util.colormaps import COLORMAPS
@@ -202,16 +203,22 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         for path in paths:
             ext = os.path.splitext(path)[1].lower()
-            if ext == ".npz":
-                lds += importNpz(path)
-            elif ext == ".csv":
-                lds.append(importCsv(path))
-            else:
-                QtWidgets.QMessageBox.warning(
-                    self,
-                    "Open Failed",
-                    f'Invalid file type "{os.path.basename(path)}".',
+            try:
+                if ext == ".npz":
+                    lds += importNpz(path)
+                elif ext == ".csv":
+                    lds.append(importCsv(path))
+                else:
+                    raise TypeError("Invalid file type.")
+            except Exception as e:
+                DetailedError.exception(
+                    e,
+                    level=QtWidgets.QMessageBox.Warning,
+                    title="Open Failed",
+                    message=f"{os.path.basename(path)}: {e}",
+                    parent=self,
                 )
+                return
         docks = []
         for ld in lds:
             if type(ld) == KrissKrossData:
@@ -376,18 +383,12 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
     def exceptHook(self, type, value, trace):
-        dlg = QtWidgets.QMessageBox(
-            QtWidgets.QMessageBox.Critical,
+        DetailedError.critical(
             type.__name__,
             str(value),
-            QtWidgets.QMessageBox.NoButton,
+            "".join(traceback.format_exception(type, value, trace)),
             self,
         )
-        dlg.setDetailedText("".join(traceback.format_tb(trace)))
-        tedit = dlg.findChildren(QtWidgets.QTextEdit)
-        if tedit[0] is not None:
-            tedit[0].setFixedSize(640, 320)
-        dlg.exec()
 
     def closeEvent(self, event):
         for dock in self.dockarea.findChildren(ImageDock):
