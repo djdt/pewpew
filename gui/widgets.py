@@ -145,50 +145,48 @@ class CalibrationTable(CopyableTable):
 
 class DetailedError(QtWidgets.QMessageBox):
     def __init__(
-        self,
-        level=QtWidgets.QMessageBox.Warning,
-        title="Error",
-        message="",
-        detailed_message=None,
-        parent=None,
+        self, level, title="Error", message="", detailed_message="", parent=None
     ):
         super().__init__(level, title, message, QtWidgets.QMessageBox.NoButton, parent)
 
-        if detailed_message is not None:
-            self.setDetailedText(detailed_message)
-            textedit = self.findChildren(QtWidgets.QTextEdit)
-            if textedit[0] is not None:
-                textedit[0].setFixedSize(640, 320)
+        self.setDetailedText(detailed_message)
+        textedit = self.findChildren(QtWidgets.QTextEdit)
+        if textedit[0] is not None:
+            textedit[0].setFixedSize(640, 320)
 
-    def info(title="Error", message="", detailed_message=None, parent=None):
+    @staticmethod
+    def info(title="Error", message="", detailed_message="", parent=None):
         return DetailedError(
             QtWidgets.QMessageBox.Information, title, message, detailed_message, parent
         ).exec()
 
-    def warning(title="Error", message="", detailed_message=None, parent=None):
+    @staticmethod
+    def warning(title="Error", message="", detailed_message="", parent=None):
         return DetailedError(
             QtWidgets.QMessageBox.Warning, title, message, detailed_message, parent
         ).exec()
 
-    def critical(title="Error", message="", detailed_message=None, parent=None):
+    @staticmethod
+    def critical(title="Error", message="", detailed_message="", parent=None):
         return DetailedError(
             QtWidgets.QMessageBox.Critical, title, message, detailed_message, parent
         ).exec()
 
-    def exception(
-        exception,
-        level=QtWidgets.QMessageBox.Critical,
-        title=None,
-        message=None,
-        parent=None,
-    ):
-        if title is None:
-            title = type(exception).__name__
-        if message is None:
-            message = str(exception)
-        detailed_message = " ".join(
-            traceback.format_exception(
-                type(exception), exception, exception.__traceback__
-            )
-        )
-        return DetailedError(level, title, message, detailed_message, parent).exec()
+
+class MultipleDirDialog(QtWidgets.QFileDialog):
+    def __init__(self, title, directory, parent=None):
+        super().__init__(parent, title, directory)
+        self.setFileMode(QtWidgets.QFileDialog.Directory)
+        self.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
+        self.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+        for view in self.findChildren((QtWidgets.QListView, QtWidgets.QTreeView)):
+            if isinstance(view.model(), QtWidgets.QFileSystemModel):
+                view.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+
+    @staticmethod
+    def getExistingDirectories(title, directory, parent=None):
+        dlg = MultipleDirDialog(title, directory, parent)
+        if dlg.exec():
+            return dlg.selectedFiles()
+        else:
+            return []

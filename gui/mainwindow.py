@@ -1,13 +1,14 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from gui.dialogs import ConfigDialog, ColorRangeDialog, TrimDialog
+from gui.dialogs import ConfigDialog, ColorRangeDialog, ExportDialog, TrimDialog
 from gui.docks import ImageDock, LaserImageDock, KrissKrossImageDock
 from gui.tools import CalibrationTool
 from gui.windows import DockArea
-from gui.widgets import DetailedError
+from gui.widgets import DetailedError, MultipleDirDialog
 from gui.wizards import KrissKrossWizard
 
 from util.colormaps import COLORMAPS
+from util.exceptions import PewPewError, PewPewFileError
 from util.exporter import exportNpz
 from util.importer import importCsv, importNpz, importAgilentBatch, importThermoiCapCSV
 from util.krisskross import KrissKrossData
@@ -57,15 +58,8 @@ class MainWindow(QtWidgets.QMainWindow):
             QtGui.QIcon.fromTheme("document-open"), "&Open"
         )
         action_open.setShortcut("Ctrl+O")
-        action_open.setStatusTip("Open images.")
+        action_open.setStatusTip("Open sessions and images.")
         action_open.triggered.connect(self.menuOpen)
-
-        action_save = menu_file.addAction(
-            QtGui.QIcon.fromTheme("document-save"), "&Save All"
-        )
-        action_save.setShortcut("Ctrl+S")
-        action_save.setStatusTip("Save all images to an archive.")
-        action_save.triggered.connect(self.menuSaveAll)
 
         # File -> Import
         menu_import = menu_file.addMenu("&Import")
@@ -85,11 +79,27 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu_file.addSeparator()
 
+        action_save = menu_file.addAction(
+            QtGui.QIcon.fromTheme("document-save"), "&Save Session"
+        )
+        action_save.setShortcut("Ctrl+S")
+        action_save.setStatusTip("Save session to file.")
+        action_save.triggered.connect(self.menuSaveSession)
+
+        action_export = menu_file.addAction(
+            QtGui.QIcon.fromTheme("document-save-as"), "&Export all"
+        )
+        action_export.setShortcut("Ctrl+X")
+        action_export.setStatusTip("Export all images to a different format.")
+        action_export.triggered.connect(self.menuExportAll)
+
+        menu_file.addSeparator()
+
         action_close = menu_file.addAction(
             QtGui.QIcon.fromTheme("edit-delete"), "Close All"
         )
         action_close.setStatusTip("Close all open images.")
-        action_close.setShortcut("Ctrl+X")
+        action_close.setShortcut("Ctrl+Q")
         action_close.triggered.connect(self.menuCloseAll)
 
         menu_file.addSeparator()
@@ -98,7 +108,7 @@ class MainWindow(QtWidgets.QMainWindow):
             QtGui.QIcon.fromTheme("application-exit"), "E&xit"
         )
         action_exit.setStatusTip("Quit the program.")
-        action_exit.setShortcut("Ctrl+Q")
+        action_exit.setShortcut("Ctrl+Shift+Q")
         action_exit.triggered.connect(self.menuExit)
 
         # Edit
@@ -195,7 +205,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
             "Open File(s).",
             "",
-            "CSV files(*.csv);;Numpy Archives(*.npz);;All files(*)",
+            "CSV files(*.csv);;Numpy Archives(*.npz);;"
+            "Pew Pew Sessions(*.pew);;All files(*)",
             "All files(*)",
         )
         lds = []
@@ -209,14 +220,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 elif ext == ".csv":
                     lds.append(importCsv(path))
                 else:
-                    raise TypeError("Invalid file type.")
-            except Exception as e:
-                DetailedError.exception(
-                    e,
-                    level=QtWidgets.QMessageBox.Warning,
-                    title="Open Failed",
-                    message=f"{os.path.basename(path)}: {e}",
-                    parent=self,
+                    raise PewPewFileError("Invalid file extension.")
+            except PewPewError as e:
+                QtWidgets.QMessageBox.warning(
+                    self, type(e).__name__, f"{os.path.basename(path)}: {e}"
                 )
                 return
         docks = []
@@ -227,60 +234,45 @@ class MainWindow(QtWidgets.QMainWindow):
                 docks.append(LaserImageDock(ld, self.dockarea))
         self.dockarea.addDockWidgets(docks)
 
-    def menuSaveAll(self):
-        path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save File", "", "Numpy archives(*.npz);;All files(*)"
-        )
-        if path == "":
-            return
-        lds = [d.laser for d in self.dockarea.findChildren(ImageDock)]
-        exportNpz(path, lds)
-
     def menuImportAgilent(self):
-        # Multiple directory select dialog
-        dlg = QtWidgets.QFileDialog(self, "Batch Directories", "")
-        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
-        dlg.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
-        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
-        for view in dlg.findChildren((QtWidgets.QListView, QtWidgets.QTreeView)):
-            if isinstance(view.model(), QtWidgets.QFileSystemModel):
-                view.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-
-        if dlg.exec():
-            paths = dlg.selectedFiles()
-            docks = []
-            for path in paths:
+        paths = MultipleDirDialog.getExistingDirectories("Batch Directories", "", self)
+        if len(paths) == 0:
+            return
+        docks = []
+        for path in paths:
+            try:
                 if path.lower().endswith(".b"):
                     ld = importAgilentBatch(path, self.config)
                     docks.append(LaserImageDock(ld, self.dockarea))
                 else:
-                    QtWidgets.QMessageBox.warning(
-                        self,
-                        "Import Failed",
-                        f'Invalid batch directory "{os.path.basename(path)}".',
-                    )
-                    break
-            self.dockarea.addDockWidgets(docks)
+                    raise PewPewFileError("Invalid batch directory.")
+            except PewPewError as e:
+                QtWidgets.QMessageBox.warning(
+                    self, type(e).__name__, f"{os.path.basename(path)}: {e}"
+                )
+                return
+        self.dockarea.addDockWidgets(docks)
 
     def menuImportThermoiCap(self):
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-            self, "CSV files(*.csv);;All files(*)", ""
+            self, "Import CSVs", "", "CSV files(*.csv);;All files(*)"
         )
 
         if len(paths) == 0:
             return
         docks = []
         for path in paths:
-            if path.lower().endswith(".csv"):
-                ld = importThermoiCapCSV(path, config=self.config)
-                docks.append(LaserImageDock(ld, self.dockarea))
-            else:
+            try:
+                if path.lower().endswith(".csv"):
+                    ld = importThermoiCapCSV(path, config=self.config)
+                    docks.append(LaserImageDock(ld, self.dockarea))
+                else:
+                    raise PewPewFileError("Invalid file.")
+            except PewPewError as e:
                 QtWidgets.QMessageBox.warning(
-                    self,
-                    "Import Failed",
-                    f'Invalid file format for "{os.path.basename(path)}".',
+                    self, type(e).__name__, f"{os.path.basename(path)}: {e}"
                 )
-                break
+                return
         self.dockarea.addDockWidgets(docks)
 
     def menuImportKrissKross(self):
@@ -288,6 +280,78 @@ class MainWindow(QtWidgets.QMainWindow):
         if kkw.exec():
             dock = KrissKrossImageDock(kkw.data, self.dockarea)
             self.dockarea.addDockWidgets([dock])
+
+    def menuSaveSession(self):
+        path, _filter = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Save File", "", "Pew Pew sessions(*.pew);;All files(*)"
+        )
+        if path == "":
+            return
+        lds = [d.laser for d in self.dockarea.findChildren(ImageDock)]
+        exportNpz(path, lds)
+
+    def menuExportAll(self):
+        docks = self.dockarea.findChildren(LaserImageDock)
+        if len(docks) == 0:
+            return
+        if len(self.dockarea.findChildren(KrissKrossImageDock)) > 0:
+            QtWidgets.QMessageBox.warning(
+                self, "Export Failed", "Kriss Kross export all not supported."
+            )
+            return
+
+        dlg = ExportDialog(
+            name=docks[0].laser.name,
+            source=docks[0].laser.source,
+            current_isotope=docks[0].laser.isotopes()[0],
+            num_isotopes=-1,
+            num_layers=-1,
+            parent=self,
+        )
+        dlg.check_isotopes.setEnabled(False)
+        dlg.check_isotopes.setChecked(True)
+        dlg.check_layers.setEnabled(False)
+        if dlg.exec():
+            for path in 
+            if prompt_overwrite and os.path.exists(path):
+                result = QtWidgets.QMessageBox.warning(
+                    self,
+                    "Overwrite File?",
+                    f'The file "{os.path.basename(path)}" '
+                    "already exists. Do you wish to overwrite it?",
+                    QtWidgets.QMessageBox.Yes
+                    | QtWidgets.QMessageBox.YesToAll
+                    | QtWidgets.QMessageBox.No,
+                )
+                if result == QtWidgets.QMessageBox.No:
+                    return result
+
+            ext = os.path.splitext(path)[1].lower()
+            if ext == ".csv":
+                exportCsv(
+                    path,
+                    self.laser.get(isotope, calibrated=True, trimmed=True),
+                    isotope,
+                    self.laser.config,
+                )
+            elif ext == ".npz":
+                exportNpz(path, [self.laser])
+            elif ext == ".png":
+                exportPng(
+                    path,
+                    self.laser.get(isotope, calibrated=True, trimmed=True),
+                    isotope,
+                    self.laser.aspect(),
+                    self.laser.extent(trimmed=True),
+                    self.window().viewconfig,
+                )
+            else:
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Invalid Format",
+                    f"Unknown extention for '{os.path.basename(path)}'.",
+                )
+                return QtWidgets.QMessageBox.NoToAll
 
     def menuCloseAll(self):
         for dock in self.dockarea.findChildren(ImageDock):

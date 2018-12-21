@@ -2,7 +2,7 @@ class PewPewError(Exception):
     pass
 
 
-class PewPewFileError(PewPewError):
+class PewPewConfigError(PewPewError):
     pass
 
 
@@ -10,5 +10,5 @@ class PewPewDataError(PewPewError):
     pass
 
 
-class PewPewConfigError(PewPewError):
+class PewPewFileError(PewPewError):
     pass

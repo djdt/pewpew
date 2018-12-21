@@ -361,15 +361,19 @@ class ExportDialog(QtWidgets.QDialog):
         ext = os.path.splitext(self.lineedit_file.text())[1].lower()
 
         if ext == ".vtr":
-            self.check_isotopes.setEnabled(False)
-            self.check_isotopes.setChecked(False)
-            self.check_layers.setEnabled(False)
-            self.check_layers.setChecked(False)
+            if self.check_isotopes.isEnabled():
+                self.check_isotopes.setEnabled(False)
+                self.check_isotopes.setChecked(False)
+            if self.check_layers.isEnabled():
+                self.check_layers.setEnabled(False)
+                self.check_layers.setChecked(False)
         elif ext == ".npz":
-            self.check_isotopes.setEnabled(False)
-            self.check_isotopes.setChecked(False)
-            self.check_layers.setEnabled(False)
-            self.check_layers.setChecked(False)
+            if self.check_isotopes.isEnabled():
+                self.check_isotopes.setEnabled(False)
+                self.check_isotopes.setChecked(False)
+            if self.check_layers.isEnabled():
+                self.check_layers.setEnabled(False)
+                self.check_layers.setChecked(False)
         else:
             if self.num_isotopes > 1:
                 self.check_isotopes.setEnabled(True)
