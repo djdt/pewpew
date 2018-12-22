@@ -15,7 +15,7 @@ def plotLaserImage(
     aspect="auto",
     colorbar=None,
     colorbarpos="bottom",
-    colorbarlabel="",
+    colorbarlabel=None,
     scalebar=True,
     label=None,
     fontsize=10,

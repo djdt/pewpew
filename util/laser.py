@@ -2,7 +2,7 @@ import numpy as np
 
 
 class LaserData(object):
-    DEFAULT_CALIBRATION = {"gradients": {}, "intercepts": {}, "units": {}}
+    DEFAULT_CALIBRATION = {"gradient": 1.0, "intercept": 0.0, "unit": None}
     DEFAULT_CONFIG = {
         "spotsize": 30.0,
         "speed": 120.0,
@@ -12,12 +12,15 @@ class LaserData(object):
 
     def __init__(self, data=None, config=None, calibration=None, name="", source=""):
         self.data = (
-            np.array([[0]], dtype=[("NONE", np.float64)]) if data is None else data
+            np.array([[0]], dtype=[("none", np.float64)]) if data is None else data
         )
         self.config = LaserData.DEFAULT_CONFIG if config is None else config
-        self.calibration = (
-            LaserData.DEFAULT_CALIBRATION if calibration is None else calibration
-        )
+        if calibration is None:
+            self.calibration = {
+                k: LaserData.DEFAULT_CALIBRATION for k in self.data.dtype.names
+            }
+        else:
+            self.calibration = calibration
         self.name = name
         self.source = source
 
@@ -30,14 +33,14 @@ class LaserData(object):
             data = self.data
             if calibrated:
                 for name in data.dtype.names:
-                    intercept = self.calibration["intercepts"].get(name, 0.0)
-                    gradient = self.calibration["gradients"].get(name, 1.0)
+                    gradient = self.calibration[name]["gradient"]
+                    intercept = self.calibration[name]["intercept"]
                     data[name] = (data[name] - intercept) / gradient
         else:
             data = self.data[isotope]
             if calibrated:
-                intercept = self.calibration["intercepts"].get(isotope, 0.0)
-                gradient = self.calibration["gradients"].get(isotope, 1.0)
+                gradient = self.calibration[isotope]["gradient"]
+                intercept = self.calibration[isotope]["intercept"]
                 data = (data - intercept) / gradient
         # Trimming
         if trimmed:

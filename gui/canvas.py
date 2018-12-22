@@ -37,7 +37,7 @@ class Canvas(FigureCanvasQTAgg):
             self.ax,
             laser.get(isotope, calibrated=True, trimmed=True),
             colorbar="bottom",
-            colorbarlabel=laser.calibration["units"].get(isotope, ""),
+            colorbarlabel=laser.calibration[isotope]["unit"],
             label=formatIsotope(isotope, fstring="$^{{{mass}}}${element}"),
             fontsize=viewconfig["fontsize"],
             cmap=viewconfig["cmap"],

@@ -68,20 +68,16 @@ def importNpz(path, config_override=None, calibration_override=None):
             else os.path.splitext(os.path.basename(path))[0]
         )
         type = npz["_type"][i] if "_type" in npz.files else LaserData
-        config = (
-            (npz["_config"][i] if "_config" in npz.files else LaserData.DEFAULT_CONFIG)
-            if config_override is None
-            else config_override
-        )
-        calibration = (
-            (
-                npz["_calibration"][i]
-                if "_calibration" in npz.files
-                else LaserData.DEFAULT_CALIBRATION
+        if config_override is None:
+            config = npz["_config"][i] if "_config" in npz.files else None
+        else:
+            config = config_override
+        if calibration_override is None:
+            calibration = (
+                npz["_calibration"][i] if "_calibration" in npz.files else None
             )
-            if calibration_override is None
-            else calibration_override
-        )
+        else:
+            calibration = calibration_override
         lds.append(
             type(
                 data=npz[f"_data{i}"],
