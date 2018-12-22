@@ -143,7 +143,12 @@ class ImageDock(QtWidgets.QDockWidget):
             exportNpz(path, [self.laser])
 
     def onMenuExport(self):
-        dlg = ExportDialog([self.laser], self.combo_isotope.currentText(), parent=self)
+        dlg = ExportDialog(
+            [self.laser],
+            default_path=os.path.dirname(self.laser.source) + "export.csv",
+            default_isotope=self.combo_isotope.currentText(),
+            parent=self,
+        )
         if not dlg.exec():
             return
 

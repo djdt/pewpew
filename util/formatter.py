@@ -1,4 +1,7 @@
-def formatIsotopeTex(isotope):
+def formatIsotope(isotope, fstring="{mass}{element}"):
     element = isotope.strip("0123456789")
-    mass = isotope.strip("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-    return f"$^{{{mass}}}${element}"
+    mass = isotope.lower().strip("abcdefghijklmnopqrstuvwxyz")
+    if element.isalpha() and mass.isdecimal():
+        return fstring.format(element.capitalize(), mass)
+    else:
+        return isotope

@@ -295,7 +295,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if len(docks) == 0:
             return
 
-        dlg = ExportDialog([dock.laser for dock in docks], parent=self)
+        dlg = ExportDialog(
+            [dock.laser for dock in docks],
+            default_path=os.path.dirname(docks[0].laser.source) + "export.csv",
+            parent=self,
+        )
         if not dlg.exec():
             return
 

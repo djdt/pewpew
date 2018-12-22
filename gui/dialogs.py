@@ -272,7 +272,7 @@ class TrimDialog(OkApplyCancelDialog):
 
 
 class ExportDialog(QtWidgets.QDialog):
-    def __init__(self, lasers, default_isotope=None, parent=None):
+    def __init__(self, lasers, default_path="", default_isotope=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Export Data")
         self.names = [laser.name for laser in lasers]
@@ -283,7 +283,7 @@ class ExportDialog(QtWidgets.QDialog):
 
         self.layers = max(laser.layers() for laser in lasers)
 
-        self.lineedit_path = QtWidgets.QLineEdit()
+        self.lineedit_path = QtWidgets.QLineEdit(default_path)
         self.button_path = QtWidgets.QPushButton("Select")
 
         self.check_isotopes = QtWidgets.QCheckBox("Export all isotopes.")
@@ -316,8 +316,6 @@ class ExportDialog(QtWidgets.QDialog):
         self.check_layers.stateChanged.connect(self.changed)
 
         self.combo_isotopes.addItems(self.isotopes)
-        if self.default_isotope is not None:
-            self.combo_isotopes.setCurrentText(self.default_isotope)
         self.combo_isotopes.currentIndexChanged.connect(self.changed)
 
         self.button_box.accepted.connect(self.accept)
@@ -328,7 +326,7 @@ class ExportDialog(QtWidgets.QDialog):
 
     def layoutWidgets(self):
         layout_path = QtWidgets.QHBoxLayout()
-        layout_path.addWidget(QtWidgets.QLabel("Directory:"))
+        layout_path.addWidget(QtWidgets.QLabel("Basename:"))
         layout_path.addWidget(self.lineedit_path)
         layout_path.addWidget(self.button_path)
 

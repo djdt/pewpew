@@ -3,7 +3,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 import numpy as np
 
-from util.formatter import formatIsotopeTex
+from util.formatter import formatIsotope
 from util.laserimage import plotLaserImage
 from util.plothelpers import coords2value
 
@@ -38,7 +38,7 @@ class Canvas(FigureCanvasQTAgg):
             laser.get(isotope, calibrated=True, trimmed=True),
             colorbar="bottom",
             colorbarlabel=laser.calibration["units"].get(isotope, ""),
-            label=formatIsotopeTex(isotope),
+            label=formatIsotope(isotope, fstring="$^{{{mass}}}${element}"),
             fontsize=viewconfig["fontsize"],
             cmap=viewconfig["cmap"],
             interpolation=viewconfig["interpolation"],

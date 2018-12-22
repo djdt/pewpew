@@ -1,8 +1,9 @@
 import numpy as np
 import os
 
-from util.laser import LaserData
 from util.exceptions import PewPewConfigError, PewPewDataError, PewPewFileError
+from util.formatter import formatIsotope
+from util.laser import LaserData
 
 
 def importCsv(path, isotope="Unknown", config=None, calibration=None, read_config=True):
@@ -33,6 +34,8 @@ def importCsv(path, isotope="Unknown", config=None, calibration=None, read_confi
 
     if data.ndim != 2:
         raise PewPewDataError(f"Invalid data dimensions '{data.ndim}'.")
+
+    isotope = formatIsotope(isotope)
 
     structured = np.empty(data.shape, dtype=[(isotope, np.float64)])
     structured[isotope] = data
@@ -146,6 +149,9 @@ def importAgilentBatch(path, config, calibration=None):
     except ValueError as e:
         raise PewPewDataError("Mismatched data.") from e
 
+    # Format isotope names
+    data.dtype.names = [formatIsotope(name) for name in data.dtype.names]
+
     return LaserData(
         data,
         config=config,
@@ -223,7 +229,7 @@ def importThermoiCapCSV(path, config, calibration=None):
             try:
                 _, _, isotope, data_type, line_data = line.split(delimiter, 4)
                 if data_type == "Counter":
-                    data.setdefault(isotope, []).append(
+                    data.setdefault(formatIsotope(isotope), []).append(
                         np.genfromtxt(
                             [line_data],
                             delimiter=delimiter,
