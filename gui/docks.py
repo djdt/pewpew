@@ -181,19 +181,59 @@ class ImageDock(QtWidgets.QDockWidget):
                     prompt_overwrite = False
 
     def onMenuCalibration(self):
-        pass
+        def applyDialog(dialog):
+            if dialog.check_all.isChecked():
+                docks = self.parent().findChildren(ImageDock)
+            else:
+                docks = [self]
+            for dock in docks:
+                for isotope in dlg.calibration.keys():
+                    if isotope in dock.laser.isotopes():
+                        dock.laser.calibration[isotope] = dlg.calibration[isotope]
+                dock.draw()
+
+        dlg = CalibrationDialog(
+            self.laser.calibration,
+            self.combo_isotope.currentText(),
+            parent=self,
+        )
+        dlg.applyPressed.connect(applyDialog)
+        if dlg.exec():
+            applyDialog(dlg)
 
     def onMenuConfig(self):
+        def applyDialog(dialog):
+            if dialog.check_all.isChecked():
+                # Only LaserImageDock, no KrissKrossImageDock
+                docks = self.parent().findChildren(LaserImageDock)
+            else:
+                docks = [self]
+            for dock in docks:
+                dock.laser.config["spotsize"] = dialog.spotsize
+                dock.laser.config["speed"] = dialog.speed
+                dock.laser.config["scantime"] = dialog.scantime
+                dock.draw()
+
         dlg = ConfigDialog(self.laser.config, parent=self)
-        dlg.check_all.setEnabled(False)
-        if dlg.exec() == ConfigDialog.Accepted:
-            self.laser.config["spotsize"] = dlg.spotsize
-            self.laser.config["speed"] = dlg.speed
-            self.laser.config["scantime"] = dlg.scantime
-            self.draw()
+        dlg.applyPressed.connect(applyDialog)
+        if dlg.exec():
+            applyDialog(dlg)
 
     def onMenuTrim(self):
-        pass
+        def applyDialog(dialog):
+            if dialog.check_all.isChecked():
+                docks = self.parent().findChildren(ImageDock)
+            else:
+                docks = [self]
+            for dock in docks:
+                dock.laser.setTrim(dialog.trim, dialog.combo_trim.currentText())
+                dock.draw()
+
+        dlg = TrimDialog(self.laser.trimAs("s"), parent=self)
+        dlg.applyPressed.connect(applyDialog)
+
+        if dlg.exec():
+            applyDialog(dlg)
 
     def onMenuClose(self):
         self.close()
@@ -214,24 +254,6 @@ class LaserImageDock(ImageDock):
         self.laser = laserdata
         self.combo_isotope.addItems(self.laser.isotopes())
         self.setWindowTitle(self.laser.name)
-
-    def onMenuCalibration(self):
-        dlg = CalibrationDialog(
-            self.laser.calibration,
-            self.combo_isotope.currentText(),
-            self.laser.isotopes(),
-            parent=self,
-        )
-        if dlg.exec():
-            self.laser.calibration = dlg.calibration
-            self.draw()
-
-    def onMenuTrim(self):
-        dlg = TrimDialog(self.laser.trimAs("s"), parent=self)
-        dlg.check_all.setEnabled(False)
-        if dlg.exec() == TrimDialog.Accepted:
-            self.laser.setTrim(dlg.trim, dlg.combo_trim.currentText())
-            self.draw()
 
     def _export(self, path, isotope=None, layer=None, prompt_overwrite=True):
         if isotope is None:
@@ -290,6 +312,12 @@ class KrissKrossImageDock(LaserImageDock):
         # Config cannot be changed for krisskross images
         self.action_config.setEnabled(False)
         self.action_trim.setEnabled(False)
+
+    def onMenuConfig(self):
+        pass
+
+    def onMenuTrim(self):
+        pass
 
     def _export(self, path, isotope=None, layer=None, prompt_overwrite=True):
         if isotope is None:

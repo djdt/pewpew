@@ -12,7 +12,7 @@ from util.laser import LaserData
 from util.laserimage import plotLaserImage
 
 
-class CalibrationTool(QtWidgets.QDialog):
+class CalibrationTool():
     def __init__(self, dockarea, viewconfig, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Calibration Standards Tool")
@@ -49,8 +49,7 @@ class CalibrationTool(QtWidgets.QDialog):
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Cancel
-            | QtWidgets.QDialogButtonBox.Ok
-            | QtWidgets.QDialogButtonBox.Apply,
+            | QtWidgets.QDialogButtonBox.Ok,
             self,
         )
 
@@ -222,9 +221,9 @@ class CalibrationTool(QtWidgets.QDialog):
     def buttonBoxClicked(self, button):
         sb = self.button_box.standardButton(button)
 
-        if sb == QtWidgets.QDialogButtonBox.Apply:
-            self.apply()
-        elif sb == QtWidgets.QDialogButtonBox.Ok:
+        # if sb == QtWidgets.QDialogButtonBox.Apply:
+        #     self.apply()
+        if sb == QtWidgets.QDialogButtonBox.Ok:
             self.accept()
         else:
             self.reject()
@@ -315,9 +314,3 @@ class CalibrationTool(QtWidgets.QDialog):
         if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
             return
         super().keyPressEvent(event)
-
-    def accept(self):
-        pass
-
-    def apply(self):
-        pass

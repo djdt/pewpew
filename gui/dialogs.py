@@ -4,8 +4,11 @@ import os.path
 from gui.validators import PercentValidator
 
 
-class OkApplyCancelDialog(QtWidgets.QDialog):
-    def __init__(self, parent):
+class ApplyDialog(QtWidgets.QDialog):
+
+    applyPressed = QtCore.pyqtSignal(QtCore.QObject)
+
+    def __init__(self, parent=None):
         super().__init__(parent)
 
         self.button_box = QtWidgets.QDialogButtonBox(
@@ -21,6 +24,7 @@ class OkApplyCancelDialog(QtWidgets.QDialog):
 
         if sb == QtWidgets.QDialogButtonBox.Apply:
             self.apply()
+            self.applyPressed.emit(self)
         elif sb == QtWidgets.QDialogButtonBox.Ok:
             self.accept()
         else:
@@ -30,7 +34,7 @@ class OkApplyCancelDialog(QtWidgets.QDialog):
         pass
 
 
-class ColorRangeDialog(OkApplyCancelDialog):
+class ColorRangeDialog(ApplyDialog):
     def __init__(self, current_range, parent=None):
         self.range = current_range
         super().__init__(parent)
@@ -73,8 +77,8 @@ class ColorRangeDialog(OkApplyCancelDialog):
         super().accept()
 
 
-class CalibrationDialog(OkApplyCancelDialog):
-    def __init__(self, calibration, current_isotope, isotopes, parent=None):
+class CalibrationDialog(ApplyDialog):
+    def __init__(self, calibration, current_isotope, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Calibration")
         self.calibration = calibration
@@ -97,9 +101,9 @@ class CalibrationDialog(OkApplyCancelDialog):
 
         # Isotope combo
         self.combo_isotopes = QtWidgets.QComboBox()
-        self.combo_isotopes.addItems(isotopes)
-        self.previous_index = self.combo_isotopes.findText(current_isotope)
-        self.combo_isotopes.setCurrentIndex(self.previous_index)
+        self.combo_isotopes.addItems([k for k in self.calibration.keys()])
+        self.combo_isotopes.setCurrentText(current_isotope)
+        self.previous_index = self.combo_isotopes.currentIndex()
         self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
 
         # Dialog buttons
@@ -112,38 +116,35 @@ class CalibrationDialog(OkApplyCancelDialog):
         self.updateLineEdits()
 
     def updateLineEdits(self):
-        new = self.combo_isotopes.currentText()
+        isotope = self.combo_isotopes.currentText()
 
-        if new in self.calibration["gradients"]:
-            self.lineedit_gradient.setText(str(self.calibration["gradients"][new]))
-        else:
+        gradient = self.calibration[isotope]["gradient"]
+        if gradient == 1.0:
             self.lineedit_gradient.clear()
-        if new in self.calibration["intercepts"]:
-            self.lineedit_intercept.setText(str(self.calibration["intercepts"][new]))
         else:
+            self.lineedit_gradient.setText(str(gradient))
+        intercept = self.calibration[isotope]["intercept"]
+        if intercept == 0.0:
             self.lineedit_intercept.clear()
-        if new in self.calibration["units"]:
-            self.lineedit_unit.setText(str(self.calibration["units"][new]))
         else:
+            self.lineedit_intercept.setText(str(intercept))
+        unit = self.calibration[isotope]["unit"]
+        if unit is None:
             self.lineedit_unit.clear()
+        else:
+            self.lineedit_unit.setText(str(unit))
 
     def updateCalibration(self, isotope):
         gradient = self.lineedit_gradient.text()
         intercept = self.lineedit_intercept.text()
         unit = self.lineedit_unit.text()
 
-        if gradient == "" or float(gradient) == 1.0:
-            self.calibration["gradients"].pop(isotope, None)
-        else:
-            self.calibration["gradients"][isotope] = float(gradient)
-        if intercept == "" or float(intercept) == 0.0:
-            self.calibration["intercepts"].pop(isotope, None)
-        else:
-            self.calibration["intercepts"][isotope] = float(intercept)
-        if unit == "":
-            self.calibration["units"].pop(isotope, None)
-        else:
-            self.calibration["units"][isotope] = unit
+        if gradient != "":
+            self.calibration[isotope]["gradient"] = float(gradient)
+        if intercept != "":
+            self.calibration[isotope]["intercept"] = float(intercept)
+        if unit != "":
+            self.calibration[isotope]["unit"] = unit
 
     def comboChanged(self):
         previous = self.combo_isotopes.itemText(self.previous_index)
@@ -153,16 +154,14 @@ class CalibrationDialog(OkApplyCancelDialog):
 
     def apply(self):
         self.updateCalibration(self.combo_isotopes.currentText())
-        self.parent().laser.calibration = self.calibration
-        self.parent().draw()
 
     def accept(self):
         self.updateCalibration(self.combo_isotopes.currentText())
         super().accept()
 
 
-class ConfigDialog(OkApplyCancelDialog):
-    def __init__(self, config, parent=None):
+class ConfigDialog(ApplyDialog):
+    def __init__(self, config, apply_func=None, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Configuration")
         self.spotsize = config["spotsize"]
@@ -204,17 +203,13 @@ class ConfigDialog(OkApplyCancelDialog):
 
     def apply(self):
         self.updateConfig()
-        self.parent().laser.config["spotsize"] = self.spotsize
-        self.parent().laser.config["speed"] = self.speed
-        self.parent().laser.config["scantime"] = self.scantime
-        self.parent().draw()
 
     def accept(self):
         self.updateConfig()
         super().accept()
 
 
-class TrimDialog(OkApplyCancelDialog):
+class TrimDialog(ApplyDialog):
     def __init__(self, trim=(0, 0), parent=None):
         super().__init__(parent)
         self.setWindowTitle("Trim")
@@ -263,8 +258,6 @@ class TrimDialog(OkApplyCancelDialog):
 
     def apply(self):
         self.updateTrim()
-        self.parent().laser.setTrim(self.trim, self.combo_trim.currentText())
-        self.parent().draw()
 
     def accept(self):
         self.updateTrim()

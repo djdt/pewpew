@@ -345,39 +345,37 @@ class MainWindow(QtWidgets.QMainWindow):
         self.close()
 
     def menuConfig(self):
-        dlg = ConfigDialog(self.config, parent=self)
-        # Remove the apply button
-        dlg.button_box.setStandardButtons(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
-        )
-        if dlg.exec():
-            self.config["spotsize"] = dlg.spotsize
+        def applyDialog(dialog):
+            self.config["spotsize"] = dialog.spotsize
             self.config["speed"] = dlg.speed
             self.config["scantime"] = dlg.scantime
-            if dlg.check_all.checkState() == QtCore.Qt.Checked:
-                docks = self.dockarea.findChildren(LaserImageDock)
-            else:
-                docks = self.dockarea.visibleDocks(LaserImageDock)
-            for d in docks:
-                d.laser.config["spotsize"] = dlg.spotsize
-                d.laser.config["speed"] = dlg.speed
-                d.laser.config["scantime"] = dlg.scantime
-                d.draw()
+            for dock in self.dockarea.findChildren(LaserImageDock):
+                dock.laser.config["spotsize"] = dlg.spotsize
+                dock.laser.config["speed"] = dlg.speed
+                dock.laser.config["scantime"] = dlg.scantime
+                dock.draw()
+
+        dlg = ConfigDialog(self.config, parent=self)
+        dlg.applyPressed.connect(applyDialog)
+        dlg.check_all.setEnabled(False)
+        dlg.check_all.setChecked(True)
+
+        if dlg.exec():
+            applyDialog(dlg)
 
     def menuTrim(self):
+        def applyDialog(dialog):
+            for dock in self.dockarea.visibleDocks(LaserImageDock):
+                dock.laser.setTrim(dlg.trim, dlg.combo_trim.currentText())
+                dock.draw()
+
         dlg = TrimDialog([0, 0], parent=self)
-        # Remove the apply button
-        dlg.button_box.setStandardButtons(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
-        )
+        dlg.applyPressed.connect(applyDialog)
+        dlg.check_all.setEnabled(False)
+        dlg.check_all.setChecked(True)
+
         if dlg.exec():
-            if dlg.check_all.checkState() == QtCore.Qt.Checked:
-                docks = self.dockarea.findChildren(LaserImageDock)
-            else:
-                docks = self.dockarea.visibleDocks(LaserImageDock)
-            for d in docks:
-                d.laser.setTrim(dlg.trim, dlg.combo_trim.currentText())
-                d.draw()
+            applyDialog(dlg)
 
     def menuStandardsTool(self):
         dlg = CalibrationTool(self.dockarea, self.viewconfig, parent=self)
