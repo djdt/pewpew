@@ -137,46 +137,36 @@ class ImageDock(QtWidgets.QDockWidget):
 
     def onMenuSave(self):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save", "", "Numpy archive(*.npz);;All files(*)"
+            self, "Save File", "", "Numpy archive(*.npz);;All files(*)"
         )
         if path:
             exportNpz(path, [self.laser])
 
     def onMenuExport(self):
-        dlg = ExportDialog(
-            self.laser.name,
-            self.laser.source,
-            self.combo_isotope.currentText(),
-            len(self.laser.isotopes()),
-            self.laser.layers(),
-            parent=self,
-        )
-        if dlg.exec() != QtWidgets.QDialog.Accepted:
+        dlg = ExportDialog([self.laser], self.combo_isotope.currentText(), parent=self)
+        if not dlg.exec():
             return
 
-        prompt_overwrite = True
-        isotopes = self.laser.isotopes() if dlg.check_isotopes.isChecked() else [None]
+        isotopes = [None]
+        if dlg.check_isotopes.isEnabled():
+            isotopes = (
+                dlg.isotopes
+                if dlg.check_isotopes.isChecked()
+                else [dlg.combo_isotopes.currentText()]
+            )
+        layers = [None]
+        if dlg.check_layers.isEnabled() and dlg.check_layers.isChecked():
+            layers = range(1, dlg.layers + 1)
 
+        prompt_overwrite = True
         for isotope in isotopes:
-            if dlg.check_layers.isChecked():
-                for layer in range(self.laser.layers()):
-                    path = dlg.getPath(isotope=isotope, layer=layer + 1)
-                    result = self._export(
-                        path,
-                        isotope=isotope,
-                        layer=layer,
-                        prompt_overwrite=prompt_overwrite,
-                    )
-                    if result == QtWidgets.QMessageBox.No:
-                        continue
-                    elif result == QtWidgets.QMessageBox.NoToAll:
-                        return
-                    elif result == QtWidgets.QMessageBox.YesToAll:
-                        prompt_overwrite = False
-            else:
-                path = dlg.getPath(isotope=isotope)
+            for layer in layers:
+                path = dlg.getPath(isotope=isotope, layer=layer)
                 result = self._export(
-                    path, isotope=isotope, layer=None, prompt_overwrite=prompt_overwrite
+                    path,
+                    isotope=isotope,
+                    layer=layer,
+                    prompt_overwrite=prompt_overwrite,
                 )
                 if result == QtWidgets.QMessageBox.No:
                     continue
@@ -318,7 +308,7 @@ class KrissKrossImageDock(LaserImageDock):
             export_data = self.laser.get(isotope, calibrated=True, flattened=True)
         else:
             export_data = self.laser.get(isotope, calibrated=True, flattened=False)[
-                :, :, layer
+                :, :, layer - 1
             ]
 
         ext = os.path.splitext(path)[1].lower()
