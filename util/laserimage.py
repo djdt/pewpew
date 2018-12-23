@@ -1,11 +1,11 @@
-from typing import Optional, Tuple, Union
 import numpy as np
 
 from matplotlib.ticker import MaxNLocator
 from matplotlib.offsetbox import AnchoredText
 from matplotlib_scalebar.scalebar import ScaleBar
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-# For typing
+
+from typing import Optional, Tuple, Union
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage

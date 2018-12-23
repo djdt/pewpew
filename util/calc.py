@@ -1,5 +1,6 @@
-from typing import Optional, Tuple
 import numpy as np
+
+from typing import Optional, Tuple
 
 
 def weighted_rsq(x: np.ndarray, y: np.ndarray, w: Optional[np.ndarray] = None) -> float:

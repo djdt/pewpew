@@ -1,5 +1,6 @@
-from typing import List, Optional, Tuple
 import numpy as np
+
+from typing import List, Optional, Tuple
 
 
 class LaserData(object):
@@ -33,7 +34,7 @@ class LaserData(object):
         self.source = source
 
     def isotopes(self) -> List[str]:
-        return self.data.dtype.names
+        return list(self.data.dtype.names)
 
     def get(
         self,
@@ -69,8 +70,8 @@ class LaserData(object):
         return (self.config["speed"] * self.config["scantime"], self.config["spotsize"])
 
     def aspect(self) -> float:
-        return self.config["spotsize"] / (
-            self.config["speed"] * self.config["scantime"]
+        return float(
+            self.config["spotsize"] / (self.config["speed"] * self.config["scantime"])
         )
 
     def extent(self, trimmed: bool = False) -> Tuple[int, int, int, int]:
@@ -83,7 +84,7 @@ class LaserData(object):
         y = self.data.shape[0] * self.pixelsize()[1]
         return (0, x, 0, y)
 
-    def setTrim(self, trim: Tuple[float, float], unit: str = "rows"):
+    def setTrim(self, trim: Tuple[float, float], unit: str = "rows") -> None:
         """Set the trim value using the provided unit.
         Valid units are 'rows', 'μm' and 's'."""
         if unit == "μm":
@@ -94,17 +95,18 @@ class LaserData(object):
             trim = (trim[0] / width, trim[1] / width)
         self.config["trim"] = (int(trim[0]), int(trim[1]))
 
-    def trimAs(self, unit: str) -> Tuple[int, int]:
+    def trimAs(self, unit: str) -> Tuple[float, float]:
         """Returns the trim in given unit.
         Valid units are 'rows', 'μm' and 's'."""
         trim = self.config["trim"]
         if unit == "μm":
             width = self.pixelsize()[0]
-            trim = (trim[0] * width, trim[1] * width)
+            return (trim[0] * width, trim[1] * width)
         elif unit == "s":
             width = self.config["scantime"]
-            trim = (trim[0] * width, trim[1] * width)
-        return trim
+            return (trim[0] * width, trim[1] * width)
+        else:
+            return float(trim[0]), float(trim[1])
 
     def layers(self) -> int:
         return 1

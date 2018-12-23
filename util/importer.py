@@ -1,10 +1,11 @@
 import numpy as np
 import os
-from typing import Dict, List, Optional
 
 from util.exceptions import PewPewConfigError, PewPewDataError, PewPewFileError
 from util.formatter import formatIsotope
 from util.laser import LaserData
+
+from typing import Dict, List, Optional
 
 
 def importCsv(

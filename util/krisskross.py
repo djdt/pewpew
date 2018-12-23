@@ -1,14 +1,12 @@
-from typing import List, NoReturn, Optional, Tuple
 import numpy as np
 
 from util.laser import LaserData
 
+from typing import List, Optional, Tuple
+
 
 def krissKrossLayers(
-    layers: List[np.ndarray],
-    aspect: float,
-    warmup: int,
-    horizontal_first: bool = True,
+    layers: List[np.ndarray], aspect: float, warmup: int, horizontal_first: bool = True
 ) -> np.ndarray:
 
     j = 0 if horizontal_first else 1
@@ -56,7 +54,7 @@ class KrissKrossData(LaserData):
         layers: List[np.ndarray],
         warmup_time: float = 13.0,
         horizontal_first: bool = True,
-    ) -> NoReturn:
+    ) -> None:
         warmup = int(warmup_time / self.config["scantime"])
         self.data = krissKrossLayers(layers, self.aspect(), warmup, horizontal_first)
 

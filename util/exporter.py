@@ -1,15 +1,16 @@
 import sys
 import numpy as np
-from typing import Any, Dict, List, NoReturn, Tuple
 
-from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
-from util.laserimage import plotLaserImage
 
+from util.laserimage import plotLaserImage
 from util.laser import LaserData
 
+from typing import Any, Dict, List, Tuple
+from matplotlib.figure import Figure
 
-def exportCsv(path: str, data: np.ndarray, isotope: str, config: dict) -> NoReturn:
+
+def exportCsv(path: str, data: np.ndarray, isotope: str, config: dict) -> None:
     header = (
         f"Pew Pew Export\n{isotope}\n"
         f"spotsize={config['spotsize']};speed={config['speed']};"
@@ -19,7 +20,7 @@ def exportCsv(path: str, data: np.ndarray, isotope: str, config: dict) -> NoRetu
     np.savetxt(path, data, delimiter=",", header=header)
 
 
-def exportNpz(path: str, laser_list: List[LaserData]) -> NoReturn:
+def exportNpz(path: str, laser_list: List[LaserData]) -> None:
     savedict: Dict[str, List[Any]] = {
         "_name": [],
         "_type": [],
@@ -42,7 +43,7 @@ def exportPng(
     aspect: float,
     extent: Tuple[int, int, int, int],
     viewconfig: dict,
-) -> NoReturn:
+) -> None:
     fig = Figure(frameon=False, tight_layout=True, figsize=(5, 5), dpi=100)
     canvas = FigureCanvasAgg(fig)
     ax = fig.add_subplot(111)
@@ -66,7 +67,7 @@ def exportPng(
 
 def exportVtr(
     path: str, data: np.ndarray, extent: Tuple[int, int, int, int], depth: float
-) -> NoReturn:
+) -> None:
     nx, ny, nz = data.shape
     extent_str = f"0 {nx-1} 0 {ny-1} 0 {nz-1}"
     endian = "LittleEndian" if sys.byteorder == "little" else "BigEndian"

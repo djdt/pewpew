@@ -1,8 +1,12 @@
 import matplotlib.transforms as mtransforms
+
+from typing import Tuple
 from matplotlib.image import AxesImage
 
 
-def coords2index(image: AxesImage, x: float, y: float, inverted: bool = False):
+def coords2index(
+    image: AxesImage, x: float, y: float, inverted: bool = False
+) -> Tuple[int, int]:
     """
     Converts data coordinates to index coordinates of the array.
     Parameters
@@ -32,9 +36,10 @@ def coords2index(image: AxesImage, x: float, y: float, inverted: bool = False):
     if inverted:
         trans = trans.inverted()
 
-    return trans.transform_point([y, x]).astype(int)
+    i, j = trans.transform_point((y, x)).astype(int)
+    return i, j
 
 
-def coords2value(image, x: float, y: float, inverted: bool = False):
+def coords2value(image: AxesImage, x: float, y: float, inverted: bool = False) -> float:
     ix, iy = coords2index(image, x, y, inverted)
-    return image.get_array()[ix, iy]
+    return float(image.get_array()[ix, iy])
