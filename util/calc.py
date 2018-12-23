@@ -1,9 +1,9 @@
 import numpy as np
 
-from typing import Optional, Tuple
+from typing import Tuple
 
 
-def weighted_rsq(x: np.ndarray, y: np.ndarray, w: Optional[np.ndarray] = None) -> float:
+def weighted_rsq(x: np.ndarray, y: np.ndarray, w: np.ndarray = None) -> float:
     c = np.cov(x, y, aweights=w)
     d = np.diag(c)
     stddev = np.sqrt(d.real)
@@ -18,7 +18,7 @@ def weighted_rsq(x: np.ndarray, y: np.ndarray, w: Optional[np.ndarray] = None) -
 
 
 def weighted_linreg(
-    x: np.ndarray, y: np.ndarray, w: Optional[np.ndarray] = None
+    x: np.ndarray, y: np.ndarray, w: np.ndarray = None
 ) -> Tuple[float, float, float]:
     m, b = np.polyfit(x, y, 1, w=w)
     r2 = weighted_rsq(x, y, w)

@@ -5,14 +5,14 @@ from util.exceptions import PewPewConfigError, PewPewDataError, PewPewFileError
 from util.formatter import formatIsotope
 from util.laser import LaserData
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 
 def importCsv(
     path: str,
     isotope: str = "Unknown",
-    config: Optional[dict] = None,
-    calibration: Optional[dict] = None,
+    config: dict = None,
+    calibration: dict = None,
     read_config: bool = True,
 ) -> LaserData:
     with open(path, "r") as fp:
@@ -58,9 +58,7 @@ def importCsv(
 
 
 def importNpz(
-    path: str,
-    config_override: Optional[dict] = None,
-    calibration_override: Optional[dict] = None,
+    path: str, config_override: dict = None, calibration_override: dict = None
 ) -> List[LaserData]:
     """Imports the numpy archive given. Both the config and calibration are
     read from the archive but can be overriden.
@@ -103,9 +101,7 @@ def importNpz(
     return lds
 
 
-def importAgilentBatch(
-    path: str, config: dict, calibration: Optional[dict] = None
-) -> LaserData:
+def importAgilentBatch(path: str, config: dict, calibration: dict = None) -> LaserData:
     """Scans the given path for .d directories containg a  similarly named
        .csv file. These are imported as lines and sorted by their name.
 
@@ -218,9 +214,7 @@ def importAgilentBatch(
 #     return LaserData(data, config=config, calibration=calibration, source=path)
 
 
-def importThermoiCapCSV(
-    path: str, config: dict, calibration: Optional[dict] = None
-) -> LaserData:
+def importThermoiCapCSV(path: str, config: dict, calibration: dict = None) -> LaserData:
     """Imports data exported using the CSV export function.
     Exports must include the \"Counts\" column.
 

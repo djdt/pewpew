@@ -1,13 +1,17 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtGui, QtWidgets
+
+from typing import Tuple
 
 
 class PercentValidator(QtGui.QValidator):
-    def __init__(self, min_value=0, max_value=100, parent=None):
+    def __init__(
+        self, min_value: int = 0, max_value: int = 100, parent: QtWidgets.QWidget = None
+    ):
         super().__init__(parent)
         self.min_value = min_value
         self.max_value = max_value
 
-    def validate(self, input, pos):
+    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
         if len(input.rstrip("%")) == 0:
             return (QtGui.QValidator.Intermediate, input, pos)
 
@@ -30,7 +34,7 @@ class PercentValidator(QtGui.QValidator):
 
 
 class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
-    def __init__(self, decimals, parent=None):
+    def __init__(self, decimals: int, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.decimals = decimals
 
@@ -39,9 +43,9 @@ class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
     #     line_edit.setValidator(QtGui.QDoubleValidator(0, 1e99, self.decimals))
     #     return line_edit
 
-    def displayText(self, value, locale):
+    def displayText(self, value: str, locale: str) -> str:
         try:
-            value = float(value)
-            return f"{value:.{self.decimals}f}"
+            num = float(value)
+            return f"{num:.{self.decimals}f}"
         except (TypeError, ValueError):
-            return super().displayText(value, locale)
+            return str(super().displayText(value, locale))

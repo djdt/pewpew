@@ -5,7 +5,7 @@ from matplotlib.offsetbox import AnchoredText
 from matplotlib_scalebar.scalebar import ScaleBar
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from typing import Optional, Tuple, Union
+from typing import Tuple, Union
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
@@ -16,13 +16,13 @@ def plotLaserImage(
     ax: Axes,
     data: np.ndarray,
     interpolation: str = "none",
-    extent: Optional[Tuple[int, int, int, int]] = None,
+    extent: Tuple[int, int, int, int] = None,
     aspect: str = "auto",
     colorbar: bool = False,
     colorbarpos: str = "bottom",
-    colorbarlabel: Optional[str] = None,
+    colorbarlabel: str = None,
     scalebar: bool = True,
-    label: Optional[str] = None,
+    label: str = None,
     fontsize: int = 12,
     vmin: Union[str, int] = "0%",
     vmax: Union[str, int] = "100%",

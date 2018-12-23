@@ -7,31 +7,36 @@ from util.formatter import formatIsotope
 from util.laserimage import plotLaserImage
 from util.plothelpers import coords2value
 
+from util.laser import LaserData
+from matplotlib.backend_bases import MouseEvent, LocationEvent
+
 
 class Canvas(FigureCanvasQTAgg):
-    def __init__(self, connect_mouse_events=True, parent=None):
-        self.fig = Figure(frameon=False, tight_layout=True,
-                          figsize=(5, 5), dpi=100)
+    def __init__(
+        self, connect_mouse_events: bool = True, parent: QtWidgets.QWidget = None
+    ) -> None:
+        self.fig = Figure(frameon=False, tight_layout=True, figsize=(5, 5), dpi=100)
         self.ax = self.fig.add_subplot(111)
         self.image = np.array([], dtype=np.float64)
 
         super().__init__(self.fig)
         self.setParent(parent)
         self.setStyleSheet("background-color:transparent;")
-        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
-                           QtWidgets.QSizePolicy.Expanding)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
 
         if connect_mouse_events:
             self.mpl_connect("motion_notify_event", self.updateStatusBar)
             self.mpl_connect("axes_leave_event", self.clearStatusBar)
 
-    def close(self):
+    def close(self) -> None:
         self.mpl_disconncet("motion_notify_event")
         self.mpl_disconncet("axes_leave_event")
         self.clearStatusBar()
         super().close()
 
-    def plot(self, laser, isotope, viewconfig):
+    def plot(self, laser: LaserData, isotope: str, viewconfig: dict) -> None:
         self.image = plotLaserImage(
             self.fig,
             self.ax,
@@ -49,22 +54,22 @@ class Canvas(FigureCanvasQTAgg):
         )
         self.draw()
 
-    def clear(self):
+    def clear(self) -> None:
         self.fig.clear()
         self.ax = self.fig.add_subplot(111)
 
-    def updateStatusBar(self, e):
+    def updateStatusBar(self, e: MouseEvent) -> None:
         if e.inaxes == self.ax:
             x, y = e.xdata, e.ydata
             v = coords2value(self.image, x, y)
             self.window().statusBar().showMessage(f"{x:.2f},{y:.2f} [{v}]")
 
-    def clearStatusBar(self, e):
+    def clearStatusBar(self, e: LocationEvent = None) -> None:
         self.window().statusBar().clearMessage()
 
-    def sizeHint(self):
+    def sizeHint(self) -> QtCore.QSize:
         w, h = self.get_width_height()
         return QtCore.QSize(w, h)
 
-    def minimumSizeHint(self):
+    def minimumSizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(250, 250)

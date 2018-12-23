@@ -1,3 +1,6 @@
+import os.path
+import traceback
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from gui.dialogs import ConfigDialog, ColorRangeDialog, ExportDialog, TrimDialog
@@ -14,8 +17,9 @@ from util.importer import importCsv, importNpz, importAgilentBatch, importThermo
 from util.krisskross import KrissKrossData
 from util.laser import LaserData
 
-import os.path
-import traceback
+
+from typing import List, Union
+from gui.dialogs import ApplyDialog
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -27,7 +31,7 @@ class MainWindow(QtWidgets.QMainWindow):
         "fontsize": 10,
     }
 
-    def __init__(self, version):
+    def __init__(self, version: str):
         super().__init__()
 
         self.version = version
@@ -51,7 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.statusBar().showMessage("Import or open data to begin.")
 
-    def createMenus(self):
+    def createMenus(self) -> None:
         # File
         menu_file = self.menuBar().addMenu("&File")
         action_open = menu_file.addAction(
@@ -192,7 +196,7 @@ class MainWindow(QtWidgets.QMainWindow):
         action_about.setStatusTip("About this program.")
         action_about.triggered.connect(self.menuAbout)
 
-    def draw(self, visible_only=False):
+    def draw(self, visible_only: bool = False) -> None:
         if visible_only:
             docks = self.dockarea.visibleDocks()
         else:
@@ -200,7 +204,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for d in docks:
             d.draw()
 
-    def menuOpen(self):
+    def menuOpen(self) -> None:
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
             self,
             "Open File(s).",
@@ -209,7 +213,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "Pew Pew Sessions(*.pew);;All files(*)",
             "All files(*)",
         )
-        lds = []
+        lds: List[LaserData] = []
         if len(paths) == 0:
             return
         for path in paths:
@@ -234,7 +238,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 docks.append(LaserImageDock(ld, self.dockarea))
         self.dockarea.addDockWidgets(docks)
 
-    def menuImportAgilent(self):
+    def menuImportAgilent(self) -> None:
         paths = MultipleDirDialog.getExistingDirectories("Batch Directories", "", self)
         if len(paths) == 0:
             return
@@ -253,7 +257,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
         self.dockarea.addDockWidgets(docks)
 
-    def menuImportThermoiCap(self):
+    def menuImportThermoiCap(self) -> None:
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
             self, "Import CSVs", "", "CSV files(*.csv);;All files(*)"
         )
@@ -275,13 +279,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
         self.dockarea.addDockWidgets(docks)
 
-    def menuImportKrissKross(self):
+    def menuImportKrissKross(self) -> None:
         kkw = KrissKrossWizard(self.config, parent=self)
         if kkw.exec():
             dock = KrissKrossImageDock(kkw.data, self.dockarea)
             self.dockarea.addDockWidgets([dock])
 
-    def menuSaveSession(self):
+    def menuSaveSession(self) -> None:
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save File", "", "Pew Pew sessions(*.pew);;All files(*)"
         )
@@ -290,7 +294,7 @@ class MainWindow(QtWidgets.QMainWindow):
         lds = [d.laser for d in self.dockarea.findChildren(ImageDock)]
         exportNpz(path, lds)
 
-    def menuExportAll(self):
+    def menuExportAll(self) -> None:
         docks = self.dockarea.findChildren(ImageDock)
         if len(docks) == 0:
             return
@@ -303,16 +307,19 @@ class MainWindow(QtWidgets.QMainWindow):
         if not dlg.exec():
             return
 
-        isotopes = [None]
         if dlg.check_isotopes.isEnabled():
-            isotopes = (
+            isotopes: Union[List[str], List[None]] = (
                 dlg.isotopes
                 if dlg.check_isotopes.isChecked()
                 else [dlg.combo_isotopes.currentText()]
             )
-        layers = [None]
+        else:
+            isotopes = [None]
+
         if dlg.check_layers.isEnabled() and dlg.check_layers.isChecked():
-            layers = range(1, dlg.layers + 1)
+            layers: Union[List[int], List[None]] = list(range(1, dlg.layers + 1))
+        else:
+            layers = [None]
 
         prompt_overwrite = True
         for dock in docks:
@@ -337,15 +344,15 @@ class MainWindow(QtWidgets.QMainWindow):
                     elif result == QtWidgets.QMessageBox.YesToAll:
                         prompt_overwrite = False
 
-    def menuCloseAll(self):
+    def menuCloseAll(self) -> None:
         for dock in self.dockarea.findChildren(ImageDock):
             dock.close()
 
-    def menuExit(self):
+    def menuExit(self) -> None:
         self.close()
 
-    def menuConfig(self):
-        def applyDialog(dialog):
+    def menuConfig(self) -> None:
+        def applyDialog(dialog: ApplyDialog) -> None:
             self.config["spotsize"] = dialog.spotsize
             self.config["speed"] = dlg.speed
             self.config["scantime"] = dlg.scantime
@@ -363,13 +370,13 @@ class MainWindow(QtWidgets.QMainWindow):
         if dlg.exec():
             applyDialog(dlg)
 
-    def menuTrim(self):
-        def applyDialog(dialog):
+    def menuTrim(self) -> None:
+        def applyDialog(dialog: ApplyDialog) -> None:
             for dock in self.dockarea.visibleDocks(LaserImageDock):
                 dock.laser.setTrim(dlg.trim, dlg.combo_trim.currentText())
                 dock.draw()
 
-        dlg = TrimDialog([0, 0], parent=self)
+        dlg = TrimDialog((0.0, 0.0), parent=self)
         dlg.applyPressed.connect(applyDialog)
         dlg.check_all.setEnabled(False)
         dlg.check_all.setChecked(True)
@@ -377,11 +384,11 @@ class MainWindow(QtWidgets.QMainWindow):
         if dlg.exec():
             applyDialog(dlg)
 
-    def menuStandardsTool(self):
+    def menuStandardsTool(self) -> None:
         dlg = CalibrationTool(self.dockarea, self.viewconfig, parent=self)
         dlg.show()
 
-    def menuColormap(self, action):
+    def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
         for name, cmap, _, _, _ in COLORMAPS:
             if name == text:
@@ -389,17 +396,17 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.draw()
                 return
 
-    def menuColormapRange(self):
+    def menuColormapRange(self) -> None:
         dlg = ColorRangeDialog(self.viewconfig["cmaprange"], parent=self)
         if dlg.exec():
             self.viewconfig["cmaprange"] = dlg.range
             self.draw()
 
-    def menuInterpolation(self, action):
+    def menuInterpolation(self, action: QtWidgets.QAction) -> None:
         self.viewconfig["interpolation"] = action.text().replace("&", "")
         self.draw()
 
-    def menuFontsize(self):
+    def menuFontsize(self) -> None:
         fontsize, ok = QtWidgets.QInputDialog.getInt(
             self,
             "Fontsize",
@@ -413,10 +420,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.viewconfig["fontsize"] = fontsize
             self.draw()
 
-    def menuRefresh(self):
+    def menuRefresh(self) -> None:
         self.draw()
 
-    def menuAbout(self):
+    def menuAbout(self) -> None:
         QtWidgets.QMessageBox.about(
             self,
             "About Laser plot",
@@ -428,7 +435,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ),
         )
 
-    def exceptHook(self, type, value, trace):
+    def exceptHook(self, type: type, value: Exception, trace: Exception) -> None:
         DetailedError.critical(
             type.__name__,
             str(value),
@@ -436,7 +443,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
         )
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QtWidgets.QEvent) -> None:
         for dock in self.dockarea.findChildren(ImageDock):
             dock.close()
         super().closeEvent(event)

@@ -1,14 +1,15 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
-
 import numpy as np
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from util.calc import weighted_linreg
 from gui.validators import DoublePrecisionDelegate
-import traceback
+
+from typing import List, Tuple
 
 
 class CopyableTable(QtWidgets.QTableWidget):
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QtCore.QEvent) -> None:
         if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
             self._advance()
         elif event.key() in [QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete]:
@@ -22,12 +23,12 @@ class CopyableTable(QtWidgets.QTableWidget):
         else:
             super().keyPressEvent(event)
 
-    def _advance(self):
+    def _advance(self) -> None:
         row = self.currentRow()
         if row + 1 < self.rowCount():
             self.setCurrentCell(row + 1, self.currentColumn())
 
-    def _copy(self):
+    def _copy(self) -> None:
         selection = sorted(self.selectedIndexes(), key=lambda i: (i.row(), i.column()))
         data = (
             '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
@@ -53,15 +54,15 @@ class CopyableTable(QtWidgets.QTableWidget):
         mime.setText(text)
         QtWidgets.QApplication.clipboard().setMimeData(mime)
 
-    def _cut(self):
+    def _cut(self) -> None:
         self._copy()
         self._delete()
 
-    def _delete(self):
+    def _delete(self) -> None:
         for i in self.selectedItems():
             i.setText("")
 
-    def _paste(self):
+    def _paste(self) -> None:
         text = QtWidgets.QApplication.clipboard().text("plain")
         selection = self.selectedIndexes()
         start_row = min(selection, key=lambda i: i.row()).row()
@@ -77,21 +78,21 @@ class CopyableTable(QtWidgets.QTableWidget):
 class CalibrationTable(CopyableTable):
     ROW_LABELS = [c for c in "ABCDEFGHIJKLMNOPQRST"]
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(0, 2, parent)
         self.setHorizontalHeaderLabels(["Concentration", "Counts"])
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         self.setItemDelegate(DoublePrecisionDelegate(4))
 
-    def complete(self):
+    def complete(self) -> bool:
         for row in range(0, self.rowCount()):
             for column in range(0, self.columnCount()):
                 if self.item(row, column).text() == "":
                     return False
         return True
 
-    def setRowCount(self, rows):
+    def setRowCount(self, rows: int) -> None:
         current_rows = self.rowCount()
         super().setRowCount(rows)
 
@@ -107,17 +108,17 @@ class CalibrationTable(CopyableTable):
                 item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
                 self.setItem(row, 1, item)
 
-    def concentrations(self):
+    def concentrations(self) -> np.ndarray:
         return [self.item(row, 0).text() for row in range(0, self.rowCount())]
 
-    def counts(self):
+    def counts(self) -> np.ndarray:
         return [self.item(row, 1).text() for row in range(0, self.rowCount())]
 
-    def updateConcentrations(self, data):
+    def updateConcentrations(self, data: List[str]) -> None:
         for row in range(0, self.rowCount()):
             self.item(row, 0).setText(data[row] if data is not None else "")
 
-    def updateCounts(self, data):
+    def updateCounts(self, data: np.ndarray) -> None:
         # Default one empty array
         if len(data) == 1:
             return
@@ -127,7 +128,7 @@ class CalibrationTable(CopyableTable):
             mean_conc = np.mean(sections[row])
             self.item(row, 1).setText(f"{mean_conc:.4f}")
 
-    def calibrationResults(self, weighting="x"):
+    def calibrationResults(self, weighting: str = "x") -> Tuple[float, float, float]:
         """Returns tuple of the gradient intercept and r^2 for the current data.
         Does not check if the table is complete and can be parsed."""
         x = np.array(self.concentrations(), dtype=np.float64)
@@ -145,7 +146,12 @@ class CalibrationTable(CopyableTable):
 
 class DetailedError(QtWidgets.QMessageBox):
     def __init__(
-        self, level, title="Error", message="", detailed_message="", parent=None
+        self,
+        level: QtWidgets.QMessageBox.Icon,
+        title: str = "Error",
+        message: str = "",
+        detailed_message: str = "",
+        parent: QtWidgets.QWidget = None,
     ):
         super().__init__(level, title, message, QtWidgets.QMessageBox.NoButton, parent)
 
@@ -155,26 +161,41 @@ class DetailedError(QtWidgets.QMessageBox):
             textedit[0].setFixedSize(640, 320)
 
     @staticmethod
-    def info(title="Error", message="", detailed_message="", parent=None):
+    def info(
+        title: str = "Error",
+        message: str = "",
+        detailed_message: str = "",
+        parent: QtWidgets.QWidget = None,
+    ) -> QtWidgets.QMessageBox.StandardButton:
         return DetailedError(
             QtWidgets.QMessageBox.Information, title, message, detailed_message, parent
         ).exec()
 
     @staticmethod
-    def warning(title="Error", message="", detailed_message="", parent=None):
+    def warning(
+        title: str = "Error",
+        message: str = "",
+        detailed_message: str = "",
+        parent: QtWidgets.QWidget = None,
+    ) -> QtWidgets.QMessageBox.StandardButton:
         return DetailedError(
             QtWidgets.QMessageBox.Warning, title, message, detailed_message, parent
         ).exec()
 
     @staticmethod
-    def critical(title="Error", message="", detailed_message="", parent=None):
+    def critical(
+        title: str = "Error",
+        message: str = "",
+        detailed_message: str = "",
+        parent: QtWidgets.QWidget = None,
+    ) -> QtWidgets.QMessageBox.StandardButton:
         return DetailedError(
             QtWidgets.QMessageBox.Critical, title, message, detailed_message, parent
         ).exec()
 
 
 class MultipleDirDialog(QtWidgets.QFileDialog):
-    def __init__(self, title, directory, parent=None):
+    def __init__(self, title: str, directory: str, parent: QtWidgets.QWidget = None):
         super().__init__(parent, title, directory)
         self.setFileMode(QtWidgets.QFileDialog.Directory)
         self.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
@@ -184,9 +205,11 @@ class MultipleDirDialog(QtWidgets.QFileDialog):
                 view.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
     @staticmethod
-    def getExistingDirectories(title, directory, parent=None):
+    def getExistingDirectories(
+        title: str, directory: str, parent: QtWidgets.QWidget = None
+    ) -> List[str]:
         dlg = MultipleDirDialog(title, directory, parent)
         if dlg.exec():
-            return dlg.selectedFiles()
+            return list(dlg.selectedFiles())
         else:
             return []

@@ -1,14 +1,17 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
 import os.path
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from gui.validators import PercentValidator
+
+from typing import List, Tuple
+from util.laser import LaserData
 
 
 class ApplyDialog(QtWidgets.QDialog):
 
     applyPressed = QtCore.pyqtSignal(QtCore.QObject)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         self.button_box = QtWidgets.QDialogButtonBox(
@@ -19,7 +22,7 @@ class ApplyDialog(QtWidgets.QDialog):
         )
         self.button_box.clicked.connect(self.buttonClicked)
 
-    def buttonClicked(self, button):
+    def buttonClicked(self, button: QtWidgets.QAbstractButton) -> None:
         sb = self.button_box.standardButton(button)
 
         if sb == QtWidgets.QDialogButtonBox.Apply:
@@ -30,12 +33,14 @@ class ApplyDialog(QtWidgets.QDialog):
         else:
             self.reject()
 
-    def apply(self):
+    def apply(self) -> None:
         pass
 
 
 class ColorRangeDialog(ApplyDialog):
-    def __init__(self, current_range, parent=None):
+    def __init__(
+        self, current_range: Tuple[int, int], parent: QtWidgets.QWidget = None
+    ):
         self.range = current_range
         super().__init__(parent)
         self.setWindowTitle("Colormap Range")
@@ -59,26 +64,25 @@ class ColorRangeDialog(ApplyDialog):
         main_layout.addWidget(self.button_box)
         self.setLayout(main_layout)
 
-    def apply(self):
+    def updateRange(self) -> None:
         min_text, max_text = self.lineedit_min.text(), self.lineedit_max.text()
-        cmap_range = [
+        self.range = (
             min_text if min_text != "" else self.range[0],
             max_text if max_text != "" else self.range[1],
-        ]
-        self.parent().viewconfig["cmap_range"] = cmap_range
-        self.parent().draw()
+        )
 
-    def accept(self):
-        min_text, max_text = self.lineedit_min.text(), self.lineedit_max.text()
-        if min_text != "":
-            self.range[0] = min_text
-        if max_text != "":
-            self.range[1] = max_text
+    def apply(self) -> None:
+        self.updateRange()
+
+    def accept(self) -> None:
+        self.updateRange()
         super().accept()
 
 
 class CalibrationDialog(ApplyDialog):
-    def __init__(self, calibration, current_isotope, parent=None):
+    def __init__(
+        self, calibration: dict, current_isotope: str, parent: QtWidgets.QWidget = None
+    ):
         super().__init__(parent)
         self.setWindowTitle("Calibration")
         self.calibration = calibration
@@ -115,7 +119,7 @@ class CalibrationDialog(ApplyDialog):
 
         self.updateLineEdits()
 
-    def updateLineEdits(self):
+    def updateLineEdits(self) -> None:
         isotope = self.combo_isotopes.currentText()
 
         gradient = self.calibration[isotope]["gradient"]
@@ -134,7 +138,7 @@ class CalibrationDialog(ApplyDialog):
         else:
             self.lineedit_unit.setText(str(unit))
 
-    def updateCalibration(self, isotope):
+    def updateCalibration(self, isotope: str) -> None:
         gradient = self.lineedit_gradient.text()
         intercept = self.lineedit_intercept.text()
         unit = self.lineedit_unit.text()
@@ -146,22 +150,22 @@ class CalibrationDialog(ApplyDialog):
         if unit != "":
             self.calibration[isotope]["unit"] = unit
 
-    def comboChanged(self):
+    def comboChanged(self) -> None:
         previous = self.combo_isotopes.itemText(self.previous_index)
         self.updateCalibration(previous)
         self.updateLineEdits()
         self.previous_index = self.combo_isotopes.currentIndex()
 
-    def apply(self):
+    def apply(self) -> None:
         self.updateCalibration(self.combo_isotopes.currentText())
 
-    def accept(self):
+    def accept(self) -> None:
         self.updateCalibration(self.combo_isotopes.currentText())
         super().accept()
 
 
 class ConfigDialog(ApplyDialog):
-    def __init__(self, config, apply_func=None, parent=None):
+    def __init__(self, config: dict, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Configuration")
         self.spotsize = config["spotsize"]
@@ -193,7 +197,7 @@ class ConfigDialog(ApplyDialog):
         main_layout.addWidget(self.button_box)
         self.setLayout(main_layout)
 
-    def updateConfig(self):
+    def updateConfig(self) -> None:
         if self.lineedit_spotsize.text() != "":
             self.spotsize = float(self.lineedit_spotsize.text())
         if self.lineedit_speed.text() != "":
@@ -201,16 +205,18 @@ class ConfigDialog(ApplyDialog):
         if self.lineedit_scantime.text() != "":
             self.scantime = float(self.lineedit_scantime.text())
 
-    def apply(self):
+    def apply(self) -> None:
         self.updateConfig()
 
-    def accept(self):
+    def accept(self) -> None:
         self.updateConfig()
         super().accept()
 
 
 class TrimDialog(ApplyDialog):
-    def __init__(self, trim=(0, 0), parent=None):
+    def __init__(
+        self, trim: Tuple[float, float] = (0.0, 0.0), parent: QtWidgets.QWidget = None
+    ):
         super().__init__(parent)
         self.setWindowTitle("Trim")
         self.trim = trim
@@ -242,7 +248,7 @@ class TrimDialog(ApplyDialog):
         layout_main.addWidget(self.button_box)
         self.setLayout(layout_main)
 
-    def comboTrim(self):
+    def comboTrim(self) -> None:
         if self.combo_trim.currentText() == "rows":
             self.lineedit_left.setValidator(QtGui.QIntValidator(0, 1e9))
             self.lineedit_right.setValidator(QtGui.QIntValidator(0, 1e9))
@@ -250,7 +256,7 @@ class TrimDialog(ApplyDialog):
             self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
             self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
 
-    def updateTrim(self):
+    def updateTrim(self) -> None:
         trim_left = (
             float(self.lineedit_left.text())
             if self.lineedit_left.text() != ""
@@ -263,20 +269,26 @@ class TrimDialog(ApplyDialog):
         )
         self.trim = (trim_left, trim_right)
 
-    def apply(self):
+    def apply(self) -> None:
         self.updateTrim()
 
-    def accept(self):
+    def accept(self) -> None:
         self.updateTrim()
         super().accept()
 
 
 class ExportDialog(QtWidgets.QDialog):
-    def __init__(self, lasers, default_path="", default_isotope=None, parent=None):
+    def __init__(
+        self,
+        lasers: List[LaserData],
+        default_path: str = "",
+        default_isotope: str = None,
+        parent: QtWidgets.QWidget = None,
+    ):
         super().__init__(parent)
         self.setWindowTitle("Export Data")
         self.names = [laser.name for laser in lasers]
-        self.isotopes = []
+        self.isotopes: List[str] = []
         for laser in lasers:
             self.isotopes.extend(i for i in laser.isotopes() if i not in self.isotopes)
         self.default_isotope = default_isotope
@@ -303,7 +315,7 @@ class ExportDialog(QtWidgets.QDialog):
         self.contextEnable()
         self.drawPreview()
 
-    def initialiseWidgets(self):
+    def initialiseWidgets(self) -> None:
         self.lineedit_path.setMinimumWidth(300)
         self.lineedit_path.setSizePolicy(
             QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum
@@ -324,7 +336,7 @@ class ExportDialog(QtWidgets.QDialog):
         self.lineedit_preview = QtWidgets.QLineEdit()
         self.lineedit_preview.setEnabled(False)
 
-    def layoutWidgets(self):
+    def layoutWidgets(self) -> None:
         layout_path = QtWidgets.QHBoxLayout()
         layout_path.addWidget(QtWidgets.QLabel("Basename:"))
         layout_path.addWidget(self.lineedit_path)
@@ -346,7 +358,7 @@ class ExportDialog(QtWidgets.QDialog):
         layout_main.addWidget(self.button_box)
         self.setLayout(layout_main)
 
-    def buttonPath(self):
+    def buttonPath(self) -> None:
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Export",
@@ -360,11 +372,11 @@ class ExportDialog(QtWidgets.QDialog):
             self.lineedit_path.setText(path)
             self.changed()
 
-    def changed(self):
+    def changed(self) -> None:
         self.contextEnable()
         self.drawPreview()
 
-    def contextEnable(self):
+    def contextEnable(self) -> None:
         ext = os.path.splitext(self.lineedit_path.text())[1].lower()
 
         if len(self.isotopes) == 1:
@@ -389,7 +401,7 @@ class ExportDialog(QtWidgets.QDialog):
         else:
             self.check_layers.setEnabled(True)
 
-    def drawPreview(self):
+    def drawPreview(self) -> None:
         path = self.getPath(
             self.names[0] if len(self.names) > 1 else None,
             isotope=self.combo_isotopes.currentText()
@@ -402,7 +414,7 @@ class ExportDialog(QtWidgets.QDialog):
             path = os.path.basename(path)
         self.lineedit_preview.setText(path)
 
-    def getPath(self, name=None, isotope=None, layer=None):
+    def getPath(self, name: str = None, isotope: str = None, layer: int = None) -> str:
         path, ext = os.path.splitext(self.lineedit_path.text())
         if name is not None:
             path += f"_{name}"
@@ -410,4 +422,4 @@ class ExportDialog(QtWidgets.QDialog):
             path += f"_{isotope}"
         if layer is not None:
             path += f"_{layer}"
-        return path + ext
+        return f"{path}{str}"

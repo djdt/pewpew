@@ -1,3 +1,6 @@
+import numpy as np
+import os.path
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from util.exporter import exportCsv, exportNpz, exportPng, exportVtr
@@ -5,15 +8,17 @@ from util.exporter import exportCsv, exportNpz, exportPng, exportVtr
 from gui.canvas import Canvas
 from gui.dialogs import CalibrationDialog, ConfigDialog, ExportDialog, TrimDialog
 
-import numpy as np
-import os.path
+from typing import List, Union
+from util.laser import LaserData
+from util.krisskross import KrissKrossData
+from gui.dialogs import ApplyDialog
 
 
 class ImageDockTitleBar(QtWidgets.QWidget):
 
     nameChanged = QtCore.pyqtSignal("QString")
 
-    def __init__(self, title, parent=None):
+    def __init__(self, title: str, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         self.title = QtWidgets.QLabel(title)
@@ -24,11 +29,11 @@ class ImageDockTitleBar(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
-    def setTitle(self, title):
+    def setTitle(self, title: str) -> None:
         if "&" not in title:
             self.title.setText(title)
 
-    def mouseDoubleClickEvent(self, event):
+    def mouseDoubleClickEvent(self, event: QtCore.QEvent) -> None:
         if self.title.underMouse():
             name, ok = QtWidgets.QInputDialog.getText(
                 self, "Rename", "Name:", QtWidgets.QLineEdit.Normal, self.title.text()
@@ -38,7 +43,7 @@ class ImageDockTitleBar(QtWidgets.QWidget):
 
 
 class ImageDock(QtWidgets.QDockWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setFeatures(
@@ -46,7 +51,7 @@ class ImageDock(QtWidgets.QDockWidget):
             | QtWidgets.QDockWidget.DockWidgetMovable
         )
 
-        self.laser = None
+        self.laser: LaserData = None
         self.canvas = Canvas(parent=self)
 
         self.combo_isotope = QtWidgets.QComboBox()
@@ -106,13 +111,13 @@ class ImageDock(QtWidgets.QDockWidget):
         self.action_close.setStatusTip("Close the images.")
         self.action_close.triggered.connect(self.onMenuClose)
 
-    def draw(self):
+    def draw(self) -> None:
         self.canvas.clear()
         isotope = self.combo_isotope.currentText()
         viewconfig = self.window().viewconfig
         self.canvas.plot(self.laser, isotope, viewconfig)
 
-    def buildContextMenu(self):
+    def buildContextMenu(self) -> QtWidgets.QMenu:
         context_menu = QtWidgets.QMenu(self)
         context_menu.addAction(self.action_copy)
         context_menu.addSeparator()
@@ -126,23 +131,28 @@ class ImageDock(QtWidgets.QDockWidget):
         context_menu.addAction(self.action_close)
         return context_menu
 
-    def contextMenuEvent(self, event):
+    def contextMenuEvent(self, event: QtCore.QEvent) -> None:
         context_menu = self.buildContextMenu()
         context_menu.exec(event.globalPos())
 
-    def onMenuCopy(self):
-        dock_copy = type(self)(self.laser, self.parent())
-        dock_copy.draw()
-        self.parent().smartSplitDock(self, dock_copy)
+    def onMenuCopy(self) -> None:
+        if isinstance(self, KrissKrossImageDock):
+            copy = KrissKrossImageDock(self.laser, self.parent())
+        elif isinstance(self, LaserImageDock):
+            copy = LaserImageDock(self.laser, self.parent())
+        else:
+            copy = ImageDock(self.parent())
+        copy.draw()
+        self.parent().smartSplitDock(self, copy)
 
-    def onMenuSave(self):
+    def onMenuSave(self) -> None:
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save File", "", "Numpy archive(*.npz);;All files(*)"
         )
         if path:
             exportNpz(path, [self.laser])
 
-    def onMenuExport(self):
+    def onMenuExport(self) -> None:
         dlg = ExportDialog(
             [self.laser],
             default_path=os.path.dirname(self.laser.source) + "export.csv",
@@ -152,16 +162,19 @@ class ImageDock(QtWidgets.QDockWidget):
         if not dlg.exec():
             return
 
-        isotopes = [None]
         if dlg.check_isotopes.isEnabled():
-            isotopes = (
+            isotopes: Union[List[str], List[None]] = (
                 dlg.isotopes
                 if dlg.check_isotopes.isChecked()
                 else [dlg.combo_isotopes.currentText()]
             )
-        layers = [None]
+        else:
+            isotopes = [None]
+
         if dlg.check_layers.isEnabled() and dlg.check_layers.isChecked():
-            layers = range(1, dlg.layers + 1)
+            layers: Union[List[int], List[None]] = list(range(1, dlg.layers + 1))
+        else:
+            layers = [None]
 
         prompt_overwrite = True
         for isotope in isotopes:
@@ -180,8 +193,8 @@ class ImageDock(QtWidgets.QDockWidget):
                 elif result == QtWidgets.QMessageBox.YesToAll:
                     prompt_overwrite = False
 
-    def onMenuCalibration(self):
-        def applyDialog(dialog):
+    def onMenuCalibration(self) -> None:
+        def applyDialog(dialog: ApplyDialog) -> None:
             if dialog.check_all.isChecked():
                 docks = self.parent().findChildren(ImageDock)
             else:
@@ -193,16 +206,14 @@ class ImageDock(QtWidgets.QDockWidget):
                 dock.draw()
 
         dlg = CalibrationDialog(
-            self.laser.calibration,
-            self.combo_isotope.currentText(),
-            parent=self,
+            self.laser.calibration, self.combo_isotope.currentText(), parent=self
         )
         dlg.applyPressed.connect(applyDialog)
         if dlg.exec():
             applyDialog(dlg)
 
-    def onMenuConfig(self):
-        def applyDialog(dialog):
+    def onMenuConfig(self) -> None:
+        def applyDialog(dialog: ApplyDialog) -> None:
             if dialog.check_all.isChecked():
                 # Only LaserImageDock, no KrissKrossImageDock
                 docks = self.parent().findChildren(LaserImageDock)
@@ -219,8 +230,8 @@ class ImageDock(QtWidgets.QDockWidget):
         if dlg.exec():
             applyDialog(dlg)
 
-    def onMenuTrim(self):
-        def applyDialog(dialog):
+    def onMenuTrim(self) -> None:
+        def applyDialog(dialog: ApplyDialog) -> None:
             if dialog.check_all.isChecked():
                 docks = self.parent().findChildren(ImageDock)
             else:
@@ -235,27 +246,33 @@ class ImageDock(QtWidgets.QDockWidget):
         if dlg.exec():
             applyDialog(dlg)
 
-    def onMenuClose(self):
+    def onMenuClose(self) -> None:
         self.close()
 
-    def onComboIsotope(self, text):
+    def onComboIsotope(self, text: str) -> None:
         self.draw()
 
-    def titleNameChanged(self, name):
+    def titleNameChanged(self, name: str) -> None:
         self.setWindowTitle(name)
         if self.laser is not None:
             self.laser.name = name
 
 
 class LaserImageDock(ImageDock):
-    def __init__(self, laserdata, parent=None):
+    def __init__(self, laserdata: LaserData, parent: QtWidgets.QWidget = None):
 
         super().__init__(parent)
         self.laser = laserdata
         self.combo_isotope.addItems(self.laser.isotopes())
         self.setWindowTitle(self.laser.name)
 
-    def _export(self, path, isotope=None, layer=None, prompt_overwrite=True):
+    def _export(
+        self,
+        path: str,
+        isotope: str = None,
+        layer: int = None,
+        prompt_overwrite: bool = True,
+    ) -> QtWidgets.QMessageBox.StandardButton:
         if isotope is None:
             isotope = self.combo_isotope.currentText()
 
@@ -304,7 +321,7 @@ class LaserImageDock(ImageDock):
 
 
 class KrissKrossImageDock(LaserImageDock):
-    def __init__(self, kkdata, parent=None):
+    def __init__(self, kkdata: KrissKrossData, parent: QtWidgets.QWidget = None):
 
         super().__init__(kkdata, parent)
         self.setWindowTitle(f"kk:{self.laser.name}")
@@ -313,13 +330,19 @@ class KrissKrossImageDock(LaserImageDock):
         self.action_config.setEnabled(False)
         self.action_trim.setEnabled(False)
 
-    def onMenuConfig(self):
+    def onMenuConfig(self) -> None:
         pass
 
-    def onMenuTrim(self):
+    def onMenuTrim(self) -> None:
         pass
 
-    def _export(self, path, isotope=None, layer=None, prompt_overwrite=True):
+    def _export(
+        self,
+        path: str,
+        isotope: str = None,
+        layer: int = None,
+        prompt_overwrite: bool = True,
+    ) -> QtWidgets.QMessageBox.StandardButton:
         if isotope is None:
             isotope = self.combo_isotope.currentText()
 

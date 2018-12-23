@@ -11,9 +11,12 @@ from gui.widgets import CalibrationTable
 from util.laser import LaserData
 from util.laserimage import plotLaserImage
 
+from typing import Dict, List
+from gui.windows import DockArea
 
-class CalibrationTool():
-    def __init__(self, dockarea, viewconfig, parent=None):
+
+class CalibrationTool(QtWidgets.QDialog):
+    def __init__(self, dockarea: DockArea, viewconfig: dict, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Calibration Standards Tool")
 
@@ -22,7 +25,7 @@ class CalibrationTool():
         self.laser = LaserData() if len(docks) < 1 else docks[0].laser
         self.viewconfig = viewconfig
         self.previous_isotope = None
-        self.concentrations = {}
+        self.concentrations: Dict[str, List[float]] = {}
 
         # Left side
         self.spinbox_levels = QtWidgets.QSpinBox()
@@ -66,7 +69,7 @@ class CalibrationTool():
         )
         self.draw()
 
-    def initialiseWidgets(self):
+    def initialiseWidgets(self) -> None:
         self.spinbox_levels.setMaximum(20)
         self.spinbox_levels.setValue(5)
         self.spinbox_levels.valueChanged.connect(self.onSpinBoxLevels)
@@ -98,7 +101,7 @@ class CalibrationTool():
 
         self.button_box.clicked.connect(self.buttonBoxClicked)
 
-    def layoutWidgets(self):
+    def layoutWidgets(self) -> None:
         layout_cal_form = QtWidgets.QFormLayout()
         layout_cal_form.addRow("Calibration Levels:", self.spinbox_levels)
 
@@ -149,7 +152,7 @@ class CalibrationTool():
         layout_main.addWidget(self.button_box)
         self.setLayout(layout_main)
 
-    def draw(self):
+    def draw(self) -> None:
         self.canvas.clear()
 
         isotope = self.combo_isotope.currentText()
@@ -169,7 +172,7 @@ class CalibrationTool():
         self.drawLevels()
         self.canvas.draw()
 
-    def drawLevels(self):
+    def drawLevels(self) -> None:
         levels = self.spinbox_levels.value()
         ax_fraction = 1.0 / levels
         # Draw lines
@@ -204,7 +207,7 @@ class CalibrationTool():
             )
             cax.add_artist(text)
 
-    def updateResults(self):
+    def updateResults(self) -> None:
         if not self.table.complete():
             return
         m, b, r2 = self.table.calibrationResults(
@@ -213,29 +216,27 @@ class CalibrationTool():
         self.lineedit_intercept.setText(f"{b:.4f}")
         self.lineedit_rsq.setText(f"{r2:.4f}")
 
-    def updateTrim(self):
+    def updateTrim(self) -> None:
         trim = self.laser.trimAs(self.combo_trim.currentText())
         self.lineedit_left.setText(str(trim[0]))
         self.lineedit_right.setText(str(trim[1]))
 
-    def buttonBoxClicked(self, button):
+    def buttonBoxClicked(self, button: QtWidgets.QAbstractButton) -> None:
         sb = self.button_box.standardButton(button)
 
-        # if sb == QtWidgets.QDialogButtonBox.Apply:
-        #     self.apply()
         if sb == QtWidgets.QDialogButtonBox.Ok:
             self.accept()
         else:
             self.reject()
 
-    def onButtonLaser(self):
+    def onButtonLaser(self) -> None:
         self.hide()
         self.dockarea.activateWindow()
         self.dockarea.setFocus(QtCore.Qt.OtherFocusReason)
         self.dockarea.startMouseSelect()
         self.dockarea.mouseSelectFinished.connect(self.mouseSelectFinished)
 
-    def onComboTrim(self, text):
+    def onComboTrim(self, text: str) -> None:
         if self.combo_trim.currentText() == "rows":
             self.lineedit_left.setValidator(QtGui.QIntValidator(0, 1e9))
             self.lineedit_right.setValidator(QtGui.QIntValidator(0, 1e9))
@@ -244,7 +245,7 @@ class CalibrationTool():
             self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
         self.updateTrim()
 
-    def onComboIsotope(self, text):
+    def onComboIsotope(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
         self.concentrations[self.previous_isotope] = self.table.concentrations()
 
@@ -255,10 +256,10 @@ class CalibrationTool():
         self.draw()
         self.previous_isotope = isotope
 
-    def onComboWeighting(self, text):
+    def onComboWeighting(self, text: str) -> None:
         self.updateResults()
 
-    def onLineEditTrim(self):
+    def onLineEditTrim(self) -> None:
         if self.lineedit_left.text() == "" or self.lineedit_right.text() == "":
             return
         trim = [float(self.lineedit_left.text()),
@@ -272,7 +273,7 @@ class CalibrationTool():
         self.updateResults()
         self.draw()
 
-    def onSpinBoxLevels(self):
+    def onSpinBoxLevels(self) -> None:
         self.table.setRowCount(self.spinbox_levels.value())
         self.table.updateCounts(
             self.laser.get(
@@ -282,12 +283,12 @@ class CalibrationTool():
         self.updateResults()
         self.draw()
 
-    def onTableItemChanged(self, item):
+    def onTableItemChanged(self, item: QtWidgets.QTableWidgetItem) -> None:
         if item.text() != "":
             self.updateResults()
 
     @QtCore.pyqtSlot("QWidget*")
-    def mouseSelectFinished(self, widget):
+    def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
         if widget is not None and hasattr(widget, "laser"):
             self.laser = widget.laser
             # Prevent currentIndexChanged being emmited
@@ -310,7 +311,7 @@ class CalibrationTool():
         self.show()
         self.draw()
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QtCore.QEvent) -> None:
         if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
             return
         super().keyPressEvent(event)

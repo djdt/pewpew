@@ -2,7 +2,7 @@ import numpy as np
 
 from util.laser import LaserData
 
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 
 def krissKrossLayers(
@@ -39,9 +39,9 @@ def krissKrossLayers(
 class KrissKrossData(LaserData):
     def __init__(
         self,
-        data: Optional[np.ndarray] = None,
-        config: Optional[dict] = None,
-        calibration: Optional[dict] = None,
+        data: np.ndarray = None,
+        config: dict = None,
+        calibration: dict = None,
         name: str = "",
         source: str = "",
     ):
@@ -60,7 +60,7 @@ class KrissKrossData(LaserData):
 
     def get(
         self,
-        isotope: Optional[str] = None,
+        isotope: str = None,
         calibrated: bool = False,
         trimmed: bool = False,
         flattened: bool = True,

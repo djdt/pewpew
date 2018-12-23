@@ -1,16 +1,18 @@
+import os
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from util.krisskross import KrissKrossData
 from util.importer import importNpz, importAgilentBatch
 
-import os
+from typing import List
 
 
 class KrissKrossWizard(QtWidgets.QWizard):
-    def __init__(self, config, parent=None):
+    def __init__(self, config: dict, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        self.data = None
+        self.data: KrissKrossData = None
 
         self.addPage(KrissKrossStartPage())
         self.addPage(KrissKrossImportPage())
@@ -20,7 +22,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
 
         self.resize(540, 480)
 
-    def accept(self):
+    def accept(self) -> None:
         config = self.field("config")
         calibration = None
         paths = self.field("paths")
@@ -65,7 +67,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
 
 
 class KrissKrossStartPage(QtWidgets.QWizardPage):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         self.setTitle("Overview")
@@ -101,7 +103,7 @@ class KrissKrossStartPage(QtWidgets.QWizardPage):
 
 
 class KrissKrossImportPage(QtWidgets.QWizardPage):
-    def __init__(self, parent=None):
+    def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         self.setTitle("Files and Directories")
@@ -149,7 +151,7 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
 
         self.registerField("paths", self, "paths")
 
-    def buttonAdd(self):
+    def buttonAdd(self) -> None:
         if self.field("radio_numpy"):
             paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
                 self, "Select Files", "" "Numpy archives(*.npz);;All files(*)"
@@ -169,7 +171,7 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
         for path in paths:
             self.list.addItem(path)
 
-    def buttonAddAll(self):
+    def buttonAddAll(self) -> None:
         path = QtWidgets.QFileDialog.getExistingDirectory(
             self, "Select Directory", "", QtWidgets.QFileDialog.DontUseNativeDialog
         )
@@ -188,7 +190,7 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
             if f.lower().endswith(ext):
                 self.list.addItem(os.path.join(path, f))
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QtCore.QEvent) -> None:
         if (
             event.key() == QtCore.Qt.Key_Delete
             or event.key() == QtCore.Qt.Key_Backspace
@@ -197,15 +199,15 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
                 self.list.takeItem(self.list.row(item))
         super().keyPressEvent(event)
 
-    def initializePage(self):
+    def initializePage(self) -> None:
         # No need for config if numpy are used
         self.setFinalPage(self.field("radio_numpy"))
 
-    def isComplete(self):
+    def isComplete(self) -> bool:
         return self.list.count() >= 2 and len(self.lineedit_warmup.text()) > 0
 
     @QtCore.pyqtProperty(list)
-    def paths(self):
+    def paths(self) -> List[str]:
         paths = []
         for i in range(0, self.list.count()):
             paths.append(self.list.item(i).text())
@@ -213,7 +215,7 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
 
 
 class KrissKrossConfigPage(QtWidgets.QWizardPage):
-    def __init__(self, config, parent=None):
+    def __init__(self, config: dict, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         self.dconfig = config
@@ -240,7 +242,7 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
         self.registerField("config", self, "config")
 
     @QtCore.pyqtProperty(QtCore.QVariant)
-    def config(self):
+    def config(self) -> dict:
         if self.lineedit_spotsize.text() != "":
             self.dconfig["spotsize"] = float(self.lineedit_spotsize.text())
         if self.lineedit_speed.text() != "":
