@@ -251,10 +251,17 @@ class TrimDialog(ApplyDialog):
             self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
 
     def updateTrim(self):
-        if self.lineedit_left.text() != "":
-            self.trim[0] = float(self.lineedit_left.text())
-        if self.lineedit_right.text() != "":
-            self.trim[1] = float(self.lineedit_right.text())
+        trim_left = (
+            float(self.lineedit_left.text())
+            if self.lineedit_left.text() != ""
+            else self.trim[0]
+        )
+        trim_right = (
+            float(self.lineedit_right.text())
+            if self.lineedit_right.text() != ""
+            else self.trim[1]
+        )
+        self.trim = (trim_left, trim_right)
 
     def apply(self):
         self.updateTrim()

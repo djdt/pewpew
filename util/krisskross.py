@@ -1,9 +1,15 @@
 import numpy as np
+from typing import List, Optional, Tuple
 
 from util.laser import LaserData
 
 
-def krissKrossLayers(layers, aspect, warmup, horizontal_first=True):
+def krissKrossLayers(
+    layers: List[np.ndarray],
+    aspect: float,
+    warmup: int,
+    horizontal_first: bool = True,
+) -> np.ndarray:
 
     j = 0 if horizontal_first else 1
     aspect = int(aspect)
@@ -33,22 +39,40 @@ def krissKrossLayers(layers, aspect, warmup, horizontal_first=True):
 
 
 class KrissKrossData(LaserData):
-    def __init__(self, data=None, config=None, calibration=None, name="", source=""):
+    def __init__(
+        self,
+        data: Optional[np.ndarray] = None,
+        config: Optional[dict] = None,
+        calibration: Optional[dict] = None,
+        name: str = "",
+        source: str = "",
+    ):
         super().__init__(
             data=data, config=config, calibration=calibration, name=name, source=source
         )
 
-    def fromLayers(self, layers, warmup_time=13.0, horizontal_first=True):
+    def fromLayers(
+        self,
+        layers: List[np.ndarray],
+        warmup_time: float = 13.0,
+        horizontal_first: bool = True,
+    ):
         warmup = int(warmup_time / self.config["scantime"])
         self.data = krissKrossLayers(layers, self.aspect(), warmup, horizontal_first)
 
-    def get(self, isotope=None, calibrated=False, trimmed=False, flattened=True):
+    def get(
+        self,
+        isotope: Optional[str] = None,
+        calibrated: bool = False,
+        trimmed: bool = False,
+        flattened: bool = True,
+    ) -> np.ndarray:
         data = super().get(isotope=isotope, calibrated=calibrated, trimmed=trimmed)
         if flattened:
             data = np.mean(data, axis=2)
         return data
 
-    def split(self):
+    def split(self) -> List[LaserData]:
         lds = []
         for data in np.dsplit(self.data, self.data.shape[2]):
             # Strip the third dimension
@@ -62,11 +86,10 @@ class KrissKrossData(LaserData):
             )
         return lds
 
-    def extent(self, trimmed=False):
+    def extent(self, trimmed: bool = False) -> Tuple[int, int, int, int]:
         # Image data is stored [rows][cols]
         extent = super().extent(trimmed)
-        extent[3] /= self.aspect()
-        return extent
+        return (0, extent[1], 0, extent[3] / self.aspect())
 
     def layers(self):
         return self.data.shape[2]

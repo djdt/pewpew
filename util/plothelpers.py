@@ -1,7 +1,8 @@
 import matplotlib.transforms as mtransforms
+from matplotlib.image import AxesImage
 
 
-def coords2index(im, x, y, inverted=False):
+def coords2index(image: AxesImage, x: float, y: float, inverted: bool = False):
     """
     Converts data coordinates to index coordinates of the array.
     Parameters
@@ -19,11 +20,11 @@ def coords2index(im, x, y, inverted=False):
     --------
     i, j : Index coordinates of the array associated with the image.
     """
-    xmin, xmax, ymin, ymax = im.get_extent()
-    if im.origin == "upper":
+    xmin, xmax, ymin, ymax = image.get_extent()
+    if image.origin == "upper":
         ymin, ymax = ymax, ymin
     data_extent = mtransforms.Bbox([[ymin, xmin], [ymax, xmax]])
-    array_extent = mtransforms.Bbox([[0, 0], im.get_array().shape[:2]])
+    array_extent = mtransforms.Bbox([[0, 0], image.get_array().shape[:2]])
     trans = mtransforms.BboxTransformFrom(data_extent) + mtransforms.BboxTransformTo(
         array_extent
     )
@@ -34,6 +35,6 @@ def coords2index(im, x, y, inverted=False):
     return trans.transform_point([y, x]).astype(int)
 
 
-def coords2value(im, x, y, inverted=False):
-    ix, iy = coords2index(im, x, y, inverted)
-    return im.get_array()[ix, iy]
+def coords2value(image, x: float, y: float, inverted: bool = False):
+    ix, iy = coords2index(image, x, y, inverted)
+    return image.get_array()[ix, iy]

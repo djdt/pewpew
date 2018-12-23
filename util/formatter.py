@@ -1,4 +1,4 @@
-def formatIsotope(isotope, fstring="{mass}{element}"):
+def formatIsotope(isotope: str, fstring: str = "{mass}{element}") -> str:
     element = isotope.strip("0123456789")
     mass = isotope.lower().strip("abcdefghijklmnopqrstuvwxyz")
     if element.isalpha() and mass.isdecimal():

@@ -1,12 +1,15 @@
 import sys
 import numpy as np
+from typing import Any, Dict, List, Tuple
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from util.laserimage import plotLaserImage
 
+from util.laser import LaserData
 
-def exportCsv(path, data, isotope, config):
+
+def exportCsv(path: str, data: np.ndarray, isotope: str, config: dict):
     header = (
         f"Pew Pew Export\n{isotope}\n"
         f"spotsize={config['spotsize']};speed={config['speed']};"
@@ -16,18 +19,30 @@ def exportCsv(path, data, isotope, config):
     np.savetxt(path, data, delimiter=",", header=header)
 
 
-def exportNpz(path, laserdata_list):
-    savedict = {"_name": [], "_type": [], "_config": [], "_calibration": []}
-    for i, ld in enumerate(laserdata_list):
-        savedict["_name"].append(ld.name)
-        savedict["_type"].append(type(ld))
-        savedict["_config"].append(ld.config)
-        savedict["_calibration"].append(ld.calibration)
-        savedict[f"_data{i}"] = ld.data
+def exportNpz(path: str, laser_list: List[LaserData]):
+    savedict: Dict[str, List[Any]] = {
+        "_name": [],
+        "_type": [],
+        "_config": [],
+        "_calibration": [],
+    }
+    for i, laser in enumerate(laser_list):
+        savedict["_name"].append(laser.name)
+        savedict["_type"].append(type(laser))
+        savedict["_config"].append(laser.config)
+        savedict["_calibration"].append(laser.calibration)
+        savedict[f"_data{i}"] = laser.data
     np.savez_compressed(path, **savedict)
 
 
-def exportPng(path, data, isotope, aspect, extent, viewconfig):
+def exportPng(
+    path: str,
+    data: np.ndarray,
+    isotope: str,
+    aspect: float,
+    extent: Tuple[int, int, int, int],
+    viewconfig: dict,
+):
     fig = Figure(frameon=False, tight_layout=True, figsize=(5, 5), dpi=100)
     canvas = FigureCanvasAgg(fig)
     ax = fig.add_subplot(111)
@@ -49,21 +64,18 @@ def exportPng(path, data, isotope, aspect, extent, viewconfig):
     canvas.close_event()
 
 
-def exportVtr(path, krisskrossdata):
-    data = krisskrossdata.get(calibrated=True, flattened=False)
+def exportVtr(path, data: np.ndarray, extent: Tuple[int, int, int, int], depth: float):
     nx, ny, nz = data.shape
     extent_str = f"0 {nx-1} 0 {ny-1} 0 {nz-1}"
     endian = "LittleEndian" if sys.byteorder == "little" else "BigEndian"
 
-    extent = krisskrossdata.extent()
     coords = [
         np.linspace(extent[2], extent[3], nx),
         np.linspace(extent[0], extent[1], ny),
-        np.linspace(0, nz * -krisskrossdata.config["spotsize"], nz),
+        np.linspace(0, nz * -depth, nz),
     ]
 
     offset = 0
-
     with open(path, "wb") as fp:
         fp.write(
             (
@@ -86,15 +98,15 @@ def exportVtr(path, krisskrossdata):
             offset += coord.size * coord.itemsize + 8  # 8 for blocksize
         fp.write("</Coordinates>\n".encode())
 
-        fp.write(f'<PointData Scalars="{krisskrossdata.isotopes()[0]}">\n'.encode())
-        for isotope in krisskrossdata.isotopes():
+        fp.write(f'<PointData Scalars="{data.dtype.names[0]}">\n'.encode())
+        for name in data.dtype.names:
             fp.write(
                 (
-                    f'<DataArray Name="{isotope}" type="Float64" '
+                    f'<DataArray Name="{name}" type="Float64" '
                     f'format="appended" offset="{offset}"/>\n'
                 ).encode()
             )
-            offset += data[isotope].size * data[isotope].itemsize + 8  # blocksize
+            offset += data[name].size * data[name].itemsize + 8  # blocksize
         fp.write("</PointData>\n".encode())
 
         fp.write(
@@ -110,8 +122,8 @@ def exportVtr(path, krisskrossdata):
             fp.write(np.uint64(coord.size * coord.itemsize))
             fp.write(coord)
 
-        for isotope in krisskrossdata.isotopes():
-            fp.write(np.uint64(data[isotope].size * data[isotope].itemsize))
-            fp.write(data[isotope].ravel("F"))
+        for name in data.dtype.names:
+            fp.write(np.uint64(data[name].size * data[name].itemsize))
+            fp.write(data[name].ravel("F"))
 
         fp.write(("</AppendedData>\n" "</VTKFile>").encode())

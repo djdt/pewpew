@@ -228,7 +228,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
         docks = []
         for ld in lds:
-            if type(ld) == KrissKrossData:
+            if isinstance(ld, KrissKrossData):
                 docks.append(KrissKrossImageDock(ld, self.dockarea))
             else:
                 docks.append(LaserImageDock(ld, self.dockarea))
