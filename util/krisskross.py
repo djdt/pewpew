@@ -1,5 +1,5 @@
+from typing import List, NoReturn, Optional, Tuple
 import numpy as np
-from typing import List, Optional, Tuple
 
 from util.laser import LaserData
 
@@ -56,7 +56,7 @@ class KrissKrossData(LaserData):
         layers: List[np.ndarray],
         warmup_time: float = 13.0,
         horizontal_first: bool = True,
-    ):
+    ) -> NoReturn:
         warmup = int(warmup_time / self.config["scantime"])
         self.data = krissKrossLayers(layers, self.aspect(), warmup, horizontal_first)
 
@@ -91,5 +91,5 @@ class KrissKrossData(LaserData):
         extent = super().extent(trimmed)
         return (0, extent[1], 0, extent[3] / self.aspect())
 
-    def layers(self):
-        return self.data.shape[2]
+    def layers(self) -> int:
+        return int(self.data.shape[2])

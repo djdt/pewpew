@@ -1,7 +1,8 @@
+from typing import Optional, Tuple
 import numpy as np
 
 
-def weighted_rsq(x: np.ndarray, y: np.ndarray, w: np.ndarray = None):
+def weighted_rsq(x: np.ndarray, y: np.ndarray, w: Optional[np.ndarray] = None) -> float:
     c = np.cov(x, y, aweights=w)
     d = np.diag(c)
     stddev = np.sqrt(d.real)
@@ -12,10 +13,12 @@ def weighted_rsq(x: np.ndarray, y: np.ndarray, w: np.ndarray = None):
     if np.iscomplexobj(c):
         np.clip(c.imag, -1, 1, out=c.imag)
 
-    return c[0, 1] ** 2
+    return float(c[0, 1] ** 2)
 
 
-def weighted_linreg(x: np.ndarray, y: np.ndarray, w: np.ndarray = None):
+def weighted_linreg(
+    x: np.ndarray, y: np.ndarray, w: Optional[np.ndarray] = None
+) -> Tuple[float, float, float]:
     m, b = np.polyfit(x, y, 1, w=w)
     r2 = weighted_rsq(x, y, w)
     return m, b, r2
