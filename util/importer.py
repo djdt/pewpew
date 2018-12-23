@@ -20,7 +20,8 @@ def importCsv(
             isotope = fp.readline().strip().lstrip("# ")
             # Read the config from the file
             if read_config:
-                config = LaserData.DEFAULT_CONFIG
+                if config is None:
+                    config = LaserData.DEFAULT_CONFIG
                 line = fp.readline().strip().lstrip("# ")
                 if ";" not in line or "=" not in line:
                     raise PewPewFileError(f"Malformed config line '{line}'.")
