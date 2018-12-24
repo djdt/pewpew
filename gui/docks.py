@@ -244,6 +244,7 @@ class ImageDock(QtWidgets.QDockWidget):
                     QtWidgets.QMessageBox.warning(
                         self, "Invalid Trim", "Trim larger than data."
                     )
+                    return
             for dock in docks:
                 dock.laser.setTrim(dialog.trim, dialog.combo_trim.currentText())
                 dock.draw()
