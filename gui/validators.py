@@ -5,11 +5,14 @@ from typing import Tuple
 
 class PercentValidator(QtGui.QValidator):
     def __init__(
-        self, min_value: int = 0, max_value: int = 100, parent: QtWidgets.QWidget = None
+        self,
+        percent_min: int = 0,
+        percent_max: int = 100,
+        parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
-        self.min_value = min_value
-        self.max_value = max_value
+        self.percent_min = percent_min
+        self.percent_max = percent_max
 
     def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
         if len(input.rstrip("%")) == 0:
@@ -25,9 +28,44 @@ class PercentValidator(QtGui.QValidator):
         except ValueError:
             return (QtGui.QValidator.Invalid, input, pos)
 
-        if i < self.min_value:
+        if i < self.percent_min:
             return (QtGui.QValidator.Intermediate, input, pos)
-        elif i > self.max_value:
+        elif i > self.percent_max:
+            return (QtGui.QValidator.Invalid, input, pos)
+
+        return (QtGui.QValidator.Acceptable, input, pos)
+
+
+class PercentOrIntValidator(PercentValidator):
+    def __init__(
+        self,
+        int_min: int = None,
+        int_max: int = None,
+        percent_min: int = 0,
+        percent_max: int = 100,
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(percent_min, percent_max, parent)
+        self.int_min = int_min
+        self.int_max = int_max
+
+    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
+        if len(input) == 0:
+            return (QtGui.QValidator.Intermediate, input, pos)
+
+        # Treat as percent
+        if "%" in input:
+            return super().validate(input, pos)
+
+        # Treat as int
+        try:
+            i = int(input)
+        except ValueError:
+            return (QtGui.QValidator.Invalid, input, pos)
+
+        if self.int_min is not None and i < self.int_min:
+            return (QtGui.QValidator.Intermediate, input, pos)
+        elif self.int_max is not None and i > self.int_max:
             return (QtGui.QValidator.Invalid, input, pos)
 
         return (QtGui.QValidator.Acceptable, input, pos)

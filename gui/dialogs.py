@@ -1,7 +1,7 @@
 import os.path
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from gui.validators import PercentValidator
+from gui.validators import PercentOrIntValidator
 
 from typing import List, Tuple, Union
 from util.laser import LaserData
@@ -50,10 +50,14 @@ class ColorRangeDialog(ApplyDialog):
         self.lineedit_min = QtWidgets.QLineEdit()
         self.lineedit_min.setPlaceholderText(str(current_range[0]))
         self.lineedit_min.setToolTip("Percentile for minium colormap value.")
-        self.lineedit_min.setValidator(PercentValidator(parent=self.lineedit_min))
+        self.lineedit_min.setValidator(
+            PercentOrIntValidator(int_min=0, parent=self.lineedit_min)
+        )
         self.lineedit_max = QtWidgets.QLineEdit()
         self.lineedit_max.setPlaceholderText(str(current_range[1]))
-        self.lineedit_min.setValidator(PercentValidator(parent=self.lineedit_max))
+        self.lineedit_max.setValidator(
+            PercentOrIntValidator(int_min=0, parent=self.lineedit_max)
+        )
         self.lineedit_max.setToolTip("Percentile for maximum colormap value.")
 
         form_layout = QtWidgets.QFormLayout()
@@ -67,11 +71,16 @@ class ColorRangeDialog(ApplyDialog):
         self.setLayout(main_layout)
 
     def updateRange(self) -> None:
-        min_text, max_text = self.lineedit_min.text(), self.lineedit_max.text()
-        self.range = (
-            min_text if min_text != "" else self.range[0],
-            max_text if max_text != "" else self.range[1],
-        )
+        min, max = self.lineedit_min.text(), self.lineedit_max.text()
+        if min == "":
+            min = self.range[0]
+        elif "%" not in min:
+            min = int(min)
+        if max == "":
+            max = self.range[1]
+        elif "%" not in max:
+            max = int(max)
+        self.range = (min, max)
 
     def apply(self) -> None:
         self.updateRange()
