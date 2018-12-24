@@ -1,7 +1,7 @@
 import os.path
 import traceback
 
-from PyQt5 import QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from gui.dialogs import ConfigDialog, ColorRangeDialog, ExportDialog, TrimDialog
 from gui.docks import ImageDock, LaserImageDock, KrissKrossImageDock
@@ -18,7 +18,7 @@ from util.krisskross import KrissKrossData
 from util.laser import LaserData
 
 
-from typing import List, Tuple, Union
+from typing import List, Union
 from types import TracebackType
 from gui.dialogs import ApplyDialog
 
@@ -373,7 +373,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuTrim(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
-            for dock in self.dockarea.visibleDocks(LaserImageDock):
+            for dock in self.dockarea.findChildren(LaserImageDock):
                 dock.laser.setTrim(dlg.trim, dlg.combo_trim.currentText())
                 dock.draw()
 
@@ -444,7 +444,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
         )
 
-    def closeEvent(self, event: QtWidgets.QEvent) -> None:
+    def closeEvent(self, event: QtCore.QEvent) -> None:
         for dock in self.dockarea.findChildren(ImageDock):
             dock.close()
         super().closeEvent(event)
