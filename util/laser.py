@@ -34,13 +34,10 @@ class LaserData(object):
         self.source = source
 
     def isotopes(self) -> List[str]:
-        return list(self.data.dtype.names)
+        return self.data.dtype.names
 
     def get(
-        self,
-        isotope: str = None,
-        calibrated: bool = False,
-        trimmed: bool = False,
+        self, isotope: str = None, calibrated: bool = False, trimmed: bool = False
     ) -> np.ndarray:
         # Calibration
         if isotope is None:
@@ -70,8 +67,8 @@ class LaserData(object):
         return (self.config["speed"] * self.config["scantime"], self.config["spotsize"])
 
     def aspect(self) -> float:
-        return float(
-            self.config["spotsize"] / (self.config["speed"] * self.config["scantime"])
+        return self.config["spotsize"] / (
+            self.config["speed"] * self.config["scantime"]
         )
 
     def extent(self, trimmed: bool = False) -> Tuple[int, int, int, int]:

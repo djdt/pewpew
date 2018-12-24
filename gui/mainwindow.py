@@ -1,7 +1,7 @@
 import os.path
 import traceback
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtGui, QtWidgets
 
 from gui.dialogs import ConfigDialog, ColorRangeDialog, ExportDialog, TrimDialog
 from gui.docks import ImageDock, LaserImageDock, KrissKrossImageDock
@@ -18,7 +18,8 @@ from util.krisskross import KrissKrossData
 from util.laser import LaserData
 
 
-from typing import List, Union
+from typing import List, Tuple, Union
+from types import TracebackType
 from gui.dialogs import ApplyDialog
 
 
@@ -27,7 +28,7 @@ class MainWindow(QtWidgets.QMainWindow):
     DEFAULT_VIEW_CONFIG = {
         "cmap": "ppSpectral",
         "interpolation": "none",
-        "cmaprange": ["2%", "98%"],
+        "cmaprange": ("2%", "98%"),
         "fontsize": 10,
     }
 
@@ -37,8 +38,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.version = version
 
         # Defaults for when applying to multiple images
-        self.config = LaserData.DEFAULT_CONFIG
-        self.viewconfig = MainWindow.DEFAULT_VIEW_CONFIG
+        self.config: dict = LaserData.DEFAULT_CONFIG
+        self.viewconfig: dict = MainWindow.DEFAULT_VIEW_CONFIG
 
         self.setWindowTitle("Pew Pew")
         self.resize(1280, 800)
@@ -435,11 +436,11 @@ class MainWindow(QtWidgets.QMainWindow):
             ),
         )
 
-    def exceptHook(self, type: type, value: Exception, trace: Exception) -> None:
+    def exceptHook(self, type: type, value: BaseException, tb: TracebackType) -> None:
         DetailedError.critical(
             type.__name__,
             str(value),
-            "".join(traceback.format_exception(type, value, trace)),
+            "".join(traceback.format_exception(type, value, tb)),
             self,
         )
 

@@ -16,7 +16,9 @@ from gui.windows import DockArea
 
 
 class CalibrationTool(QtWidgets.QDialog):
-    def __init__(self, dockarea: DockArea, viewconfig: dict, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self, dockarea: DockArea, viewconfig: dict, parent: QtWidgets.QWidget = None
+    ):
         super().__init__(parent)
         self.setWindowTitle("Calibration Standards Tool")
 
@@ -24,8 +26,8 @@ class CalibrationTool(QtWidgets.QDialog):
         docks = dockarea.orderedDocks(dockarea.visibleDocks())
         self.laser = LaserData() if len(docks) < 1 else docks[0].laser
         self.viewconfig = viewconfig
-        self.previous_isotope = None
-        self.concentrations: Dict[str, List[float]] = {}
+        self.previous_isotope = ""
+        self.concentrations: Dict[str, List[str]] = {}
 
         # Left side
         self.spinbox_levels = QtWidgets.QSpinBox()
@@ -51,9 +53,7 @@ class CalibrationTool(QtWidgets.QDialog):
         self.combo_isotope = QtWidgets.QComboBox()
 
         self.button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Cancel
-            | QtWidgets.QDialogButtonBox.Ok,
-            self,
+            QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok, self
         )
 
         self.initialiseWidgets()
@@ -189,7 +189,7 @@ class CalibrationTool(QtWidgets.QDialog):
 
         # Bookend for text
         div = make_axes_locatable(self.canvas.ax)
-        cax = div.append_axes('left', size=0.2, pad=0, sharey=self.canvas.ax)
+        cax = div.append_axes("left", size=0.2, pad=0, sharey=self.canvas.ax)
         cax.get_xaxis().set_visible(False)
         cax.get_yaxis().set_visible(False)
         cax.set_facecolor("black")
@@ -210,8 +210,7 @@ class CalibrationTool(QtWidgets.QDialog):
     def updateResults(self) -> None:
         if not self.table.complete():
             return
-        m, b, r2 = self.table.calibrationResults(
-            self.combo_weighting.currentText())
+        m, b, r2 = self.table.calibrationResults(self.combo_weighting.currentText())
         self.lineedit_gradient.setText(f"{m:.4f}")
         self.lineedit_intercept.setText(f"{b:.4f}")
         self.lineedit_rsq.setText(f"{r2:.4f}")
@@ -250,8 +249,7 @@ class CalibrationTool(QtWidgets.QDialog):
         self.concentrations[self.previous_isotope] = self.table.concentrations()
 
         self.table.updateConcentrations(self.concentrations.get(isotope, None))
-        self.table.updateCounts(self.laser.get(
-            isotope, calibrated=False, trimmed=True))
+        self.table.updateCounts(self.laser.get(isotope, calibrated=False, trimmed=True))
         self.updateResults()
         self.draw()
         self.previous_isotope = isotope
@@ -262,8 +260,7 @@ class CalibrationTool(QtWidgets.QDialog):
     def onLineEditTrim(self) -> None:
         if self.lineedit_left.text() == "" or self.lineedit_right.text() == "":
             return
-        trim = [float(self.lineedit_left.text()),
-                float(self.lineedit_right.text())]
+        trim = [float(self.lineedit_left.text()), float(self.lineedit_right.text())]
         self.laser.setTrim(trim, self.combo_trim.currentText())
         self.table.updateCounts(
             self.laser.get(

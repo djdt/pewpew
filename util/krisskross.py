@@ -90,4 +90,4 @@ class KrissKrossData(LaserData):
         return (0, extent[1], 0, extent[3] / self.aspect())
 
     def layers(self) -> int:
-        return int(self.data.shape[2])
+        return self.data.shape[2]

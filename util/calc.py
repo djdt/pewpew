@@ -14,7 +14,7 @@ def weighted_rsq(x: np.ndarray, y: np.ndarray, w: np.ndarray = None) -> float:
     if np.iscomplexobj(c):
         np.clip(c.imag, -1, 1, out=c.imag)
 
-    return float(c[0, 1] ** 2)
+    return c[0, 1] ** 2.0
 
 
 def weighted_linreg(

@@ -108,13 +108,13 @@ class CalibrationTable(CopyableTable):
                 item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
                 self.setItem(row, 1, item)
 
-    def concentrations(self) -> np.ndarray:
+    def concentrations(self) -> List[str]:
         return [self.item(row, 0).text() for row in range(0, self.rowCount())]
 
-    def counts(self) -> np.ndarray:
+    def counts(self) -> List[str]:
         return [self.item(row, 1).text() for row in range(0, self.rowCount())]
 
-    def updateConcentrations(self, data: List[str]) -> None:
+    def updateConcentrations(self, data: List[str] = None) -> None:
         for row in range(0, self.rowCount()):
             self.item(row, 0).setText(data[row] if data is not None else "")
 

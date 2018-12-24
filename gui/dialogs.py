@@ -3,7 +3,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from gui.validators import PercentValidator
 
-from typing import List, Tuple
+from typing import List, Tuple, Union
 from util.laser import LaserData
 
 
@@ -39,7 +39,9 @@ class ApplyDialog(QtWidgets.QDialog):
 
 class ColorRangeDialog(ApplyDialog):
     def __init__(
-        self, current_range: Tuple[int, int], parent: QtWidgets.QWidget = None
+        self,
+        current_range: Tuple[Union[int, str], Union[int, str]],
+        parent: QtWidgets.QWidget = None,
     ):
         self.range = current_range
         super().__init__(parent)

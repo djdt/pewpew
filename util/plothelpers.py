@@ -35,11 +35,9 @@ def coords2index(
 
     if inverted:
         trans = trans.inverted()
-
-    i, j = trans.transform_point((y, x)).astype(int)
-    return i, j
+    return trans.transform_point((y, x)).astype(int)
 
 
 def coords2value(image: AxesImage, x: float, y: float, inverted: bool = False) -> float:
     ix, iy = coords2index(image, x, y, inverted)
-    return float(image.get_array()[ix, iy])
+    return image.get_array()[ix, iy]

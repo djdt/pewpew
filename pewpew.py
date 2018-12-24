@@ -9,7 +9,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     window = MainWindow(VERSION)
-    sys.excepthook = window.exceptHook
+    sys.excepthook = window.exceptHook  # type: ignore
     window.show()
 
     app.exec()
