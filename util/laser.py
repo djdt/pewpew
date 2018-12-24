@@ -1,6 +1,6 @@
 import numpy as np
 
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 
 class LaserData(object):
@@ -81,29 +81,40 @@ class LaserData(object):
         y = self.data.shape[0] * self.pixelsize()[1]
         return (0, x, 0, y)
 
+    def convertTrim(
+        self,
+        trim: Union[Tuple[float, float], Tuple[int, int]],
+        unit_from: str = "rows",
+        unit_to: str = "rows",
+    ) -> Union[Tuple[float, float], Tuple[float, float]]:
+        if unit_from == unit_to:
+            return trim
+
+        if unit_from == "μm":
+            width = self.pixelsize()[0]
+            trim = (trim[0] / width, trim[1] / width)
+        elif unit_from == "s":
+            width = self.config["scantime"]
+            trim = (trim[0] / width, trim[1] / width)
+
+        if unit_to == "μm":
+            width = self.pixelsize()[0]
+            return (trim[0] * width, trim[1] * width)
+        elif unit_from == "s":
+            width = self.config["scantime"]
+            return (trim[0] * width, trim[1] * width)
+
+        return int(trim[0]), int(trim[1])
+
     def setTrim(self, trim: Tuple[float, float], unit: str = "rows") -> None:
         """Set the trim value using the provided unit.
         Valid units are 'rows', 'μm' and 's'."""
-        if unit == "μm":
-            width = self.pixelsize()[0]
-            trim = (trim[0] / width, trim[1] / width)
-        elif unit == "s":
-            width = self.config["scantime"]
-            trim = (trim[0] / width, trim[1] / width)
-        self.config["trim"] = (int(trim[0]), int(trim[1]))
+        self.config["trim"] = self.convertTrim(trim, unit_from=unit, unit_to="rows")
 
     def trimAs(self, unit: str) -> Tuple[float, float]:
         """Returns the trim in given unit.
         Valid units are 'rows', 'μm' and 's'."""
-        trim = self.config["trim"]
-        if unit == "μm":
-            width = self.pixelsize()[0]
-            return (trim[0] * width, trim[1] * width)
-        elif unit == "s":
-            width = self.config["scantime"]
-            return (trim[0] * width, trim[1] * width)
-        else:
-            return float(trim[0]), float(trim[1])
+        return self.convertTrim(self.config["trim"], unit_from="rows", unit_to=unit)
 
     def layers(self) -> int:
         return 1
