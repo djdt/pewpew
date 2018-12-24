@@ -5,6 +5,7 @@ from matplotlib.lines import Line2D
 from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+from gui.dialogs import ApplyDialog
 from gui.canvas import Canvas
 from gui.widgets import CalibrationTable
 
@@ -15,7 +16,7 @@ from typing import Dict, List
 from gui.windows import DockArea
 
 
-class CalibrationTool(QtWidgets.QDialog):
+class CalibrationTool(ApplyDialog):
     def __init__(
         self, dockarea: DockArea, viewconfig: dict, parent: QtWidgets.QWidget = None
     ):
@@ -151,6 +152,14 @@ class CalibrationTool(QtWidgets.QDialog):
         layout_main.addLayout(layout_horz)
         layout_main.addWidget(self.button_box)
         self.setLayout(layout_main)
+
+    def accept(self) -> None:
+        # Not launched using exec so we must inform mainwindow to apply changes
+        self.applyPressed.emit()
+        super().accept()
+
+    def apply(self) -> None:
+        pass
 
     def draw(self) -> None:
         self.canvas.clear()

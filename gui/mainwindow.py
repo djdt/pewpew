@@ -396,7 +396,19 @@ class MainWindow(QtWidgets.QMainWindow):
             applyDialog(dlg)
 
     def menuStandardsTool(self) -> None:
+        def applyDialog(dialog: ApplyDialog) -> None:
+            if dialog.check_all.isChecked():
+                docks = self.parent().findChildren(ImageDock)
+            else:
+                docks = [self]
+            for dock in docks:
+                for isotope in dlg.calibration.keys():
+                    if isotope in dock.laser.isotopes():
+                        dock.laser.calibration[isotope] = dlg.calibration[isotope]
+                dock.draw()
+
         dlg = CalibrationTool(self.dockarea, self.viewconfig, parent=self)
+        dlg.applyPressed.connect(applyDialog)
         dlg.show()
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
