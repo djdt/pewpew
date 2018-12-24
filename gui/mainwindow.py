@@ -29,7 +29,7 @@ class MainWindow(QtWidgets.QMainWindow):
         "cmap": "ppSpectral",
         "interpolation": "none",
         "cmaprange": ("2%", "98%"),
-        "fontsize": 10,
+        "fontsize": 12,
     }
 
     def __init__(self, version: str):
@@ -160,7 +160,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_cmap.addSeparator()
         action_cmap_range = menu_cmap.addAction("Range...")
         action_cmap_range.setStatusTip(
-            "Set the minimum and maximum values of the colormap."
+            "Set the minimum and maximum values or percentiles of the colormap."
         )
         action_cmap_range.triggered.connect(self.menuColormapRange)
 
@@ -197,7 +197,7 @@ class MainWindow(QtWidgets.QMainWindow):
         action_about.setStatusTip("About this program.")
         action_about.triggered.connect(self.menuAbout)
 
-    def draw(self, visible_only: bool = False) -> None:
+    def refresh(self, visible_only: bool = False) -> None:
         if visible_only:
             docks = self.dockarea.visibleDocks()
         else:
@@ -404,18 +404,22 @@ class MainWindow(QtWidgets.QMainWindow):
         for name, cmap, _, _, _ in COLORMAPS:
             if name == text:
                 self.viewconfig["cmap"] = cmap
-                self.draw()
+                self.refresh()
                 return
 
     def menuColormapRange(self) -> None:
+        def applyDialog(dialog: ApplyDialog) -> None:
+            self.viewconfig["cmaprange"] = dialog.range
+            self.refresh()
+
         dlg = ColorRangeDialog(self.viewconfig["cmaprange"], parent=self)
+        dlg.applyPressed.connect(applyDialog)
         if dlg.exec():
-            self.viewconfig["cmaprange"] = dlg.range
-            self.draw()
+            applyDialog(dlg)
 
     def menuInterpolation(self, action: QtWidgets.QAction) -> None:
         self.viewconfig["interpolation"] = action.text().replace("&", "")
-        self.draw()
+        self.refresh()
 
     def menuFontsize(self) -> None:
         fontsize, ok = QtWidgets.QInputDialog.getInt(
@@ -429,10 +433,10 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         if ok:
             self.viewconfig["fontsize"] = fontsize
-            self.draw()
+            self.refresh()
 
     def menuRefresh(self) -> None:
-        self.draw()
+        self.refresh()
 
     def menuAbout(self) -> None:
         QtWidgets.QMessageBox.about(
