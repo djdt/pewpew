@@ -86,32 +86,32 @@ class LaserData(object):
         trim: Union[Tuple[float, float], Tuple[int, int]],
         unit_from: str = "rows",
         unit_to: str = "rows",
-    ) -> Union[Tuple[float, float], Tuple[float, float]]:
-        if unit_from == unit_to:
-            return trim
+    ) -> Union[Tuple[float, float], Tuple[int, int]]:
+        if unit_from != unit_to:
+            if unit_from == "μm":
+                width = self.pixelsize()[0]
+                trim = (trim[0] / width, trim[1] / width)
+            elif unit_from == "s":
+                width = self.config["scantime"]
+                trim = (trim[0] / width, trim[1] / width)
 
-        if unit_from == "μm":
-            width = self.pixelsize()[0]
-            trim = (trim[0] / width, trim[1] / width)
-        elif unit_from == "s":
-            width = self.config["scantime"]
-            trim = (trim[0] / width, trim[1] / width)
-
-        if unit_to == "μm":
-            width = self.pixelsize()[0]
-            return (trim[0] * width, trim[1] * width)
-        elif unit_from == "s":
-            width = self.config["scantime"]
-            return (trim[0] * width, trim[1] * width)
+            if unit_to == "μm":
+                width = self.pixelsize()[0]
+                return (trim[0] * width, trim[1] * width)
+            elif unit_to == "s":
+                width = self.config["scantime"]
+                return (trim[0] * width, trim[1] * width)
 
         return int(trim[0]), int(trim[1])
 
-    def setTrim(self, trim: Tuple[float, float], unit: str = "rows") -> None:
+    def setTrim(
+        self, trim: Union[Tuple[float, float], Tuple[int, int]], unit: str = "rows"
+    ) -> None:
         """Set the trim value using the provided unit.
         Valid units are 'rows', 'μm' and 's'."""
         self.config["trim"] = self.convertTrim(trim, unit_from=unit, unit_to="rows")
 
-    def trimAs(self, unit: str) -> Tuple[float, float]:
+    def trimAs(self, unit: str) -> Union[Tuple[float, float], Tuple[int, int]]:
         """Returns the trim in given unit.
         Valid units are 'rows', 'μm' and 's'."""
         return self.convertTrim(self.config["trim"], unit_from="rows", unit_to=unit)

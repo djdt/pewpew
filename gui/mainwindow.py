@@ -373,8 +373,19 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuTrim(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
+            # Ensure that trim isn't too large
             for dock in self.dockarea.findChildren(LaserImageDock):
-                dock.laser.setTrim(dlg.trim, dlg.combo_trim.currentText())
+                total = sum(
+                    dock.laser.convertTrim(
+                        dialog.trim, dialog.combo_trim.currentText(), "rows"
+                    )
+                )
+                if total > dock.laser.data.shape[1]:
+                    QtWidgets.QMessageBox.warning(
+                        self, "Invalid Trim", "Trim larger than data.")
+
+            for dock in self.dockarea.findChildren(LaserImageDock):
+                dock.laser.setTrim(dialog.trim, dialog.combo_trim.currentText())
                 dock.draw()
 
         dlg = TrimDialog((0.0, 0.0), parent=self)

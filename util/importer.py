@@ -50,7 +50,7 @@ def importCsv(
     structured[isotope] = data
     return LaserData(
         data=structured,
-        config=1.0,
+        config=config,
         calibration=calibration,
         name=os.path.splitext(os.path.basename(path))[0],
         source=path,

@@ -237,6 +237,14 @@ class ImageDock(QtWidgets.QDockWidget):
             else:
                 docks = [self]
             for dock in docks:
+                total = sum(
+                    dock.laser.convertTrim(dialog.trim, dialog.combo_trim.currentText())
+                )
+                if total > dock.laser.data.shape[1]:
+                    QtWidgets.QMessageBox.warning(
+                        self, "Invalid Trim", "Trim larger than data."
+                    )
+            for dock in docks:
                 dock.laser.setTrim(dialog.trim, dialog.combo_trim.currentText())
                 dock.draw()
 
