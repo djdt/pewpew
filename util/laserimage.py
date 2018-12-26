@@ -20,9 +20,10 @@ def plotLaserImage(
     aspect: str = "auto",
     colorbar: bool = False,
     colorbarpos: str = "bottom",
-    colorbarlabel: str = None,
-    scalebar: bool = True,
-    label: str = None,
+    colorbartext: str = "",
+    scalebar: bool = False,
+    label: bool = False,
+    labeltext: str = "",
     fontsize: int = 12,
     vmin: Union[str, int] = "0%",
     vmax: Union[str, int] = "100%",
@@ -52,6 +53,21 @@ def plotLaserImage(
     ax.set_facecolor("black")
     ax.axis("scaled")
 
+    if colorbar:
+        div = make_axes_locatable(ax)
+        cax = div.append_axes(colorbarpos, size=0.1, pad=0.05)
+        if colorbarpos in ["right", "left"]:
+            orientation = "vertical"
+        else:
+            orientation = "horizontal"
+        fig.colorbar(
+            im,
+            label=colorbartext,
+            cax=cax,
+            orientation=orientation,
+            ticks=MaxNLocator(nbins=6),
+        )
+
     if scalebar:
         scalebar = ScaleBar(
             1.0,
@@ -63,9 +79,9 @@ def plotLaserImage(
         )
         ax.add_artist(scalebar)
 
-    if label is not None:
+    if label:
         text = AnchoredText(
-            label,
+            labeltext,
             "upper left",
             pad=0.2,
             borderpad=0.1,
@@ -73,20 +89,5 @@ def plotLaserImage(
             prop={"color": "white", "size": fontsize},
         )
         ax.add_artist(text)
-
-    if colorbar:
-        div = make_axes_locatable(ax)
-        cax = div.append_axes(colorbarpos, size=0.1, pad=0.05)
-        if colorbarpos in ["right", "left"]:
-            orientation = "vertical"
-        else:
-            orientation = "horizontal"
-        fig.colorbar(
-            im,
-            label=colorbarlabel,
-            cax=cax,
-            orientation=orientation,
-            ticks=MaxNLocator(nbins=6),
-        )
 
     return im

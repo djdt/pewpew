@@ -40,7 +40,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # Defaults for when applying to multiple images
         self.config: dict = LaserData.DEFAULT_CONFIG
         self.viewconfig: dict = MainWindow.DEFAULT_VIEW_CONFIG
-
         self.setWindowTitle("Pew Pew")
         self.resize(1280, 800)
 
@@ -396,19 +395,9 @@ class MainWindow(QtWidgets.QMainWindow):
             applyDialog(dlg)
 
     def menuStandardsTool(self) -> None:
-        def applyDialog(dialog: ApplyDialog) -> None:
-            if dialog.check_all.isChecked():
-                docks = self.parent().findChildren(ImageDock)
-            else:
-                docks = [self]
-            for dock in docks:
-                for isotope in dlg.calibration.keys():
-                    if isotope in dock.laser.isotopes():
-                        dock.laser.calibration[isotope] = dlg.calibration[isotope]
-                dock.draw()
-
-        dlg = CalibrationTool(self.dockarea, self.viewconfig, parent=self)
-        dlg.applyPressed.connect(applyDialog)
+        docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
+        laser = docks[0] if len(docks) > 0 else LaserImageDock(LaserData(), parent=self)
+        dlg = CalibrationTool(laser, self.dockarea, self.viewconfig, parent=self)
         dlg.show()
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:

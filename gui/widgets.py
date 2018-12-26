@@ -1,14 +1,9 @@
-import numpy as np
-
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from util.calc import weighted_linreg
-from gui.validators import DoublePrecisionDelegate
-
-from typing import List, Tuple
+from typing import List
 
 
-class CopyableTable(QtWidgets.QTableWidget):
+class BasicTable(QtWidgets.QTableWidget):
     def keyPressEvent(self, event: QtCore.QEvent) -> None:
         if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
             self._advance()
@@ -74,74 +69,25 @@ class CopyableTable(QtWidgets.QTableWidget):
                 if item is not None and QtCore.Qt.ItemIsEditable | item.flags():
                     item.setText(text)
 
+    def columnText(self, column: int) -> List[str]:
+        return [self.item(row, column).text() for row in range(0, self.rowCount())]
 
-class CalibrationTable(CopyableTable):
-    ROW_LABELS = [c for c in "ABCDEFGHIJKLMNOPQRST"]
+    def rowText(self, row: int) -> List[str]:
+        return [
+            self.item(row, column).text() for column in range(0, self.columnCount())
+        ]
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__(0, 2, parent)
-        self.setHorizontalHeaderLabels(["Concentration", "Counts"])
-        self.horizontalHeader().setStretchLastSection(True)
-        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
-        self.setItemDelegate(DoublePrecisionDelegate(4))
-
-    def complete(self) -> bool:
+    def setColumnText(self, column: int, text: List[str] = None) -> None:
+        if text is not None:
+            assert(len(text) == self.rowCount())
         for row in range(0, self.rowCount()):
-            for column in range(0, self.columnCount()):
-                if self.item(row, column).text() == "":
-                    return False
-        return True
+            self.item(row, column).setText(text[row] if text is not None else "")
 
-    def setRowCount(self, rows: int) -> None:
-        current_rows = self.rowCount()
-        super().setRowCount(rows)
-
-        if current_rows < rows:
-            self.setVerticalHeaderLabels(CalibrationTable.ROW_LABELS)
-            for row in range(current_rows, rows):
-                item = QtWidgets.QTableWidgetItem()
-                item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-                self.setItem(row, 0, item)
-                item = QtWidgets.QTableWidgetItem()
-                item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-                # Non editable item
-                item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
-                self.setItem(row, 1, item)
-
-    def concentrations(self) -> List[str]:
-        return [self.item(row, 0).text() for row in range(0, self.rowCount())]
-
-    def counts(self) -> List[str]:
-        return [self.item(row, 1).text() for row in range(0, self.rowCount())]
-
-    def updateConcentrations(self, data: List[str] = None) -> None:
-        for row in range(0, self.rowCount()):
-            self.item(row, 0).setText(data[row] if data is not None else "")
-
-    def updateCounts(self, data: np.ndarray) -> None:
-        # Default one empty array
-        if len(data) == 1:
-            return
-        sections = np.array_split(data, self.rowCount(), axis=0)
-
-        for row in range(0, self.rowCount()):
-            mean_conc = np.mean(sections[row])
-            self.item(row, 1).setText(f"{mean_conc:.4f}")
-
-    def calibrationResults(self, weighting: str = "x") -> Tuple[float, float, float]:
-        """Returns tuple of the gradient intercept and r^2 for the current data.
-        Does not check if the table is complete and can be parsed."""
-        x = np.array(self.concentrations(), dtype=np.float64)
-        y = np.array(self.counts(), dtype=np.float64)
-
-        if weighting == "1/x":
-            weights = 1.0 / x
-        elif weighting == "1/(x^2)":
-            weights = 1.0 / (x ** 2)
-        else:  # Default is no weighting
-            weights = None
-
-        return weighted_linreg(x, y, w=weights)
+    def setRowText(self, row: int, text: List[str] = None) -> None:
+        if text is not None:
+            assert(len(text) == self.columnCount())
+        for column in range(0, self.columnCount()):
+            self.item(row, column).setText(text[column] if text is not None else "")
 
 
 class DetailedError(QtWidgets.QMessageBox):

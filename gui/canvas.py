@@ -19,6 +19,10 @@ class Canvas(FigureCanvasQTAgg):
         self.ax = self.fig.add_subplot(111)
         self.image = np.array([], dtype=np.float64)
 
+        self.use_colorbar = True
+        self.use_scalebar = True
+        self.use_label = True
+
         super().__init__(self.fig)
         self.setParent(parent)
         self.setStyleSheet("background-color:transparent;")
@@ -41,9 +45,12 @@ class Canvas(FigureCanvasQTAgg):
             self.fig,
             self.ax,
             laser.get(isotope, calibrated=True, trimmed=True),
-            colorbar="bottom",
-            colorbarlabel=laser.calibration[isotope]["unit"],
-            label=formatIsotope(isotope, fstring="$^{{{mass}}}${element}"),
+            colorbar=self.use_colorbar,
+            colorbarpos="bottom",
+            colorbartext=laser.calibration[isotope]["unit"],
+            scalebar=self.use_scalebar,
+            label=self.use_label,
+            labeltext=formatIsotope(isotope, fstring="$^{{{mass}}}${element}"),
             fontsize=viewconfig["fontsize"],
             cmap=viewconfig["cmap"],
             interpolation=viewconfig["interpolation"],

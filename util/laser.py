@@ -4,7 +4,7 @@ from typing import List, Tuple, Union
 
 
 class LaserData(object):
-    DEFAULT_CALIBRATION = {"gradient": 1.0, "intercept": 0.0, "unit": None}
+    DEFAULT_CALIBRATION = {"gradient": 1.0, "intercept": 0.0, "unit": ""}
     DEFAULT_CONFIG = {
         "spotsize": 30.0,
         "speed": 120.0,
