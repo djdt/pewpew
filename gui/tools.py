@@ -246,6 +246,7 @@ class CalibrationTool(QtWidgets.QDialog):
         self.canvas.clear()
         self.canvas.plot(self.dock.laser, self.combo_isotope.currentText(), self.viewconfig)
         self.canvas.plotLevels(self.spinbox_levels.value())
+        self.canvas.draw()
 
     def updateCalibration(self) -> None:
         self.dock.laser.calibration = self.calibration

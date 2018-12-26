@@ -59,7 +59,6 @@ class Canvas(FigureCanvasQTAgg):
             aspect=laser.aspect(),
             extent=laser.extent(trimmed=True),
         )
-        self.draw()
 
     def clear(self) -> None:
         self.fig.clear()

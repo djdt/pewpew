@@ -113,9 +113,10 @@ class ImageDock(QtWidgets.QDockWidget):
 
     def draw(self) -> None:
         self.canvas.clear()
-        isotope = self.combo_isotope.currentText()
-        viewconfig = self.window().viewconfig
-        self.canvas.plot(self.laser, isotope, viewconfig)
+        self.canvas.plot(
+            self.laser, self.combo_isotope.currentText(), self.window().viewconfig
+        )
+        self.canvas.draw()
 
     def buildContextMenu(self) -> QtWidgets.QMenu:
         context_menu = QtWidgets.QMenu(self)
