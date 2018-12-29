@@ -121,10 +121,14 @@ class CalibrationDialog(ApplyDialog):
         self.previous_index = self.combo_isotopes.currentIndex()
         self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
 
+        # Check all
+        self.check_all = QtWidgets.QCheckBox("Apply config to all images.")
+
         # Dialog buttons
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.addLayout(form_layout)
         main_layout.addWidget(self.combo_isotopes, 1, QtCore.Qt.AlignRight)
+        main_layout.addWidget(self.check_all)
         main_layout.addWidget(self.button_box)
         self.setLayout(main_layout)
 
@@ -234,15 +238,13 @@ class TrimDialog(ApplyDialog):
 
         self.lineedit_left = QtWidgets.QLineEdit()
         self.lineedit_left.setPlaceholderText(str(trim[0]))
-        self.lineedit_left.setValidator(QtGui.QIntValidator(0, 1e9))
         self.lineedit_right = QtWidgets.QLineEdit()
         self.lineedit_right.setPlaceholderText(str(trim[1]))
-        self.lineedit_right.setValidator(QtGui.QIntValidator(0, 1e9))
 
         self.combo_trim = QtWidgets.QComboBox()
         self.combo_trim.addItems(["rows", "s", "μm"])
-        self.combo_trim.setCurrentIndex(1)
         self.combo_trim.currentIndexChanged.connect(self.comboTrim)
+        self.combo_trim.setCurrentIndex(1)
 
         layout_trim = QtWidgets.QHBoxLayout()
         layout_trim.addWidget(QtWidgets.QLabel("Left:"))
@@ -332,6 +334,10 @@ class ExportDialog(QtWidgets.QDialog):
             QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum
         )
         self.lineedit_path.textEdited.connect(self.changed)
+        self.lineedit_path.setSelection(
+            len(os.path.dirname(self.lineedit_path.text())) + 1,
+            len(os.path.basename(self.lineedit_path.text())),
+        )
 
         self.button_path.pressed.connect(self.buttonPath)
 
@@ -433,4 +439,4 @@ class ExportDialog(QtWidgets.QDialog):
             path += f"_{isotope}"
         if layer is not None:
             path += f"_{layer}"
-        return f"{path}{str}"
+        return f"{path}{ext}"

@@ -156,7 +156,7 @@ class ImageDock(QtWidgets.QDockWidget):
     def onMenuExport(self) -> None:
         dlg = ExportDialog(
             [self.laser],
-            default_path=os.path.dirname(self.laser.source) + "export.csv",
+            default_path=os.path.join(os.path.dirname(self.laser.source), "export.csv"),
             default_isotope=self.combo_isotope.currentText(),
             parent=self,
         )

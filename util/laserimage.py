@@ -15,19 +15,21 @@ def plotLaserImage(
     fig: Figure,
     ax: Axes,
     data: np.ndarray,
-    interpolation: str = "none",
-    extent: Tuple[int, int, int, int] = None,
     aspect: str = "auto",
+    cmap: str = "magma",
     colorbar: bool = False,
     colorbarpos: str = "bottom",
     colorbartext: str = "",
-    scalebar: bool = False,
+    extent: Tuple[int, int, int, int] = None,
+    fontsize: int = 12,
+    interpolation: str = "none",
     label: bool = False,
     labeltext: str = "",
-    fontsize: int = 12,
-    vmin: Union[str, int] = "0%",
+    scalebar: bool = False,
+    xaxis: bool = False,
+    xaxisticksize: float = None,
     vmax: Union[str, int] = "100%",
-    cmap: str = "magma",
+    vmin: Union[str, int] = "0%",
 ) -> AxesImage:
 
     if data.size == 0:
@@ -48,11 +50,6 @@ def plotLaserImage(
         aspect=aspect,
     )
 
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-    ax.set_facecolor("black")
-    ax.axis("scaled")
-
     if colorbar:
         div = make_axes_locatable(ax)
         cax = div.append_axes(colorbarpos, size=0.1, pad=0.05)
@@ -68,6 +65,17 @@ def plotLaserImage(
             ticks=MaxNLocator(nbins=6),
         )
 
+    if label:
+        text = AnchoredText(
+            labeltext,
+            "upper left",
+            pad=0.2,
+            borderpad=0.1,
+            frameon=False,
+            prop={"color": "white", "size": fontsize},
+        )
+        ax.add_artist(text)
+
     if scalebar:
         scalebar = ScaleBar(
             1.0,
@@ -79,15 +87,18 @@ def plotLaserImage(
         )
         ax.add_artist(scalebar)
 
-    if label:
-        text = AnchoredText(
-            labeltext,
-            "upper left",
-            pad=0.2,
-            borderpad=0.1,
-            frameon=False,
-            prop={"color": "white", "size": fontsize},
-        )
-        ax.add_artist(text)
+    ax.axis("scaled")
+    ax.set_facecolor("black")
+    if xaxis:
+        ax.tick_params(axis='x', direction='in', color='white', labelbottom=False)
+        if xaxisticksize is not None:
+            start = extent[0] if extent is not None else 0.0
+            start += start % xaxisticksize
+            end = extent[1] if extent is not None else data.shape[1]
+            xticks = np.arange(start, end, xaxisticksize)
+            ax.set_xticks(xticks)
+    else:
+        ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
 
     return im

@@ -58,6 +58,8 @@ class Canvas(FigureCanvasQTAgg):
             vmax=viewconfig["cmaprange"][1],
             aspect=laser.aspect(),
             extent=laser.extent(trimmed=True),
+            xaxis=True,
+            xaxisticksize=laser.config['speed']
         )
 
     def clear(self) -> None:
