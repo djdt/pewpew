@@ -108,7 +108,7 @@ class DetailedError(QtWidgets.QMessageBox):
 
     @staticmethod
     def info(
-        title: str = "Error",
+        title: str = "Info",
         message: str = "",
         detailed_message: str = "",
         parent: QtWidgets.QWidget = None,
@@ -119,7 +119,7 @@ class DetailedError(QtWidgets.QMessageBox):
 
     @staticmethod
     def warning(
-        title: str = "Error",
+        title: str = "Warning",
         message: str = "",
         detailed_message: str = "",
         parent: QtWidgets.QWidget = None,
@@ -130,7 +130,7 @@ class DetailedError(QtWidgets.QMessageBox):
 
     @staticmethod
     def critical(
-        title: str = "Error",
+        title: str = "Critical",
         message: str = "",
         detailed_message: str = "",
         parent: QtWidgets.QWidget = None,

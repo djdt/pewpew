@@ -244,7 +244,9 @@ class CalibrationTool(QtWidgets.QDialog):
 
     def draw(self) -> None:
         self.canvas.clear()
-        self.canvas.plot(self.dock.laser, self.combo_isotope.currentText(), self.viewconfig)
+        self.canvas.plot(
+            self.dock.laser, self.combo_isotope.currentText(), self.viewconfig
+        )
         self.canvas.plotLevels(self.spinbox_levels.value())
         self.canvas.draw()
 
@@ -307,7 +309,7 @@ class CalibrationTool(QtWidgets.QDialog):
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
         if widget is not None and hasattr(widget, "laser"):
-            self.dock= widget
+            self.dock = widget
             # Prevent currentIndexChanged being emmited
             self.combo_isotope.blockSignals(True)
             self.combo_isotope.clear()

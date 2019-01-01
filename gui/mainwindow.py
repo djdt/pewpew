@@ -286,17 +286,22 @@ class MainWindow(QtWidgets.QMainWindow):
             self.dockarea.addDockWidgets([dock])
 
     def menuSaveSession(self) -> None:
+        docks = self.dockarea.findChildren(ImageDock)
+        if len(docks) == 0:
+            QtWidgets.QMessageBox.information(self, "Save Session", "Nothing to save.")
+            return
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self, "Save File", "", "Pew Pew sessions(*.pew);;All files(*)"
         )
         if path == "":
             return
-        lds = [d.laser for d in self.dockarea.findChildren(ImageDock)]
+        lds = [d.laser for d in docks]
         exportNpz(path, lds)
 
     def menuExportAll(self) -> None:
         docks = self.dockarea.findChildren(ImageDock)
         if len(docks) == 0:
+            QtWidgets.QMessageBox.information(self, "Export All", "Nothing to export.")
             return
 
         dlg = ExportDialog(
