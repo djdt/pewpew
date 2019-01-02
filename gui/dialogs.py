@@ -291,6 +291,8 @@ class TrimDialog(ApplyDialog):
 
 
 class ExportDialog(QtWidgets.QDialog):
+    VALID_FORMATS = [".csv", ".npz", ".png", ".vtr"]
+
     def __init__(
         self,
         lasers: List[LaserData],
@@ -375,6 +377,17 @@ class ExportDialog(QtWidgets.QDialog):
         layout_main.addWidget(self.button_box)
         self.setLayout(layout_main)
 
+    def accept(self) -> None:
+        if not self.isComplete():
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Invalid Format",
+                "Unable to export to this format.\n"
+                f"Valid formats: {' '.join(ExportDialog.VALID_FORMATS)}",
+            )
+            return
+        super().accept()
+
     def buttonPath(self) -> None:
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self,
@@ -440,3 +453,7 @@ class ExportDialog(QtWidgets.QDialog):
         if layer is not None:
             path += f"_{layer}"
         return f"{path}{ext}"
+
+    def isComplete(self) -> bool:
+        path, ext = os.path.splitext(self.lineedit_path.text())
+        return len(path) > 0 and ext.lower() in ExportDialog.VALID_FORMATS
