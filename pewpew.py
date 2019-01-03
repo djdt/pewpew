@@ -3,7 +3,7 @@ import sys
 from PyQt5.QtWidgets import QApplication
 from gui.mainwindow import MainWindow
 
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
