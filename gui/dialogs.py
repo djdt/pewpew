@@ -347,6 +347,8 @@ class ExportDialog(QtWidgets.QDialog):
         self.check_layers.stateChanged.connect(self.changed)
 
         self.combo_isotopes.addItems(self.isotopes)
+        if self.default_isotope is not None:
+            self.combo_isotopes.setCurrentText(self.default_isotope)
         self.combo_isotopes.currentIndexChanged.connect(self.changed)
 
         self.button_box.accepted.connect(self.accept)
