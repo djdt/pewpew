@@ -16,6 +16,7 @@ from util.exporter import exportNpz
 from util.importer import importCsv, importNpz, importAgilentBatch, importThermoiCapCSV
 from util.krisskross import KrissKrossData
 from util.laser import LaserData
+from util.version import __version__
 
 from typing import List, Union
 from types import TracebackType
@@ -31,10 +32,8 @@ class MainWindow(QtWidgets.QMainWindow):
         "fontsize": 12,
     }
 
-    def __init__(self, version: str):
+    def __init__(self):
         super().__init__()
-
-        self.version = version
 
         # Defaults for when applying to multiple images
         self.config: dict = LaserData.DEFAULT_CONFIG
@@ -451,7 +450,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "About Laser plot",
             (
                 "Visualiser / converter for LA-ICP-MS data.\n"
-                f"Version {self.version}\n"
+                f"Version {__version__}\n"
                 "Developed by the UTS Elemental Bio-Imaging Group.\n"
                 "https://github.com/djdt/pewpew"
             ),
