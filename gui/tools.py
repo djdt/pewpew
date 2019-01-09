@@ -358,11 +358,10 @@ class CalibrationTool(QtWidgets.QDialog):
 
     def comboIsotope(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
-        self.concentrations[self.previous_isotope] = self.table.columnText(
+        self.texts[self.previous_isotope] = self.table.columnText(
             CalibrationTable.COLUMN_CONC
         )
 
-        self.updateConcentrations()
         self.updateCounts()
         self.updateResults()
         self.draw()

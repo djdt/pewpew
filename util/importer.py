@@ -101,8 +101,10 @@ def importNpz(
     lds = []
     npz = np.load(path)
 
-    if not hasattr(npz, "version") or npz["version"] < "0.3.0":
-        raise PewPewFileError(f"Archive version mismatch.")
+    if "version" not in npz.files:
+        raise PewPewFileError("Archive version mismatch.")
+    elif npz["version"] < "0.3.0":
+        raise PewPewFileError(f"Archive version mismatch: {npz['version']}.")
 
     num_files = sum(1 for d in npz.files if "_data" in d)
     for i in range(0, num_files):

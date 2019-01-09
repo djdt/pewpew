@@ -22,6 +22,7 @@ def exportCsv(path: str, data: np.ndarray, isotope: str, config: dict) -> None:
 
 
 def exportNpz(path: str, laser_list: List[LaserData]) -> None:
+    print(__version__)
     savedict: Dict[str, List[Any]] = {
         "version": __version__,
         "_name": [],
