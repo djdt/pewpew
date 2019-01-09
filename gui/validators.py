@@ -1,6 +1,6 @@
 from PyQt5 import QtGui, QtWidgets
 
-from typing import List, Tuple
+from typing import Tuple
 
 
 class PercentValidator(QtGui.QValidator):
@@ -71,7 +71,7 @@ class PercentOrIntValidator(PercentValidator):
         return (QtGui.QValidator.Acceptable, input, pos)
 
 
-class DoubleValidatorNoZero(QtWidgets.QDoubleValidator):
+class DoubleValidatorNoZero(QtGui.QDoubleValidator):
     def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
         result = super().validate(input, pos)
         if result[0] == QtGui.QValidator.Acceptable and float(input) == 0.0:
