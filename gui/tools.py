@@ -158,7 +158,7 @@ class CalibrationTool(QtWidgets.QDialog):
         self.spinbox_levels.valueChanged.connect(self.spinBoxLevels)
 
         self.combo_weighting = QtWidgets.QComboBox()
-        self.combo_weighting.addItems(["x", "1/x", "1/(x^2)"])
+        self.combo_weighting.addItems(["None", "x", "1/x", "1/(x^2)"])
         self.combo_weighting.currentIndexChanged.connect(self.comboWeighting)
 
         self.table.itemChanged.connect(self.tableItemChanged)
@@ -254,6 +254,12 @@ class CalibrationTool(QtWidgets.QDialog):
         self.dock.laser.calibration = self.calibration
         self.dock.draw()
 
+    def updateConcentrations(self) -> None:
+        isotope = self.combo_isotope.currentText()
+        if isotope in self.texts.keys():
+            concentrations = self.texts[isotope]
+            self.table.setColumnText(CalibrationTable.COLUMN_CONC, concentrations)
+
     def updateCounts(self) -> None:
         data = self.dock.laser.get(
             self.combo_isotope.currentText(), calibrated=False, trimmed=True
@@ -282,13 +288,29 @@ class CalibrationTool(QtWidgets.QDialog):
             self.table.columnText(CalibrationTable.COLUMN_COUNT), dtype=np.float64
         )
 
+        # Strip negative x values
+        y = y[x >= 0.0]
+        x = x[x >= 0.0]
+
         weighting = self.combo_weighting.currentText()
-        if weighting == "1/x":
+        if weighting == "x":
+            weights = x
+        elif weighting == "1/x":
             weights = 1.0 / x
         elif weighting == "1/(x^2)":
             weights = 1.0 / (x ** 2)
         else:  # Default is no weighting
             weights = None
+
+        # Replace non finite values with one
+        if weights is not None and not np.all(np.isfinite(weights)):
+            QtWidgets.QMessageBox.information(
+                self, "Invalid Weighting", "A non-finite weight value was detected."
+            )
+            self.lineedit_gradient.setText("")
+            self.lineedit_intercept.setText("")
+            self.lineedit_rsq.setText("")
+            return
 
         m, b, r2 = weighted_linreg(x, y, w=weights)
         self.lineedit_gradient.setText(f"{m:.4f}")
@@ -299,7 +321,7 @@ class CalibrationTool(QtWidgets.QDialog):
         self.calibration[isotope]["gradient"] = m
         self.calibration[isotope]["intercept"] = b
         unit = self.lineedit_units.text()
-        self.calibration[isotope]["unit"] = None if unit == "" else unit
+        self.calibration[isotope]["unit"] = unit
 
     def updateTrim(self) -> None:
         trim = self.dock.laser.trimAs(self.combo_trim.currentText())
@@ -358,10 +380,14 @@ class CalibrationTool(QtWidgets.QDialog):
 
     def comboIsotope(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
-        self.texts[self.previous_isotope] = self.table.columnText(
-            CalibrationTable.COLUMN_CONC
-        )
+        texts = self.table.columnText(CalibrationTable.COLUMN_CONC)
+        # Only update if at least one cell is filled
+        for text in texts:
+            if text != "":
+                self.texts[self.previous_isotope] = texts
+                break
 
+        self.updateConcentrations()
         self.updateCounts()
         self.updateResults()
         self.draw()

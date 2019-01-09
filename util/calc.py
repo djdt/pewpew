@@ -3,6 +3,17 @@ import numpy as np
 from typing import Tuple
 
 
+def weighting(x: np.ndarray, weighting: str) -> np.ndarray:
+    if weighting == "x":
+        return x
+    if weighting == "1/x":
+        return 1.0 / x
+    elif weighting == "1/(x^2)":
+        return 1.0 / (x ** 2.0)
+    else:  # Default is no weighting
+        return None
+
+
 def weighted_rsq(x: np.ndarray, y: np.ndarray, w: np.ndarray = None) -> float:
     c = np.cov(x, y, aweights=w)
     d = np.diag(c)
