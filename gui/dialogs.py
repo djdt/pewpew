@@ -1,7 +1,7 @@
 import os.path
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from gui.validators import PercentOrIntValidator
+from gui.validators import DoubleValidatorNoZero, PercentOrIntValidator
 
 from typing import List, Tuple, Union
 from util.laser import LaserData
@@ -100,7 +100,7 @@ class CalibrationDialog(ApplyDialog):
 
         # LIne edits
         self.lineedit_gradient = QtWidgets.QLineEdit()
-        self.lineedit_gradient.setValidator(QtGui.QDoubleValidator(-1e10, 1e10, 4))
+        self.lineedit_gradient.setValidator(DoubleValidatorNoZero(-1e10, 1e10, 4))
         self.lineedit_gradient.setPlaceholderText("1.0")
         self.lineedit_intercept = QtWidgets.QLineEdit()
         self.lineedit_intercept.setValidator(QtGui.QDoubleValidator(-1e10, 1e10, 4))

@@ -1,6 +1,6 @@
 from PyQt5 import QtGui, QtWidgets
 
-from typing import Tuple
+from typing import List, Tuple
 
 
 class PercentValidator(QtGui.QValidator):
@@ -71,15 +71,18 @@ class PercentOrIntValidator(PercentValidator):
         return (QtGui.QValidator.Acceptable, input, pos)
 
 
+class DoubleValidatorNoZero(QtWidgets.QDoubleValidator):
+    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
+        result = super().validate(input, pos)
+        if result[0] == QtGui.QValidator.Acceptable and float(input) == 0.0:
+            result = (QtGui.QValidator.Invalid, input, pos)
+        return result
+
+
 class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
     def __init__(self, decimals: int, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.decimals = decimals
-
-    # def createEditor(self, parent, option, index):
-    #     line_edit = QtWidgets.QLineEdit(parent)
-    #     line_edit.setValidator(QtGui.QDoubleValidator(0, 1e99, self.decimals))
-    #     return line_edit
 
     def displayText(self, value: str, locale: str) -> str:
         try:
