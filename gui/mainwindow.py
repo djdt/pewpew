@@ -32,8 +32,8 @@ class MainWindow(QtWidgets.QMainWindow):
         "fontsize": 12,
     }
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
 
         # Defaults for when applying to multiple images
         self.config: dict = LaserData.DEFAULT_CONFIG
@@ -87,6 +87,7 @@ class MainWindow(QtWidgets.QMainWindow):
         action_save.setShortcut("Ctrl+S")
         action_save.setStatusTip("Save session to file.")
         action_save.triggered.connect(self.menuSaveSession)
+        action_save.setEnabled(False)
 
         action_export = menu_file.addAction(
             QtGui.QIcon.fromTheme("document-save-as"), "&Export all"
