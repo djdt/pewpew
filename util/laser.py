@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 from typing import List, Tuple, Union
 
@@ -23,13 +24,16 @@ class LaserData(object):
         self.data = (
             np.array([[0]], dtype=[("none", np.float64)]) if data is None else data
         )
-        self.config = LaserData.DEFAULT_CONFIG if config is None else config
+        # Copys of dicts are made
+        self.config: dict = copy.deepcopy(
+            LaserData.DEFAULT_CONFIG if config is None else config
+        )
         if calibration is None:
             self.calibration = {
-                k: LaserData.DEFAULT_CALIBRATION for k in self.data.dtype.names
+                k: dict(LaserData.DEFAULT_CALIBRATION) for k in self.data.dtype.names
             }
         else:
-            self.calibration = calibration
+            self.calibration = copy.deepcopy(calibration)
         self.name = name
         self.source = source
 

@@ -1,5 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
+import copy
 
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
@@ -115,7 +116,7 @@ class CalibrationTool(QtWidgets.QDialog):
         self.previous_isotope = ""
 
         self.dock = dock
-        self.calibration = dict(dock.laser.calibration)  # copy dict
+        self.calibration = copy.deepcopy(dock.laser.calibration)  # copy dict
         self.texts: Dict[str, List[str]] = {}
 
         # Left side
