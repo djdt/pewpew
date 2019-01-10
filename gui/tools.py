@@ -113,7 +113,7 @@ class CalibrationTool(QtWidgets.QDialog):
         self.previous_isotope = ""
 
         self.dock = dock
-        self.calibration = dock.laser.calibration
+        self.calibration = dict(dock.laser.calibration)  # copy dict
         self.texts: Dict[str, List[str]] = {}
 
         # Left side
@@ -258,7 +258,9 @@ class CalibrationTool(QtWidgets.QDialog):
         isotope = self.combo_isotope.currentText()
         if isotope in self.texts.keys():
             concentrations = self.texts[isotope]
+            self.table.blockSignals(True)
             self.table.setColumnText(CalibrationTable.COLUMN_CONC, concentrations)
+            self.table.blockSignals(False)
 
     def updateCounts(self) -> None:
         data = self.dock.laser.get(
@@ -271,7 +273,9 @@ class CalibrationTool(QtWidgets.QDialog):
         text = [
             f"{np.mean(sections[row]):.4f}" for row in range(0, self.table.rowCount())
         ]
+        self.table.blockSignals(True)
         self.table.setColumnText(CalibrationTable.COLUMN_COUNT, text)
+        self.table.blockSignals(False)
 
     def updateResults(self) -> None:
         # Clear results if not complete
