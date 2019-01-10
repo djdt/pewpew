@@ -9,11 +9,13 @@ from gui.canvas import Canvas
 from gui.widgets import BasicTable
 from gui.validators import DoublePrecisionDelegate
 
-from util.calc import weighted_linreg
+from util.calc import despike, weighted_linreg
 
 from typing import Dict, List
 from gui.docks import LaserImageDock
 from gui.windows import DockArea
+
+# TODO: Fix applying calibrations
 
 
 class CalibrationTable(BasicTable):
@@ -123,6 +125,9 @@ class CalibrationTool(QtWidgets.QDialog):
 
         self.lineedit_units = QtWidgets.QLineEdit()
 
+        self.combo_weighting = QtWidgets.QComboBox()
+        self.combo_averaging = QtWidgets.QComboBox()
+
         self.lineedit_gradient = QtWidgets.QLineEdit()
         self.lineedit_intercept = QtWidgets.QLineEdit()
         self.lineedit_rsq = QtWidgets.QLineEdit()
@@ -157,9 +162,16 @@ class CalibrationTool(QtWidgets.QDialog):
         self.spinbox_levels.setValue(5)
         self.spinbox_levels.valueChanged.connect(self.spinBoxLevels)
 
-        self.combo_weighting = QtWidgets.QComboBox()
         self.combo_weighting.addItems(["None", "x", "1/x", "1/(x^2)"])
         self.combo_weighting.currentIndexChanged.connect(self.comboWeighting)
+
+        self.combo_averaging.addItems(["Mean", "Median", "Despiked"])
+        self.combo_averaging.setItemData(
+            2,
+            "Mean of values less than 3σ from the overall mean.",
+            QtCore.Qt.ToolTipRole,
+        )
+        self.combo_averaging.currentIndexChanged.connect(self.comboAveraging)
 
         self.table.itemChanged.connect(self.tableItemChanged)
         self.table.setRowCount(5)
@@ -191,6 +203,7 @@ class CalibrationTool(QtWidgets.QDialog):
         layout_table_form = QtWidgets.QFormLayout()
         layout_table_form.addRow("Units:", self.lineedit_units)
         layout_table_form.addRow("Weighting:", self.combo_weighting)
+        layout_table_form.addRow("Averaging:", self.combo_averaging)
 
         layout_result_form = QtWidgets.QFormLayout()
         layout_result_form.addRow("RSQ:", self.lineedit_rsq)
@@ -251,6 +264,7 @@ class CalibrationTool(QtWidgets.QDialog):
         self.canvas.draw()
 
     def updateCalibration(self) -> None:
+        return
         self.dock.laser.calibration = self.calibration
         self.dock.draw()
 
@@ -270,9 +284,16 @@ class CalibrationTool(QtWidgets.QDialog):
             return
 
         sections = np.array_split(data, self.table.rowCount(), axis=0)
-        text = [
-            f"{np.mean(sections[row]):.4f}" for row in range(0, self.table.rowCount())
-        ]
+        text = []
+        averging = self.combo_averaging.currentText()
+        for row in range(0, self.table.rowCount()):
+            if averging == "Median":
+                text.append(f"{np.median(sections[row])}")
+            elif averging == "Mean":
+                text.append(f"{np.mean(sections[row])}")
+            else:  # Despiked
+                text.append(f"{np.mean(despike(sections[row]))}")
+
         self.table.blockSignals(True)
         self.table.setColumnText(CalibrationTable.COLUMN_COUNT, text)
         self.table.blockSignals(False)
@@ -308,12 +329,9 @@ class CalibrationTool(QtWidgets.QDialog):
 
         # Replace non finite values with one
         if weights is not None and not np.all(np.isfinite(weights)):
-            QtWidgets.QMessageBox.information(
-                self, "Invalid Weighting", "A non-finite weight value was detected."
-            )
+            self.lineedit_rsq.setText("Error")
+            self.lineedit_intercept.setText("Invalid weighting")
             self.lineedit_gradient.setText("")
-            self.lineedit_intercept.setText("")
-            self.lineedit_rsq.setText("")
             return
 
         m, b, r2 = weighted_linreg(x, y, w=weights)
@@ -372,6 +390,10 @@ class CalibrationTool(QtWidgets.QDialog):
         self.dockarea.setFocus(QtCore.Qt.OtherFocusReason)
         self.dockarea.startMouseSelect()
         self.dockarea.mouseSelectFinished.connect(self.mouseSelectFinished)
+
+    def comboAveraging(self, text: str) -> None:
+        self.updateCounts()
+        self.updateResults()
 
     def comboTrim(self, text: str) -> None:
         if self.combo_trim.currentText() == "rows":

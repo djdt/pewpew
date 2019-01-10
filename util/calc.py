@@ -3,6 +3,12 @@ import numpy as np
 from typing import Tuple
 
 
+def despike(x: np.ndarray, n: int = 3) -> np.ndarray:
+    mean = np.mean(x)
+    std = np.std(x)
+    return x[np.abs(mean - x) < n * std]
+
+
 def weighting(x: np.ndarray, weighting: str) -> np.ndarray:
     if weighting == "x":
         return x
