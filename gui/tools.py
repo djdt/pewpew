@@ -355,6 +355,7 @@ class CalibrationTool(QtWidgets.QDialog):
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
         if widget is not None and hasattr(widget, "laser"):
             self.dock = widget
+            self.calibration = copy.deepcopy(widget.laser.calibration)
             # Prevent currentIndexChanged being emmited
             self.combo_isotope.blockSignals(True)
             self.combo_isotope.clear()
