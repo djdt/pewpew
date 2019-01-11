@@ -10,6 +10,17 @@ def rolling_window(x: np.ndarray, window: Tuple[int, int]) -> np.ndarray:
     return np.lib.stride_tricks.as_strided(x, shape=shape, strides=strides)
 
 
+def rolling_window2(x: np.ndarray, window: Tuple[int, int], step: int) -> np.ndarray:
+    x = np.ascontiguousarray(x)
+    slices = tuple(slice(None, None, st) for st in (step,) * x.ndim)
+    index_strides = x[slices].strides
+    win_index_shape = (((np.array(x.shape) - np.array(window)) // step) + 1)
+
+    shape = tuple(list(win_index_shape) + list(window))
+    strides = tuple(list(index_strides) + list(x.strides))
+    return np.lib.stride_tricks.as_strided(x, shape=shape, strides=strides)
+
+
 def despike(x: np.ndarray, n: int = 3) -> np.ndarray:
     mean = np.mean(x)
     std = np.std(x)
@@ -49,4 +60,7 @@ def weighted_linreg(
     return m, b, r2
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
+    a = np.arange(110).reshape((11, 10))
+    print(a)
+    print(rolling_window2(a, (5, 5), 5))
