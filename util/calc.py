@@ -3,6 +3,13 @@ import numpy as np
 from typing import Tuple
 
 
+def rolling_window(x: np.ndarray, window: Tuple[int, int]) -> np.ndarray:
+    x = np.ascontiguousarray(x)
+    shape = tuple(np.array(x.shape) // window) + window
+    strides = tuple(np.array(x.strides) * window) + x.strides
+    return np.lib.stride_tricks.as_strided(x, shape=shape, strides=strides)
+
+
 def despike(x: np.ndarray, n: int = 3) -> np.ndarray:
     mean = np.mean(x)
     std = np.std(x)
@@ -42,12 +49,4 @@ def weighted_linreg(
     return m, b, r2
 
 
-if __name__ == "__main__":
-    a = np.array([1, 2, 3, 4, 5, 6, 7])
-    b = np.array([5, 10, 14, 21, 28, 29, 34])
-    w = np.array([1, 1, 1, 1, 0.1, 1, 1])
-
-    print("non weighted", weighted_linreg(a, b))
-    print("r2 pass", round(weighted_linreg(a, b)[2], 10) == 0.9817581301)
-    print("weighted", weighted_linreg(a, b, w))
-    print("r2 pass", round(weighted_linreg(a, b, w)[2], 10) == 0.9939799307)
+# if __name__ == "__main__":
