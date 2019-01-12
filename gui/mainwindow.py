@@ -25,7 +25,7 @@ from gui.dialogs import ApplyDialog
 
 class MainWindow(QtWidgets.QMainWindow):
     INTERPOLATIONS = ["none", "bilinear", "bicubic", "gaussian", "spline16"]
-    FILTERS = ["none", "fft", "rolling_mean", "rolling_median"]
+    FILTERS = ["none", "rolling_mean", "rolling_median"]
     DEFAULT_VIEW_CONFIG = {
         "cmap": "ppSpectral",
         "cmaprange": ("2%", "98%"),
