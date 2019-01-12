@@ -3,7 +3,13 @@ import traceback
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from gui.dialogs import ConfigDialog, ColorRangeDialog, ExportDialog, TrimDialog
+from gui.dialogs import (
+    ConfigDialog,
+    ColorRangeDialog,
+    ExportDialog,
+    FilteringDialog,
+    TrimDialog,
+)
 from gui.docks import ImageDock, LaserImageDock, KrissKrossImageDock
 from gui.tools import CalibrationTool
 from gui.widgets import DetailedError, MultipleDirDialog
@@ -25,13 +31,12 @@ from gui.dialogs import ApplyDialog
 
 class MainWindow(QtWidgets.QMainWindow):
     INTERPOLATIONS = ["none", "bilinear", "bicubic", "gaussian", "spline16"]
-    FILTERS = ["none", "rolling_mean", "rolling_median"]
+    FILTERS = ["None", "Rolling mean", "Rolling median"]
     DEFAULT_VIEW_CONFIG = {
-        "cmap": "ppSpectral",
-        "cmaprange": ("2%", "98%"),
-        "filtering": "none",
+        "cmap": {"type": "ppSpectral", "range": ("2%", "98%")},
+        "filtering": {"type": "None", "window": (5, 5), "threshold": 3},
         "interpolation": "none",
-        "fontsize": 12,
+        "font": {"size": 12},
     }
 
     def __init__(self, parent: QtWidgets.QWidget = None):
@@ -153,7 +158,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 description += " Colorblind safe."
             action.setStatusTip(description)
             action.setCheckable(True)
-            if cmap == self.viewconfig["cmap"]:
+            if cmap == self.viewconfig["cmap"]["type"]:
                 action.setChecked(True)
             menu_cmap.addAction(action)
         cmap_group.triggered.connect(self.menuColormap)
@@ -183,10 +188,14 @@ class MainWindow(QtWidgets.QMainWindow):
         for filter in MainWindow.FILTERS:
             action = filter_group.addAction(filter)
             action.setCheckable(True)
-            if filter == self.viewconfig["filtering"]:
+            if filter == self.viewconfig["filtering"]["type"]:
                 action.setChecked(True)
             menu_filter.addAction(action)
         filter_group.triggered.connect(self.menuFiltering)
+
+        action_filter_properties = menu_filter.addAction("Properties...")
+        action_filter_properties.setStatusTip("Set the properties used by filters.")
+        action_filter_properties.triggered.connect(self.menuFilteringProperties)
 
         action_fontsize = menu_view.addAction("Fontsize")
         action_fontsize.setStatusTip("Set size of font used in images.")
@@ -424,16 +433,16 @@ class MainWindow(QtWidgets.QMainWindow):
         text = action.text().replace("&", "")
         for name, cmap, _, _, _ in COLORMAPS:
             if name == text:
-                self.viewconfig["cmap"] = cmap
+                self.viewconfig["cmap"]["type"] = cmap
                 self.refresh()
                 return
 
     def menuColormapRange(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
-            self.viewconfig["cmaprange"] = dialog.range
+            self.viewconfig["cmap"]["range"] = dialog.range
             self.refresh()
 
-        dlg = ColorRangeDialog(self.viewconfig["cmaprange"], parent=self)
+        dlg = ColorRangeDialog(self.viewconfig["cmap"]["range"], parent=self)
         dlg.applyPressed.connect(applyDialog)
         if dlg.exec():
             applyDialog(dlg)
@@ -443,21 +452,36 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh()
 
     def menuFiltering(self, action: QtWidgets.QAction) -> None:
-        self.viewconfig["filtering"] = action.text().replace("&", "")
+        self.viewconfig["filtering"]["type"] = action.text().replace("&", "")
         self.refresh()
+
+    def menuFilteringProperties(self) -> None:
+        def applyDialog(dialog: ApplyDialog) -> None:
+            self.viewconfig["filtering"]["window"] = dialog.window
+            self.viewconfig["filtering"]["threshold"] = dialog.threshold
+            self.refresh()
+
+        dlg = FilteringDialog(
+            self.viewconfig["filtering"]["window"],
+            self.viewconfig["filtering"]["threshold"],
+            parent=self,
+        )
+        dlg.applyPressed.connect(applyDialog)
+        if dlg.exec():
+            applyDialog(dlg)
 
     def menuFontsize(self) -> None:
         fontsize, ok = QtWidgets.QInputDialog.getInt(
             self,
             "Fontsize",
             "Fontsize",
-            value=self.viewconfig["fontsize"],
+            value=self.viewconfig["font"]["size"],
             min=0,
             max=100,
             step=1,
         )
         if ok:
-            self.viewconfig["fontsize"] = fontsize
+            self.viewconfig["font"]["size"] = fontsize
             self.refresh()
 
     def menuRefresh(self) -> None:
