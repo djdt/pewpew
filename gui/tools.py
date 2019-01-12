@@ -10,7 +10,7 @@ from gui.canvas import Canvas
 from gui.widgets import BasicTable
 from gui.validators import DoublePrecisionDelegate
 
-from util.calc import despike, weighted_linreg
+from util.calc import weighted_linreg
 
 from typing import Dict, List
 from gui.docks import LaserImageDock
@@ -166,12 +166,12 @@ class CalibrationTool(QtWidgets.QDialog):
         self.combo_weighting.addItems(["None", "x", "1/x", "1/(x^2)"])
         self.combo_weighting.currentIndexChanged.connect(self.comboWeighting)
 
-        self.combo_averaging.addItems(["Mean", "Median", "Despiked"])
-        self.combo_averaging.setItemData(
-            2,
-            "Mean of values less than 3σ from the overall mean.",
-            QtCore.Qt.ToolTipRole,
-        )
+        self.combo_averaging.addItems(["Mean", "Median"])
+        # self.combo_averaging.setItemData(
+        #     2,
+        #     "Take the mean of values using the curent fitlering.",
+        #     QtCore.Qt.ToolTipRole,
+        # )
         self.combo_averaging.currentIndexChanged.connect(self.comboAveraging)
 
         self.table.itemChanged.connect(self.tableItemChanged)
@@ -293,7 +293,8 @@ class CalibrationTool(QtWidgets.QDialog):
             elif averging == "Mean":
                 text.append(f"{np.mean(sections[row])}")
             else:  # Despiked
-                text.append(f"{np.mean(despike(sections[row]))}")
+                pass
+                # text.append(f"{np.mean(despike(sections[row]))}")
 
         self.table.blockSignals(True)
         self.table.setColumnText(CalibrationTable.COLUMN_COUNT, text)

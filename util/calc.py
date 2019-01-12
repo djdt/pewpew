@@ -3,28 +3,61 @@ import numpy as np
 from typing import Tuple
 
 
+def rolling_mean_filter(
+    x: np.ndarray, window: Tuple[int, int], threshold: int = 3
+) -> None:
+    """Inplace rolling mean filter an array.
+
+    The window size should be an integer divisor of the array size.
+
+    Args:
+        window: Shape of the rolling window.
+        threshold: σ's value must be from mean to be an outlier.
+
+    """
+    # Create view
+    roll = rolling_window(x, window)
+    # Distance from mean (in stdevs)
+    means = np.mean(roll, axis=(2, 3), keepdims=True)
+    stds = np.std(roll, axis=(2, 3), keepdims=True)
+    diffs = np.abs(roll - means) / stds
+    # Recalculate mean, without outliers
+    roll[diffs > threshold] = np.nan
+    means = np.nanmean(roll, axis=(2, 3), keepdims=True)
+    # Replace all outliers and copy back into view
+    np.copyto(roll, means, where=diffs > threshold)
+
+
+def rolling_median_filter(
+    x: np.ndarray, window: Tuple[int, int], threshold: int = 3
+) -> None:
+    """Inplace rolling median filter an array.
+
+    The window size should be an integer divisor of the array size.
+
+    Args:
+        window: Shape of the rolling window.
+        threshold: N-distance's from median to be considered outlier.
+
+    """
+    # Create view
+    roll = rolling_window(x, window)
+    # Distance from the median
+    medians = np.median(roll, axis=(2, 3), keepdims=True)
+    diffs = np.abs(roll - medians)
+    # Median difference
+    median_diffs = np.median(diffs, axis=(2, 3), keepdims=True)
+    # Normalise differences
+    diffs = np.where(median_diffs != 0.0, diffs / median_diffs, diffs)
+    # Replace all over threshold and copy back into view
+    np.copyto(roll, medians, where=diffs > threshold)
+
+
 def rolling_window(x: np.ndarray, window: Tuple[int, int]) -> np.ndarray:
     x = np.ascontiguousarray(x)
     shape = tuple(np.array(x.shape) // window) + window
     strides = tuple(np.array(x.strides) * window) + x.strides
     return np.lib.stride_tricks.as_strided(x, shape=shape, strides=strides)
-
-
-def rolling_window2(x: np.ndarray, window: Tuple[int, int], step: int) -> np.ndarray:
-    x = np.ascontiguousarray(x)
-    slices = tuple(slice(None, None, st) for st in (step,) * x.ndim)
-    index_strides = x[slices].strides
-    win_index_shape = (((np.array(x.shape) - np.array(window)) // step) + 1)
-
-    shape = tuple(list(win_index_shape) + list(window))
-    strides = tuple(list(index_strides) + list(x.strides))
-    return np.lib.stride_tricks.as_strided(x, shape=shape, strides=strides)
-
-
-def despike(x: np.ndarray, n: int = 3) -> np.ndarray:
-    mean = np.mean(x)
-    std = np.std(x)
-    return x[np.abs(mean - x) < n * std]
 
 
 def weighting(x: np.ndarray, weighting: str) -> np.ndarray:
@@ -61,6 +94,11 @@ def weighted_linreg(
 
 
 if __name__ == "__main__":
-    a = np.arange(110).reshape((11, 10))
+    a = np.random.randint(0, 10, size=100).reshape(10, 10).astype(float)
+    a[0, 2] = 1000.0
+    a[2, 1] = 1000.0
+    a[3, 1] = 1000.0
+    a[9, 9] = 1000.0
     print(a)
-    print(rolling_window2(a, (5, 5), 5))
+    rolling_mean_filter(a, (5, 5), 3)
+    print(a)

@@ -25,10 +25,12 @@ from gui.dialogs import ApplyDialog
 
 class MainWindow(QtWidgets.QMainWindow):
     INTERPOLATIONS = ["none", "bilinear", "bicubic", "gaussian", "spline16"]
+    FILTERS = ["none", "fft", "rolling_mean", "rolling_median"]
     DEFAULT_VIEW_CONFIG = {
         "cmap": "ppSpectral",
-        "interpolation": "none",
         "cmaprange": ("2%", "98%"),
+        "filtering": "none",
+        "interpolation": "none",
         "fontsize": 12,
     }
 
@@ -173,6 +175,18 @@ class MainWindow(QtWidgets.QMainWindow):
                 action.setChecked(True)
             menu_interp.addAction(action)
         interp_group.triggered.connect(self.menuInterpolation)
+
+        # View - filtering
+        menu_filter = menu_view.addMenu("&Filtering")
+        menu_filter.setStatusTip("Apply filtering to images.")
+        filter_group = QtWidgets.QActionGroup(menu_filter)
+        for filter in MainWindow.FILTERS:
+            action = filter_group.addAction(filter)
+            action.setCheckable(True)
+            if filter == self.viewconfig["filtering"]:
+                action.setChecked(True)
+            menu_filter.addAction(action)
+        filter_group.triggered.connect(self.menuFiltering)
 
         action_fontsize = menu_view.addAction("Fontsize")
         action_fontsize.setStatusTip("Set size of font used in images.")
@@ -331,7 +345,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for dock in docks:
             for isotope in isotopes:
                 # Skip if isotope is not in laser
-                if isotope not in dock.laser.isotopes():
+                if isotope is not None and isotope not in dock.laser.isotopes():
                     continue
                 for layer in layers:
                     path = dlg.getPath(
@@ -426,6 +440,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuInterpolation(self, action: QtWidgets.QAction) -> None:
         self.viewconfig["interpolation"] = action.text().replace("&", "")
+        self.refresh()
+
+    def menuFiltering(self, action: QtWidgets.QAction) -> None:
+        self.viewconfig["filtering"] = action.text().replace("&", "")
         self.refresh()
 
     def menuFontsize(self) -> None:
