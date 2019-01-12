@@ -68,7 +68,7 @@ class Canvas(FigureCanvasQTAgg):
             colorbartext=laser.calibration[isotope]["unit"],
             extent=laser.extent(trimmed=True),
             fontsize=viewconfig["font"]["size"],
-            interpolation=viewconfig["interpolation"],
+            interpolation=viewconfig["interpolation"].lower(),
             label=self.use_label,
             labeltext=formatIsotope(isotope, fstring="$^{{{mass}}}${element}"),
             scalebar=self.use_scalebar,

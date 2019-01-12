@@ -30,7 +30,7 @@ from gui.dialogs import ApplyDialog
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    INTERPOLATIONS = ["none", "bilinear", "bicubic", "gaussian", "spline16"]
+    INTERPOLATIONS = ["None", "Bilinear", "Bicubic", "Gaussian", "Spline16"]
     FILTERS = ["None", "Rolling mean", "Rolling median"]
     DEFAULT_VIEW_CONFIG = {
         "cmap": {"type": "ppSpectral", "range": ("2%", "98%")},
