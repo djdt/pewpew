@@ -3,7 +3,7 @@ import numpy as np
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
-from util.laserimage import plotLaserImage
+from util.plotimage import plotLaserImage
 from util.laser import LaserData
 from util.version import __version__
 
@@ -22,7 +22,6 @@ def exportCsv(path: str, data: np.ndarray, isotope: str, config: dict) -> None:
 
 
 def exportNpz(path: str, laser_list: List[LaserData]) -> None:
-    print(__version__)
     savedict: Dict[str, List[Any]] = {
         "version": __version__,
         "_name": [],
