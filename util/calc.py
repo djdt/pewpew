@@ -48,7 +48,7 @@ def rolling_median_filter(
     # Median difference
     median_diffs = np.median(diffs, axis=(2, 3), keepdims=True)
     # Normalise differences
-    diffs = np.where(median_diffs != 0.0, diffs / median_diffs, diffs)
+    diffs = np.divide(diffs, median_diffs, where=median_diffs != 0)
     # Replace all over threshold and copy back into view
     np.copyto(roll, medians, where=diffs > threshold)
 
@@ -107,15 +107,7 @@ def weighted_linreg(
 
 
 if __name__ == "__main__":
-    import timeit
+    a = np.random.randint(0, 100, size=110).reshape(11, 10).astype(float)
+    a = np.zeros((10, 10), dtype=float)
 
-    a = np.random.randint(0, 100, size=100).reshape(10, 10).astype(float)
-
-    print(
-        timeit.repeat(
-            "rolling_median_filter(a.copy(), (5, 5))",
-            repeat=10,
-            number=1000,
-            globals=globals(),
-        )
-    )
+    rolling_median_filter(a, (5, 5))
