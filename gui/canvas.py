@@ -4,7 +4,7 @@ from matplotlib.figure import Figure
 import numpy as np
 
 from util.formatter import formatIsotope
-from util.laserimage import plotLaserImage
+from util.plotimage import plotLaserImage
 from util.plothelpers import coords2value
 
 from util.laser import LaserData
@@ -51,6 +51,7 @@ class Canvas(FigureCanvasQTAgg):
             scalebar=self.use_scalebar,
             label=self.use_label,
             labeltext=formatIsotope(isotope, fstring="$^{{{mass}}}${element}"),
+            filtering=viewconfig["filtering"],
             fontsize=viewconfig["fontsize"],
             cmap=viewconfig["cmap"],
             interpolation=viewconfig["interpolation"],

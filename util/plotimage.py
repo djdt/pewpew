@@ -10,6 +10,8 @@ from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
 
+from util.calc import rolling_mean_filter, rolling_median_filter
+
 
 def plotLaserImage(
     fig: Figure,
@@ -21,6 +23,7 @@ def plotLaserImage(
     colorbarpos: str = "bottom",
     colorbartext: str = "",
     extent: Tuple[int, int, int, int] = None,
+    filtering: str = "none",
     fontsize: int = 12,
     interpolation: str = "none",
     label: bool = False,
@@ -32,14 +35,27 @@ def plotLaserImage(
     vmin: Union[str, int] = "0%",
 ) -> AxesImage:
 
-    if data.size == 0:
+    # If data is empty create a dummy data
+    if data is None or data.size == 0:
         data = np.array([[0]], dtype=np.float64)
 
+    # Apply filtering
+    if filtering == "rolling_mean":
+        # Copy to a new array
+        data = data.copy()
+        rolling_mean_filter(data, (5, 5), 3)
+    elif filtering == "rolling_median":
+        # Copy to a new array
+        data = data.copy()
+        rolling_median_filter(data, (5, 5), 3)
+
+    # Calculate the colorbar range
     if isinstance(vmin, str):
         vmin = np.percentile(data, float(vmin.rstrip("%")))
     if isinstance(vmax, str):
         vmax = np.percentile(data, float(vmax.rstrip("%")))
 
+    # Plot the image
     im = ax.imshow(
         data,
         cmap=cmap,
