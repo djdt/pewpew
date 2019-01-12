@@ -35,7 +35,7 @@ class MainWindow(QtWidgets.QMainWindow):
     DEFAULT_VIEW_CONFIG = {
         "cmap": {"type": "ppSpectral", "range": ("2%", "98%")},
         "filtering": {"type": "None", "window": (5, 5), "threshold": 3},
-        "interpolation": "none",
+        "interpolation": "None",
         "font": {"size": 12},
     }
 
