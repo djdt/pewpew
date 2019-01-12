@@ -60,6 +60,19 @@ def rolling_window(x: np.ndarray, window: Tuple[int, int]) -> np.ndarray:
     return np.lib.stride_tricks.as_strided(x, shape=shape, strides=strides)
 
 
+def rolling_window_step(
+    x: np.ndarray, window: Tuple[int, int], step: int
+) -> np.ndarray:
+    x = np.ascontiguousarray(x)
+    slices = tuple(slice(None, None, st) for st in (step,) * x.ndim)
+    shape = tuple(
+        list(((np.array(x.shape) - np.array(window)) // np.array(step)) + 1)
+        + list(window)
+    )
+    strides = tuple(list(x[slices].strides) + list(x.strides))
+    return np.lib.stride_tricks.as_strided(x, shape=shape, strides=strides)
+
+
 def weighting(x: np.ndarray, weighting: str) -> np.ndarray:
     if weighting == "x":
         return x
@@ -94,11 +107,15 @@ def weighted_linreg(
 
 
 if __name__ == "__main__":
-    a = np.random.randint(0, 10, size=100).reshape(10, 10).astype(float)
-    a[0, 2] = 1000.0
-    a[2, 1] = 1000.0
-    a[3, 1] = 1000.0
-    a[9, 9] = 1000.0
-    print(a)
-    rolling_mean_filter(a, (5, 5), 3)
-    print(a)
+    import timeit
+
+    a = np.random.randint(0, 100, size=100).reshape(10, 10).astype(float)
+
+    print(
+        timeit.repeat(
+            "rolling_median_filter(a.copy(), (5, 5))",
+            repeat=10,
+            number=1000,
+            globals=globals(),
+        )
+    )
