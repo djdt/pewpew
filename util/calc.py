@@ -54,6 +54,15 @@ def rolling_median_filter(
 
 
 def rolling_window(x: np.ndarray, window: Tuple[int, int]) -> np.ndarray:
+    """Create non-overlapping views into a array.
+
+    Args:
+        x: The array.
+        window: The size of the view.
+
+    Returns:
+        An array of views.
+    """
     x = np.ascontiguousarray(x)
     shape = tuple(np.array(x.shape) // window) + window
     strides = tuple(np.array(x.strides) * window) + x.strides
@@ -63,6 +72,16 @@ def rolling_window(x: np.ndarray, window: Tuple[int, int]) -> np.ndarray:
 def rolling_window_step(
     x: np.ndarray, window: Tuple[int, int], step: int
 ) -> np.ndarray:
+    """Create overlapping views into a array.
+
+    Args:
+        x: The array.
+        window: The size of the view.
+        step: Offset of the next window.
+
+    Returns:
+        An array of views.
+    """
     x = np.ascontiguousarray(x)
     slices = tuple(slice(None, None, st) for st in (step,) * x.ndim)
     shape = tuple(
