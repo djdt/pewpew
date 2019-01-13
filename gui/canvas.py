@@ -37,8 +37,8 @@ class Canvas(FigureCanvasQTAgg):
             self.mpl_connect("axes_leave_event", self.clearStatusBar)
 
     def close(self) -> None:
-        self.mpl_disconncet("motion_notify_event")
-        self.mpl_disconncet("axes_leave_event")
+        self.mpl_disconnect("motion_notify_event")
+        self.mpl_disconnect("axes_leave_event")
         self.clearStatusBar()
         super().close()
 
@@ -83,13 +83,14 @@ class Canvas(FigureCanvasQTAgg):
         self.ax = self.fig.add_subplot(111)
 
     def updateStatusBar(self, e: MouseEvent) -> None:
-        if e.inaxes == self.ax:
+        if e.inaxes == self.ax and self.window() is not None:
             x, y = e.xdata, e.ydata
             v = coords2value(self.image, x, y)
             self.window().statusBar().showMessage(f"{x:.2f},{y:.2f} [{v}]")
 
     def clearStatusBar(self, e: LocationEvent = None) -> None:
-        self.window().statusBar().clearMessage()
+        if self.window() is not None:
+            self.window().statusBar().clearMessage()
 
     def sizeHint(self) -> QtCore.QSize:
         w, h = self.get_width_height()

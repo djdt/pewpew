@@ -10,7 +10,7 @@ from gui.canvas import Canvas
 from gui.widgets import BasicTable
 from gui.validators import DoublePrecisionDelegate
 
-from util.calc import weighted_linreg
+from util.calc import rolling_mean_filter, rolling_median_filter, weighted_linreg
 
 from typing import Dict, List
 from gui.docks import LaserImageDock
@@ -167,11 +167,6 @@ class CalibrationTool(QtWidgets.QDialog):
         self.combo_weighting.currentIndexChanged.connect(self.comboWeighting)
 
         self.combo_averaging.addItems(["Mean", "Median"])
-        # self.combo_averaging.setItemData(
-        #     2,
-        #     "Take the mean of values using the curent fitlering.",
-        #     QtCore.Qt.ToolTipRole,
-        # )
         self.combo_averaging.currentIndexChanged.connect(self.comboAveraging)
 
         self.table.itemChanged.connect(self.tableItemChanged)
@@ -284,17 +279,24 @@ class CalibrationTool(QtWidgets.QDialog):
         if len(data) == 1:
             return
 
+        if self.viewconfig["filtering"]["type"] != "None":
+            filter_type, window, threshold = (
+                self.viewconfig["filtering"][x] for x in ["type", "window", "threshold"]
+            )
+            data = data.copy()
+            if filter_type == "Rolling mean":
+                rolling_mean_filter(data, window, threshold)
+            elif filter_type == "Rolling median":
+                rolling_median_filter(data, window, threshold)
+
         sections = np.array_split(data, self.table.rowCount(), axis=0)
         text = []
         averging = self.combo_averaging.currentText()
         for row in range(0, self.table.rowCount()):
             if averging == "Median":
                 text.append(f"{np.median(sections[row])}")
-            elif averging == "Mean":
+            else:  # Mean
                 text.append(f"{np.mean(sections[row])}")
-            else:  # Despiked
-                pass
-                # text.append(f"{np.mean(despike(sections[row]))}")
 
         self.table.blockSignals(True)
         self.table.setColumnText(CalibrationTable.COLUMN_COUNT, text)
@@ -377,6 +379,8 @@ class CalibrationTool(QtWidgets.QDialog):
     def keyPressEvent(self, event: QtCore.QEvent) -> None:
         if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
             return
+        if event.key() == QtCore.Qt.Key_F5:
+            self.draw()
         super().keyPressEvent(event)
 
     def buttonBoxClicked(self, button: QtWidgets.QAbstractButton) -> None:
