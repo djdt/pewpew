@@ -2,7 +2,7 @@
 
 import os.path
 import sys
-from util.version import __version__
+exec(open('util/version.py').read())
 
 block_cipher = None
 
