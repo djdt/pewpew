@@ -308,6 +308,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self.dockarea.addDockWidgets([dock])
 
     def menuSaveSession(self) -> None:
+        # Save the window state
+        settings = QtCore.QSettings("Pewpew", "Pewpew")
+        settings.setValue("geometry", self.saveGeometry())
+        settings.setValue("windowState", self.saveState())
+        print(settings.allKeys())
+        print(settings)
+
         docks = self.dockarea.findChildren(ImageDock)
         if len(docks) == 0:
             QtWidgets.QMessageBox.information(self, "Save Session", "Nothing to save.")
@@ -424,9 +431,17 @@ class MainWindow(QtWidgets.QMainWindow):
             applyDialog(dlg)
 
     def menuStandardsTool(self) -> None:
+        def applyDialog(dialog: ApplyDialog) -> None:
+            for dock in self.dockarea.findChildren(LaserImageDock):
+                for isotope in dlg.calibration.keys():
+                    if isotope in dock.laser.calibration.keys():
+                        dock.laser.calibration[isotope] = dict(dlg.calibration[isotope])
+                dock.draw()
+
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
         laser = docks[0] if len(docks) > 0 else LaserImageDock(LaserData(), parent=self)
         dlg = CalibrationTool(laser, self.dockarea, self.viewconfig, parent=self)
+        dlg.applyPressed.connect(applyDialog)
         dlg.show()
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
