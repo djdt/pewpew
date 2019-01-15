@@ -7,6 +7,7 @@ from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from gui.canvas import Canvas
+from gui.dialogs import ApplyDialog
 from gui.widgets import BasicTable
 from gui.validators import DoublePrecisionDelegate
 
@@ -100,7 +101,7 @@ class CalibrationCanvas(Canvas):
         self.draw()
 
 
-class CalibrationTool(QtWidgets.QDialog):
+class CalibrationTool(ApplyDialog):
     def __init__(
         self,
         dock: LaserImageDock,
@@ -145,9 +146,9 @@ class CalibrationTool(QtWidgets.QDialog):
 
         self.combo_isotope = QtWidgets.QComboBox()
 
-        self.button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok, self
-        )
+        # self.button_box = QtWidgets.QDialogButtonBox(
+        #     QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok, self
+        # )
 
         self.initialiseWidgets()
         self.layoutWidgets()
@@ -162,6 +163,8 @@ class CalibrationTool(QtWidgets.QDialog):
         self.spinbox_levels.setMaximum(20)
         self.spinbox_levels.setValue(5)
         self.spinbox_levels.valueChanged.connect(self.spinBoxLevels)
+
+        self.lineedit_units.editingFinished.connect(self.lineeditUnits)
 
         self.combo_weighting.addItems(["None", "x", "1/x", "1/(x^2)"])
         self.combo_weighting.currentIndexChanged.connect(self.comboWeighting)
@@ -190,7 +193,7 @@ class CalibrationTool(QtWidgets.QDialog):
         self.combo_isotope.addItems(self.dock.laser.isotopes())
         self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
 
-        self.button_box.clicked.connect(self.buttonBoxClicked)
+        # self.button_box.clicked.connect(self.buttonBoxClicked)
 
     def layoutWidgets(self) -> None:
         layout_cal_form = QtWidgets.QFormLayout()
@@ -246,6 +249,7 @@ class CalibrationTool(QtWidgets.QDialog):
 
     def accept(self) -> None:
         self.updateCalibration()
+        self.applyPressed.emit(self)
         super().accept()
 
     def apply(self) -> None:
@@ -260,9 +264,9 @@ class CalibrationTool(QtWidgets.QDialog):
         self.canvas.draw()
 
     def updateCalibration(self) -> None:
-        return
-        self.dock.laser.calibration = self.calibration
-        self.dock.draw()
+        pass
+        # self.dock.laser.calibration = self.calibration
+        # self.dock.draw()
 
     def updateConcentrations(self) -> None:
         isotope = self.combo_isotope.currentText()
@@ -346,8 +350,6 @@ class CalibrationTool(QtWidgets.QDialog):
         isotope = self.combo_isotope.currentText()
         self.calibration[isotope]["gradient"] = m
         self.calibration[isotope]["intercept"] = b
-        unit = self.lineedit_units.text()
-        self.calibration[isotope]["unit"] = unit
 
     def updateTrim(self) -> None:
         trim = self.dock.laser.trimAs(self.combo_trim.currentText())
@@ -437,6 +439,10 @@ class CalibrationTool(QtWidgets.QDialog):
         self.updateCounts()
         self.updateResults()
         self.draw()
+
+    def lineeditUnits(self) -> None:
+        unit = self.lineedit_units.text()
+        self.calibration[self.combo_isotope.currentText()]["unit"] = unit
 
     def spinBoxLevels(self) -> None:
         self.table.setRowCount(self.spinbox_levels.value())
