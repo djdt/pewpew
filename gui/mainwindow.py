@@ -29,12 +29,19 @@ from types import TracebackType
 from gui.dialogs import ApplyDialog
 
 
+## TODO redo exporter dialog like everyone else does (i.e. first choose file (dir?) then options).
+##  --  implement a better image export
+## TODO allow trim in x and y axis, have a selection window for it.
+## TODO range should allow decimals (ppm etc.)
+## TODO phil would like to have a way to average an area, without background
+
+
 class MainWindow(QtWidgets.QMainWindow):
     INTERPOLATIONS = ["None", "Bilinear", "Bicubic", "Gaussian", "Spline16"]
     FILTERS = ["None", "Rolling mean", "Rolling median"]
     DEFAULT_VIEW_CONFIG = {
         "cmap": {"type": "ppSpectral", "range": ("2%", "98%")},
-        "filtering": {"type": "None", "window": (5, 5), "threshold": 3},
+        "filtering": {"type": "None", "window": (5, 5), "threshold": 5},
         "interpolation": "None",
         "font": {"size": 12},
     }
