@@ -3,11 +3,12 @@ from PyQt5 import QtGui, QtWidgets
 from typing import Tuple
 
 
-class PercentValidator(QtGui.QValidator):
+class PercentValidator(QtGui.QDoubleValidator):
     def __init__(
         self,
-        percent_min: int = 0,
-        percent_max: int = 100,
+        percent_min: float = 0.0,
+        percent_max: float = 100.0,
+        decimals: int = 0,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
@@ -24,7 +25,7 @@ class PercentValidator(QtGui.QValidator):
             return (QtGui.QValidator.Invalid, input, pos)
 
         try:
-            i = int(input.rstrip("%"))
+            i = float(input.rstrip("%"))
         except ValueError:
             return (QtGui.QValidator.Invalid, input, pos)
 
@@ -34,6 +35,37 @@ class PercentValidator(QtGui.QValidator):
             return (QtGui.QValidator.Invalid, input, pos)
 
         return (QtGui.QValidator.Acceptable, input, pos)
+
+
+class PercentOrDoubleValidator(QtGui.QDoubleValidator):
+    def __init__(
+        self,
+        bottom: float = -1e10,
+        top: float = 1e10,
+        decimals: int = 4,
+        percent_bottom: float = 0.0,
+        percent_top: float = 100.0,
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(bottom, top, decimals, parent)
+        self.percent_top = percent_top
+        self.percent_bottom = percent_bottom
+
+    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
+        # Treat as percent
+        if "%" in input:
+            if not input.endswith("%") or input.count("%") > 1:
+                return (QtGui.QValidator.Invalid, input, pos)
+            # Store the range
+            top, bottom, decimals = self.top(), self.bottom(), self.decimals()
+            self.setRange(self.percent_top, self.percent_bottom, decimals)
+            result = super().validate(input.rstrip("%"), pos)
+            # Restore the range
+            self.setRange(top, bottom, decimals)
+            return result
+
+        # Treat as double
+        return super().validate(input, pos)
 
 
 class PercentOrIntValidator(PercentValidator):
