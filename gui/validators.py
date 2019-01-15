@@ -4,40 +4,33 @@ from typing import Tuple
 
 
 class PercentValidator(QtGui.QDoubleValidator):
-    def __init__(
-        self,
-        percent_min: float = 0.0,
-        percent_max: float = 100.0,
-        decimals: int = 0,
-        parent: QtWidgets.QWidget = None,
-    ):
-        super().__init__(parent)
-        self.percent_min = percent_min
-        self.percent_max = percent_max
-
     def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
-        if len(input.rstrip("%")) == 0:
-            return (QtGui.QValidator.Intermediate, input, pos)
+        # if len(input.rstrip("%")) == 0:
+        #     return (QtGui.QValidator.Intermediate, input, pos)
 
-        if not input.endswith("%"):
-            input += "%"
-        elif input.count("%") > 1:
-            return (QtGui.QValidator.Invalid, input, pos)
+        # if not input.endswith("%"):
+        #     input += "%"
+        # elif input.count("%") > 1:
+        #     return (QtGui.QValidator.Invalid, input, pos)
 
-        try:
-            i = float(input.rstrip("%"))
-        except ValueError:
-            return (QtGui.QValidator.Invalid, input, pos)
+        # try:
+        #     i = float(input.rstrip("%"))
+        # except ValueError:
+        #     return (QtGui.QValidator.Invalid, input, pos)
 
-        if i < self.percent_min:
-            return (QtGui.QValidator.Intermediate, input, pos)
-        elif i > self.percent_max:
-            return (QtGui.QValidator.Invalid, input, pos)
+        # if i < self.percent_min:
+        #     return (QtGui.QValidator.Intermediate, input, pos)
+        # elif i > self.percent_max:
+        #     return (QtGui.QValidator.Invalid, input, pos)
 
-        return (QtGui.QValidator.Acceptable, input, pos)
+        # return (QtGui.QValidator.Acceptable, input, pos)
+        if '%' in input:
+            if not input.endswith("%") or input.count("%") > 1:
+                return (QtGui.QValidator.Invalid, input, pos)
+        return super().validate(input.rstrip("%"), pos)
 
 
-class PercentOrDoubleValidator(QtGui.QDoubleValidator):
+class PercentOrDoubleValidator(PercentValidator):
     def __init__(
         self,
         bottom: float = -1e10,
@@ -48,24 +41,20 @@ class PercentOrDoubleValidator(QtGui.QDoubleValidator):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(bottom, top, decimals, parent)
-        self.percent_top = percent_top
+        self.bottom = bottom
+        self.top = top
+        self.decimals = decimals
         self.percent_bottom = percent_bottom
+        self.percent_top = percent_top
 
     def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
         # Treat as percent
         if "%" in input:
-            if not input.endswith("%") or input.count("%") > 1:
-                return (QtGui.QValidator.Invalid, input, pos)
-            # Store the range
-            top, bottom, decimals = self.top(), self.bottom(), self.decimals()
-            self.setRange(self.percent_top, self.percent_bottom, decimals)
-            result = super().validate(input.rstrip("%"), pos)
-            # Restore the range
-            self.setRange(top, bottom, decimals)
-            return result
-
+            self.setRange(self.percent_bottom, self.percent_top, self.decimals)
+            return super(PercentValidator).validate(input, pos)
         # Treat as double
-        return super().validate(input, pos)
+        self.setRange(self.bottom, self.top, self.decimals)
+        return super(QtGui.QDoubleValidator).validate(input, pos)
 
 
 class PercentOrIntValidator(PercentValidator):
