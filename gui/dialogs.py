@@ -1,7 +1,7 @@
 import os.path
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from gui.validators import DoubleValidatorNoZero, PercentOrIntValidator
+from gui.validators import DecimalValidator, DecimalValidatorNoZero, PercentOrDecimalValidator
 
 from typing import List, Tuple, Union
 from util.laser import LaserData
@@ -51,12 +51,12 @@ class ColorRangeDialog(ApplyDialog):
         self.lineedit_min.setPlaceholderText(str(current_range[0]))
         self.lineedit_min.setToolTip("Percentile for minium colormap value.")
         self.lineedit_min.setValidator(
-            PercentOrIntValidator(int_min=0, parent=self.lineedit_min)
+            PercentOrDecimalValidator(parent=self.lineedit_min)
         )
         self.lineedit_max = QtWidgets.QLineEdit()
         self.lineedit_max.setPlaceholderText(str(current_range[1]))
         self.lineedit_max.setValidator(
-            PercentOrIntValidator(int_min=0, parent=self.lineedit_max)
+            PercentOrDecimalValidator(parent=self.lineedit_max)
         )
         self.lineedit_max.setToolTip("Percentile for maximum colormap value.")
 
@@ -100,10 +100,10 @@ class CalibrationDialog(ApplyDialog):
 
         # LIne edits
         self.lineedit_gradient = QtWidgets.QLineEdit()
-        self.lineedit_gradient.setValidator(DoubleValidatorNoZero(-1e10, 1e10, 4))
+        self.lineedit_gradient.setValidator(DecimalValidatorNoZero(-1e10, 1e10, 4))
         self.lineedit_gradient.setPlaceholderText("1.0")
         self.lineedit_intercept = QtWidgets.QLineEdit()
-        self.lineedit_intercept.setValidator(QtGui.QDoubleValidator(-1e10, 1e10, 4))
+        self.lineedit_intercept.setValidator(DecimalValidator(-1e10, 1e10, 4))
         self.lineedit_intercept.setPlaceholderText("0.0")
         self.lineedit_unit = QtWidgets.QLineEdit()
         self.lineedit_unit.setPlaceholderText("<None>")
@@ -190,13 +190,13 @@ class ConfigDialog(ApplyDialog):
         # Line edits
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setPlaceholderText(str(self.spotsize))
-        self.lineedit_spotsize.setValidator(QtGui.QDoubleValidator(0, 1e3, 2))
+        self.lineedit_spotsize.setValidator(DecimalValidator(0, 1e3, 2))
         self.lineedit_speed = QtWidgets.QLineEdit()
         self.lineedit_speed.setPlaceholderText(str(self.speed))
-        self.lineedit_speed.setValidator(QtGui.QDoubleValidator(0, 1e3, 2))
+        self.lineedit_speed.setValidator(DecimalValidator(0, 1e3, 2))
         self.lineedit_scantime = QtWidgets.QLineEdit()
         self.lineedit_scantime.setPlaceholderText(str(self.scantime))
-        self.lineedit_scantime.setValidator(QtGui.QDoubleValidator(0, 1e3, 4))
+        self.lineedit_scantime.setValidator(DecimalValidator(0, 1e3, 4))
 
         # Form layout for line edits
         form_layout = QtWidgets.QFormLayout()
@@ -322,8 +322,8 @@ class TrimDialog(ApplyDialog):
             self.lineedit_left.setValidator(QtGui.QIntValidator(0, 1e9))
             self.lineedit_right.setValidator(QtGui.QIntValidator(0, 1e9))
         else:
-            self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
-            self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
+            self.lineedit_left.setValidator(DecimalValidator(0, 1e9, 2))
+            self.lineedit_right.setValidator(DecimalValidator(0, 1e9, 2))
 
     def updateTrim(self) -> None:
         trim_left = (
@@ -347,7 +347,7 @@ class TrimDialog(ApplyDialog):
 
 
 class ExportDialog(QtWidgets.QDialog):
-    VALID_FORMATS = [".csv", ".npz", ".png", ".vtr"]
+    VALID_FORMATS = [".csv", ".npz", ".vtr"]
 
     def __init__(
         self,
@@ -451,7 +451,7 @@ class ExportDialog(QtWidgets.QDialog):
             self,
             "Export",
             self.lineedit_path.text(),
-            "CSV files(*.csv);;Numpy archives(*.npz);;PNG images(*.png);;"
+            "CSV files(*.csv);;Numpy archives(*.npz);;"
             "Rectilinear VTKs(*.vtr);;All files(*)",
             "All files(*)",
             QtWidgets.QFileDialog.DontConfirmOverwrite,
