@@ -13,7 +13,7 @@ from gui.dialogs import (
 from gui.docks import ImageDock, LaserImageDock, KrissKrossImageDock
 from gui.tools import CalibrationTool
 from gui.widgets import DetailedError, MultipleDirDialog
-from gui.windows import DockArea
+from gui.docks.dockarea import DockArea
 from gui.wizards import KrissKrossWizard
 
 from util.colormaps import COLORMAPS
