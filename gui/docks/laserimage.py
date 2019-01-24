@@ -2,9 +2,9 @@ import os.path
 
 from PyQt5 import QtWidgets
 
-from gui.docks.imagedock import ImageDock
+from gui.docks.image import ImageDock
 
-from util.exporter import exportCsv, exportNpz, exportPng, exportVtr
+from util.exporter import exportCsv, exportNpz, exportPng
 from util.laser import LaserData
 
 

@@ -2,7 +2,7 @@ import os.path
 
 from PyQt5 import QtWidgets
 
-from gui.docks.laserimagedock import LaserImageDock
+from gui.docks.laserimage import LaserImageDock
 
 from util.exporter import exportCsv, exportNpz, exportPng, exportVtr
 from util.krisskross import KrissKrossData
