@@ -1,16 +1,12 @@
-import numpy as np
 import os.path
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-
-from util.exporter import exportCsv, exportNpz, exportPng, exportVtr
 
 from gui.canvas import Canvas
 from gui.dialogs import CalibrationDialog, ConfigDialog, ExportDialog, TrimDialog
 
 from typing import List, Union
 from util.laser import LaserData
-from util.krisskross import KrissKrossData
 from gui.dialogs import ApplyDialog
 
 
@@ -266,140 +262,3 @@ class ImageDock(QtWidgets.QDockWidget):
         self.setWindowTitle(name)
         if self.laser is not None:
             self.laser.name = name
-
-
-class LaserImageDock(ImageDock):
-    def __init__(self, laserdata: LaserData, parent: QtWidgets.QWidget = None):
-
-        super().__init__(parent)
-        self.laser = laserdata
-        self.combo_isotope.addItems(self.laser.isotopes())
-        self.setWindowTitle(self.laser.name)
-
-    def _export(
-        self,
-        path: str,
-        isotope: str = None,
-        layer: int = None,
-        prompt_overwrite: bool = True,
-    ) -> QtWidgets.QMessageBox.StandardButton:
-        if isotope is None:
-            isotope = self.combo_isotope.currentText()
-
-        result = QtWidgets.QMessageBox.Yes
-        if prompt_overwrite and os.path.exists(path):
-            result = QtWidgets.QMessageBox.warning(
-                self,
-                "Overwrite File?",
-                f'The file "{os.path.basename(path)}" '
-                "already exists. Do you wish to overwrite it?",
-                QtWidgets.QMessageBox.Yes
-                | QtWidgets.QMessageBox.YesToAll
-                | QtWidgets.QMessageBox.No,
-            )
-            if result == QtWidgets.QMessageBox.No:
-                return result
-
-        ext = os.path.splitext(path)[1].lower()
-        if ext == ".csv":
-            exportCsv(
-                path,
-                self.laser.get(isotope, calibrated=True, trimmed=True),
-                isotope,
-                self.laser.config,
-            )
-        elif ext == ".npz":
-            exportNpz(path, [self.laser])
-        elif ext == ".png":
-            exportPng(
-                path,
-                self.laser.get(isotope, calibrated=True, trimmed=True),
-                isotope,
-                self.laser.aspect(),
-                self.laser.extent(trimmed=True),
-                self.window().viewconfig,
-            )
-        else:
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Invalid Format",
-                f"Unknown extention for '{os.path.basename(path)}'.",
-            )
-            return QtWidgets.QMessageBox.NoToAll
-
-        return result
-
-
-class KrissKrossImageDock(LaserImageDock):
-    def __init__(self, kkdata: KrissKrossData, parent: QtWidgets.QWidget = None):
-
-        super().__init__(kkdata, parent)
-        self.setWindowTitle(f"kk:{self.laser.name}")
-
-        # Config cannot be changed for krisskross images
-        self.action_config.setEnabled(False)
-        self.action_trim.setEnabled(False)
-
-    def onMenuConfig(self) -> None:
-        pass
-
-    def onMenuTrim(self) -> None:
-        pass
-
-    def _export(
-        self,
-        path: str,
-        isotope: str = None,
-        layer: int = None,
-        prompt_overwrite: bool = True,
-    ) -> QtWidgets.QMessageBox.StandardButton:
-        if isotope is None:
-            isotope = self.combo_isotope.currentText()
-
-        result = QtWidgets.QMessageBox.Yes
-        if prompt_overwrite and os.path.exists(path):
-            result = QtWidgets.QMessageBox.warning(
-                self,
-                "Overwrite File?",
-                f'The file "{os.path.basename(path)}" '
-                "already exists. Do you wish to overwrite it?",
-                QtWidgets.QMessageBox.Yes
-                | QtWidgets.QMessageBox.YesToAll
-                | QtWidgets.QMessageBox.No,
-            )
-            if result == QtWidgets.QMessageBox.No:
-                return result
-
-        if layer is None:
-            export_data = self.laser.get(isotope, calibrated=True, flattened=True)
-        else:
-            export_data = self.laser.get(isotope, calibrated=True, flattened=False)[
-                :, :, layer - 1
-            ]
-
-        ext = os.path.splitext(path)[1].lower()
-        if ext == ".csv":
-            np.savetxt(path, export_data, delimiter=",")
-            exportCsv(path, export_data, isotope, self.laser.config)
-        elif ext == ".npz":
-            exportNpz(path, [self.laser])
-        elif ext == ".png":
-            exportPng(
-                path,
-                export_data,
-                isotope,
-                self.laser.aspect(),
-                self.laser.extent(trimmed=True),
-                self.window().viewconfig,
-            )
-        elif ext == ".vtr":
-            exportVtr(path, self.laser)
-        else:
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Invalid Format",
-                f'Unknown extention for "{os.path.basename(path)}".',
-            )
-            return QtWidgets.QMessageBox.NoToAll
-
-        return result

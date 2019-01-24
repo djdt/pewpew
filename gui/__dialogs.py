@@ -75,11 +75,11 @@ class ColorRangeDialog(ApplyDialog):
         if min == "":
             min = self.range[0]
         elif "%" not in min:
-            min = int(min)
+            min = float(min)
         if max == "":
             max = self.range[1]
         elif "%" not in max:
-            max = int(max)
+            max = float(max)
         self.range = (min, max)
 
     def apply(self) -> None:
