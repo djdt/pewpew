@@ -2,8 +2,15 @@ import os.path
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from gui.canvas import Canvas
-from gui.dialogs import CalibrationDialog, ConfigDialog, ExportDialog, TrimDialog
+from gui.docks.laserimage import LaserImageDock
+from gui.docks.krisskrossimage import KrissKrossImageDock
+from gui.dialogs.calibration import CalibrationDialog
+from gui.dialogs.config import ConfigDialog
+# from gui.dialogs.calibration import ExportDialog
+from gui.dialogs.trim import TrimDialog
+from gui.widgets.canvas import Canvas
+
+from util.exporter import exportNpz
 
 from typing import List, Union
 from util.laser import LaserData
