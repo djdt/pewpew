@@ -6,7 +6,7 @@ from gui.docks.laserimage import LaserImageDock
 from gui.docks.krisskrossimage import KrissKrossImageDock
 from gui.dialogs.calibration import CalibrationDialog
 from gui.dialogs.config import ConfigDialog
-# from gui.dialogs.calibration import ExportDialog
+from gui.dialogs.export import ExportDialog
 from gui.dialogs.trim import TrimDialog
 from gui.widgets.canvas import Canvas
 
