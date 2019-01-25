@@ -3,6 +3,7 @@ import numpy as np
 
 from pewpew.lib.laser import LaserData
 
+# TODO give depth to 1 layer
 
 def save(path: str, laser: LaserData) -> None:
     data = np.reshape(laser.data, (*laser.data.shape, 1))
