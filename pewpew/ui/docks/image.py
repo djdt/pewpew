@@ -152,7 +152,7 @@ class ImageDock(QtWidgets.QDockWidget):
             "Save File",
             "",
             "CSV files(*.csv);;Numpy archives(*.npz);;"
-            "PNG images(*.png);;Rectilinear VTKs(*.vtr);;All files(*)",
+            "PNG images(*.png);;VTK Images(*.vti);;All files(*)",
         )
         if path == "":
             return
@@ -181,7 +181,7 @@ class ImageDock(QtWidgets.QDockWidget):
             )
             if dlg.exec():
                 dlg.saveAs(self.laser)
-        elif ext == ".vtr":
+        elif ext == ".vti":
             io.vtk.save(path, self.laser)
         else:
             QtWidgets.QMessageBox.warning(

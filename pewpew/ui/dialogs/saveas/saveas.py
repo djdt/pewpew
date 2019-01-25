@@ -2,7 +2,6 @@ import os.path
 
 from PyQt5 import QtWidgets
 
-from typing import List, Union
 from pewpew.lib.laser import LaserData
 
 

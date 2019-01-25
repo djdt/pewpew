@@ -13,12 +13,12 @@ def save(
     laser: LaserData,
     isotope: str,
     viewconfig: dict,
-    size: Tuple[int, int] = (640, 480),
+    size: Tuple[int, int] = (1280, 800),
     include_colorbar: bool = False,
     include_scalebar: bool = False,
     include_label: bool = False,
 ) -> None:
-    figsize = (size[1] / 100.0, size[0] / 100.0)
+    figsize = (size[0] / 100.0, size[1] / 100.0)
     fig = Figure(frameon=False, tight_layout=True, figsize=figsize, dpi=100)
     canvas = FigureCanvasAgg(fig)
     ax = fig.add_subplot(111)

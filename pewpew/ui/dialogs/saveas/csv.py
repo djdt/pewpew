@@ -4,7 +4,6 @@ from .saveas import SaveAsDialog
 
 from pewpew.lib.io import csv
 
-from typing import Union
 from pewpew.lib.laser import LaserData
 
 
