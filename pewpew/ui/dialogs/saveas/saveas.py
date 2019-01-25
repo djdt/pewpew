@@ -69,9 +69,11 @@ class SaveAsDialog(QtWidgets.QDialog):
         pass
 
     def saveAs(self, laser: LaserData):
+        prompt_overwrite = True
+
         isotopes = laser.isotopes() if self.check_isotopes.isChecked() else [None]
-        # layers = laser.layers() if self.check_layers.isChecked() else [None]
         layers = [None]
+        # layers = laser.layers() if self.check_layers.isChecked() else [None]
         for isotope in isotopes:
             for layer in layers:
                 name, ext = os.path.splitext(self.path)
@@ -79,4 +81,18 @@ class SaveAsDialog(QtWidgets.QDialog):
                     name += f"_{isotope}"
                 if layer is not None:
                     name += f"_{layer}"
-            self._save(name + ext, isotope, layer, laser)
+                if prompt_overwrite and os.path.exists(name + ext):
+                    result = QtWidgets.QMessageBox.warning(
+                        self,
+                        "Overwrite File?",
+                        f'The file "{os.path.basename(name + ext)}" '
+                        "already exists. Do you wish to overwrite it?",
+                        QtWidgets.QMessageBox.Yes
+                        | QtWidgets.QMessageBox.YesToAll
+                        | QtWidgets.QMessageBox.No,
+                    )
+                    if result == QtWidgets.QMessageBox.No:
+                        continue
+                    elif result == QtWidgets.QMessageBox.YesToAll:
+                        prompt_overwrite = False
+                self._save(name + ext, isotope, layer, laser)
