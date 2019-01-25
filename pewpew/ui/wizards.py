@@ -3,7 +3,7 @@ import os
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from pewpew.lib.krisskross import KrissKrossData
-from pewpew.lib.importer import importNpz, importAgilentBatch
+from pewpew.lib import io
 
 from typing import List
 
@@ -30,7 +30,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
 
         if self.field("radio_numpy"):
             for path in paths:
-                lds = importNpz(path)
+                lds = io.npz.load(path)
                 if len(lds) > 1:
                     QtWidgets.QMessageBox.warning(
                         self,
@@ -45,10 +45,10 @@ class KrissKrossWizard(QtWidgets.QWizard):
             calibration = self.layers[0].calibration
         elif self.field("radio_agilent"):
             for path in paths:
-                layers.append(importAgilentBatch(path, None))
+                layers.append(io.agilent.load(path, None))
         elif self.field("radio_thermo"):
             for path in paths:
-                layers.append(importAgilentBatch(path, None))
+                layers.append(io.thermo.load(path, None))
 
         self.data = KrissKrossData(
             None,

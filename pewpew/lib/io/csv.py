@@ -7,7 +7,7 @@ from pewpew.lib.formatter import formatIsotope
 from pewpew.lib.laser import LaserData
 
 
-def open(
+def load(
     path: str,
     isotope: str = "Unknown",
     config: dict = None,

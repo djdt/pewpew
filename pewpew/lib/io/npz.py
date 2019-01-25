@@ -8,7 +8,7 @@ from pewpew.lib.laser import LaserData
 from pewpew.lib.exceptions import PewPewFileError
 
 
-def open(
+def load(
     path: str, config_override: dict = None, calibration_override: dict = None
 ) -> List[LaserData]:
     """Imports the given numpy archive given, returning a list of data.

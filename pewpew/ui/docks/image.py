@@ -6,9 +6,8 @@ from pewpew.ui.widgets import Canvas
 from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog, TrimDialog
 from pewpew.ui.dialogs.saveas import CSVSaveAsDialog, PNGSaveAsDialog
 
-from pewpew.lib.exporter import exportNpz
+from pewpew.lib import io
 
-from typing import List, Union
 from pewpew.lib.laser import LaserData
 from pewpew.ui.dialogs import ApplyDialog
 
@@ -83,8 +82,8 @@ class ImageDock(QtWidgets.QDockWidget):
         self.action_export = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("document-save-as"), "Export", self
         )
-        self.action_export.setStatusTip("Export data to different formats.")
-        self.action_export.triggered.connect(self.onMenuExport)
+        self.action_saveas.setStatusTip("Save data to different formats.")
+        self.action_saveas.triggered.connect(self.onMenuSaveAs)
 
         self.action_calibration = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("go-top"), "Calibration", self
@@ -122,7 +121,7 @@ class ImageDock(QtWidgets.QDockWidget):
         context_menu.addAction(self.action_copy)
         context_menu.addSeparator()
         context_menu.addAction(self.action_save)
-        context_menu.addAction(self.action_export)
+        context_menu.addAction(self.action_saveas)
         context_menu.addSeparator()
         context_menu.addAction(self.action_calibration)
         context_menu.addAction(self.action_config)
@@ -145,7 +144,7 @@ class ImageDock(QtWidgets.QDockWidget):
             self, "Save File", "", "Numpy archive(*.npz);;All files(*)"
         )
         if path:
-            exportNpz(path, [self.laser])
+            io.npz.save(path, [self.laser])
 
     def onMenuSaveAs(self) -> None:
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
@@ -162,6 +161,7 @@ class ImageDock(QtWidgets.QDockWidget):
         if ext == ".csv":
             dlg = CSVSaveAsDialog(
                 path,
+                isotope=self.combo_isotopes.currentText(),
                 isotopes=len(self.laser.isotopes()),
                 layers=self.laser.layers(),
                 parent=self,
@@ -169,55 +169,25 @@ class ImageDock(QtWidgets.QDockWidget):
             if dlg.exec():
                 dlg.saveAs(self.laser)
         elif ext == ".npz":
-            # dlg = NPZOptionsDialog(self, path)
-            # exportNpz
-            pass
+            io.npz.save(path, [self.laser])
         elif ext == ".png":
-            dlg = PNGSaveAsDialog(self, path)
+            dlg = PNGSaveAsDialog(
+                path,
+                isotope=self.combo_isotopes.currentText(),
+                viewconfig=self.window().viewconfig,
+                isotopes=len(self.laser.isotopes()),
+                layers=self.laser.layers(),
+                parent=self,
+            )
             if dlg.exec():
                 dlg.saveAs(self.laser)
         elif ext == ".vtr":
-            # dlg = VTRSaveOptionsDialog(self, path)
-            pass
+            io.vtk.save(path, self.laser)
         else:
             QtWidgets.QMessageBox.warning(
-                self, "Invalid Format", f"Unable to export to {ext} file."
+                self, "Invalid Format", f"Unable to save as {ext} format."
             )
             return self.onMenuSaveAs()
-
-        # if not dlg.exec():
-        #     return
-
-        # if dlg.check_isotopes.isEnabled():
-        #     isotopes: Union[List[str], List[None]] = (
-        #         dlg.isotopes
-        #         if dlg.check_isotopes.isChecked()
-        #         else [dlg.combo_isotopes.currentText()]
-        #     )
-        # else:
-        #     isotopes = [None]
-
-        # if dlg.check_layers.isEnabled() and dlg.check_layers.isChecked():
-        #     layers: Union[List[int], List[None]] = list(range(1, dlg.layers + 1))
-        # else:
-        #     layers = [None]
-
-        # prompt_overwrite = True
-        # for isotope in isotopes:
-        #     for layer in layers:
-        #         path = dlg.getPath(isotope=isotope, layer=layer)
-        #         result = self._export(
-        #             path,
-        #             isotope=isotope,
-        #             layer=layer,
-        #             prompt_overwrite=prompt_overwrite,
-        #         )
-        #         if result == QtWidgets.QMessageBox.No:
-        #             continue
-        #         elif result == QtWidgets.QMessageBox.NoToAll:
-        #             return
-        #         elif result == QtWidgets.QMessageBox.YesToAll:
-        #             prompt_overwrite = False
 
     def onMenuCalibration(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
