@@ -1,6 +1,3 @@
-from matplotlib.backends.backend_agg import FigureCanvasAgg
-from matplotlib.figure import Figure
-
 from PyQt5 import QtGui, QtWidgets
 
 from .saveas import SaveAsDialog
