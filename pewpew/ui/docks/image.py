@@ -79,8 +79,8 @@ class ImageDock(QtWidgets.QDockWidget):
         self.action_save.setStatusTip("Save data to archive.")
         self.action_save.triggered.connect(self.onMenuSave)
 
-        self.action_export = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("document-save-as"), "Export", self
+        self.action_saveas = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("document-save-as"), "Save As", self
         )
         self.action_saveas.setStatusTip("Save data to different formats.")
         self.action_saveas.triggered.connect(self.onMenuSaveAs)
@@ -161,7 +161,7 @@ class ImageDock(QtWidgets.QDockWidget):
         if ext == ".csv":
             dlg = CSVSaveAsDialog(
                 path,
-                isotope=self.combo_isotopes.currentText(),
+                isotope=self.combo_isotope.currentText(),
                 isotopes=len(self.laser.isotopes()),
                 layers=self.laser.layers(),
                 parent=self,
@@ -173,7 +173,7 @@ class ImageDock(QtWidgets.QDockWidget):
         elif ext == ".png":
             dlg = PNGSaveAsDialog(
                 path,
-                isotope=self.combo_isotopes.currentText(),
+                isotope=self.combo_isotope.currentText(),
                 viewconfig=self.window().viewconfig,
                 isotopes=len(self.laser.isotopes()),
                 layers=self.laser.layers(),

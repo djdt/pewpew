@@ -84,7 +84,7 @@ def save(
     isotope: str,
     trimmed: bool = False,
     include_header: bool = False,
-):
+) -> None:
     header = None
     if include_header:
         config = laser.config

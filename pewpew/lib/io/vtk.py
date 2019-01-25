@@ -5,12 +5,14 @@ from pewpew.lib.laser import LaserData
 
 
 def save(path: str, laser: LaserData) -> None:
-    nx, ny, nz = laser.data.shape
+    data = np.reshape(laser.data, (*laser.data.shape, 1))
+    nx, ny, nz = data.shape
+
     extent_str = f"0 {nx-1} 0 {ny-1} 0 {nz-1}"
     endian = "LittleEndian" if sys.byteorder == "little" else "BigEndian"
 
     extent = laser.extent()
-    depth = laser.config["spotsize"] / 2.0
+    depth = laser.config["spotsize"]
 
     coords = [
         np.linspace(extent[2], extent[3], nx),
@@ -41,15 +43,15 @@ def save(path: str, laser: LaserData) -> None:
             offset += coord.size * coord.itemsize + 8  # 8 for blocksize
         fp.write("</Coordinates>\n".encode())
 
-        fp.write(f'<PointData Scalars="{laser.data.dtype.names[0]}">\n'.encode())
-        for name in laser.data.dtype.names:
+        fp.write(f'<PointData Scalars="{data.dtype.names[0]}">\n'.encode())
+        for name in data.dtype.names:
             fp.write(
                 (
                     f'<DataArray Name="{name}" type="Float64" '
                     f'format="appended" offset="{offset}"/>\n'
                 ).encode()
             )
-            offset += laser.data[name].size * laser.data[name].itemsize + 8  # blocksize
+            offset += data[name].size * data[name].itemsize + 8  # blocksize
         fp.write("</PointData>\n".encode())
 
         fp.write(
@@ -65,8 +67,8 @@ def save(path: str, laser: LaserData) -> None:
             fp.write(np.uint64(coord.size * coord.itemsize))
             fp.write(coord)
 
-        for name in laser.data.dtype.names:
-            fp.write(np.uint64(laser.data[name].size * laser.data[name].itemsize))
-            fp.write(laser.data[name].ravel("F"))
+        for name in data.dtype.names:
+            fp.write(np.uint64(data[name].size * data[name].itemsize))
+            fp.write(data[name].ravel("F"))
 
         fp.write(("</AppendedData>\n" "</VTKFile>").encode())

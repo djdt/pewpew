@@ -1,4 +1,5 @@
 import os.path
+import sys
 import traceback
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -23,7 +24,7 @@ from pewpew.lib import io
 from pewpew.lib.krisskross import KrissKrossData
 from pewpew.lib.laser import LaserData
 
-from typing import List, Union
+from typing import List
 from types import TracebackType
 from pewpew.ui.dialogs import ApplyDialog
 
@@ -522,6 +523,9 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
     def exceptHook(self, type: type, value: BaseException, tb: TracebackType) -> None:
+        if type == KeyboardInterrupt:
+            print("Keyboard interrupt, exiting.")
+            sys.exit(1)
         DetailedError.critical(
             type.__name__,
             str(value),

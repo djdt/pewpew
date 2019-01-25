@@ -4,6 +4,7 @@ from .saveas import SaveAsDialog
 
 from pewpew.lib.io import png
 
+from typing import Union
 from pewpew.lib.laser import LaserData
 
 
@@ -42,12 +43,15 @@ class PNGSaveAsDialog(SaveAsDialog):
 
         self.options_box.setLayout(options_layout)
 
-    def _save(self, path: str, isotope: str, layer: int, laser: LaserData):
+    def _save(self, path: str, isotope: str, layer: int, laser: LaserData) -> None:
+
+        size = (int(self.linedit_size_x.text()), int(self.linedit_size_y.text()))
         png.save(
             path,
             laser,
             isotope,
             self.viewconfig,
+            size=size,
             include_colorbar=self.check_colorbar.isChecked(),
             include_scalebar=self.check_scalebar.isChecked(),
             include_label=self.check_label.isChecked(),

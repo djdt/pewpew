@@ -66,7 +66,7 @@ def load(
 
 
 def save(path: str, laser_list: List[LaserData]) -> None:
-    savedict: Dict[str, List[Any]] = {
+    savedict: Dict[str, Any] = {
         "version": __version__,
         "_name": [],
         "_type": [],

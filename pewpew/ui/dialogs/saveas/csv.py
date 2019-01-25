@@ -3,6 +3,8 @@ from PyQt5 import QtWidgets
 from .saveas import SaveAsDialog
 
 from pewpew.lib.io import csv
+
+from typing import Union
 from pewpew.lib.laser import LaserData
 
 
@@ -28,9 +30,7 @@ class CSVSaveAsDialog(SaveAsDialog):
 
         self.options_box.setLayout(options_layout)
 
-    def _save(self, path: str, isotope: str, layer: int, laser: LaserData):
-        if isotope is None:
-            isotope = self.isotope
+    def _save(self, path: str, isotope: str, layer: int, laser: LaserData) -> None:
         csv.save(
             path,
             laser,

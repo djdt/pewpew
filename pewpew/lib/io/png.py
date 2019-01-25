@@ -9,7 +9,6 @@ from typing import Tuple
 
 
 def save(
-    self,
     path: str,
     laser: LaserData,
     isotope: str,
@@ -18,8 +17,8 @@ def save(
     include_colorbar: bool = False,
     include_scalebar: bool = False,
     include_label: bool = False,
-):
-    figsize = (size[0] / 100.0, size[1] / 100.0)
+) -> None:
+    figsize = (size[1] / 100.0, size[0] / 100.0)
     fig = Figure(frameon=False, tight_layout=True, figsize=figsize, dpi=100)
     canvas = FigureCanvasAgg(fig)
     ax = fig.add_subplot(111)
@@ -31,15 +30,15 @@ def save(
         cmap=viewconfig["cmap"]["type"],
         colorbar=include_colorbar,
         colorbarpos="bottom",
-        colorbartext=laser.calibration[isotope]["unit"],
+        colorbartext=str(laser.calibration[isotope]["unit"]),
         extent=laser.extent(trimmed=True),
         fontsize=viewconfig["font"]["size"],
         interpolation=viewconfig["interpolation"].lower(),
         label=include_label,
         labeltext=formatIsotope(isotope, fstring="$^{{{mass}}}${element}"),
         scalebar=include_scalebar,
-        vmax=self.viewconfig["cmap"]["range"][1],
-        vmin=self.viewconfig["cmap"]["range"][0],
+        vmax=viewconfig["cmap"]["range"][1],
+        vmin=viewconfig["cmap"]["range"][0],
     )
     fig.savefig(path, transparent=True, frameon=False)
     fig.clear()

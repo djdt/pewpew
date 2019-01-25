@@ -15,12 +15,12 @@ def plotLaserImage(
     fig: Figure,
     ax: Axes,
     data: np.ndarray,
-    aspect: str = "auto",
+    aspect: Union[str, float] = "auto",
     cmap: str = "magma",
     colorbar: bool = False,
     colorbarpos: str = "bottom",
     colorbartext: str = "",
-    extent: Tuple[int, int, int, int] = None,
+    extent: Tuple[float, float, float, float] = None,
     fontsize: int = 12,
     interpolation: str = "none",
     label: bool = False,
@@ -28,8 +28,8 @@ def plotLaserImage(
     scalebar: bool = False,
     xaxis: bool = False,
     xaxisticksize: float = None,
-    vmax: Union[str, int] = "100%",
-    vmin: Union[str, int] = "0%",
+    vmax: Union[str, float] = "100%",
+    vmin: Union[str, float] = "0%",
 ) -> AxesImage:
 
     # If data is empty create a dummy data
