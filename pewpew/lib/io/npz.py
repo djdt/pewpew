@@ -32,7 +32,7 @@ def load(
 
     if "version" not in npz.files:
         raise PewPewFileError("Archive version mismatch.")
-    elif npz["version"] < "0.3.3":
+    elif npz["version"] < "0.3.5":
         raise PewPewFileError(f"Archive version mismatch: {npz['version']}.")
 
     num_files = sum(1 for d in npz.files if "_data" in d)

@@ -4,12 +4,13 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from pewpew.ui.widgets import Canvas
 from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog, TrimDialog
-from pewpew.ui.dialogs.saveas import CSVSaveAsDialog, PNGSaveAsDialog
+from pewpew.ui.dialogs.export import CSVExportDialog, PNGExportDialog
 
 from pewpew.lib import io
 
 from pewpew.lib.laser import LaserData
 from pewpew.ui.dialogs import ApplyDialog
+from pewpew.ui.dialogs.export import ExportDialog
 
 
 class ImageDockTitleBar(QtWidgets.QWidget):
@@ -49,7 +50,7 @@ class ImageDock(QtWidgets.QDockWidget):
             | QtWidgets.QDockWidget.DockWidgetMovable
         )
 
-        self.laser: LaserData = None
+        self.laser: LaserData = LaserData()
         self.canvas = Canvas(parent=self)
 
         self.combo_isotope = QtWidgets.QComboBox()
@@ -79,11 +80,11 @@ class ImageDock(QtWidgets.QDockWidget):
         self.action_save.setStatusTip("Save data to archive.")
         self.action_save.triggered.connect(self.onMenuSave)
 
-        self.action_saveas = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("document-save-as"), "Save As", self
+        self.action_export = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("document-save-as"), "Export", self
         )
-        self.action_saveas.setStatusTip("Save data to different formats.")
-        self.action_saveas.triggered.connect(self.onMenuSaveAs)
+        self.action_export.setStatusTip("Save data to different formats.")
+        self.action_export.triggered.connect(self.onMenuExport)
 
         self.action_calibration = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("go-top"), "Calibration", self
@@ -121,7 +122,7 @@ class ImageDock(QtWidgets.QDockWidget):
         context_menu.addAction(self.action_copy)
         context_menu.addSeparator()
         context_menu.addAction(self.action_save)
-        context_menu.addAction(self.action_saveas)
+        context_menu.addAction(self.action_export)
         context_menu.addSeparator()
         context_menu.addAction(self.action_calibration)
         context_menu.addAction(self.action_config)
@@ -146,20 +147,20 @@ class ImageDock(QtWidgets.QDockWidget):
         if path:
             io.npz.save(path, [self.laser])
 
-    def onMenuSaveAs(self) -> None:
+    def onMenuExport(self) -> None:
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self,
-            "Save File",
+            "Export",
             "",
             "CSV files(*.csv);;Numpy archives(*.npz);;"
             "PNG images(*.png);;VTK Images(*.vti);;All files(*)",
         )
-        if path == "":
+        if not path:
             return
 
         ext = os.path.splitext(path)[1].lower()
         if ext == ".csv":
-            dlg = CSVSaveAsDialog(
+            dlg: ExportDialog = CSVExportDialog(
                 path,
                 isotope=self.combo_isotope.currentText(),
                 isotopes=len(self.laser.isotopes()),
@@ -167,27 +168,46 @@ class ImageDock(QtWidgets.QDockWidget):
                 parent=self,
             )
             if dlg.exec():
-                dlg.saveAs(self.laser)
+                paths, _ = dlg.generate_paths(self.laser)
+                for path, isotope, _ in paths:
+                    io.csv.save(
+                        path,
+                        self.laser,
+                        isotope,
+                        trimmed=dlg.options.hasTrimmed(),
+                        include_header=dlg.options.hasHeader(),
+                    )
+
         elif ext == ".npz":
             io.npz.save(path, [self.laser])
         elif ext == ".png":
-            dlg = PNGSaveAsDialog(
+            dlg = PNGExportDialog(
                 path,
                 isotope=self.combo_isotope.currentText(),
-                viewconfig=self.window().viewconfig,
                 isotopes=len(self.laser.isotopes()),
                 layers=self.laser.layers(),
                 parent=self,
             )
             if dlg.exec():
-                dlg.saveAs(self.laser)
+                paths, _ = dlg.generate_paths(self.laser)
+                for path, isotope, _ in paths:
+                    io.png.save(
+                        path,
+                        self.laser,
+                        isotope,
+                        self.window().viewconfig,
+                        size=dlg.options.imagesize(),
+                        include_colorbar=dlg.options.hasColorbar(),
+                        include_scalebar=dlg.options.hasScalebar(),
+                        include_label=dlg.options.hasLabel(),
+                    )
         elif ext == ".vti":
             io.vtk.save(path, self.laser)
         else:
             QtWidgets.QMessageBox.warning(
-                self, "Invalid Format", f"Unable to save as {ext} format."
+                self, "Invalid Format", f"Unable to export {ext} format."
             )
-            return self.onMenuSaveAs()
+            return self.onMenuExport()
 
     def onMenuCalibration(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:

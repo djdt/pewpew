@@ -17,6 +17,7 @@ from pewpew.ui.widgets.detailederror import DetailedError
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
 from pewpew.ui.docks.dockarea import DockArea
 from pewpew.ui.wizards import KrissKrossWizard
+from pewpew.ui.dialogs.export import ExportAllDialog
 
 from pewpew.lib.colormaps import COLORMAPS
 from pewpew.lib.exceptions import PewPewError, PewPewFileError
@@ -30,7 +31,6 @@ from pewpew.ui.dialogs import ApplyDialog
 
 
 ## TODO redo exporter dialog like everyone else does (i.e. first choose file (dir?) then options).
-##  --  implement a better image export
 ## TODO allow trim in x and y axis, have a selection window for it.
 ## TODO range should allow decimals (ppm etc.)
 ## TODO phil would like to have a way to average an area, without background
@@ -335,58 +335,57 @@ class MainWindow(QtWidgets.QMainWindow):
         io.npz.save(path, lds)
 
     def menuExportAll(self) -> None:
-        pass
-        # docks = self.dockarea.findChildren(ImageDock)
-        # if len(docks) == 0:
-        #     QtWidgets.QMessageBox.information(self, "Export All", "Nothing to export.")
-        #     return
+        lasers = [dock.laser for dock in self.dockarea.findChildren(ImageDock)]
+        if len(lasers) == 0:
+            return
 
-        # dlg = ExportDialog(
-        #     [dock.laser for dock in docks],
-        #     default_path=os.path.join(
-        #         os.path.dirname(docks[0].laser.source), "export.csv"
-        #     ),
-        #     parent=self,
-        # )
-        # if not dlg.exec():
-        #     return
+        path = QtWidgets.QFileDialog.getExistingDirectory(
+            self, "Export To Directory", ""
+        )
+        if not path:
+            return
 
-        # if dlg.check_isotopes.isEnabled():
-        #     isotopes: Union[List[str], List[None]] = (
-        #         dlg.isotopes
-        #         if dlg.check_isotopes.isChecked()
-        #         else [dlg.combo_isotopes.currentText()]
-        #     )
-        # else:
-        #     isotopes = [None]
+        isotopes = list(set.union(*[set(laser.isotopes()) for laser in lasers]))
+        dlg = ExportAllDialog(path, lasers[0].name, isotopes, 1, self)
+        if not dlg.exec():
+            return
 
-        # if dlg.check_layers.isEnabled() and dlg.check_layers.isChecked():
-        #     layers: Union[List[int], List[None]] = list(range(1, dlg.layers + 1))
-        # else:
-        #     layers = [None]
+        prompt_overwrite = True
+        for laser in lasers:
+            paths, prompt_overwrite = dlg.generate_paths(
+                laser, prompt_overwrite=prompt_overwrite
+            )
+            ext = ExportAllDialog.FORMATS[dlg.combo_formats.currentText()]
 
-        # prompt_overwrite = True
-        # for dock in docks:
-        #     for isotope in isotopes:
-        #         # Skip if isotope is not in laser
-        #         if isotope is not None and isotope not in dock.laser.isotopes():
-        #             continue
-        #         for layer in layers:
-        #             path = dlg.getPath(
-        #                 name=dock.laser.name, isotope=isotope, layer=layer
-        #             )
-        #             result = dock._export(
-        #                 path,
-        #                 isotope=isotope,
-        #                 layer=layer,
-        #                 prompt_overwrite=prompt_overwrite,
-        #             )
-        #             if result == QtWidgets.QMessageBox.No:
-        #                 continue
-        #             elif result == QtWidgets.QMessageBox.NoToAll:
-        #                 return
-        #             elif result == QtWidgets.QMessageBox.YesToAll:
-        #                 prompt_overwrite = False
+            for path, isotope, _ in paths:
+                if ext == ".csv":
+                    io.csv.save(
+                        path,
+                        laser,
+                        isotope,
+                        trimmed=dlg.options.csv.hasTrimmed(),
+                        include_header=dlg.options.csv.hasHeader(),
+                    )
+                elif ext == ".npz":
+                    io.npz.save(path, [laser])
+                elif ext == ".png":
+                    io.png.save(
+                        path,
+                        self.laser,
+                        isotope,
+                        self.viewconfig,
+                        size=dlg.options.png.imagesize(),
+                        include_colorbar=dlg.options.png.hasColorbar(),
+                        include_scalebar=dlg.options.png.hasScalebar(),
+                        include_label=dlg.options.png.hasLabel(),
+                    )
+                elif ext == ".vti":
+                    io.npz.save(path, laser)
+                else:
+                    QtWidgets.QMessageBox.warning(
+                        self, "Invalid Format", f"Unable to export {ext} format."
+                    )
+                    return
 
     def menuCloseAll(self) -> None:
         for dock in self.dockarea.findChildren(ImageDock):
