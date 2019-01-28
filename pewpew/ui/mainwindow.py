@@ -371,7 +371,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 elif ext == ".png":
                     io.png.save(
                         path,
-                        self.laser,
+                        laser,
                         isotope,
                         self.viewconfig,
                         size=dlg.options.png.imagesize(),

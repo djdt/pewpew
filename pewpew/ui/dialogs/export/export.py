@@ -74,7 +74,7 @@ class ExportDialog(QtWidgets.QDialog):
     def _generate_path(
         self, laser: LaserData = None, isotope: str = None, layer: int = None
     ) -> str:
-        path, ext = os.path.split(self.path)
+        path, ext = os.path.splitext(self.path)
         if isotope is not None:
             path += f"_{isotope}"
         if layer is not None:

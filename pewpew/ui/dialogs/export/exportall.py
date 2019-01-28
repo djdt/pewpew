@@ -75,7 +75,7 @@ class ExportAllDialog(ExportDialog):
         if ext in [".npz", ".vti"]:
             self.check_isotopes.setEnabled(False)
             self.check_isotopes.setChecked(True)
-        else:
+        elif not self.check_isotopes.isEnabled():
             self.check_isotopes.setEnabled(True)
             self.check_isotopes.setChecked(False)
         self.combo_isotopes.setEnabled(not self.check_isotopes.isChecked())
