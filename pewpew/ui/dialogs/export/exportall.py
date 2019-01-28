@@ -72,19 +72,31 @@ class ExportAllDialog(ExportDialog):
     def _update(self) -> None:
         ext = ExportAllDialog.FORMATS[self.combo_formats.currentText()]
         self.options.update(ext)
+        if ext in [".npz", ".vti"]:
+            self.check_isotopes.setEnabled(False)
+            self.check_isotopes.setChecked(True)
+        else:
+            self.check_isotopes.setEnabled(True)
+            self.check_isotopes.setChecked(False)
         self.combo_isotopes.setEnabled(not self.check_isotopes.isChecked())
 
         self.lineedit_preview.setText(
             os.path.basename(
-                self._generate_path(isotope=self.combo_isotopes.currentText())
+                self._generate_path(
+                    isotope=self.combo_isotopes.currentText()
+                    if self.check_isotopes.isChecked()
+                    and self.check_isotopes.isEnabled()
+                    else None
+                )
             )
         )
 
     def _generate_path(
         self, laser: LaserData = None, isotope: str = None, layer: int = None
     ) -> str:
-        if laser is not None and isotope not in laser.isotopes():
-            return ""
+        if laser is not None and isotope is not None:
+            if isotope not in laser.isotopes():
+                return ""
         name = self.name if laser is None else laser.name
 
         prefix = self.lineedit_prefix.text()

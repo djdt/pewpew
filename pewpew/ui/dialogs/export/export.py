@@ -63,7 +63,10 @@ class ExportDialog(QtWidgets.QDialog):
         self.lineedit_preview.setText(
             os.path.basename(
                 self._generate_path(
-                    isotope=self.isotope if self.check_isotopes.isChecked() else None
+                    isotope=self.isotope
+                    if self.check_isotopes.isChecked()
+                    and self.check_isotopes.isEnabled()
+                    else None
                 )
             )
         )
@@ -83,7 +86,7 @@ class ExportDialog(QtWidgets.QDialog):
     ) -> Tuple[List[Tuple[str, str, int]], bool]:
         paths = []
         isotopes: Union[List[None], List[str]] = [None]
-        if self.check_isotopes.isChecked():
+        if self.check_isotopes.isChecked() and self.check_isotopes.isEnabled():
             isotopes = laser.isotopes()
         layers = [None]
         # layers = laser.layers() if self.check_layers.isChecked() else [None]
@@ -106,6 +109,7 @@ class ExportDialog(QtWidgets.QDialog):
                         continue
                     elif result == QtWidgets.QMessageBox.YesToAll:
                         prompt_overwrite = False
+                # Fill in defaults
                 if isotope is None:
                     isotope = self.isotope
                 if layer is None:
