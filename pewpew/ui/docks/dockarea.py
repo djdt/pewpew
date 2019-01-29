@@ -1,8 +1,15 @@
+import os.path
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from pewpew.ui.events import MousePressRedirectFilter
 
+from pewpew.lib import io
+from pewpew.lib.exceptions import PewPewError
+
 from typing import List
+from pewpew.lib.krisskross import KrissKrossData
+from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
 
 
 class DockArea(QtWidgets.QMainWindow):
@@ -26,6 +33,8 @@ class DockArea(QtWidgets.QMainWindow):
         docks: List[QtWidgets.QDockWidget],
         area: QtCore.Qt.DockWidgetArea = QtCore.Qt.LeftDockWidgetArea,
     ) -> None:
+        if len(docks) == 0:
+            return
         # Add a new dock widget
         super().addDockWidget(area, docks[0])
         origin = self.largestDock(self.visibleDocks())
@@ -78,14 +87,63 @@ class DockArea(QtWidgets.QMainWindow):
             self.tabifyDockWidget(first, second)
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
-        if event.mimeData.hasFormat('text/uri-list'):
+        if event.mimeData().hasFormat("text/uri-list"):
             event.accept()
         else:
             event.ignore()
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
-        print(event.mimeData().text())
-        print(event.mimeData().formats())
+        urls = event.mimeData().urls()
+        lds = []
+        csv_as = None
+        for url in urls:
+            try:
+                if url.isLocalFile():
+                    path = url.path()
+                    ext = os.path.splitext(path)[1].lower()
+                    if ext == ".csv":
+                        if csv_as is None:
+                            choice, ok = QtWidgets.QInputDialog.getItem(
+                                self,
+                                "Select CSV Type",
+                                "CSV Format",
+                                ["PewPew", "Thermo iCap"],
+                                editable=False,
+                            )
+                            if not ok:
+                                return
+                            csv_as = choice
+
+                            if csv_as == "Thermo iCap":
+                                lds.append(io.thermo.load(path, self.window().config))
+                            else:
+                                lds.append(
+                                    io.csv.load(
+                                        path,
+                                        "Unknown",
+                                        self.window().config,
+                                        read_config=True,
+                                    )
+                                )
+
+                    elif ext == ".npz":
+                        lds.extend(io.npz.load(path))
+                    elif ext == ".b":
+                        lds.append(io.agilent.load(path, self.window().config))
+            except PewPewError:
+                QtWidgets.QMessageBox.critical(
+                    self,
+                    "Import Failed",
+                    f"Could not import {os.path.basename(path)}.",
+                )
+                return
+        docks = []
+        for ld in lds:
+            if isinstance(ld, KrissKrossData):
+                docks.append(KrissKrossImageDock(ld, self))
+            else:
+                docks.append(LaserImageDock(ld, self))
+        self.addDockWidgets(docks)
 
     def mousePressEvent(self, event: QtCore.QEvent) -> None:
         super().mousePressEvent(event)
