@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from pewpew.ui.events import MousePressRedirectFilter
 
@@ -16,6 +16,7 @@ class DockArea(QtWidgets.QMainWindow):
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
         )
+        self.setAcceptDrops(True)
 
         self.mouse_select = False
         self.mouse_filter = MousePressRedirectFilter(self)
@@ -75,6 +76,16 @@ class DockArea(QtWidgets.QMainWindow):
         elif first != second:
             # Split only if there is enough space
             self.tabifyDockWidget(first, second)
+
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+        if event.mimeData.hasFormat('text/uri-list'):
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+        print(event.mimeData().text())
+        print(event.mimeData().formats())
 
     def mousePressEvent(self, event: QtCore.QEvent) -> None:
         super().mousePressEvent(event)
