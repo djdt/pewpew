@@ -31,10 +31,9 @@ from types import TracebackType
 from pewpew.ui.dialogs import ApplyDialog
 
 
-## TODO redo exporter dialog like everyone else does (i.e. first choose file (dir?) then options).
 ## TODO allow trim in x and y axis, have a selection window for it.
-## TODO range should allow decimals (ppm etc.)
 ## TODO phil would like to have a way to average an area, without background
+## TODO imagedock is useless, make it just laserimagedock
 
 
 class MainWindow(QtWidgets.QMainWindow):
