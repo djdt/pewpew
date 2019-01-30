@@ -3,7 +3,7 @@ import copy
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from pewpew.ui.widgets import Canvas, OverwriteFileMessageBox
+from pewpew.ui.widgets import Canvas, OverwriteFilePrompt
 from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog, TrimDialog
 from pewpew.ui.dialogs.export import CSVExportDialog, PNGExportDialog
 
@@ -163,7 +163,7 @@ class ImageDock(QtWidgets.QDockWidget):
         ext = os.path.splitext(path)[1].lower()
 
         if ext in [".npz", ".vti"]:  # Show an overwrite dialog
-            if not OverwriteFileMessageBox.promptOverwriteSingleFile(path, self):
+            if not OverwriteFilePrompt.promptOverwriteSingleFile(path, self):
                 return self.onMenuExport()
 
         if ext == ".csv":

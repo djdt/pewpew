@@ -2,6 +2,7 @@ import os.path
 
 from PyQt5 import QtWidgets
 
+from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
 from pewpew.lib.laser import LaserData
 
 from typing import List, Tuple, Union
@@ -82,38 +83,27 @@ class ExportDialog(QtWidgets.QDialog):
         return path + ext
 
     def generate_paths(
-        self, laser: LaserData, prompt_overwrite: bool = True
-    ) -> Tuple[List[Tuple[str, str, int]], bool]:
+        self, laser: LaserData, prompt: QtWidgets.QMessageBox = None
+    ) -> List[Tuple[str, str, int]]:
         paths = []
         isotopes: Union[List[None], List[str]] = [None]
         if self.check_isotopes.isChecked() and self.check_isotopes.isEnabled():
             isotopes = laser.isotopes()
         layers = [None]
         # layers = laser.layers() if self.check_layers.isChecked() else [None]
+        if prompt is None:
+            prompt = OverwriteFilePrompt(parent=self)
         for isotope in isotopes:
             for layer in layers:
                 path = self._generate_path(laser, isotope, layer)
                 if path == "":
                     continue
-                if prompt_overwrite and os.path.exists(path):
-                    result = QtWidgets.QMessageBox.warning(
-                        self,
-                        "Overwrite File?",
-                        f'The file "{os.path.basename(path)}" '
-                        "already exists. Do you wish to overwrite it?",
-                        QtWidgets.QMessageBox.Yes
-                        | QtWidgets.QMessageBox.YesToAll
-                        | QtWidgets.QMessageBox.No,
-                    )
-                    if result == QtWidgets.QMessageBox.No:
-                        continue
-                    elif result == QtWidgets.QMessageBox.YesToAll:
-                        prompt_overwrite = False
+                if not prompt.promptOverwrite(path):
+                    continue
                 # Fill in defaults
                 if isotope is None:
                     isotope = self.isotope
                 if layer is None:
                     layer = 1
                 paths.append((path, isotope, layer))
-                # self._export(name + ext, isotope, layer, laser)
-        return paths, prompt_overwrite
+        return paths

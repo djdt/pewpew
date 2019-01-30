@@ -3,7 +3,7 @@ import os.path
 from PyQt5 import QtWidgets
 
 
-class OverwriteFileMessageBox(QtWidgets.QMessageBox):
+class OverwriteFilePrompt(QtWidgets.QMessageBox):
     def __init__(self, button_all: bool = True, parent: QtWidgets.QWidget = None):
         self.yes_to_all = False
         self.no_to_all = False
@@ -41,6 +41,6 @@ class OverwriteFileMessageBox(QtWidgets.QMessageBox):
         return True
 
     def promptOverwriteSingleFile(path: str, parent: QtWidgets.QWidget = None) -> bool:
-        return OverwriteFileMessageBox(button_all=False, parent=parent).promptOverwrite(
+        return OverwriteFilePrompt(button_all=False, parent=parent).promptOverwrite(
             path
         )

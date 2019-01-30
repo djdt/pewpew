@@ -13,6 +13,7 @@ from pewpew.ui.dialogs import (
 )
 from pewpew.ui.docks import ImageDock, LaserImageDock, KrissKrossImageDock
 from pewpew.ui.tools import CalibrationTool
+from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
 from pewpew.ui.widgets.detailederror import DetailedError
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
 from pewpew.ui.docks.dockarea import DockArea
@@ -350,11 +351,9 @@ class MainWindow(QtWidgets.QMainWindow):
         if not dlg.exec():
             return
 
-        prompt_overwrite = True
+        prompt = OverwriteFilePrompt(parent=self)
         for laser in lasers:
-            paths, prompt_overwrite = dlg.generate_paths(
-                laser, prompt_overwrite=prompt_overwrite
-            )
+            paths, prompt_overwrite = dlg.generate_paths(laser, prompt=prompt)
             ext = ExportAllDialog.FORMATS[dlg.combo_formats.currentText()]
 
             for path, isotope, _ in paths:

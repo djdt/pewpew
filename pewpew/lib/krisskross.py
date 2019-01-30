@@ -84,10 +84,10 @@ class KrissKrossData(LaserData):
             )
         return lds
 
-    def extent(self, trimmed: bool = False) -> Tuple[int, int, int, int]:
+    def extent(self, trimmed: bool = False) -> Tuple[float, float, float, float]:
         # Image data is stored [rows][cols]
         extent = super().extent(trimmed)
-        return (0, extent[1], 0, extent[3] / self.aspect())
+        return (0.0, extent[1], 0.0, extent[3] / self.aspect())
 
     def layers(self) -> int:
         return self.data.shape[2]
