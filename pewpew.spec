@@ -2,12 +2,13 @@
 
 import os.path
 import sys
-import pewpew
+
+exec(open(os.path.join('pewpew', '__init__.py')).read())
 
 block_cipher = None
 
 
-a = Analysis(['pewpew.py'],
+a = Analysis([os.path.join('pewpew', '__main__.py')],
              pathex=[os.path.abspath('.')],
              binaries=[],
              datas=[],
@@ -27,7 +28,7 @@ exe = EXE(pyz,
           a.zipfiles,
           a.datas,
           [],
-          name='pewpew' + '_' + pewpew.__version__,
+          name='pewpew' + '_' + __version__,
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,
