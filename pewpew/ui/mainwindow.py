@@ -353,7 +353,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         prompt = OverwriteFilePrompt(parent=self)
         for laser in lasers:
-            paths, prompt_overwrite = dlg.generate_paths(laser, prompt=prompt)
+            paths = dlg.generate_paths(laser, prompt=prompt)
             ext = ExportAllDialog.FORMATS[dlg.combo_formats.currentText()]
 
             for path, isotope, _ in paths:
