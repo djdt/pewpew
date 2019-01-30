@@ -2,7 +2,7 @@
 
 import os.path
 import sys
-exec(open('util/version.py').read())
+import pewpew
 
 block_cipher = None
 
@@ -27,7 +27,7 @@ exe = EXE(pyz,
           a.zipfiles,
           a.datas,
           [],
-          name='pewpew' + '_' + __version__,
+          name='pewpew' + '_' + pewpew.__version__,
           debug=False,
           bootloader_ignore_signals=False,
           strip=False,
