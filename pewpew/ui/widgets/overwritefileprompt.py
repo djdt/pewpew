@@ -4,12 +4,12 @@ from PyQt5 import QtWidgets
 
 
 class OverwriteFilePrompt(QtWidgets.QMessageBox):
-    def __init__(self, button_all: bool = True, parent: QtWidgets.QWidget = None):
+    def __init__(self, show_all_buttons: bool = True, parent: QtWidgets.QWidget = None):
         self.yes_to_all = False
         self.no_to_all = False
 
         buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
-        if button_all:
+        if show_all_buttons:
             buttons |= QtWidgets.QMessageBox.YesToAll | QtWidgets.QMessageBox.NoToAll
 
         super().__init__(
@@ -41,6 +41,6 @@ class OverwriteFilePrompt(QtWidgets.QMessageBox):
         return True
 
     def promptOverwriteSingleFile(path: str, parent: QtWidgets.QWidget = None) -> bool:
-        return OverwriteFilePrompt(button_all=False, parent=parent).promptOverwrite(
+        return OverwriteFilePrompt(show_all_buttons=False, parent=parent).promptOverwrite(
             path
         )

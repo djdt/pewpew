@@ -64,18 +64,22 @@ def load(
             if version < "0.3.5":
                 raise PewPewFileError(f"Unsupported CSV version '{version}'.")
             # Isotope
+            line = fp.readline().lstrip("#").strip()
             if "=" not in line:
                 raise PewPewFileError(f"Malformed isotope line '{line}'.")
-            _, isotope = fp.readline().lstrip("#").strip().split("=")
+            _, isotope = line.split("=")
             # Config
             if read_config:
+                line = fp.readline().lstrip("#").strip()
                 if config is None:
                     config = dict(LaserData.DEFAULT_CONFIG)
                 try:
                     config.update(line_to_dict(line, ";", "="))
                 except (KeyError, ValueError):
                     raise PewPewConfigError(f"Malformed config line '{line}'")
+            # Calibration
             if read_calibration:
+                line = fp.readline().lstrip("#").strip()
                 if calibration is None:
                     calibration = {isotope: dict(LaserData.DEFAULT_CALIBRATION)}
                 try:

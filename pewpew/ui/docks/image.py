@@ -175,7 +175,7 @@ class ImageDock(QtWidgets.QDockWidget):
                 parent=self,
             )
             if dlg.exec():
-                paths, _ = dlg.generate_paths(self.laser)
+                paths = dlg.generate_paths(self.laser)
                 for path, isotope, _ in paths:
                     io.csv.save(
                         path,
@@ -196,7 +196,7 @@ class ImageDock(QtWidgets.QDockWidget):
                 parent=self,
             )
             if dlg.exec():
-                paths, _ = dlg.generate_paths(self.laser)
+                paths = dlg.generate_paths(self.laser)
                 for path, isotope, _ in paths:
                     io.png.save(
                         path,

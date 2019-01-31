@@ -5,7 +5,7 @@ from PyQt5 import QtWidgets
 from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
 from pewpew.lib.laser import LaserData
 
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 
 class ExportDialog(QtWidgets.QDialog):
@@ -86,24 +86,18 @@ class ExportDialog(QtWidgets.QDialog):
         self, laser: LaserData, prompt: QtWidgets.QMessageBox = None
     ) -> List[Tuple[str, str, int]]:
         paths = []
-        isotopes: Union[List[None], List[str]] = [None]
         if self.check_isotopes.isChecked() and self.check_isotopes.isEnabled():
-            isotopes = laser.isotopes()
-        layers = [None]
-        # layers = laser.layers() if self.check_layers.isChecked() else [None]
-        if prompt is None:
-            prompt = OverwriteFilePrompt(parent=self)
-        for isotope in isotopes:
-            for layer in layers:
-                path = self._generate_path(laser, isotope, layer)
-                if path == "":
+            if prompt is None:
+                prompt = OverwriteFilePrompt(parent=self)
+            for isotope in laser.isotopes():
+                path = self._generate_path(laser, isotope)
+                if path == "" or not prompt.promptOverwrite(path):
                     continue
-                if not prompt.promptOverwrite(path):
-                    continue
-                # Fill in defaults
-                if isotope is None:
-                    isotope = self.isotope
-                if layer is None:
-                    layer = 1
-                paths.append((path, isotope, layer))
+                paths.append((path, isotope, -1))
+        else:
+            if prompt is None:
+                prompt = OverwriteFilePrompt(show_all_buttons=False, parent=self)
+            path = self._generate_path(laser, None)
+            if path != "" and prompt.promptOverwrite(path):
+                paths.append((path, self.isotope, -1))
         return paths

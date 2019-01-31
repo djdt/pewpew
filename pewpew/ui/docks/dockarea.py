@@ -130,11 +130,11 @@ class DockArea(QtWidgets.QMainWindow):
                         lds.extend(io.npz.load(path))
                     elif ext == ".b":
                         lds.append(io.agilent.load(path, self.window().config))
-            except PewPewError:
+            except PewPewError as e:
                 QtWidgets.QMessageBox.critical(
                     self,
                     "Import Failed",
-                    f"Could not import {os.path.basename(path)}.",
+                    f"Could not import {os.path.basename(path)}.\n{e}",
                 )
                 return
         docks = []
