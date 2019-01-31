@@ -2,6 +2,10 @@ class PewPewError(Exception):
     pass
 
 
+class PewPewCalibrationError(PewPewError):
+    pass
+
+
 class PewPewConfigError(PewPewError):
     pass
 
