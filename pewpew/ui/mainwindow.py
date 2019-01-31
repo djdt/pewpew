@@ -170,10 +170,11 @@ class MainWindow(QtWidgets.QMainWindow):
             menu_cmap.addAction(action)
         cmap_group.triggered.connect(self.menuColormap)
         menu_cmap.addSeparator()
-        action_cmap_range = menu_cmap.addAction("Range...")
+        action_cmap_range = menu_cmap.addAction("&Range...")
         action_cmap_range.setStatusTip(
             "Set the minimum and maximum values or percentiles of the colormap."
         )
+        action_cmap_range.setShortcut("Ctrl+R")
         action_cmap_range.triggered.connect(self.menuColormapRange)
 
         # View - interpolation
