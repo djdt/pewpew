@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 import numpy as np
@@ -87,11 +87,11 @@ class Canvas(FigureCanvasQTAgg):
 
     def onMousePress(self, e: MouseEvent) -> None:
         if e.inaxes == self.ax:
+            self.zoomed = True
             self.zoom_rect[0] = (e.xdata, e.ydata)
 
     def onMouseRelease(self, e: MouseEvent) -> None:
         if e.inaxes == self.ax:
-            self.zoomed = True
             self.zoom_rect[1] = (e.xdata, e.ydata)
             # Reset to full size
             if self.zoom_rect[0] == self.zoom_rect[1]:
@@ -106,7 +106,14 @@ class Canvas(FigureCanvasQTAgg):
                 self.ax.set_ylim(self.zoom_rect[0][1], self.zoom_rect[1][1])
             self.draw()
 
+    def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
+        print(event.pos())
+        print(self.mouseEventCoords(event.pos()))
+        print(self.ax.transData.inverted().transform_point((event.x(), event.y())))
+        pass
+
     def updateStatusBar(self, e: MouseEvent) -> None:
+        pass
         if e.inaxes == self.ax and self.window() is not None:
             x, y = e.xdata, e.ydata
             v = coords2value(self.image, x, y)
