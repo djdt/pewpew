@@ -11,6 +11,8 @@ from matplotlib.backend_bases import MouseEvent, LocationEvent
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 
+from typing import Tuple
+
 
 class Canvas(FigureCanvasQTAgg):
     def __init__(
@@ -38,9 +40,7 @@ class Canvas(FigureCanvasQTAgg):
             self.mpl_connect("motion_notify_event", self.updateStatusBar)
             self.mpl_connect("axes_leave_event", self.clearStatusBar)
 
-            self.mpl_connect("motion_notify_event", self.zoomDragMotion)
-            self.mpl_connect("button_press_event", self.zoomDragBegin)
-            self.mpl_connect("button_release_event", self.zoomDragEnd)
+            self.startZoom()
 
     def close(self) -> None:
         self.clearStatusBar()
@@ -86,59 +86,58 @@ class Canvas(FigureCanvasQTAgg):
         self.figure.clear()
         self.ax = self.figure.add_subplot(111)
 
-    def onMouseRelease(self, e: MouseEvent) -> None:
-        if e.inaxes == self.ax:
-            self.zoom_rect[1] = (e.xdata, e.ydata)
-            # Reset to full size
-            if self.zoom_rect[0] == self.zoom_rect[1]:
-                self.zoomed = False
-                extent = self.image.get_extent()
-                self.ax.set_xlim(extent[0], extent[1])
-                self.ax.set_ylim(extent[2], extent[3])
-            # Zoom to rect
-            else:
-                self.zoomed = True
-                self.ax.set_xlim(self.zoom_rect[0][0], self.zoom_rect[1][0])
-                self.ax.set_ylim(self.zoom_rect[0][1], self.zoom_rect[1][1])
-            self.draw()
+    def zoom(
+        self, start: Tuple[float, float] = None, end: Tuple[float, float] = None
+    ) -> None:
+        extent = self.image.get_extent()
+        if start is None or end is None:  # No movement
+            xlim = extent[0], extent[1]
+            ylim = extent[2], extent[3]
+        else:
+            # Correct order
+            xlim = min(start[0], end[0]), max(start[0], end[0])
+            ylim = min(start[1], end[1]), max(start[1], end[1])
+            # Bound
+            xlim = max(extent[0], xlim[0]), min(extent[1], xlim[1])
+            ylim = max(extent[2], ylim[0]), min(extent[3], ylim[1])
 
-    def zoomDragBegin(self, e: MouseEvent) -> None:
-        if e.inaxes and e.button == 1:  # left mouse
-            self.zoom_start = (e.xdata, e.ydata)
-            self.rubberband_origin = e.guiEvent.pos()
+        self.ax.set_xlim(*xlim)
+        self.ax.set_xlim(*ylim)
+
+    def startZoom(self) -> None:
+        self.zoom_events = [
+            self.mpl_connect("button_press_event", self.mousePressZoom),
+            self.mpl_connect("motion_notify_event", self.mouseDragZoom),
+            self.mpl_connect("button_release_event", self.mouseReleaseZoom),
+        ]
+
+    def mousePressZoom(self, event: MouseEvent) -> None:
+        if event.inaxes == self.ax and event.button == 1:  # left mouse
+            self.zoom_start = (event.xdata, event.ydata)
+            self.rubberband_origin = event.guiEvent.pos()
             self.rubberband.setGeometry(
                 QtCore.QRect(self.rubberband_origin, QtCore.QSize())
             )
             self.rubberband.show()
 
-    def zoomDragMotion(self, e: MouseEvent) -> None:
-        if e.inaxes and e.button == 1:
+    def mouseDragZoom(self, event: MouseEvent) -> None:
+        if event.button == 1:
             if self.rubberband.isVisible():
                 self.rubberband.setGeometry(
-                    QtCore.QRect(self.rubberband_origin, e.guiEvent.pos()).normalized()
+                    QtCore.QRect(
+                        self.rubberband_origin, event.guiEvent.pos()
+                    ).normalized()
                 )
 
-    def zoomDragEnd(self, e: MouseEvent) -> None:
-        if e.inaxes:  # left mouse
-            self.zoom_end = (e.xdata, e.ydata)
-
-            if self.zoom_start == self.zoom_end:  # No movement
-                self.zoomed = False
-                extent = self.image.get_extent()
-                self.ax.set_xlim(extent[0], extent[1])
-                self.ax.set_ylim(extent[2], extent[3])
-            else:
-                self.zoomed = True
-                if self.zoom_start[0] < self.zoom_end[0]:
-                    self.ax.set_xlim(self.zoom_start[0], self.zoom_end[0])
-                else:
-                    self.ax.set_xlim(self.zoom_end[0], self.zoom_start[0])
-                if self.zoom_start[1] < self.zoom_end[1]:
-                    self.ax.set_ylim(self.zoom_start[1], self.zoom_end[1])
-                else:
-                    self.ax.set_ylim(self.zoom_end[1], self.zoom_start[1])
+    def mouseReleaseZoom(self, event: MouseEvent) -> None:
+        if event.inaxes == self.ax:
+            zoom_end = (event.xdata, event.ydata)
+            self.zoom(self.zoom_start, zoom_end)
 
             self.draw()
+
+            for cid in self.zoom_events:
+                self.mpl_disconnect(cid)
 
         self.rubberband.hide()
 
