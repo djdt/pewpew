@@ -40,8 +40,6 @@ class Canvas(FigureCanvasQTAgg):
             self.mpl_connect("motion_notify_event", self.updateStatusBar)
             self.mpl_connect("axes_leave_event", self.clearStatusBar)
 
-            self.startZoom()
-
     def close(self) -> None:
         self.clearStatusBar()
         super().close()
@@ -102,7 +100,9 @@ class Canvas(FigureCanvasQTAgg):
             ylim = max(extent[2], ylim[0]), min(extent[3], ylim[1])
 
         self.ax.set_xlim(*xlim)
-        self.ax.set_xlim(*ylim)
+        self.ax.set_ylim(*ylim)
+
+        self.draw()
 
     def startZoom(self) -> None:
         self.zoom_events = [
@@ -133,8 +133,6 @@ class Canvas(FigureCanvasQTAgg):
         if event.inaxes == self.ax:
             zoom_end = (event.xdata, event.ydata)
             self.zoom(self.zoom_start, zoom_end)
-
-            self.draw()
 
             for cid in self.zoom_events:
                 self.mpl_disconnect(cid)

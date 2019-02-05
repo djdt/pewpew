@@ -24,13 +24,17 @@ class ImageDockTitleBar(QtWidgets.QWidget):
         self.title = QtWidgets.QLabel(title)
         self.parent().windowTitleChanged.connect(self.setTitle)
 
+        # Button Bar
         self.button_close = QtWidgets.QPushButton(
             QtGui.QIcon.fromTheme("edit-delete"), ""
         )
+        self.button_close.setToolTip("Close the image.")
         self.button_zoom = QtWidgets.QPushButton(QtGui.QIcon.fromTheme("zoom-in"), "")
+        self.button_zoom.setToolTip("Zoom into slected area.")
         self.button_zoom_original = QtWidgets.QPushButton(
             QtGui.QIcon.fromTheme("zoom-original"), ""
         )
+        self.button_zoom_original.setToolTip("Reset to original zoom.")
 
         layout_buttons = QtWidgets.QHBoxLayout()
         layout_buttons.addWidget(self.button_zoom, QtCore.Qt.AlignRight)
@@ -84,7 +88,7 @@ class ImageDock(QtWidgets.QDockWidget):
         self.title_bar.nameChanged.connect(self.titleNameChanged)
         self.setTitleBarWidget(self.title_bar)
 
-        # self.title_bar.button_zoom.clicked.connect(self.onMenuClose)
+        self.title_bar.button_zoom.clicked.connect(self.canvas.startZoom)
         self.title_bar.button_zoom_original.clicked.connect(self.canvas.zoom)
         self.title_bar.button_close.clicked.connect(self.onMenuClose)
 
