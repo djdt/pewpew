@@ -11,7 +11,7 @@ from matplotlib.backend_bases import MouseEvent, LocationEvent
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 
-from typing import Callable, Dict, List, Tuple, Union
+from typing import Callable, Dict, List, Tuple
 from matplotlib.axes import Axes
 
 
@@ -19,10 +19,10 @@ from matplotlib.axes import Axes
 
 
 class DragSelector(QtWidgets.QRubberBand):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, callback: Callable = None, parent: QtWidgets.QWidget = None):
         super().__init__(QtWidgets.QRubberBand.Rectangle, parent)
-        self.callback: Union[None, Callable] = None
-
+        self.callback = callback
+        self.extent = (0, 0, 0, 0)
         self.origin = QtCore.QPoint()
         self.cids: List[int] = []
 
@@ -37,50 +37,39 @@ class DragSelector(QtWidgets.QRubberBand):
 
     def _release(self, event: MouseEvent) -> None:
         self.event_release = event
+
+        trans = self.axes.transData.inverted()
+        x1, y1 = trans.transform_point((self.event_press.x, self.event_press.y))
+        x2, y2 = trans.transform_point((self.event_release.x, self.event_release.y))
+
+        # Order points
+        if x1 > x2:
+            x1, x2 = x2, x1
+        if y1 > y2:
+            y1, y2 = y2, y1
+
+        # Bound in axes limits
+        lx1, lx2 = self.axes.get_xlim()
+        ly1, ly2 = self.axes.get_ylim()
+        x1 = max(lx1, min(lx2, x1))
+        x2 = max(lx1, min(lx2, x2))
+        y1 = max(ly1, min(ly2, y1))
+        y2 = max(ly1, min(ly2, y2))
+
+        self.extent = x1, x2, y1, y2
+
         if self.callback is not None:
             self.callback(self.event_press, self.event_release)
         self.hide()
 
-    def activate(self, callback: Callable = None) -> None:
+    def activate(self, axes: Axes, callback: Callable = None) -> None:
+        self.axes = axes
         self.callback = callback
         self.cids = [
             self.parent().mpl_connect("button_press_event", self._press),
             self.parent().mpl_connect("motion_notify_event", self._move),
             self.parent().mpl_connect("button_release_event", self._release),
         ]
-
-    def extents(self) -> Tuple[float, float, float, float]:
-        """Returns xmin, xmax, ymin, ymax"""
-        x1, x2 = self.event_press.xdata, self.event_release.xdata
-        if x1 is None or x2 is None:
-            if self.event_press.x > self.event_release.x:
-                x1, x2 = x2, x1
-        elif x1 > x2:
-            x1, x2 = x2, x1
-
-        y1, y2 = self.event_press.ydata, self.event_release.ydata
-        if y1 is None or y2 is None:
-            if self.event_press.y > self.event_release.y:
-                y1, y2 = y2, y1
-        elif y1 > y2:
-            y1, y2 = y2, y1
-
-        return x1, x2, y1, y2
-
-    def bounded_extents(self, axes: Axes) -> Tuple[float, float, float, float]:
-        xmin, xmax = axes.get_xlim()
-        ymin, ymax = axes.get_ylim()
-        x1, x2, y1, y2 = self.extents()
-        if x1 is None or x1 < xmin:
-            x1 = xmin
-        if x2 is None or x2 > xmax:
-            x2 = xmax
-        if y1 is None or y1 < ymin:
-            y1 = ymin
-        if y2 is None or y2 > ymax:
-            y2 = ymax
-
-        return x1, x2, y1, y2
 
     def deactivate(self) -> None:
         for cid in self.cids:
@@ -167,12 +156,12 @@ class Canvas(FigureCanvasQTAgg):
         self.draw()
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
+        print(press.inaxes == self.ax, release.inaxes == self.ax)
         if press.inaxes != self.ax and release.inaxes != self.ax:  # Outside
             return
         print(self.image.get_extent())
-        print(self.dragger.extents())
-        print(self.dragger.bounded_extents(self.ax))
-        xmin, xmax, ymin, ymax = self.dragger.bounded_extents(self.ax)
+        # print(self.dragger.bounded_extents(self.ax))
+        xmin, xmax, ymin, ymax = self.dragger.extent
         # ixmin, ixmax, iymin, iymax = self.image.get_extent()
         # # Bound to image extents
         self.ax.set_xlim(xmin, xmax)
@@ -189,7 +178,7 @@ class Canvas(FigureCanvasQTAgg):
         # self.selector.onselect = self.zoom
         # self.selector = RectangleSelector(self.ax, self.zoom, drawtype="line")
         # self.selector.set_active(True)
-        self.dragger.activate(self.zoom)
+        self.dragger.activate(self.ax, self.zoom)
         # self.events["zoom"] = [
         #     self.mpl_connect("button_press_event", self.startDragZoom),
         #     self.mpl_connect("motion_notify_event", self.dragZoom),
