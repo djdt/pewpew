@@ -11,7 +11,7 @@ from matplotlib.backend_bases import MouseEvent, LocationEvent
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List
 from matplotlib.axes import Axes
 
 
@@ -156,14 +156,9 @@ class Canvas(FigureCanvasQTAgg):
         self.draw()
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
-        print(press.inaxes == self.ax, release.inaxes == self.ax)
         if press.inaxes != self.ax and release.inaxes != self.ax:  # Outside
             return
-        print(self.image.get_extent())
-        # print(self.dragger.bounded_extents(self.ax))
         xmin, xmax, ymin, ymax = self.dragger.extent
-        # ixmin, ixmax, iymin, iymax = self.image.get_extent()
-        # # Bound to image extents
         self.ax.set_xlim(xmin, xmax)
         self.ax.set_ylim(ymin, ymax)
         self.dragger.deactivate()
