@@ -170,78 +170,7 @@ class Canvas(FigureCanvasQTAgg):
         self.events[key] = []
 
     def startZoom(self) -> None:
-        # self.selector.onselect = self.zoom
-        # self.selector = RectangleSelector(self.ax, self.zoom, drawtype="line")
-        # self.selector.set_active(True)
         self.dragger.activate(self.ax, self.zoom)
-        # self.events["zoom"] = [
-        #     self.mpl_connect("button_press_event", self.startDragZoom),
-        #     self.mpl_connect("motion_notify_event", self.dragZoom),
-        #     self.mpl_connect("button_release_event", self.endDragZoom),
-        # ]
-
-    def startMovement(self) -> None:
-        self.events["movement"] = [
-            self.mpl_connect("button_press_event", self.startDragMovement),
-            self.mpl_connect("motion_notify_event", self.dragMovement),
-            self.mpl_connect("button_release_event", self.endDragMovement),
-        ]
-
-    def startDrag(self, event: MouseEvent) -> None:
-        self.rubberband_origin = event.guiEvent.pos()
-        self.rubberband.setGeometry(
-            QtCore.QRect(self.rubberband_origin, QtCore.QSize())
-        )
-        self.rubberband.show()
-        pass
-
-    # def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
-    #     if self.selector.is_active():
-    #         self.rubberband_origin = event.pos()
-    #         self.rubberband.setGeometry(
-    #             QtCore.QRect(self.rubberband_origin, QtCore.QSize())
-    #         )
-    #     super().mousePressEvent(event)
-
-    # def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
-    #     if self.selector.is_active():
-    #         self.rubberband.setGeometry(
-    #             QtCore.QRect(self.rubberband_origin, event.guiEvent.pos()).normalized()
-    #         )
-    #     super().mouseMoveEvent(event)
-
-    # def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
-    #     if self.selector.is_active():
-    #         self.rubberband.hide()
-    #     super().mouseReleaseEvent(event)
-
-    def stareDragZoom(self, event: MouseEvent) -> None:
-        self.drag_start = None
-        if event.inaxes == self.ax and event.button == 1:  # left mouse
-            self.drag_start = (event.xdata, event.ydata)
-            self.rubberband_origin = event.guiEvent.pos()
-            self.rubberband.setGeometry(
-                QtCore.QRect(self.rubberband_origin, QtCore.QSize())
-            )
-            self.rubberband.show()
-
-    def dragZoom(self, event: MouseEvent) -> None:
-        if event.button == 1:
-            if self.rubberband.isVisible():
-                self.rubberband.setGeometry(
-                    QtCore.QRect(
-                        self.rubberband_origin, event.guiEvent.pos()
-                    ).normalized()
-                )
-
-    def endDragZoom(self, event: MouseEvent) -> None:
-        if event.inaxes == self.ax and self.zoom_start is not None:
-            drag_end = (event.xdata, event.ydata)
-            self.zoom(self.drag_start, drag_end)
-
-            self.disconnectEvents("zoom")
-
-        self.rubberband.hide()
 
     def updateStatusBar(self, e: MouseEvent) -> None:
         if e.inaxes == self.ax:
