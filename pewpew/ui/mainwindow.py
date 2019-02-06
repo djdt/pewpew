@@ -31,7 +31,7 @@ from types import TracebackType
 from pewpew.ui.dialogs import ApplyDialog
 
 
-## TODO allow trim in x and y axis, have a selection window for it.
+## TODO replace trim parameter with axis limits, easier
 ## TODO phil would like to have a way to average an area, without background
 ## TODO imagedock is useless, make it just laserimagedock
 
