@@ -89,7 +89,7 @@ class ImageDock(QtWidgets.QDockWidget):
         self.setTitleBarWidget(self.title_bar)
 
         self.title_bar.button_zoom.clicked.connect(self.canvas.startZoom)
-        self.title_bar.button_zoom_original.clicked.connect(self.canvas.zoom)
+        self.title_bar.button_zoom_original.clicked.connect(self.canvas.unzoom)
         self.title_bar.button_close.clicked.connect(self.onMenuClose)
 
         # Context menu actions

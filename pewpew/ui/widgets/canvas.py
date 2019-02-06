@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 import numpy as np
@@ -11,7 +11,84 @@ from matplotlib.backend_bases import MouseEvent, LocationEvent
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 
-from typing import Tuple
+from typing import Callable, Dict, List, Tuple, Union
+from matplotlib.axes import Axes
+
+
+# TODO write custom selector
+
+
+class DragSelector(QtWidgets.QRubberBand):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__(QtWidgets.QRubberBand.Rectangle, parent)
+        self.callback: Union[None, Callable] = None
+
+        self.origin = QtCore.QPoint()
+        self.cids: List[int] = []
+
+    def _press(self, event: MouseEvent) -> None:
+        self.event_press = event
+        self.origin = event.guiEvent.pos()
+        self.setGeometry(QtCore.QRect(self.origin, QtCore.QSize()))
+        self.show()
+
+    def _move(self, event: MouseEvent) -> None:
+        self.setGeometry(QtCore.QRect(self.origin, event.guiEvent.pos()).normalized())
+
+    def _release(self, event: MouseEvent) -> None:
+        self.event_release = event
+        if self.callback is not None:
+            self.callback(self.event_press, self.event_release)
+        self.hide()
+
+    def activate(self, callback: Callable = None) -> None:
+        self.callback = callback
+        self.cids = [
+            self.parent().mpl_connect("button_press_event", self._press),
+            self.parent().mpl_connect("motion_notify_event", self._move),
+            self.parent().mpl_connect("button_release_event", self._release),
+        ]
+
+    def extents(self) -> Tuple[float, float, float, float]:
+        """Returns xmin, xmax, ymin, ymax"""
+        x1, x2 = self.event_press.xdata, self.event_release.xdata
+        if x1 is None or x2 is None:
+            if self.event_press.x > self.event_release.x:
+                x1, x2 = x2, x1
+        elif x1 > x2:
+            x1, x2 = x2, x1
+
+        y1, y2 = self.event_press.ydata, self.event_release.ydata
+        if y1 is None or y2 is None:
+            if self.event_press.y > self.event_release.y:
+                y1, y2 = y2, y1
+        elif y1 > y2:
+            y1, y2 = y2, y1
+
+        return x1, x2, y1, y2
+
+    def bounded_extents(self, axes: Axes) -> Tuple[float, float, float, float]:
+        xmin, xmax = axes.get_xlim()
+        ymin, ymax = axes.get_ylim()
+        x1, x2, y1, y2 = self.extents()
+        if x1 is None or x1 < xmin:
+            x1 = xmin
+        if x2 is None or x2 > xmax:
+            x2 = xmax
+        if y1 is None or y1 < ymin:
+            y1 = ymin
+        if y2 is None or y2 > ymax:
+            y2 = ymax
+
+        return x1, x2, y1, y2
+
+    def deactivate(self) -> None:
+        for cid in self.cids:
+            self.parent().mpl_disconnect(cid)
+
+    def close(self) -> None:
+        self.deactivate()
+        super().close()
 
 
 class Canvas(FigureCanvasQTAgg):
@@ -23,12 +100,8 @@ class Canvas(FigureCanvasQTAgg):
         self.ax = self.figure.add_subplot(111)
         self.image = np.array([], dtype=np.float64)
 
-        self.use_colorbar = True
-        self.use_scalebar = True
-        self.use_label = True
-
-        self.zoomed = False
-        self.rubberband = QtWidgets.QRubberBand(QtWidgets.QRubberBand.Rectangle, self)
+        self.options = {"colorbar": True, "scalebar": True, "label": True}
+        self.dragger = DragSelector(parent=self)
 
         self.setParent(parent)
         self.setStyleSheet("background-color:transparent;")
@@ -36,9 +109,12 @@ class Canvas(FigureCanvasQTAgg):
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
         )
 
+        self.events: Dict[str, List[int]] = {}
         if connect_mouse_events:
-            self.mpl_connect("motion_notify_event", self.updateStatusBar)
-            self.mpl_connect("axes_leave_event", self.clearStatusBar)
+            self.events["status"] = [
+                self.mpl_connect("motion_notify_event", self.updateStatusBar),
+                self.mpl_connect("axes_leave_event", self.clearStatusBar),
+            ]
 
     def close(self) -> None:
         self.clearStatusBar()
@@ -65,15 +141,15 @@ class Canvas(FigureCanvasQTAgg):
             data,
             aspect=laser.aspect(),
             cmap=viewconfig["cmap"]["type"],
-            colorbar=self.use_colorbar,
+            colorbar=self.options["colorbar"],
             colorbarpos="bottom",
             colorbartext=str(laser.calibration[isotope]["unit"]),
             extent=laser.extent(trimmed=True),
             fontsize=viewconfig["font"]["size"],
             interpolation=viewconfig["interpolation"].lower(),
-            label=self.use_label,
+            label=self.options["label"],
             labeltext=formatIsotope(isotope, fstring="$^{{{mass}}}${element}"),
-            scalebar=self.use_scalebar,
+            scalebar=self.options["scalebar"],
             vmax=viewconfig["cmap"]["range"][1],
             vmin=viewconfig["cmap"]["range"][0],
             xaxis=True,
@@ -84,43 +160,88 @@ class Canvas(FigureCanvasQTAgg):
         self.figure.clear()
         self.ax = self.figure.add_subplot(111)
 
-    def zoom(
-        self, start: Tuple[float, float] = None, end: Tuple[float, float] = None
-    ) -> None:
-        extent = self.image.get_extent()
-        if start is None or end is None:  # No movement
-            xlim = extent[0], extent[1]
-            ylim = extent[2], extent[3]
-        else:
-            # Correct order
-            xlim = min(start[0], end[0]), max(start[0], end[0])
-            ylim = min(start[1], end[1]), max(start[1], end[1])
-            # Bound
-            xlim = max(extent[0], xlim[0]), min(extent[1], xlim[1])
-            ylim = max(extent[2], ylim[0]), min(extent[3], ylim[1])
-
-        self.ax.set_xlim(*xlim)
-        self.ax.set_ylim(*ylim)
-
+    def unzoom(self) -> None:
+        xmin, xmax, ymin, ymax = self.image.get_extent()
+        self.ax.set_xlim(xmin, xmax)
+        self.ax.set_ylim(ymin, ymax)
         self.draw()
 
+    def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
+        if press.inaxes != self.ax and release.inaxes != self.ax:  # Outside
+            return
+        print(self.image.get_extent())
+        print(self.dragger.extents())
+        print(self.dragger.bounded_extents(self.ax))
+        xmin, xmax, ymin, ymax = self.dragger.bounded_extents(self.ax)
+        # ixmin, ixmax, iymin, iymax = self.image.get_extent()
+        # # Bound to image extents
+        self.ax.set_xlim(xmin, xmax)
+        self.ax.set_ylim(ymin, ymax)
+        self.dragger.deactivate()
+        self.draw()
+
+    def disconnectEvents(self, key: str) -> None:
+        for cid in self.events[key]:
+            self.mpl_disconnect(cid)
+        self.events[key] = []
+
     def startZoom(self) -> None:
-        self.zoom_events = [
-            self.mpl_connect("button_press_event", self.mousePressZoom),
-            self.mpl_connect("motion_notify_event", self.mouseDragZoom),
-            self.mpl_connect("button_release_event", self.mouseReleaseZoom),
+        # self.selector.onselect = self.zoom
+        # self.selector = RectangleSelector(self.ax, self.zoom, drawtype="line")
+        # self.selector.set_active(True)
+        self.dragger.activate(self.zoom)
+        # self.events["zoom"] = [
+        #     self.mpl_connect("button_press_event", self.startDragZoom),
+        #     self.mpl_connect("motion_notify_event", self.dragZoom),
+        #     self.mpl_connect("button_release_event", self.endDragZoom),
+        # ]
+
+    def startMovement(self) -> None:
+        self.events["movement"] = [
+            self.mpl_connect("button_press_event", self.startDragMovement),
+            self.mpl_connect("motion_notify_event", self.dragMovement),
+            self.mpl_connect("button_release_event", self.endDragMovement),
         ]
 
-    def mousePressZoom(self, event: MouseEvent) -> None:
+    def startDrag(self, event: MouseEvent) -> None:
+        self.rubberband_origin = event.guiEvent.pos()
+        self.rubberband.setGeometry(
+            QtCore.QRect(self.rubberband_origin, QtCore.QSize())
+        )
+        self.rubberband.show()
+        pass
+
+    # def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+    #     if self.selector.is_active():
+    #         self.rubberband_origin = event.pos()
+    #         self.rubberband.setGeometry(
+    #             QtCore.QRect(self.rubberband_origin, QtCore.QSize())
+    #         )
+    #     super().mousePressEvent(event)
+
+    # def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
+    #     if self.selector.is_active():
+    #         self.rubberband.setGeometry(
+    #             QtCore.QRect(self.rubberband_origin, event.guiEvent.pos()).normalized()
+    #         )
+    #     super().mouseMoveEvent(event)
+
+    # def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
+    #     if self.selector.is_active():
+    #         self.rubberband.hide()
+    #     super().mouseReleaseEvent(event)
+
+    def stareDragZoom(self, event: MouseEvent) -> None:
+        self.drag_start = None
         if event.inaxes == self.ax and event.button == 1:  # left mouse
-            self.zoom_start = (event.xdata, event.ydata)
+            self.drag_start = (event.xdata, event.ydata)
             self.rubberband_origin = event.guiEvent.pos()
             self.rubberband.setGeometry(
                 QtCore.QRect(self.rubberband_origin, QtCore.QSize())
             )
             self.rubberband.show()
 
-    def mouseDragZoom(self, event: MouseEvent) -> None:
+    def dragZoom(self, event: MouseEvent) -> None:
         if event.button == 1:
             if self.rubberband.isVisible():
                 self.rubberband.setGeometry(
@@ -129,13 +250,12 @@ class Canvas(FigureCanvasQTAgg):
                     ).normalized()
                 )
 
-    def mouseReleaseZoom(self, event: MouseEvent) -> None:
-        if event.inaxes == self.ax:
-            zoom_end = (event.xdata, event.ydata)
-            self.zoom(self.zoom_start, zoom_end)
+    def endDragZoom(self, event: MouseEvent) -> None:
+        if event.inaxes == self.ax and self.zoom_start is not None:
+            drag_end = (event.xdata, event.ydata)
+            self.zoom(self.drag_start, drag_end)
 
-            for cid in self.zoom_events:
-                self.mpl_disconnect(cid)
+            self.disconnectEvents("zoom")
 
         self.rubberband.hide()
 
