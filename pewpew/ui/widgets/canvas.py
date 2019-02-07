@@ -163,7 +163,6 @@ class Canvas(FigureCanvasQTAgg):
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
         if press.inaxes != self.ax and release.inaxes != self.ax:  # Outside
             return
-        print("zoom")
         xmin, xmax, ymin, ymax = self.selector.extent
         self.ax.set_xlim(xmin, xmax)
         self.ax.set_ylim(ymin, ymax)
@@ -195,7 +194,6 @@ class Canvas(FigureCanvasQTAgg):
 
     def dragStart(self, event: MouseEvent) -> None:
         if event.inaxes == self.ax and event.button == 1:
-            print("drag")
             self.drag_origin = event.xdata, event.ydata
 
     def dragMove(self, event: MouseEvent) -> None:
