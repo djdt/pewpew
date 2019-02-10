@@ -60,6 +60,7 @@ class LaserData(object):
             pixel = self.pixelsize()
             x1, x2 = int(extent[0] / pixel[0]), int(extent[1] / pixel[0])
             y1, y2 = int(extent[2] / pixel[1]), int(extent[3] / pixel[1])
+            # Image data is stored [rows][cols]
             data = data[y1:y2, x1:x2]
         # if trimmed:
         #     trim = self.config["trim"]

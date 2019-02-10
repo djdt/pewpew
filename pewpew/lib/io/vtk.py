@@ -5,6 +5,8 @@ from pewpew.lib.laser import LaserData
 
 
 # TODO check that x and y aren't flipped
+# TODO implement extent export
+
 
 def save(path: str, laser: LaserData) -> None:
     """Save data as a VTK ImageData XML."""
@@ -28,7 +30,8 @@ def save(path: str, laser: LaserData) -> None:
                 '<?xml version="1.0"?>\n'
                 '<VTKFile type="ImageData" version="1.0" '
                 f'byte_order="{endian}" header_type="UInt64">\n'
-                f'<ImageData WholeExtent="{extent_str}" Origin="{origin_str}" Spacing="{spacing_str}">\n'
+                f'<ImageData WholeExtent="{extent_str}" '
+                f'Origin="{origin_str}" Spacing="{spacing_str}">\n'
                 f'<Piece Extent="{extent_str}">\n'
             ).encode()
         )
