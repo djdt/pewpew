@@ -6,12 +6,7 @@ from typing import List, Tuple, Union
 
 class LaserData(object):
     DEFAULT_CALIBRATION = {"gradient": 1.0, "intercept": 0.0, "unit": ""}
-    DEFAULT_CONFIG = {
-        "spotsize": 30.0,
-        "speed": 120.0,
-        "scantime": 0.25,
-        "trim": (0, 0),
-    }
+    DEFAULT_CONFIG = {"spotsize": 30.0, "speed": 120.0, "scantime": 0.25}
 
     def __init__(
         self,
@@ -41,7 +36,10 @@ class LaserData(object):
         return self.data.dtype.names
 
     def get(
-        self, isotope: str = None, calibrated: bool = False, trimmed: bool = False
+        self,
+        isotope: str = None,
+        calibrated: bool = False,
+        extent: Tuple[float, float, float, float] = None,
     ) -> np.ndarray:
         # Calibration
         if isotope is None:
@@ -58,12 +56,17 @@ class LaserData(object):
                 intercept = self.calibration[isotope]["intercept"]
                 data = (data - intercept) / gradient
         # Trimming
-        if trimmed:
-            trim = self.config["trim"]
-            if trim[1] > 0:
-                data = data[:, trim[0] : -trim[1]]
-            elif trim[0] > 0:
-                data = data[:, trim[0] :]
+        if extent is not None:
+            pixel = self.pixelsize()
+            x1, x2 = int(extent[0] / pixel[0]), int(extent[1] / pixel[0])
+            y1, y2 = int(extent[2] / pixel[1]), int(extent[3] / pixel[1])
+            data = data[y1:y2, x1:x2]
+        # if trimmed:
+        #     trim = self.config["trim"]
+        #     if trim[1] > 0:
+        #         data = data[:, trim[0] : -trim[1]]
+        #     elif trim[0] > 0:
+        #         data = data[:, trim[0] :]
 
         return data
 
@@ -75,17 +78,11 @@ class LaserData(object):
             self.config["speed"] * self.config["scantime"]
         )
 
-    def extent(self, trimmed: bool = False) -> Tuple[float, float, float, float]:
+    def extent(self) -> Tuple[float, float, float, float]:
         # Image data is stored [rows][cols]
-        if trimmed:
-            trim = self.config["trim"]
-            x_start = trim[0] * self.pixelsize()[0]
-            x_end = (self.data.shape[1] - trim[1]) * self.pixelsize()[0]
-        else:
-            x_start = 0.0
-            x_end = self.data.shape[1] * self.pixelsize()[0]
+        x = self.data.shape[1] * self.pixelsize()[0]
         y = self.data.shape[0] * self.pixelsize()[1]
-        return (x_start, x_end, 0.0, y)
+        return (0.0, x, 0.0, y)
 
     def convertTrim(
         self,

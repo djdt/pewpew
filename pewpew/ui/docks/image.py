@@ -199,12 +199,15 @@ class ImageDock(QtWidgets.QDockWidget):
             )
             if dlg.exec():
                 paths = dlg.generate_paths(self.laser)
+                extent = None
+                if dlg.options.hasTrimmed():
+                    extent = self.canvas.viewExtents()
                 for path, isotope, _ in paths:
                     io.csv.save(
                         path,
                         self.laser,
                         isotope,
-                        trimmed=dlg.options.hasTrimmed(),
+                        extent=extent,
                         include_header=dlg.options.hasHeader(),
                     )
 

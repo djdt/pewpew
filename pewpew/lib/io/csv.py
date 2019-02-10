@@ -11,7 +11,7 @@ from pewpew.lib.exceptions import (
 from pewpew.lib.formatter import formatIsotope
 from pewpew.lib.laser import LaserData
 
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 
 def load(
@@ -112,7 +112,7 @@ def save(
     path: str,
     laser: LaserData,
     isotope: str,
-    trimmed: bool = False,
+    extent: Tuple[float, float, float, float] = None,
     include_header: bool = False,
 ) -> None:
     header = None
@@ -129,7 +129,7 @@ def save(
         )
     np.savetxt(
         path,
-        laser.get(isotope, calibrated=True, trimmed=trimmed),
+        laser.get(isotope, calibrated=True, extent=extent),
         delimiter=",",
         header=header,
     )

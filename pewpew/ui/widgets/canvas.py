@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 import numpy as np
@@ -11,17 +11,19 @@ from matplotlib.backend_bases import MouseEvent, LocationEvent
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Tuple
 from matplotlib.axes import Axes
 
 
-# TODO write custom selector
-
-
 class DragSelector(QtWidgets.QRubberBand):
-    def __init__(self, button: int = 1, callback: Callable = None, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self,
+        button: int = 1,
+        callback: Callable = None,
+        parent: QtWidgets.QWidget = None,
+    ):
         super().__init__(QtWidgets.QRubberBand.Rectangle, parent)
-        self.button = 1
+        self.button = button
         self.callback = callback
         self.extent = (0, 0, 0, 0)
         self.origin = QtCore.QPoint()
@@ -115,7 +117,7 @@ class Canvas(FigureCanvasQTAgg):
 
     def plot(self, laser: LaserData, isotope: str, viewconfig: dict) -> None:
         # Get the trimmed and calibrated data
-        data = laser.get(isotope, calibrated=True, trimmed=True)
+        data = laser.get(isotope, calibrated=True)
         # Filter if required
         if viewconfig["filtering"]["type"] != "None":
             filter_type, window, threshold = (
@@ -137,7 +139,7 @@ class Canvas(FigureCanvasQTAgg):
             colorbar=self.options["colorbar"],
             colorbarpos="bottom",
             colorbartext=str(laser.calibration[isotope]["unit"]),
-            extent=laser.extent(trimmed=True),
+            extent=laser.extent(),
             fontsize=viewconfig["font"]["size"],
             interpolation=viewconfig["interpolation"].lower(),
             label=self.options["label"],
@@ -148,6 +150,14 @@ class Canvas(FigureCanvasQTAgg):
             xaxis=True,
             xaxisticksize=laser.config["speed"],
         )
+
+    def viewExtents(self, inverted: bool = True) -> Tuple[float, float, float, float]:
+        x1, x2 = self.ax.get_xlim()
+        y1, y2 = self.ax.get_ylim()
+        if inverted:
+            _, _, _, ymax = self.image.get_extent()
+            y2, y1 = ymax - y1, ymax - y2
+        return (x1, x2, y1, y2)
 
     def clear(self) -> None:
         self.figure.clear()
@@ -183,10 +193,9 @@ class Canvas(FigureCanvasQTAgg):
             ]
 
     def disconnectEvents(self, key: str) -> None:
-        if key not in self.events.keys():
-            return
-        for cid in self.events[key]:
-            self.mpl_disconnect(cid)
+        if key in self.events.keys():
+            for cid in self.events[key]:
+                self.mpl_disconnect(cid)
 
     def startZoom(self) -> None:
         self.selector.activate(self.ax, self.zoom)
@@ -202,10 +211,10 @@ class Canvas(FigureCanvasQTAgg):
             y1, y2 = self.ax.get_ylim()
 
             # Move in opposite direction to drag
-            x1 += (self.drag_origin[0] - event.xdata)
-            x2 += (self.drag_origin[0] - event.xdata)
-            y1 += (self.drag_origin[1] - event.ydata)
-            y2 += (self.drag_origin[1] - event.ydata)
+            x1 += self.drag_origin[0] - event.xdata
+            x2 += self.drag_origin[0] - event.xdata
+            y1 += self.drag_origin[1] - event.ydata
+            y2 += self.drag_origin[1] - event.ydata
             # Bound to image exents
             xmin, xmax, ymin, ymax = self.image.get_extent()
             draw = False
