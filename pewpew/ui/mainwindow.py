@@ -11,7 +11,7 @@ from pewpew.ui.dialogs import (
     FilteringDialog,
     TrimDialog,
 )
-from pewpew.ui.docks import ImageDock, LaserImageDock, KrissKrossImageDock
+from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
 from pewpew.ui.tools import CalibrationTool
 from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
 from pewpew.ui.widgets.detailederror import DetailedError
@@ -33,7 +33,6 @@ from pewpew.ui.dialogs import ApplyDialog
 
 ## TODO replace trim parameter with axis limits, easier
 ## TODO phil would like to have a way to average an area, without background
-## TODO imagedock is useless, make it just laserimagedock
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -230,7 +229,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if visible_only:
             docks = self.dockarea.visibleDocks()
         else:
-            docks = self.dockarea.findChildren(ImageDock)
+            docks = self.dockarea.findChildren(LaserImageDock)
         for d in docks:
             d.draw()
 
@@ -323,7 +322,7 @@ class MainWindow(QtWidgets.QMainWindow):
         print(settings.allKeys())
         print(settings)
 
-        docks = self.dockarea.findChildren(ImageDock)
+        docks = self.dockarea.findChildren(LaserImageDock)
         if len(docks) == 0:
             QtWidgets.QMessageBox.information(self, "Save Session", "Nothing to save.")
             return
@@ -336,8 +335,8 @@ class MainWindow(QtWidgets.QMainWindow):
         io.npz.save(path, lds)
 
     def menuExportAll(self) -> None:
-        lasers = [dock.laser for dock in self.dockarea.findChildren(ImageDock)]
-        if len(lasers) == 0:
+        docks = self.dockarea.findChildren(LaserImageDock)
+        if len(docks) == 0:
             return
 
         path = QtWidgets.QFileDialog.getExistingDirectory(
@@ -346,31 +345,31 @@ class MainWindow(QtWidgets.QMainWindow):
         if not path:
             return
 
-        isotopes = list(set.union(*[set(laser.isotopes()) for laser in lasers]))
-        dlg = ExportAllDialog(path, lasers[0].name, isotopes, 1, self)
+        isotopes = list(set.union(*[set(dock.laser.isotopes()) for dock in docks]))
+        dlg = ExportAllDialog(path, docks[0].laser.name, isotopes, 1, self)
         if not dlg.exec():
             return
 
         prompt = OverwriteFilePrompt(parent=self)
-        for laser in lasers:
-            paths = dlg.generate_paths(laser, prompt=prompt)
+        for dock in docks:
+            paths = dlg.generate_paths(dock.laser, prompt=prompt)
             ext = ExportAllDialog.FORMATS[dlg.combo_formats.currentText()]
 
             for path, isotope, _ in paths:
                 if ext == ".csv":
                     io.csv.save(
                         path,
-                        laser,
+                        dock.laser,
                         isotope,
-                        trimmed=dlg.options.csv.hasTrimmed(),
+                        extent=dock.canvas.viewExtents(),
                         include_header=dlg.options.csv.hasHeader(),
                     )
                 elif ext == ".npz":
-                    io.npz.save(path, [laser])
+                    io.npz.save(path, [dock.laser])
                 elif ext == ".png":
                     io.png.save(
                         path,
-                        laser,
+                        dock.laser,
                         isotope,
                         self.viewconfig,
                         size=dlg.options.png.imagesize(),
@@ -379,7 +378,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         include_label=dlg.options.png.hasLabel(),
                     )
                 elif ext == ".vti":
-                    io.npz.save(path, laser)
+                    io.npz.save(path, dock.laser)
                 else:
                     QtWidgets.QMessageBox.warning(
                         self, "Invalid Format", f"Unable to export {ext} format."
@@ -387,7 +386,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     return
 
     def menuCloseAll(self) -> None:
-        for dock in self.dockarea.findChildren(ImageDock):
+        for dock in self.dockarea.findChildren(LaserImageDock):
             dock.close()
 
     def menuExit(self) -> None:
@@ -532,6 +531,6 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
     def closeEvent(self, event: QtCore.QEvent) -> None:
-        for dock in self.dockarea.findChildren(ImageDock):
+        for dock in self.dockarea.findChildren(LaserImageDock):
             dock.close()
         super().closeEvent(event)

@@ -60,8 +60,8 @@ class ImageDockTitleBar(QtWidgets.QWidget):
                 self.nameChanged.emit(name)
 
 
-class ImageDock(QtWidgets.QDockWidget):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+class LaserImageDock(QtWidgets.QDockWidget):
+    def __init__(self, laserdata: LaserData, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setFeatures(
@@ -69,10 +69,11 @@ class ImageDock(QtWidgets.QDockWidget):
             | QtWidgets.QDockWidget.DockWidgetMovable
         )
 
-        self.laser: LaserData = LaserData()
+        self.laser = laserdata
         self.canvas = Canvas(parent=self)
 
         self.combo_isotope = QtWidgets.QComboBox()
+        self.combo_isotope.addItems(self.laser.isotopes())
         self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
 
         layout = QtWidgets.QVBoxLayout()
@@ -84,7 +85,7 @@ class ImageDock(QtWidgets.QDockWidget):
         self.setWidget(widget)
 
         # Title bar
-        self.title_bar = ImageDockTitleBar("test", self)
+        self.title_bar = ImageDockTitleBar(self.laser.name, self)
         self.title_bar.nameChanged.connect(self.titleNameChanged)
         self.setTitleBarWidget(self.title_bar)
 
@@ -245,7 +246,7 @@ class ImageDock(QtWidgets.QDockWidget):
     def onMenuCalibration(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
             if dialog.check_all.isChecked():
-                docks = self.parent().findChildren(ImageDock)
+                docks = self.parent().findChildren(LaserImageDock)
             else:
                 docks = [self]
             for dock in docks:
@@ -265,7 +266,7 @@ class ImageDock(QtWidgets.QDockWidget):
         def applyDialog(dialog: ApplyDialog) -> None:
             if dialog.check_all.isChecked():
                 # TODO see if this actually affects krisskross
-                docks = self.parent().findChildren(ImageDock)
+                docks = self.parent().findChildren(LaserImageDock)
             else:
                 docks = [self]
             for dock in docks:
@@ -282,7 +283,7 @@ class ImageDock(QtWidgets.QDockWidget):
     def onMenuTrim(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
             if dialog.check_all.isChecked():
-                docks = self.parent().findChildren(ImageDock)
+                docks = self.parent().findChildren(LaserImageDock)
             else:
                 docks = [self]
             for dock in docks:

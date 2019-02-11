@@ -62,10 +62,10 @@ class KrissKrossData(LaserData):
         self,
         isotope: str = None,
         calibrated: bool = False,
-        trimmed: bool = False,
+        extent: Tuple[float, float, float, float] = None,
         flattened: bool = True,
     ) -> np.ndarray:
-        data = super().get(isotope=isotope, calibrated=calibrated, trimmed=trimmed)
+        data = super().get(isotope=isotope, calibrated=calibrated, extent=extent)
         if flattened:
             data = np.mean(data, axis=2)
         return data
@@ -84,9 +84,9 @@ class KrissKrossData(LaserData):
             )
         return lds
 
-    def extent(self, trimmed: bool = False) -> Tuple[float, float, float, float]:
+    def extent(self) -> Tuple[float, float, float, float]:
         # Image data is stored [rows][cols]
-        extent = super().extent(trimmed)
+        extent = super().extent()
         return (0.0, extent[1], 0.0, extent[3] / self.aspect())
 
     def layers(self) -> int:
