@@ -16,8 +16,6 @@ from typing import Dict, List
 from pewpew.ui.docks.dockarea import DockArea
 from pewpew.ui.docks import LaserImageDock
 
-# TODO: Fix applying calibrations
-
 
 class CalibrationTable(BasicTable):
     ROW_LABELS = [c for c in "ABCDEFGHIJKLMNOPQRST"]
@@ -59,9 +57,7 @@ class CalibrationCanvas(Canvas):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(connect_mouse_events=False, parent=parent)
 
-        self.use_colorbar = False
-        self.use_scalebar = False
-        self.use_label = False
+        self.options = {"colorbar": False, "scalebar": False, "label": False}
 
     def plotLevels(self, levels: int) -> None:
         ax_fraction = 1.0 / levels
@@ -154,9 +150,8 @@ class CalibrationTool(ApplyDialog):
 
         self.previous_isotope = self.combo_isotope.currentText()
 
-        self.updateTrim()
-        self.updateCounts()
         self.draw()
+        self.updateCounts()
 
     def initialiseWidgets(self) -> None:
         self.spinbox_levels.setMaximum(20)
@@ -255,7 +250,6 @@ class CalibrationTool(ApplyDialog):
         self.updateCalibration()
 
     def draw(self) -> None:
-        self.canvas.clear()
         self.canvas.plot(
             self.dock.laser, self.combo_isotope.currentText(), self.viewconfig
         )
@@ -277,7 +271,7 @@ class CalibrationTool(ApplyDialog):
 
     def updateCounts(self) -> None:
         data = self.dock.laser.get(
-            self.combo_isotope.currentText(), calibrated=False, trimmed=True
+            self.combo_isotope.currentText(), calibrated=False, extent=self.canvas.getView(),
         )
         if len(data) == 1:
             return
@@ -350,11 +344,6 @@ class CalibrationTool(ApplyDialog):
         self.calibration[isotope]["gradient"] = m
         self.calibration[isotope]["intercept"] = b
 
-    def updateTrim(self) -> None:
-        trim = self.dock.laser.trimAs(self.combo_trim.currentText())
-        self.lineedit_left.setText(str(trim[0]))
-        self.lineedit_right.setText(str(trim[1]))
-
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
         if widget is not None and hasattr(widget, "laser"):
@@ -366,7 +355,8 @@ class CalibrationTool(ApplyDialog):
             self.combo_isotope.addItems(self.dock.laser.isotopes())
             self.combo_isotope.blockSignals(False)
 
-            self.updateTrim()
+            self.lineedit_left.setText("")
+            self.lineedit_right.setText("")
 
             self.updateCounts()
             self.updateResults()
@@ -410,7 +400,8 @@ class CalibrationTool(ApplyDialog):
         else:
             self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
             self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
-        self.updateTrim()
+        self.lineedit_left.setText("")
+        self.lineedit_right.setText("")
 
     def comboIsotope(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
@@ -431,13 +422,24 @@ class CalibrationTool(ApplyDialog):
         self.updateResults()
 
     def lineEditTrim(self) -> None:
-        if self.lineedit_left.text() == "" or self.lineedit_right.text() == "":
-            return
-        trim = [float(self.lineedit_left.text()), float(self.lineedit_right.text())]
-        self.dock.laser.setTrim(trim, self.combo_trim.currentText())
+        if self.lineedit_left.text() == "":
+            trim_left = 0.0
+        else:
+            trim_left = self.dock.laser.convertRow(
+                float(self.lineedit_left.text()),
+                unit_from=self.combo_trim.currentText(),
+                unit_to="um",
+            )
+        trim_right = self.dock.laser.extent()[1]
+        if self.lineedit_right.text() != "":
+            trim_right -= self.dock.laser.convertRow(
+                float(self.lineedit_right.text()),
+                unit_from=self.combo_trim.currentText(),
+                unit_to="um",
+            )
+        self.canvas.setView(trim_left, trim_right, 0.0, self.canvas.extent[3])
         self.updateCounts()
         self.updateResults()
-        self.draw()
 
     def lineeditUnits(self) -> None:
         unit = self.lineedit_units.text()

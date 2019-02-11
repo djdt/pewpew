@@ -13,6 +13,7 @@ from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 
 from typing import Callable, Dict, List, Tuple
 from matplotlib.axes import Axes
+from matplotlib.image import AxesImage
 
 
 class DragSelector(QtWidgets.QRubberBand):
@@ -96,7 +97,10 @@ class Canvas(FigureCanvasQTAgg):
         fig = Figure(frameon=False, tight_layout=True, figsize=(5, 5), dpi=100)
         super().__init__(fig)
         self.ax = self.figure.add_subplot(111)
-        self.image = np.array([], dtype=np.float64)
+        self.image = AxesImage(self.ax)
+
+        self.extent = (0.0, 0.0, 0.0, 0.0)
+        self.view = (0.0, 0.0, 0.0, 0.0)
 
         self.options = {"colorbar": True, "scalebar": True, "label": True}
         self.selector = DragSelector(parent=self)
@@ -129,6 +133,8 @@ class Canvas(FigureCanvasQTAgg):
             elif filter_type == "Rolling median":
                 rolling_median_filter(data, window, threshold)
 
+        self.extent = laser.extent()
+
         # Plot the image
         self.image = plotLaserImage(
             self.figure,
@@ -139,7 +145,7 @@ class Canvas(FigureCanvasQTAgg):
             colorbar=self.options["colorbar"],
             colorbarpos="bottom",
             colorbartext=str(laser.calibration[isotope]["unit"]),
-            extent=laser.extent(),
+            extent=self.extent,
             fontsize=viewconfig["font"]["size"],
             interpolation=viewconfig["interpolation"].lower(),
             label=self.options["label"],
@@ -150,34 +156,37 @@ class Canvas(FigureCanvasQTAgg):
             xaxis=True,
             xaxisticksize=laser.config["speed"],
         )
-
-    def viewExtents(self, inverted: bool = True) -> Tuple[float, float, float, float]:
-        x1, x2 = self.ax.get_xlim()
-        y1, y2 = self.ax.get_ylim()
-        if inverted:
-            _, _, _, ymax = self.image.get_extent()
-            y2, y1 = ymax - y1, ymax - y2
-        return (x1, x2, y1, y2)
+        if self.view == (0.0, 0.0, 0.0, 0.0):
+            self.view = self.extent
+        else:
+            self.setView(*self.view)
 
     def clear(self) -> None:
         self.figure.clear()
         self.ax = self.figure.add_subplot(111)
 
-    def unzoom(self) -> None:
-        xmin, xmax, ymin, ymax = self.image.get_extent()
-        self.ax.set_xlim(xmin, xmax)
-        self.ax.set_ylim(ymin, ymax)
+    def setView(self, x1: float, x2: float, y1: float, y2: float) -> None:
+        self.ax.set_xlim(x1, x2)
+        self.ax.set_ylim(y1, y2)
+        self.view = (x1, x2, y1, y2)
         self.draw()
+
+    def getView(self, inverted: bool = False) -> Tuple[float, float, float, float]:
+        x1, x2, y1, y2 = self.view
+        if inverted:
+            y2, y1 = self.extent[3] - y1, self.extent[3] - y2
+        return (x1, x2, y1, y2)
+
+    def unzoom(self) -> None:
+        self.setView(*self.extent)
         self.disconnectEvents("drag")
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
-        if press.inaxes != self.ax and release.inaxes != self.ax:  # Outside
-            return
         xmin, xmax, ymin, ymax = self.selector.extent
-        self.ax.set_xlim(xmin, xmax)
-        self.ax.set_ylim(ymin, ymax)
+        if xmin == xmax or ymin == ymax:  # Invalid
+            return
+        self.setView(xmin, xmax, ymin, ymax)
         self.selector.deactivate()
-        self.draw()
         self.connectEvents("drag")
 
     def connectEvents(self, key: str) -> None:

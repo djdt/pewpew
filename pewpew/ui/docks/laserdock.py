@@ -123,11 +123,11 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.action_config.setStatusTip("Edit image config.")
         self.action_config.triggered.connect(self.onMenuConfig)
 
-        self.action_trim = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("edit-cut"), "Trim", self
-        )
-        self.action_trim.setStatusTip("Edit image trim.")
-        self.action_trim.triggered.connect(self.onMenuTrim)
+        # self.action_trim = QtWidgets.QAction(
+        #     QtGui.QIcon.fromTheme("edit-cut"), "Trim", self
+        # )
+        # self.action_trim.setStatusTip("Edit image trim.")
+        # self.action_trim.triggered.connect(self.onMenuTrim)
 
         self.action_close = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-delete"), "Close", self
@@ -280,30 +280,30 @@ class LaserImageDock(QtWidgets.QDockWidget):
         if dlg.exec():
             applyDialog(dlg)
 
-    def onMenuTrim(self) -> None:
-        def applyDialog(dialog: ApplyDialog) -> None:
-            if dialog.check_all.isChecked():
-                docks = self.parent().findChildren(LaserImageDock)
-            else:
-                docks = [self]
-            for dock in docks:
-                total = sum(
-                    dock.laser.convertTrim(dialog.trim, dialog.combo_trim.currentText())
-                )
-                if total > dock.laser.data.shape[1]:
-                    QtWidgets.QMessageBox.warning(
-                        self, "Invalid Trim", "Trim larger than data."
-                    )
-                    return
-            for dock in docks:
-                dock.laser.setTrim(dialog.trim, dialog.combo_trim.currentText())
-                dock.draw()
+    # def onMenuTrim(self) -> None:
+    #     def applyDialog(dialog: ApplyDialog) -> None:
+    #         if dialog.check_all.isChecked():
+    #             docks = self.parent().findChildren(LaserImageDock)
+    #         else:
+    #             docks = [self]
+    #         for dock in docks:
+    #             total = sum(
+    #                 dock.laser.convertTrim(dialog.trim, dialog.combo_trim.currentText())
+    #             )
+    #             if total > dock.laser.data.shape[1]:
+    #                 QtWidgets.QMessageBox.warning(
+    #                     self, "Invalid Trim", "Trim larger than data."
+    #                 )
+    #                 return
+    #         for dock in docks:
+    #             dock.laser.setTrim(dialog.trim, dialog.combo_trim.currentText())
+    #             dock.draw()
 
-        dlg = TrimDialog(self.laser.trimAs("s"), parent=self)
-        dlg.applyPressed.connect(applyDialog)
+    #     dlg = TrimDialog(self.laser.trimAs("s"), parent=self)
+    #     dlg.applyPressed.connect(applyDialog)
 
-        if dlg.exec():
-            applyDialog(dlg)
+    #     if dlg.exec():
+    #         applyDialog(dlg)
 
     def onMenuClose(self) -> None:
         self.close()

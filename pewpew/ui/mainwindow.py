@@ -136,10 +136,10 @@ class MainWindow(QtWidgets.QMainWindow):
         action_config.setShortcut("Ctrl+K")
         action_config.triggered.connect(self.menuConfig)
 
-        action_trim = menu_edit.addAction(QtGui.QIcon.fromTheme("edit-cut"), "&Trim")
-        action_trim.setStatusTip("Update trim for visible images.")
-        action_trim.setShortcut("Ctrl+T")
-        action_trim.triggered.connect(self.menuTrim)
+        # action_trim = menu_edit.addAction(QtGui.QIcon.fromTheme("edit-cut"), "&Trim")
+        # action_trim.setStatusTip("Update trim for visible images.")
+        # action_trim.setShortcut("Ctrl+T")
+        # action_trim.triggered.connect(self.menuTrim)
 
         menu_edit.addSeparator()
 
@@ -361,7 +361,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         path,
                         dock.laser,
                         isotope,
-                        extent=dock.canvas.viewExtents(),
+                        extent=dock.canvas.getView(),
                         include_header=dlg.options.csv.hasHeader(),
                     )
                 elif ext == ".npz":

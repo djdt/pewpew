@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 
 class LaserData(object):
@@ -62,14 +62,21 @@ class LaserData(object):
             y1, y2 = int(extent[2] / pixel[1]), int(extent[3] / pixel[1])
             # Image data is stored [rows][cols]
             data = data[y1:y2, x1:x2]
-        # if trimmed:
-        #     trim = self.config["trim"]
-        #     if trim[1] > 0:
-        #         data = data[:, trim[0] : -trim[1]]
-        #     elif trim[0] > 0:
-        #         data = data[:, trim[0] :]
 
         return data
+
+    def convertRow(self, x: float, unit_from: str, unit_to: str) -> float:
+        # Convert into rows
+        if unit_from in ["s", "seconds"]:
+            x = x / self.config["scantime"]
+        elif unit_from in ["um", "μm", "micro meters"]:
+            x = x / (self.config["speed"] * self.config["scantime"])
+        # Convert to desired unit
+        if unit_to in ["s", "seconds"]:
+            x = x * self.config["scantime"]
+        elif unit_to in ["um", "μm", "micro meters"]:
+            x = x * (self.config["speed"] * self.config["scantime"])
+        return x
 
     def pixelsize(self) -> Tuple[float, float]:
         return (self.config["speed"] * self.config["scantime"], self.config["spotsize"])
@@ -84,41 +91,6 @@ class LaserData(object):
         x = self.data.shape[1] * self.pixelsize()[0]
         y = self.data.shape[0] * self.pixelsize()[1]
         return (0.0, x, 0.0, y)
-
-    def convertTrim(
-        self,
-        trim: Union[Tuple[float, float], Tuple[int, int]],
-        unit_from: str = "rows",
-        unit_to: str = "rows",
-    ) -> Union[Tuple[float, float], Tuple[int, int]]:
-        if unit_from != unit_to:
-            if unit_from == "μm":
-                width = self.pixelsize()[0]
-                trim = (trim[0] / width, trim[1] / width)
-            elif unit_from == "s":
-                width = self.config["scantime"]
-                trim = (trim[0] / width, trim[1] / width)
-
-            if unit_to == "μm":
-                width = self.pixelsize()[0]
-                return (trim[0] * width, trim[1] * width)
-            elif unit_to == "s":
-                width = self.config["scantime"]
-                return (trim[0] * width, trim[1] * width)
-
-        return int(trim[0]), int(trim[1])
-
-    def setTrim(
-        self, trim: Union[Tuple[float, float], Tuple[int, int]], unit: str = "rows"
-    ) -> None:
-        """Set the trim value using the provided unit.
-        Valid units are 'rows', 'μm' and 's'."""
-        self.config["trim"] = self.convertTrim(trim, unit_from=unit, unit_to="rows")
-
-    def trimAs(self, unit: str) -> Union[Tuple[float, float], Tuple[int, int]]:
-        """Returns the trim in given unit.
-        Valid units are 'rows', 'μm' and 's'."""
-        return self.convertTrim(self.config["trim"], unit_from="rows", unit_to=unit)
 
     def layers(self) -> int:
         return 1
