@@ -6,7 +6,7 @@ from .export import ExportDialog
 class CSVExportOptions(QtWidgets.QGroupBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__("CSV Options", parent)
-        self.check_trim = QtWidgets.QCheckBox("Trim data.")
+        self.check_trim = QtWidgets.QCheckBox("Trim data to view.")
         self.check_trim.setChecked(True)
         self.check_header = QtWidgets.QCheckBox("Include header.")
         self.check_header.setChecked(True)
@@ -17,10 +17,10 @@ class CSVExportOptions(QtWidgets.QGroupBox):
 
         self.setLayout(options_layout)
 
-    def hasHeader(self) -> bool:
+    def headerChecked(self) -> bool:
         return self.check_header.isChecked()
 
-    def hasTrimmed(self) -> bool:
+    def trimmedChecked(self) -> bool:
         return self.check_header.isChecked()
 
 

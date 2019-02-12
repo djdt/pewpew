@@ -357,12 +357,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
             for path, isotope, _ in paths:
                 if ext == ".csv":
+                    extent = dock.canvas.view if dlg.options.csv.trimChecked() else None
                     io.csv.save(
                         path,
                         dock.laser,
                         isotope,
-                        extent=dock.canvas.getView(),
-                        include_header=dlg.options.csv.hasHeader(),
+                        extent=extent,
+                        include_header=dlg.options.csv.headerChecked(),
                     )
                 elif ext == ".npz":
                     io.npz.save(path, [dock.laser])
@@ -373,9 +374,9 @@ class MainWindow(QtWidgets.QMainWindow):
                         isotope,
                         self.viewconfig,
                         size=dlg.options.png.imagesize(),
-                        include_colorbar=dlg.options.png.hasColorbar(),
-                        include_scalebar=dlg.options.png.hasScalebar(),
-                        include_label=dlg.options.png.hasLabel(),
+                        include_colorbar=dlg.options.png.colorbarChecked(),
+                        include_scalebar=dlg.options.png.scalebarChecked(),
+                        include_label=dlg.options.png.labelChecked(),
                     )
                 elif ext == ".vti":
                     io.npz.save(path, dock.laser)

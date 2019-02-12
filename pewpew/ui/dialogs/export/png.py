@@ -38,13 +38,13 @@ class PNGExportOptions(QtWidgets.QGroupBox):
     def imagesize(self) -> Tuple[int, int]:
         return (int(self.linedit_size_x.text()), int(self.linedit_size_y.text()))
 
-    def hasColorbar(self) -> bool:
+    def colorbarChecked(self) -> bool:
         return self.check_colorbar.isChecked()
 
-    def hasScalebar(self) -> bool:
+    def scalebarChecked(self) -> bool:
         return self.check_scalebar.isChecked()
 
-    def hasLabel(self) -> bool:
+    def labelChecked(self) -> bool:
         return self.check_label.isChecked()
 
 

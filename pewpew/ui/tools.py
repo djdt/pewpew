@@ -271,7 +271,7 @@ class CalibrationTool(ApplyDialog):
 
     def updateCounts(self) -> None:
         data = self.dock.laser.get(
-            self.combo_isotope.currentText(), calibrated=False, extent=self.canvas.getView(),
+            self.combo_isotope.currentText(), calibrated=False, extent=self.canvas.view,
         )
         if len(data) == 1:
             return

@@ -151,7 +151,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         context_menu.addSeparator()
         context_menu.addAction(self.action_calibration)
         context_menu.addAction(self.action_config)
-        context_menu.addAction(self.action_trim)
+        # context_menu.addAction(self.action_trim)
         context_menu.addSeparator()
         context_menu.addAction(self.action_close)
         return context_menu
@@ -201,8 +201,8 @@ class LaserImageDock(QtWidgets.QDockWidget):
             if dlg.exec():
                 paths = dlg.generate_paths(self.laser)
                 extent = None
-                if dlg.options.hasTrimmed():
-                    extent = self.canvas.viewExtents()
+                if dlg.options.trimChecked():
+                    extent = self.canvas.view
                 for path, isotope, _ in paths:
                     io.csv.save(
                         path,
@@ -231,9 +231,9 @@ class LaserImageDock(QtWidgets.QDockWidget):
                         isotope,
                         self.window().viewconfig,
                         size=dlg.options.imagesize(),
-                        include_colorbar=dlg.options.hasColorbar(),
-                        include_scalebar=dlg.options.hasScalebar(),
-                        include_label=dlg.options.hasLabel(),
+                        include_colorbar=dlg.options.colorbarChecked(),
+                        include_scalebar=dlg.options.scalebarChecked(),
+                        include_label=dlg.options.labelChecked(),
                     )
         elif ext == ".vti":
             io.vtk.save(path, self.laser)

@@ -1,7 +1,6 @@
 from PyQt5 import QtCore, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-import numpy as np
 
 from pewpew.lib.formatter import formatIsotope
 from pewpew.lib.plotimage import plotLaserImage
@@ -11,7 +10,7 @@ from matplotlib.backend_bases import MouseEvent, LocationEvent
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
 
@@ -158,6 +157,7 @@ class Canvas(FigureCanvasQTAgg):
         )
         if self.view == (0.0, 0.0, 0.0, 0.0):
             self.view = self.extent
+            self.draw()
         else:
             self.setView(*self.view)
 
@@ -170,12 +170,6 @@ class Canvas(FigureCanvasQTAgg):
         self.ax.set_ylim(y1, y2)
         self.view = (x1, x2, y1, y2)
         self.draw()
-
-    def getView(self, inverted: bool = False) -> Tuple[float, float, float, float]:
-        x1, x2, y1, y2 = self.view
-        if inverted:
-            y2, y1 = self.extent[3] - y1, self.extent[3] - y2
-        return (x1, x2, y1, y2)
 
     def unzoom(self) -> None:
         self.setView(*self.extent)
@@ -226,15 +220,13 @@ class Canvas(FigureCanvasQTAgg):
             y2 += self.drag_origin[1] - event.ydata
             # Bound to image exents
             xmin, xmax, ymin, ymax = self.image.get_extent()
-            draw = False
+            view = self.view
             if x1 > xmin and x2 < xmax:
-                self.ax.set_xlim(x1, x2)
-                draw = True
+                view = (x1, x2, view[2], view[3])
             if y1 > ymin and y2 < ymax:
-                self.ax.set_ylim(y1, y2)
-                draw = True
-            if draw:
-                self.draw()
+                view = (view[0], view[1], y1, y2)
+            if view != self.view:
+                self.setView(*view)
 
     def updateStatusBar(self, e: MouseEvent) -> None:
         if e.inaxes == self.ax:
