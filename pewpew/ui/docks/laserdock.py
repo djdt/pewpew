@@ -201,7 +201,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             if dlg.exec():
                 paths = dlg.generate_paths(self.laser)
                 extent = None
-                if dlg.options.trimChecked():
+                if dlg.options.trimmedChecked():
                     extent = self.canvas.view
                 for path, isotope, _ in paths:
                     io.csv.save(
@@ -209,7 +209,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
                         self.laser,
                         isotope,
                         extent=extent,
-                        include_header=dlg.options.hasHeader(),
+                        include_header=dlg.options.headerChecked(),
                     )
 
         elif ext == ".npz":
@@ -229,7 +229,8 @@ class LaserImageDock(QtWidgets.QDockWidget):
                         path,
                         self.laser,
                         isotope,
-                        self.window().viewconfig,
+                        extent=self.canvas.view,
+                        viewconfig=self.window().viewconfig,
                         size=dlg.options.imagesize(),
                         include_colorbar=dlg.options.colorbarChecked(),
                         include_scalebar=dlg.options.scalebarChecked(),
