@@ -39,7 +39,7 @@ class MainWindow(QtWidgets.QMainWindow):
     INTERPOLATIONS = ["None", "Bilinear", "Bicubic", "Gaussian", "Spline16"]
     FILTERS = ["None", "Rolling mean", "Rolling median"]
     DEFAULT_VIEW_CONFIG = {
-        "cmap": {"type": "ppSpectral", "range": ("2%", "98%")},
+        "cmap": {"type": "magma", "range": ("1%", "99%")},
         "filtering": {"type": "None", "window": (5, 5), "threshold": 5},
         "interpolation": "None",
         "font": {"size": 12},
@@ -357,7 +357,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
             for path, isotope, _ in paths:
                 if ext == ".csv":
-                    extent = dock.canvas.view if dlg.options.csv.trimChecked() else None
+                    extent = (
+                        dock.canvas.view if dlg.options.csv.trimmedChecked() else None
+                    )
                     io.csv.save(
                         path,
                         dock.laser,
@@ -372,7 +374,8 @@ class MainWindow(QtWidgets.QMainWindow):
                         path,
                         dock.laser,
                         isotope,
-                        self.viewconfig,
+                        viewconfig=self.viewconfig,
+                        extent=dock.canvas.view,
                         size=dlg.options.png.imagesize(),
                         include_colorbar=dlg.options.png.colorbarChecked(),
                         include_scalebar=dlg.options.png.scalebarChecked(),
