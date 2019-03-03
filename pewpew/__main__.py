@@ -8,27 +8,59 @@ from typing import List, Tuple
 from pewpew.lib.laser import LaserData
 
 
-def subPixelOffset(d: List[np.ndarray], x_offsets: np.ndarray, y_offsets: np.ndarray) -> np.nd.array:
-    xgcd = 
-    pass
+# def subPixelOffset(d: List[np.ndarray], x_offsets: np.ndarray, y_offsets: np.ndarray) -> np.nd.array:
+#     x_offsets = (x_offsets * 100.0).astype(np.int)
+#     xgcd = np.gcd.reduce(x_offsets)
+#     xpixsize = 100 // xgcd
+#     pass
+
+
+def subpixelOffset(
+    images: List[np.ndarray], offsets: List[int], pixelsize: int
+) -> np.ndarray:
+    if offsets[0] != 0:  # The zero offset
+        offsets.insert(0, 0)
+    overlap = np.max(offsets)
+    shape = images[0].shape
+    dtype = images[0].dtype
+    print(shape)
+
+    for img in images:
+        if img.ndim != 2:
+            raise ValueError("Array must be 2 dimensional.")
+        if img.shape != shape:
+            raise ValueError("Arrays must have same shape.")
+        if img.dtype != dtype:
+            raise ValueError("Arrays must have same dtype.")
+
+    data = np.zeros(
+        (shape[0] * pixelsize + overlap, shape[1] * pixelsize + overlap, len(images)),
+        dtype=dtype,
+    )
+    for i, img in enumerate(images):
+        start = offsets[i % len(offsets)]
+        end = -(overlap - start) or None
+        data[start:end, start:end, i] = np.repeat(img, pixelsize, axis=0).repeat(
+            pixelsize, axis=1
+        )
+
+    print(data.shape)
+    return data
+
+
+# def subpixelEqualOffset(images: List[np.ndarray]) -> np.ndarray:
+    # return subpixelOffset(images, np.arange(0, len(images), 1))
+
 
 def krissKrossLayers(
-    layers: List[np.ndarray],
-    offset: Tuple[float, float],
-    aspect: float,
-    warmup: int,
-    horizontal_first: bool = True,
+    layers: List[np.ndarray], aspect: float, warmup: int, horizontal_first: bool = True
 ) -> np.ndarray:
 
     j = 0 if horizontal_first else 1
-    # aspect = int(aspect)
-    # trim = int(aspect / 2)
+    aspect = int(aspect)
+    trim = int(aspect / 2)
     # Calculate the line lengths
-    # length = (layers[1].shape[0] * aspect, layers[0].shape[0] * aspect)
-    offset = np.array(offset) * 100
-    gcd = np.gcd(offset.astype(np.int), 100)
-    subpix_offset = 100 // gcd
-    pix_size = offset // gcd
+    length = (layers[1].shape[0] * aspect, layers[0].shape[0] * aspect)
 
     # Reshape the layers and stack into matrix
     transformed = []
@@ -46,63 +78,64 @@ def krissKrossLayers(
 
         transformed.append(layer)
 
-    for t in transformed:
-        print(t.shape)
-    data = np.dstack(transformed)
-
-    return data
+    return np.dstack(transformed)
 
 
 if __name__ == "__main__":
-    config = dict(LaserData.DEFAULT_CONFIG)
-    config["spotsize"] = 30.0
-    config["speed"] = 120.0
-    config["scantime"] = 0.25
-
-    horz = LaserData(
-        np.array(
-            [
-                [(1), (1), (0), (0), (1), (1), (0), (0), (1), (1)],
-                [(0), (0), (1), (1), (0), (0), (1), (1), (0), (0)],
-                [(1), (1), (0), (0), (1), (1), (0), (0), (1), (1)],
-                [(0), (0), (1), (1), (0), (0), (1), (1), (0), (0)],
-                [(1), (1), (0), (0), (1), (1), (0), (0), (1), (1)],
-            ],
-            dtype=[("a", np.float64)],
-        ),
-        config,
-    )
-    vert = LaserData(
-        np.array(
-            [
-                [(0), (0), (0), (0), (0), (0), (0), (0), (0), (0)],
-                [(0), (0), (1), (1), (1), (1), (1), (1), (0), (0)],
-                [(0), (0), (1), (1), (0), (0), (1), (1), (0), (0)],
-                [(0), (0), (1), (1), (1), (1), (1), (1), (0), (0)],
-                [(0), (0), (0), (0), (0), (0), (0), (0), (0), (0)],
-            ],
-            dtype=[("a", np.float64)],
-        ),
-        config,
-    )
-    # from pewpew.lib.io import agilent
-    # horz = agilent.load("/home/tom/Downloads/raw/Horz.b", config)
-    # vert = agilent.load("/home/tom/Downloads/raw/Vert.b", config)
-
-    data = krissKrossLayers([l.data for l in [horz, vert]], 2, 0)
-
     import matplotlib.pyplot as plt
 
-    plt.imshow(data["a"].mean(axis=2))
+    config = dict(LaserData.DEFAULT_CONFIG)
+    config["spotsize"] = 10.0
+    config["speed"] = 10.0
+    config["scantime"] = 0.1
 
+    h = np.array(
+        [
+            [(1), (1), (1), (1), (1)],
+            [(0), (0), (0), (0), (0)],
+            [(1), (1), (1), (1), (1)],
+            [(0), (0), (0), (0), (0)],
+            [(1), (1), (1), (1), (1)],
+        ],
+        dtype=np.float64,
+    )
+    v = np.array(
+        [
+            [(1), (0), (1), (0), (1)],
+            [(1), (0), (1), (0), (1)],
+            [(1), (0), (1), (0), (1)],
+            [(1), (0), (1), (0), (1)],
+            [(1), (0), (1), (0), (1)],
+        ],
+        dtype=np.float64,
+    )
+
+    # d = subpixelEqualOffset([h, v])
+    d = subpixelOffset([h, v, h, v, h, v, h, v, h, v], [1], 16)
+    plt.imshow(d.mean(axis=2))
     plt.show()
+    from pewpew.lib.io import agilent
+
+    horz = agilent.load("/home/tom/Downloads/raw/Horz.b", config)
+    vert = agilent.load("/home/tom/Downloads/raw/Vert.b", config)
+
+    print(horz.data.shape)
+    print(vert.data.shape)
+
+    # data = krissKrossLayers([l.data for l in [horz, vert]], 2, 0)
+
+    # import matplotlib.pyplot as plt
+
+    # plt.imshow(data["a"].mean(axis=2))
+
+    # plt.show()
 
 
-# if __name__ == "__main__":
-#     app = QApplication(sys.argv)[]
+# # if __name__ == "__main__":
+# #     app = QApplication(sys.argv)[]
 
-#     window = MainWindow()
-#     sys.excepthook = window.exceptHook  # type: ignore
-#     window.show()
+# #     window = MainWindow()
+# #     sys.excepthook = window.exceptHook  # type: ignore
+# #     window.show()
 
-#     app.exec()
+# #     app.exec()
