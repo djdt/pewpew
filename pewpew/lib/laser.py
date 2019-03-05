@@ -95,11 +95,3 @@ class LaserData(object):
 
     def layers(self) -> int:
         return 1
-
-
-class KrissKrossData(LaserData):
-    def pixelsize(self) -> Tuple[float, float]:
-        return (
-            self.config["speed"] * self.config["scantime"],
-            self.config["spotsize"] / self.aspect(),
-        )
