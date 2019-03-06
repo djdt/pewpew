@@ -271,7 +271,7 @@ class CalibrationTool(ApplyDialog):
 
     def updateCounts(self) -> None:
         data = self.dock.laser.get(
-            self.combo_isotope.currentText(), calibrated=False, extent=self.canvas.view,
+            self.combo_isotope.currentText(), calibrated=False, extent=self.canvas.view
         )
         if len(data) == 1:
             return
@@ -425,14 +425,14 @@ class CalibrationTool(ApplyDialog):
         if self.lineedit_left.text() == "":
             trim_left = 0.0
         else:
-            trim_left = self.dock.laser.convertRow(
+            trim_left = self.dock.laser.convert(
                 float(self.lineedit_left.text()),
                 unit_from=self.combo_trim.currentText(),
                 unit_to="um",
             )
         trim_right = self.dock.laser.extent()[1]
         if self.lineedit_right.text() != "":
-            trim_right -= self.dock.laser.convertRow(
+            trim_right -= self.dock.laser.convert(
                 float(self.lineedit_right.text()),
                 unit_from=self.combo_trim.currentText(),
                 unit_to="um",

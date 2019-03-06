@@ -268,9 +268,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dockarea.addDockWidgets(docks)
 
     def menuImportAgilent(self) -> None:
-        paths = MultipleDirDialog.getExistingDirectories("Batch Directories", "", self)
-        if len(paths) == 0:
-            return
+        paths = MultipleDirDialog.getExistingDirectories(self, "Batch Directories", "")
         docks = []
         for path in paths:
             try:

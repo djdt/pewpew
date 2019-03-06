@@ -66,7 +66,7 @@ class LaserData(object):
 
         return data
 
-    def convertRow(self, x: float, unit_from: str, unit_to: str) -> float:
+    def convert(self, x: float, unit_from: str, unit_to: str) -> float:
         # Convert into rows
         if unit_from in ["s", "seconds"]:
             x = x / self.config["scantime"]

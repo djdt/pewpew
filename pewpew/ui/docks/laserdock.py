@@ -4,7 +4,7 @@ import copy
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from pewpew.ui.widgets import Canvas, OverwriteFilePrompt
-from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog, TrimDialog
+from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog
 from pewpew.ui.dialogs.export import CSVExportDialog, PNGExportDialog
 
 from pewpew.lib import io

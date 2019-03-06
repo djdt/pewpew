@@ -3,7 +3,7 @@ from fractions import Fraction
 
 from pewpew.lib.laser import LaserData
 
-from typing import List, Tuple
+from typing import List, Tuple, Type, TypeVar
 
 
 def subpixelOffset(
@@ -70,6 +70,9 @@ def krissKrossLayers(
     return subpixelEqualOffset(aligned, [o // gcd for o in offsets], stretch), stretch
 
 
+KKType = TypeVar("KKType", bound="KrissKrossData")  # For typing
+
+
 class KrissKrossData(LaserData):
     def __init__(
         self,
@@ -83,19 +86,6 @@ class KrissKrossData(LaserData):
         super().__init__(
             data=data, config=config, calibration=calibration, name=name, source=source
         )
-
-    def fromLayers(
-        self,
-        layers: List[np.ndarray],
-        offsets: List[Fraction],
-        warmup_time: float = 13.0,
-        horizontal_first: bool = True,
-    ) -> None:
-        warmup = int(warmup_time / self.config["scantime"])
-        self.data, s = krissKrossLayers(
-            layers, int(self.aspect()), warmup, offsets, horizontal_first
-        )
-        self.stretch = (s, s)
 
     def get(
         self,
@@ -117,3 +107,24 @@ class KrissKrossData(LaserData):
 
     def layers(self) -> int:
         return self.data.shape[2]
+
+    @classmethod
+    def fromLayers(
+        cls: Type[KKType],
+        layers: List[np.ndarray],
+        config: dict,
+        calibration: dict = None,
+        name: str = "",
+        source: str = "",
+        offsets: List[Fraction] = [Fraction(1, 2)],
+        warmup_time: float = 12.0,
+        horizontal_first: bool = True,
+    ) -> KKType:
+        warmup = int(warmup_time / config["scantime"])
+        aspect = int(config["spotsize"] / (config["speed"] * config["scantime"]))
+        data, stretch = krissKrossLayers(
+            layers, aspect, warmup, offsets, horizontal_first
+        )
+        kkd = cls(data, config, calibration, name, source)
+        kkd.stretch = (stretch, stretch)
+        return kkd

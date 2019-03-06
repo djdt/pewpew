@@ -1,6 +1,10 @@
 import os
+from fractions import Fraction
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
+
+from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
+from pewpew.ui.validators import DecimalValidator, IntListValidator
 
 from pewpew.lib.krisskross import KrissKrossData
 from pewpew.lib import io
@@ -12,7 +16,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
     def __init__(self, config: dict, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        self.data: KrissKrossData = None
+        self.data: KrissKrossData = KrissKrossData()
 
         self.addPage(KrissKrossStartPage())
         self.addPage(KrissKrossImportPage())
@@ -45,20 +49,18 @@ class KrissKrossWizard(QtWidgets.QWizard):
             calibration = self.layers[0].calibration
         elif self.field("radio_agilent"):
             for path in paths:
-                layers.append(io.agilent.load(path, None))
+                layers.append(io.agilent.load(path, config))
         elif self.field("radio_thermo"):
             for path in paths:
-                layers.append(io.thermo.load(path, None))
+                layers.append(io.thermo.load(path, config))
 
-        self.data = KrissKrossData(
-            None,
+        self.data = KrissKrossData.fromLayers(
+            [layer.data for layer in layers],
             config=config,
             calibration=calibration,
             name=os.path.splitext(os.path.basename(paths[0]))[0],
             source=paths[0],
-        )
-        self.data.fromLayers(
-            [layer.data for layer in layers],
+            offsets=self.field("offsets"),
             warmup_time=float(self.field("lineedit_warmup")),
             horizontal_first=self.field("check_horizontal"),
         )
@@ -124,8 +126,8 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
         check_horizontal.setChecked(True)
         self.registerField("check_horizontal", check_horizontal)
 
-        self.lineedit_warmup = QtWidgets.QLineEdit(str(13.0))
-        self.lineedit_warmup.setValidator(QtGui.QDoubleValidator(0, 1e2, 2))
+        self.lineedit_warmup = QtWidgets.QLineEdit("12.0")
+        self.lineedit_warmup.setValidator(DecimalValidator(0, 1e2, 2))
         self.lineedit_warmup.textChanged.connect(self.completeChanged)
         self.registerField("lineedit_warmup", self.lineedit_warmup)
         warmup_layout = QtWidgets.QHBoxLayout()
@@ -157,12 +159,7 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
                 self, "Select Files", "" "Numpy archives(*.npz);;All files(*)"
             )
         elif self.field("radio_agilent"):
-            path = QtWidgets.QFileDialog.getExistingDirectory(
-                self, "Select Batch", "", QtWidgets.QFileDialog.ShowDirsOnly
-            )
-            if len(path) == 0:
-                return
-            paths = [path]
+            paths = MultipleDirDialog.getExistingDirectories(self, "Select Batches", "")
         elif self.field("radio_thermo"):
             paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
                 self, "Select Files", "" "CSV files(*.csv);;All files(*)"
@@ -172,9 +169,7 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
             self.list.addItem(path)
 
     def buttonAddAll(self) -> None:
-        path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, "Select Directory", "", QtWidgets.QFileDialog.DontUseNativeDialog
-        )
+        path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory", "")
         if len(path) == 0:
             return
         files = os.listdir(path)
@@ -199,9 +194,9 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
                 self.list.takeItem(self.list.row(item))
         super().keyPressEvent(event)
 
-    def initializePage(self) -> None:
-        # No need for config if numpy are used
-        self.setFinalPage(self.field("radio_numpy"))
+    # def initializePage(self) -> None:
+    #     # No need for config if numpy are used
+    #     self.setFinalPage(self.field("radio_numpy"))
 
     def isComplete(self) -> bool:
         return self.list.count() >= 2 and len(self.lineedit_warmup.text()) > 0
@@ -222,24 +217,41 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
 
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setPlaceholderText(str(config["spotsize"]))
-        self.lineedit_spotsize.setValidator(QtGui.QDoubleValidator(0, 1e3, 4))
+        self.lineedit_spotsize.setValidator(DecimalValidator(0, 1e3, 4))
         self.lineedit_speed = QtWidgets.QLineEdit()
         self.lineedit_speed.setPlaceholderText(str(config["speed"]))
-        self.lineedit_speed.setValidator(QtGui.QDoubleValidator(0, 1e3, 4))
+        self.lineedit_speed.setValidator(DecimalValidator(0, 1e3, 4))
         self.lineedit_scantime = QtWidgets.QLineEdit()
         self.lineedit_scantime.setPlaceholderText(str(config["scantime"]))
-        self.lineedit_scantime.setValidator(QtGui.QDoubleValidator(0, 1e3, 4))
+        self.lineedit_scantime.setValidator(DecimalValidator(0, 1e3, 4))
+
+        self.lineedit_offsets = QtWidgets.QLineEdit()
+        self.lineedit_offsets.setText("2")
+        self.lineedit_offsets.setValidator(IntListValidator(0, 100, ','))
+        self.lineedit_offsets.setToolTip("Comma separated list of fractional pixel offsets.")
 
         # Form layout for line edits
-        form_layout = QtWidgets.QFormLayout()
-        form_layout.addRow("Spotsize (μm):", self.lineedit_spotsize)
-        form_layout.addRow("Speed (μm):", self.lineedit_speed)
-        form_layout.addRow("Scantime (s):", self.lineedit_scantime)
+        config_layout = QtWidgets.QFormLayout()
+        config_layout.addRow("Spotsize (μm):", self.lineedit_spotsize)
+        config_layout.addRow("Speed (μm):", self.lineedit_speed)
+        config_layout.addRow("Scantime (s):", self.lineedit_scantime)
+
+        config_gbox = QtWidgets.QGroupBox("Laser Configuration", self)
+        config_gbox.setLayout(config_layout)
+
+        params_layout = QtWidgets.QFormLayout()
+        params_layout.addRow("Offsets:", self.lineedit_offsets)
+
+        params_gbox = QtWidgets.QGroupBox("KK Parameters", self)
+        params_gbox.setLayout(params_layout)
+
         layout = QtWidgets.QVBoxLayout()
-        layout.addLayout(form_layout)
+        layout.addWidget(config_gbox)
+        layout.addWidget(params_gbox)
         self.setLayout(layout)
 
         self.registerField("config", self, "config")
+        self.registerField("offsets", self, "offsets")
 
     @QtCore.pyqtProperty(QtCore.QVariant)
     def config(self) -> dict:
@@ -250,3 +262,7 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
         if self.lineedit_scantime.text() != "":
             self.dconfig["scantime"] = float(self.lineedit_scantime.text())
         return self.dconfig
+
+    @QtCore.pyqtProperty(QtCore.QVariant)
+    def offsets(self) -> List[Fraction]:
+        return [Fraction(1, int(x)) for x in self.lineedit_offsets.text().split(',')]

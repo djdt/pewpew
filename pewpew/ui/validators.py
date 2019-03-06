@@ -11,6 +11,14 @@ class DecimalValidator(QtGui.QDoubleValidator):
         self.setNotation(QtGui.QDoubleValidator.StandardNotation)
 
 
+class DecimalValidatorNoZero(DecimalValidator):
+    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
+        result = super().validate(input, pos)
+        if result[0] == QtGui.QValidator.Acceptable and float(input) == 0.0:
+            result = (QtGui.QValidator.Invalid, input, pos)
+        return result
+
+
 class PercentOrDecimalValidator(DecimalValidator):
     def __init__(
         self,
@@ -40,12 +48,35 @@ class PercentOrDecimalValidator(DecimalValidator):
         return super().validate(input, pos)
 
 
-class DecimalValidatorNoZero(DecimalValidator):
+class IntListValidator(QtGui.QIntValidator):
+    def __init__(
+        self,
+        bottom: int,
+        top: int,
+        delimiter: str = ",",
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(bottom, top, parent)
+        self.delimiter = delimiter
+
     def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
-        result = super().validate(input, pos)
-        if result[0] == QtGui.QValidator.Acceptable and float(input) == 0.0:
-            result = (QtGui.QValidator.Invalid, input, pos)
-        return result
+        tokens = input.split(self.delimiter)
+        intermediate = False
+
+        for token in tokens:
+            result = super().validate(token, 0)[0]
+            if result == QtGui.QValidator.Invalid:
+                return (result, input, pos)
+            elif result == QtGui.QValidator.Intermediate:
+                intermediate = True
+
+        return (
+            QtGui.QValidator.Intermediate
+            if intermediate
+            else QtGui.QValidator.Acceptable,
+            input,
+            pos,
+        )
 
 
 class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):

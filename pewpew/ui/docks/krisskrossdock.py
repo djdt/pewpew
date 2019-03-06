@@ -10,13 +10,8 @@ class KrissKrossImageDock(LaserImageDock):
 
         super().__init__(kkdata, parent)
         self.setWindowTitle(f"kk:{self.laser.name}")
-
         # Config cannot be changed for krisskross images
         self.action_config.setEnabled(False)
-        self.action_trim.setEnabled(False)
 
     def onMenuConfig(self) -> None:
-        pass
-
-    def onMenuTrim(self) -> None:
         pass
