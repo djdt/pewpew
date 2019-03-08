@@ -101,8 +101,8 @@ class KrissKrossData(LaserData):
 
     def pixelsize(self) -> Tuple[float, float]:
         return (
-            self.config["speed"] * self.config["scantime"] / self.stretch[0],
-            self.config["spotsize"] / self.aspect() / self.stretch[1],
+            (self.config["speed"] * self.config["scantime"]) / self.stretch[0],
+            self.config["spotsize"] / (self.aspect() * self.stretch[1]),
         )
 
     def layers(self) -> int:
