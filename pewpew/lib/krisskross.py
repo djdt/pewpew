@@ -116,7 +116,7 @@ class KrissKrossData(LaserData):
         calibration: dict = None,
         name: str = "",
         source: str = "",
-        offsets: List[Fraction] = [Fraction(1, 2)],
+        offsets: List[Fraction] = [Fraction(0, 2), Fraction(1, 2)],
         warmup_time: float = 12.0,
         horizontal_first: bool = True,
     ) -> KKType:

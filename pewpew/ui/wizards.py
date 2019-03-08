@@ -225,10 +225,13 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
         self.lineedit_scantime.setPlaceholderText(str(config["scantime"]))
         self.lineedit_scantime.setValidator(DecimalValidator(0, 1e3, 4))
 
-        self.lineedit_offsets = QtWidgets.QLineEdit()
-        self.lineedit_offsets.setText("2")
-        self.lineedit_offsets.setValidator(IntListValidator(0, 100, ','))
-        self.lineedit_offsets.setToolTip("Comma separated list of fractional pixel offsets.")
+        self.spinbox_offsets = QtWidgets.QSpinBox()
+        self.spinbox_offsets.setRange(2, 10)
+        # self.registerField('spinbox_offsets', self.spinbox_offsets)
+        # self.lineedit_offsets = QtWidgets.QLineEdit()
+        # self.lineedit_offsets.setText("2")
+        # self.lineedit_offsets.setValidator(IntListValidator(0, 100, ','))
+        # self.lineedit_offsets.setToolTip("Comma separated list of fractional pixel offsets.")
 
         # Form layout for line edits
         config_layout = QtWidgets.QFormLayout()
@@ -240,7 +243,7 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
         config_gbox.setLayout(config_layout)
 
         params_layout = QtWidgets.QFormLayout()
-        params_layout.addRow("Offsets:", self.lineedit_offsets)
+        params_layout.addRow("Subpixel offsets:", self.spinbox_offsets)
 
         params_gbox = QtWidgets.QGroupBox("KK Parameters", self)
         params_gbox.setLayout(params_layout)
@@ -265,4 +268,6 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
 
     @QtCore.pyqtProperty(QtCore.QVariant)
     def offsets(self) -> List[Fraction]:
-        return [Fraction(1, int(x)) for x in self.lineedit_offsets.text().split(',')]
+        v = self.spinbox_offsets.value()
+        return [Fraction(i, v) for i in range(0, v)]
+        # return [Fraction(1, int(x)) for x in self.lineedit_offsets.text().split(',')]
