@@ -20,12 +20,24 @@ class ApplyDialog(QtWidgets.QDialog):
         sb = self.button_box.standardButton(button)
 
         if sb == QtWidgets.QDialogButtonBox.Apply:
-            self.apply()
-            self.applyPressed.emit(self)
+            if self.complete():
+                self.apply()
+                self.applyPressed.emit(self)
+            else:
+                self.error()
         elif sb == QtWidgets.QDialogButtonBox.Ok:
-            self.accept()
+            if self.complete():
+                self.accept()
+            else:
+                self.error()
         else:
             self.reject()
 
     def apply(self) -> None:
+        pass
+
+    def complete(self) -> bool:
+        return True
+
+    def error(self) -> None:
         pass
