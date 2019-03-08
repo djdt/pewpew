@@ -2,41 +2,9 @@ import numpy as np
 from fractions import Fraction
 
 from pewpew.lib.laser import LaserData
+from pewpew.lib.calc import subpixel_offset_equal
 
 from typing import List, Tuple, Type, TypeVar
-
-
-def subpixelOffset(
-    images: List[np.ndarray], offsets: List[Tuple[int, int]], pixelsize: Tuple[int, int]
-) -> np.ndarray:
-    if offsets[0] != (0, 0):  # The zero offset
-        offsets.insert(0, (0, 0))
-    overlap = np.max(offsets, axis=0)
-    shape = images[0].shape
-    dtype = images[0].dtype
-
-    for img in images:
-        if img.shape != shape:
-            raise ValueError("Arrays must have same shape.")
-        if img.dtype != dtype:
-            raise ValueError("Arrays must have same dtype.")
-
-    new_shape = np.array(shape) * pixelsize + overlap
-    data = np.zeros((*new_shape, len(images)), dtype=dtype)
-    for i, img in enumerate(images):
-        start = offsets[i % len(offsets)]
-        end = -(overlap[0] - start[0]) or None, -(overlap[1] - start[1]) or None
-        data[start[0] : end[0], start[1] : end[1], i] = np.repeat(
-            img, pixelsize[0], axis=0
-        ).repeat(pixelsize[1], axis=1)
-
-    return data
-
-
-def subpixelEqualOffset(
-    images: List[np.ndarray], offsets: List[int], pixelsize: int
-) -> np.ndarray:
-    return subpixelOffset(images, [(o, o) for o in offsets], (pixelsize, pixelsize))
 
 
 def krissKrossLayers(
@@ -52,7 +20,7 @@ def krissKrossLayers(
     length = (layers[1].shape[0] * aspect, layers[0].shape[0] * aspect)
 
     # Reshape the layers and stack into matrix
-    aligned = []
+    aligned = np.empty((length[1], length[0], len(layers)), dtype=layers[0].dtype)
     for i, layer in enumerate(layers):
         # Trim data of warmup time and excess
         layer = layer[:, warmup : warmup + length[(i + j) % 2]]
@@ -61,13 +29,13 @@ def krissKrossLayers(
         # Flip vertical layers
         if (i + j) % 2 == 1:
             layer = layer.T
-        aligned.append(layer)
+        aligned[:, :, i] = layer
 
     # Calculate the require pixel stretch
     gcd = np.gcd.reduce(offsets)
     stretch = (gcd * aspect).limit_denominator().denominator
 
-    return subpixelEqualOffset(aligned, [o // gcd for o in offsets], stretch), stretch
+    return subpixel_offset_equal(aligned, [o // gcd for o in offsets], stretch), stretch
 
 
 KKType = TypeVar("KKType", bound="KrissKrossData")  # For typing
