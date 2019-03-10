@@ -69,8 +69,8 @@ class KrissKrossData(LaserData):
 
     def pixelsize(self) -> Tuple[float, float]:
         return (
-            self.config["speed"] * self.config["scantime"] / self.stretch[0],
-            self.config["spotsize"] / self.aspect() / self.stretch[1],
+            (self.config["speed"] * self.config["scantime"]) / self.stretch[0],
+            self.config["spotsize"] / (self.aspect() * self.stretch[1]),
         )
 
     def layers(self) -> int:
@@ -84,7 +84,7 @@ class KrissKrossData(LaserData):
         calibration: dict = None,
         name: str = "",
         source: str = "",
-        offsets: List[Fraction] = [Fraction(1, 2)],
+        offsets: List[Fraction] = [Fraction(0, 2), Fraction(1, 2)],
         warmup_time: float = 12.0,
         horizontal_first: bool = True,
     ) -> KKType:

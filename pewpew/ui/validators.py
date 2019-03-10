@@ -10,6 +10,12 @@ class DecimalValidator(QtGui.QDoubleValidator):
         super().__init__(bottom, top, decimals, parent)
         self.setNotation(QtGui.QDoubleValidator.StandardNotation)
 
+    # Make comma invalid.
+    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
+        if ',' in input:
+            return (QtGui.QValidator.Invalid, input, pos)
+        return super().validate(input, pos)
+
 
 class DecimalValidatorNoZero(DecimalValidator):
     def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
