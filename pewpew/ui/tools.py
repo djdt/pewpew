@@ -96,6 +96,49 @@ class CalibrationCanvas(Canvas):
         self.draw()
 
 
+class ResultsBox(QtWidgets.QGroupBox):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__("Results", parent)
+        # self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+
+        # def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+        #     if event.button() == QtCore.Qt.RightButton:
+        #         pass
+        labels = ["RSQ", "Intercept", "Gradient"]
+        self.linedits: List[QtWidgets.QLineEdit] = []
+
+        layout = QtWidgets.QFormLayout()
+
+        for label in labels:
+            le = QtWidgets.QLineEdit()
+            le.setReadOnly(True)
+            le.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+            le.customContextMenuRequested.connect(self.lineeditContextEvent)
+
+            layout.addRow(label, le)
+            self.linedits.append(le)
+
+        self.setLayout(layout)
+
+    def lineeditContextEvent(self, pos: QtCore.QPoint) -> None:
+        self.contextMenuEvent(QtGui.QContextMenuEvent(2, pos))
+
+    def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+        for le in self.linedits:
+            if le.underMouse():
+                print("le")
+                break
+        menu = QtWidgets.QMenu(self)
+
+        copy_action = QtWidgets.QAction("Copy", self)
+        stats_action = QtWidgets.QAction("Copy Stats", self)
+
+        menu.addAction(copy_action)
+        menu.addAction(stats_action)
+
+        menu.exec(event.globalPos())
+
+
 class CalibrationTool(ApplyDialog):
     def __init__(
         self,
@@ -125,9 +168,11 @@ class CalibrationTool(ApplyDialog):
         self.combo_weighting = QtWidgets.QComboBox()
         self.combo_averaging = QtWidgets.QComboBox()
 
-        self.lineedit_gradient = QtWidgets.QLineEdit()
-        self.lineedit_intercept = QtWidgets.QLineEdit()
-        self.lineedit_rsq = QtWidgets.QLineEdit()
+        # self.lineedit_gradient = QtWidgets.QLineEdit()
+        # self.lineedit_intercept = QtWidgets.QLineEdit()
+        # self.lineedit_rsq = QtWidgets.QLineEdit()
+        # self.box_result = QtWidgets.QGroupBox("Result")
+        self.box_result = ResultsBox()
 
         # Right side
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
@@ -169,9 +214,9 @@ class CalibrationTool(ApplyDialog):
         self.table.itemChanged.connect(self.tableItemChanged)
         self.table.setRowCount(5)
 
-        self.lineedit_gradient.setReadOnly(True)
-        self.lineedit_intercept.setReadOnly(True)
-        self.lineedit_rsq.setReadOnly(True)
+        # self.lineedit_gradient.setReadOnly(True)
+        # self.lineedit_intercept.setReadOnly(True)
+        # self.lineedit_rsq.setReadOnly(True)
 
         self.button_laser.pressed.connect(self.buttonLaser)
 
@@ -198,19 +243,11 @@ class CalibrationTool(ApplyDialog):
         layout_table_form.addRow("Weighting:", self.combo_weighting)
         layout_table_form.addRow("Averaging:", self.combo_averaging)
 
-        layout_result_form = QtWidgets.QFormLayout()
-        layout_result_form.addRow("RSQ:", self.lineedit_rsq)
-        layout_result_form.addRow("Intercept:", self.lineedit_intercept)
-        layout_result_form.addRow("Gradient:", self.lineedit_gradient)
-
-        box_result = QtWidgets.QGroupBox("Result")
-        box_result.setLayout(layout_result_form)
-
         layout_left = QtWidgets.QVBoxLayout()
         layout_left.addLayout(layout_cal_form)
         layout_left.addWidget(self.table)
         layout_left.addLayout(layout_table_form)
-        layout_left.addWidget(box_result)
+        layout_left.addWidget(self.box_result)
 
         layout_box_trim = QtWidgets.QHBoxLayout()
         layout_box_trim.addWidget(QtWidgets.QLabel("Left:"))
