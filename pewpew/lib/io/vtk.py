@@ -4,14 +4,15 @@ import numpy as np
 from pewpew.lib.laser import LaserData
 
 
-# TODO check that x and y aren't flipped
 # TODO implement extent export
 
 
 def save(path: str, laser: LaserData) -> None:
     """Save data as a VTK ImageData XML."""
 
-    data = np.reshape(laser.data, (*laser.data.shape, 1))
+    data = laser.data
+    if data.ndim < 3:
+        data = np.reshape(data, (*data.shape, 1))
     nx, ny, nz = data.shape
 
     endian = "LittleEndian" if sys.byteorder == "little" else "BigEndian"
