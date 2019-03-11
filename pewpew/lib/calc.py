@@ -13,8 +13,8 @@ def fft_filter(x: np.ndarray, threshold: float = 0.1, amplitude: float = 0.01) -
 
 def rolling_mean_filter(
     x: np.ndarray, window: Tuple[int, int], threshold: int = 3
-) -> None:
-    """Inplace rolling mean filter an array.
+) -> np.ndarray:
+    """Rolling mean filter an array.
 
     The window size should be an integer divisor of the array size.
 
@@ -23,6 +23,7 @@ def rolling_mean_filter(
         threshold: σ's value must be from mean to be an outlier.
 
     """
+    x = x.copy()
     # Create view
     roll = rolling_window(x, window)
     # Distance from mean (in stdevs)
@@ -34,12 +35,13 @@ def rolling_mean_filter(
     means = np.nanmean(roll, axis=(2, 3), keepdims=True)
     # Replace all outliers and copy back into view
     np.copyto(roll, means, where=diffs > threshold)
+    return x
 
 
 def rolling_median_filter(
     x: np.ndarray, window: Tuple[int, int], threshold: int = 3
-) -> None:
-    """Inplace rolling median filter an array.
+) -> np.ndarray:
+    """Rolling median filter an array.
 
     The window size should be an integer divisor of the array size.
 
@@ -48,6 +50,7 @@ def rolling_median_filter(
         threshold: N-distance's from median to be considered outlier.
 
     """
+    x = x.copy()
     # Create view
     roll = rolling_window(x, window)
     # Distance from the median
@@ -59,6 +62,8 @@ def rolling_median_filter(
     diffs = np.divide(diffs, median_diffs, where=median_diffs != 0)
     # Replace all over threshold and copy back into view
     np.copyto(roll, medians, where=diffs > threshold)
+
+    return x
 
 
 def rolling_window(x: np.ndarray, window: Tuple[int, int]) -> np.ndarray:

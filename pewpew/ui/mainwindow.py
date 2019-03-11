@@ -40,7 +40,7 @@ class MainWindow(QtWidgets.QMainWindow):
     FILTERS = ["None", "Rolling mean", "Rolling median"]
     DEFAULT_VIEW_CONFIG = {
         "cmap": {"type": "magma", "range": ("1%", "99%")},
-        "filtering": {"type": "None", "window": (5, 5), "threshold": 5},
+        "filtering": {"type": "None", "window": (3, 3), "threshold": 9},
         "interpolation": "None",
         "font": {"size": 12},
     }

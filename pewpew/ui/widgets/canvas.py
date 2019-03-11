@@ -126,12 +126,11 @@ class Canvas(FigureCanvasQTAgg):
             filter_type, window, threshold = (
                 viewconfig["filtering"][x] for x in ["type", "window", "threshold"]
             )
-            data = data.copy()
             if filter_type == "Rolling mean":
                 # rolling_mean_filter(data, window, threshold)
-                fft_filter(data)
+                data = rolling_mean_filter(data, window, threshold)
             elif filter_type == "Rolling median":
-                rolling_median_filter(data, window, threshold)
+                data = rolling_median_filter(data, window, threshold)
 
         self.extent = laser.extent()
 
