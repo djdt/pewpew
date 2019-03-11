@@ -5,6 +5,7 @@ from pewpew.lib.laser import LaserData
 
 
 # TODO implement extent export
+# TODO stretch not used for pixel extent / size
 
 
 def save(path: str, laser: LaserData) -> None:

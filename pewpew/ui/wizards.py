@@ -227,6 +227,7 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
 
         self.spinbox_offsets = QtWidgets.QSpinBox()
         self.spinbox_offsets.setRange(2, 10)
+        self.spinbox_offsets.setToolTip("The number of subpixels per pixel in one dimension.")
         # self.registerField('spinbox_offsets', self.spinbox_offsets)
         # self.lineedit_offsets = QtWidgets.QLineEdit()
         # self.lineedit_offsets.setText("2")
@@ -243,7 +244,7 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
         config_gbox.setLayout(config_layout)
 
         params_layout = QtWidgets.QFormLayout()
-        params_layout.addRow("Subpixel offsets:", self.spinbox_offsets)
+        params_layout.addRow("Subpixel width:", self.spinbox_offsets)
 
         params_gbox = QtWidgets.QGroupBox("KK Parameters", self)
         params_gbox.setLayout(params_layout)

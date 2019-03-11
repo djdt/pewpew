@@ -124,19 +124,33 @@ class ResultsBox(QtWidgets.QGroupBox):
         self.contextMenuEvent(QtGui.QContextMenuEvent(2, pos))
 
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+        lineedit = None
         for le in self.linedits:
             if le.underMouse():
-                print("le")
+                linedit = le
                 break
-        menu = QtWidgets.QMenu(self)
 
-        copy_action = QtWidgets.QAction("Copy", self)
+        menu = QtWidgets.QMenu(self)
+        copy_action = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("edit-copy"), "Copy", self
+        )
+        copy_action.setShortcut("Ctrl+C")
+        copy_all_action = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("edit-copy"), "Copy All", self
+        )
+        copy_action.setShortcut("Ctrl+Shift+C")
         stats_action = QtWidgets.QAction("Copy Stats", self)
 
-        menu.addAction(copy_action)
+        if lineedit is not None:
+            menu.addAction(copy_action)
+        menu.addAction(copy_all_action)
         menu.addAction(stats_action)
 
         menu.exec(event.globalPos())
+
+    def update(self, r2: float, m: float, b: float) -> None:
+        for v, le in zip([r2, m, b], self.linedits):
+            le.setText("{v:.4f}")
 
 
 class CalibrationTool(ApplyDialog):
@@ -339,9 +353,8 @@ class CalibrationTool(ApplyDialog):
     def updateResults(self) -> None:
         # Clear results if not complete
         if not self.table.isComplete():
-            self.lineedit_gradient.setText("")
-            self.lineedit_intercept.setText("")
-            self.lineedit_rsq.setText("")
+            for le in self.box_result.lineedits:
+                le.setText("")
             return
 
         x = np.array(
@@ -367,15 +380,11 @@ class CalibrationTool(ApplyDialog):
 
         # Replace non finite values with one
         if weights is not None and not np.all(np.isfinite(weights)):
-            self.lineedit_rsq.setText("Error")
-            self.lineedit_intercept.setText("Invalid weighting")
-            self.lineedit_gradient.setText("")
+            self.box_result.lineedits[0].setText("Error")
             return
 
         m, b, r2 = weighted_linreg(x, y, w=weights)
-        self.lineedit_gradient.setText(f"{m:.4f}")
-        self.lineedit_intercept.setText(f"{b:.4f}")
-        self.lineedit_rsq.setText(f"{r2:.4f}")
+        self.box_result.update(r2, m, b)
 
         isotope = self.combo_isotope.currentText()
         self.calibration[isotope]["gradient"] = m
