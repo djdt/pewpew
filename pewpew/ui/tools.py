@@ -112,41 +112,33 @@ class ResultsBox(QtWidgets.QGroupBox):
         for label in labels:
             le = QtWidgets.QLineEdit()
             le.setReadOnly(True)
-            le.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-            le.customContextMenuRequested.connect(self.lineeditContextEvent)
 
             layout.addRow(label, le)
             self.linedits.append(le)
 
         self.setLayout(layout)
 
-    def lineeditContextEvent(self, pos: QtCore.QPoint) -> None:
-        self.contextMenuEvent(QtGui.QContextMenuEvent(2, pos))
-
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
-        lineedit = None
-        for le in self.linedits:
-            if le.underMouse():
-                linedit = le
-                break
 
         menu = QtWidgets.QMenu(self)
         copy_action = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("edit-copy"), "Copy", self
-        )
-        copy_action.setShortcut("Ctrl+C")
-        copy_all_action = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-copy"), "Copy All", self
         )
         copy_action.setShortcut("Ctrl+Shift+C")
+        copy_action.triggered.connect(self.copy)
         stats_action = QtWidgets.QAction("Copy Stats", self)
+        stats_action.triggered.connect(self.stats)
 
-        if lineedit is not None:
-            menu.addAction(copy_action)
-        menu.addAction(copy_all_action)
+        menu.addAction(copy_action)
         menu.addAction(stats_action)
 
         menu.exec(event.globalPos())
+
+    def copy(self) -> None:
+        pass
+
+    def stats(self) -> None:
+        pass
 
     def update(self, r2: float, m: float, b: float) -> None:
         for v, le in zip([r2, m, b], self.linedits):

@@ -8,7 +8,7 @@ from pewpew.lib.plotimage import plotLaserImage
 from pewpew.lib.laser import LaserData
 from matplotlib.backend_bases import MouseEvent, LocationEvent
 
-from pewpew.lib.calc import fft_filter, rolling_mean_filter, rolling_median_filter
+from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 
 from typing import Callable, Dict, List
 from matplotlib.axes import Axes
