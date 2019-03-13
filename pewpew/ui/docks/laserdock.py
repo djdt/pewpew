@@ -14,6 +14,9 @@ from pewpew.ui.dialogs import ApplyDialog
 from pewpew.ui.dialogs.export import ExportDialog
 
 
+# TODO fix tab names
+
+
 class ImageDockTitleBar(QtWidgets.QWidget):
 
     nameChanged = QtCore.pyqtSignal("QString")
@@ -22,7 +25,7 @@ class ImageDockTitleBar(QtWidgets.QWidget):
         super().__init__(parent)
 
         self.title = QtWidgets.QLabel(title)
-        self.parent().windowTitleChanged.connect(self.setTitle)
+        # self.parent().windowTitleChanged.connect(self.setTitle)
 
         # Button Bar
         self.button_close = QtWidgets.QPushButton(
@@ -85,9 +88,11 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.setWidget(widget)
 
         # Title bar
-        self.title_bar = ImageDockTitleBar(self.laser.name, self)
+        self.title_bar = ImageDockTitleBar("", self)
         self.title_bar.nameChanged.connect(self.titleNameChanged)
+        self.windowTitleChanged.connect(self.title_bar.setTitle)
         self.setTitleBarWidget(self.title_bar)
+        self.setWindowTitle(self.laser.name)
 
         self.title_bar.button_zoom.clicked.connect(self.canvas.startZoom)
         self.title_bar.button_zoom_original.clicked.connect(self.canvas.unzoom)
