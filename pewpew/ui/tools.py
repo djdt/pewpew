@@ -208,10 +208,6 @@ class CalibrationTool(ApplyDialog):
         self.table.itemChanged.connect(self.tableItemChanged)
         self.table.setRowCount(5)
 
-        # self.lineedit_gradient.setReadOnly(True)
-        # self.lineedit_intercept.setReadOnly(True)
-        # self.lineedit_rsq.setReadOnly(True)
-
         self.button_laser.pressed.connect(self.buttonLaser)
 
         self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
@@ -391,6 +387,7 @@ class CalibrationTool(ApplyDialog):
         self.dockarea.mouseSelectFinished.disconnect(self.mouseSelectFinished)
         self.activateWindow()
         self.setFocus(QtCore.Qt.OtherFocusReason)
+        self.canvas.view = (0.0, 0.0, 0.0, 0.0)
         self.show()
         self.draw()
 
