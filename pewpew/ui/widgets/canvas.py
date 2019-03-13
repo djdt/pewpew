@@ -15,6 +15,9 @@ from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
 
 
+# TODO emit signal to update status bar in actual widgets
+
+
 class DragSelector(QtWidgets.QRubberBand):
     def __init__(
         self,
