@@ -99,13 +99,8 @@ class CalibrationCanvas(Canvas):
 class ResultsBox(QtWidgets.QGroupBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__("Results", parent)
-        # self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-
-        # def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
-        #     if event.button() == QtCore.Qt.RightButton:
-        #         pass
-        labels = ["RSQ", "Intercept", "Gradient"]
-        self.linedits: List[QtWidgets.QLineEdit] = []
+        labels = ["RSQ", "Gradient", "Intercept"]
+        self.lineedits: List[QtWidgets.QLineEdit] = []
 
         layout = QtWidgets.QFormLayout()
 
@@ -114,12 +109,13 @@ class ResultsBox(QtWidgets.QGroupBox):
             le.setReadOnly(True)
 
             layout.addRow(label, le)
-            self.linedits.append(le)
+            self.lineedits.append(le)
 
         self.setLayout(layout)
 
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
-
+        # TODO
+        pass
         menu = QtWidgets.QMenu(self)
         copy_action = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-copy"), "Copy All", self
@@ -141,8 +137,8 @@ class ResultsBox(QtWidgets.QGroupBox):
         pass
 
     def update(self, r2: float, m: float, b: float) -> None:
-        for v, le in zip([r2, m, b], self.linedits):
-            le.setText("{v:.4f}")
+        for v, le in zip([r2, m, b], self.lineedits):
+            le.setText(f"{v:.4f}")
 
 
 class CalibrationTool(ApplyDialog):
@@ -174,10 +170,6 @@ class CalibrationTool(ApplyDialog):
         self.combo_weighting = QtWidgets.QComboBox()
         self.combo_averaging = QtWidgets.QComboBox()
 
-        # self.lineedit_gradient = QtWidgets.QLineEdit()
-        # self.lineedit_intercept = QtWidgets.QLineEdit()
-        # self.lineedit_rsq = QtWidgets.QLineEdit()
-        # self.box_result = QtWidgets.QGroupBox("Result")
         self.box_result = ResultsBox()
 
         # Right side
@@ -192,10 +184,6 @@ class CalibrationTool(ApplyDialog):
 
         self.combo_isotope = QtWidgets.QComboBox()
 
-        # self.button_box = QtWidgets.QDialogButtonBox(
-        #     QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok, self
-        # )
-
         self.initialiseWidgets()
         self.layoutWidgets()
 
@@ -206,7 +194,7 @@ class CalibrationTool(ApplyDialog):
 
     def initialiseWidgets(self) -> None:
         self.spinbox_levels.setMaximum(20)
-        self.spinbox_levels.setValue(5)
+        self.spinbox_levels.setValue(6)
         self.spinbox_levels.valueChanged.connect(self.spinBoxLevels)
 
         self.lineedit_units.editingFinished.connect(self.lineeditUnits)
@@ -293,6 +281,7 @@ class CalibrationTool(ApplyDialog):
         self.updateCalibration()
 
     def draw(self) -> None:
+        self.canvas.clear()
         self.canvas.plot(
             self.dock.laser, self.combo_isotope.currentText(), self.viewconfig
         )
