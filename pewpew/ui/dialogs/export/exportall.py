@@ -91,6 +91,9 @@ class ExportAllDialog(ExportDialog):
             )
         )
 
+    def _get_isotope(self) -> str:
+        return self.combo_isotopes.currentText()
+
     def _generate_path(
         self, laser: LaserData = None, isotope: str = None, layer: int = None
     ) -> str:
