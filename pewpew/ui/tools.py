@@ -206,7 +206,7 @@ class CalibrationTool(ApplyDialog):
         self.combo_averaging.currentIndexChanged.connect(self.comboAveraging)
 
         self.table.itemChanged.connect(self.tableItemChanged)
-        self.table.setRowCount(5)
+        self.table.setRowCount(6)
 
         self.button_laser.pressed.connect(self.buttonLaser)
 

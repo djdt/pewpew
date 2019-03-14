@@ -31,8 +31,11 @@ from types import TracebackType
 from pewpew.ui.dialogs import ApplyDialog
 
 
-## TODO replace trim parameter with axis limits, easier
+## TODO make save save to orignal file if exists, import should no longer set source!
+##      only open should.
 ## TODO phil would like to have a way to average an area, without background
+## TODO Quality of life changes, remembering last save location, exportall isotope default,
+##      exportall remember last format...
 
 
 class MainWindow(QtWidgets.QMainWindow):
