@@ -3,14 +3,6 @@ import numpy as np
 from typing import List, Tuple
 
 
-def fft_filter(x: np.ndarray, threshold: float = 0.1, amplitude: float = 0.01) -> None:
-    x[:] = np.fft.fft2(x)[:]
-    # outlier = np.max(x) if np.abs(np.max(x) > np.abs(np.min(x))) else np.min(x)
-    # if np.any(np.abs(fft[fft > threshold]) > amplitude):
-    #     index = np.where(x == outlier)
-    #     x[index] = 1000000000
-
-
 def rolling_mean_filter(
     x: np.ndarray, window: Tuple[int, int], threshold: int = 3
 ) -> np.ndarray:

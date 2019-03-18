@@ -72,6 +72,9 @@ class ExportDialog(QtWidgets.QDialog):
             )
         )
 
+    def _get_isotope(self) -> str:
+        return self.isotope
+
     def _generate_path(
         self, laser: LaserData = None, isotope: str = None, layer: int = None
     ) -> str:
@@ -99,5 +102,5 @@ class ExportDialog(QtWidgets.QDialog):
                 prompt = OverwriteFilePrompt(show_all_buttons=False, parent=self)
             path = self._generate_path(laser, None)
             if path != "" and prompt.promptOverwrite(path):
-                paths.append((path, self.isotope, -1))
+                paths.append((path, self._get_isotope(), -1))
         return paths

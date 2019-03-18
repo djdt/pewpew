@@ -99,58 +99,46 @@ class CalibrationCanvas(Canvas):
 class ResultsBox(QtWidgets.QGroupBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__("Results", parent)
-        # self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-
-        # def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
-        #     if event.button() == QtCore.Qt.RightButton:
-        #         pass
-        labels = ["RSQ", "Intercept", "Gradient"]
-        self.linedits: List[QtWidgets.QLineEdit] = []
+        labels = ["RSQ", "Gradient", "Intercept"]
+        self.lineedits: List[QtWidgets.QLineEdit] = []
 
         layout = QtWidgets.QFormLayout()
 
         for label in labels:
             le = QtWidgets.QLineEdit()
             le.setReadOnly(True)
-            le.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-            le.customContextMenuRequested.connect(self.lineeditContextEvent)
 
             layout.addRow(label, le)
-            self.linedits.append(le)
+            self.lineedits.append(le)
 
         self.setLayout(layout)
 
-    def lineeditContextEvent(self, pos: QtCore.QPoint) -> None:
-        self.contextMenuEvent(QtGui.QContextMenuEvent(2, pos))
-
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
-        lineedit = None
-        for le in self.linedits:
-            if le.underMouse():
-                linedit = le
-                break
-
+        # TODO
+        pass
         menu = QtWidgets.QMenu(self)
         copy_action = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("edit-copy"), "Copy", self
-        )
-        copy_action.setShortcut("Ctrl+C")
-        copy_all_action = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-copy"), "Copy All", self
         )
         copy_action.setShortcut("Ctrl+Shift+C")
+        copy_action.triggered.connect(self.copy)
         stats_action = QtWidgets.QAction("Copy Stats", self)
+        stats_action.triggered.connect(self.stats)
 
-        if lineedit is not None:
-            menu.addAction(copy_action)
-        menu.addAction(copy_all_action)
+        menu.addAction(copy_action)
         menu.addAction(stats_action)
 
         menu.exec(event.globalPos())
 
+    def copy(self) -> None:
+        pass
+
+    def stats(self) -> None:
+        pass
+
     def update(self, r2: float, m: float, b: float) -> None:
-        for v, le in zip([r2, m, b], self.linedits):
-            le.setText("{v:.4f}")
+        for v, le in zip([r2, m, b], self.lineedits):
+            le.setText(f"{v:.4f}")
 
 
 class CalibrationTool(ApplyDialog):
@@ -182,10 +170,6 @@ class CalibrationTool(ApplyDialog):
         self.combo_weighting = QtWidgets.QComboBox()
         self.combo_averaging = QtWidgets.QComboBox()
 
-        # self.lineedit_gradient = QtWidgets.QLineEdit()
-        # self.lineedit_intercept = QtWidgets.QLineEdit()
-        # self.lineedit_rsq = QtWidgets.QLineEdit()
-        # self.box_result = QtWidgets.QGroupBox("Result")
         self.box_result = ResultsBox()
 
         # Right side
@@ -200,10 +184,6 @@ class CalibrationTool(ApplyDialog):
 
         self.combo_isotope = QtWidgets.QComboBox()
 
-        # self.button_box = QtWidgets.QDialogButtonBox(
-        #     QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok, self
-        # )
-
         self.initialiseWidgets()
         self.layoutWidgets()
 
@@ -214,7 +194,7 @@ class CalibrationTool(ApplyDialog):
 
     def initialiseWidgets(self) -> None:
         self.spinbox_levels.setMaximum(20)
-        self.spinbox_levels.setValue(5)
+        self.spinbox_levels.setValue(6)
         self.spinbox_levels.valueChanged.connect(self.spinBoxLevels)
 
         self.lineedit_units.editingFinished.connect(self.lineeditUnits)
@@ -226,11 +206,7 @@ class CalibrationTool(ApplyDialog):
         self.combo_averaging.currentIndexChanged.connect(self.comboAveraging)
 
         self.table.itemChanged.connect(self.tableItemChanged)
-        self.table.setRowCount(5)
-
-        # self.lineedit_gradient.setReadOnly(True)
-        # self.lineedit_intercept.setReadOnly(True)
-        # self.lineedit_rsq.setReadOnly(True)
+        self.table.setRowCount(6)
 
         self.button_laser.pressed.connect(self.buttonLaser)
 
@@ -301,6 +277,7 @@ class CalibrationTool(ApplyDialog):
         self.updateCalibration()
 
     def draw(self) -> None:
+        self.canvas.clear()
         self.canvas.plot(
             self.dock.laser, self.combo_isotope.currentText(), self.viewconfig
         )
@@ -389,6 +366,7 @@ class CalibrationTool(ApplyDialog):
         isotope = self.combo_isotope.currentText()
         self.calibration[isotope]["gradient"] = m
         self.calibration[isotope]["intercept"] = b
+        self.calibration[isotope]["unit"] = self.lineedit_units.text()
 
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
@@ -410,6 +388,7 @@ class CalibrationTool(ApplyDialog):
         self.dockarea.mouseSelectFinished.disconnect(self.mouseSelectFinished)
         self.activateWindow()
         self.setFocus(QtCore.Qt.OtherFocusReason)
+        self.canvas.view = (0.0, 0.0, 0.0, 0.0)
         self.show()
         self.draw()
 

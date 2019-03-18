@@ -8,11 +8,14 @@ from pewpew.lib.plotimage import plotLaserImage
 from pewpew.lib.laser import LaserData
 from matplotlib.backend_bases import MouseEvent, LocationEvent
 
-from pewpew.lib.calc import fft_filter, rolling_mean_filter, rolling_median_filter
+from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 
 from typing import Callable, Dict, List
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
+
+
+# TODO emit signal to update status bar in actual widgets
 
 
 class DragSelector(QtWidgets.QRubberBand):
@@ -120,7 +123,10 @@ class Canvas(FigureCanvasQTAgg):
 
     def plot(self, laser: LaserData, isotope: str, viewconfig: dict) -> None:
         # Get the trimmed and calibrated data
-        data = laser.get(isotope, calibrated=True)
+        data = laser.get(isotope, calibrated=viewconfig["calibrate"])
+        unit = (
+            str(laser.calibration[isotope]["unit"]) if viewconfig["calibrate"] else ""
+        )
         # Filter if required
         if viewconfig["filtering"]["type"] != "None":
             filter_type, window, threshold = (
@@ -143,7 +149,7 @@ class Canvas(FigureCanvasQTAgg):
             cmap=viewconfig["cmap"]["type"],
             colorbar=self.options["colorbar"],
             colorbarpos="bottom",
-            colorbartext=str(laser.calibration[isotope]["unit"]),
+            colorbartext=unit,
             extent=self.extent,
             fontsize=viewconfig["font"]["size"],
             interpolation=viewconfig["interpolation"].lower(),
