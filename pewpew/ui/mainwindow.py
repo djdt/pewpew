@@ -42,7 +42,8 @@ class MainWindow(QtWidgets.QMainWindow):
     INTERPOLATIONS = ["None", "Bilinear", "Bicubic", "Gaussian", "Spline16"]
     FILTERS = ["None", "Rolling mean", "Rolling median"]
     DEFAULT_VIEW_CONFIG = {
-        "cmap": {"type": "magma", "range": ("1%", "99%")},
+        "cmap": {"type": "viridis", "range": ("1%", "99%")},
+        "calibrate": True,
         "filtering": {"type": "None", "window": (3, 3), "threshold": 9},
         "interpolation": "None",
         "font": {"size": 12},
@@ -139,10 +140,12 @@ class MainWindow(QtWidgets.QMainWindow):
         action_config.setShortcut("Ctrl+K")
         action_config.triggered.connect(self.menuConfig)
 
-        # action_trim = menu_edit.addAction(QtGui.QIcon.fromTheme("edit-cut"), "&Trim")
-        # action_trim.setStatusTip("Update trim for visible images.")
-        # action_trim.setShortcut("Ctrl+T")
-        # action_trim.triggered.connect(self.menuTrim)
+        action_calibrate = menu_edit.addAction("Ca&librate")
+        action_calibrate.setStatusTip("Toggle calibration.")
+        action_calibrate.setShortcut("Ctrl+L")
+        action_calibrate.setCheckable(True)
+        action_calibrate.setChecked(True)
+        action_calibrate.toggled.connect(self.menuCalibrate)
 
         menu_edit.addSeparator()
 
@@ -416,29 +419,33 @@ class MainWindow(QtWidgets.QMainWindow):
         if dlg.exec():
             applyDialog(dlg)
 
-    def menuTrim(self) -> None:
-        def applyDialog(dialog: ApplyDialog) -> None:
-            # Ensure that trim isn't too large
-            for dock in self.dockarea.findChildren(LaserImageDock):
-                total = sum(
-                    dock.laser.convertTrim(dialog.trim, dialog.combo_trim.currentText())
-                )
-                if total > dock.laser.data.shape[1]:
-                    QtWidgets.QMessageBox.warning(
-                        self, "Invalid Trim", "Trim larger than data."
-                    )
-                    return
-            for dock in self.dockarea.findChildren(LaserImageDock):
-                dock.laser.setTrim(dialog.trim, dialog.combo_trim.currentText())
-                dock.draw()
+    def menuCalibrate(self, checked: bool) -> None:
+        self.viewconfig["calibrate"] = checked
+        self.refresh()
 
-        dlg = TrimDialog((0.0, 0.0), parent=self)
-        dlg.applyPressed.connect(applyDialog)
-        dlg.check_all.setEnabled(False)
-        dlg.check_all.setChecked(True)
+    # def menuTrim(self) -> None:
+    #     def applyDialog(dialog: ApplyDialog) -> None:
+    #         # Ensure that trim isn't too large
+    #         for dock in self.dockarea.findChildren(LaserImageDock):
+    #             total = sum(
+    #                 dock.laser.convertTrim(dialog.trim, dialog.combo_trim.currentText())
+    #             )
+    #             if total > dock.laser.data.shape[1]:
+    #                 QtWidgets.QMessageBox.warning(
+    #                     self, "Invalid Trim", "Trim larger than data."
+    #                 )
+    #                 return
+    #         for dock in self.dockarea.findChildren(LaserImageDock):
+    #             dock.laser.setTrim(dialog.trim, dialog.combo_trim.currentText())
+    #             dock.draw()
 
-        if dlg.exec():
-            applyDialog(dlg)
+    #     dlg = TrimDialog((0.0, 0.0), parent=self)
+    #     dlg.applyPressed.connect(applyDialog)
+    #     dlg.check_all.setEnabled(False)
+    #     dlg.check_all.setChecked(True)
+
+    #     if dlg.exec():
+    #         applyDialog(dlg)
 
     def menuStandardsTool(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
