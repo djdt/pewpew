@@ -366,6 +366,7 @@ class CalibrationTool(ApplyDialog):
         isotope = self.combo_isotope.currentText()
         self.calibration[isotope]["gradient"] = m
         self.calibration[isotope]["intercept"] = b
+        self.calibration[isotope]["unit"] = self.lineedit_units.text()
 
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
