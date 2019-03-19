@@ -6,16 +6,19 @@ import sys
 exec(open(os.path.join('pewpew', '__init__.py')).read())
 
 block_cipher = None
+excludes = []
+if sys.platform not in ['win32', 'darwin']:
+	excludes = 'pewpew.resource'
 
 
 a = Analysis([os.path.join('pewpew', '__main__.py')],
              pathex=[os.path.abspath('.')],
              binaries=[],
-             datas=[('icons', 'icons')],
+             datas=[],
              hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
-             excludes=[],
+             excludes=excludes,
              win_no_prefer_redirects=False,
              win_private_assemblies=False,
              cipher=block_cipher,
