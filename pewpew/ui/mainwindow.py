@@ -9,7 +9,6 @@ from pewpew.ui.dialogs import (
     ConfigDialog,
     ColorRangeDialog,
     FilteringDialog,
-    TrimDialog,
 )
 from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
 from pewpew.ui.tools import CalibrationTool
@@ -422,30 +421,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuCalibrate(self, checked: bool) -> None:
         self.viewconfig["calibrate"] = checked
         self.refresh()
-
-    # def menuTrim(self) -> None:
-    #     def applyDialog(dialog: ApplyDialog) -> None:
-    #         # Ensure that trim isn't too large
-    #         for dock in self.dockarea.findChildren(LaserImageDock):
-    #             total = sum(
-    #                 dock.laser.convertTrim(dialog.trim, dialog.combo_trim.currentText())
-    #             )
-    #             if total > dock.laser.data.shape[1]:
-    #                 QtWidgets.QMessageBox.warning(
-    #                     self, "Invalid Trim", "Trim larger than data."
-    #                 )
-    #                 return
-    #         for dock in self.dockarea.findChildren(LaserImageDock):
-    #             dock.laser.setTrim(dialog.trim, dialog.combo_trim.currentText())
-    #             dock.draw()
-
-    #     dlg = TrimDialog((0.0, 0.0), parent=self)
-    #     dlg.applyPressed.connect(applyDialog)
-    #     dlg.check_all.setEnabled(False)
-    #     dlg.check_all.setChecked(True)
-
-    #     if dlg.exec():
-    #         applyDialog(dlg)
 
     def menuStandardsTool(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
