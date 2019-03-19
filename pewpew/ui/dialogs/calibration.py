@@ -36,7 +36,7 @@ class CalibrationDialog(ApplyDialog):
         self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
 
         # Check all
-        self.check_all = QtWidgets.QCheckBox("Apply config to all images.")
+        self.check_all = QtWidgets.QCheckBox("Apply to all images.")
 
         # Dialog buttons
         main_layout = QtWidgets.QVBoxLayout()
