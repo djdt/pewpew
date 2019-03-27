@@ -115,7 +115,7 @@ def save(
     extent: Tuple[float, float, float, float] = None,
     include_header: bool = False,
 ) -> None:
-    header = None
+    header = ""
     if include_header:
         config = laser.config
         calibration = laser.calibration
