@@ -107,18 +107,24 @@ def load_ldr(path: str, config: dict, calibration: dict = None) -> LaserData:
 
     cols = np.arange(1, line.count(delimiter))
 
-    lines = [
-        np.genfromtxt(
-            f,
-            delimiter=delimiter,
-            names=True,
-            usecols=cols,
-            skip_header=skip_header,
-            dtype=np.float64,
-        )
-        for f in data_files
-    ]
+    try:
+        lines = [
+            np.genfromtxt(
+                f,
+                delimiter=delimiter,
+                names=True,
+                usecols=cols,
+                skip_header=skip_header,
+                dtype=np.float64,
+            )
+            for f in data_files
+        ]
+    except ValueError as e:
+        raise PewPewFileError("Could not parse batch.") from e
     # We need to skip the first row as it contains junk
-    data = np.vstack(lines)[1:]
+    try:
+        data = np.vstack(lines)[1:]
+    except ValueError as e:
+        raise PewPewDataError("Mismatched data.") from e
 
     return LaserData(data, config=config, calibration=calibration, source=path)
