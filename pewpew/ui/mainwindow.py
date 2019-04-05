@@ -5,11 +5,7 @@ import traceback
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from pewpew import __version__
-from pewpew.ui.dialogs import (
-    ConfigDialog,
-    ColorRangeDialog,
-    FilteringDialog,
-)
+from pewpew.ui.dialogs import ConfigDialog, ColorRangeDialog, FilteringDialog
 from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
 from pewpew.ui.tools import CalibrationTool
 from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
@@ -322,8 +318,6 @@ class MainWindow(QtWidgets.QMainWindow):
         settings = QtCore.QSettings("Pewpew", "Pewpew")
         settings.setValue("geometry", self.saveGeometry())
         settings.setValue("windowState", self.saveState())
-        print(settings.allKeys())
-        print(settings)
 
         docks = self.dockarea.findChildren(LaserImageDock)
         if len(docks) == 0:
