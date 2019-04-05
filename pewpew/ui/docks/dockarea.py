@@ -99,7 +99,7 @@ class DockArea(QtWidgets.QMainWindow):
         for url in urls:
             try:
                 if url.isLocalFile():
-                    path = url.path()
+                    path = url.toLocalFile()
                     ext = os.path.splitext(path)[1].lower()
                     if ext == ".csv":
                         if csv_as is None:
