@@ -51,6 +51,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.config: dict = LaserData.DEFAULT_CONFIG
         self.viewconfig: dict = MainWindow.DEFAULT_VIEW_CONFIG
         self.setWindowTitle("Pew Pew")
+        self.setWindowIcon(QtGui.QIcon("../resource/pewpew.ico"))
         self.resize(1280, 800)
 
         widget = QtWidgets.QWidget()
