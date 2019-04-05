@@ -51,6 +51,7 @@ def plotLaserImage(
         vmax=vmax,
         extent=extent,
         aspect=aspect,
+        origin='upper',
     )
 
     if colorbar:
