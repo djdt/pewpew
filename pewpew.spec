@@ -40,5 +40,5 @@ exe = EXE(
     upx=False,
     runtime_tmpdir=None,
     console=False,
-    icon="icons/pewpew.ico",
+    icon="app.ico",
 )
