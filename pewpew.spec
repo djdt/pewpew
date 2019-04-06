@@ -8,7 +8,7 @@ exec(open(os.path.join("pewpew", "__init__.py")).read())
 block_cipher = None
 excludes = []
 if sys.platform not in ["win32", "darwin"]:
-    excludes = "pewpew.resource"
+    excludes = "pewpew.resource.breath_icons"
 
 
 a = Analysis(
