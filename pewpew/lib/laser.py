@@ -14,7 +14,7 @@ class LaserData(object):
         config: dict = None,
         calibration: dict = None,
         name: str = "",
-        source: str = "",
+        filepath: str = "",
     ):
         self.data = (
             np.array([[0]], dtype=[("none", np.float64)]) if data is None else data
@@ -30,7 +30,7 @@ class LaserData(object):
         else:
             self.calibration = copy.deepcopy(calibration)
         self.name = name
-        self.source = source
+        self.filepath = filepath
 
     def isotopes(self) -> List[str]:
         return self.data.dtype.names
