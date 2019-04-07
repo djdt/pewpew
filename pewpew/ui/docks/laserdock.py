@@ -128,6 +128,11 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.action_config.setStatusTip("Edit image config.")
         self.action_config.triggered.connect(self.onMenuConfig)
 
+        self.action_calculate = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme(""), "Calculate", self
+        )
+        self.action_calculate.setStatusTip("Perform calculations on data.")
+        self.action_calculate.triggered.connect(self.onMenuCalculate)
         # self.action_trim = QtWidgets.QAction(
         #     QtGui.QIcon.fromTheme("edit-cut"), "Trim", self
         # )
@@ -285,6 +290,11 @@ class LaserImageDock(QtWidgets.QDockWidget):
         dlg.applyPressed.connect(applyDialog)
         if dlg.exec():
             applyDialog(dlg)
+
+    def onMenuCalculate(self) -> None:
+        def applyDialog(dialog: ApplyDialog) -> None:
+            pass
+        pass
 
     # def onMenuTrim(self) -> None:
     #     def applyDialog(dialog: ApplyDialog) -> None:

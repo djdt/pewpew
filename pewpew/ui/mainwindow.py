@@ -150,6 +150,12 @@ class MainWindow(QtWidgets.QMainWindow):
         action_calibration.setStatusTip("Generate calibration curve from a standard.")
         action_calibration.triggered.connect(self.menuStandardsTool)
 
+        action_operations = menu_edit.addAction(
+            QtGui.QIcon.fromTheme(""), "&Operations"
+        )
+        action_operations.setStatusTip("Perform calculations using laser data.")
+        action_operations.triggered.connect(self.menuOperationsTool)
+
         # View
         menu_view = self.menuBar().addMenu("&View")
         menu_cmap = menu_view.addMenu("&Colormap")
@@ -430,6 +436,9 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.applyPressed.connect(applyDialog)
         dlg.show()
 
+    def menuOperationsTool(self) -> None:
+        pass
+
     def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
         for name, cmap, _, _, _ in COLORMAPS:
@@ -491,7 +500,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuAbout(self) -> None:
         QtWidgets.QMessageBox.about(
             self,
-            "About Laser plot",
+            "About Pewpew",
             (
                 "Visualiser / converter for LA-ICP-MS data.\n"
                 f"Version {__version__}\n"
