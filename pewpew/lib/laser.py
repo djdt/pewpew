@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 
 class LaserData(object):
@@ -14,23 +14,21 @@ class LaserData(object):
         config: dict = None,
         calibration: dict = None,
         name: str = "",
-        filepath: str = "",
+        source: str = "",
     ):
         self.data = (
             np.array([[0]], dtype=[("none", np.float64)]) if data is None else data
         )
         # Copys of dicts are made
-        self.config: dict = copy.deepcopy(
-            LaserData.DEFAULT_CONFIG if config is None else config
-        )
+        self.config = LaserData.DEFAULT_CONFIG if config is None else config
         if calibration is None:
             self.calibration = {
-                k: dict(LaserData.DEFAULT_CALIBRATION) for k in self.data.dtype.names
+                k: LaserData.DEFAULT_CALIBRATION for k in self.data.dtype.names
             }
         else:
             self.calibration = copy.deepcopy(calibration)
         self.name = name
-        self.filepath = filepath
+        self.source = source
 
     def isotopes(self) -> List[str]:
         return self.data.dtype.names
