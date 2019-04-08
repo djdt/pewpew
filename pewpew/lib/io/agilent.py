@@ -71,7 +71,7 @@ def load(path: str, config: LaserConfig) -> Laser:
     try:
         data = np.vstack(lines)
         data_dict: Dict[str, np.ndarray] = {
-            formatIsotope(name): data[name] for name in data.dtype.names
+            name: data[name] for name in data.dtype.names
         }
 
     except ValueError as e:

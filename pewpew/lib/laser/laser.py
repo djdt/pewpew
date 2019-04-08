@@ -26,8 +26,16 @@ class Laser(object):
         self.name = name
         self.filepath = filepath
 
-    def add_data(self, name: str, x: np.ndarray) -> None:
-        data = LaserData(x, name)
+    def add_data(
+        self,
+        name: str,
+        x: np.ndarray,
+        intercept: float = 1.0,
+        gradient: float = 0.0,
+        unit: str = None,
+    ) -> None:
+        name = Laser.formatName(name)
+        data = LaserData(x, name, intercept=intercept, gradient=gradient, unit=unit)
         if self.width == 0 or self.height == 0 or self.depth == 0:
             self.width = data.width()
             self.height = data.height()
@@ -78,3 +86,7 @@ class Laser(object):
         x = self.width * self.config.pixel_width()
         y = self.height * self.config.pixel_height()
         return (0.0, x, 0.0, y)
+
+    @staticmethod
+    def formatName(name: str) -> str:
+        pass
