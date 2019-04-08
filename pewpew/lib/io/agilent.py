@@ -8,7 +8,7 @@ from pewpew.lib.formatter import formatIsotope
 from typing import Dict
 
 
-def load(path: str, config: LaserConfig) -> Laser:
+def load(path: str, config: LaserConfig = None) -> Laser:
     """Imports an Agilent batch (.b) directory, returning LaserData object.
 
    Scans the given path for .d directories containg a similarly named
