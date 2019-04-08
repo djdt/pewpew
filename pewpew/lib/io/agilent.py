@@ -1,12 +1,14 @@
 import os.path
 import numpy as np
 
-from pewpew.lib.laser import LaserData
+from pewpew.lib.laser import Laser, LaserConfig
 from pewpew.lib.exceptions import PewPewDataError, PewPewFileError
 from pewpew.lib.formatter import formatIsotope
 
+from typing import Dict
 
-def load(path: str, config: dict, calibration: dict = None) -> LaserData:
+
+def load(path: str, config: LaserConfig) -> Laser:
     """Imports an Agilent batch (.b) directory, returning LaserData object.
 
    Scans the given path for .d directories containg a similarly named
@@ -68,16 +70,18 @@ def load(path: str, config: dict, calibration: dict = None) -> LaserData:
 
     try:
         data = np.vstack(lines)
+        data_dict: Dict[str, np.ndarray] = {
+            formatIsotope(name): data[name] for name in data.dtype.names
+        }
+
     except ValueError as e:
         raise PewPewDataError("Mismatched data.") from e
 
     # Format isotope names
-    data.dtype.names = [formatIsotope(name) for name in data.dtype.names]
 
-    return LaserData(
-        data,
+    return Laser(
+        data=data_dict,
         config=config,
-        calibration=calibration,
         name=os.path.splitext(os.path.basename(path))[0],
-        source=path,
+        filepath=path,
     )
