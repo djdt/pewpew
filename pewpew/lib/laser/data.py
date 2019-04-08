@@ -2,7 +2,7 @@ import numpy as np
 
 
 class LaserData(object):
-    DEFAULT_UNIT = "<None>"
+    DEFAULT_UNIT = "<NA>"
 
     def __init__(
         self,

@@ -1,5 +1,4 @@
 import numpy as np
-import copy
 
 from typing import Dict, List, Tuple
 
@@ -7,32 +6,44 @@ from pewpew.lib.laser import LaserConfig, LaserData
 
 
 class Laser(object):
-    DEFAULT_CALIBRATION = {"gradient": 1.0, "intercept": 0.0, "unit": ""}
-    DEFAULT_CONFIG = {"spotsize": 30.0, "speed": 120.0, "scantime": 0.25}
-
     def __init__(
         self,
-        datas: Dict[str, LaserData] = None,
+        data: Dict[str, np.ndarray] = None,
         config: LaserConfig = None,
         name: str = "",
         filepath: str = "",
     ):
-        self.datas = (
-            datas
-            if datas is not None
-            else {"none", LaserData(np.zeros([1, 1], dtype=float), "none")}
-        )
-        # Copys of dicts are made
+        self.data: Dict[str, LaserData] = {}
+        self.width = 0
+        self.height = 0
+        self.depth = 0
+        if data is not None:
+            for k, v in data.items():
+                self.add_data(k, v)
+
         self.config = config if config is not None else LaserConfig()
+
         self.name = name
         self.filepath = filepath
 
-    def isotopes(self) -> List[str]:
-        return self.datas.keys()
+    def add_data(self, name: str, x: np.ndarray) -> None:
+        data = LaserData(x, name)
+        if self.width == 0 or self.height == 0 or self.depth == 0:
+            self.width = data.width()
+            self.height = data.height()
+            self.depth = data.depth()
+        else:
+            assert self.width == data.width()
+            assert self.height == data.height()
+            assert self.depth == data.depth()
+        self.data[name] = data
+
+    def names(self) -> List[str]:
+        return list(self.data.keys())
 
     def get(
         self,
-        name: str = None,
+        name: str,
         calibrated: bool = False,
         extent: Tuple[float, float, float, float] = None,
     ) -> np.ndarray:
@@ -52,29 +63,18 @@ class Laser(object):
     def convert(self, x: float, unit_from: str, unit_to: str) -> float:
         # Convert into rows
         if unit_from in ["s", "seconds"]:
-            x = x / self.config["scantime"]
+            x = x / self.config.scantime
         elif unit_from in ["um", "μm", "micro meters"]:
-            x = x / (self.config["speed"] * self.config["scantime"])
+            x = x / self.config.pixel_width()
         # Convert to desired unit
         if unit_to in ["s", "seconds"]:
-            x = x * self.config["scantime"]
+            x = x * self.config.scantime
         elif unit_to in ["um", "μm", "micro meters"]:
-            x = x * (self.config["speed"] * self.config["scantime"])
+            x = x * self.config.pixel_width()
         return x
-
-    def pixelsize(self) -> Tuple[float, float]:
-        return (self.config["speed"] * self.config["scantime"], self.config["spotsize"])
-
-    def aspect(self) -> float:
-        return self.config["spotsize"] / (
-            self.config["speed"] * self.config["scantime"]
-        )
 
     def extent(self) -> Tuple[float, float, float, float]:
         # Image data is stored [rows][cols]
-        x = self.data.width() * self.config.pixel_width()
-        y = self.data.height() * self.config.pixel_height()
+        x = self.width * self.config.pixel_width()
+        y = self.height * self.config.pixel_height()
         return (0.0, x, 0.0, y)
-
-    def layers(self) -> int:
-        return 1
