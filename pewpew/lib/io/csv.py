@@ -8,10 +8,12 @@ from pewpew.lib.exceptions import (
     PewPewDataError,
     PewPewFileError,
 )
-from pewpew.lib.formatter import formatIsotope
 from pewpew.lib.laser import Laser, LaserConfig
 
 from typing import Any, Dict, Tuple
+
+
+# TODO add an option to choose calibration on save, as you can now toggle it on and off
 
 
 def load(
