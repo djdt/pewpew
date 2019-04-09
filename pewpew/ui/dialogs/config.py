@@ -3,14 +3,16 @@ from PyQt5 import QtWidgets
 from pewpew.ui.dialogs.applydialog import ApplyDialog
 from pewpew.ui.validators import DecimalValidator
 
+from pewpew.lib.laser import LaserConfig
+
 
 class ConfigDialog(ApplyDialog):
-    def __init__(self, config: dict, parent: QtWidgets.QWidget = None):
+    def __init__(self, config: LaserConfig, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Configuration")
-        self.spotsize = config["spotsize"]
-        self.speed = config["speed"]
-        self.scantime = config["scantime"]
+        self.spotsize = config.spotsize
+        self.speed = config.speed
+        self.scantime = config.scantime
 
         # Line edits
         self.lineedit_spotsize = QtWidgets.QLineEdit()
