@@ -138,7 +138,10 @@ class Canvas(FigureCanvasQTAgg):
             elif filter_type == "Rolling median":
                 data = rolling_median_filter(data, window, threshold)
 
-        self.extent = laser.extent()
+        # If the laser extent has changed (i.e. config edited) then reset the view
+        if self.extent != laser.extent():
+            self.extent = laser.extent()
+            self.view = (0.0, 0.0, 0.0, 0.0)
 
         # Plot the image
         self.image = plotLaserImage(
