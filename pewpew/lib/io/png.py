@@ -2,7 +2,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
 from pewpew.lib.plotimage import plotLaserImage
-from pewpew.lib.laser import LaserData
+from pewpew.lib.laser import Laser
 from pewpew.lib.formatter import formatIsotope
 
 from typing import Tuple
@@ -10,8 +10,8 @@ from typing import Tuple
 
 def save(
     path: str,
-    laser: LaserData,
-    isotope: str,
+    laser: Laser,
+    name: str,
     extent: Tuple[float, float, float, float],
     viewconfig: dict,
     size: Tuple[int, int] = (1280, 800),
@@ -26,17 +26,17 @@ def save(
     plotLaserImage(
         fig,
         ax,
-        laser.get(isotope, calibrated=True),
-        aspect=laser.aspect(),
+        laser.get(name, calibrated=True),
+        aspect=laser.config.aspect(),
         cmap=viewconfig["cmap"]["type"],
         colorbar=include_colorbar,
         colorbarpos="bottom",
-        colorbartext=str(laser.calibration[isotope]["unit"]),
+        colorbartext=str(laser.data[name].unit),
         extent=laser.extent(),
         fontsize=viewconfig["font"]["size"],
         interpolation=viewconfig["interpolation"].lower(),
         label=include_label,
-        labeltext=formatIsotope(isotope, fstring="$^{{{mass}}}${element}"),
+        labeltext=formatIsotope(name, fstring="$^{{{mass}}}${element}"),
         scalebar=include_scalebar,
         vmax=viewconfig["cmap"]["range"][1],
         vmin=viewconfig["cmap"]["range"][0],
