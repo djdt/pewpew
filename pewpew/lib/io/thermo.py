@@ -1,14 +1,14 @@
 import os.path
 import numpy as np
 
-from pewpew.lib.laser import LaserData
+from pewpew.lib.laser import Laser, LaserConfig
 from pewpew.lib.exceptions import PewPewDataError, PewPewFileError
 from pewpew.lib.formatter import formatIsotope
 
 from typing import Dict, List
 
 
-def load(path: str, config: dict, calibration: dict = None) -> LaserData:
+def load(path: str, config: LaserConfig) -> Laser:
     """Imports iCap data exported using the CSV export function.
 
     Data is read from the "Counts" column.
@@ -60,71 +60,66 @@ def load(path: str, config: dict, calibration: dict = None) -> LaserData:
         if stacks[k].ndim != 2:
             raise PewPewDataError(f"Invalid data dimensions '{stacks[k].ndim}'.")
 
-    # Build a named array out of data
-    dtype = [(k, np.float64) for k in keys]
-    shape = stacks[keys[0]].shape
-    structured = np.empty(shape, dtype)
-    for k in keys:
-        if stacks[k].shape != shape:
-            raise PewPewDataError("Mismatched data.")
-        structured[k] = stacks[k]
-
-    return LaserData(
-        structured,
-        config=config,
-        calibration=calibration,
-        name=os.path.splitext(os.path.basename(path))[0],
-        source=path,
+    laser = Laser(
+        config=config, name=os.path.splitext(os.path.basename(path))[0], filepath=path
     )
 
-
-def load_ldr(path: str, config: dict, calibration: dict = None) -> LaserData:
-    """Imports data exported using \"Laser Data Reduction\".
-    CSVs in the given directory are imported as
-    lines in the image and are sorted by name.
-
-    path -> path to directory containing CSVs
-    config -> config to apply
-    calibration -> calibration to apply
-
-    returns LaserData"""
-    data_files = []
-    with os.scandir(path) as it:
-        for entry in it:
-            if entry.name.lower().endswith(".csv") and entry.is_file():
-                data_files.append(entry.path)
-    # Sort by name
-    data_files.sort()
-
-    with open(data_files[0], "r") as fp:
-        line = fp.readline()
-        skip_header = 0
-        while line and not line.startswith("Time"):
-            line = fp.readline()
-            skip_header += 1
-
-        delimiter = line[-1]
-
-    cols = np.arange(1, line.count(delimiter))
-
     try:
-        lines = [
-            np.genfromtxt(
-                f,
-                delimiter=delimiter,
-                names=True,
-                usecols=cols,
-                skip_header=skip_header,
-                dtype=np.float64,
-            )
-            for f in data_files
-        ]
-    except ValueError as e:
-        raise PewPewFileError("Could not parse batch.") from e
-    # We need to skip the first row as it contains junk
-    try:
-        data = np.vstack(lines)[1:]
-    except ValueError as e:
-        raise PewPewDataError("Mismatched data.") from e
+        for k, v in stacks.items():
+            laser.add_data(k, v)
+    except AssertionError:
+        raise PewPewDataError("Mismatched data.")
 
-    return LaserData(data, config=config, calibration=calibration, source=path)
+    return laser
+
+
+# def load_ldr(path: str, config: dict, calibration: dict = None) -> Laser:
+#     """Imports data exported using \"Laser Data Reduction\".
+#     CSVs in the given directory are imported as
+#     lines in the image and are sorted by name.
+
+#     path -> path to directory containing CSVs
+#     config -> config to apply
+#     calibration -> calibration to apply
+
+#     returns LaserData"""
+#     data_files = []
+#     with os.scandir(path) as it:
+#         for entry in it:
+#             if entry.name.lower().endswith(".csv") and entry.is_file():
+#                 data_files.append(entry.path)
+#     # Sort by name
+#     data_files.sort()
+
+#     with open(data_files[0], "r") as fp:
+#         line = fp.readline()
+#         skip_header = 0
+#         while line and not line.startswith("Time"):
+#             line = fp.readline()
+#             skip_header += 1
+
+#         delimiter = line[-1]
+
+#     cols = np.arange(1, line.count(delimiter))
+
+#     try:
+#         lines = [
+#             np.genfromtxt(
+#                 f,
+#                 delimiter=delimiter,
+#                 names=True,
+#                 usecols=cols,
+#                 skip_header=skip_header,
+#                 dtype=np.float64,
+#             )
+#             for f in data_files
+#         ]
+#     except ValueError as e:
+#         raise PewPewFileError("Could not parse batch.") from e
+#     # We need to skip the first row as it contains junk
+#     try:
+#         data = np.vstack(lines)[1:]
+#     except ValueError as e:
+#         raise PewPewDataError("Mismatched data.") from e
+
+#     return LaserData(data, config=config, calibration=calibration, source=path)
