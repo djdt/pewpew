@@ -3,14 +3,19 @@ from PyQt5 import QtCore, QtWidgets
 from pewpew.ui.dialogs.applydialog import ApplyDialog
 from pewpew.ui.validators import DecimalValidator, DecimalValidatorNoZero
 
+from pewpew.lib.laser import LaserData
+
 
 class CalibrationDialog(ApplyDialog):
     def __init__(
-        self, calibration: dict, current_isotope: str, parent: QtWidgets.QWidget = None
+        self, data: LaserData, parent: QtWidgets.QWidget = None
     ):
         super().__init__(parent)
         self.setWindowTitle("Calibration")
-        self.calibration = calibration
+        self.name = data.name
+        self.gradient = data.gradient
+        self.intercept = data.intercept
+        self.unit = data.unit
 
         # LIne edits
         self.lineedit_gradient = QtWidgets.QLineEdit()
@@ -31,7 +36,7 @@ class CalibrationDialog(ApplyDialog):
         # Isotope combo
         self.combo_isotopes = QtWidgets.QComboBox()
         self.combo_isotopes.addItems([k for k in self.calibration.keys()])
-        self.combo_isotopes.setCurrentText(current_isotope)
+        self.combo_isotopes.setCurrentText(self.name)
         self.previous_index = self.combo_isotopes.currentIndex()
         self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
 

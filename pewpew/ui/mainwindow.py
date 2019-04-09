@@ -19,7 +19,7 @@ from pewpew.lib.colormaps import COLORMAPS
 from pewpew.lib.exceptions import PewPewError, PewPewFileError
 from pewpew.lib import io
 from pewpew.lib.krisskross import KrissKrossData
-from pewpew.lib.laser import LaserData
+from pewpew.lib.laser import Laser, LaserConfig
 
 from typing import List
 from types import TracebackType
@@ -48,7 +48,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__(parent)
 
         # Defaults for when applying to multiple images
-        self.config: dict = LaserData.DEFAULT_CONFIG
+        self.config = LaserConfig
         self.viewconfig: dict = MainWindow.DEFAULT_VIEW_CONFIG
         self.setWindowTitle("Pew Pew")
         self.resize(1280, 800)
@@ -249,7 +249,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "Pew Pew Sessions(*.pew);;All files(*)",
             "All files(*)",
         )
-        lds: List[LaserData] = []
+        lds: List[Laser] = []
         if len(paths) == 0:
             return
         for path in paths:
@@ -401,13 +401,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuConfig(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
-            self.config["spotsize"] = dialog.spotsize
-            self.config["speed"] = dlg.speed
-            self.config["scantime"] = dlg.scantime
+            self.config.spotsize = dialog.spotsize
+            self.config.speed = dialog.speed
+            self.config.scantime = dialog.scantime
             for dock in self.dockarea.findChildren(LaserImageDock):
-                dock.laser.config["spotsize"] = dlg.spotsize
-                dock.laser.config["speed"] = dlg.speed
-                dock.laser.config["scantime"] = dlg.scantime
+                dock.laser.config.spotsize = dialog.spotsize
+                dock.laser.config.speed = dialog.speed
+                dock.laser.config.scantime = dialog.scantime
                 dock.draw()
 
         dlg = ConfigDialog(self.config, parent=self)
@@ -431,7 +431,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 dock.draw()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        laser = docks[0] if len(docks) > 0 else LaserImageDock(LaserData(), parent=self)
+        laser = docks[0] if len(docks) > 0 else LaserImageDock(Laser(), parent=self)
         dlg = CalibrationTool(laser, self.dockarea, self.viewconfig, parent=self)
         dlg.applyPressed.connect(applyDialog)
         dlg.show()

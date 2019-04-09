@@ -9,7 +9,7 @@ from pewpew.ui.dialogs.export import CSVExportDialog, PNGExportDialog
 
 from pewpew.lib import io
 
-from pewpew.lib.laser import LaserData
+from pewpew.lib.laser import Laser
 from pewpew.ui.dialogs import ApplyDialog
 from pewpew.ui.dialogs.export import ExportDialog
 
@@ -64,7 +64,7 @@ class ImageDockTitleBar(QtWidgets.QWidget):
 
 
 class LaserImageDock(QtWidgets.QDockWidget):
-    def __init__(self, laserdata: LaserData, parent: QtWidgets.QWidget = None):
+    def __init__(self, laser: Laser, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setFeatures(
@@ -72,11 +72,11 @@ class LaserImageDock(QtWidgets.QDockWidget):
             | QtWidgets.QDockWidget.DockWidgetMovable
         )
 
-        self.laser = laserdata
+        self.laser = laser
         self.canvas = Canvas(parent=self)
 
         self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.addItems(self.laser.isotopes())
+        self.combo_isotope.addItems(self.laser.names())
         self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
 
         layout = QtWidgets.QVBoxLayout()
@@ -204,8 +204,8 @@ class LaserImageDock(QtWidgets.QDockWidget):
             dlg: ExportDialog = CSVExportDialog(
                 path,
                 isotope=self.combo_isotope.currentText(),
-                isotopes=len(self.laser.isotopes()),
-                layers=self.laser.layers(),
+                isotopes=len(self.laser.names()),
+                layers=self.laser.depth,
                 parent=self,
             )
             if dlg.exec():
@@ -228,8 +228,8 @@ class LaserImageDock(QtWidgets.QDockWidget):
             dlg = PNGExportDialog(
                 path,
                 isotope=self.combo_isotope.currentText(),
-                isotopes=len(self.laser.isotopes()),
-                layers=self.laser.layers(),
+                isotopes=len(self.laser.names()),
+                layers=self.laser.depth,
                 parent=self,
             )
             if dlg.exec():
@@ -266,8 +266,9 @@ class LaserImageDock(QtWidgets.QDockWidget):
                         dock.laser.calibration[isotope] = dlg.calibration[isotope]
                 dock.draw()
 
+        # TODO thisll be annoying
         dlg = CalibrationDialog(
-            self.laser.calibration, self.combo_isotope.currentText(), parent=self
+            self.laser.data, self.combo_isotope.currentText(), parent=self
         )
         dlg.applyPressed.connect(applyDialog)
         if dlg.exec():
