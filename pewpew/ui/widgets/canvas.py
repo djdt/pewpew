@@ -5,7 +5,7 @@ from matplotlib.figure import Figure
 from pewpew.lib.formatter import formatIsotope
 from pewpew.lib.plotimage import plotLaserImage
 
-from pewpew.lib.laser import LaserData
+from pewpew.lib.laser import Laser
 from matplotlib.backend_bases import MouseEvent, LocationEvent
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
@@ -121,11 +121,11 @@ class Canvas(FigureCanvasQTAgg):
         self.clearStatusBar()
         super().close()
 
-    def plot(self, laser: LaserData, isotope: str, viewconfig: dict) -> None:
+    def plot(self, laser: Laser, name: str, viewconfig: dict) -> None:
         # Get the trimmed and calibrated data
-        data = laser.get(isotope, calibrated=viewconfig["calibrate"])
+        data = laser.get(name, calibrated=viewconfig["calibrate"])
         unit = (
-            str(laser.calibration[isotope]["unit"]) if viewconfig["calibrate"] else ""
+            str(laser.data[name].unit) if viewconfig["calibrate"] else ""
         )
         # Filter if required
         if viewconfig["filtering"]["type"] != "None":
@@ -145,7 +145,7 @@ class Canvas(FigureCanvasQTAgg):
             self.figure,
             self.ax,
             data,
-            aspect=laser.aspect(),
+            aspect=laser.config.aspect(),
             cmap=viewconfig["cmap"]["type"],
             colorbar=self.options["colorbar"],
             colorbarpos="bottom",
@@ -154,12 +154,12 @@ class Canvas(FigureCanvasQTAgg):
             fontsize=viewconfig["font"]["size"],
             interpolation=viewconfig["interpolation"].lower(),
             label=self.options["label"],
-            labeltext=formatIsotope(isotope, fstring="$^{{{mass}}}${element}"),
+            labeltext=formatIsotope(name, fstring="$^{{{mass}}}${element}"),
             scalebar=self.options["scalebar"],
             vmax=viewconfig["cmap"]["range"][1],
             vmin=viewconfig["cmap"]["range"][0],
-            xaxis=True,
-            xaxisticksize=laser.config["speed"],
+            xaxis=False,
+            xaxisticksize=laser.config.speed,
         )
         if self.view == (0.0, 0.0, 0.0, 0.0):
             self.view = self.extent
