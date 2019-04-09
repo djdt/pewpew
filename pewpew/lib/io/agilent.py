@@ -3,9 +3,6 @@ import numpy as np
 
 from pewpew.lib.laser import Laser, LaserConfig
 from pewpew.lib.exceptions import PewPewDataError, PewPewFileError
-from pewpew.lib.formatter import formatIsotope
-
-from typing import Dict
 
 
 def load(path: str, config: LaserConfig = None) -> Laser:
@@ -68,20 +65,16 @@ def load(path: str, config: LaserConfig = None) -> Laser:
     except ValueError as e:
         raise PewPewFileError("Could not parse batch.") from e
 
+    laser = Laser(
+        config=config, name=os.path.splitext(os.path.basename(path))[0], filepath=path
+    )
+
     try:
         data = np.vstack(lines)
-        data_dict: Dict[str, np.ndarray] = {
-            name: data[name] for name in data.dtype.names
-        }
+        for name in data.dtype.names:
+            laser.add_data(name, data[name])
 
     except ValueError as e:
         raise PewPewDataError("Mismatched data.") from e
 
-    # Format isotope names
-
-    return Laser(
-        data=data_dict,
-        config=config,
-        name=os.path.splitext(os.path.basename(path))[0],
-        filepath=path,
-    )
+    return laser
