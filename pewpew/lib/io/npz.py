@@ -3,8 +3,8 @@ import numpy as np
 
 from pewpew import __version__
 
-from typing import Any, Dict, List
-from pewpew.lib.laser import Laser, LaserConfig
+from typing import Any, Dict, List, Tuple
+from pewpew.lib.laser import Laser, LaserConfig, LaserData
 from pewpew.lib.exceptions import PewPewFileError
 
 
@@ -25,7 +25,7 @@ def load(path: str, config_override: LaserConfig = None) -> List[Laser]:
         PewPewFileError: Version of archive missing or incompatable.
 
     """
-    lds = []
+    lasers = []
     npz = np.load(path)
 
     if "version" not in npz.files:
@@ -33,47 +33,32 @@ def load(path: str, config_override: LaserConfig = None) -> List[Laser]:
     elif npz["version"] < "0.5.0":
         raise PewPewFileError(f"Archive version mismatch: {npz['version']}.")
 
-    num_files = sum(1 for d in npz.files if "_data" in d)
-    for i in range(0, num_files):
-        name = (
-            npz["name"][i]
-            if "name" in npz.files
-            else os.path.splitext(os.path.basename(path))[0]
+    for i in range(0, npz["count"]):
+        name = npz["name"][i]
+        lasertype = npz["type"][i]
+        config = (
+            LaserConfig(**npz["config"][i])
+            if config_override is None
+            else config_override
         )
-        type = npz["type"][i] if "type" in npz.files else Laser
-        if config_override is None:
-            config = npz["config"][i] if "config" in npz.files else None
-        else:
-            config = config_override
-        ld = type(config=config, name=name, filepath=path)
-        for key in npz.files:
+        data = {k: LaserData(**v) for k, v in npz["data"][i].items()}
+        lasers.append(lasertype(data=data, config=config, name=name, filepath=path))
 
-    return lds
-
-
-def _config_to_array(config: LaserConfig) -> Tuple[float, float, float]:
-    return config.scantime, config.speed, config.spotsize
-
-
-def _data_to_array(data: LaserData) -> Tuple[np.ndarray, float, float, str]:
-    return data.data, data.intercept, data.gradient, data.unit
+    return lasers
 
 
 def save(path: str, laser_list: List[Laser]) -> None:
     savedict: Dict[str, Any] = {
         "version": __version__,
+        "count": len(laser_list),
         "name": [],
         "type": [],
         "config": [],
+        "data": [],
     }
-    for i, laser in enumerate(laser_list):
+    for laser in laser_list:
         savedict["name"].append(laser.name)
         savedict["type"].append(type(laser))
-        savedict["config"].append(_config_to_array(laser.config))
-        for name in laser.names():
-            savedict[f"data_{i}_{name}"] = _data_to_array(laser.data)
+        savedict["config"].append(laser.config.__dict__)
+        savedict["data"].append({k: v.__dict__ for k, v in laser.data.items()})
     np.savez_compressed(path, **savedict)
-
-
-if __name__ == "__main__":
-
