@@ -15,7 +15,6 @@ def save(path: str, laser: Laser) -> None:
     # if data.ndim < 3:
     #     data = np.reshape(data, (*data.shape, 1))
     nx, ny, nz = laser.height, laser.width, laser.depth
-    print(nx, ny, nz)
 
     endian = "LittleEndian" if sys.byteorder == "little" else "BigEndian"
 
