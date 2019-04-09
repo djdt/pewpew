@@ -27,7 +27,7 @@ class LaserData(object):
     def depth(self) -> int:
         return self.data.shape[2] if self.data.ndim > 2 else 1
 
-    def get(self, calibrated: bool = True) -> np.ndarray:
+    def get(self, calibrated: bool = False) -> np.ndarray:
         if calibrated:
             return self.calibrate()
         else:

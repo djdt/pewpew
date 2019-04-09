@@ -2,24 +2,27 @@ import numpy as np
 
 from typing import Dict, List, Tuple
 
-from pewpew.lib.laser import LaserConfig, LaserData
+from pewpew.lib.laser.config import LaserConfig
+from pewpew.lib.laser.data import LaserData
 
 
 class Laser(object):
     def __init__(
         self,
-        data: Dict[str, np.ndarray] = None,
+        data: Dict[str, LaserData] = None,
         config: LaserConfig = None,
         name: str = "",
         filepath: str = "",
     ):
-        self.data: Dict[str, LaserData] = {}
         self.width = 0
         self.height = 0
         self.depth = 0
+        self.data = data if data is not None else {}
         if data is not None:
-            for k, v in data.items():
-                self.add_data(k, v)
+            k = list(data.keys())[0]
+            self.width = data[k].width()
+            self.height = data[k].height()
+            self.depth = data[k].depth()
 
         self.config = config if config is not None else LaserConfig()
 
@@ -34,7 +37,7 @@ class Laser(object):
         gradient: float = 0.0,
         unit: str = None,
     ) -> None:
-        name = Laser.formatName(name)
+        # name = Laser.formatName(name)
         data = LaserData(x, name, intercept=intercept, gradient=gradient, unit=unit)
         if self.width == 0 or self.height == 0 or self.depth == 0:
             self.width = data.width()

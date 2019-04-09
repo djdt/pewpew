@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Dict, Tuple
 
 
 class LaserConfig(object):

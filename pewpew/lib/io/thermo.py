@@ -8,7 +8,7 @@ from pewpew.lib.formatter import formatIsotope
 from typing import Dict, List
 
 
-def load(path: str, config: LaserConfig) -> Laser:
+def load(path: str, config: LaserConfig = None) -> Laser:
     """Imports iCap data exported using the CSV export function.
 
     Data is read from the "Counts" column.

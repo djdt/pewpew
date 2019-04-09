@@ -9,11 +9,17 @@ if sys.platform in ['win32', 'darwin']:
     QtGui.QIcon.setThemeName("breath")
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
+    # app = QApplication(sys.argv)
 
-    window = MainWindow()
-    sys.excepthook = window.exceptHook  # type: ignore
-    window.show()
-    window.setWindowIcon(QtGui.QIcon(":/app.ico"))
+    # window = MainWindow()
+    # sys.excepthook = window.exceptHook  # type: ignore
+    # window.show()
+    # window.setWindowIcon(QtGui.QIcon(":/app.ico"))
 
-    app.exec()
+    # app.exec()
+    from pewpew.lib.io import thermo, npz, vtk
+
+    l1 = thermo.load("/home/tom/Downloads/her 00003.csv")
+    npz.save("/home/tom/Downloads/out.npz", [l1])
+    l2 = npz.load("/home/tom/Downloads/out.npz")[0]
+    vtk.save("/home/tom/Downloads/out.vti", l2)

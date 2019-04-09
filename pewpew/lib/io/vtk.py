@@ -1,20 +1,21 @@
 import sys
 import numpy as np
 
-from pewpew.lib.laser import LaserData
+from pewpew.lib.laser import Laser
 
 
 # TODO implement extent export
 # TODO stretch not used for pixel extent / size
 
 
-def save(path: str, laser: LaserData) -> None:
+def save(path: str, laser: Laser) -> None:
     """Save data as a VTK ImageData XML."""
 
-    data = laser.data
-    if data.ndim < 3:
-        data = np.reshape(data, (*data.shape, 1))
-    nx, ny, nz = data.shape
+    # data = laser.data
+    # if data.ndim < 3:
+    #     data = np.reshape(data, (*data.shape, 1))
+    nx, ny, nz = laser.height, laser.width, laser.depth
+    print(nx, ny, nz)
 
     endian = "LittleEndian" if sys.byteorder == "little" else "BigEndian"
 
@@ -22,7 +23,7 @@ def save(path: str, laser: LaserData) -> None:
 
     extent_str = f"0 {nx} 0 {ny} 0 {nz}"
     origin_str = f"{extent[2]} {extent[0]} 0.0"
-    spacing = *laser.pixelsize(), laser.config["spotsize"] / 2.0
+    spacing = *laser.config.pixel_size(), laser.config.spotsize / 2.0
     spacing_str = f"{spacing[0]} {spacing[1]} {spacing[2]}"
 
     offset = 0
@@ -38,15 +39,15 @@ def save(path: str, laser: LaserData) -> None:
             ).encode()
         )
 
-        fp.write(f'<CellData Scalars="{data.dtype.names[0]}">\n'.encode())
-        for name in data.dtype.names:
+        fp.write(f'<CellData Scalars="{laser.names()[0]}">\n'.encode())
+        for k, v in laser.data.items():
             fp.write(
                 (
-                    f'<DataArray Name="{name}" type="Float64" '
+                    f'<DataArray Name="{k}" type="Float64" '
                     f'format="appended" offset="{offset}"/>\n'
                 ).encode()
             )
-            offset += data[name].size * data[name].itemsize + 8  # blocksize
+            offset += v.data.size * v.data.itemsize + 8  # blocksize
         fp.write("</CellData>\n".encode())
 
         fp.write(
@@ -55,8 +56,8 @@ def save(path: str, laser: LaserData) -> None:
             ).encode()
         )
 
-        for name in data.dtype.names:
-            fp.write(np.uint64(data[name].size * data[name].itemsize))
-            fp.write(data[name].ravel("F"))
+        for k, v in laser.data.items():
+            fp.write(np.uint64(v.data.size * v.data.itemsize))
+            fp.write(v.data.ravel("F"))
 
         fp.write(("</AppendedData>\n" "</VTKFile>").encode())
