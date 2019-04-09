@@ -1,9 +1,8 @@
-import os.path
 import numpy as np
 
 from pewpew import __version__
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 from pewpew.lib.laser import Laser, LaserConfig, LaserData
 from pewpew.lib.exceptions import PewPewFileError
 
