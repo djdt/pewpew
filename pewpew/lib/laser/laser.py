@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 from typing import Dict, List, Tuple
 
@@ -24,7 +25,7 @@ class Laser(object):
             self.height = data[k].height()
             self.depth = data[k].depth()
 
-        self.config = config if config is not None else LaserConfig()
+        self.config = copy.copy(config) if config is not None else LaserConfig()
 
         self.name = name
         self.filepath = filepath
@@ -33,8 +34,8 @@ class Laser(object):
         self,
         name: str,
         x: np.ndarray,
-        intercept: float = 1.0,
-        gradient: float = 0.0,
+        gradient: float = 1.0,
+        intercept: float = 0.0,
         unit: str = None,
     ) -> None:
         # name = Laser.formatName(name)

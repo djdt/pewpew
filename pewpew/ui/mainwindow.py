@@ -48,7 +48,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__(parent)
 
         # Defaults for when applying to multiple images
-        self.config = LaserConfig
+        self.config = LaserConfig()
         self.viewconfig: dict = MainWindow.DEFAULT_VIEW_CONFIG
         self.setWindowTitle("Pew Pew")
         self.resize(1280, 800)
@@ -358,7 +358,7 @@ class MainWindow(QtWidgets.QMainWindow):
             paths = dlg.generate_paths(dock.laser, prompt=prompt)
             ext = ExportAllDialog.FORMATS[dlg.combo_formats.currentText()]
 
-            for path, isotope, _ in paths:
+            for path, name, _ in paths:
                 if ext == ".csv":
                     extent = (
                         dock.canvas.view if dlg.options.csv.trimmedChecked() else None
@@ -366,7 +366,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     io.csv.save(
                         path,
                         dock.laser,
-                        isotope,
+                        name,
                         extent=extent,
                         include_header=dlg.options.csv.headerChecked(),
                     )
@@ -376,7 +376,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     io.png.save(
                         path,
                         dock.laser,
-                        isotope,
+                        name,
                         viewconfig=self.viewconfig,
                         extent=dock.canvas.view,
                         size=dlg.options.png.imagesize(),
@@ -405,9 +405,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.config.speed = dialog.speed
             self.config.scantime = dialog.scantime
             for dock in self.dockarea.findChildren(LaserImageDock):
-                dock.laser.config.spotsize = dialog.spotsize
-                dock.laser.config.speed = dialog.speed
-                dock.laser.config.scantime = dialog.scantime
+                dock.laser.config.spotsize = self.config.spotsize
+                dock.laser.config.speed = self.config.speed
+                dock.laser.config.scantime = self.config.scantime
                 dock.draw()
 
         dlg = ConfigDialog(self.config, parent=self)
