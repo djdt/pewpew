@@ -1,6 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
-import copy
 
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
@@ -157,7 +156,11 @@ class CalibrationTool(ApplyDialog):
         self.previous_isotope = ""
 
         self.dock = dock
-        self.calibration = copy.deepcopy(dock.laser.calibration)  # copy dict
+        # DO THE SAME AS YOU DID FOR CALDIALOG
+        self.calibration = {
+            k: (v.gradient, v.intercept, v.unit)
+            for k, v in self.dock.laser.data.items()
+        }
         self.texts: Dict[str, List[str]] = {}
 
         # Left side
@@ -219,7 +222,7 @@ class CalibrationTool(ApplyDialog):
         self.combo_trim.setCurrentIndex(1)
         self.combo_trim.currentIndexChanged.connect(self.comboTrim)
 
-        self.combo_isotope.addItems(self.dock.laser.isotopes())
+        self.combo_isotope.addItems(self.dock.laser.names())
         self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
 
         # self.button_box.clicked.connect(self.buttonBoxClicked)
@@ -290,9 +293,9 @@ class CalibrationTool(ApplyDialog):
         # self.dock.draw()
 
     def updateConcentrations(self) -> None:
-        isotope = self.combo_isotope.currentText()
-        if isotope in self.texts.keys():
-            concentrations = self.texts[isotope]
+        name = self.combo_isotope.currentText()
+        if name in self.texts.keys():
+            concentrations = self.texts[name]
             self.table.blockSignals(True)
             self.table.setColumnText(CalibrationTable.COLUMN_CONC, concentrations)
             self.table.blockSignals(False)
@@ -363,20 +366,21 @@ class CalibrationTool(ApplyDialog):
         m, b, r2 = weighted_linreg(x, y, w=weights)
         self.box_result.update(r2, m, b)
 
-        isotope = self.combo_isotope.currentText()
-        self.calibration[isotope]["gradient"] = m
-        self.calibration[isotope]["intercept"] = b
-        self.calibration[isotope]["unit"] = self.lineedit_units.text()
+        name = self.combo_isotope.currentText()
+        self.calibration[name] = (m, b, self.lineedit_units.text())
 
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
         if widget is not None and hasattr(widget, "laser"):
             self.dock = widget
-            self.calibration = copy.deepcopy(widget.laser.calibration)
+            self.calibration = {
+                k: (v.gradient, v.intercept, v.unit)
+                for k, v in widget.laser.data.items()
+            }
             # Prevent currentIndexChanged being emmited
             self.combo_isotope.blockSignals(True)
             self.combo_isotope.clear()
-            self.combo_isotope.addItems(self.dock.laser.isotopes())
+            self.combo_isotope.addItems(self.dock.laser.names())
             self.combo_isotope.blockSignals(False)
 
             self.lineedit_left.setText("")
@@ -468,7 +472,8 @@ class CalibrationTool(ApplyDialog):
 
     def lineeditUnits(self) -> None:
         unit = self.lineedit_units.text()
-        self.calibration[self.combo_isotope.currentText()]["unit"] = unit
+        cal = self.cal[self.combo_isotope.currentText()]
+        self.calibration[self.combo_isotope.currentText()] = (cal[0], cal[1], unit)
 
     def spinBoxLevels(self) -> None:
         self.table.setRowCount(self.spinbox_levels.value())

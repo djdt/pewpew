@@ -203,8 +203,8 @@ class LaserImageDock(QtWidgets.QDockWidget):
         if ext == ".csv":
             dlg: ExportDialog = CSVExportDialog(
                 path,
-                isotope=self.combo_isotope.currentText(),
-                isotopes=len(self.laser.names()),
+                name=self.combo_isotope.currentText(),
+                names=len(self.laser.names()),
                 layers=self.laser.depth,
                 parent=self,
             )
@@ -227,8 +227,8 @@ class LaserImageDock(QtWidgets.QDockWidget):
         elif ext == ".png":
             dlg = PNGExportDialog(
                 path,
-                isotope=self.combo_isotope.currentText(),
-                isotopes=len(self.laser.names()),
+                name=self.combo_isotope.currentText(),
+                names=len(self.laser.names()),
                 layers=self.laser.depth,
                 parent=self,
             )
@@ -261,14 +261,16 @@ class LaserImageDock(QtWidgets.QDockWidget):
             else:
                 docks = [self]
             for dock in docks:
-                for isotope in dlg.calibration.keys():
-                    if isotope in dock.laser.isotopes():
-                        dock.laser.calibration[isotope] = dlg.calibration[isotope]
+                for name in dlg.calibration.keys():
+                    if name in dock.laser.names():
+                        dock.laser.data[name].gradient = dlg.calibration[name][0]
+                        dock.laser.data[name].isotope = dlg.calibration[name][1]
+                        dock.laser.data[name].unit = dlg.calibration[name][2]
                 dock.draw()
 
         # TODO thisll be annoying
         dlg = CalibrationDialog(
-            self.laser.data, self.combo_isotope.currentText(), parent=self
+            self.laser, self.combo_isotope.currentText(), parent=self
         )
         dlg.applyPressed.connect(applyDialog)
         if dlg.exec():
@@ -282,9 +284,9 @@ class LaserImageDock(QtWidgets.QDockWidget):
             else:
                 docks = [self]
             for dock in docks:
-                dock.laser.config["spotsize"] = dialog.spotsize
-                dock.laser.config["speed"] = dialog.speed
-                dock.laser.config["scantime"] = dialog.scantime
+                dock.laser.config.spotsize = dialog.spotsize
+                dock.laser.config.speed = dialog.speed
+                dock.laser.config.scantime = dialog.scantime
                 dock.draw()
 
         dlg = ConfigDialog(self.laser.config, parent=self)
