@@ -47,11 +47,15 @@ class KrissKrossConfig(LaserConfig):
     def warmup_lines(self) -> int:
         return np.round(self.warmup / self.scantime).astype(int)
 
-    def aspect_stretch(self) -> int:
-        return np.round(self.aspect()).astype(int)
+    def layer_aspect(self) -> float:
+        return self.spotsize / (self.speed * self.scantime)
 
     def calculate_subpixel_per_pixel(self, offsets: List[Fraction]) -> Tuple[int, int]:
         gcd = np.gcd.reduce(offsets)
-        denom = Fraction(gcd * self.aspect_stretch()).limit_denominator().denominator
+        denom = (
+            Fraction(gcd * np.round(self.layer_aspect()))
+            .limit_denominator()
+            .denominator
+        )
         self.subpixel_per_pixel = (denom, denom)
         return self.subpixel_per_pixel
