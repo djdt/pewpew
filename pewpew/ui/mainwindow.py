@@ -18,7 +18,7 @@ from pewpew.ui.dialogs.export import ExportAllDialog
 from pewpew.lib.colormaps import COLORMAPS
 from pewpew.lib.exceptions import PewPewError, PewPewFileError
 from pewpew.lib import io
-from pewpew.lib.krisskross import KrissKrossData
+from pewpew.lib.laser.krisskross import KrissKross
 from pewpew.lib.laser import Laser, LaserConfig
 
 from typing import List
@@ -268,7 +268,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
         docks = []
         for ld in lds:
-            if isinstance(ld, KrissKrossData):
+            if isinstance(ld, KrissKross):
                 docks.append(KrissKrossImageDock(ld, self.dockarea))
             else:
                 docks.append(LaserImageDock(ld, self.dockarea))

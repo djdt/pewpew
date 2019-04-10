@@ -4,19 +4,24 @@ from fractions import Fraction
 from PyQt5 import QtCore, QtWidgets
 
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
-from pewpew.ui.validators import DecimalValidator, IntListValidator
+from pewpew.ui.validators import DecimalValidator
 
-from pewpew.lib.krisskross import KrissKrossData
+from pewpew.lib.laser.krisskross import KrissKross
+from pewpew.lib.laser.config import LaserConfig, KrissKrossConfig
 from pewpew.lib import io
 
 from typing import List
 
 
 class KrissKrossWizard(QtWidgets.QWizard):
-    def __init__(self, config: dict, parent: QtWidgets.QWidget = None):
+    def __init__(self, config: LaserConfig, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        self.data: KrissKrossData = KrissKrossData()
+        config = KrissKrossConfig(
+            spotsize=config.spotsize, speed=config.speed, scantime=config.scantime
+        )
+
+        self.data: KrissKross = KrissKross()
 
         self.addPage(KrissKrossStartPage())
         self.addPage(KrissKrossImportPage())
@@ -28,9 +33,9 @@ class KrissKrossWizard(QtWidgets.QWizard):
 
     def accept(self) -> None:
         config = self.field("config")
-        calibration = None
+        config.warmup = float(self.field("lineedit_warmup"))
         paths = self.field("paths")
-        layers = []
+        lasers = []
 
         if self.field("radio_numpy"):
             for path in paths:
@@ -43,25 +48,22 @@ class KrissKrossWizard(QtWidgets.QWizard):
                         "contains more than one image.",
                     )
                     return
-                layers.append(lds[0])
-            # Read the config and calibration from the frist file
+                lasers.append(lds[0])
+            # Read the config from the frist file
             config = self.layers[0].config
-            calibration = self.layers[0].calibration
         elif self.field("radio_agilent"):
             for path in paths:
-                layers.append(io.agilent.load(path, config))
+                lasers.append(io.agilent.load(path, config))
         elif self.field("radio_thermo"):
             for path in paths:
-                layers.append(io.thermo.load(path, config))
+                lasers.append(io.thermo.load(path, config))
 
-        self.data = KrissKrossData.fromLayers(
-            [layer.data for layer in layers],
+        self.data = KrissKross.from_layers(
+            lasers,
             config=config,
-            calibration=calibration,
             name=os.path.splitext(os.path.basename(paths[0]))[0],
-            source=paths[0],
+            filepath=paths[0],
             offsets=self.field("offsets"),
-            warmup_time=float(self.field("lineedit_warmup")),
             horizontal_first=self.field("check_horizontal"),
         )
 
@@ -210,24 +212,26 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
 
 
 class KrissKrossConfigPage(QtWidgets.QWizardPage):
-    def __init__(self, config: dict, parent: QtWidgets.QWidget = None):
+    def __init__(self, config: KrissKrossConfig, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         self.dconfig = config
 
         self.lineedit_spotsize = QtWidgets.QLineEdit()
-        self.lineedit_spotsize.setPlaceholderText(str(config["spotsize"]))
+        self.lineedit_spotsize.setPlaceholderText(str(config.spotsize))
         self.lineedit_spotsize.setValidator(DecimalValidator(0, 1e3, 4))
         self.lineedit_speed = QtWidgets.QLineEdit()
-        self.lineedit_speed.setPlaceholderText(str(config["speed"]))
+        self.lineedit_speed.setPlaceholderText(str(config.speed))
         self.lineedit_speed.setValidator(DecimalValidator(0, 1e3, 4))
         self.lineedit_scantime = QtWidgets.QLineEdit()
-        self.lineedit_scantime.setPlaceholderText(str(config["scantime"]))
+        self.lineedit_scantime.setPlaceholderText(str(config.scantime))
         self.lineedit_scantime.setValidator(DecimalValidator(0, 1e3, 4))
 
         self.spinbox_offsets = QtWidgets.QSpinBox()
         self.spinbox_offsets.setRange(2, 10)
-        self.spinbox_offsets.setToolTip("The number of subpixels per pixel in one dimension.")
+        self.spinbox_offsets.setToolTip(
+            "The number of subpixels per pixel in one dimension."
+        )
         # self.registerField('spinbox_offsets', self.spinbox_offsets)
         # self.lineedit_offsets = QtWidgets.QLineEdit()
         # self.lineedit_offsets.setText("2")
@@ -258,13 +262,13 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
         self.registerField("offsets", self, "offsets")
 
     @QtCore.pyqtProperty(QtCore.QVariant)
-    def config(self) -> dict:
+    def config(self) -> KrissKrossConfig:
         if self.lineedit_spotsize.text() != "":
-            self.dconfig["spotsize"] = float(self.lineedit_spotsize.text())
+            self.dconfig.spotsize = float(self.lineedit_spotsize.text())
         if self.lineedit_speed.text() != "":
-            self.dconfig["speed"] = float(self.lineedit_speed.text())
+            self.dconfig.speed = float(self.lineedit_speed.text())
         if self.lineedit_scantime.text() != "":
-            self.dconfig["scantime"] = float(self.lineedit_scantime.text())
+            self.dconfig.scantime = float(self.lineedit_scantime.text())
         return self.dconfig
 
     @QtCore.pyqtProperty(QtCore.QVariant)

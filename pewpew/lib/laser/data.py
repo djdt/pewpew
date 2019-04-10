@@ -25,7 +25,7 @@ class LaserData(object):
         return self.data.shape[0]
 
     def depth(self) -> int:
-        return self.data.shape[2] if self.data.ndim > 2 else 1
+        return 1
 
     def get(self, calibrated: bool = False) -> np.ndarray:
         if calibrated:
@@ -35,3 +35,15 @@ class LaserData(object):
 
     def calibrate(self) -> np.ndarray:
         return (self.data - self.intercept) / self.gradient
+
+
+class KrissKrossData(LaserData):
+
+    def get(self, calibrated: bool = False, flat: bool = False) -> np.ndarray:
+        data = super().get(calibrated)
+        if flat:
+            data = np.mean(data, axis=2)
+        return data
+
+    def depth(self) -> int:
+        return self.data.shape[2]

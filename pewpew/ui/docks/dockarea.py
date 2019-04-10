@@ -8,7 +8,7 @@ from pewpew.lib import io
 from pewpew.lib.exceptions import PewPewError
 
 from typing import List
-from pewpew.lib.krisskross import KrissKrossData
+from pewpew.lib.laser.krisskross import KrissKross
 from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
 
 
@@ -139,7 +139,7 @@ class DockArea(QtWidgets.QMainWindow):
                 return
         docks = []
         for ld in lds:
-            if isinstance(ld, KrissKrossData):
+            if isinstance(ld, KrissKross):
                 docks.append(KrissKrossImageDock(ld, self))
             else:
                 docks.append(LaserImageDock(ld, self))
