@@ -82,8 +82,11 @@ class KrissKross(Laser):
     ) -> KKType:
         data = {}
         warmup = config.warmup_lines()
-        aspect = config.aspect_stretch()
+        aspect = int(config.aspect())
         stretch = config.calculate_subpixel_per_pixel(offsets)[0]
+        print('warmup', warmup, config.warmup)
+        print('aspect', aspect, config.aspect())
+        print('stretch', stretch)
         for name in layers[0].names():
             data[name] = KrissKrossData(
                 krisskross_layers(
