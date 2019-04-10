@@ -53,5 +53,5 @@ class KrissKrossConfig(LaserConfig):
     def calculate_subpixel_per_pixel(self, offsets: List[Fraction]) -> Tuple[int, int]:
         gcd = np.gcd.reduce(offsets)
         denom = Fraction(gcd * self.aspect_stretch()).limit_denominator().denominator
-        self.pixel_stretch = (denom, denom)
+        self.subpixel_per_pixel = (denom, denom)
         return self.subpixel_per_pixel
