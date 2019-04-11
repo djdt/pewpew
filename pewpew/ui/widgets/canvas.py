@@ -123,10 +123,8 @@ class Canvas(FigureCanvasQTAgg):
 
     def plot(self, laser: Laser, name: str, viewconfig: dict) -> None:
         # Get the trimmed and calibrated data
-        data = laser.get(name, calibrated=viewconfig["calibrate"])
-        unit = (
-            str(laser.data[name].unit) if viewconfig["calibrate"] else ""
-        )
+        data = laser.get(name, calibrate=viewconfig["calibrate"])
+        unit = str(laser.data[name].unit) if viewconfig["calibrate"] else ""
         # Filter if required
         if viewconfig["filtering"]["type"] != "None":
             filter_type, window, threshold = (
@@ -139,8 +137,11 @@ class Canvas(FigureCanvasQTAgg):
                 data = rolling_median_filter(data, window, threshold)
 
         # If the laser extent has changed (i.e. config edited) then reset the view
-        if self.extent != laser.extent():
-            self.extent = laser.extent()
+        x = data.shape[1] * laser.config.pixel_width()
+        y = data.shape[0] * laser.config.pixel_height()
+        extent = (0.0, x, 0.0, y)
+        if self.extent != extent:
+            self.extent = extent
             self.view = (0.0, 0.0, 0.0, 0.0)
 
         # Plot the image
