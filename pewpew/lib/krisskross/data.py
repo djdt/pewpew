@@ -1,36 +1,10 @@
 import numpy as np
 from pewpew.lib.calc import subpixel_offset_equal
-from pewpew.lib.laser import LaserData
-from pewpew.lib.krisskross import KrissKrossConfig
-from pewpew.lib.laser import LaserConfig
+from pewpew.lib.laser.data import LaserData
+from pewpew.lib.krisskross.config import KrissKrossConfig
+from pewpew.lib.laser.config import LaserConfig
 
 from typing import List, Tuple
-
-
-# def krisskross_layers(
-#     layers: List[np.ndarray], config: KrissKrossConfig, horizontal_first: bool = True
-# ) -> np.ndarray:
-#     warmup = config.warmup_lines()
-#     mfactor = config.magnification_factor()
-
-#     j = 0 if horizontal_first else 1
-#     # Calculate the line lengths
-#     length = (layers[1].shape[0] * mfactor, layers[0].shape[0] * mfactor)
-#     # Reshape the layers and stack into matrix
-#     aligned = np.empty((length[1], length[0], len(layers)), dtype=layers[0].dtype)
-#     for i, layer in enumerate(layers):
-#         # Trim data of warmup time and excess
-#         layer = layer[:, warmup : warmup + length[(i + j) % 2]]
-#         # Stretch array
-#         layer = np.repeat(layer, mfactor, axis=0)
-#         # Flip vertical layers
-#         if (i + j) % 2 == 1:
-#             layer = layer.T
-#         aligned[:, :, i] = layer
-
-#     return subpixel_offset_equal(
-#         aligned, config.subpixel_offsets(), config.subpixel_per_pixel[0]
-#     )
 
 
 class KrissKrossData(LaserData):

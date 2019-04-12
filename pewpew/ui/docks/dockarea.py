@@ -8,7 +8,7 @@ from pewpew.lib import io
 from pewpew.lib.exceptions import PewPewError
 
 from typing import List
-from pewpew.lib.laser.krisskross import KrissKross
+from pewpew.lib.krisskross import KrissKross
 from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
 
 

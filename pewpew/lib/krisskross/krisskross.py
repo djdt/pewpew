@@ -1,7 +1,8 @@
 import numpy as np
 
-from pewpew.lib.laser import Laser
-from pewpew.lib.krisskross import KrissKrossConfig, KrissKrossData
+from pewpew.lib.laser.laser import Laser
+from pewpew.lib.krisskross.config import KrissKrossConfig
+from pewpew.lib.krisskross.data import KrissKrossData
 
 from typing import Dict, Tuple
 

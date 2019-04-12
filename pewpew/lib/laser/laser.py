@@ -1,10 +1,10 @@
 import numpy as np
 import copy
 
-from typing import Dict, List, Tuple
-
 from pewpew.lib.laser.config import LaserConfig
 from pewpew.lib.laser.data import LaserData
+
+from typing import Dict, List, Tuple
 
 
 class Laser(object):

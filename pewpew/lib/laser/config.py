@@ -20,3 +20,11 @@ class LaserConfig(object):
 
     def pixel_size(self) -> Tuple[float, float]:
         return (self.pixel_width(), self.pixel_height())
+
+    def data_extent(self, data: np.ndarray) -> Tuple[float, float, float, float]:
+        return (
+            0.0,
+            self.pixel_width() * data.shape[1],
+            0.0,
+            self.pixel_height() * data.shape[0],
+        )

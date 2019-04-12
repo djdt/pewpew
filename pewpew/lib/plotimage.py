@@ -11,6 +11,100 @@ from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
 
 
+DEFAULT_PLOT_PARAMS = {
+    "colorbar": False,
+    "colorbar_kws": {"pos": "bottom", "label": ""},
+    "fontsize": 12,
+    "interpolation": "none",
+    "label": None,
+    "scalebar": False,
+}
+
+def plot_laser_data(fig: Figure, ax: Axes, data: np.ndarray, **kwargs) -> AxesImage:
+    vmin = kwargs.get("vmin", "100%")
+    vmax = kwargs.get("vmax", "100%")
+    cmap = kwargs.get("cmap", "magma")
+    interpolation = kwargs.get("interpolation", "none")
+    extent = kwargs.get("extent", None)
+    aspect = kwargs.get("aspect", "auto")
+
+    # If data is empty create a dummy data
+    if data is None or data.size == 0:
+        data = np.array([[0]], dtype=np.float64)
+
+    # Calculate the colorbar range
+    if isinstance(vmin, str):
+        vmin = np.percentile(data, float(vmin.rstrip("%")))
+    if isinstance(vmax, str):
+        vmax = np.percentile(data, float(vmax.rstrip("%")))
+
+    # Plot the image
+    im = ax.imshow(
+        data,
+        cmap=kwargs.get("cmap", "magma"),
+        interpolation=kwargs.get("interpolation", "none"),
+        vmin=vmin,
+        vmax=vmax,
+        extent=kwargs.get("extent", None),
+        aspect=kwargs.get("aspect", "auto"),
+        origin="upper",
+    )
+
+    colorbarpos = kwargs.get("colorbarpos", None)
+    if kwargs.get("colorbar", False):
+        div = make_axes_locatable(ax)
+        cax = div.append_axes(colorbarpos, size=0.1, pad=0.05)
+        if colorbarpos in ["right", "left"]:
+            orientation = "vertical"
+        else:
+            orientation = "horizontal"
+        fig.colorbar(
+            im,
+            label=kwargs.get("colorbar", "label"),
+            cax=cax,
+            orientation=orientation,
+            ticks=MaxNLocator(nbins=6),
+        )
+
+    if label:
+        text = AnchoredText(
+            labeltext,
+            "upper left",
+            pad=0.2,
+            borderpad=0.1,
+            frameon=False,
+            prop={"color": "white", "size": fontsize},
+        )
+        ax.add_artist(text)
+
+    if scalebar:
+        scalebar = ScaleBar(
+            1.0,
+            "um",
+            location="upper right",
+            frameon=False,
+            color="white",
+            font_properties={"size": fontsize},
+        )
+        ax.add_artist(scalebar)
+
+    # if xaxis:
+    #     ax.tick_params(axis="x", direction="in", color="white", labelbottom=False)
+    #     if xaxisticksize is not None:
+    #         start = extent[0] if extent is not None else 0.0
+    #         start += start % xaxisticksize
+    #         end = extent[1] if extent is not None else data.shape[1]
+    #         xticks = np.arange(start, end, xaxisticksize)
+    #         ax.set_xticks(xticks)
+    # else:
+    ax.axis("scaled")
+    ax.set_facecolor("black")
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+
+    return im
+
+
 def plotLaserImage(
     fig: Figure,
     ax: Axes,
@@ -51,7 +145,7 @@ def plotLaserImage(
         vmax=vmax,
         extent=extent,
         aspect=aspect,
-        origin='upper',
+        origin="upper",
     )
 
     if colorbar:
@@ -94,7 +188,7 @@ def plotLaserImage(
     ax.axis("scaled")
     ax.set_facecolor("black")
     if xaxis:
-        ax.tick_params(axis='x', direction='in', color='white', labelbottom=False)
+        ax.tick_params(axis="x", direction="in", color="white", labelbottom=False)
         if xaxisticksize is not None:
             start = extent[0] if extent is not None else 0.0
             start += start % xaxisticksize

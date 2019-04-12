@@ -8,9 +8,9 @@ from pewpew.lib.exceptions import (
     PewPewDataError,
     PewPewFileError,
 )
-from pewpew.lib.laser import Laser, LaserConfig
+from pewpew.lib.laser import Laser, LaserConfig, LaserData
 
-from typing import Any, Dict, Tuple
+from typing import Tuple
 
 
 # TODO add an option to choose calibration on save, as you can now toggle it on and off
@@ -45,17 +45,6 @@ def load(
         PewPewDataError: Invalild data.
 
     """
-
-    def line_to_dict(line: str, delim: str, sep: str) -> Dict[str, Any]:
-        d: Dict[str, Any] = {}
-        for token in line.split(delim):
-            k, v = token.split(sep)
-            try:
-                d[k] = float(v)
-            except ValueError:
-                d[k] = v
-                pass
-        return d
 
     with open(path, "r") as fp:
         line = fp.readline().lstrip("#").strip()
@@ -104,7 +93,13 @@ def load(
     laser = Laser(
         config=config, name=os.path.splitext(os.path.basename(path))[0], filepath=path
     )
-    laser.add_data(name, data, intercept=intercept, gradient=gradient, unit=unit)
+    # Only put calibration in if requested
+    if read_calibration:
+        laser.data[name] = LaserData(
+            data, name, intercept=intercept, gradient=gradient, unit=unit
+        )
+    else:
+        laser.data[name] = LaserData(data, name)
 
     return laser
 
@@ -113,6 +108,7 @@ def save(
     path: str,
     laser: Laser,
     name: str,
+    calibrate: bool = False,
     extent: Tuple[float, float, float, float] = None,
     include_header: bool = False,
 ) -> None:
@@ -130,7 +126,7 @@ def save(
         )
     np.savetxt(
         path,
-        laser.get(name, calibrated=True, extent=extent),
+        laser.get(name, calibrate=calibrate, extent=extent),
         delimiter=",",
         header=header,
     )

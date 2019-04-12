@@ -2,7 +2,7 @@ from PyQt5 import QtWidgets
 
 from pewpew.ui.docks import LaserImageDock
 
-from pewpew.lib.laser.krisskross import KrissKross
+from pewpew.lib.krisskross import KrissKross
 
 
 class KrissKrossImageDock(LaserImageDock):

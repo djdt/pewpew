@@ -23,16 +23,18 @@ def save(
     fig = Figure(frameon=False, tight_layout=True, figsize=figsize, dpi=100)
     canvas = FigureCanvasAgg(fig)
     ax = fig.add_subplot(111)
+    data = laser.get(name, calibrate=True)
     plotLaserImage(
         fig,
         ax,
-        laser.get(name, calibrated=True),
+        data,
         aspect=laser.config.aspect(),
         cmap=viewconfig["cmap"]["type"],
         colorbar=include_colorbar,
         colorbarpos="bottom",
         colorbartext=str(laser.data[name].unit),
-        extent=laser.extent(),
+        # TODO Change this to take pixel size? Add a data+size to extent func?
+        extent=(0.0, data.shape[1] * laser.config.pixel_width(), 0.0, data.shape[0] * laser.config.pixel_height()
         fontsize=viewconfig["font"]["size"],
         interpolation=viewconfig["interpolation"].lower(),
         label=include_label,

@@ -1,7 +1,7 @@
 import os.path
 import numpy as np
 
-from pewpew.lib.laser import Laser, LaserConfig
+from pewpew.lib.laser import Laser, LaserConfig, LaserData
 from pewpew.lib.exceptions import PewPewDataError, PewPewFileError
 
 
@@ -71,10 +71,11 @@ def load(path: str, config: LaserConfig = None) -> Laser:
 
     try:
         data = np.vstack(lines)
-        for name in data.dtype.names:
-            laser.add_data(name, data[name])
 
     except ValueError as e:
         raise PewPewDataError("Mismatched data.") from e
+
+    for name in data.dtype.names:
+        laser.data[name] = LaserData(data[name], name)
 
     return laser

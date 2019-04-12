@@ -18,7 +18,7 @@ from pewpew.ui.dialogs.export import ExportAllDialog
 from pewpew.lib.colormaps import COLORMAPS
 from pewpew.lib.exceptions import PewPewError, PewPewFileError
 from pewpew.lib import io
-from pewpew.lib.laser.krisskross import KrissKross
+from pewpew.lib.krisskross import KrissKross
 from pewpew.lib.laser import Laser, LaserConfig
 
 from typing import List
