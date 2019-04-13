@@ -4,6 +4,7 @@ from pewpew import __version__
 
 from typing import Any, Dict, List
 from pewpew.lib.laser import Laser, LaserConfig, LaserData
+from pewpew.lib.krisskross import KrissKross
 from pewpew.lib.exceptions import PewPewFileError
 
 
@@ -24,7 +25,7 @@ def load(path: str, config_override: LaserConfig = None) -> List[Laser]:
         PewPewFileError: Version of archive missing or incompatable.
 
     """
-    lasers = []
+    lasers: List[Laser] = []
     npz = np.load(path)
 
     if "version" not in npz.files:
@@ -32,16 +33,10 @@ def load(path: str, config_override: LaserConfig = None) -> List[Laser]:
     elif npz["version"] < "0.5.0":
         raise PewPewFileError(f"Archive version mismatch: {npz['version']}.")
 
-    for i in range(0, npz["count"]):
-        name = npz["name"][i]
-        lasertype = npz["type"][i]
-        config = (
-            LaserConfig(**npz["config"][i])
-            if config_override is None
-            else config_override
-        )
-        data = {k: LaserData(**v) for k, v in npz["data"][i].items()}
-        lasers.append(lasertype(data=data, config=config, name=name, filepath=path))
+    for f in npz.files:
+        if f == "version":
+            continue
+        lasers.append(npz[f].item())
 
     return lasers
 
@@ -49,15 +44,13 @@ def load(path: str, config_override: LaserConfig = None) -> List[Laser]:
 def save(path: str, laser_list: List[Laser]) -> None:
     savedict: Dict[str, Any] = {
         "version": __version__,
-        "count": len(laser_list),
-        "name": [],
-        "type": [],
-        "config": [],
-        "data": [],
     }
     for laser in laser_list:
-        savedict["name"].append(laser.name)
-        savedict["type"].append(type(laser))
-        savedict["config"].append(laser.config.__dict__)
-        savedict["data"].append({k: v.__dict__ for k, v in laser.data.items()})
+        name = laser.name
+        if name in savedict:
+            i = 0
+            while f"{name}{i}" in savedict:
+                i += 1
+            name += f"{name}{i}"
+        savedict[name] = laser
     np.savez_compressed(path, **savedict)
