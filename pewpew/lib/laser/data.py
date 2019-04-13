@@ -2,14 +2,10 @@ import numpy as np
 
 from pewpew.lib.laser.config import LaserConfig
 
-from typing import Tuple
+from typing import Callable, Tuple
 
 
-class AbstractData(object):
-    pass
-
-
-class LaserData(AbstractData):
+class LaserData(object):
     DEFAULT_UNIT = ""
 
     def __init__(
@@ -47,3 +43,22 @@ class LaserData(AbstractData):
             data = (data - self.intercept) / self.gradient
 
         return data
+
+
+class VirtualData(LaserData):
+    def __init__(self, data: LaserData, name: str, op: Callable, data2: LaserData):
+        self.data = data
+        self.name = name
+        self.op = op
+        self.data2 = data2
+
+    def get(
+        self,
+        config: LaserConfig,
+        calibrate: bool = False,
+        extent: Tuple[float, float, float, float] = None,
+    ) -> np.ndarray:
+        d1 = self.data.get(config, calibrate=calibrate, extent=extent)
+        d2 = self.data2.get(config, calibrate=calibrate, extent=extent)
+
+        return self.op(d1, d2)

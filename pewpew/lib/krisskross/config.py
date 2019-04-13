@@ -36,6 +36,12 @@ class KrissKrossConfig(LaserConfig):
     def subpixel_offsets(self) -> List[int]:
         return [offset // self.subpixel_gcd for offset in self.pixel_offsets]
 
+    def set_subpixel_offsets(self, subpixel_width: int) -> None:
+        self.pixel_offsets = [
+            Fraction(i, subpixel_width) for i in range(0, subpixel_width)
+        ]
+        self._calculate_subpixel_params()
+
     def _calculate_subpixel_params(self) -> None:
         gcd = np.gcd.reduce(self.pixel_offsets)
         denom = (

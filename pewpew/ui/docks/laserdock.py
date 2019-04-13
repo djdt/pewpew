@@ -278,15 +278,13 @@ class LaserImageDock(QtWidgets.QDockWidget):
     def onMenuConfig(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
             if dialog.check_all.isChecked():
-                # TODO see if this actually affects krisskross
                 docks = self.parent().findChildren(LaserImageDock)
             else:
                 docks = [self]
             for dock in docks:
-                dock.laser.config.spotsize = dialog.spotsize
-                dock.laser.config.speed = dialog.speed
-                dock.laser.config.scantime = dialog.scantime
-                dock.draw()
+                if type(dock.laser) == Laser:
+                    dock.laser.config = copy.copy(dialog.config)
+                    dock.draw()
 
         dlg = ConfigDialog(self.laser.config, parent=self)
         dlg.applyPressed.connect(applyDialog)
