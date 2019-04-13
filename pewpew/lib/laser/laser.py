@@ -34,6 +34,22 @@ class Laser(object):
         # Calibration
         return self.data[name].get(self.config, calibrate=calibrate, extent=extent)
 
+    def get_structured(
+        self, calibrate: bool = False, extent: Tuple[float, float, float, float] = None
+    ) -> np.ndarray:
+        data = []
+        for name in self.names():
+            data.append(
+                self.data[name].get(  # type: ignore
+                    self.config, calibrate=calibrate, extent=extent
+                )
+            )
+        dtype = [(name, float) for name in self.names()]
+        structured = np.empty(data[0].shape, dtype)
+        for name, d in zip(self.names(), data):
+            structured[name] = d
+        return structured
+
     def convert(self, x: float, unit_from: str, unit_to: str) -> float:
         # Convert into rows
         if unit_from in ["s", "seconds"]:

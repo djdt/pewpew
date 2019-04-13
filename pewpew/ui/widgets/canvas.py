@@ -3,7 +3,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 from pewpew.lib.formatter import formatIsotope
-from pewpew.lib.plotimage import plotLaserImage
+from pewpew.lib.plotimage import plot_laser_data
 
 from pewpew.lib.laser import Laser
 from matplotlib.backend_bases import MouseEvent, LocationEvent
@@ -145,25 +145,20 @@ class Canvas(FigureCanvasQTAgg):
             self.view = (0.0, 0.0, 0.0, 0.0)
 
         # Plot the image
-        self.image = plotLaserImage(
+        self.image = plot_laser_data(
             self.figure,
             self.ax,
             data,
             aspect=laser.config.aspect(),
             cmap=viewconfig["cmap"]["type"],
-            colorbar=self.options["colorbar"],
-            colorbarpos="bottom",
-            colorbartext=unit,
+            colorbar="bottom" if self.options["colorbar"] else None,
+            colorbar_label=unit,
+            colorbar_range=viewconfig["cmap"]["range"],
             extent=self.extent,
             fontsize=viewconfig["font"]["size"],
             interpolation=viewconfig["interpolation"].lower(),
-            label=self.options["label"],
-            labeltext=formatIsotope(name, fstring="$^{{{mass}}}${element}"),
+            label=formatIsotope(name, fstring="$^{{{mass}}}${element}"),
             scalebar=self.options["scalebar"],
-            vmax=viewconfig["cmap"]["range"][1],
-            vmin=viewconfig["cmap"]["range"][0],
-            xaxis=False,
-            xaxisticksize=laser.config.speed,
         )
         if self.view == (0.0, 0.0, 0.0, 0.0):
             self.view = self.extent

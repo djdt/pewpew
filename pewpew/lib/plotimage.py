@@ -11,64 +11,66 @@ from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
 
 
-DEFAULT_PLOT_PARAMS = {
-    "colorbar": False,
-    "colorbar_kws": {"pos": "bottom", "label": ""},
-    "fontsize": 12,
-    "interpolation": "none",
-    "label": None,
-    "scalebar": False,
-}
-
-def plot_laser_data(fig: Figure, ax: Axes, data: np.ndarray, **kwargs) -> AxesImage:
-    vmin = kwargs.get("vmin", "100%")
-    vmax = kwargs.get("vmax", "100%")
-    cmap = kwargs.get("cmap", "magma")
-    interpolation = kwargs.get("interpolation", "none")
-    extent = kwargs.get("extent", None)
-    aspect = kwargs.get("aspect", "auto")
+def plot_laser_data(
+    fig: Figure,
+    ax: Axes,
+    data: np.ndarray,
+    aspect: Union[str, float] = "auto",
+    cmap: str = "magma",
+    extent: Tuple[float, float, float, float] = None,
+    interpolation: str = "none",
+    colorbar: str = None,
+    colorbar_range: Tuple[Union[str, float], Union[str, float]] = ("1%", "99%"),
+    colorbar_label: str = "",
+    label: str = None,
+    scalebar: bool = False,
+    fontsize: int = 12,
+) -> AxesImage:
 
     # If data is empty create a dummy data
     if data is None or data.size == 0:
         data = np.array([[0]], dtype=np.float64)
 
     # Calculate the colorbar range
-    if isinstance(vmin, str):
-        vmin = np.percentile(data, float(vmin.rstrip("%")))
-    if isinstance(vmax, str):
-        vmax = np.percentile(data, float(vmax.rstrip("%")))
+    if isinstance(colorbar_range[0], str):
+        vmin = np.percentile(data, float(colorbar_range[0].rstrip("%")))
+    else:
+        vmin = float(colorbar_range[0])
+    if isinstance(colorbar_range[1], str):
+        vmax = np.percentile(data, float(colorbar_range[1].rstrip("%")))
+    else:
+        vmax = float(colorbar_range[1])
 
     # Plot the image
     im = ax.imshow(
         data,
-        cmap=kwargs.get("cmap", "magma"),
-        interpolation=kwargs.get("interpolation", "none"),
+        cmap=cmap,
+        interpolation=interpolation,
         vmin=vmin,
         vmax=vmax,
-        extent=kwargs.get("extent", None),
-        aspect=kwargs.get("aspect", "auto"),
+        extent=extent,
+        aspect=aspect,
         origin="upper",
     )
 
-    colorbarpos = kwargs.get("colorbarpos", None)
-    if kwargs.get("colorbar", False):
+    if colorbar is not None:
         div = make_axes_locatable(ax)
-        cax = div.append_axes(colorbarpos, size=0.1, pad=0.05)
-        if colorbarpos in ["right", "left"]:
+        cax = div.append_axes(colorbar, size=0.1, pad=0.05)
+        if colorbar in ["right", "left"]:
             orientation = "vertical"
         else:
             orientation = "horizontal"
         fig.colorbar(
             im,
-            label=kwargs.get("colorbar", "label"),
+            label=colorbar_label,
             cax=cax,
             orientation=orientation,
             ticks=MaxNLocator(nbins=6),
         )
 
-    if label:
+    if label is not None:
         text = AnchoredText(
-            labeltext,
+            label,
             "upper left",
             pad=0.2,
             borderpad=0.1,
@@ -88,15 +90,6 @@ def plot_laser_data(fig: Figure, ax: Axes, data: np.ndarray, **kwargs) -> AxesIm
         )
         ax.add_artist(scalebar)
 
-    # if xaxis:
-    #     ax.tick_params(axis="x", direction="in", color="white", labelbottom=False)
-    #     if xaxisticksize is not None:
-    #         start = extent[0] if extent is not None else 0.0
-    #         start += start % xaxisticksize
-    #         end = extent[1] if extent is not None else data.shape[1]
-    #         xticks = np.arange(start, end, xaxisticksize)
-    #         ax.set_xticks(xticks)
-    # else:
     ax.axis("scaled")
     ax.set_facecolor("black")
     ax.get_xaxis().set_visible(False)

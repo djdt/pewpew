@@ -205,7 +205,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 path,
                 name=self.combo_isotope.currentText(),
                 names=len(self.laser.names()),
-                layers=self.laser.depth,
+                layers=1,
                 parent=self,
             )
             if dlg.exec():
@@ -229,7 +229,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 path,
                 name=self.combo_isotope.currentText(),
                 names=len(self.laser.names()),
-                layers=self.laser.depth,
+                layers=1,
                 parent=self,
             )
             if dlg.exec():
@@ -268,7 +268,6 @@ class LaserImageDock(QtWidgets.QDockWidget):
                         dock.laser.data[name].unit = dlg.calibration[name][2]
                 dock.draw()
 
-        # TODO thisll be annoying
         dlg = CalibrationDialog(
             self.laser, self.combo_isotope.currentText(), parent=self
         )
@@ -298,31 +297,6 @@ class LaserImageDock(QtWidgets.QDockWidget):
         def applyDialog(dialog: ApplyDialog) -> None:
             pass
         pass
-
-    # def onMenuTrim(self) -> None:
-    #     def applyDialog(dialog: ApplyDialog) -> None:
-    #         if dialog.check_all.isChecked():
-    #             docks = self.parent().findChildren(LaserImageDock)
-    #         else:
-    #             docks = [self]
-    #         for dock in docks:
-    #             total = sum(
-    #                 dock.laser.convertTrim(dialog.trim, dialog.combo_trim.currentText())
-    #             )
-    #             if total > dock.laser.data.shape[1]:
-    #                 QtWidgets.QMessageBox.warning(
-    #                     self, "Invalid Trim", "Trim larger than data."
-    #                 )
-    #                 return
-    #         for dock in docks:
-    #             dock.laser.setTrim(dialog.trim, dialog.combo_trim.currentText())
-    #             dock.draw()
-
-    #     dlg = TrimDialog(self.laser.trimAs("s"), parent=self)
-    #     dlg.applyPressed.connect(applyDialog)
-
-    #     if dlg.exec():
-    #         applyDialog(dlg)
 
     def onMenuClose(self) -> None:
         self.close()

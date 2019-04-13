@@ -6,11 +6,11 @@ from PyQt5 import QtCore, QtWidgets
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
 from pewpew.ui.validators import DecimalValidator
 
-from pewpew.lib.krisskross import KrissKross, KrissKrossConfig
+from pewpew.lib.krisskross import KrissKross, KrissKrossConfig, KrissKrossData
 from pewpew.lib.laser import LaserConfig
 from pewpew.lib import io
 
-from typing import List
+from typing import Dict, List
 
 
 class KrissKrossWizard(QtWidgets.QWizard):
@@ -34,6 +34,8 @@ class KrissKrossWizard(QtWidgets.QWizard):
     def accept(self) -> None:
         config = self.field("config")
         config.warmup = float(self.field("lineedit_warmup"))
+        config.horizontal_first = self.field("check_horizontal")
+        config.offsets = self.field("offsets")
         paths = self.field("paths")
         lasers = []
 
@@ -58,13 +60,15 @@ class KrissKrossWizard(QtWidgets.QWizard):
             for path in paths:
                 lasers.append(io.thermo.load(path, config))
 
-        self.data = KrissKross.from_layers(
-            lasers,
+        data: Dict[str, KrissKrossData] = {}
+        for name in lasers[0].names():
+            data[name] = KrissKrossData([l.data[name].data for l in lasers], name)
+
+        self.data = KrissKross(
+            data,
             config=config,
             name=os.path.splitext(os.path.basename(paths[0]))[0],
             filepath=paths[0],
-            offsets=self.field("offsets"),
-            horizontal_first=self.field("check_horizontal"),
         )
 
         super().accept()

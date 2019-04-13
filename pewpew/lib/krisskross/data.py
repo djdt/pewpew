@@ -15,16 +15,14 @@ class KrissKrossData(LaserData):
         gradient: float = 1.0,
         intercept: float = 0.0,
         unit: str = None,
-        horizontal_first: bool = True,
     ):
         super().__init__(data, name, gradient=gradient, intercept=intercept, unit=unit)
-        self.horizontal_first = True
 
     def _krisskross(self, config: KrissKrossConfig) -> np.ndarray:
         warmup = config.warmup_lines()
         mfactor = config.magnification_factor()
 
-        j = 0 if self.horizontal_first else 1
+        j = 0 if config.horizontal_first else 1
         # Calculate the line lengths
         length = (self.data[1].shape[0] * mfactor, self.data[0].shape[0] * mfactor)
         # Reshape the layers and stack into matrix
@@ -61,9 +59,6 @@ class KrissKrossData(LaserData):
         else:
             data = self.data[layer]
 
-        if layer is None and flat:
-            data = np.mean(data, axis=2)
-
         # Do this first to minimise required ops
         if extent is not None:
             px, py = config.pixel_size()
@@ -72,6 +67,9 @@ class KrissKrossData(LaserData):
             # We have to invert the extent, as mpl use bottom left y coords
             yshape = data.shape[0]
             data = data[yshape - y2 : yshape - y1, x1:x2]
+
+        if layer is None and flat:
+            data = np.mean(data, axis=2)
 
         if calibrate:
             data = (data - self.intercept) / self.gradient
