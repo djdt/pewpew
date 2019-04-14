@@ -4,7 +4,7 @@ import copy
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from pewpew.ui.widgets import Canvas, OverwriteFilePrompt
-from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog
+from pewpew.ui.dialogs import CalculateDialog, CalibrationDialog, ConfigDialog
 from pewpew.ui.dialogs.export import CSVExportDialog, PNGExportDialog
 
 from pewpew.lib import io
@@ -78,6 +78,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.addItems(self.laser.names())
         self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
+        self.combo_isotope.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.canvas)
@@ -161,6 +162,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         context_menu.addSeparator()
         context_menu.addAction(self.action_calibration)
         context_menu.addAction(self.action_config)
+        context_menu.addAction(self.action_calculate)
         # context_menu.addAction(self.action_trim)
         context_menu.addSeparator()
         context_menu.addAction(self.action_close)
@@ -293,8 +295,19 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
     def onMenuCalculate(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
-            pass
-        pass
+            if dialog.data is None or hasattr(self.laser.data, dialog.data.name):
+                return
+            self.laser.data[dialog.data.name] = dialog.data
+            self.combo_isotope.blockSignals(True)
+            self.combo_isotope.clear()
+            self.combo_isotope.addItems(self.laser.names())
+            self.combo_isotope.updateGeometry()
+            self.combo_isotope.blockSignals(False)
+
+        dlg = CalculateDialog(self.laser, parent=self)
+        dlg.applyPressed.connect(applyDialog)
+        if dlg.exec():
+            applyDialog(dlg)
 
     def onMenuClose(self) -> None:
         self.close()
