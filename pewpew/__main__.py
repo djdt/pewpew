@@ -16,11 +16,4 @@ if __name__ == "__main__":
     window.show()
     window.setWindowIcon(QtGui.QIcon(":/app.ico"))
 
-    from pewpew.lib.io import npz
-    from pewpew.ui.docks import LaserImageDock
-
-    laser = npz.load("/home/tom/Dropbox/Uni/Experimental/LAICPMS/agilent/20190129_tungsten_brain_10min.npz")[0]
-
-    window.dockarea.addDockWidgets([LaserImageDock(laser, window.dockarea)])
-
     app.exec()
