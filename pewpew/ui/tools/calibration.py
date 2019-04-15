@@ -6,7 +6,8 @@ from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pewpew.ui.widgets import BasicTable, Canvas
-from pewpew.ui.dialogs import ApplyDialog
+# from pewpew.ui.dialogs import ApplyDialog
+from pewpew.ui.tools.tool import Tool
 from pewpew.ui.validators import DoublePrecisionDelegate
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter, weighted_linreg
@@ -140,7 +141,7 @@ class ResultsBox(QtWidgets.QGroupBox):
             le.setText(f"{v:.4f}")
 
 
-class CalibrationTool(ApplyDialog):
+class CalibrationTool(Tool):
     def __init__(
         self,
         dock: LaserImageDock,
@@ -236,11 +237,11 @@ class CalibrationTool(ApplyDialog):
         layout_table_form.addRow("Weighting:", self.combo_weighting)
         layout_table_form.addRow("Averaging:", self.combo_averaging)
 
-        layout_left = QtWidgets.QVBoxLayout()
-        layout_left.addLayout(layout_cal_form)
-        layout_left.addWidget(self.table)
-        layout_left.addLayout(layout_table_form)
-        layout_left.addWidget(self.box_result)
+        # layout_left = QtWidgets.QVBoxLayout()
+        self.layout_left.addLayout(layout_cal_form)
+        self.layout_left.addWidget(self.table)
+        self.layout_left.addLayout(layout_table_form)
+        self.layout_left.addWidget(self.box_result)
 
         layout_box_trim = QtWidgets.QHBoxLayout()
         layout_box_trim.addWidget(QtWidgets.QLabel("Left:"))
@@ -256,20 +257,21 @@ class CalibrationTool(ApplyDialog):
         layout_canvas_bar.addWidget(box_trim)
         layout_canvas_bar.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignTop)
 
-        layout_right = QtWidgets.QVBoxLayout()
-        layout_right.addWidget(self.button_laser, 0, QtCore.Qt.AlignRight)
-        layout_right.addWidget(self.canvas)
-        layout_right.addLayout(layout_canvas_bar)
+        # layout_right = QtWidgets.QVBoxLayout()
+        self.layout_top.addWidget(self.button_laser, 0, QtCore.Qt.AlignRight)
+        # layout_right.addWidget(self.button_laser, 0, QtCore.Qt.AlignRight)
+        self.layout_right.addWidget(self.canvas)
+        self.layout_right.addLayout(layout_canvas_bar)
 
         # Main
-        layout_horz = QtWidgets.QHBoxLayout()
-        layout_horz.addLayout(layout_left, 1)
-        layout_horz.addLayout(layout_right, 2)
+        # layout_horz = QtWidgets.QHBoxLayout()
+        # layout_horz.addLayout(layout_left, 1)
+        # layout_horz.addLayout(layout_right, 2)
 
-        layout_main = QtWidgets.QVBoxLayout()
-        layout_main.addLayout(layout_horz)
-        layout_main.addWidget(self.button_box)
-        self.setLayout(layout_main)
+        # layout_main = QtWidgets.QVBoxLayout()
+        # layout_main.addLayout(layout_horz)
+        # layout_main.addWidget(self.button_box)
+        # self.setLayout(layout_main)
 
     def accept(self) -> None:
         self.updateCalibration()
