@@ -156,7 +156,6 @@ class CalibrationTool(ApplyDialog):
         self.previous_isotope = ""
 
         self.dock = dock
-        # DO THE SAME AS YOU DID FOR CALDIALOG
         self.calibration = {
             k: (v.gradient, v.intercept, v.unit)
             for k, v in self.dock.laser.data.items()
@@ -281,11 +280,12 @@ class CalibrationTool(ApplyDialog):
 
     def draw(self) -> None:
         self.canvas.clear()
-        self.canvas.plot(
-            self.dock.laser, self.combo_isotope.currentText(), self.viewconfig
-        )
-        self.canvas.plotLevels(self.spinbox_levels.value())
-        self.canvas.draw()
+        if self.combo_isotope.currentText() in self.dock.laser.data:
+            self.canvas.plot(
+                self.dock.laser, self.combo_isotope.currentText(), self.viewconfig
+            )
+            self.canvas.plotLevels(self.spinbox_levels.value())
+            self.canvas.draw()
 
     def updateCalibration(self) -> None:
         pass
@@ -301,8 +301,10 @@ class CalibrationTool(ApplyDialog):
             self.table.blockSignals(False)
 
     def updateCounts(self) -> None:
+        if self.combo_isotope.currentText() not in self.dock.laser.data:
+            return
         data = self.dock.laser.get(
-            self.combo_isotope.currentText(), calibrated=False, extent=self.canvas.view
+            self.combo_isotope.currentText(), calibrate=False, extent=self.canvas.view
         )
         if len(data) == 1:
             return
@@ -459,7 +461,7 @@ class CalibrationTool(ApplyDialog):
                 unit_from=self.combo_trim.currentText(),
                 unit_to="um",
             )
-        trim_right = self.dock.laser.extent()[1]
+        trim_right = self.canvas.image.get_extent()[1]
         if self.lineedit_right.text() != "":
             trim_right -= self.dock.laser.convert(
                 float(self.lineedit_right.text()),
