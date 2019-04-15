@@ -263,11 +263,11 @@ class LaserImageDock(QtWidgets.QDockWidget):
             else:
                 docks = [self]
             for dock in docks:
-                for name in dlg.calibration.keys():
-                    if name in dock.laser.isotopes():
-                        dock.laser.data[name].gradient = dlg.calibration[name][0]
-                        dock.laser.data[name].isotope = dlg.calibration[name][1]
-                        dock.laser.data[name].unit = dlg.calibration[name][2]
+                for isotope in dlg.calibration.keys():
+                    if isotope in dock.laser.isotopes():
+                        dock.laser.data[isotope].gradient = dlg.calibration[isotope][0]
+                        dock.laser.data[isotope].isotope = dlg.calibration[isotope][1]
+                        dock.laser.data[isotope].unit = dlg.calibration[isotope][2]
                 dock.draw()
 
         dlg = CalibrationDialog(

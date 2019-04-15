@@ -425,12 +425,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuStandardsTool(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
             for dock in self.dockarea.findChildren(LaserImageDock):
-                for name in dlg.calibration.keys():
-                    if name in dock.laser.isotopes():
-                        m, b, u = dlg.calibration[name]
-                        dock.laser[name].gradient = m
-                        dock.laser[name].intercept = b
-                        dock.laser[name].unit = u
+                for isotope in dlg.calibration.keys():
+                    if isotope in dock.laser.isotopes():
+                        m, b, u = dlg.calibration[isotope]
+                        dock.laser[isotope].gradient = m
+                        dock.laser[isotope].intercept = b
+                        dock.laser[isotope].unit = u
                 dock.draw()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))

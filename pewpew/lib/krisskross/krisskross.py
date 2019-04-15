@@ -45,9 +45,9 @@ class KrissKross(Laser):
         layer: int = None,
     ) -> np.ndarray:
         data = []
-        for name in self.isotopes():
+        for isotope in self.isotopes():
             data.append(
-                self.data[name].get(  # type: ignore
+                self.data[isotope].get(  # type: ignore
                     self.config,
                     calibrate=calibrate,
                     extent=extent,
@@ -55,8 +55,8 @@ class KrissKross(Laser):
                     layer=layer,
                 )
             )
-        dtype = [(name, float) for name in self.isotopes()]
+        dtype = [(isotope, float) for isotope in self.isotopes()]
         structured = np.empty(data[0].shape, dtype)
-        for name, d in zip(self.isotopes(), data):
-            structured[name] = d
+        for isotope, d in zip(self.isotopes(), data):
+            structured[isotope] = d
         return structured
