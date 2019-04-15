@@ -413,13 +413,13 @@ class CalibrationTool(Tool):
             self.draw()
         super().keyPressEvent(event)
 
-    def buttonBoxClicked(self, button: QtWidgets.QAbstractButton) -> None:
-        sb = self.button_box.standardButton(button)
+#     def buttonBoxClicked(self, button: QtWidgets.QAbstractButton) -> None:
+#         sb = self.button_box.standardButton(button)
 
-        if sb == QtWidgets.QDialogButtonBox.Ok:
-            self.accept()
-        else:
-            self.reject()
+#         if sb == QtWidgets.QDialogButtonBox.Ok:
+#             self.accept()
+#         else:
+#             self.reject()
 
     def buttonLaser(self) -> None:
         self.hide()
