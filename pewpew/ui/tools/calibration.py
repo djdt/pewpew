@@ -6,6 +6,7 @@ from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pewpew.ui.widgets import BasicTable, Canvas
+
 # from pewpew.ui.dialogs import ApplyDialog
 from pewpew.ui.tools.tool import Tool
 from pewpew.ui.validators import DoublePrecisionDelegate
@@ -402,7 +403,11 @@ class CalibrationTool(Tool):
         self.draw()
 
     def keyPressEvent(self, event: QtCore.QEvent) -> None:
-        if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
+        if event.key() in [
+            QtCore.Qt.Key_Escape,
+            QtCore.Qt.Key_Enter,
+            QtCore.Qt.Key_Return,
+        ]:
             return
         if event.key() == QtCore.Qt.Key_F5:
             self.draw()
