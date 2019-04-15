@@ -348,7 +348,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if not path:
             return
 
-        names = list(set.union(*[set(dock.laser.names()) for dock in docks]))
+        names = list(set.union(*[set(dock.laser.isotopes()) for dock in docks]))
         dlg = ExportAllDialog(path, docks[0].laser.name, names, 1, self)
         if not dlg.exec():
             return
@@ -426,7 +426,7 @@ class MainWindow(QtWidgets.QMainWindow):
         def applyDialog(dialog: ApplyDialog) -> None:
             for dock in self.dockarea.findChildren(LaserImageDock):
                 for name in dlg.calibration.keys():
-                    if name in dock.laser.names():
+                    if name in dock.laser.isotopes():
                         m, b, u = dlg.calibration[name]
                         dock.laser[name].gradient = m
                         dock.laser[name].intercept = b

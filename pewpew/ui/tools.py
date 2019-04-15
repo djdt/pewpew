@@ -222,7 +222,7 @@ class CalibrationTool(ApplyDialog):
         self.combo_trim.setCurrentIndex(1)
         self.combo_trim.currentIndexChanged.connect(self.comboTrim)
 
-        self.combo_isotope.addItems(self.dock.laser.names())
+        self.combo_isotope.addItems(self.dock.laser.isotopes())
         self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
 
         # self.button_box.clicked.connect(self.buttonBoxClicked)
@@ -380,7 +380,7 @@ class CalibrationTool(ApplyDialog):
             # Prevent currentIndexChanged being emmited
             self.combo_isotope.blockSignals(True)
             self.combo_isotope.clear()
-            self.combo_isotope.addItems(self.dock.laser.names())
+            self.combo_isotope.addItems(self.dock.laser.isotopes())
             self.combo_isotope.blockSignals(False)
 
             self.lineedit_left.setText("")

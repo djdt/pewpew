@@ -76,7 +76,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.canvas = Canvas(parent=self)
 
         self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.addItems(self.laser.names())
+        self.combo_isotope.addItems(self.laser.isotopes())
         self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
         self.combo_isotope.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
 
@@ -206,7 +206,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             dlg: ExportDialog = CSVExportDialog(
                 path,
                 name=self.combo_isotope.currentText(),
-                names=len(self.laser.names()),
+                names=len(self.laser.isotopes()),
                 layers=1,
                 parent=self,
             )
@@ -230,7 +230,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             dlg = PNGExportDialog(
                 path,
                 name=self.combo_isotope.currentText(),
-                names=len(self.laser.names()),
+                names=len(self.laser.isotopes()),
                 layers=1,
                 parent=self,
             )
@@ -264,7 +264,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 docks = [self]
             for dock in docks:
                 for name in dlg.calibration.keys():
-                    if name in dock.laser.names():
+                    if name in dock.laser.isotopes():
                         dock.laser.data[name].gradient = dlg.calibration[name][0]
                         dock.laser.data[name].isotope = dlg.calibration[name][1]
                         dock.laser.data[name].unit = dlg.calibration[name][2]
@@ -300,7 +300,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             self.laser.data[dialog.data.name] = dialog.data
             self.combo_isotope.blockSignals(True)
             self.combo_isotope.clear()
-            self.combo_isotope.addItems(self.laser.names())
+            self.combo_isotope.addItems(self.laser.isotopes())
             self.combo_isotope.updateGeometry()
             self.combo_isotope.blockSignals(False)
 

@@ -61,7 +61,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
                 lasers.append(io.thermo.load(path, config))
 
         data: Dict[str, KrissKrossData] = {}
-        for name in lasers[0].names():
+        for name in lasers[0].isotopes():
             data[name] = KrissKrossData([l.data[name].data for l in lasers], name)
 
         self.data = KrissKross(

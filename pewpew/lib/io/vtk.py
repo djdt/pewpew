@@ -13,14 +13,14 @@ def save(path: str, laser: Laser) -> None:
     """Save data as a VTK ImageData XML."""
 
     data: Dict[str, np.ndarray] = {}
-    for k in laser.names():
+    for k in laser.isotopes():
         if isinstance(laser, KrissKross):
             data[k] = laser.get(k, calibrate=True, flat=False)
         else:
             data[k] = laser.get(k, calibrate=True)
             data[k] = np.reshape(data[k], (*data[k].shape, 1))
 
-    nx, ny, nz = data[laser.names()[0]].shape
+    nx, ny, nz = data[laser.isotopes()[0]].shape
     origin = 0.0, 0.0
 
     endian = "LittleEndian" if sys.byteorder == "little" else "BigEndian"
@@ -43,7 +43,7 @@ def save(path: str, laser: Laser) -> None:
             ).encode()
         )
 
-        fp.write(f'<CellData Scalars="{laser.names()[0]}">\n'.encode())
+        fp.write(f'<CellData Scalars="{laser.isotopes()[0]}">\n'.encode())
         for k, v in data.items():
             fp.write(
                 (

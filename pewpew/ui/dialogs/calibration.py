@@ -38,7 +38,7 @@ class CalibrationDialog(ApplyDialog):
 
         # Isotope combo
         self.combo_isotopes = QtWidgets.QComboBox()
-        self.combo_isotopes.addItems(self.laser.names())
+        self.combo_isotopes.addItems(self.laser.isotopes())
         self.combo_isotopes.setCurrentText(current_isotope)
         self.previous_index = self.combo_isotopes.currentIndex()
         self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
