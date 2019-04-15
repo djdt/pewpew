@@ -12,22 +12,22 @@ class ExportDialog(QtWidgets.QDialog):
     def __init__(
         self,
         path: str,
-        name: str,
-        nnames: int,
+        isotope: str,
+        nisotopes: int,
         nlayers: int,
         options: QtWidgets.QWidget,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
         self.path = path
-        self.name = name
+        self.isotope = isotope
 
         self.setWindowTitle("Export")
 
         self.options = options
 
         self.check_isotopes = QtWidgets.QCheckBox("Export all isotopes.")
-        if nnames < 2:
+        if nisotopes < 2:
             self.check_isotopes.setEnabled(False)
         self.check_isotopes.stateChanged.connect(self._update)
         # self.check_layers = QtWidgets.QCheckBox("Save all layers.")
@@ -64,7 +64,7 @@ class ExportDialog(QtWidgets.QDialog):
         self.lineedit_preview.setText(
             os.path.basename(
                 self._generate_path(
-                    name=self.name
+                    isotope=self.isotope
                     if self.check_isotopes.isChecked()
                     and self.check_isotopes.isEnabled()
                     else None
@@ -72,15 +72,15 @@ class ExportDialog(QtWidgets.QDialog):
             )
         )
 
-    def _get_name(self) -> str:
-        return self.name
+    def _get_isotope(self) -> str:
+        return self.isotope
 
     def _generate_path(
-        self, laser: Laser = None, name: str = None, layer: int = None
+        self, laser: Laser = None, isotope: str = None, layer: int = None
     ) -> str:
         path, ext = os.path.splitext(self.path)
-        if name is not None:
-            path += f"_{name}"
+        if isotope is not None:
+            path += f"_{isotope}"
         if layer is not None:
             path += f"_{layer}"
         return path + ext
@@ -92,15 +92,15 @@ class ExportDialog(QtWidgets.QDialog):
         if self.check_isotopes.isChecked() and self.check_isotopes.isEnabled():
             if prompt is None:
                 prompt = OverwriteFilePrompt(parent=self)
-            for name in laser.names():
-                path = self._generate_path(laser, name)
+            for isotope in laser.names():
+                path = self._generate_path(laser, isotope)
                 if path == "" or not prompt.promptOverwrite(path):
                     continue
-                paths.append((path, name, -1))
+                paths.append((path, isotope, -1))
         else:
             if prompt is None:
                 prompt = OverwriteFilePrompt(show_all_buttons=False, parent=self)
             path = self._generate_path(laser, None)
             if path != "" and prompt.promptOverwrite(path):
-                paths.append((path, self._get_name(), -1))
+                paths.append((path, self._get_isotope(), -1))
         return paths

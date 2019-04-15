@@ -42,7 +42,7 @@ class ExportAllDialog(ExportDialog):
         self,
         path: str,
         name: str,
-        names: List[str],
+        isotopes: List[str],
         layers: int,
         parent: QtWidgets.QWidget = None,
     ):
@@ -52,7 +52,7 @@ class ExportAllDialog(ExportDialog):
         self.lineedit_prefix.textChanged.connect(self._update)
 
         self.combo_isotopes = QtWidgets.QComboBox()
-        self.combo_isotopes.addItems(names)
+        self.combo_isotopes.addItems(isotopes)
         self.combo_isotopes.currentIndexChanged.connect(self._update)
 
         self.combo_formats = QtWidgets.QComboBox()
@@ -60,7 +60,7 @@ class ExportAllDialog(ExportDialog):
         self.combo_formats.currentIndexChanged.connect(self._update)
 
         super().__init__(
-            path, names[0], len(names), layers, ExportAllOptions(), parent
+            path, isotopes[0], len(isotopes), layers, ExportAllOptions(), parent
         )
 
         layout_all.addRow("Prefix:", self.lineedit_prefix)
@@ -83,7 +83,7 @@ class ExportAllDialog(ExportDialog):
         self.lineedit_preview.setText(
             os.path.basename(
                 self._generate_path(
-                    name=self.combo_isotopes.currentText()
+                    isotope=self.combo_isotopes.currentText()
                     if self.check_isotopes.isChecked()
                     and self.check_isotopes.isEnabled()
                     else None
@@ -91,22 +91,22 @@ class ExportAllDialog(ExportDialog):
             )
         )
 
-    def _get_name(self) -> str:
+    def _get_isotope(self) -> str:
         return self.combo_isotopes.currentText()
 
     def _generate_path(
-        self, laser: Laser = None, name: str = None, layer: int = None
+        self, laser: Laser = None, isotope: str = None, layer: int = None
     ) -> str:
-        if laser is not None and name is not None:
-            if name not in laser.names():
+        if laser is not None and isotope is not None:
+            if isotope not in laser.names():
                 return ""
         name = self.name if laser is None else laser.name
 
         prefix = self.lineedit_prefix.text()
         path = os.path.join(self.path, prefix + "_" + name if prefix != "" else name)
         ext = ExportAllDialog.FORMATS[self.combo_formats.currentText()]
-        if name is not None:
-            path += f"_{name}"
+        if isotope is not None:
+            path += f"_{isotope}"
         if layer is not None:
             path += f"_{layer}"
         return path + ext

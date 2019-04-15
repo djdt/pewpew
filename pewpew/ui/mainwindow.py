@@ -348,8 +348,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if not path:
             return
 
-        isotopes = list(set.union(*[set(dock.laser.isotopes()) for dock in docks]))
-        dlg = ExportAllDialog(path, docks[0].laser.name, isotopes, 1, self)
+        names = list(set.union(*[set(dock.laser.names()) for dock in docks]))
+        dlg = ExportAllDialog(path, docks[0].laser.name, names, 1, self)
         if not dlg.exec():
             return
 
