@@ -38,24 +38,18 @@ class ConfigDialog(ApplyDialog):
             self.check_horz.setChecked(self.config.horizontal_first)
 
         # Form layout for line edits
-        form_layout = QtWidgets.QFormLayout()
-        form_layout.addRow("Spotsize (μm):", self.lineedit_spotsize)
-        form_layout.addRow("Speed (μm):", self.lineedit_speed)
-        form_layout.addRow("Scantime (s):", self.lineedit_scantime)
+        self.layout_form.addRow("Spotsize (μm):", self.lineedit_spotsize)
+        self.layout_form.addRow("Speed (μm):", self.lineedit_speed)
+        self.layout_form.addRow("Scantime (s):", self.lineedit_scantime)
 
         if isinstance(config, KrissKrossConfig):
-            form_layout.addRow("Warmup (s):", self.lineedit_warmup)
-            form_layout.addRow("Subpixel width:", self.spinbox_offsets)
-            form_layout.addRow(self.check_horz)
+            self.layout_form.addRow("Warmup (s):", self.lineedit_warmup)
+            self.layout_form.addRow("Subpixel width:", self.spinbox_offsets)
+            self.layout_form.addRow(self.check_horz)
 
         # Checkbox
         self.check_all = QtWidgets.QCheckBox("Apply config to all images.")
-
-        main_layout = QtWidgets.QVBoxLayout()
-        main_layout.addLayout(form_layout)
-        main_layout.addWidget(self.check_all)
-        main_layout.addWidget(self.button_box)
-        self.setLayout(main_layout)
+        self.layout().insertWidget(1, self.check_all)
 
     def updateConfig(self) -> None:
         if self.lineedit_spotsize.text() != "":

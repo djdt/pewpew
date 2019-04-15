@@ -30,12 +30,6 @@ class CalibrationDialog(ApplyDialog):
         self.lineedit_unit = QtWidgets.QLineEdit()
         self.lineedit_unit.setPlaceholderText("")
 
-        # Form layout for line edits
-        form_layout = QtWidgets.QFormLayout()
-        form_layout.addRow("Gradient:", self.lineedit_gradient)
-        form_layout.addRow("Intercept:", self.lineedit_intercept)
-        form_layout.addRow("Unit:", self.lineedit_unit)
-
         # Isotope combo
         self.combo_isotopes = QtWidgets.QComboBox()
         self.combo_isotopes.addItems(self.laser.isotopes())
@@ -46,13 +40,12 @@ class CalibrationDialog(ApplyDialog):
         # Check all
         self.check_all = QtWidgets.QCheckBox("Apply config to all images.")
 
-        # Dialog buttons
-        main_layout = QtWidgets.QVBoxLayout()
-        main_layout.addLayout(form_layout)
-        main_layout.addWidget(self.combo_isotopes, 1, QtCore.Qt.AlignRight)
-        main_layout.addWidget(self.check_all)
-        main_layout.addWidget(self.button_box)
-        self.setLayout(main_layout)
+        # Form layout for line edits
+        self.layout_form.addRow("Gradient:", self.lineedit_gradient)
+        self.layout_form.addRow("Intercept:", self.lineedit_intercept)
+        self.layout_form.addRow("Unit:", self.lineedit_unit)
+        self.layout().insertWidget(1, self.combo_isotopes, 1, QtCore.Qt.AlignRight)
+        self.layout().insertWidget(2, self.check_all)
 
         self.updateLineEdits()
 

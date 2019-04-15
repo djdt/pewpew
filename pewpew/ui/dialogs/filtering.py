@@ -32,15 +32,8 @@ class FilteringDialog(ApplyDialog):
         window_layout.addWidget(self.lineedit_y)
         window_layout.addWidget(self.lineedit_x)
 
-        form_layout = QtWidgets.QFormLayout()
-        form_layout.addRow("Window:", window_layout)
-        form_layout.addRow("Threshold:", self.lineedit_threshold)
-
-        main_layout = QtWidgets.QVBoxLayout()
-
-        main_layout.addLayout(form_layout)
-        main_layout.addWidget(self.button_box)
-        self.setLayout(main_layout)
+        self.layout_form.addRow("Window:", window_layout)
+        self.layout_form.addRow("Threshold:", self.lineedit_threshold)
 
     def updateProps(self) -> None:
         x, y = self.lineedit_x.text(), self.lineedit_y.text()

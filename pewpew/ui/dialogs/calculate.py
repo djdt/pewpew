@@ -22,7 +22,7 @@ class CalculateDialog(ApplyDialog):
         super().__init__(parent)
 
         self.laser = laser
-        self.data = None
+        self.data: VirtualData = None  # type: ignore
 
         self.combo_var1 = QtWidgets.QComboBox()
         self.combo_var1.addItems(self.laser.isotopes())
@@ -33,15 +33,9 @@ class CalculateDialog(ApplyDialog):
 
         # self.combo_condition = QtWidgets.QComboBox()
 
-        layout_form = QtWidgets.QFormLayout()
-        layout_form.addRow("Variable 1:", self.combo_var1)
-        layout_form.addRow("Operation:", self.combo_ops)
-        layout_form.addRow("Variable 2:", self.combo_var2)
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addLayout(layout_form)
-        layout.addWidget(self.button_box)
-        self.setLayout(layout)
+        self.layout_form.addRow("Variable 1:", self.combo_var1)
+        self.layout_form.addRow("Operation:", self.combo_ops)
+        self.layout_form.addRow("Variable 2:", self.combo_var2)
 
     def updateData(self) -> None:
         var1 = self.combo_var1.currentText()
