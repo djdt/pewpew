@@ -34,8 +34,6 @@ class ConfigDialog(ApplyDialog):
             self.spinbox_offsets.setValue(
                 self.config.subpixel_gcd.limit_denominator().denominator
             )
-            self.check_horz = QtWidgets.QCheckBox("Horizontal layer first.")
-            self.check_horz.setChecked(self.config.horizontal_first)
 
         # Form layout for line edits
         self.layout_form.addRow("Spotsize (μm):", self.lineedit_spotsize)
@@ -62,7 +60,6 @@ class ConfigDialog(ApplyDialog):
             if self.lineedit_warmup.text() != "":
                 self.config.warmup = float(self.lineedit_warmup.text())
             self.config.set_subpixel_offsets(self.spinbox_offsets.value())
-            self.config.horizontal_first = self.check_horz.isChecked()
 
     def apply(self) -> None:
         self.updateConfig()

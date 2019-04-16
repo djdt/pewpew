@@ -34,7 +34,6 @@ class KrissKrossWizard(QtWidgets.QWizard):
     def accept(self) -> None:
         config = self.field("config")
         config.warmup = float(self.field("lineedit_warmup"))
-        config.horizontal_first = self.field("check_horizontal")
         config.offsets = self.field("offsets")
         paths = self.field("paths")
         lasers = []
@@ -129,10 +128,6 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
         box_layout = QtWidgets.QVBoxLayout()
         box_layout.addWidget(self.list)
         dir_box.setLayout(box_layout)
-        # Controls
-        check_horizontal = QtWidgets.QCheckBox("Horizontal first layer.")
-        check_horizontal.setChecked(True)
-        self.registerField("check_horizontal", check_horizontal)
 
         self.lineedit_warmup = QtWidgets.QLineEdit("12.0")
         self.lineedit_warmup.setValidator(DecimalValidator(0, 1e2, 2))
@@ -155,7 +150,6 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
 
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.addWidget(dir_box)
-        main_layout.addWidget(check_horizontal)
         main_layout.addLayout(warmup_layout)
         self.setLayout(main_layout)
 
