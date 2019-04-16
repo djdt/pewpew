@@ -9,6 +9,7 @@ class VirtualData(LaserData):
     SYMBOLS = {
         "add": "+",
         "divide": "/",
+        "true_divide": "/",
         "multiply": "*",
         "subtract": "-",
         "greater": ">",
@@ -51,9 +52,9 @@ class VirtualData(LaserData):
         if self.condition1 is not None:
             name += f"[{VirtualData.SYMBOLS[self.condition1[0].__name__]}{self.condition1[1]}]"
         if self.op is not None:
-            name += f" {VirtualData.SYMBOLS[self.op.__name__]} "
+            name += f"{VirtualData.SYMBOLS[self.op.__name__]}"
         elif self.data2 is not None:
-            name += " => "
+            name += "=>"
         if self.data2 is not None:
             name += self.data2.name
         if self.condition2 is not None:
@@ -72,18 +73,14 @@ class VirtualData(LaserData):
             d1 = np.where(mask, d1, np.full_like(d1, self.fill_value))
 
         # If op and data2 are set then return d1 op d2
-        if self.op is not None and self.data2 is not None:
+        if self.data2 is not None:
             d2 = self.data2.get(config, calibrate=calibrate, extent=extent)
-            # Optionally mask data2
             if self.condition2 is not None:
                 mask = self.condition2[0](d2, self.condition2[1])
                 d2 = np.where(mask, d2, np.full_like(d2, self.fill_value))
-
-            return self.op(d1, d2)
-
-        # If data2 and condition2 are set but op is NOT set return data1 where
-        # condition2 is not the fill value.
-        elif self.data2 is not None and self.condition2 is not None:
-            d1 = np.where(d2 != self.fill_value, d1, d2)
+            if self.op is not None:
+                return self.op(d1, d2)
+            else:
+                d1 = np.where(d2 != self.fill_value, d1, d2)
 
         return d1
