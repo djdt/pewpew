@@ -6,10 +6,21 @@ import numpy as np
 
 
 class VirtualData(LaserData):
+    SYMBOLS = {
+        "add": "+",
+        "divide": "/",
+        "multiply": "*",
+        "subtract": "-",
+        "greater": ">",
+        "less": "<",
+        "equal": "=",
+        "not_equal": "!=",
+    }
+
     def __init__(
         self,
         data1: LaserData,
-        name: str,
+        name: str = None,
         op: Callable = None,
         data2: LaserData = None,
         condition1: Tuple[Callable, float] = None,
@@ -17,7 +28,7 @@ class VirtualData(LaserData):
         fill_value: float = -1.0,
     ):
         self.data = np.empty((1, 1), dtype=float)
-        self.name = name
+        self.name = name if name is not None else self.generateName()
 
         self.data1 = data1
         self.data2 = data2
@@ -33,6 +44,20 @@ class VirtualData(LaserData):
             self.gradient = self.data1.gradient
             self.intercept = self.data1.intercept
         self.unit = self.data1.unit
+
+    def generateName(self) -> str:
+        name = self.data1.name
+        if self.condition1 is not None:
+            name += f"[{VirtualData.SYMBOLS[self.condition1[0].__name__]}{self.condition1[1]}]"
+        if self.op is not None:
+            name += f" {VirtualData.SYMBOLS[self.op.__name__]} "
+        elif self.data2 is not None:
+            name += " => "
+        if self.data2 is not None:
+            name += self.data2.name
+        if self.condition2 is not None:
+            name += f"[{VirtualData.SYMBOLS[self.condition2[0].__name__]}{self.condition2[1]}]"
+        return name
 
     def get(
         self,
