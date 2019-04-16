@@ -264,19 +264,8 @@ class CalibrationTool(Tool):
         self.layout_right.addWidget(self.canvas)
         self.layout_right.addLayout(layout_canvas_bar)
 
-        # Main
-        # layout_horz = QtWidgets.QHBoxLayout()
-        # layout_horz.addLayout(layout_left, 1)
-        # layout_horz.addLayout(layout_right, 2)
-
-        # layout_main = QtWidgets.QVBoxLayout()
-        # layout_main.addLayout(layout_horz)
-        # layout_main.addWidget(self.button_box)
-        # self.setLayout(layout_main)
-
     def accept(self) -> None:
         self.updateCalibration()
-        self.applyPressed.emit(self)
         super().accept()
 
     def apply(self) -> None:

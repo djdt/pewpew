@@ -1,24 +1,34 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 
-from matplotlib.lines import Line2D
-from matplotlib.text import Text
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+from pewpew.lib.laser.virtual import VirtualData
+from pewpew.ui.validators import DecimalValidator
 
-from pewpew.ui.widgets import BasicTable, Canvas
-
-# from pewpew.ui.dialogs import ApplyDialog
+from pewpew.ui.widgets import Canvas
 from pewpew.ui.tools.tool import Tool
-from pewpew.ui.validators import DoublePrecisionDelegate
 
-from typing import Dict, List
 from pewpew.ui.docks.dockarea import DockArea
 from pewpew.ui.docks import LaserImageDock
 
 
 class CalculationsTool(Tool):
-    OPERATIONS = {"Add", (np.add, "+")}
-    CONDITIONS = {"Greater than", (np.greater, ">")}
+    OPERATIONS = {
+        # Name: callable, symbol, num data
+        "None": (None, "", 1),
+        "Add": (np.add, "+", 2),
+        "Divide": (np.divide, "/", 2),
+        "Multiply": (np.multiply, "*", 2),
+        "Subtract": (np.subtract, "-", 2),
+        "Where": (np.where, "=>", 2),
+    }
+
+    CONDITIONS = {
+        "None": (None, ""),
+        "Equal": (np.equal, "="),
+        "Greater than": (np.greater, ">"),
+        "Less than": (np.less, "<"),
+        "Not equal": (np.not_equal, "!="),
+    }
 
     def __init__(
         self,
@@ -30,62 +40,110 @@ class CalculationsTool(Tool):
         super().__init__(parent)
         self.setWindowTitle("Calibration Standards Tool")
 
+        self.data = VirtualData()
+
         self.dockarea = dockarea
         self.viewconfig = viewconfig
 
         self.dock = dock
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
 
-        self.canvas = Canvas(parent=self)
+        self.canvas = Canvas(connect_mouse_events=False, parent=self)
         self.canvas.options = {"colorbar": False, "scalebar": False, "label": False}
 
-        self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.addItems(self.dock.laser.isotopes())
-        self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
-
-        group_box_var1 = QtWidgets.QGroupBox()
-        layout_box_var1 = QtWidgets.QFormLayout()
         self.combo_isotope1 = QtWidgets.QComboBox()
-        self.combo_isotope1.addItems(self.dock.laser.isotopes())
         self.combo_condition1 = QtWidgets.QComboBox()
         self.combo_condition1.addItems(CalculationsTool.CONDITIONS)
+        self.lineedit_condition1 = QtWidgets.QLineEdit()
+        self.lineedit_condition1.setValidator(DecimalValidator(-1e9, 1e9, 4))
+
+        self.combo_ops = QtWidgets.QComboBox()
+        self.combo_ops.addItems(CalculationsTool.OPERATIONS)
+        self.combo_ops.currentIndexChanged.connect(self.onComboOps)
+
+        self.combo_isotope2 = QtWidgets.QComboBox()
+        self.combo_condition2 = QtWidgets.QComboBox()
+        self.combo_condition2.addItems(CalculationsTool.CONDITIONS)
+        self.lineedit_condition2 = QtWidgets.QLineEdit()
+        self.lineedit_condition2.setValidator(DecimalValidator(-1e9, 1e9, 4))
+
+        self.updateComboIsotopes()
+        self.onComboOps()
+
+        # Layouts
+        group_box_var1 = QtWidgets.QGroupBox()
+        layout_box_var1 = QtWidgets.QFormLayout()
+        layout_cond1 = QtWidgets.QHBoxLayout()
+        layout_cond1.addWidget(self.combo_condition1)
+        layout_cond1.addWidget(self.lineedit_condition1)
+        layout_box_var1.addRow("Variable:", self.combo_isotope1)
+        layout_box_var1.addRow("Condition:", layout_cond1)
         group_box_var1.setLayout(layout_box_var1)
 
         group_box_ops = QtWidgets.QGroupBox()
         layout_box_ops = QtWidgets.QFormLayout()
-        self.combo_ops = QtWidgets.QComboBox()
-        self.combo_ops.addItems(CalculationsTool.OPERATIONS)
+        layout_box_ops.addRow("Operation:", self.combo_ops)
         group_box_ops.setLayout(layout_box_ops)
 
         group_box_var2 = QtWidgets.QGroupBox()
         layout_box_var2 = QtWidgets.QFormLayout()
-        self.combo_isotope2 = QtWidgets.QComboBox()
-        self.combo_isotope2.addItems(self.dock.laser.isotopes())
-        self.combo_condition2 = QtWidgets.QComboBox()
-        self.combo_condition2.addItems(CalculationsTool.CONDITIONS)
+        layout_cond2 = QtWidgets.QHBoxLayout()
+        layout_cond2.addWidget(self.combo_condition2)
+        layout_cond2.addWidget(self.lineedit_condition2)
+        layout_box_var2.addRow("Variable:", self.combo_isotope2)
+        layout_box_var2.addRow("Condition:", layout_cond2)
         group_box_var2.setLayout(layout_box_var2)
 
-    def accept(self) -> None:
-        self.updateCalculations()
-        self.applyPressed.emit(self)
-        super().accept()
+        self.layout_top.addWidget(self.button_laser, 1, QtCore.Qt.AlignRight)
 
-    def apply(self) -> None:
-        pass
+        self.layout_left.addWidget(group_box_var1, 0)
+        self.layout_left.addWidget(group_box_ops, 0)
+        self.layout_left.addWidget(group_box_var2, 0)
+        self.layout_left.addStretch(1)
+
+        self.layout_right.addWidget(self.canvas)
+
+    def updateData(self) -> None:
+        d1 = self.dock.laser.data[self.combo_isotope1.currentText()]
+        c1 = CalculationsTool.CONDITIONS[self.combo_condition1.currentText()]
+
+        name = d1.name
+        if c1[0] is not None:
+            name += f"[{c1[1]}{self.lineedit_condition1.text()}]"
+
+        if self.combo_isotope2.isEnabled():
+            op = CalculationsTool.OPERATIONS[self.combo_ops.currentText()]
+            d2 = self.dock.laser.data[self.combo_isotope2.currentText()]
+            c2 = (
+                CalculationsTool.CONDITIONS[self.combo_condition2.currentText()][0],
+                self.lineedit_condition1.text(),
+            )
+        else:
+            op = None
+            d2 = None
+            c2 = None
+        self.data = VirtualData(d1, name, d2, op, c1, c2)
 
     def draw(self) -> None:
         self.canvas.clear()
-        if self.combo_isotope.currentText() in self.dock.laser.data:
-            self.canvas.plot(
-                self.dock.laser, self.combo_isotope.currentText(), self.viewconfig
-            )
-            self.canvas.plotLevels(self.spinbox_levels.value())
-            self.canvas.draw()
+        self.canvas.draw()
 
-    def updateCalibration(self) -> None:
-        pass
-        # self.dock.laser.calibration = self.calibration
-        # self.dock.draw()
+    def updateComboIsotopes(self) -> None:
+        isotope1 = self.combo_isotope1.currentText()
+        self.combo_isotope1.clear()
+        self.combo_isotope1.addItems(self.dock.laser.isotopes())
+        self.combo_isotope1.setCurrentText(isotope1)
+
+        isotope2 = self.combo_isotope2.currentText()
+        self.combo_isotope2.clear()
+        self.combo_isotope2.addItems(self.dock.laser.isotopes())
+        self.combo_isotope2.setCurrentText(isotope2)
+
+    def onComboOps(self) -> None:
+        enabled = self.combo_ops.currentText() != "None"
+        self.combo_isotope2.setEnabled(enabled)
+        self.combo_condition2.setEnabled(enabled)
+        self.lineedit_condition2.setEnabled(enabled)
 
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
@@ -131,18 +189,3 @@ class CalculationsTool(Tool):
         self.dockarea.setFocus(QtCore.Qt.OtherFocusReason)
         self.dockarea.startMouseSelect()
         self.dockarea.mouseSelectFinished.connect(self.mouseSelectFinished)
-
-    def comboIsotope(self, text: str) -> None:
-        isotope = self.combo_isotope.currentText()
-        texts = self.table.columnText(CalibrationTable.COLUMN_CONC)
-        # Only update if at least one cell is filled
-        for text in texts:
-            if text != "":
-                self.texts[self.previous_isotope] = texts
-                break
-
-        self.updateConcentrations()
-        self.updateCounts()
-        self.updateResults()
-        self.draw()
-        self.previous_isotope = isotope
