@@ -38,7 +38,7 @@ class CalculationsTool(Tool):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
-        self.setWindowTitle("Calibration Standards Tool")
+        self.setWindowTitle("Calculations Tool")
 
         self.dockarea = dockarea
         self.viewconfig = viewconfig
@@ -50,10 +50,12 @@ class CalculationsTool(Tool):
         self.canvas.options = {"colorbar": False, "scalebar": False, "label": False}
 
         self.combo_isotope1 = QtWidgets.QComboBox()
+        self.combo_isotope1.currentIndexChanged.connect(self.updateData)
         self.combo_condition1 = QtWidgets.QComboBox()
         self.combo_condition1.addItems(CalculationsTool.CONDITIONS)
         self.lineedit_condition1 = QtWidgets.QLineEdit()
         self.lineedit_condition1.setValidator(DecimalValidator(-1e9, 1e9, 4))
+        self.lineedit_condition1.editingFinished.connect(self.updateData)
 
         self.combo_ops = QtWidgets.QComboBox()
         self.combo_ops.addItems(CalculationsTool.OPERATIONS)
@@ -62,10 +64,14 @@ class CalculationsTool(Tool):
         self.combo_isotope2 = QtWidgets.QComboBox()
         self.combo_condition2 = QtWidgets.QComboBox()
         self.combo_condition2.addItems(CalculationsTool.CONDITIONS)
+        self.combo_condition2.currentIndexChanged.connect(self.updateData)
         self.lineedit_condition2 = QtWidgets.QLineEdit()
         self.lineedit_condition2.setValidator(DecimalValidator(-1e9, 1e9, 4))
+        self.lineedit_condition2.editingFinished.connect(self.updateData)
 
         self.updateComboIsotopes()
+        self.combo_condition1.currentIndexChanged.connect(self.updateData)
+        self.combo_isotope2.currentIndexChanged.connect(self.updateData)
         self.onComboOps()
 
         # Layouts
@@ -102,6 +108,8 @@ class CalculationsTool(Tool):
         self.layout_right.addWidget(self.canvas)
 
     def updateData(self) -> None:
+        if self.combo_isotope1.currentText() not in self.dock.laser.data:
+            return
         d1 = self.dock.laser.data[self.combo_isotope1.currentText()]
         c1 = CalculationsTool.CONDITIONS[self.combo_condition1.currentText()]
         op = CalculationsTool.OPERATIONS[self.combo_ops.currentText()]
@@ -126,6 +134,8 @@ class CalculationsTool(Tool):
         self.canvas.draw()
 
     def updateComboIsotopes(self) -> None:
+        self.combo_isotope1.blockSignals(True)
+        self.combo_isotope2.blockSignals(True)
         isotope1 = self.combo_isotope1.currentText()
         self.combo_isotope1.clear()
         self.combo_isotope1.addItems(self.dock.laser.isotopes())
@@ -135,6 +145,8 @@ class CalculationsTool(Tool):
         self.combo_isotope2.clear()
         self.combo_isotope2.addItems(self.dock.laser.isotopes())
         self.combo_isotope2.setCurrentText(isotope2)
+        self.combo_isotope1.blockSignals(False)
+        self.combo_isotope2.blockSignals(False)
 
     def onComboOps(self) -> None:
         enabled = self.combo_ops.currentText() != "None"
@@ -142,25 +154,14 @@ class CalculationsTool(Tool):
         self.combo_condition2.setEnabled(enabled)
         self.lineedit_condition2.setEnabled(enabled)
 
+        self.updateData()
+
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
         if widget is not None and hasattr(widget, "laser"):
             self.dock = widget
-            self.calibration = {
-                k: (v.gradient, v.intercept, v.unit)
-                for k, v in widget.laser.data.items()
-            }
             # Prevent currentIndexChanged being emmited
-            self.combo_isotope.blockSignals(True)
-            self.combo_isotope.clear()
-            self.combo_isotope.addItems(self.dock.laser.isotopes())
-            self.combo_isotope.blockSignals(False)
-
-            self.lineedit_left.setText("")
-            self.lineedit_right.setText("")
-
-            self.updateCounts()
-            self.updateResults()
+            self.updateComboIsotopes()
 
         self.dockarea.mouseSelectFinished.disconnect(self.mouseSelectFinished)
         self.activateWindow()

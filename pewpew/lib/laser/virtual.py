@@ -28,7 +28,6 @@ class VirtualData(LaserData):
         fill_value: float = -1.0,
     ):
         self.data = np.empty((1, 1), dtype=float)
-        self.name = name if name is not None else self.generateName()
 
         self.data1 = data1
         self.data2 = data2
@@ -36,6 +35,8 @@ class VirtualData(LaserData):
         self.condition1 = condition1
         self.condition2 = condition2
         self.fill_value = fill_value
+
+        self.name = name if name is not None else self.generateName()
 
         if self.op is not None and self.data2 is not None:
             self.gradient = self.op(self.data1.gradient, self.data2.gradient)
