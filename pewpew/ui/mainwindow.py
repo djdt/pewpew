@@ -7,7 +7,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from pewpew import __version__
 from pewpew.ui.dialogs import ConfigDialog, ColorRangeDialog, FilteringDialog
 from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
-from pewpew.ui.tools import CalibrationTool
+from pewpew.ui.tools import CalculationsTool, CalibrationTool
 from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
 from pewpew.ui.widgets.detailederror import DetailedError
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
@@ -314,7 +314,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dockarea.addDockWidgets(docks)
 
     def menuImportKrissKross(self) -> None:
-        kkw = KrissKrossWizard(self.config, parent=self)
+        kkw = KrissKrossWizard(parent=self)
         if kkw.exec():
             dock = KrissKrossImageDock(kkw.data, self.dockarea)
             self.dockarea.addDockWidgets([dock])
@@ -440,7 +440,11 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.show()
 
     def menuOperationsTool(self) -> None:
-        pass
+        # def applyTool(tool: Tool) -> None:
+        docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
+        laser = docks[0] if len(docks) > 0 else LaserImageDock(Laser(), parent=self)
+        calc_tool = CalculationsTool(laser, self.dockarea, self.viewconfig, parent=self)
+        calc_tool.show()
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")

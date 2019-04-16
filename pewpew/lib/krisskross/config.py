@@ -11,14 +11,12 @@ class KrissKrossConfig(LaserConfig):
         spotsize: float = 10.0,
         speed: float = 10.0,
         scantime: float = 0.1,
-        warmup: float = 10.0,
+        warmup: float = 12.5,
         pixel_offsets: List[Fraction] = [Fraction(0, 2), Fraction(1, 2)],
-        horizontal_first: bool = True,
     ):
         super().__init__(spotsize=spotsize, speed=speed, scantime=scantime)
         self.warmup = warmup
         self.pixel_offsets = pixel_offsets
-        self.horizontal_first = horizontal_first
         self._calculate_subpixel_params()
 
     def pixel_width(self) -> float:

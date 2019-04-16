@@ -43,7 +43,6 @@ class ConfigDialog(ApplyDialog):
         if isinstance(config, KrissKrossConfig):
             self.layout_form.addRow("Warmup (s):", self.lineedit_warmup)
             self.layout_form.addRow("Subpixel width:", self.spinbox_offsets)
-            self.layout_form.addRow(self.check_horz)
 
         # Checkbox
         self.check_all = QtWidgets.QCheckBox("Apply config to all images.")
