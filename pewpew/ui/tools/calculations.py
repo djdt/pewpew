@@ -1,6 +1,7 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 import numpy as np
 
+from pewpew.lib.laser import Laser
 from pewpew.lib.laser.virtual import VirtualData
 from pewpew.ui.validators import DecimalValidator
 
@@ -44,6 +45,7 @@ class CalculationsTool(Tool):
         self.viewconfig = viewconfig
 
         self.dock = dock
+        self.laser = Laser(config=self.dock.laser.config)
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
 
         self.canvas = Canvas(connect_mouse_events=False, parent=self)
@@ -51,6 +53,7 @@ class CalculationsTool(Tool):
 
         self.combo_isotope1 = QtWidgets.QComboBox()
         self.combo_isotope1.currentIndexChanged.connect(self.updateData)
+        self.combo_isotope1.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.combo_condition1 = QtWidgets.QComboBox()
         self.combo_condition1.addItems(CalculationsTool.CONDITIONS)
         self.lineedit_condition1 = QtWidgets.QLineEdit()
@@ -62,6 +65,8 @@ class CalculationsTool(Tool):
         self.combo_ops.currentIndexChanged.connect(self.onComboOps)
 
         self.combo_isotope2 = QtWidgets.QComboBox()
+        self.combo_isotope2.currentIndexChanged.connect(self.updateData)
+        self.combo_isotope2.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.combo_condition2 = QtWidgets.QComboBox()
         self.combo_condition2.addItems(CalculationsTool.CONDITIONS)
         self.combo_condition2.currentIndexChanged.connect(self.updateData)
@@ -106,6 +111,7 @@ class CalculationsTool(Tool):
         self.layout_left.addStretch(1)
 
         self.layout_right.addWidget(self.canvas)
+        self.updateData()
 
     def updateData(self) -> None:
         if self.combo_isotope1.currentText() not in self.dock.laser.data:
@@ -123,14 +129,21 @@ class CalculationsTool(Tool):
 
         if c1 is not None and self.lineedit_condition1.text() != "":
             c1 = (c1, float(self.lineedit_condition1.text()))
+        else:
+            c1 = None
         if c2 is not None and self.lineedit_condition2.text() != "":
             c2 = (c2, float(self.lineedit_condition2.text()))
-        self.data = VirtualData(
+        else:
+            c2 = None
+
+        self.laser.data["_"] = VirtualData(
             d1, name=None, data2=d2, op=op, condition1=c1, condition2=c2
         )
+        self.draw()
 
     def draw(self) -> None:
         self.canvas.clear()
+        self.canvas.plot(self.laser, "_", self.viewconfig)
         self.canvas.draw()
 
     def updateComboIsotopes(self) -> None:
@@ -160,8 +173,10 @@ class CalculationsTool(Tool):
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
         if widget is not None and hasattr(widget, "laser"):
             self.dock = widget
+            self.laser = Laser(config=self.dock.laser.config)
             # Prevent currentIndexChanged being emmited
             self.updateComboIsotopes()
+            self.updateData()
 
         self.dockarea.mouseSelectFinished.disconnect(self.mouseSelectFinished)
         self.activateWindow()

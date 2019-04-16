@@ -157,8 +157,8 @@ class Canvas(FigureCanvasQTAgg):
             extent=self.extent,
             fontsize=viewconfig["font"]["size"],
             interpolation=viewconfig["interpolation"].lower(),
-            label=formatIsotope(name, fstring="$^{{{mass}}}${element}"),
-            scalebar=self.options["scalebar"],
+            label=name if self.options["label"] else None,
+            scalebar="upper right" if self.options["scalebar"] else None,
         )
         if self.view == (0.0, 0.0, 0.0, 0.0):
             self.view = self.extent

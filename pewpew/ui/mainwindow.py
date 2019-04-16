@@ -441,11 +441,18 @@ class MainWindow(QtWidgets.QMainWindow):
             applyTool(cali_tool)
 
     def menuOperationsTool(self) -> None:
-        # def applyTool(tool: Tool) -> None:
+        def applyTool(tool: Tool) -> None:
+            vd = tool.laser.data["_"]
+            tool.dock.laser.data[vd.name] = vd
+            tool.dock.populateComboIsotopes()
+            tool.updateComboIsotopes()
+
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
         laser = docks[0] if len(docks) > 0 else LaserImageDock(Laser(), parent=self)
         calc_tool = CalculationsTool(laser, self.dockarea, self.viewconfig, parent=self)
-        calc_tool.show()
+        calc_tool.applyPressed.connect(applyTool)
+        if calc_tool.exec():
+            applyTool(calc_tool)
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")

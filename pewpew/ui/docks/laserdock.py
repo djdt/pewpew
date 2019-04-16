@@ -76,9 +76,9 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.canvas = Canvas(parent=self)
 
         self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.addItems(self.laser.isotopes())
         self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
         self.combo_isotope.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        self.populateComboIsotopes()
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.canvas)
@@ -167,6 +167,13 @@ class LaserImageDock(QtWidgets.QDockWidget):
         context_menu.addSeparator()
         context_menu.addAction(self.action_close)
         return context_menu
+
+    def populateComboIsotopes(self) -> None:
+        isotopes = sorted(self.laser.isotopes())
+        self.combo_isotope.blockSignals(True)
+        self.combo_isotope.clear()
+        self.combo_isotope.addItems(isotopes)
+        self.combo_isotope.blockSignals(False)
 
     def contextMenuEvent(self, event: QtCore.QEvent) -> None:
         context_menu = self.buildContextMenu()
@@ -298,11 +305,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             if dialog.data is None or hasattr(self.laser.data, dialog.data.name):
                 return
             self.laser.data[dialog.data.name] = dialog.data
-            self.combo_isotope.blockSignals(True)
-            self.combo_isotope.clear()
-            self.combo_isotope.addItems(self.laser.isotopes())
-            self.combo_isotope.updateGeometry()
-            self.combo_isotope.blockSignals(False)
+            self.populateComboIsotopes()
 
         dlg = CalculateDialog(self.laser, parent=self)
         dlg.applyPressed.connect(applyDialog)

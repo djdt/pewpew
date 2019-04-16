@@ -23,7 +23,7 @@ def plot_laser_data(
     colorbar_range: Tuple[Union[str, float], Union[str, float]] = ("1%", "99%"),
     colorbar_label: str = "",
     label: str = None,
-    scalebar: bool = False,
+    scalebar: str = None,
     fontsize: int = 12,
 ) -> AxesImage:
 
@@ -79,11 +79,11 @@ def plot_laser_data(
         )
         ax.add_artist(text)
 
-    if scalebar:
+    if scalebar is not None:
         scalebar = ScaleBar(
             1.0,
             "um",
-            location="upper right",
+            location=scalebar,
             frameon=False,
             color="white",
             font_properties={"size": fontsize},
