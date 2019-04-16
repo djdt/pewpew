@@ -261,7 +261,7 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
             self.dconfig.warmup = float(self.lineedit_warmup.text())
 
         v = self.spinbox_offsets.value()
-        self.dconfig.offsets = [Fraction(i, v) for i in range(0, v)]
+        self.dconfig.pixel_offsets = [Fraction(i, v) for i in range(0, v)]
         self.dconfig._calculate_subpixel_params()
 
         return self.dconfig
