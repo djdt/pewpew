@@ -6,11 +6,10 @@ from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pewpew.ui.widgets import BasicTable, Canvas
+
 # from pewpew.ui.dialogs import ApplyDialog
 from pewpew.ui.tools.tool import Tool
 from pewpew.ui.validators import DoublePrecisionDelegate
-
-from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter, weighted_linreg
 
 from typing import Dict, List
 from pewpew.ui.docks.dockarea import DockArea
@@ -18,6 +17,9 @@ from pewpew.ui.docks import LaserImageDock
 
 
 class CalculationsTool(Tool):
+    OPERATIONS = {"Add", (np.add, "+")}
+    CONDITIONS = {"Greater than", (np.greater, ">")}
+
     def __init__(
         self,
         dock: LaserImageDock,
@@ -30,14 +32,38 @@ class CalculationsTool(Tool):
 
         self.dockarea = dockarea
         self.viewconfig = viewconfig
-        self.previous_isotope = ""
 
         self.dock = dock
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
-        self.canvas = CalibrationCanvas(parent=self)
+
+        self.canvas = Canvas(parent=self)
+        self.canvas.options = {"colorbar": False, "scalebar": False, "label": False}
+
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.addItems(self.dock.laser.isotopes())
         self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
+
+        group_box_var1 = QtWidgets.QGroupBox()
+        layout_box_var1 = QtWidgets.QFormLayout()
+        self.combo_isotope1 = QtWidgets.QComboBox()
+        self.combo_isotope1.addItems(self.dock.laser.isotopes())
+        self.combo_condition1 = QtWidgets.QComboBox()
+        self.combo_condition1.addItems(CalculationsTool.CONDITIONS)
+        group_box_var1.setLayout(layout_box_var1)
+
+        group_box_ops = QtWidgets.QGroupBox()
+        layout_box_ops = QtWidgets.QFormLayout()
+        self.combo_ops = QtWidgets.QComboBox()
+        self.combo_ops.addItems(CalculationsTool.OPERATIONS)
+        group_box_ops.setLayout(layout_box_ops)
+
+        group_box_var2 = QtWidgets.QGroupBox()
+        layout_box_var2 = QtWidgets.QFormLayout()
+        self.combo_isotope2 = QtWidgets.QComboBox()
+        self.combo_isotope2.addItems(self.dock.laser.isotopes())
+        self.combo_condition2 = QtWidgets.QComboBox()
+        self.combo_condition2.addItems(CalculationsTool.CONDITIONS)
+        group_box_var2.setLayout(layout_box_var2)
 
     def accept(self) -> None:
         self.updateCalculations()
@@ -89,19 +115,15 @@ class CalculationsTool(Tool):
         self.draw()
 
     def keyPressEvent(self, event: QtCore.QEvent) -> None:
-        if event.key() in [QtCore.Qt.Key_Escape, QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
+        if event.key() in [
+            QtCore.Qt.Key_Escape,
+            QtCore.Qt.Key_Enter,
+            QtCore.Qt.Key_Return,
+        ]:
             return
         if event.key() == QtCore.Qt.Key_F5:
             self.draw()
         super().keyPressEvent(event)
-
-    def buttonBoxClicked(self, button: QtWidgets.QAbstractButton) -> None:
-        sb = self.button_box.standardButton(button)
-
-        if sb == QtWidgets.QDialogButtonBox.Ok:
-            self.accept()
-        else:
-            self.reject()
 
     def buttonLaser(self) -> None:
         self.hide()
@@ -109,20 +131,6 @@ class CalculationsTool(Tool):
         self.dockarea.setFocus(QtCore.Qt.OtherFocusReason)
         self.dockarea.startMouseSelect()
         self.dockarea.mouseSelectFinished.connect(self.mouseSelectFinished)
-
-    def comboAveraging(self, text: str) -> None:
-        self.updateCounts()
-        self.updateResults()
-
-    def comboTrim(self, text: str) -> None:
-        if self.combo_trim.currentText() == "rows":
-            self.lineedit_left.setValidator(QtGui.QIntValidator(0, 1e9))
-            self.lineedit_right.setValidator(QtGui.QIntValidator(0, 1e9))
-        else:
-            self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
-            self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
-        self.lineedit_left.setText("")
-        self.lineedit_right.setText("")
 
     def comboIsotope(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
@@ -138,41 +146,3 @@ class CalculationsTool(Tool):
         self.updateResults()
         self.draw()
         self.previous_isotope = isotope
-
-    def comboWeighting(self, text: str) -> None:
-        self.updateResults()
-
-    def lineEditTrim(self) -> None:
-        if self.lineedit_left.text() == "":
-            trim_left = 0.0
-        else:
-            trim_left = self.dock.laser.convert(
-                float(self.lineedit_left.text()),
-                unit_from=self.combo_trim.currentText(),
-                unit_to="um",
-            )
-        trim_right = self.canvas.image.get_extent()[1]
-        if self.lineedit_right.text() != "":
-            trim_right -= self.dock.laser.convert(
-                float(self.lineedit_right.text()),
-                unit_from=self.combo_trim.currentText(),
-                unit_to="um",
-            )
-        self.canvas.setView(trim_left, trim_right, 0.0, self.canvas.extent[3])
-        self.updateCounts()
-        self.updateResults()
-
-    def lineeditUnits(self) -> None:
-        unit = self.lineedit_units.text()
-        cal = self.cal[self.combo_isotope.currentText()]
-        self.calibration[self.combo_isotope.currentText()] = (cal[0], cal[1], unit)
-
-    def spinBoxLevels(self) -> None:
-        self.table.setRowCount(self.spinbox_levels.value())
-        self.updateCounts()
-        self.updateResults()
-        self.draw()
-
-    def tableItemChanged(self, item: QtWidgets.QTableWidgetItem) -> None:
-        if item.text() != "":
-            self.updateResults()
