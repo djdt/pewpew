@@ -14,20 +14,20 @@ from pewpew.ui.docks import LaserImageDock
 class CalculationsTool(Tool):
     OPERATIONS = {
         # Name: callable, symbol, num data
-        "None": (None, "", 1),
-        "Add": (np.add, "+", 2),
-        "Divide": (np.divide, "/", 2),
-        "Multiply": (np.multiply, "*", 2),
-        "Subtract": (np.subtract, "-", 2),
-        "Where": (np.where, "=>", 2),
+        "None": None,
+        "Add": np.add,
+        "Divide": np.divide,
+        "Multiply": np.multiply,
+        "Subtract": np.subtract,
+        "Where": None,
     }
 
     CONDITIONS = {
-        "None": (None, ""),
-        "Equal": (np.equal, "="),
-        "Greater than": (np.greater, ">"),
-        "Less than": (np.less, "<"),
-        "Not equal": (np.not_equal, "!="),
+        "None": None,
+        "Equal": np.equal,
+        "Greater than": np.greater,
+        "Less than": np.less,
+        "Not equal": np.not_equal,
     }
 
     def __init__(
@@ -39,8 +39,6 @@ class CalculationsTool(Tool):
     ):
         super().__init__(parent)
         self.setWindowTitle("Calibration Standards Tool")
-
-        self.data = VirtualData()
 
         self.dockarea = dockarea
         self.viewconfig = viewconfig
@@ -106,23 +104,22 @@ class CalculationsTool(Tool):
     def updateData(self) -> None:
         d1 = self.dock.laser.data[self.combo_isotope1.currentText()]
         c1 = CalculationsTool.CONDITIONS[self.combo_condition1.currentText()]
-
-        name = d1.name
-        if c1[0] is not None:
-            name += f"[{c1[1]}{self.lineedit_condition1.text()}]"
+        op = CalculationsTool.OPERATIONS[self.combo_ops.currentText()]
 
         if self.combo_isotope2.isEnabled():
-            op = CalculationsTool.OPERATIONS[self.combo_ops.currentText()]
             d2 = self.dock.laser.data[self.combo_isotope2.currentText()]
-            c2 = (
-                CalculationsTool.CONDITIONS[self.combo_condition2.currentText()][0],
-                self.lineedit_condition1.text(),
-            )
+            c2 = CalculationsTool.CONDITIONS[self.combo_condition2.currentText()]
         else:
-            op = None
-            d2 = None
+            d2 = None  # type: ignore
             c2 = None
-        self.data = VirtualData(d1, name, d2, op, c1, c2)
+
+        if c1 is not None and self.lineedit_condition1.text() != "":
+            c1 = (c1, float(self.lineedit_condition1.text()))
+        if c2 is not None and self.lineedit_condition2.text() != "":
+            c2 = (c2, float(self.lineedit_condition2.text()))
+        self.data = VirtualData(
+            d1, name=None, data2=d2, op=op, condition1=c1, condition2=c2
+        )
 
     def draw(self) -> None:
         self.canvas.clear()
