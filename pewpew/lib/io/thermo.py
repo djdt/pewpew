@@ -3,7 +3,6 @@ import numpy as np
 
 from pewpew.lib.laser import Laser, LaserConfig, LaserData
 from pewpew.lib.exceptions import PewPewDataError, PewPewFileError
-from pewpew.lib.formatter import formatIsotope
 
 from typing import Dict, List
 
@@ -39,7 +38,7 @@ def load(path: str, config: LaserConfig = None) -> Laser:
             try:
                 _, _, isotope, data_type, line_data = line.split(delimiter, 4)
                 if data_type == "Counter":
-                    data.setdefault(formatIsotope(isotope), []).append(
+                    data.setdefault(isotope, []).append(
                         np.genfromtxt(
                             [line_data],
                             delimiter=delimiter,
