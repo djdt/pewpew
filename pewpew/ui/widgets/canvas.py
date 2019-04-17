@@ -157,6 +157,7 @@ class Canvas(FigureCanvasQTAgg):
             extent=self.extent,
             fontsize=viewconfig["font"]["size"],
             interpolation=viewconfig["interpolation"].lower(),
+            alpha=viewconfig["alpha"],
             label=name if self.options["label"] else None,
             scalebar="upper right" if self.options["scalebar"] else None,
         )

@@ -41,6 +41,7 @@ class MainWindow(QtWidgets.QMainWindow):
         "calibrate": True,
         "filtering": {"type": "None", "window": (3, 3), "threshold": 9},
         "interpolation": "None",
+        "alpha": 1.0,
         "font": {"size": 12},
     }
 
