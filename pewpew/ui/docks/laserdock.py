@@ -4,7 +4,7 @@ import copy
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from pewpew.ui.widgets import Canvas, OverwriteFilePrompt
-from pewpew.ui.dialogs import CalculateDialog, CalibrationDialog, ConfigDialog
+from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog, StatsDialog
 from pewpew.ui.dialogs.export import CSVExportDialog, PNGExportDialog
 
 from pewpew.lib import io
@@ -129,16 +129,11 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.action_config.setStatusTip("Edit image config.")
         self.action_config.triggered.connect(self.onMenuConfig)
 
-        # self.action_calculate = QtWidgets.QAction(
-        #     QtGui.QIcon.fromTheme(""), "Calculate", self
-        # )
-        # self.action_calculate.setStatusTip("Perform calculations on data.")
-        # self.action_calculate.triggered.connect(self.onMenuCalculate)
-        # self.action_trim = QtWidgets.QAction(
-        #     QtGui.QIcon.fromTheme("edit-cut"), "Trim", self
-        # )
-        # self.action_trim.setStatusTip("Edit image trim.")
-        # self.action_trim.triggered.connect(self.onMenuTrim)
+        self.action_stats = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme(""), "Statistics", self
+        )
+        self.action_stats.setStatusTip("Data histogram and statistics.")
+        self.action_stats.triggered.connect(self.onMenuStats)
 
         self.action_close = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-delete"), "Close", self
@@ -162,8 +157,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         context_menu.addSeparator()
         context_menu.addAction(self.action_calibration)
         context_menu.addAction(self.action_config)
-        # context_menu.addAction(self.action_calculate)
-        # context_menu.addAction(self.action_trim)
+        context_menu.addAction(self.action_stats)
         context_menu.addSeparator()
         context_menu.addAction(self.action_close)
         return context_menu
@@ -299,6 +293,11 @@ class LaserImageDock(QtWidgets.QDockWidget):
         dlg.applyPressed.connect(applyDialog)
         if dlg.exec():
             applyDialog(dlg)
+
+    def onMenuStats(self) -> None:
+        return
+        dlg = StatsDialog(self.laser, self.window().viewconfig, parent=self)
+        dlg.exec()
 
     # def onMenuCalculate(self) -> None:
     #     def applyDialog(dialog: ApplyDialog) -> None:
