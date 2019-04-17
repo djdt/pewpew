@@ -129,7 +129,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Edit
         menu_edit = self.menuBar().addMenu("&Edit")
         action_config = menu_edit.addAction(
-            QtGui.QIcon.fromTheme("document-properties"), "&Config"
+            QtGui.QIcon.fromTheme("document-edit"), "&Config"
         )
         action_config.setStatusTip("Update the configs for visible images.")
         action_config.setShortcut("Ctrl+K")
@@ -145,13 +145,13 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_edit.addSeparator()
 
         action_calibration = menu_edit.addAction(
-            QtGui.QIcon.fromTheme(""), "&Standards"
+            QtGui.QIcon.fromTheme("document-properties"), "&Standards"
         )
         action_calibration.setStatusTip("Generate calibration curve from a standard.")
         action_calibration.triggered.connect(self.menuStandardsTool)
 
         action_operations = menu_edit.addAction(
-            QtGui.QIcon.fromTheme(""), "&Operations"
+            QtGui.QIcon.fromTheme("document-properties"), "&Operations"
         )
         action_operations.setStatusTip("Perform calculations using laser data.")
         action_operations.triggered.connect(self.menuOperationsTool)

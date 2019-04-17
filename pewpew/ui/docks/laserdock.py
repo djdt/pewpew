@@ -124,16 +124,16 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.action_calibration.triggered.connect(self.onMenuCalibration)
 
         self.action_config = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("document-properties"), "Config", self
+            QtGui.QIcon.fromTheme("document-edit"), "Config", self
         )
         self.action_config.setStatusTip("Edit image config.")
         self.action_config.triggered.connect(self.onMenuConfig)
 
-        self.action_calculate = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme(""), "Calculate", self
-        )
-        self.action_calculate.setStatusTip("Perform calculations on data.")
-        self.action_calculate.triggered.connect(self.onMenuCalculate)
+        # self.action_calculate = QtWidgets.QAction(
+        #     QtGui.QIcon.fromTheme(""), "Calculate", self
+        # )
+        # self.action_calculate.setStatusTip("Perform calculations on data.")
+        # self.action_calculate.triggered.connect(self.onMenuCalculate)
         # self.action_trim = QtWidgets.QAction(
         #     QtGui.QIcon.fromTheme("edit-cut"), "Trim", self
         # )
@@ -162,7 +162,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         context_menu.addSeparator()
         context_menu.addAction(self.action_calibration)
         context_menu.addAction(self.action_config)
-        context_menu.addAction(self.action_calculate)
+        # context_menu.addAction(self.action_calculate)
         # context_menu.addAction(self.action_trim)
         context_menu.addSeparator()
         context_menu.addAction(self.action_close)
@@ -300,17 +300,17 @@ class LaserImageDock(QtWidgets.QDockWidget):
         if dlg.exec():
             applyDialog(dlg)
 
-    def onMenuCalculate(self) -> None:
-        def applyDialog(dialog: ApplyDialog) -> None:
-            if dialog.data is None or hasattr(self.laser.data, dialog.data.name):
-                return
-            self.laser.data[dialog.data.name] = dialog.data
-            self.populateComboIsotopes()
+    # def onMenuCalculate(self) -> None:
+    #     def applyDialog(dialog: ApplyDialog) -> None:
+    #         if dialog.data is None or hasattr(self.laser.data, dialog.data.name):
+    #             return
+    #         self.laser.data[dialog.data.name] = dialog.data
+    #         self.populateComboIsotopes()
 
-        dlg = CalculateDialog(self.laser, parent=self)
-        dlg.applyPressed.connect(applyDialog)
-        if dlg.exec():
-            applyDialog(dlg)
+    #     dlg = CalculateDialog(self.laser, parent=self)
+    #     dlg.applyPressed.connect(applyDialog)
+    #     if dlg.exec():
+    #         applyDialog(dlg)
 
     def onMenuClose(self) -> None:
         self.close()
