@@ -57,7 +57,7 @@ def load(
             line = fp.readline().lstrip("#").strip()
             if "=" not in line:
                 raise PewPewFileError(f"Malformed name line '{line}'.")
-            _, name = line.split("=")
+            _, isotope = line.split("=")
             # Config
             if read_config or read_calibration:
                 line = fp.readline().lstrip("#").strip()
@@ -95,11 +95,11 @@ def load(
     )
     # Only put calibration in if requested
     if read_calibration:
-        laser.data[name] = LaserData(
-            data, name, intercept=intercept, gradient=gradient, unit=unit
+        laser.data[isotope] = LaserData(
+            data, isotope, intercept=intercept, gradient=gradient, unit=unit
         )
     else:
-        laser.data[name] = LaserData(data, name)
+        laser.data[isotope] = LaserData(data, isotope)
 
     return laser
 
