@@ -246,7 +246,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
             "Open File(s).",
             "",
-            "CSV files(*.csv);;Numpy Archives(*.npz);;"
+            "CSV files(*.csv *.txt);;Numpy Archives(*.npz);;"
             "Pew Pew Sessions(*.pew);;All files(*)",
             "All files(*)",
         )
@@ -259,7 +259,16 @@ class MainWindow(QtWidgets.QMainWindow):
                 if ext == ".npz":
                     lds += io.npz.load(path)
                 elif ext == ".csv":
-                    lds.append(io.csv.load(path))
+                    lds.append(io.csv.load(path, config=self.config))
+                elif ext == ".txt":
+                    lds.append(
+                        io.csv.load(
+                            path,
+                            config=self.config,
+                            read_config=False,
+                            read_calibration=False,
+                        )
+                    )
                 else:
                     raise PewPewFileError("Invalid file extension.")
             except PewPewError as e:
@@ -402,9 +411,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuConfig(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
-            self.config.spotsize = dialog.spotsize
-            self.config.speed = dialog.speed
-            self.config.scantime = dialog.scantime
+            self.config = dialog.config
             for dock in self.dockarea.findChildren(LaserImageDock):
                 dock.laser.config.spotsize = self.config.spotsize
                 dock.laser.config.speed = self.config.speed
