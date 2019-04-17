@@ -39,13 +39,9 @@ class VirtualData(LaserData):
 
         self.name = name if name is not None else self.generateName()
 
-        if self.op is not None and self.data2 is not None:
-            self.gradient = self.op(self.data1.gradient, self.data2.gradient)
-            self.intercept = self.op(self.data1.intercept, self.data2.intercept)
-        else:
-            self.gradient = self.data1.gradient
-            self.intercept = self.data1.intercept
-        self.unit = self.data1.unit
+        self.gradient = 1.0
+        self.intercept = 0.0
+        self.unit = LaserData.DEFAULT_UNIT
 
     def generateName(self) -> str:
         name = self.data1.name
