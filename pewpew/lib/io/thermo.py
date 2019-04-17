@@ -56,9 +56,10 @@ def load(path: str, config: LaserConfig = None) -> Laser:
     stacks: Dict[str, LaserData] = {}
     for k in keys:
         # Last line is junk
-        stacks[k] = LaserData(np.vstack(data[k])[:, :-1].transpose(), k)
-        if stacks[k].ndim != 2:
-            raise PewPewDataError(f"Invalid data dimensions '{stacks[k].ndim}'.")
+        stack = np.vstack(data[k])[:, :-1].transpose()
+        if stack.ndim != 2:
+            raise PewPewDataError(f"Invalid data dimensions '{stack.ndim}'.")
+        stacks[k] = LaserData(stack, k)
 
     return Laser(
         data=stacks,
