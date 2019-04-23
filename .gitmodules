@@ -1,0 +1,3 @@
+[submodule "laserlib"]
+	path = laserlib
+	url = git@github.com:djdt/laserlib.git
