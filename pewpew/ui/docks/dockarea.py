@@ -118,14 +118,18 @@ class DockArea(QtWidgets.QMainWindow):
                                 lds.append(io.thermo.load(path, self.window().config))
                             else:
                                 lds.append(
-                                    io.csv.load(
-                                        path,
-                                        "Unknown",
-                                        self.window().config,
-                                        read_config=True,
-                                    )
+                                    io.csv.load(path, config=self.window().config)
                                 )
 
+                    elif ext == ".txt":
+                        lds.append(
+                            io.csv.load(
+                                path,
+                                config=self.window().config,
+                                read_config=False,
+                                read_calibration=False,
+                            )
+                        )
                     elif ext == ".npz":
                         lds.extend(io.npz.load(path))
                     elif ext == ".b":

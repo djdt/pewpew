@@ -22,7 +22,6 @@ class KrissKrossData(LaserData):
         warmup = config.warmup_lines()
         mfactor = config.magnification_factor()
 
-        j = 0 if config.horizontal_first else 1
         # Calculate the line lengths
         length = (self.data[1].shape[0] * mfactor, self.data[0].shape[0] * mfactor)
         # Reshape the layers and stack into matrix
@@ -31,11 +30,11 @@ class KrissKrossData(LaserData):
         )
         for i, layer in enumerate(self.data):
             # Trim data of warmup time and excess
-            layer = layer[:, warmup : warmup + length[(i + j) % 2]]
+            layer = layer[:, warmup : warmup + length[i % 2]]
             # Stretch array
             layer = np.repeat(layer, mfactor, axis=0)
             # Flip vertical layers
-            if (i + j) % 2 == 1:
+            if i % 2 == 1:
                 layer = layer.T
             aligned[:, :, i] = layer
 

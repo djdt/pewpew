@@ -1,9 +1,8 @@
 import os.path
 import numpy as np
 
-from pewpew.lib.laser import Laser, LaserConfig
+from pewpew.lib.laser import Laser, LaserConfig, LaserData
 from pewpew.lib.exceptions import PewPewDataError, PewPewFileError
-from pewpew.lib.formatter import formatIsotope
 
 from typing import Dict, List
 
@@ -39,7 +38,7 @@ def load(path: str, config: LaserConfig = None) -> Laser:
             try:
                 _, _, isotope, data_type, line_data = line.split(delimiter, 4)
                 if data_type == "Counter":
-                    data.setdefault(formatIsotope(isotope), []).append(
+                    data.setdefault(isotope, []).append(
                         np.genfromtxt(
                             [line_data],
                             delimiter=delimiter,
@@ -53,24 +52,20 @@ def load(path: str, config: LaserConfig = None) -> Laser:
 
     keys = list(data.keys())
     # Stack lines to form 2d
-    stacks: Dict[str, np.ndarray] = {}
+    stacks: Dict[str, LaserData] = {}
     for k in keys:
         # Last line is junk
-        stacks[k] = np.vstack(data[k])[:, :-1].transpose()
-        if stacks[k].ndim != 2:
-            raise PewPewDataError(f"Invalid data dimensions '{stacks[k].ndim}'.")
+        stack = np.vstack(data[k])[:, :-1].transpose()
+        if stack.ndim != 2:
+            raise PewPewDataError(f"Invalid data dimensions '{stack.ndim}'.")
+        stacks[k] = LaserData(stack, k)
 
-    laser = Laser(
-        config=config, name=os.path.splitext(os.path.basename(path))[0], filepath=path
+    return Laser(
+        data=stacks,
+        config=config,
+        name=os.path.splitext(os.path.basename(path))[0],
+        filepath=path,
     )
-
-    try:
-        for k, v in stacks.items():
-            laser.add_data(k, v)
-    except AssertionError:
-        raise PewPewDataError("Mismatched data.")
-
-    return laser
 
 
 # def load_ldr(path: str, config: dict, calibration: dict = None) -> Laser:
