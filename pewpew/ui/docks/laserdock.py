@@ -14,9 +14,6 @@ from pewpew.ui.dialogs import ApplyDialog
 from pewpew.ui.dialogs.export import ExportDialog
 
 
-# TODO fix tab names
-
-
 class ImageDockTitleBar(QtWidgets.QWidget):
 
     nameChanged = QtCore.pyqtSignal("QString")
@@ -134,6 +131,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         )
         self.action_stats.setStatusTip("Data histogram and statistics.")
         self.action_stats.triggered.connect(self.onMenuStats)
+        self.action_stats.setEnabled(False)
 
         self.action_close = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-delete"), "Close", self
