@@ -16,10 +16,10 @@ from pewpew.ui.wizards import KrissKrossWizard
 from pewpew.ui.dialogs.export import ExportAllDialog
 
 from pewpew.lib.colormaps import COLORMAPS
-from pewpew.lib.exceptions import PewPewError, PewPewFileError
-from pewpew.lib import io
-from pewpew.lib.krisskross import KrissKross
-from pewpew.lib.laser import Laser, LaserConfig
+
+from laserlib import io
+from laserlib import Laser, LaserConfig
+from laserlib.krisskross import KrissKross
 
 from typing import List
 from types import TracebackType
@@ -250,38 +250,32 @@ class MainWindow(QtWidgets.QMainWindow):
             "Pew Pew Sessions(*.pew);;All files(*)",
             "All files(*)",
         )
-        lds: List[Laser] = []
+        lasers: List[Laser] = []
         if len(paths) == 0:
             return
         for path in paths:
             ext = os.path.splitext(path)[1].lower()
             try:
                 if ext == ".npz":
-                    lds += io.npz.load(path)
+                    lasers += io.npz.load(path)
                 elif ext == ".csv":
-                    lds.append(io.csv.load(path, config=self.config))
+                    # TODO implement a pewpew version
+                    lasers.append(Laser(io.csv.load(path), config=self.config))
                 elif ext == ".txt":
-                    lds.append(
-                        io.csv.load(
-                            path,
-                            config=self.config,
-                            read_config=False,
-                            read_calibration=False,
-                        )
-                    )
+                    lasers.append(Laser(io.csv.load(path), config=self.config))
                 else:
-                    raise PewPewFileError("Invalid file extension.")
-            except PewPewError as e:
+                    raise io.error.LaserLibException("Invalid file extension.")
+            except io.error.LaserLibException as e:
                 QtWidgets.QMessageBox.warning(
                     self, type(e).__name__, f"{os.path.basename(path)}: {e}"
                 )
                 return
         docks = []
-        for ld in lds:
-            if isinstance(ld, KrissKross):
-                docks.append(KrissKrossImageDock(ld, self.dockarea))
+        for laser in lasers:
+            if isinstance(laser, KrissKross):
+                docks.append(KrissKrossImageDock(laser, self.dockarea))
             else:
-                docks.append(LaserImageDock(ld, self.dockarea))
+                docks.append(LaserImageDock(laser, self.dockarea))
         self.dockarea.addDockWidgets(docks)
 
     def menuImportAgilent(self) -> None:
@@ -290,11 +284,11 @@ class MainWindow(QtWidgets.QMainWindow):
         for path in paths:
             try:
                 if path.lower().endswith(".b"):
-                    ld = io.agilent.load(path, config=self.config)
-                    docks.append(LaserImageDock(ld, self.dockarea))
+                    laser = Laser(io.agilent.load(path), config=self.config)
+                    docks.append(LaserImageDock(laser, self.dockarea))
                 else:
-                    raise PewPewFileError("Invalid batch directory.")
-            except PewPewError as e:
+                    raise io.error.LaserLibException("Invalid batch directory.")
+            except io.error.LaserLibException as e:
                 QtWidgets.QMessageBox.warning(
                     self, type(e).__name__, f"{os.path.basename(path)}: {e}"
                 )
@@ -312,11 +306,11 @@ class MainWindow(QtWidgets.QMainWindow):
         for path in paths:
             try:
                 if path.lower().endswith(".csv"):
-                    ld = io.thermo.load(path, config=self.config)
-                    docks.append(LaserImageDock(ld, self.dockarea))
+                    laser = Laser(io.thermo.load(path), config=self.config)
+                    docks.append(LaserImageDock(laser, self.dockarea))
                 else:
-                    raise PewPewFileError("Invalid file.")
-            except PewPewError as e:
+                    raise io.error.LaserLibException("Invalid file.")
+            except io.error.LaserLibException as e:
                 QtWidgets.QMessageBox.warning(
                     self, type(e).__name__, f"{os.path.basename(path)}: {e}"
                 )
@@ -373,12 +367,14 @@ class MainWindow(QtWidgets.QMainWindow):
                     extent = (
                         dock.canvas.view if dlg.options.csv.trimmedChecked() else None
                     )
+                    # TODO pewpew export
                     io.csv.save(
                         path,
-                        dock.laser,
-                        name,
-                        extent=extent,
-                        include_header=dlg.options.csv.headerChecked(),
+                        dock.laser.get(name, calibrate=True, extent=extent),
+                        # dock.laser,
+                        # name,
+                        # extent=extent,
+                        # include_header=dlg.options.csv.headerChecked(),
                     )
                 elif ext == ".npz":
                     io.npz.save(path, [dock.laser])
