@@ -1,5 +1,5 @@
-from pewpew.lib.laser.config import LaserConfig
-from pewpew.lib.laser.data import LaserData
+from .config import LaserConfig
+from .data import LaserData
 
 from typing import Callable, Tuple
 import numpy as np

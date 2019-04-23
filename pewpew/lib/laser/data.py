@@ -1,6 +1,6 @@
 import numpy as np
 
-from pewpew.lib.laser.config import LaserConfig
+from .config import LaserConfig
 
 from typing import Tuple
 
