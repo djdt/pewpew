@@ -10,8 +10,22 @@ from pewpew.ui.tools.tool import Tool
 from pewpew.ui.docks.dockarea import DockArea
 from pewpew.ui.docks import LaserImageDock
 
+from pewpew.lib.plotimage import plot_laser_data
+
 
 class CalculationsTool(Tool):
+    SYMBOLS = {
+        "add": "+",
+        "divide": "/",
+        "true_divide": "/",
+        "multiply": "*",
+        "subtract": "-",
+        "greater": ">",
+        "less": "<",
+        "equal": "=",
+        "not_equal": "!=",
+        "where": "=>"
+    }
     OPERATIONS = {
         # Name: callable, symbol, num data
         "None": None,
@@ -19,7 +33,7 @@ class CalculationsTool(Tool):
         "Divide": np.divide,
         "Multiply": np.multiply,
         "Subtract": np.subtract,
-        "Where": None,
+        "Where": np.where,
     }
 
     CONDITIONS = {
@@ -44,7 +58,9 @@ class CalculationsTool(Tool):
         self.viewconfig = viewconfig
 
         self.dock = dock
-        self.laser = Laser(config=self.dock.laser.config)
+        self.data = np.zeros_like((1, 1), dtype=float)
+        self.name = ""
+
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
 
         self.canvas = Canvas(connect_mouse_events=False, parent=self)
@@ -113,36 +129,63 @@ class CalculationsTool(Tool):
         self.updateData()
 
     def updateData(self) -> None:
-        if self.combo_isotope1.currentText() not in self.dock.laser.data:
+
+        isotope = self.combo_isotope1.currentText()
+
+        if isotope not in self.dock.laser.data.dtype.names:
             return
-        d1 = self.dock.laser.data[self.combo_isotope1.currentText()]
+
+        data = self.dock.laser.data[isotope]
+        name = isotope
+
         c1 = CalculationsTool.CONDITIONS[self.combo_condition1.currentText()]
-        op = CalculationsTool.OPERATIONS[self.combo_ops.currentText()]
+        if c1 is not None:
+            try:
+                c1v = float(self.lineedit_condition1.text())
+                data = c1(data, c1v)
+                name += f"[{CalculationsTool.SYMBOLS[c1.__name__]}{c1v}]"
+            except ValueError:
+                pass
 
         if self.combo_isotope2.isEnabled():
-            d2 = self.dock.laser.data[self.combo_isotope2.currentText()]
+            op = CalculationsTool.OPERATIONS[self.combo_ops.currentText()]
+            if op is not None:
+                name += f"{CalculationsTool.SYMBOLS[op.__name__]}"
+
+            data2 = self.dock.laser.data[self.combo_isotope2.currentText()]
+            name += self.combo_isotope2.currentText()
+
             c2 = CalculationsTool.CONDITIONS[self.combo_condition2.currentText()]
-        else:
-            d2 = None  # type: ignore
-            c2 = None
+            if c2 is not None:
+                try:
+                    c2v = float(self.lineedit_condition2.text())
+                    data2 = c2(data2, c2v)
+                    name += f"[{CalculationsTool.SYMBOLS[c2.__name__]}{c2v}]"
+                except ValueError:
+                    pass
 
-        if c1 is not None and self.lineedit_condition1.text() != "":
-            c1 = (c1, float(self.lineedit_condition1.text()))
-        else:
-            c1 = None
-        if c2 is not None and self.lineedit_condition2.text() != "":
-            c2 = (c2, float(self.lineedit_condition2.text()))
-        else:
-            c2 = None
+            if op is not None:
+                data = op(data, data2)
+            elif op is np.where:
+                data = np.where(data2 != -1.0, data, data2)
 
-        # self.laser.data["_"] = VirtualData(
-        #     d1, name=None, data2=d2, op=op, condition1=c1, condition2=c2
-        # )
+        self.data = data
+        self.name = name
+
         self.draw()
 
     def draw(self) -> None:
         self.canvas.clear()
-        self.canvas.plot(self.laser, "_", self.viewconfig)
+        plot_laser_data(
+            self.canvas.figure,
+            self.canvas.ax,
+            self.data,
+            aspect=self.dock.laser.config.aspect(),
+            cmap=self.viewconfig["cmap"]["type"],
+            # colorbar="bottom" if self.options["colorbar"] else None,
+            # colorbar_range=self.viewconfig["cmap"]["range"],
+            # scalebar="upper right" if self.options["scalebar"] else None,
+        )
         self.canvas.draw()
 
     def updateComboIsotopes(self) -> None:
