@@ -3,7 +3,7 @@ import copy
 
 from pewpew.ui.docks import LaserImageDock
 from pewpew.ui.dialogs import ConfigDialog
-from pewpew.lib.krisskross import KrissKross
+from laserlib.krisskross import KrissKross
 
 from pewpew.ui.dialogs import ApplyDialog
 

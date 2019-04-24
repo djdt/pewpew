@@ -5,8 +5,8 @@ from pewpew.ui.dialogs.applydialog import ApplyDialog
 
 # from pewpew.ui.validators import DecimalValidator
 
-from pewpew.lib.laser import Laser
-from pewpew.lib.laser.virtual import VirtualData
+from laserlib.laser import Laser
+from laserlib.laser.virtual import VirtualData
 
 
 class CalculateDialog(ApplyDialog):

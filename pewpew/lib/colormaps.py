@@ -24,6 +24,7 @@ register_cmap("ppSpectral", cmap=ppSpectral)
 COLORMAPS = [
     ("Magma", "magma", True, True, "Perceptually uniform colormap from R."),
     ("Viridis", "viridis", True, True, "Perceptually uniform colormap from R."),
+    ("Cividis", "cividis", True, True, "Perceptually uniform colormap from R."),
     ("Blue Red", "RdBu_r", False, True, "Diverging colormap from colorbrewer."),
     (
         "Blue Yellow Red",

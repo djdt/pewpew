@@ -6,7 +6,7 @@ from PyQt5 import QtCore, QtWidgets
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
 from pewpew.ui.validators import DecimalValidator
 
-from pewpew.lib.krisskross import KrissKross, KrissKrossConfig, KrissKrossData
+from laserlib.krisskross import KrissKross, KrissKrossConfig, KrissKrossData
 from pewpew.lib import io
 
 from typing import Dict, List

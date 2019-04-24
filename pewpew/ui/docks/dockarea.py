@@ -4,11 +4,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from pewpew.ui.events import MousePressRedirectFilter
 
-from pewpew.lib import io
-from pewpew.lib.exceptions import PewPewError
+from laserlib import io
+from laserlib.laser import Laser
+from laserlib.krisskross import KrissKross
 
 from typing import List
-from pewpew.lib.krisskross import KrissKross
 from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
 
 
@@ -94,7 +94,7 @@ class DockArea(QtWidgets.QMainWindow):
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
         urls = event.mimeData().urls()
-        lds = []
+        lasers = []
         csv_as = None
         for url in urls:
             try:
@@ -115,26 +115,30 @@ class DockArea(QtWidgets.QMainWindow):
                             csv_as = choice
 
                             if csv_as == "Thermo iCap":
-                                lds.append(io.thermo.load(path, self.window().config))
+                                lasers.append(
+                                    Laser(
+                                        io.thermo.load(path),
+                                        config=self.window().config,
+                                    )
+                                )
                             else:
-                                lds.append(
-                                    io.csv.load(path, config=self.window().config)
+                                lasers.append(
+                                    Laser(
+                                        io.csv.load(path), config=self.window().config
+                                    )
                                 )
 
                     elif ext == ".txt":
-                        lds.append(
-                            io.csv.load(
-                                path,
-                                config=self.window().config,
-                                read_config=False,
-                                read_calibration=False,
-                            )
+                        lasers.append(
+                            Laser(io.csv.load(path), config=self.window().config)
                         )
                     elif ext == ".npz":
-                        lds.extend(io.npz.load(path))
+                        lasers.extend(io.npz.load(path))
                     elif ext == ".b":
-                        lds.append(io.agilent.load(path, self.window().config))
-            except PewPewError as e:
+                        lasers.append(
+                            Laser(io.agilent.load(path), config=self.window().config)
+                        )
+            except io.error.LaserLibException as e:
                 QtWidgets.QMessageBox.critical(
                     self,
                     "Import Failed",
@@ -142,11 +146,11 @@ class DockArea(QtWidgets.QMainWindow):
                 )
                 return
         docks = []
-        for ld in lds:
-            if isinstance(ld, KrissKross):
-                docks.append(KrissKrossImageDock(ld, self))
+        for laser in lasers:
+            if isinstance(laser, KrissKross):
+                docks.append(KrissKrossImageDock(laser, self))
             else:
-                docks.append(LaserImageDock(ld, self))
+                docks.append(LaserImageDock(laser, self))
         self.addDockWidgets(docks)
 
     def mousePressEvent(self, event: QtCore.QEvent) -> None:

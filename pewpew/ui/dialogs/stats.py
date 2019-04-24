@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtWidgets
 import numpy as np
 
-from pewpew.lib.laser import Laser
+from laserlib.laser import Laser
 
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg

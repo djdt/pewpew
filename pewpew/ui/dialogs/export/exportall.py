@@ -7,7 +7,7 @@ from pewpew.ui.dialogs.export.csv import CSVExportOptions
 from pewpew.ui.dialogs.export.png import PNGExportOptions
 
 from typing import List
-from pewpew.lib.laser import Laser
+from laserlib.laser import Laser
 
 
 class ExportAllOptions(QtWidgets.QStackedWidget):

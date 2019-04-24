@@ -2,10 +2,9 @@ from PyQt5 import QtCore, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
-from pewpew.lib.formatter import formatIsotope
 from pewpew.lib.plotimage import plot_laser_data
 
-from pewpew.lib.laser import Laser
+from laserlib.laser import Laser
 from matplotlib.backend_bases import MouseEvent, LocationEvent
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter

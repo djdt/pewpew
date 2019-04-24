@@ -7,9 +7,10 @@ from pewpew.ui.widgets import Canvas, OverwriteFilePrompt
 from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog, StatsDialog
 from pewpew.ui.dialogs.export import CSVExportDialog, PNGExportDialog
 
-from pewpew.lib import io
+from laserlib import io
+from pewpew.lib.io import png
+from laserlib.laser import Laser
 
-from pewpew.lib.laser import Laser
 from pewpew.ui.dialogs import ApplyDialog
 from pewpew.ui.dialogs.export import ExportDialog
 
@@ -217,10 +218,13 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 for path, isotope, _ in paths:
                     io.csv.save(
                         path,
-                        self.laser,
-                        isotope,
-                        extent=extent,
-                        include_header=dlg.options.headerChecked(),
+                        self.laser.get(
+                            isotope,
+                            calibrate=self.window().viewconfig["calibrate"],
+                            extent=extent,
+                        )
+                        # TODO redo this
+                        # include_header=dlg.options.headerChecked(),
                     )
 
         elif ext == ".npz":
@@ -236,7 +240,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             if dlg.exec():
                 paths = dlg.generate_paths(self.laser)
                 for path, isotope, _ in paths:
-                    io.png.save(
+                    png.save(
                         path,
                         self.laser,
                         isotope,
@@ -248,7 +252,12 @@ class LaserImageDock(QtWidgets.QDockWidget):
                         include_label=dlg.options.labelChecked(),
                     )
         elif ext == ".vti":
-            io.vtk.save(path, self.laser)
+            spacing = *self.laser.config.pixel_size(), self.laser.config.spotsize / 2.0
+            io.vtk.save(
+                path,
+                self.laser.get(calibrate=self.window().viewconfig["calibrate"]),
+                spacing=spacing,
+            )
         else:
             QtWidgets.QMessageBox.warning(
                 self, "Invalid Format", f"Unable to export {ext} format."
@@ -264,13 +273,11 @@ class LaserImageDock(QtWidgets.QDockWidget):
             for dock in docks:
                 for isotope in dlg.calibration.keys():
                     if isotope in dock.laser.isotopes():
-                        dock.laser.data[isotope].gradient = dlg.calibration[isotope][0]
-                        dock.laser.data[isotope].isotope = dlg.calibration[isotope][1]
-                        dock.laser.data[isotope].unit = dlg.calibration[isotope][2]
+                        dock.laser.calibration = copy.deepcopy(dlg.calibration)
                 dock.draw()
 
         dlg = CalibrationDialog(
-            self.laser, self.combo_isotope.currentText(), parent=self
+            self.laser.calibration, self.combo_isotope.currentText(), parent=self
         )
         dlg.applyPressed.connect(applyDialog)
         if dlg.exec():

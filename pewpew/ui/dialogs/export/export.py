@@ -3,7 +3,7 @@ import os.path
 from PyQt5 import QtWidgets
 
 from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
-from pewpew.lib.laser import Laser
+from laserlib.laser import Laser
 
 from typing import List, Tuple
 

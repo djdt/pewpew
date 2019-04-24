@@ -1,8 +1,7 @@
 from PyQt5 import QtCore, QtWidgets
 import numpy as np
 
-from pewpew.lib.laser import Laser
-from pewpew.lib.laser.virtual import VirtualData
+from laserlib.laser import Laser
 from pewpew.ui.validators import DecimalValidator
 
 from pewpew.ui.widgets import Canvas
@@ -136,9 +135,9 @@ class CalculationsTool(Tool):
         else:
             c2 = None
 
-        self.laser.data["_"] = VirtualData(
-            d1, name=None, data2=d2, op=op, condition1=c1, condition2=c2
-        )
+        # self.laser.data["_"] = VirtualData(
+        #     d1, name=None, data2=d2, op=op, condition1=c1, condition2=c2
+        # )
         self.draw()
 
     def draw(self) -> None:

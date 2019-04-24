@@ -4,8 +4,8 @@ import copy
 from pewpew.ui.dialogs.applydialog import ApplyDialog
 from pewpew.ui.validators import DecimalValidator
 
-from pewpew.lib.laser import LaserConfig
-from pewpew.lib.krisskross import KrissKrossConfig
+from laserlib.laser import LaserConfig
+from laserlib.krisskross import KrissKrossConfig
 
 
 class ConfigDialog(ApplyDialog):

@@ -1,24 +1,21 @@
 from PyQt5 import QtCore, QtWidgets
+import copy
 
 from pewpew.ui.dialogs.applydialog import ApplyDialog
 from pewpew.ui.validators import DecimalValidator, DecimalValidatorNoZero
 
-from pewpew.lib.laser import Laser
+from laserlib.calibration import LaserCalibration
 
-from typing import Dict, Tuple
+from typing import Dict
 
 
 class CalibrationDialog(ApplyDialog):
     def __init__(
-        self, laser: Laser, current_isotope: str, parent: QtWidgets.QWidget = None
+        self, calibration: Dict[str, LaserCalibration], current_isotope: str, parent: QtWidgets.QWidget = None
     ):
         super().__init__(parent)
         self.setWindowTitle("Calibration")
-        self.laser = laser
-
-        self.calibration: Dict[str, Tuple[float, float, str]] = {}
-        for k, v in self.laser.data.items():
-            self.calibration[k] = (v.gradient, v.intercept, v.unit)
+        self.calibration = copy.deepcopy(calibration)
 
         # LIne edits
         self.lineedit_gradient = QtWidgets.QLineEdit()
@@ -52,17 +49,17 @@ class CalibrationDialog(ApplyDialog):
     def updateLineEdits(self) -> None:
         name = self.combo_isotopes.currentText()
 
-        gradient = self.calibration[name][0]
+        gradient = self.calibration[name].gradient
         if gradient == 1.0:
             self.lineedit_gradient.clear()
         else:
             self.lineedit_gradient.setText(str(gradient))
-        intercept = self.calibration[name][1]
+        intercept = self.calibration[name].intercept
         if intercept == 0.0:
             self.lineedit_intercept.clear()
         else:
             self.lineedit_intercept.setText(str(intercept))
-        unit = self.calibration[name][2]
+        unit = self.calibration[name].unit
         if unit is None:
             self.lineedit_unit.clear()
         else:
@@ -73,14 +70,12 @@ class CalibrationDialog(ApplyDialog):
         intercept = self.lineedit_intercept.text()
         unit = self.lineedit_unit.text()
 
-        m, b, u = self.calibration[name]
         if gradient != "":
-            m = float(gradient)
+            self.calibration[name].gradient = float(gradient)
         if intercept != "":
-            b = float(intercept)
+            self.calibration[name].intercept = float(intercept)
         if unit != "":
-            u = unit
-        self.calibration[name] = (m, b, u)
+            self.calibration[name].unit = unit
 
     def comboChanged(self) -> None:
         previous = self.combo_isotopes.itemText(self.previous_index)
