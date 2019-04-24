@@ -6,10 +6,10 @@ from PyQt5 import QtCore, QtWidgets
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
 from pewpew.ui.validators import DecimalValidator
 
-from laserlib.krisskross import KrissKross, KrissKrossConfig, KrissKrossData
+from laserlib.krisskross import KrissKross, KrissKrossConfig
 from pewpew.lib import io
 
-from typing import Dict, List
+from typing import List
 
 
 class KrissKrossWizard(QtWidgets.QWizard):
@@ -54,15 +54,10 @@ class KrissKrossWizard(QtWidgets.QWizard):
             for path in paths:
                 lasers.append(io.thermo.load(path, config))
 
-        data: Dict[str, KrissKrossData] = {}
-        for isotope in lasers[0].isotopes():
-            data[isotope] = KrissKrossData(
-                [l.data[isotope].data for l in lasers], isotope
-            )
-
         self.data = KrissKross(
-            data,
+            [laser.data for laser in lasers],
             config=config,
+            calibration=lasers[0].calibration,
             name=os.path.splitext(os.path.basename(paths[0]))[0],
             filepath=paths[0],
         )
