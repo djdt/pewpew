@@ -17,6 +17,8 @@ from pewpew.ui.dialogs.export import ExportAllDialog
 
 from pewpew.lib.colormaps import COLORMAPS
 
+from pewpew.lib.io import png
+
 from laserlib import io
 from laserlib import Laser, LaserConfig
 from laserlib.krisskross import KrissKross
@@ -29,7 +31,8 @@ from pewpew.ui.dialogs import ApplyDialog
 ## TODO make save save to orignal file if exists, import should no longer set source!
 ##      only open should.
 ## TODO phil would like to have a way to average an area, without background
-## TODO Quality of life changes, remembering last save location, exportall isotope default,
+## TODO Quality of life changes, remembering last save location, exportall isotope
+## default,
 ##      exportall remember last format...
 
 
@@ -379,7 +382,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 elif ext == ".npz":
                     io.npz.save(path, [dock.laser])
                 elif ext == ".png":
-                    io.png.save(
+                    png.save(
                         path,
                         dock.laser,
                         name,
@@ -446,8 +449,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuOperationsTool(self) -> None:
         def applyTool(tool: Tool) -> None:
-            vd = tool.laser.data["_"]
-            tool.dock.laser.data[vd.name] = vd
+            tool.dock.laser.add_data(tool.name, tool.data)
             tool.dock.populateComboIsotopes()
             tool.updateComboIsotopes()
 
