@@ -11,7 +11,10 @@ from typing import Dict
 
 class CalibrationDialog(ApplyDialog):
     def __init__(
-        self, calibration: Dict[str, LaserCalibration], current_isotope: str, parent: QtWidgets.QWidget = None
+        self,
+        calibration: Dict[str, LaserCalibration],
+        current_isotope: str,
+        parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Calibration")
@@ -29,7 +32,7 @@ class CalibrationDialog(ApplyDialog):
 
         # Isotope combo
         self.combo_isotopes = QtWidgets.QComboBox()
-        self.combo_isotopes.addItems(self.laser.isotopes())
+        self.combo_isotopes.addItems(self.calibration.keys())
         self.combo_isotopes.setCurrentText(current_isotope)
         self.previous_index = self.combo_isotopes.currentIndex()
         self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
