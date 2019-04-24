@@ -123,7 +123,7 @@ class Canvas(FigureCanvasQTAgg):
     def plot(self, laser: Laser, name: str, viewconfig: dict) -> None:
         # Get the trimmed and calibrated data
         data = laser.get(name, calibrate=viewconfig["calibrate"])
-        unit = str(laser.data[name].unit) if viewconfig["calibrate"] else ""
+        unit = str(laser.calibration[name].unit) if viewconfig["calibrate"] else ""
         # Filter if required
         if viewconfig["filtering"]["type"] != "None":
             filter_type, window, threshold = (
