@@ -1,8 +1,8 @@
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
-from pewpew.lib.plotimage import plotLaserImage
-from pewpew.lib.laser import LaserData
+from pewpew.lib.plotimage import plot_laser_data
+from pewpew.lib.laser import Laser
 from pewpew.lib.formatter import formatIsotope
 
 from typing import Tuple
@@ -10,8 +10,8 @@ from typing import Tuple
 
 def save(
     path: str,
-    laser: LaserData,
-    isotope: str,
+    laser: Laser,
+    name: str,
     extent: Tuple[float, float, float, float],
     viewconfig: dict,
     size: Tuple[int, int] = (1280, 800),
@@ -23,26 +23,24 @@ def save(
     fig = Figure(frameon=False, tight_layout=True, figsize=figsize, dpi=100)
     canvas = FigureCanvasAgg(fig)
     ax = fig.add_subplot(111)
-    plotLaserImage(
+    data = laser.get(name, calibrate=True, extent=extent)
+    plot_laser_data(
         fig,
         ax,
-        laser.get(isotope, calibrated=True),
-        aspect=laser.aspect(),
+        data,
+        aspect=laser.config.aspect(),
         cmap=viewconfig["cmap"]["type"],
-        colorbar=include_colorbar,
-        colorbarpos="bottom",
-        colorbartext=str(laser.calibration[isotope]["unit"]),
-        extent=laser.extent(),
+        colorbar="bottom" if include_colorbar else None,
+        colorbar_label=str(laser.data[name].unit),
+        colorbar_range=viewconfig["cmap"]["range"],
+        extent=extent,
         fontsize=viewconfig["font"]["size"],
         interpolation=viewconfig["interpolation"].lower(),
-        label=include_label,
-        labeltext=formatIsotope(isotope, fstring="$^{{{mass}}}${element}"),
+        label=formatIsotope(name, fstring="$^{{{mass}}}${element}"),
         scalebar=include_scalebar,
-        vmax=viewconfig["cmap"]["range"][1],
-        vmin=viewconfig["cmap"]["range"][0],
     )
-    ax.set_xlim(extent[0], extent[1])
-    ax.set_ylim(extent[2], extent[3])
+    # ax.set_xlim(extent[0], extent[1])
+    # ax.set_ylim(extent[2], extent[3])
 
     fig.savefig(path, transparent=True, frameon=False)
     fig.clear()

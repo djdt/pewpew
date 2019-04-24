@@ -3,9 +3,9 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 from pewpew.lib.formatter import formatIsotope
-from pewpew.lib.plotimage import plotLaserImage
+from pewpew.lib.plotimage import plot_laser_data
 
-from pewpew.lib.laser import LaserData
+from pewpew.lib.laser import Laser
 from matplotlib.backend_bases import MouseEvent, LocationEvent
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
@@ -121,12 +121,10 @@ class Canvas(FigureCanvasQTAgg):
         self.clearStatusBar()
         super().close()
 
-    def plot(self, laser: LaserData, isotope: str, viewconfig: dict) -> None:
+    def plot(self, laser: Laser, name: str, viewconfig: dict) -> None:
         # Get the trimmed and calibrated data
-        data = laser.get(isotope, calibrated=viewconfig["calibrate"])
-        unit = (
-            str(laser.calibration[isotope]["unit"]) if viewconfig["calibrate"] else ""
-        )
+        data = laser.get(name, calibrate=viewconfig["calibrate"])
+        unit = str(laser.data[name].unit) if viewconfig["calibrate"] else ""
         # Filter if required
         if viewconfig["filtering"]["type"] != "None":
             filter_type, window, threshold = (
@@ -138,28 +136,30 @@ class Canvas(FigureCanvasQTAgg):
             elif filter_type == "Rolling median":
                 data = rolling_median_filter(data, window, threshold)
 
-        self.extent = laser.extent()
+        # If the laser extent has changed (i.e. config edited) then reset the view
+        x = data.shape[1] * laser.config.pixel_width()
+        y = data.shape[0] * laser.config.pixel_height()
+        extent = (0.0, x, 0.0, y)
+        if self.extent != extent:
+            self.extent = extent
+            self.view = (0.0, 0.0, 0.0, 0.0)
 
         # Plot the image
-        self.image = plotLaserImage(
+        self.image = plot_laser_data(
             self.figure,
             self.ax,
             data,
-            aspect=laser.aspect(),
+            aspect=laser.config.aspect(),
             cmap=viewconfig["cmap"]["type"],
-            colorbar=self.options["colorbar"],
-            colorbarpos="bottom",
-            colorbartext=unit,
+            colorbar="bottom" if self.options["colorbar"] else None,
+            colorbar_label=unit,
+            colorbar_range=viewconfig["cmap"]["range"],
             extent=self.extent,
             fontsize=viewconfig["font"]["size"],
             interpolation=viewconfig["interpolation"].lower(),
-            label=self.options["label"],
-            labeltext=formatIsotope(isotope, fstring="$^{{{mass}}}${element}"),
-            scalebar=self.options["scalebar"],
-            vmax=viewconfig["cmap"]["range"][1],
-            vmin=viewconfig["cmap"]["range"][0],
-            xaxis=True,
-            xaxisticksize=laser.config["speed"],
+            alpha=viewconfig["alpha"],
+            label=name if self.options["label"] else None,
+            scalebar="upper right" if self.options["scalebar"] else None,
         )
         if self.view == (0.0, 0.0, 0.0, 0.0):
             self.view = self.extent

@@ -3,7 +3,7 @@ import os.path
 from PyQt5 import QtWidgets
 
 from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
-from pewpew.lib.laser import LaserData
+from pewpew.lib.laser import Laser
 
 from typing import List, Tuple
 
@@ -76,7 +76,7 @@ class ExportDialog(QtWidgets.QDialog):
         return self.isotope
 
     def _generate_path(
-        self, laser: LaserData = None, isotope: str = None, layer: int = None
+        self, laser: Laser = None, isotope: str = None, layer: int = None
     ) -> str:
         path, ext = os.path.splitext(self.path)
         if isotope is not None:
@@ -86,7 +86,7 @@ class ExportDialog(QtWidgets.QDialog):
         return path + ext
 
     def generate_paths(
-        self, laser: LaserData, prompt: QtWidgets.QMessageBox = None
+        self, laser: Laser, prompt: QtWidgets.QMessageBox = None
     ) -> List[Tuple[str, str, int]]:
         paths = []
         if self.check_isotopes.isChecked() and self.check_isotopes.isEnabled():

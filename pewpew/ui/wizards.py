@@ -4,19 +4,21 @@ from fractions import Fraction
 from PyQt5 import QtCore, QtWidgets
 
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
-from pewpew.ui.validators import DecimalValidator, IntListValidator
+from pewpew.ui.validators import DecimalValidator
 
-from pewpew.lib.krisskross import KrissKrossData
+from pewpew.lib.krisskross import KrissKross, KrissKrossConfig, KrissKrossData
 from pewpew.lib import io
 
-from typing import List
+from typing import Dict, List
 
 
 class KrissKrossWizard(QtWidgets.QWizard):
-    def __init__(self, config: dict, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        self.data: KrissKrossData = KrissKrossData()
+        config = KrissKrossConfig()
+
+        self.data: KrissKross = KrissKross()
 
         self.addPage(KrissKrossStartPage())
         self.addPage(KrissKrossImportPage())
@@ -28,9 +30,8 @@ class KrissKrossWizard(QtWidgets.QWizard):
 
     def accept(self) -> None:
         config = self.field("config")
-        calibration = None
         paths = self.field("paths")
-        layers = []
+        lasers = []
 
         if self.field("radio_numpy"):
             for path in paths:
@@ -43,26 +44,27 @@ class KrissKrossWizard(QtWidgets.QWizard):
                         "contains more than one image.",
                     )
                     return
-                layers.append(lds[0])
-            # Read the config and calibration from the frist file
+                lasers.append(lds[0])
+            # Read the config from the frist file
             config = self.layers[0].config
-            calibration = self.layers[0].calibration
         elif self.field("radio_agilent"):
             for path in paths:
-                layers.append(io.agilent.load(path, config))
+                lasers.append(io.agilent.load(path, config))
         elif self.field("radio_thermo"):
             for path in paths:
-                layers.append(io.thermo.load(path, config))
+                lasers.append(io.thermo.load(path, config))
 
-        self.data = KrissKrossData.fromLayers(
-            [layer.data for layer in layers],
+        data: Dict[str, KrissKrossData] = {}
+        for isotope in lasers[0].isotopes():
+            data[isotope] = KrissKrossData(
+                [l.data[isotope].data for l in lasers], isotope
+            )
+
+        self.data = KrissKross(
+            data,
             config=config,
-            calibration=calibration,
             name=os.path.splitext(os.path.basename(paths[0]))[0],
-            source=paths[0],
-            offsets=self.field("offsets"),
-            warmup_time=float(self.field("lineedit_warmup")),
-            horizontal_first=self.field("check_horizontal"),
+            filepath=paths[0],
         )
 
         super().accept()
@@ -121,18 +123,6 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
         box_layout = QtWidgets.QVBoxLayout()
         box_layout.addWidget(self.list)
         dir_box.setLayout(box_layout)
-        # Controls
-        check_horizontal = QtWidgets.QCheckBox("Horizontal first layer.")
-        check_horizontal.setChecked(True)
-        self.registerField("check_horizontal", check_horizontal)
-
-        self.lineedit_warmup = QtWidgets.QLineEdit("12.0")
-        self.lineedit_warmup.setValidator(DecimalValidator(0, 1e2, 2))
-        self.lineedit_warmup.textChanged.connect(self.completeChanged)
-        self.registerField("lineedit_warmup", self.lineedit_warmup)
-        warmup_layout = QtWidgets.QHBoxLayout()
-        warmup_layout.addWidget(QtWidgets.QLabel("Warmup (s):"))
-        warmup_layout.addWidget(self.lineedit_warmup)
 
         # Buttons
         button_file = QtWidgets.QPushButton("Open")
@@ -147,8 +137,6 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
 
         main_layout = QtWidgets.QVBoxLayout()
         main_layout.addWidget(dir_box)
-        main_layout.addWidget(check_horizontal)
-        main_layout.addLayout(warmup_layout)
         self.setLayout(main_layout)
 
         self.registerField("paths", self, "paths")
@@ -199,7 +187,7 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
     #     self.setFinalPage(self.field("radio_numpy"))
 
     def isComplete(self) -> bool:
-        return self.list.count() >= 2 and len(self.lineedit_warmup.text()) > 0
+        return self.list.count() >= 2
 
     @QtCore.pyqtProperty(list)
     def paths(self) -> List[str]:
@@ -210,29 +198,33 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
 
 
 class KrissKrossConfigPage(QtWidgets.QWizardPage):
-    def __init__(self, config: dict, parent: QtWidgets.QWidget = None):
+    def __init__(self, config: KrissKrossConfig, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         self.dconfig = config
 
         self.lineedit_spotsize = QtWidgets.QLineEdit()
-        self.lineedit_spotsize.setPlaceholderText(str(config["spotsize"]))
+        self.lineedit_spotsize.setPlaceholderText(str(config.spotsize))
         self.lineedit_spotsize.setValidator(DecimalValidator(0, 1e3, 4))
         self.lineedit_speed = QtWidgets.QLineEdit()
-        self.lineedit_speed.setPlaceholderText(str(config["speed"]))
+        self.lineedit_speed.setPlaceholderText(str(config.speed))
         self.lineedit_speed.setValidator(DecimalValidator(0, 1e3, 4))
         self.lineedit_scantime = QtWidgets.QLineEdit()
-        self.lineedit_scantime.setPlaceholderText(str(config["scantime"]))
+        self.lineedit_scantime.setPlaceholderText(str(config.scantime))
         self.lineedit_scantime.setValidator(DecimalValidator(0, 1e3, 4))
 
+        # Krisskross params
+        self.lineedit_warmup = QtWidgets.QLineEdit()
+        self.lineedit_warmup.setPlaceholderText(str(config.warmup))
+        self.lineedit_warmup.setValidator(DecimalValidator(0, 1e2, 2))
         self.spinbox_offsets = QtWidgets.QSpinBox()
         self.spinbox_offsets.setRange(2, 10)
-        self.spinbox_offsets.setToolTip("The number of subpixels per pixel in one dimension.")
-        # self.registerField('spinbox_offsets', self.spinbox_offsets)
-        # self.lineedit_offsets = QtWidgets.QLineEdit()
-        # self.lineedit_offsets.setText("2")
-        # self.lineedit_offsets.setValidator(IntListValidator(0, 100, ','))
-        # self.lineedit_offsets.setToolTip("Comma separated list of fractional pixel offsets.")
+        self.spinbox_offsets.setValue(
+            config.subpixel_gcd.limit_denominator().denominator
+        )
+        self.spinbox_offsets.setToolTip(
+            "The number of subpixels per pixel in each dimension."
+        )
 
         # Form layout for line edits
         config_layout = QtWidgets.QFormLayout()
@@ -244,9 +236,10 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
         config_gbox.setLayout(config_layout)
 
         params_layout = QtWidgets.QFormLayout()
+        params_layout.addRow("Warmup (s):", self.lineedit_warmup)
         params_layout.addRow("Subpixel width:", self.spinbox_offsets)
 
-        params_gbox = QtWidgets.QGroupBox("KK Parameters", self)
+        params_gbox = QtWidgets.QGroupBox("KrissKross Parameters", self)
         params_gbox.setLayout(params_layout)
 
         layout = QtWidgets.QVBoxLayout()
@@ -255,20 +248,20 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
         self.registerField("config", self, "config")
-        self.registerField("offsets", self, "offsets")
 
     @QtCore.pyqtProperty(QtCore.QVariant)
-    def config(self) -> dict:
+    def config(self) -> KrissKrossConfig:
         if self.lineedit_spotsize.text() != "":
-            self.dconfig["spotsize"] = float(self.lineedit_spotsize.text())
+            self.dconfig.spotsize = float(self.lineedit_spotsize.text())
         if self.lineedit_speed.text() != "":
-            self.dconfig["speed"] = float(self.lineedit_speed.text())
+            self.dconfig.speed = float(self.lineedit_speed.text())
         if self.lineedit_scantime.text() != "":
-            self.dconfig["scantime"] = float(self.lineedit_scantime.text())
-        return self.dconfig
+            self.dconfig.scantime = float(self.lineedit_scantime.text())
+        if self.lineedit_warmup.text() != "":
+            self.dconfig.warmup = float(self.lineedit_warmup.text())
 
-    @QtCore.pyqtProperty(QtCore.QVariant)
-    def offsets(self) -> List[Fraction]:
         v = self.spinbox_offsets.value()
-        return [Fraction(i, v) for i in range(0, v)]
-        # return [Fraction(1, int(x)) for x in self.lineedit_offsets.text().split(',')]
+        self.dconfig.pixel_offsets = [Fraction(i, v) for i in range(0, v)]
+        self.dconfig._calculate_subpixel_params()
+
+        return self.dconfig

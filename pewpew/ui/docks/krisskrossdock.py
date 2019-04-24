@@ -1,17 +1,31 @@
 from PyQt5 import QtWidgets
+import copy
 
 from pewpew.ui.docks import LaserImageDock
+from pewpew.ui.dialogs import ConfigDialog
+from pewpew.lib.krisskross import KrissKross
 
-from pewpew.lib.krisskross import KrissKrossData
+from pewpew.ui.dialogs import ApplyDialog
 
 
 class KrissKrossImageDock(LaserImageDock):
-    def __init__(self, kkdata: KrissKrossData, parent: QtWidgets.QWidget = None):
+    def __init__(self, laser: KrissKross, parent: QtWidgets.QWidget = None):
 
-        super().__init__(kkdata, parent)
+        super().__init__(laser, parent)
         self.setWindowTitle(f"kk:{self.laser.name}")
-        # Config cannot be changed for krisskross images
-        self.action_config.setEnabled(False)
 
     def onMenuConfig(self) -> None:
-        pass
+        def applyDialog(dialog: ApplyDialog) -> None:
+            if dialog.check_all.isChecked():
+                docks = self.parent().findChildren(KrissKrossImageDock)
+            else:
+                docks = [self]
+            for dock in docks:
+                if type(dock.laser) == KrissKross:
+                    dock.laser.config = copy.copy(dialog.config)
+                    dock.draw()
+
+        dlg = ConfigDialog(self.laser.config, parent=self)
+        dlg.applyPressed.connect(applyDialog)
+        if dlg.exec():
+            applyDialog(dlg)

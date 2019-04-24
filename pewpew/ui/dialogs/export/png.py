@@ -52,9 +52,9 @@ class PNGExportDialog(ExportDialog):
     def __init__(
         self,
         path: str,
-        isotope: str,
-        isotopes: int = -1,
+        name: str,
+        names: int = -1,
         layers: int = -1,
         parent: QtWidgets.QWidget = None,
     ):
-        super().__init__(path, isotope, isotopes, layers, PNGExportOptions(), parent)
+        super().__init__(path, name, names, layers, PNGExportOptions(), parent)

@@ -4,17 +4,14 @@ import copy
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from pewpew.ui.widgets import Canvas, OverwriteFilePrompt
-from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog
+from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog, StatsDialog
 from pewpew.ui.dialogs.export import CSVExportDialog, PNGExportDialog
 
 from pewpew.lib import io
 
-from pewpew.lib.laser import LaserData
+from pewpew.lib.laser import Laser
 from pewpew.ui.dialogs import ApplyDialog
 from pewpew.ui.dialogs.export import ExportDialog
-
-
-# TODO fix tab names
 
 
 class ImageDockTitleBar(QtWidgets.QWidget):
@@ -64,7 +61,7 @@ class ImageDockTitleBar(QtWidgets.QWidget):
 
 
 class LaserImageDock(QtWidgets.QDockWidget):
-    def __init__(self, laserdata: LaserData, parent: QtWidgets.QWidget = None):
+    def __init__(self, laser: Laser, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setFeatures(
@@ -72,12 +69,13 @@ class LaserImageDock(QtWidgets.QDockWidget):
             | QtWidgets.QDockWidget.DockWidgetMovable
         )
 
-        self.laser = laserdata
+        self.laser = laser
         self.canvas = Canvas(parent=self)
 
         self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.addItems(self.laser.isotopes())
         self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
+        self.combo_isotope.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        self.populateComboIsotopes()
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.canvas)
@@ -123,21 +121,17 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.action_calibration.triggered.connect(self.onMenuCalibration)
 
         self.action_config = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("document-properties"), "Config", self
+            QtGui.QIcon.fromTheme("document-edit"), "Config", self
         )
         self.action_config.setStatusTip("Edit image config.")
         self.action_config.triggered.connect(self.onMenuConfig)
 
-        self.action_calculate = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme(""), "Calculate", self
+        self.action_stats = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme(""), "Statistics", self
         )
-        self.action_calculate.setStatusTip("Perform calculations on data.")
-        self.action_calculate.triggered.connect(self.onMenuCalculate)
-        # self.action_trim = QtWidgets.QAction(
-        #     QtGui.QIcon.fromTheme("edit-cut"), "Trim", self
-        # )
-        # self.action_trim.setStatusTip("Edit image trim.")
-        # self.action_trim.triggered.connect(self.onMenuTrim)
+        self.action_stats.setStatusTip("Data histogram and statistics.")
+        self.action_stats.triggered.connect(self.onMenuStats)
+        self.action_stats.setEnabled(False)
 
         self.action_close = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-delete"), "Close", self
@@ -161,10 +155,17 @@ class LaserImageDock(QtWidgets.QDockWidget):
         context_menu.addSeparator()
         context_menu.addAction(self.action_calibration)
         context_menu.addAction(self.action_config)
-        # context_menu.addAction(self.action_trim)
+        context_menu.addAction(self.action_stats)
         context_menu.addSeparator()
         context_menu.addAction(self.action_close)
         return context_menu
+
+    def populateComboIsotopes(self) -> None:
+        isotopes = sorted(self.laser.isotopes())
+        self.combo_isotope.blockSignals(True)
+        self.combo_isotope.clear()
+        self.combo_isotope.addItems(isotopes)
+        self.combo_isotope.blockSignals(False)
 
     def contextMenuEvent(self, event: QtCore.QEvent) -> None:
         context_menu = self.buildContextMenu()
@@ -203,9 +204,9 @@ class LaserImageDock(QtWidgets.QDockWidget):
         if ext == ".csv":
             dlg: ExportDialog = CSVExportDialog(
                 path,
-                isotope=self.combo_isotope.currentText(),
-                isotopes=len(self.laser.isotopes()),
-                layers=self.laser.layers(),
+                name=self.combo_isotope.currentText(),
+                names=len(self.laser.isotopes()),
+                layers=1,
                 parent=self,
             )
             if dlg.exec():
@@ -227,9 +228,9 @@ class LaserImageDock(QtWidgets.QDockWidget):
         elif ext == ".png":
             dlg = PNGExportDialog(
                 path,
-                isotope=self.combo_isotope.currentText(),
-                isotopes=len(self.laser.isotopes()),
-                layers=self.laser.layers(),
+                name=self.combo_isotope.currentText(),
+                names=len(self.laser.isotopes()),
+                layers=1,
                 parent=self,
             )
             if dlg.exec():
@@ -263,11 +264,13 @@ class LaserImageDock(QtWidgets.QDockWidget):
             for dock in docks:
                 for isotope in dlg.calibration.keys():
                     if isotope in dock.laser.isotopes():
-                        dock.laser.calibration[isotope] = dlg.calibration[isotope]
+                        dock.laser.data[isotope].gradient = dlg.calibration[isotope][0]
+                        dock.laser.data[isotope].isotope = dlg.calibration[isotope][1]
+                        dock.laser.data[isotope].unit = dlg.calibration[isotope][2]
                 dock.draw()
 
         dlg = CalibrationDialog(
-            self.laser.calibration, self.combo_isotope.currentText(), parent=self
+            self.laser, self.combo_isotope.currentText(), parent=self
         )
         dlg.applyPressed.connect(applyDialog)
         if dlg.exec():
@@ -276,48 +279,33 @@ class LaserImageDock(QtWidgets.QDockWidget):
     def onMenuConfig(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
             if dialog.check_all.isChecked():
-                # TODO see if this actually affects krisskross
                 docks = self.parent().findChildren(LaserImageDock)
             else:
                 docks = [self]
             for dock in docks:
-                dock.laser.config["spotsize"] = dialog.spotsize
-                dock.laser.config["speed"] = dialog.speed
-                dock.laser.config["scantime"] = dialog.scantime
-                dock.draw()
+                if type(dock.laser) == Laser:
+                    dock.laser.config = copy.copy(dialog.config)
+                    dock.draw()
 
         dlg = ConfigDialog(self.laser.config, parent=self)
         dlg.applyPressed.connect(applyDialog)
         if dlg.exec():
             applyDialog(dlg)
 
-    def onMenuCalculate(self) -> None:
-        def applyDialog(dialog: ApplyDialog) -> None:
-            pass
-        pass
+    def onMenuStats(self) -> None:
+        return
+        dlg = StatsDialog(self.laser, self.window().viewconfig, parent=self)
+        dlg.exec()
 
-    # def onMenuTrim(self) -> None:
+    # def onMenuCalculate(self) -> None:
     #     def applyDialog(dialog: ApplyDialog) -> None:
-    #         if dialog.check_all.isChecked():
-    #             docks = self.parent().findChildren(LaserImageDock)
-    #         else:
-    #             docks = [self]
-    #         for dock in docks:
-    #             total = sum(
-    #                 dock.laser.convertTrim(dialog.trim, dialog.combo_trim.currentText())
-    #             )
-    #             if total > dock.laser.data.shape[1]:
-    #                 QtWidgets.QMessageBox.warning(
-    #                     self, "Invalid Trim", "Trim larger than data."
-    #                 )
-    #                 return
-    #         for dock in docks:
-    #             dock.laser.setTrim(dialog.trim, dialog.combo_trim.currentText())
-    #             dock.draw()
+    #         if dialog.data is None or hasattr(self.laser.data, dialog.data.name):
+    #             return
+    #         self.laser.data[dialog.data.name] = dialog.data
+    #         self.populateComboIsotopes()
 
-    #     dlg = TrimDialog(self.laser.trimAs("s"), parent=self)
+    #     dlg = CalculateDialog(self.laser, parent=self)
     #     dlg.applyPressed.connect(applyDialog)
-
     #     if dlg.exec():
     #         applyDialog(dlg)
 

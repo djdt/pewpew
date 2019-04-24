@@ -1,13 +1,14 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
-import copy
 
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pewpew.ui.widgets import BasicTable, Canvas
-from pewpew.ui.dialogs import ApplyDialog
+
+# from pewpew.ui.dialogs import ApplyDialog
+from pewpew.ui.tools.tool import Tool
 from pewpew.ui.validators import DoublePrecisionDelegate
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter, weighted_linreg
@@ -141,7 +142,7 @@ class ResultsBox(QtWidgets.QGroupBox):
             le.setText(f"{v:.4f}")
 
 
-class CalibrationTool(ApplyDialog):
+class CalibrationTool(Tool):
     def __init__(
         self,
         dock: LaserImageDock,
@@ -157,7 +158,10 @@ class CalibrationTool(ApplyDialog):
         self.previous_isotope = ""
 
         self.dock = dock
-        self.calibration = copy.deepcopy(dock.laser.calibration)  # copy dict
+        self.calibration = {
+            k: (v.gradient, v.intercept, v.unit)
+            for k, v in self.dock.laser.data.items()
+        }
         self.texts: Dict[str, List[str]] = {}
 
         # Left side
@@ -193,6 +197,7 @@ class CalibrationTool(ApplyDialog):
         self.updateCounts()
 
     def initialiseWidgets(self) -> None:
+        self.spinbox_levels.setMinimum(1)
         self.spinbox_levels.setMaximum(20)
         self.spinbox_levels.setValue(6)
         self.spinbox_levels.valueChanged.connect(self.spinBoxLevels)
@@ -233,11 +238,11 @@ class CalibrationTool(ApplyDialog):
         layout_table_form.addRow("Weighting:", self.combo_weighting)
         layout_table_form.addRow("Averaging:", self.combo_averaging)
 
-        layout_left = QtWidgets.QVBoxLayout()
-        layout_left.addLayout(layout_cal_form)
-        layout_left.addWidget(self.table)
-        layout_left.addLayout(layout_table_form)
-        layout_left.addWidget(self.box_result)
+        # layout_left = QtWidgets.QVBoxLayout()
+        self.layout_left.addLayout(layout_cal_form)
+        self.layout_left.addWidget(self.table)
+        self.layout_left.addLayout(layout_table_form)
+        self.layout_left.addWidget(self.box_result)
 
         layout_box_trim = QtWidgets.QHBoxLayout()
         layout_box_trim.addWidget(QtWidgets.QLabel("Left:"))
@@ -253,24 +258,14 @@ class CalibrationTool(ApplyDialog):
         layout_canvas_bar.addWidget(box_trim)
         layout_canvas_bar.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignTop)
 
-        layout_right = QtWidgets.QVBoxLayout()
-        layout_right.addWidget(self.button_laser, 0, QtCore.Qt.AlignRight)
-        layout_right.addWidget(self.canvas)
-        layout_right.addLayout(layout_canvas_bar)
-
-        # Main
-        layout_horz = QtWidgets.QHBoxLayout()
-        layout_horz.addLayout(layout_left, 1)
-        layout_horz.addLayout(layout_right, 2)
-
-        layout_main = QtWidgets.QVBoxLayout()
-        layout_main.addLayout(layout_horz)
-        layout_main.addWidget(self.button_box)
-        self.setLayout(layout_main)
+        # layout_right = QtWidgets.QVBoxLayout()
+        self.layout_top.addWidget(self.button_laser, 0, QtCore.Qt.AlignRight)
+        # layout_right.addWidget(self.button_laser, 0, QtCore.Qt.AlignRight)
+        self.layout_right.addWidget(self.canvas)
+        self.layout_right.addLayout(layout_canvas_bar)
 
     def accept(self) -> None:
         self.updateCalibration()
-        self.applyPressed.emit(self)
         super().accept()
 
     def apply(self) -> None:
@@ -278,11 +273,12 @@ class CalibrationTool(ApplyDialog):
 
     def draw(self) -> None:
         self.canvas.clear()
-        self.canvas.plot(
-            self.dock.laser, self.combo_isotope.currentText(), self.viewconfig
-        )
-        self.canvas.plotLevels(self.spinbox_levels.value())
-        self.canvas.draw()
+        if self.combo_isotope.currentText() in self.dock.laser.data:
+            self.canvas.plot(
+                self.dock.laser, self.combo_isotope.currentText(), self.viewconfig
+            )
+            self.canvas.plotLevels(self.spinbox_levels.value())
+            self.canvas.draw()
 
     def updateCalibration(self) -> None:
         pass
@@ -290,16 +286,18 @@ class CalibrationTool(ApplyDialog):
         # self.dock.draw()
 
     def updateConcentrations(self) -> None:
-        isotope = self.combo_isotope.currentText()
-        if isotope in self.texts.keys():
-            concentrations = self.texts[isotope]
+        name = self.combo_isotope.currentText()
+        if name in self.texts.keys():
+            concentrations = self.texts[name]
             self.table.blockSignals(True)
             self.table.setColumnText(CalibrationTable.COLUMN_CONC, concentrations)
             self.table.blockSignals(False)
 
     def updateCounts(self) -> None:
+        if self.combo_isotope.currentText() not in self.dock.laser.data:
+            return
         data = self.dock.laser.get(
-            self.combo_isotope.currentText(), calibrated=False, extent=self.canvas.view
+            self.combo_isotope.currentText(), calibrate=False, extent=self.canvas.view
         )
         if len(data) == 1:
             return
@@ -363,16 +361,17 @@ class CalibrationTool(ApplyDialog):
         m, b, r2 = weighted_linreg(x, y, w=weights)
         self.box_result.update(r2, m, b)
 
-        isotope = self.combo_isotope.currentText()
-        self.calibration[isotope]["gradient"] = m
-        self.calibration[isotope]["intercept"] = b
-        self.calibration[isotope]["unit"] = self.lineedit_units.text()
+        name = self.combo_isotope.currentText()
+        self.calibration[name] = (m, b, self.lineedit_units.text())
 
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
         if widget is not None and hasattr(widget, "laser"):
             self.dock = widget
-            self.calibration = copy.deepcopy(widget.laser.calibration)
+            self.calibration = {
+                k: (v.gradient, v.intercept, v.unit)
+                for k, v in widget.laser.data.items()
+            }
             # Prevent currentIndexChanged being emmited
             self.combo_isotope.blockSignals(True)
             self.combo_isotope.clear()
@@ -393,19 +392,23 @@ class CalibrationTool(ApplyDialog):
         self.draw()
 
     def keyPressEvent(self, event: QtCore.QEvent) -> None:
-        if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
+        if event.key() in [
+            QtCore.Qt.Key_Escape,
+            QtCore.Qt.Key_Enter,
+            QtCore.Qt.Key_Return,
+        ]:
             return
         if event.key() == QtCore.Qt.Key_F5:
             self.draw()
         super().keyPressEvent(event)
 
-    def buttonBoxClicked(self, button: QtWidgets.QAbstractButton) -> None:
-        sb = self.button_box.standardButton(button)
+#     def buttonBoxClicked(self, button: QtWidgets.QAbstractButton) -> None:
+#         sb = self.button_box.standardButton(button)
 
-        if sb == QtWidgets.QDialogButtonBox.Ok:
-            self.accept()
-        else:
-            self.reject()
+#         if sb == QtWidgets.QDialogButtonBox.Ok:
+#             self.accept()
+#         else:
+#             self.reject()
 
     def buttonLaser(self) -> None:
         self.hide()
@@ -455,7 +458,7 @@ class CalibrationTool(ApplyDialog):
                 unit_from=self.combo_trim.currentText(),
                 unit_to="um",
             )
-        trim_right = self.dock.laser.extent()[1]
+        trim_right = self.canvas.image.get_extent()[1]
         if self.lineedit_right.text() != "":
             trim_right -= self.dock.laser.convert(
                 float(self.lineedit_right.text()),
@@ -468,7 +471,8 @@ class CalibrationTool(ApplyDialog):
 
     def lineeditUnits(self) -> None:
         unit = self.lineedit_units.text()
-        self.calibration[self.combo_isotope.currentText()]["unit"] = unit
+        cal = self.cal[self.combo_isotope.currentText()]
+        self.calibration[self.combo_isotope.currentText()] = (cal[0], cal[1], unit)
 
     def spinBoxLevels(self) -> None:
         self.table.setRowCount(self.spinbox_levels.value())

@@ -8,7 +8,7 @@ from pewpew.lib import io
 from pewpew.lib.exceptions import PewPewError
 
 from typing import List
-from pewpew.lib.krisskross import KrissKrossData
+from pewpew.lib.krisskross import KrissKross
 from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
 
 
@@ -118,14 +118,18 @@ class DockArea(QtWidgets.QMainWindow):
                                 lds.append(io.thermo.load(path, self.window().config))
                             else:
                                 lds.append(
-                                    io.csv.load(
-                                        path,
-                                        "Unknown",
-                                        self.window().config,
-                                        read_config=True,
-                                    )
+                                    io.csv.load(path, config=self.window().config)
                                 )
 
+                    elif ext == ".txt":
+                        lds.append(
+                            io.csv.load(
+                                path,
+                                config=self.window().config,
+                                read_config=False,
+                                read_calibration=False,
+                            )
+                        )
                     elif ext == ".npz":
                         lds.extend(io.npz.load(path))
                     elif ext == ".b":
@@ -139,7 +143,7 @@ class DockArea(QtWidgets.QMainWindow):
                 return
         docks = []
         for ld in lds:
-            if isinstance(ld, KrissKrossData):
+            if isinstance(ld, KrissKross):
                 docks.append(KrissKrossImageDock(ld, self))
             else:
                 docks.append(LaserImageDock(ld, self))

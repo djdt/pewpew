@@ -29,15 +29,8 @@ class ColorRangeDialog(ApplyDialog):
         )
         self.lineedit_max.setToolTip("Percentile for maximum colormap value.")
 
-        form_layout = QtWidgets.QFormLayout()
-        form_layout.addRow("Minimum:", self.lineedit_min)
-        form_layout.addRow("Maximum:", self.lineedit_max)
-
-        main_layout = QtWidgets.QVBoxLayout()
-
-        main_layout.addLayout(form_layout)
-        main_layout.addWidget(self.button_box)
-        self.setLayout(main_layout)
+        self.layout_form.addRow("Minimum:", self.lineedit_min)
+        self.layout_form.addRow("Maximum:", self.lineedit_max)
 
     def updateRange(self) -> None:
         min, max = self.lineedit_min.text(), self.lineedit_max.text()

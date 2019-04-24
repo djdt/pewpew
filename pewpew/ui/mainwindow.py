@@ -7,7 +7,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from pewpew import __version__
 from pewpew.ui.dialogs import ConfigDialog, ColorRangeDialog, FilteringDialog
 from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
-from pewpew.ui.tools import CalibrationTool
+from pewpew.ui.tools import Tool, CalculationsTool, CalibrationTool
 from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
 from pewpew.ui.widgets.detailederror import DetailedError
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
@@ -18,8 +18,8 @@ from pewpew.ui.dialogs.export import ExportAllDialog
 from pewpew.lib.colormaps import COLORMAPS
 from pewpew.lib.exceptions import PewPewError, PewPewFileError
 from pewpew.lib import io
-from pewpew.lib.krisskross import KrissKrossData
-from pewpew.lib.laser import LaserData
+from pewpew.lib.krisskross import KrissKross
+from pewpew.lib.laser import Laser, LaserConfig
 
 from typing import List
 from types import TracebackType
@@ -41,6 +41,7 @@ class MainWindow(QtWidgets.QMainWindow):
         "calibrate": True,
         "filtering": {"type": "None", "window": (3, 3), "threshold": 9},
         "interpolation": "None",
+        "alpha": 1.0,
         "font": {"size": 12},
     }
 
@@ -48,7 +49,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__(parent)
 
         # Defaults for when applying to multiple images
-        self.config: dict = LaserData.DEFAULT_CONFIG
+        self.config = LaserConfig()
         self.viewconfig: dict = MainWindow.DEFAULT_VIEW_CONFIG
         self.setWindowTitle("Pew Pew")
         self.resize(1280, 800)
@@ -129,7 +130,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Edit
         menu_edit = self.menuBar().addMenu("&Edit")
         action_config = menu_edit.addAction(
-            QtGui.QIcon.fromTheme("document-properties"), "&Config"
+            QtGui.QIcon.fromTheme("document-edit"), "&Config"
         )
         action_config.setStatusTip("Update the configs for visible images.")
         action_config.setShortcut("Ctrl+K")
@@ -145,13 +146,13 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_edit.addSeparator()
 
         action_calibration = menu_edit.addAction(
-            QtGui.QIcon.fromTheme(""), "&Standards"
+            QtGui.QIcon.fromTheme("document-properties"), "&Standards"
         )
         action_calibration.setStatusTip("Generate calibration curve from a standard.")
         action_calibration.triggered.connect(self.menuStandardsTool)
 
         action_operations = menu_edit.addAction(
-            QtGui.QIcon.fromTheme(""), "&Operations"
+            QtGui.QIcon.fromTheme("document-properties"), "&Operations"
         )
         action_operations.setStatusTip("Perform calculations using laser data.")
         action_operations.triggered.connect(self.menuOperationsTool)
@@ -245,11 +246,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
             "Open File(s).",
             "",
-            "CSV files(*.csv);;Numpy Archives(*.npz);;"
+            "CSV files(*.csv *.txt);;Numpy Archives(*.npz);;"
             "Pew Pew Sessions(*.pew);;All files(*)",
             "All files(*)",
         )
-        lds: List[LaserData] = []
+        lds: List[Laser] = []
         if len(paths) == 0:
             return
         for path in paths:
@@ -258,7 +259,16 @@ class MainWindow(QtWidgets.QMainWindow):
                 if ext == ".npz":
                     lds += io.npz.load(path)
                 elif ext == ".csv":
-                    lds.append(io.csv.load(path))
+                    lds.append(io.csv.load(path, config=self.config))
+                elif ext == ".txt":
+                    lds.append(
+                        io.csv.load(
+                            path,
+                            config=self.config,
+                            read_config=False,
+                            read_calibration=False,
+                        )
+                    )
                 else:
                     raise PewPewFileError("Invalid file extension.")
             except PewPewError as e:
@@ -268,7 +278,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
         docks = []
         for ld in lds:
-            if isinstance(ld, KrissKrossData):
+            if isinstance(ld, KrissKross):
                 docks.append(KrissKrossImageDock(ld, self.dockarea))
             else:
                 docks.append(LaserImageDock(ld, self.dockarea))
@@ -314,7 +324,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dockarea.addDockWidgets(docks)
 
     def menuImportKrissKross(self) -> None:
-        kkw = KrissKrossWizard(self.config, parent=self)
+        kkw = KrissKrossWizard(parent=self)
         if kkw.exec():
             dock = KrissKrossImageDock(kkw.data, self.dockarea)
             self.dockarea.addDockWidgets([dock])
@@ -348,8 +358,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if not path:
             return
 
-        isotopes = list(set.union(*[set(dock.laser.isotopes()) for dock in docks]))
-        dlg = ExportAllDialog(path, docks[0].laser.name, isotopes, 1, self)
+        names = list(set.union(*[set(dock.laser.isotopes()) for dock in docks]))
+        dlg = ExportAllDialog(path, docks[0].laser.name, names, 1, self)
         if not dlg.exec():
             return
 
@@ -358,7 +368,7 @@ class MainWindow(QtWidgets.QMainWindow):
             paths = dlg.generate_paths(dock.laser, prompt=prompt)
             ext = ExportAllDialog.FORMATS[dlg.combo_formats.currentText()]
 
-            for path, isotope, _ in paths:
+            for path, name, _ in paths:
                 if ext == ".csv":
                     extent = (
                         dock.canvas.view if dlg.options.csv.trimmedChecked() else None
@@ -366,7 +376,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     io.csv.save(
                         path,
                         dock.laser,
-                        isotope,
+                        name,
                         extent=extent,
                         include_header=dlg.options.csv.headerChecked(),
                     )
@@ -376,7 +386,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     io.png.save(
                         path,
                         dock.laser,
-                        isotope,
+                        name,
                         viewconfig=self.viewconfig,
                         extent=dock.canvas.view,
                         size=dlg.options.png.imagesize(),
@@ -401,13 +411,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuConfig(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
-            self.config["spotsize"] = dialog.spotsize
-            self.config["speed"] = dlg.speed
-            self.config["scantime"] = dlg.scantime
+            self.config = dialog.config
             for dock in self.dockarea.findChildren(LaserImageDock):
-                dock.laser.config["spotsize"] = dlg.spotsize
-                dock.laser.config["speed"] = dlg.speed
-                dock.laser.config["scantime"] = dlg.scantime
+                dock.laser.config.spotsize = self.config.spotsize
+                dock.laser.config.speed = self.config.speed
+                dock.laser.config.scantime = self.config.scantime
                 dock.draw()
 
         dlg = ConfigDialog(self.config, parent=self)
@@ -423,21 +431,36 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh()
 
     def menuStandardsTool(self) -> None:
-        def applyDialog(dialog: ApplyDialog) -> None:
+        def applyTool(tool: Tool) -> None:
             for dock in self.dockarea.findChildren(LaserImageDock):
-                for isotope in dlg.calibration.keys():
-                    if isotope in dock.laser.calibration.keys():
-                        dock.laser.calibration[isotope] = dict(dlg.calibration[isotope])
+                for isotope in tool.calibration.keys():
+                    if isotope in dock.laser.isotopes():
+                        m, b, u = tool.calibration[isotope]
+                        dock.laser.data[isotope].gradient = m
+                        dock.laser.data[isotope].intercept = b
+                        dock.laser.data[isotope].unit = u
                 dock.draw()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        laser = docks[0] if len(docks) > 0 else LaserImageDock(LaserData(), parent=self)
-        dlg = CalibrationTool(laser, self.dockarea, self.viewconfig, parent=self)
-        dlg.applyPressed.connect(applyDialog)
-        dlg.show()
+        laser = docks[0] if len(docks) > 0 else LaserImageDock(Laser(), parent=self)
+        cali_tool = CalibrationTool(laser, self.dockarea, self.viewconfig, parent=self)
+        cali_tool.applyPressed.connect(applyTool)
+        if cali_tool.exec():
+            applyTool(cali_tool)
 
     def menuOperationsTool(self) -> None:
-        pass
+        def applyTool(tool: Tool) -> None:
+            vd = tool.laser.data["_"]
+            tool.dock.laser.data[vd.name] = vd
+            tool.dock.populateComboIsotopes()
+            tool.updateComboIsotopes()
+
+        docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
+        laser = docks[0] if len(docks) > 0 else LaserImageDock(Laser(), parent=self)
+        calc_tool = CalculationsTool(laser, self.dockarea, self.viewconfig, parent=self)
+        calc_tool.applyPressed.connect(applyTool)
+        if calc_tool.exec():
+            applyTool(calc_tool)
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")

@@ -5,4 +5,4 @@ from .calibration import CalibrationDialog
 from .colorrange import ColorRangeDialog
 from .config import ConfigDialog
 from .filtering import FilteringDialog
-from .trim import TrimDialog
+from .stats import StatsDialog

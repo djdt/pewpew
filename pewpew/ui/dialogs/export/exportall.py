@@ -7,7 +7,7 @@ from pewpew.ui.dialogs.export.csv import CSVExportOptions
 from pewpew.ui.dialogs.export.png import PNGExportOptions
 
 from typing import List
-from pewpew.lib.laser import LaserData
+from pewpew.lib.laser import Laser
 
 
 class ExportAllOptions(QtWidgets.QStackedWidget):
@@ -95,7 +95,7 @@ class ExportAllDialog(ExportDialog):
         return self.combo_isotopes.currentText()
 
     def _generate_path(
-        self, laser: LaserData = None, isotope: str = None, layer: int = None
+        self, laser: Laser = None, isotope: str = None, layer: int = None
     ) -> str:
         if laser is not None and isotope is not None:
             if isotope not in laser.isotopes():
