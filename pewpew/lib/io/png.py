@@ -29,7 +29,7 @@ def save(
         aspect=laser.config.aspect(),
         cmap=viewconfig["cmap"]["type"],
         colorbar="bottom" if include_colorbar else None,
-        colorbar_label=str(laser.calibration[isotope].unit),
+        colorbar_label=str(laser.data[isotope].calibration.unit),
         colorbar_range=viewconfig["cmap"]["range"],
         extent=extent,
         fontsize=viewconfig["font"]["size"],

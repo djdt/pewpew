@@ -255,7 +255,9 @@ class LaserImageDock(QtWidgets.QDockWidget):
             spacing = *self.laser.config.pixel_size(), self.laser.config.spotsize / 2.0
             io.vtk.save(
                 path,
-                self.laser.get(calibrate=self.window().viewconfig["calibrate"]),
+                self.laser.get_structured(
+                    calibrate=self.window().viewconfig["calibrate"]
+                ),
                 spacing=spacing,
             )
         else:
@@ -271,13 +273,19 @@ class LaserImageDock(QtWidgets.QDockWidget):
             else:
                 docks = [self]
             for dock in docks:
-                for isotope in dlg.calibration.keys():
+                for isotope in dlg.calibrations.keys():
                     if isotope in dock.laser.isotopes():
-                        dock.laser.calibration = copy.deepcopy(dlg.calibration)
+                        dock.laser.data[isotope].calibration = copy.copy(
+                            dlg.calibrations[isotope]
+                        )
                 dock.draw()
 
+        calibrations = {
+            isotope: self.laser.data[isotope].calibration
+            for isotope in self.laser.data.keys()
+        }
         dlg = CalibrationDialog(
-            self.laser.calibration, self.combo_isotope.currentText(), parent=self
+            calibrations, self.combo_isotope.currentText(), parent=self
         )
         dlg.applyPressed.connect(applyDialog)
         if dlg.exec():
