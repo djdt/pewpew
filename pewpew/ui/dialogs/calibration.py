@@ -12,13 +12,13 @@ from typing import Dict
 class CalibrationDialog(ApplyDialog):
     def __init__(
         self,
-        calibration: Dict[str, LaserCalibration],
+        calibrations: Dict[str, LaserCalibration],
         current_isotope: str,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Calibration")
-        self.calibration = copy.deepcopy(calibration)
+        self.calibrations = copy.deepcopy(calibrations)
 
         # LIne edits
         self.lineedit_gradient = QtWidgets.QLineEdit()
@@ -32,7 +32,7 @@ class CalibrationDialog(ApplyDialog):
 
         # Isotope combo
         self.combo_isotopes = QtWidgets.QComboBox()
-        self.combo_isotopes.addItems(self.calibration.keys())
+        self.combo_isotopes.addItems(self.calibrations.keys())
         self.combo_isotopes.setCurrentText(current_isotope)
         self.previous_index = self.combo_isotopes.currentIndex()
         self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
@@ -52,17 +52,17 @@ class CalibrationDialog(ApplyDialog):
     def updateLineEdits(self) -> None:
         name = self.combo_isotopes.currentText()
 
-        gradient = self.calibration[name].gradient
+        gradient = self.calibrations[name].gradient
         if gradient == 1.0:
             self.lineedit_gradient.clear()
         else:
             self.lineedit_gradient.setText(str(gradient))
-        intercept = self.calibration[name].intercept
+        intercept = self.calibrations[name].intercept
         if intercept == 0.0:
             self.lineedit_intercept.clear()
         else:
             self.lineedit_intercept.setText(str(intercept))
-        unit = self.calibration[name].unit
+        unit = self.calibrations[name].unit
         if unit is None:
             self.lineedit_unit.clear()
         else:
@@ -74,11 +74,11 @@ class CalibrationDialog(ApplyDialog):
         unit = self.lineedit_unit.text()
 
         if gradient != "":
-            self.calibration[name].gradient = float(gradient)
+            self.calibrations[name].gradient = float(gradient)
         if intercept != "":
-            self.calibration[name].intercept = float(intercept)
+            self.calibrations[name].intercept = float(intercept)
         if unit != "":
-            self.calibration[name].unit = unit
+            self.calibrations[name].unit = unit
 
     def comboChanged(self) -> None:
         previous = self.combo_isotopes.itemText(self.previous_index)
