@@ -21,7 +21,7 @@ from pewpew.lib.colormaps import COLORMAPS
 from pewpew.lib.io import png
 
 from laserlib import io
-from laserlib import Laser, LaserConfig
+from laserlib import Laser, LaserConfig, LaserData
 from laserlib.krisskross import KrissKross
 
 from typing import List
@@ -453,7 +453,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuOperationsTool(self) -> None:
         def applyTool(tool: Tool) -> None:
-            tool.dock.laser.add_data(tool.name, tool.data)
+            tool.dock.laser.data[tool.name] = LaserData(tool.data)
             tool.dock.populateComboIsotopes()
             tool.updateComboIsotopes()
 
