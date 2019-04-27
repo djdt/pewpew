@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtWidgets
 import numpy as np
 
-from laserlib.laser import Laser
+from laserlib.laser import Laser, LaserData
 from pewpew.ui.validators import DecimalValidator
 
 from pewpew.ui.widgets import Canvas
@@ -11,6 +11,72 @@ from pewpew.ui.docks.dockarea import DockArea
 from pewpew.ui.docks import LaserImageDock
 
 from pewpew.lib.plotimage import plot_laser_data
+
+from typing import Callable, Tuple
+
+
+# class CalculatedData(object):
+#     SYMBOLS = {
+#         "add": "+",
+#         "divide": "/",
+#         "true_divide": "/",
+#         "multiply": "*",
+#         "subtract": "-",
+#         "greater": ">",
+#         "less": "<",
+#         "equal": "=",
+#         "not_equal": "!=",
+#         "where": "=>",
+#     }
+
+#     def __init__(
+#         self,
+#         data1: np.ndarray,
+#         op: Callable = None,
+#         data2: LaserData = None,
+#         cond1: Tuple[Callable, float] = None,
+#         cond2: Tuple[Callable, float] = None,
+#         fill_value: float = -1.0,
+#     ):
+#         self.data1 = data1
+#         self.data2 = data2
+#         self.op = op
+#         self.cond1 = cond1
+#         self.cond2 = cond2
+#         self.fill_value = fill_value
+
+#     def generateName(self) -> str:
+#         name = self.data1.name
+#         if self.cond1 is not None:
+#             name += f"[{CalculatedData.SYMBOLS[self.cond1[0].__name__]}{self.cond1[1]}]"
+#         if self.op is not None:
+#             name += f"{CalculatedData.SYMBOLS[self.op.__name__]}"
+#         elif self.data2 is not None:
+#             name += "=>"
+#         if self.data2 is not None:
+#             name += self.data2.name
+#         if self.cond2 is not None:
+#             name += f"[{CalculatedData.SYMBOLS[self.cond2[0].__name__]}{self.cond2[1]}]"
+#         return name
+
+#     def calculate(self,) -> np.ndarray:
+#         data = self.data1
+#         if self.cond1 is not None:
+#             mask = self.cond1[0](data, self.cond1[1])
+#             data = np.where(mask, data, np.full_like(data, self.fill_value))
+
+#         # If op and data2 are set then return d1 op d2
+#         if self.data2 is not None:
+#             data2 = self.data2
+#             if self.cond2 is not None:
+#                 mask = self.cond2[0](data2, self.cond2[1])
+#                 data2 = np.where(mask, data2, np.full_like(data2, self.fill_value))
+#             if self.op is not None:
+#                 return self.op(data, data2)
+#             else:
+#                 data = np.where(data2 != self.fill_value, data, data2)
+
+#     return data
 
 
 class CalculationsTool(Tool):
@@ -24,7 +90,7 @@ class CalculationsTool(Tool):
         "less": "<",
         "equal": "=",
         "not_equal": "!=",
-        "where": "=>"
+        "where": "=>",
     }
     OPERATIONS = {
         # Name: callable, symbol, num data
@@ -59,6 +125,7 @@ class CalculationsTool(Tool):
 
         self.dock = dock
         self.data = np.zeros_like((1, 1), dtype=float)
+        self.fill_value = -1.0
         self.name = ""
 
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
@@ -132,17 +199,18 @@ class CalculationsTool(Tool):
 
         isotope = self.combo_isotope1.currentText()
 
-        if isotope not in self.dock.laser.data.dtype.names:
+        if isotope not in self.dock.laser.data:
             return
 
-        data = self.dock.laser.data[isotope]
+        data = self.dock.laser.data[isotope].data
         name = isotope
 
         c1 = CalculationsTool.CONDITIONS[self.combo_condition1.currentText()]
         if c1 is not None:
             try:
                 c1v = float(self.lineedit_condition1.text())
-                data = c1(data, c1v)
+                mask = c1(data, c1v)
+                data = np.where(mask, data, np.full_like(data, self.fill_value))
                 name += f"[{CalculationsTool.SYMBOLS[c1.__name__]}{c1v}]"
             except ValueError:
                 pass
@@ -152,22 +220,23 @@ class CalculationsTool(Tool):
             if op is not None:
                 name += f"{CalculationsTool.SYMBOLS[op.__name__]}"
 
-            data2 = self.dock.laser.data[self.combo_isotope2.currentText()]
+            data2 = self.dock.laser.data[self.combo_isotope2.currentText()].data
             name += self.combo_isotope2.currentText()
 
             c2 = CalculationsTool.CONDITIONS[self.combo_condition2.currentText()]
             if c2 is not None:
                 try:
                     c2v = float(self.lineedit_condition2.text())
-                    data2 = c2(data2, c2v)
+                    mask = c2(data2, c2v)
+                    data2 = np.where(mask, data2, np.full_like(data2, self.fill_value))
                     name += f"[{CalculationsTool.SYMBOLS[c2.__name__]}{c2v}]"
                 except ValueError:
                     pass
 
-            if op is not None:
+            if op is np.where:
+                data = np.where(data2 != self.fill_value, data, data2)
+            elif op is not None:
                 data = op(data, data2)
-            elif op is np.where:
-                data = np.where(data2 != -1.0, data, data2)
 
         self.data = data
         self.name = name
