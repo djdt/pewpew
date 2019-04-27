@@ -176,6 +176,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         laser_copy = copy.deepcopy(self.laser)
         dock_copy = type(self)(laser_copy, self.parent())
         self.parent().smartSplitDock(self, dock_copy)
+        dock_copy.draw()
 
     def onMenuSave(self) -> None:
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
