@@ -1,6 +1,7 @@
 import os.path
 import sys
 import traceback
+import copy
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -287,7 +288,9 @@ class MainWindow(QtWidgets.QMainWindow):
         for path in paths:
             try:
                 if path.lower().endswith(".b"):
-                    laser = Laser(io.agilent.load(path), config=self.config)
+                    laser = Laser.from_structured(
+                        io.agilent.load(path), config=self.config
+                    )
                     docks.append(LaserImageDock(laser, self.dockarea))
                 else:
                     raise io.error.LaserLibException("Invalid batch directory.")
@@ -309,7 +312,9 @@ class MainWindow(QtWidgets.QMainWindow):
         for path in paths:
             try:
                 if path.lower().endswith(".csv"):
-                    laser = Laser(io.thermo.load(path), config=self.config)
+                    laser = Laser.from_structured(
+                        io.thermo.load(path), config=self.config
+                    )
                     docks.append(LaserImageDock(laser, self.dockarea))
                 else:
                     raise io.error.LaserLibException("Invalid file.")
@@ -432,12 +437,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuStandardsTool(self) -> None:
         def applyTool(tool: Tool) -> None:
             for dock in self.dockarea.findChildren(LaserImageDock):
-                for isotope in tool.calibration.keys():
+                for isotope in tool.calibrations.keys():
                     if isotope in dock.laser.isotopes():
-                        m, b, u = tool.calibration[isotope]
-                        dock.laser.data[isotope].gradient = m
-                        dock.laser.data[isotope].intercept = b
-                        dock.laser.data[isotope].unit = u
+                        dock.laser.data[isotope].calibration = copy.copy(
+                            tool.calibrations[isotope]
+                        )
                 dock.draw()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))

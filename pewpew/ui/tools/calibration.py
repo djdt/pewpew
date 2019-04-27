@@ -1,5 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
+import copy
 
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
@@ -12,6 +13,8 @@ from pewpew.ui.tools.tool import Tool
 from pewpew.ui.validators import DoublePrecisionDelegate
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter, weighted_linreg
+
+from laserlib.calibration import LaserCalibration
 
 from typing import Dict, List
 from pewpew.ui.docks.dockarea import DockArea
@@ -158,8 +161,8 @@ class CalibrationTool(Tool):
         self.previous_isotope = ""
 
         self.dock = dock
-        self.calibration = {
-            k: (v.gradient, v.intercept, v.unit)
+        self.calibrations = {
+            k: copy.copy(v.calibration)
             for k, v in self.dock.laser.data.items()
         }
         self.texts: Dict[str, List[str]] = {}
@@ -362,14 +365,14 @@ class CalibrationTool(Tool):
         self.box_result.update(r2, m, b)
 
         name = self.combo_isotope.currentText()
-        self.calibration[name] = (m, b, self.lineedit_units.text())
+        self.calibrations[name] = LaserCalibration(m, b, self.lineedit_units.text())
 
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
         if widget is not None and hasattr(widget, "laser"):
             self.dock = widget
-            self.calibration = {
-                k: (v.gradient, v.intercept, v.unit)
+            self.calibrations = {
+                k: copy.copy(v.calibration)
                 for k, v in widget.laser.data.items()
             }
             # Prevent currentIndexChanged being emmited
@@ -443,6 +446,7 @@ class CalibrationTool(Tool):
         self.updateConcentrations()
         self.updateCounts()
         self.updateResults()
+        self.lineedit_units.setText(self.calibrations[isotope].unit)
         self.draw()
         self.previous_isotope = isotope
 
@@ -471,8 +475,7 @@ class CalibrationTool(Tool):
 
     def lineeditUnits(self) -> None:
         unit = self.lineedit_units.text()
-        cal = self.cal[self.combo_isotope.currentText()]
-        self.calibration[self.combo_isotope.currentText()] = (cal[0], cal[1], unit)
+        self.calibrations[self.combo_isotope.currentText()].unit = unit
 
     def spinBoxLevels(self) -> None:
         self.table.setRowCount(self.spinbox_levels.value())
