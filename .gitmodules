@@ -1,4 +1,3 @@
 [submodule "laserlib"]
 	path = laserlib
-	url = git@github.com:djdt/laserlib.git
-	branch = master
+	url = https://github.com/djdt/laserlib.git
