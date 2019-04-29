@@ -8,7 +8,7 @@ from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog, StatsDialog
 from pewpew.ui.dialogs.export import CSVExportDialog, PNGExportDialog
 
 from laserlib import io
-from pewpew.lib.io import png
+from pewpew.lib import io as ppio
 from laserlib.laser import Laser
 
 from pewpew.ui.dialogs import ApplyDialog
@@ -217,16 +217,23 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 if dlg.options.trimmedChecked():
                     extent = self.canvas.view
                 for path, isotope, _ in paths:
-                    io.csv.save(
-                        path,
-                        self.laser.get(
+                    if dlg.options.headerChecked():
+                        ppio.csv.save(
+                            path,
+                            self.laser,
                             isotope,
                             calibrate=self.window().viewconfig["calibrate"],
                             extent=extent,
                         )
-                        # TODO redo this
-                        # include_header=dlg.options.headerChecked(),
-                    )
+                    else:
+                        io.csv.save(
+                            path,
+                            self.laser.get(
+                                isotope,
+                                calibrate=self.window().viewconfig["calibrate"],
+                                extent=extent,
+                            ),
+                        )
 
         elif ext == ".npz":
             io.npz.save(path, [self.laser])
@@ -241,7 +248,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             if dlg.exec():
                 paths = dlg.generate_paths(self.laser)
                 for path, isotope, _ in paths:
-                    png.save(
+                    ppio.png.save(
                         path,
                         self.laser,
                         isotope,

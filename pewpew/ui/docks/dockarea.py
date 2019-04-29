@@ -3,6 +3,7 @@ import os.path
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from pewpew.ui.events import MousePressRedirectFilter
+from pewpew.lib import io as ppio
 
 from laserlib import io
 from laserlib.laser import Laser
@@ -100,44 +101,47 @@ class DockArea(QtWidgets.QMainWindow):
             try:
                 if url.isLocalFile():
                     path = url.toLocalFile()
-                    ext = os.path.splitext(path)[1].lower()
-                    if ext == ".csv":
+                    name, ext = os.path.splitext(path)
+                    name = os.path.basename(name)
+                    ext = ext.lower()
+                    data = None
+                    if ext == ".npz":
+                        lasers.extend(io.npz.load(path))
+                    # TODO we could automate this, no real need for choice
+                    elif ext == ".csv":
                         if csv_as is None:
                             choice, ok = QtWidgets.QInputDialog.getItem(
                                 self,
                                 "Select CSV Type",
                                 "CSV Format",
-                                ["PewPew", "Thermo iCap"],
+                                ["PewPew", "Raw", "Thermo iCap"],
                                 editable=False,
                             )
                             if not ok:
                                 return
                             csv_as = choice
 
-                            if csv_as == "Thermo iCap":
-                                lasers.append(
-                                    Laser(
-                                        io.thermo.load(path),
-                                        config=self.window().config,
-                                    )
-                                )
-                            else:
-                                lasers.append(
-                                    Laser(
-                                        io.csv.load(path), config=self.window().config
-                                    )
-                                )
-
+                            if csv_as == "PewPew":
+                                lasers.append(ppio.csv.load(path))
+                            elif csv_as == "Thermo iCap":
+                                data = io.thermo.load(path)
+                            else:  # Raw
+                                data = io.csv.load(path)
                     elif ext == ".txt":
-                        lasers.append(
-                            Laser(io.csv.load(path), config=self.window().config)
-                        )
-                    elif ext == ".npz":
-                        lasers.extend(io.npz.load(path))
+                        data = io.csv.load(path)
                     elif ext == ".b":
+                        data = io.agilent.load(path)
+
+                    if data is not None:
                         lasers.append(
-                            Laser(io.agilent.load(path), config=self.window().config)
+                            Laser.from_structured(
+                                data=data,
+                                config=self.window().config,
+                                name=name,
+                                filepath=path,
+                            )
                         )
+
             except io.error.LaserLibException as e:
                 QtWidgets.QMessageBox.critical(
                     self,
@@ -145,6 +149,7 @@ class DockArea(QtWidgets.QMainWindow):
                     f"Could not import {os.path.basename(path)}.\n{e}",
                 )
                 return
+
         docks = []
         for laser in lasers:
             if isinstance(laser, KrissKross):

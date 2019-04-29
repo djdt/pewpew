@@ -18,7 +18,7 @@ from pewpew.ui.dialogs.export import ExportAllDialog
 
 from pewpew.lib.colormaps import COLORMAPS
 
-from pewpew.lib.io import png
+from pewpew.lib import io as ppio
 
 from laserlib import io
 from laserlib import Laser, LaserConfig, LaserData
@@ -263,10 +263,16 @@ class MainWindow(QtWidgets.QMainWindow):
                 if ext == ".npz":
                     lasers += io.npz.load(path)
                 elif ext == ".csv":
-                    # TODO implement a pewpew version
-                    lasers.append(Laser(io.csv.load(path), config=self.config))
+                    try:
+                        laser = ppio.csv.load(path)
+                    except io.error.LaserLibException:
+                        lasers.append(
+                            Laser.from_structured(io.csv.load(path), config=self.config)
+                        )
                 elif ext == ".txt":
-                    lasers.append(Laser(io.csv.load(path), config=self.config))
+                    lasers.append(
+                        Laser.from_structured(io.csv.load(path), config=self.config)
+                    )
                 else:
                     raise io.error.LaserLibException("Invalid file extension.")
             except io.error.LaserLibException as e:
@@ -375,19 +381,27 @@ class MainWindow(QtWidgets.QMainWindow):
                     extent = (
                         dock.canvas.view if dlg.options.csv.trimmedChecked() else None
                     )
-                    # TODO pewpew export
-                    io.csv.save(
-                        path,
-                        dock.laser.get(name, calibrate=True, extent=extent),
-                        # dock.laser,
-                        # name,
-                        # extent=extent,
-                        # include_header=dlg.options.csv.headerChecked(),
-                    )
+                    if dlg.options.csv.headerChecked():
+                        ppio.csv.save(
+                            path,
+                            dock.laser,
+                            name,
+                            calibrate=self.viewconfig["calibrate"],
+                            extent=extent,
+                        )
+                    else:
+                        io.csv.save(
+                            path,
+                            dock.laser.get(
+                                name,
+                                calibrate=self.viewconfig["calibrate"],
+                                extent=extent,
+                            ),
+                        )
                 elif ext == ".npz":
                     io.npz.save(path, [dock.laser])
                 elif ext == ".png":
-                    png.save(
+                    ppio.png.save(
                         path,
                         dock.laser,
                         name,
