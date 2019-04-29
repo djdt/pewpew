@@ -258,7 +258,9 @@ class MainWindow(QtWidgets.QMainWindow):
         if len(paths) == 0:
             return
         for path in paths:
-            ext = os.path.splitext(path)[1].lower()
+            name, ext = os.path.splitext(path)
+            name = os.path.basename(name)
+            ext = ext.lower()
             try:
                 if ext == ".npz":
                     lasers += io.npz.load(path)
@@ -267,11 +269,21 @@ class MainWindow(QtWidgets.QMainWindow):
                         laser = ppio.csv.load(path)
                     except io.error.LaserLibException:
                         lasers.append(
-                            Laser.from_structured(io.csv.load(path), config=self.config)
+                            Laser.from_structured(
+                                io.csv.load(path),
+                                config=self.config,
+                                name=name,
+                                filepath=path,
+                            )
                         )
                 elif ext == ".txt":
                     lasers.append(
-                        Laser.from_structured(io.csv.load(path), config=self.config)
+                        Laser.from_structured(
+                            io.csv.load(path),
+                            config=self.config,
+                            name=name,
+                            filepath=path,
+                        )
                     )
                 else:
                     raise io.error.LaserLibException("Invalid file extension.")
@@ -295,7 +307,10 @@ class MainWindow(QtWidgets.QMainWindow):
             try:
                 if path.lower().endswith(".b"):
                     laser = Laser.from_structured(
-                        io.agilent.load(path), config=self.config
+                        io.agilent.load(path),
+                        config=self.config,
+                        name=os.path.basename(os.path.splitext(path)[0]),
+                        filepath=path,
                     )
                     docks.append(LaserImageDock(laser, self.dockarea))
                 else:
@@ -319,7 +334,10 @@ class MainWindow(QtWidgets.QMainWindow):
             try:
                 if path.lower().endswith(".csv"):
                     laser = Laser.from_structured(
-                        io.thermo.load(path), config=self.config
+                        io.thermo.load(path),
+                        config=self.config,
+                        name=os.path.basename(os.path.splitext(path)[0]),
+                        filepath=path,
                     )
                     docks.append(LaserImageDock(laser, self.dockarea))
                 else:
