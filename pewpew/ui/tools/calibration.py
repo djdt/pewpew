@@ -162,8 +162,7 @@ class CalibrationTool(Tool):
 
         self.dock = dock
         self.calibrations = {
-            k: copy.copy(v.calibration)
-            for k, v in self.dock.laser.data.items()
+            k: copy.copy(v.calibration) for k, v in self.dock.laser.data.items()
         }
         self.texts: Dict[str, List[str]] = {}
 
@@ -365,15 +364,16 @@ class CalibrationTool(Tool):
         self.box_result.update(r2, m, b)
 
         name = self.combo_isotope.currentText()
-        self.calibrations[name] = LaserCalibration(m, b, self.lineedit_units.text())
+        self.calibrations[name] = LaserCalibration(
+            intercept=b, gradient=m, unit=self.lineedit_units.text()
+        )
 
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
         if widget is not None and hasattr(widget, "laser"):
             self.dock = widget
             self.calibrations = {
-                k: copy.copy(v.calibration)
-                for k, v in widget.laser.data.items()
+                k: copy.copy(v.calibration) for k, v in widget.laser.data.items()
             }
             # Prevent currentIndexChanged being emmited
             self.combo_isotope.blockSignals(True)
@@ -405,13 +405,13 @@ class CalibrationTool(Tool):
             self.draw()
         super().keyPressEvent(event)
 
-#     def buttonBoxClicked(self, button: QtWidgets.QAbstractButton) -> None:
-#         sb = self.button_box.standardButton(button)
+    #     def buttonBoxClicked(self, button: QtWidgets.QAbstractButton) -> None:
+    #         sb = self.button_box.standardButton(button)
 
-#         if sb == QtWidgets.QDialogButtonBox.Ok:
-#             self.accept()
-#         else:
-#             self.reject()
+    #         if sb == QtWidgets.QDialogButtonBox.Ok:
+    #             self.accept()
+    #         else:
+    #             self.reject()
 
     def buttonLaser(self) -> None:
         self.hide()
