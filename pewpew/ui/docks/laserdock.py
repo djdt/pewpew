@@ -213,27 +213,15 @@ class LaserImageDock(QtWidgets.QDockWidget):
             )
             if dlg.exec():
                 paths = dlg.generate_paths(self.laser)
-                extent = None
+                kwargs = {"calibrate": self.window().viewconfig["calibrate"]}
                 if dlg.options.trimmedChecked():
-                    extent = self.canvas.view
+                    kwargs["extent"] = self.canvas.view
                 for path, isotope, _ in paths:
                     if dlg.options.headerChecked():
-                        ppio.csv.save(
-                            path,
-                            self.laser,
-                            isotope,
-                            calibrate=self.window().viewconfig["calibrate"],
-                            extent=extent,
-                        )
+                        header = io.csv.make_header(self.laser, isotope)
                     else:
-                        io.csv.save(
-                            path,
-                            self.laser.get(
-                                isotope,
-                                calibrate=self.window().viewconfig["calibrate"],
-                                extent=extent,
-                            ),
-                        )
+                        header = ""
+                    io.csv.save(path, self.laser.get(isotope, **kwargs), header=header)
 
         elif ext == ".npz":
             io.npz.save(path, [self.laser])

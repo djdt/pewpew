@@ -266,25 +266,15 @@ class MainWindow(QtWidgets.QMainWindow):
                     lasers += io.npz.load(path)
                 elif ext == ".csv":
                     try:
-                        laser = ppio.csv.load(path)
+                        laser = io.csv.load(path, read_header=True)
                     except io.error.LaserLibException:
-                        lasers.append(
-                            Laser.from_structured(
-                                io.csv.load(path),
-                                config=self.config,
-                                name=name,
-                                filepath=path,
-                            )
-                        )
+                        laser = io.csv.load(path, read_header=False)
+                        laser.config = copy.copy(self.config)
+                    lasers.append(laser)
                 elif ext == ".txt":
-                    lasers.append(
-                        Laser.from_structured(
-                            io.csv.load(path),
-                            config=self.config,
-                            name=name,
-                            filepath=path,
-                        )
-                    )
+                    laser = io.csv.load(path, read_header=False)
+                    laser.config = copy.copy(self.config)
+                    lasers.append(laser)
                 else:
                     raise io.error.LaserLibException("Invalid file extension.")
             except io.error.LaserLibException as e:
@@ -396,26 +386,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
             for path, name, _ in paths:
                 if ext == ".csv":
-                    extent = (
-                        dock.canvas.view if dlg.options.csv.trimmedChecked() else None
-                    )
+                    kwargs = {"calibrate": self.viewconfig["calibrate"]}
+                    if dlg.options.csv.trimmedChecked():
+                        kwargs["extent"] = dock.canvas.view
                     if dlg.options.csv.headerChecked():
-                        ppio.csv.save(
-                            path,
-                            dock.laser,
-                            name,
-                            calibrate=self.viewconfig["calibrate"],
-                            extent=extent,
-                        )
+                        header = io.csv.make_header(dock.laser, name)
                     else:
-                        io.csv.save(
-                            path,
-                            dock.laser.get(
-                                name,
-                                calibrate=self.viewconfig["calibrate"],
-                                extent=extent,
-                            ),
-                        )
+                        header = ""
+                    io.csv.save(path, dock.laser.get(name, **kwargs), header=header)
                 elif ext == ".npz":
                     io.npz.save(path, [dock.laser])
                 elif ext == ".png":
