@@ -374,8 +374,8 @@ class MainWindow(QtWidgets.QMainWindow):
         if not path:
             return
 
-        names = list(set.union(*[set(dock.laser.isotopes()) for dock in docks]))
-        dlg = ExportAllDialog(path, docks[0].laser.name, names, 1, self)
+        isotopes = list(set.union(*[set(dock.laser.isotopes()) for dock in docks]))
+        dlg = ExportAllDialog(path, docks[0].laser.name, isotopes, 1, self)
         if not dlg.exec():
             return
 
@@ -384,23 +384,23 @@ class MainWindow(QtWidgets.QMainWindow):
             paths = dlg.generate_paths(dock.laser, prompt=prompt)
             ext = ExportAllDialog.FORMATS[dlg.combo_formats.currentText()]
 
-            for path, name, _ in paths:
+            for path, isotope, _ in paths:
                 if ext == ".csv":
                     kwargs = {"calibrate": self.viewconfig["calibrate"]}
                     if dlg.options.csv.trimmedChecked():
                         kwargs["extent"] = dock.canvas.view
                     if dlg.options.csv.headerChecked():
-                        header = io.csv.make_header(dock.laser, name)
+                        header = io.csv.make_header(dock.laser, isotope)
                     else:
                         header = ""
-                    io.csv.save(path, dock.laser.get(name, **kwargs), header=header)
+                    io.csv.save(path, dock.laser.get(isotope, **kwargs), header=header)
                 elif ext == ".npz":
                     io.npz.save(path, [dock.laser])
                 elif ext == ".png":
                     ppio.png.save(
                         path,
                         dock.laser,
-                        name,
+                        isotope,
                         viewconfig=self.viewconfig,
                         extent=dock.canvas.view,
                         size=dlg.options.png.imagesize(),
