@@ -43,6 +43,8 @@ class Tool(QtWidgets.QDialog):
                 self.error()
         elif sb == QtWidgets.QDialogButtonBox.Ok:
             if self.complete():
+                self.apply()
+                self.applyPressed.emit(self)
                 self.accept()
             else:
                 self.error()

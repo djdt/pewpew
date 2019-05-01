@@ -480,8 +480,7 @@ class MainWindow(QtWidgets.QMainWindow):
         laser = docks[0] if len(docks) > 0 else LaserImageDock(Laser(), parent=self)
         cali_tool = CalibrationTool(laser, self.dockarea, self.viewconfig, parent=self)
         cali_tool.applyPressed.connect(applyTool)
-        if cali_tool.exec():
-            applyTool(cali_tool)
+        cali_tool.show()
 
     def menuOperationsTool(self) -> None:
         def applyTool(tool: Tool) -> None:
@@ -493,8 +492,7 @@ class MainWindow(QtWidgets.QMainWindow):
         laser = docks[0] if len(docks) > 0 else LaserImageDock(Laser(), parent=self)
         calc_tool = CalculationsTool(laser, self.dockarea, self.viewconfig, parent=self)
         calc_tool.applyPressed.connect(applyTool)
-        if calc_tool.exec():
-            applyTool(calc_tool)
+        calc_tool.show()
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
