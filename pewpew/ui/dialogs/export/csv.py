@@ -21,7 +21,7 @@ class CSVExportOptions(QtWidgets.QGroupBox):
         return self.check_header.isChecked()
 
     def trimmedChecked(self) -> bool:
-        return self.check_header.isChecked()
+        return self.check_trim.isChecked()
 
 
 class CSVExportDialog(ExportDialog):
