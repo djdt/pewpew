@@ -266,13 +266,6 @@ class CalibrationTool(Tool):
         self.layout_right.addWidget(self.canvas)
         self.layout_right.addLayout(layout_canvas_bar)
 
-    def accept(self) -> None:
-        self.updateCalibration()
-        super().accept()
-
-    def apply(self) -> None:
-        self.updateCalibration()
-
     def draw(self) -> None:
         self.canvas.clear()
         if self.combo_isotope.currentText() in self.dock.laser.data:
@@ -282,17 +275,14 @@ class CalibrationTool(Tool):
             self.canvas.plotLevels(self.spinbox_levels.value())
             self.canvas.draw()
 
-    def updateCalibration(self) -> None:
-        pass
-        # self.dock.laser.calibration = self.calibration
-        # self.dock.draw()
-
     def updateConcentrations(self) -> None:
         name = self.combo_isotope.currentText()
+        self.table.blockSignals(True)
         if name in self.texts.keys():
             concentrations = self.texts[name]
-            self.table.blockSignals(True)
             self.table.setColumnText(CalibrationTable.COLUMN_CONC, concentrations)
+        else:
+            self.table.setColumnText(CalibrationTable.COLUMN_CONC, None)
             self.table.blockSignals(False)
 
     def updateCounts(self) -> None:
@@ -443,10 +433,11 @@ class CalibrationTool(Tool):
                 self.texts[self.previous_isotope] = texts
                 break
 
+        self.lineedit_units.setText(self.calibrations[isotope].unit)
+
         self.updateConcentrations()
         self.updateCounts()
         self.updateResults()
-        self.lineedit_units.setText(self.calibrations[isotope].unit)
         self.draw()
         self.previous_isotope = isotope
 
