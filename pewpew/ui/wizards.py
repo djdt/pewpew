@@ -6,8 +6,9 @@ from PyQt5 import QtCore, QtWidgets
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
 from pewpew.ui.validators import DecimalValidator
 
+from laserlib import io
+from laserlib import Laser
 from laserlib.krisskross import KrissKross, KrissKrossConfig
-from pewpew.lib import io
 
 from typing import List
 
@@ -31,7 +32,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
     def accept(self) -> None:
         config = self.field("config")
         paths = self.field("paths")
-        lasers = []
+        layers = []
 
         if self.field("radio_numpy"):
             for path in paths:
@@ -44,20 +45,19 @@ class KrissKrossWizard(QtWidgets.QWizard):
                         "contains more than one image.",
                     )
                     return
-                lasers.append(lds[0])
+                layers.append(lds[0].get_structured())
             # Read the config from the frist file
             config = self.layers[0].config
         elif self.field("radio_agilent"):
             for path in paths:
-                lasers.append(io.agilent.load(path, config))
+                layers.append(io.agilent.load(path))
         elif self.field("radio_thermo"):
             for path in paths:
-                lasers.append(io.thermo.load(path, config))
+                layers.append(io.thermo.load(path))
 
-        self.data = KrissKross(
-            [laser.data for laser in lasers],
+        self.data = KrissKross.from_structured(
+            layers,
             config=config,
-            calibration=lasers[0].calibration,
             name=os.path.splitext(os.path.basename(paths[0]))[0],
             filepath=paths[0],
         )

@@ -22,6 +22,13 @@ class KrissKrossImageDock(LaserImageDock):
                 docks = [self]
             for dock in docks:
                 if type(dock.laser) == KrissKross:
+                    if not dock.laser.check_config_valid(dialog.config):
+                        QtWidgets.QMessageBox.warning(
+                            self,
+                            "Invalid config!",
+                            "Config is not valid for current image(s).",
+                        )
+                        return
                     dock.laser.config = copy.copy(dialog.config)
                     dock.draw()
 

@@ -5,6 +5,7 @@ from matplotlib.figure import Figure
 from pewpew.lib.plotimage import plot_laser_data
 
 from laserlib.laser import Laser
+from laserlib.krisskross import KrissKross
 from matplotlib.backend_bases import MouseEvent, LocationEvent
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
@@ -122,7 +123,10 @@ class Canvas(FigureCanvasQTAgg):
 
     def plot(self, laser: Laser, name: str, viewconfig: dict) -> None:
         # Get the trimmed and calibrated data
-        data = laser.get(name, calibrate=viewconfig["calibrate"])
+        kwargs = {"calibrate": viewconfig['calibrate']}
+        if isinstance(laser, KrissKross):
+            kwargs['flat'] = True
+        data = laser.get(name, **kwargs)
         unit = str(laser.data[name].calibration.unit) if viewconfig["calibrate"] else ""
         # Filter if required
         if viewconfig["filtering"]["type"] != "None":
@@ -234,7 +238,7 @@ class Canvas(FigureCanvasQTAgg):
                 self.setView(*view)
 
     def updateStatusBar(self, e: MouseEvent) -> None:
-        if e.inaxes == self.ax:
+        if e.inaxes == self.ax and self.image._A is not None:
             x, y = e.xdata, e.ydata
             v = self.image.get_cursor_data(e)
             if self.window() is not None and self.window().statusBar() is not None:
