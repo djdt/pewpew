@@ -23,10 +23,10 @@ class CalibrationDialog(ApplyDialog):
         # LIne edits
         self.lineedit_gradient = QtWidgets.QLineEdit()
         self.lineedit_gradient.setValidator(DecimalValidatorNoZero(-1e10, 1e10, 4))
-        self.lineedit_gradient.setPlaceholderText("1.0")
+        self.lineedit_gradient.setPlaceholderText("1.0000")
         self.lineedit_intercept = QtWidgets.QLineEdit()
         self.lineedit_intercept.setValidator(DecimalValidator(-1e10, 1e10, 4))
-        self.lineedit_intercept.setPlaceholderText("0.0")
+        self.lineedit_intercept.setPlaceholderText("0.0000")
         self.lineedit_unit = QtWidgets.QLineEdit()
         self.lineedit_unit.setPlaceholderText("")
 
@@ -56,12 +56,12 @@ class CalibrationDialog(ApplyDialog):
         if gradient == 1.0:
             self.lineedit_gradient.clear()
         else:
-            self.lineedit_gradient.setText(str(gradient))
+            self.lineedit_gradient.setText(f"{gradient:.4f}")
         intercept = self.calibrations[name].intercept
         if intercept == 0.0:
             self.lineedit_intercept.clear()
         else:
-            self.lineedit_intercept.setText(str(intercept))
+            self.lineedit_intercept.setText(f"{intercept:.4f}")
         unit = self.calibrations[name].unit
         if unit is None:
             self.lineedit_unit.clear()
