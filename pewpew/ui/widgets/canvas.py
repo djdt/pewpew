@@ -10,7 +10,7 @@ from matplotlib.backend_bases import MouseEvent, LocationEvent
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 
-from pewpew.ui.widgets import DragSelector
+from pewpew.ui.widgets.dragselector import DragSelector
 
 from typing import Dict, List
 from matplotlib.image import AxesImage
