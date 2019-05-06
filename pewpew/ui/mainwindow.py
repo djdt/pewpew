@@ -409,7 +409,17 @@ class MainWindow(QtWidgets.QMainWindow):
                         include_label=dlg.options.png.labelChecked(),
                     )
                 elif ext == ".vti":
-                    io.npz.save(path, dock.laser)
+                    spacing = (
+                        *dock.laser.config.pixel_size(),
+                        dock.laser.config.spotsize / 2.0,
+                    )
+                    io.vtk.save(  # type: ignore
+                        path,
+                        dock.laser.get_structured(
+                            calibrate=self.window().viewconfig["calibrate"]
+                        ),
+                        spacing=spacing,
+                    )
                 else:
                     QtWidgets.QMessageBox.warning(
                         self, "Invalid Format", f"Unable to export {ext} format."
