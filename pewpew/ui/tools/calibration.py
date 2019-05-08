@@ -101,14 +101,15 @@ class CalibrationCanvas(Canvas):
 
 
 class ResultsBox(QtWidgets.QGroupBox):
+    LABELS = ["RSQ", "Gradient", "Intercept"]
+
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__("Results", parent)
-        labels = ["RSQ", "Gradient", "Intercept"]
         self.lineedits: List[QtWidgets.QLineEdit] = []
 
         layout = QtWidgets.QFormLayout()
 
-        for label in labels:
+        for label in ResultsBox.LABELS:
             le = QtWidgets.QLineEdit()
             le.setReadOnly(True)
 
@@ -118,27 +119,33 @@ class ResultsBox(QtWidgets.QGroupBox):
         self.setLayout(layout)
 
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
-        # TODO
-        pass
         menu = QtWidgets.QMenu(self)
         copy_action = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-copy"), "Copy All", self
         )
-        copy_action.setShortcut("Ctrl+Shift+C")
         copy_action.triggered.connect(self.copy)
-        stats_action = QtWidgets.QAction("Copy Stats", self)
-        stats_action.triggered.connect(self.stats)
 
         menu.addAction(copy_action)
-        menu.addAction(stats_action)
 
         menu.exec(event.globalPos())
 
     def copy(self) -> None:
-        pass
+        data = (
+            '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
+            "<table>"
+        )
+        text = ""
 
-    def stats(self) -> None:
-        pass
+        for label, lineedit in zip(ResultsBox.LABELS, self.lineedits):
+            value = lineedit.text()
+            data += f"<tr><td>{label}</td><td>{value}</td></tr>"
+            text += f"{label}\t{value}\n"
+        data += "</table>"
+
+        mime = QtCore.QMimeData()
+        mime.setHtml(data)
+        mime.setText(text)
+        QtWidgets.QApplication.clipboard().setMimeData(mime)
 
     def update(self, r2: float, m: float, b: float) -> None:
         for v, le in zip([r2, m, b], self.lineedits):
