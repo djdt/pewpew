@@ -71,7 +71,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         )
 
         self.laser = laser
-        self.canvas = Canvas(parent=self)
+        self.canvas = Canvas(viewconfig=self.window().viewconfig, parent=self)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
@@ -141,7 +141,6 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.action_close.triggered.connect(self.onMenuClose)
 
     def draw(self) -> None:
-        self.canvas.clear()
         self.canvas.plot(
             self.laser, self.combo_isotope.currentText(), self.window().viewconfig
         )
