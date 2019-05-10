@@ -9,7 +9,7 @@ from matplotlib.backend_bases import MouseEvent, LocationEvent
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 
-from matplotlib.widgets import RectangleSelector
+from matplotlib.widgets import RectangleSelector, LassoSelector
 from matplotlib.ticker import MaxNLocator
 from matplotlib.offsetbox import AnchoredText
 from matplotlib_scalebar.scalebar import ScaleBar
@@ -17,6 +17,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from typing import Dict, List
 from matplotlib.image import AxesImage
+from matplotlib.widgets import _SelectorWidget
 
 
 class Canvas(FigureCanvasQTAgg):
@@ -42,15 +43,7 @@ class Canvas(FigureCanvasQTAgg):
         self.extent = (0.0, 0.0, 0.0, 0.0)
         self.view = (0.0, 0.0, 0.0, 0.0)
 
-        rectprops = {
-            "edgecolor": "black",
-            "facecolor": self.palette().color(QtGui.QPalette.Highlight).name(),
-            "alpha": 0.33,
-        }
-        self.rectangle_selector = RectangleSelector(
-            self.ax, self.zoom, useblit=True, rectprops=rectprops
-        )
-        self.rectangle_selector.set_active(False)
+        self.selector: _SelectorWidget = None
 
         self.setParent(parent)
         self.setStyleSheet("background-color:transparent;")
@@ -60,7 +53,7 @@ class Canvas(FigureCanvasQTAgg):
 
         self.events: Dict[str, List[int]] = {}
         if connect_mouse_events:
-            self.connectEvents("status")
+            self.connect_events("status")
 
     def close(self) -> None:
         self.clearStatusBar()
@@ -196,41 +189,67 @@ class Canvas(FigureCanvasQTAgg):
         self.view = (x1, x2, y1, y2)
         self.draw()
 
-    def unzoom(self) -> None:
-        self.setView(*self.extent)
-        self.disconnectEvents("drag")
+    def start_lasso(self) -> None:
+        lineprops = {
+            "color": self.palette().color(QtGui.QPalette.Highlight).name(),
+            "alpha": 0.66,
+        }
+        self.selector = LassoSelector(
+            self.ax, self.lasso, button=1, useblit=True, lineprops=lineprops
+        )
+
+    def lasso(self, vertices: List[np.ndarray]) -> None:
+        self.selector = None
+        print(vertices)
+
+    def start_zoom(self) -> None:
+        rectprops = {
+            "edgecolor": self.palette().color(QtGui.QPalette.Shadow).name(),
+            "facecolor": self.palette().color(QtGui.QPalette.Highlight).name(),
+            "alpha": 0.33,
+        }
+        self.selector = RectangleSelector(
+            self.ax,
+            self.zoom,
+            button=1,
+            useblit=True,
+            minspanx=5,
+            minspany=5,
+            rectprops=rectprops,
+        )
+        self.disconnect_events("drag")
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
-        self.rectangle_selector.set_active(False)
         self.setView(press.xdata, release.xdata, press.ydata, release.ydata)
-        self.connectEvents("drag")
+        self.selector = None
+        self.connect_events("drag")
 
-    def connectEvents(self, key: str) -> None:
+    def unzoom(self) -> None:
+        self.setView(*self.extent)
+        self.disconnect_events("drag")
+
+    def connect_events(self, key: str) -> None:
         if key == "status":
             self.events["status"] = [
-                self.mpl_connect("motion_notify_event", self.updateStatusBar),
-                self.mpl_connect("axes_leave_event", self.clearStatusBar),
+                self.mpl_connect("motion_notify_event", self.update_status_bar),
+                self.mpl_connect("axes_leave_event", self.clear_status_bar),
             ]
         elif key == "drag":
             self.events["drag"] = [
-                self.mpl_connect("button_press_event", self.dragStart),
-                self.mpl_connect("motion_notify_event", self.dragMove),
+                self.mpl_connect("button_press_event", self.start_drag),
+                self.mpl_connect("motion_notify_event", self.drag),
             ]
 
-    def disconnectEvents(self, key: str) -> None:
+    def disconnect_events(self, key: str) -> None:
         if key in self.events.keys():
             for cid in self.events[key]:
                 self.mpl_disconnect(cid)
 
-    def startZoom(self) -> None:
-        self.rectangle_selector.set_active(True)
-        self.disconnectEvents("drag")
-
-    def dragStart(self, event: MouseEvent) -> None:
+    def start_drag(self, event: MouseEvent) -> None:
         if event.inaxes == self.ax and event.button == 1:
             self.drag_origin = event.xdata, event.ydata
 
-    def dragMove(self, event: MouseEvent) -> None:
+    def drag(self, event: MouseEvent) -> None:
         if event.inaxes == self.ax and event.button == 1:
             x1, x2 = self.ax.get_xlim()
             y1, y2 = self.ax.get_ylim()
@@ -250,14 +269,14 @@ class Canvas(FigureCanvasQTAgg):
             if view != self.view:
                 self.setView(*view)
 
-    def updateStatusBar(self, e: MouseEvent) -> None:
+    def update_status_bar(self, e: MouseEvent) -> None:
         if e.inaxes == self.ax and self.image._A is not None:
             x, y = e.xdata, e.ydata
             v = self.image.get_cursor_data(e)
             if self.window() is not None and self.window().statusBar() is not None:
                 self.window().statusBar().showMessage(f"{x:.2f},{y:.2f} [{v:.2f}]")
 
-    def clearStatusBar(self, e: LocationEvent = None) -> None:
+    def clear_status_bar(self, e: LocationEvent = None) -> None:
         if self.window() is not None:
             self.window().statusBar().clearMessage()
 
