@@ -8,7 +8,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pewpew.ui.widgets import BasicTable, Canvas
 
-# from pewpew.ui.dialogs import ApplyDialog
 from pewpew.ui.tools.tool import Tool
 from pewpew.ui.validators import DoublePrecisionDelegate
 
@@ -58,12 +57,14 @@ class CalibrationTable(BasicTable):
 
 
 class CalibrationCanvas(Canvas):
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__(connect_mouse_events=False, parent=parent)
-
+    def __init__(self, viewconfig: dict, parent: QtWidgets.QWidget = None):
+        super().__init__(viewconfig, connect_mouse_events=False, parent=parent)
         self.options = {"colorbar": False, "scalebar": False, "label": False}
+        div = make_axes_locatable(self.ax)
+        self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
 
-    def plotLevels(self, levels: int) -> None:
+    def draw_levels(self, levels: int) -> None:
+        self.bax.clear()
         ax_fraction = 1.0 / levels
         # Draw lines
         for frac in np.linspace(1.0 - ax_fraction, ax_fraction, levels - 1):
@@ -77,27 +78,23 @@ class CalibrationCanvas(Canvas):
             )
             self.ax.add_artist(line)
 
-        # Bookend for text
-        div = make_axes_locatable(self.ax)
-        cax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
-        cax.get_xaxis().set_visible(False)
-        cax.get_yaxis().set_visible(False)
-        cax.set_facecolor("black")
-
         for i, frac in enumerate(np.linspace(1.0, ax_fraction, levels)):
             text = Text(
                 x=0.5,
                 y=frac - (ax_fraction / 2.0),
                 text=CalibrationTable.ROW_LABELS[i],
-                transform=cax.transAxes,
+                transform=self.bax.transAxes,
                 color="white",
                 fontsize=12,
                 horizontalalignment="center",
                 verticalalignment="center",
             )
-            cax.add_artist(text)
+            self.bax.add_artist(text)
 
-        self.draw()
+        # Bookend for text
+        self.bax.get_xaxis().set_visible(False)
+        self.bax.get_yaxis().set_visible(False)
+        self.bax.set_facecolor("black")
 
 
 class ResultsBox(QtWidgets.QGroupBox):
@@ -164,7 +161,6 @@ class CalibrationTool(Tool):
         self.setWindowTitle("Calibration Standards Tool")
 
         self.dockarea = dockarea
-        self.viewconfig = viewconfig
         self.previous_isotope = ""
 
         self.dock = dock
@@ -188,7 +184,7 @@ class CalibrationTool(Tool):
         # Right side
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
 
-        self.canvas = CalibrationCanvas(parent=self)
+        self.canvas = CalibrationCanvas(viewconfig, parent=self)
 
         self.lineedit_left = QtWidgets.QLineEdit()
         self.lineedit_right = QtWidgets.QLineEdit()
@@ -274,12 +270,9 @@ class CalibrationTool(Tool):
         self.layout_right.addLayout(layout_canvas_bar)
 
     def draw(self) -> None:
-        self.canvas.clear()
         if self.combo_isotope.currentText() in self.dock.laser.data:
-            self.canvas.plot(
-                self.dock.laser, self.combo_isotope.currentText(), self.viewconfig
-            )
-            self.canvas.plotLevels(self.spinbox_levels.value())
+            self.canvas.draw_laser(self.dock.laser, self.combo_isotope.currentText())
+            self.canvas.draw_levels(self.spinbox_levels.value())
             self.canvas.draw()
 
     def updateConcentrations(self) -> None:
@@ -301,9 +294,10 @@ class CalibrationTool(Tool):
         if len(data) == 1:
             return
 
-        if self.viewconfig["filtering"]["type"] != "None":
+        if self.canvas.viewconfig["filtering"]["type"] != "None":
             filter_type, window, threshold = (
-                self.viewconfig["filtering"][x] for x in ["type", "window", "threshold"]
+                self.canvas.viewconfig["filtering"][x]
+                for x in ["type", "window", "threshold"]
             )
             data = data.copy()
             if filter_type == "Rolling mean":

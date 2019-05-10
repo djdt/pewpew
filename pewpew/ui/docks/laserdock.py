@@ -141,10 +141,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.action_close.triggered.connect(self.onMenuClose)
 
     def draw(self) -> None:
-        self.canvas.plot(
-            self.laser, self.combo_isotope.currentText(), self.window().viewconfig
-        )
-        self.canvas.draw()
+        self.canvas.draw_laser(self.laser, self.combo_isotope.currentText())
 
     def buildContextMenu(self) -> QtWidgets.QMenu:
         context_menu = QtWidgets.QMenu(self)

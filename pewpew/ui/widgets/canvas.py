@@ -19,11 +19,10 @@ from typing import Dict, List
 from matplotlib.image import AxesImage
 
 
-# TODO emit signal to update status bar in actual widgets
 class Canvas(FigureCanvasQTAgg):
     def __init__(
         self,
-        viewconfig: Dict,
+        viewconfig: dict,
         connect_mouse_events: bool = True,
         parent: QtWidgets.QWidget = None,
     ) -> None:
@@ -46,7 +45,7 @@ class Canvas(FigureCanvasQTAgg):
         rectprops = {
             "edgecolor": "black",
             "facecolor": self.palette().color(QtGui.QPalette.Highlight).name(),
-            "alpha": 0.4,
+            "alpha": 0.33,
         }
         self.rectangle_selector = RectangleSelector(
             self.ax, self.zoom, useblit=True, rectprops=rectprops
@@ -70,24 +69,34 @@ class Canvas(FigureCanvasQTAgg):
     def redraw_figure(self) -> None:
         self.figure.clear()
         self.ax = self.figure.add_subplot(111)
+        self.ax.axis("scaled")
+        self.ax.set_facecolor("black")
+        self.ax.get_xaxis().set_visible(False)
+        self.ax.get_yaxis().set_visible(False)
         div = make_axes_locatable(self.ax)
         self.cax = div.append_axes(self.options["colorbarpos"], size=0.1, pad=0.05)
 
-    def plot(self, laser: Laser, name: str, viewconfig: dict) -> None:
-        # Plot the image
-        self.ax.clear()
+    def draw_colorbar(self, label: str) -> None:
         self.cax.clear()
+        if self.options["colorbarpos"] in ["right", "left"]:
+            orientation = "vertical"
+        else:
+            orientation = "horizontal"
+        self.figure.colorbar(
+            self.image,
+            label=label,
+            cax=self.cax,
+            orientation=orientation,
+            ticks=MaxNLocator(nbins=6),
+        )
 
-        # Get the trimmed and calibrated data
-        kwargs = {"calibrate": viewconfig["calibrate"]}
-        if isinstance(laser, KrissKross):
-            kwargs["flat"] = True
-        data = laser.get(name, **kwargs)
-        unit = str(laser.data[name].calibration.unit) if viewconfig["calibrate"] else ""
+    def draw_data(self, data: np.ndarray, aspect: float) -> None:
+        self.ax.clear()
+
         # Filter if required
-        if viewconfig["filtering"]["type"] != "None":
+        if self.viewconfig["filtering"]["type"] != "None":
             filter_type, window, threshold = (
-                viewconfig["filtering"][x] for x in ["type", "window", "threshold"]
+                self.viewconfig["filtering"][x] for x in ["type", "window", "threshold"]
             )
             if filter_type == "Rolling mean":
                 # rolling_mean_filter(data, window, threshold)
@@ -95,19 +104,7 @@ class Canvas(FigureCanvasQTAgg):
             elif filter_type == "Rolling median":
                 data = rolling_median_filter(data, window, threshold)
 
-        # If the laser extent has changed (i.e. config edited) then reset the view
-        x = data.shape[1] * laser.config.pixel_width()
-        y = data.shape[0] * laser.config.pixel_height()
-        extent = (0.0, x, 0.0, y)
-        if self.extent != extent:
-            self.extent = extent
-            self.view = (0.0, 0.0, 0.0, 0.0)
-
-        # If data is empty create a dummy data
-        if data is None or data.size == 0:
-            data = np.array([[0]], dtype=np.float64)
-
-        # Calculate the colorbar range
+        # Calculate the range
         if isinstance(self.viewconfig["cmap"]["range"][0], str):
             vmin = np.percentile(
                 data, float(self.viewconfig["cmap"]["range"][0].rstrip("%"))
@@ -130,22 +127,40 @@ class Canvas(FigureCanvasQTAgg):
             vmin=vmin,
             vmax=vmax,
             extent=self.extent,
-            aspect=laser.config.aspect(),
+            aspect=aspect,
             origin="upper",
         )
 
+    def draw_laser(self, laser: Laser, name: str) -> None:
+        # Get the trimmed and calibrated data
+        kwargs = {"calibrate": self.viewconfig["calibrate"]}
+        if isinstance(laser, KrissKross):
+            kwargs["flat"] = True
+        data = laser.get(name, **kwargs)
+        unit = (
+            str(laser.data[name].calibration.unit)
+            if self.viewconfig["calibrate"]
+            else ""
+        )
+
+        # If the laser extent has changed (i.e. config edited) then reset the view
+        x = data.shape[1] * laser.config.pixel_width()
+        y = data.shape[0] * laser.config.pixel_height()
+        extent = (0.0, x, 0.0, y)
+        if self.extent != extent:
+            self.extent = extent
+            self.view = (0.0, 0.0, 0.0, 0.0)
+
+        # If data is empty create a dummy data
+        if data is None or data.size == 0:
+            data = np.array([[0]], dtype=np.float64)
+
+        self.draw_data(data, laser.config.aspect())
         if self.options["colorbar"]:
-            if self.options["colorbarpos"] in ["right", "left"]:
-                orientation = "vertical"
-            else:
-                orientation = "horizontal"
-            self.figure.colorbar(
-                self.image,
-                label=unit,
-                cax=self.cax,
-                orientation=orientation,
-                ticks=MaxNLocator(nbins=6),
-            )
+            self.cax.set_visible(True)
+            self.draw_colorbar(unit)
+        else:
+            self.cax.set_visible(False)
 
         if self.options["label"]:
             text = AnchoredText(
@@ -169,11 +184,6 @@ class Canvas(FigureCanvasQTAgg):
             )
             self.ax.add_artist(scalebar)
 
-        self.ax.axis("scaled")
-        self.ax.set_facecolor("black")
-        self.ax.get_xaxis().set_visible(False)
-        self.ax.get_yaxis().set_visible(False)
-
         if self.view == (0.0, 0.0, 0.0, 0.0):
             self.view = self.extent
             self.draw()
@@ -191,11 +201,6 @@ class Canvas(FigureCanvasQTAgg):
         self.disconnectEvents("drag")
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
-        # xmin, xmax, ymin, ymax = self.selector.extent
-        # if xmin == xmax or ymin == ymax:  # Invalid
-        #     return
-        # self.setView(xmin, xmax, ymin, ymax)
-        # self.selector.deactivate()
         self.rectangle_selector.set_active(False)
         self.setView(press.xdata, release.xdata, press.ydata, release.ydata)
         self.connectEvents("drag")
@@ -219,7 +224,6 @@ class Canvas(FigureCanvasQTAgg):
 
     def startZoom(self) -> None:
         self.rectangle_selector.set_active(True)
-        # self.selector.activate(self.ax, self.zoom)
         self.disconnectEvents("drag")
 
     def dragStart(self, event: MouseEvent) -> None:
