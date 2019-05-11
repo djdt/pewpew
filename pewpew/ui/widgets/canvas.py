@@ -13,53 +13,94 @@ from matplotlib.widgets import RectangleSelector, LassoSelector
 from matplotlib.ticker import MaxNLocator
 from matplotlib.offsetbox import AnchoredText
 from matplotlib_scalebar.scalebar import ScaleBar
+from matplotlib.path import Path
+from matplotlib.patheffects import Normal, SimpleLineShadow
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from typing import Dict, List
 from matplotlib.image import AxesImage
-from matplotlib.widgets import _SelectorWidget
 
 
-class Canvas(FigureCanvasQTAgg):
-    def __init__(
-        self,
-        viewconfig: dict,
-        connect_mouse_events: bool = True,
-        parent: QtWidgets.QWidget = None,
-    ) -> None:
+class QtCanvas(FigureCanvasQTAgg):
+    def __init__(self, parent: QtWidgets.QWidget = None):
         fig = Figure(frameon=False, tight_layout=True, figsize=(5, 5), dpi=100)
         super().__init__(fig)
-        self.options = {
-            "colorbar": True,
-            "scalebar": True,
-            "label": True,
-            "colorbarpos": "bottom",
-        }
-        self.viewconfig = viewconfig
-
-        self.redraw_figure()
-        self.image: AxesImage = None
-
-        self.extent = (0.0, 0.0, 0.0, 0.0)
-        self.view = (0.0, 0.0, 0.0, 0.0)
-
-        self.selector: _SelectorWidget = None
-
         self.setParent(parent)
         self.setStyleSheet("background-color:transparent;")
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
         )
 
+    def sizeHint(self) -> QtCore.QSize:
+        w, h = self.get_width_height()
+        return QtCore.QSize(w, h)
+
+    def minimumSizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(250, 250)
+
+
+class Canvas(QtCanvas):
+    DEFAULT_OPTIONS = {
+        "colorbar": True,
+        "scalebar": True,
+        "label": True,
+        "colorbarpos": "bottom",
+    }
+
+    def __init__(
+        self,
+        viewconfig: dict,
+        options: dict = None,
+        connect_mouse_events: bool = True,
+        parent: QtWidgets.QWidget = None,
+    ) -> None:
+        super().__init__(parent)
+        self.viewconfig = viewconfig
+        self.options = Canvas.DEFAULT_OPTIONS
+        if options is not None:
+            self.options.update(options)
+
+        self.redrawFigure()
+        self.image: AxesImage = None
+
+        self.extent = (0.0, 0.0, 0.0, 0.0)
+        self.view = (0.0, 0.0, 0.0, 0.0)
+
+        dark = self.palette().color(QtGui.QPalette.Shadow).name()
+        highlight = self.palette().color(QtGui.QPalette.Highlight).name()
+        lineshadow = SimpleLineShadow(offset=(0.5, -0.5), alpha=0.66, shadow_color=dark)
+        rectprops = {"edgecolor": dark, "facecolor": highlight, "alpha": 0.33}
+        lineprops = {
+            "color": highlight,
+            "linestyle": "--",
+            "path_effects": [lineshadow, Normal()],
+        }
+
+        self.rectangle_selector = RectangleSelector(
+            self.ax,
+            self.zoom,
+            button=1,
+            useblit=True,
+            minspanx=5,
+            minspany=5,
+            rectprops=rectprops,
+            lineprops=lineprops,
+        )
+        self.rectangle_selector.set_active(False)
+        self.lasso_selector = LassoSelector(
+            self.ax, self.lasso, button=1, useblit=True, lineprops=lineprops
+        )
+        self.lasso_selector.set_active(False)
+
         self.events: Dict[str, List[int]] = {}
         if connect_mouse_events:
-            self.connect_events("status")
+            self.connectEvents("status")
 
     def close(self) -> None:
         self.clearStatusBar()
         super().close()
 
-    def redraw_figure(self) -> None:
+    def redrawFigure(self) -> None:
         self.figure.clear()
         self.ax = self.figure.add_subplot(111)
         self.ax.axis("scaled")
@@ -69,7 +110,7 @@ class Canvas(FigureCanvasQTAgg):
         div = make_axes_locatable(self.ax)
         self.cax = div.append_axes(self.options["colorbarpos"], size=0.1, pad=0.05)
 
-    def draw_colorbar(self, label: str) -> None:
+    def drawColorbar(self, label: str) -> None:
         self.cax.clear()
         if self.options["colorbarpos"] in ["right", "left"]:
             orientation = "vertical"
@@ -83,7 +124,7 @@ class Canvas(FigureCanvasQTAgg):
             ticks=MaxNLocator(nbins=6),
         )
 
-    def draw_data(self, data: np.ndarray, aspect: float) -> None:
+    def drawData(self, data: np.ndarray, aspect: float) -> None:
         self.ax.clear()
 
         # Filter if required
@@ -98,18 +139,15 @@ class Canvas(FigureCanvasQTAgg):
                 data = rolling_median_filter(data, window, threshold)
 
         # Calculate the range
-        if isinstance(self.viewconfig["cmap"]["range"][0], str):
-            vmin = np.percentile(
-                data, float(self.viewconfig["cmap"]["range"][0].rstrip("%"))
-            )
+        rmin, rmax = self.viewconfig["cmap"]["range"]
+        if isinstance(rmin, str):
+            vmin = np.percentile(data, float(rmin.rstrip("%")))
         else:
-            vmin = float(self.viewconfig["cmap"]["range"][0])
-        if isinstance(self.viewconfig["cmap"]["range"][1], str):
-            vmax = np.percentile(
-                data, float(self.viewconfig["cmap"]["range"][1].rstrip("%"))
-            )
+            vmin = float(rmin)
+        if isinstance(rmax, str):
+            vmax = np.percentile(data, float(rmax.rstrip("%")))
         else:
-            vmax = float(self.viewconfig["cmap"]["range"][1])
+            vmax = float(rmax)
 
         # Plot the image
         self.image = self.ax.imshow(
@@ -124,7 +162,7 @@ class Canvas(FigureCanvasQTAgg):
             origin="upper",
         )
 
-    def draw_laser(self, laser: Laser, name: str) -> None:
+    def drawLaser(self, laser: Laser, name: str) -> None:
         # Get the trimmed and calibrated data
         kwargs = {"calibrate": self.viewconfig["calibrate"]}
         if isinstance(laser, KrissKross):
@@ -148,10 +186,10 @@ class Canvas(FigureCanvasQTAgg):
         if data is None or data.size == 0:
             data = np.array([[0]], dtype=np.float64)
 
-        self.draw_data(data, laser.config.aspect())
+        self.drawData(data, laser.config.aspect())
         if self.options["colorbar"]:
             self.cax.set_visible(True)
-            self.draw_colorbar(unit)
+            self.drawColorbar(unit)
         else:
             self.cax.set_visible(False)
 
@@ -187,65 +225,68 @@ class Canvas(FigureCanvasQTAgg):
         self.ax.set_xlim(x1, x2)
         self.ax.set_ylim(y1, y2)
         self.view = (x1, x2, y1, y2)
-        self.draw()
+        self.draw_idle()
 
-    def start_lasso(self) -> None:
-        lineprops = {
-            "color": self.palette().color(QtGui.QPalette.Highlight).name(),
-            "alpha": 0.66,
-        }
-        self.selector = LassoSelector(
-            self.ax, self.lasso, button=1, useblit=True, lineprops=lineprops
-        )
+    def startLasso(self) -> None:
+        self.lasso_selector.set_active(True)
+        self.rectangle_selector.set_active(False)
+        self.disconnectEvents("drag")
 
     def lasso(self, vertices: List[np.ndarray]) -> None:
-        self.selector = None
-        print(vertices)
+        self.lasso_selector.set_active(False)
+        self.draw_idle()
 
-    def start_zoom(self) -> None:
-        rectprops = {
-            "edgecolor": self.palette().color(QtGui.QPalette.Shadow).name(),
-            "facecolor": self.palette().color(QtGui.QPalette.Highlight).name(),
-            "alpha": 0.33,
-        }
-        self.selector = RectangleSelector(
-            self.ax,
-            self.zoom,
-            button=1,
-            useblit=True,
-            minspanx=5,
-            minspany=5,
-            rectprops=rectprops,
+        data = self.image.get_array()
+        x0, x1, y0, y1 = self.image.get_extent()
+        ny, nx = data.shape
+
+        x, y = np.meshgrid(
+            np.linspace(x0, x1, nx + 1)[:-1], np.linspace(y1, y0, ny + 1)[:-1]
         )
-        self.disconnect_events("drag")
+        pix = np.vstack((x.flatten(), y.flatten())).T
+
+        path = Path(vertices)
+        ind = path.contains_points(pix, radius=1)
+
+        selected = np.zeros((*data.shape, 4), dtype=np.uint8)
+        selected[:, :, 3].flat[~ind] = 128
+        self.mask = self.ax.imshow(selected, extent=(x0, x1, y0, y1))
+
+        if self.view != self.extent:
+            self.connectEvents("drag")
+
+    def startZoom(self) -> None:
+        self.rectangle_selector.set_active(True)
+        self.lasso_selector.set_active(False)
+        self.disconnectEvents("drag")
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
         self.setView(press.xdata, release.xdata, press.ydata, release.ydata)
-        self.selector = None
-        self.connect_events("drag")
+        self.rectangle_selector.set_active(False)
+        self.connectEvents("drag")
 
     def unzoom(self) -> None:
         self.setView(*self.extent)
-        self.disconnect_events("drag")
+        self.disconnectEvents("drag")
 
-    def connect_events(self, key: str) -> None:
+    def connectEvents(self, key: str) -> None:
         if key == "status":
             self.events["status"] = [
-                self.mpl_connect("motion_notify_event", self.update_status_bar),
-                self.mpl_connect("axes_leave_event", self.clear_status_bar),
+                self.mpl_connect("motion_notify_event", self.updateStatusBar),
+                self.mpl_connect("axes_leave_event", self.clearStatusBar),
             ]
         elif key == "drag":
             self.events["drag"] = [
-                self.mpl_connect("button_press_event", self.start_drag),
+                self.mpl_connect("button_press_event", self.startDrag),
                 self.mpl_connect("motion_notify_event", self.drag),
             ]
 
-    def disconnect_events(self, key: str) -> None:
+    def disconnectEvents(self, key: str) -> None:
         if key in self.events.keys():
             for cid in self.events[key]:
                 self.mpl_disconnect(cid)
 
-    def start_drag(self, event: MouseEvent) -> None:
+    def startDrag(self, event: MouseEvent) -> None:
         if event.inaxes == self.ax and event.button == 1:
             self.drag_origin = event.xdata, event.ydata
 
@@ -269,20 +310,13 @@ class Canvas(FigureCanvasQTAgg):
             if view != self.view:
                 self.setView(*view)
 
-    def update_status_bar(self, e: MouseEvent) -> None:
+    def updateStatusBar(self, e: MouseEvent) -> None:
         if e.inaxes == self.ax and self.image._A is not None:
             x, y = e.xdata, e.ydata
             v = self.image.get_cursor_data(e)
             if self.window() is not None and self.window().statusBar() is not None:
                 self.window().statusBar().showMessage(f"{x:.2f},{y:.2f} [{v:.2f}]")
 
-    def clear_status_bar(self, e: LocationEvent = None) -> None:
+    def clearStatusBar(self, e: LocationEvent = None) -> None:
         if self.window() is not None:
             self.window().statusBar().clearMessage()
-
-    def sizeHint(self) -> QtCore.QSize:
-        w, h = self.get_width_height()
-        return QtCore.QSize(w, h)
-
-    def minimumSizeHint(self) -> QtCore.QSize:
-        return QtCore.QSize(250, 250)

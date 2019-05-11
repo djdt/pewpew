@@ -61,8 +61,11 @@ class CalculationsTool(Tool):
 
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
 
-        self.canvas = Canvas(viewconfig=viewconfig, connect_mouse_events=False, parent=self)
+        self.canvas = Canvas(
+            viewconfig=viewconfig, connect_mouse_events=False, parent=self
+        )
         self.canvas.options = {"colorbar": False, "scalebar": False, "label": False}
+        self.canvas.cax.set_visible(False)
 
         self.combo_isotope1 = QtWidgets.QComboBox()
         self.combo_isotope1.currentIndexChanged.connect(self.updateData)
@@ -175,8 +178,8 @@ class CalculationsTool(Tool):
         self.draw()
 
     def draw(self) -> None:
-        self.canvas.draw_data(self.data, self.dock.laser.config.aspect())
-        self.canvas.draw()
+        self.canvas.drawData(self.data, self.dock.laser.config.aspect())
+        self.canvas.draw_idle()
 
     def updateComboIsotopes(self) -> None:
         self.combo_isotope1.blockSignals(True)

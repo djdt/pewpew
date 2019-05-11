@@ -63,7 +63,7 @@ class CalibrationCanvas(Canvas):
         div = make_axes_locatable(self.ax)
         self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
 
-    def draw_levels(self, levels: int) -> None:
+    def drawLevels(self, levels: int) -> None:
         self.bax.clear()
         ax_fraction = 1.0 / levels
         # Draw lines
@@ -271,8 +271,8 @@ class CalibrationTool(Tool):
 
     def draw(self) -> None:
         if self.combo_isotope.currentText() in self.dock.laser.data:
-            self.canvas.draw_laser(self.dock.laser, self.combo_isotope.currentText())
-            self.canvas.draw_levels(self.spinbox_levels.value())
+            self.canvas.drawLaser(self.dock.laser, self.combo_isotope.currentText())
+            self.canvas.drawLevels(self.spinbox_levels.value())
             self.canvas.draw()
 
     def updateConcentrations(self) -> None:

@@ -95,8 +95,8 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.setTitleBarWidget(self.title_bar)
         self.setWindowTitle(self.laser.name)
 
-        self.title_bar.button_lasso.clicked.connect(self.canvas.start_lasso)
-        self.title_bar.button_zoom.clicked.connect(self.canvas.start_zoom)
+        self.title_bar.button_lasso.clicked.connect(self.canvas.startLasso)
+        self.title_bar.button_zoom.clicked.connect(self.canvas.startZoom)
         self.title_bar.button_zoom_original.clicked.connect(self.canvas.unzoom)
         self.title_bar.button_close.clicked.connect(self.onMenuClose)
 
@@ -144,7 +144,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.action_close.triggered.connect(self.onMenuClose)
 
     def draw(self) -> None:
-        self.canvas.draw_laser(self.laser, self.combo_isotope.currentText())
+        self.canvas.drawLaser(self.laser, self.combo_isotope.currentText())
 
     def buildContextMenu(self) -> QtWidgets.QMenu:
         context_menu = QtWidgets.QMenu(self)
