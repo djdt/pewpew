@@ -17,14 +17,15 @@ from matplotlib.path import Path
 from matplotlib.patheffects import Normal, SimpleLineShadow
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from matplotlib.image import AxesImage
 
 
-class QtCanvas(FigureCanvasQTAgg):
+class BasicCanvas(FigureCanvasQTAgg):
     def __init__(self, parent: QtWidgets.QWidget = None):
         fig = Figure(frameon=False, tight_layout=True, figsize=(5, 5), dpi=100)
         super().__init__(fig)
+
         self.setParent(parent)
         self.setStyleSheet("background-color:transparent;")
         self.setSizePolicy(
@@ -39,7 +40,7 @@ class QtCanvas(FigureCanvasQTAgg):
         return QtCore.QSize(250, 250)
 
 
-class Canvas(QtCanvas):
+class Canvas(BasicCanvas):
     DEFAULT_OPTIONS = {
         "colorbar": True,
         "scalebar": True,
@@ -59,12 +60,10 @@ class Canvas(QtCanvas):
         self.options = Canvas.DEFAULT_OPTIONS
         if options is not None:
             self.options.update(options)
-
-        self.redrawFigure()
         self.image: AxesImage = None
+        self.redrawFigure()
 
-        self.extent = (0.0, 0.0, 0.0, 0.0)
-        self.view = (0.0, 0.0, 0.0, 0.0)
+        self.view_limits = (0.0, 0.0, 0.0, 0.0)
 
         dark = self.palette().color(QtGui.QPalette.Shadow).name()
         highlight = self.palette().color(QtGui.QPalette.Highlight).name()
@@ -107,8 +106,9 @@ class Canvas(QtCanvas):
         self.ax.set_facecolor("black")
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
-        div = make_axes_locatable(self.ax)
-        self.cax = div.append_axes(self.options["colorbarpos"], size=0.1, pad=0.05)
+        if self.options["colorbar"]:
+            div = make_axes_locatable(self.ax)
+            self.cax = div.append_axes(self.options["colorbarpos"], size=0.1, pad=0.05)
 
     def drawColorbar(self, label: str) -> None:
         self.cax.clear()
@@ -124,7 +124,9 @@ class Canvas(QtCanvas):
             ticks=MaxNLocator(nbins=6),
         )
 
-    def drawData(self, data: np.ndarray, aspect: float) -> None:
+    def drawData(
+        self, data: np.ndarray, extent: Tuple[float, float, float, float], aspect: float
+    ) -> None:
         self.ax.clear()
 
         # Filter if required
@@ -157,7 +159,7 @@ class Canvas(QtCanvas):
             alpha=self.viewconfig["alpha"],
             vmin=vmin,
             vmax=vmax,
-            extent=self.extent,
+            extent=extent,
             aspect=aspect,
             origin="upper",
         )
@@ -174,24 +176,18 @@ class Canvas(QtCanvas):
             else ""
         )
 
-        # If the laser extent has changed (i.e. config edited) then reset the view
-        x = data.shape[1] * laser.config.pixel_width()
-        y = data.shape[0] * laser.config.pixel_height()
-        extent = (0.0, x, 0.0, y)
-        if self.extent != extent:
-            self.extent = extent
-            self.view = (0.0, 0.0, 0.0, 0.0)
+        # Only change the view if new or the laser extent has changed (i.e. conf edit)
+        extent = laser.config.data_extent(data)
+        if self.image is None or self.image.get_extent() != extent:
+            self.view_limits = extent
 
         # If data is empty create a dummy data
         if data is None or data.size == 0:
             data = np.array([[0]], dtype=np.float64)
 
-        self.drawData(data, laser.config.aspect())
+        self.drawData(data, extent, laser.config.aspect())
         if self.options["colorbar"]:
-            self.cax.set_visible(True)
             self.drawColorbar(unit)
-        else:
-            self.cax.set_visible(False)
 
         if self.options["label"]:
             text = AnchoredText(
@@ -215,16 +211,15 @@ class Canvas(QtCanvas):
             )
             self.ax.add_artist(scalebar)
 
-        if self.view == (0.0, 0.0, 0.0, 0.0):
-            self.view = self.extent
-            self.draw()
-        else:
-            self.setView(*self.view)
+        self.draw()
+        # Return to zoom if extent not changed
+        if self.view_limits != extent:
+            self.updateView()
 
-    def setView(self, x1: float, x2: float, y1: float, y2: float) -> None:
+    def updateView(self) -> None:
+        x1, x2, y1, y2 = self.view_limits
         self.ax.set_xlim(x1, x2)
         self.ax.set_ylim(y1, y2)
-        self.view = (x1, x2, y1, y2)
         self.draw_idle()
 
     def startLasso(self) -> None:
@@ -252,7 +247,7 @@ class Canvas(QtCanvas):
         selected[:, :, 3].flat[~ind] = 128
         self.mask = self.ax.imshow(selected, extent=(x0, x1, y0, y1))
 
-        if self.view != self.extent:
+        if self.view_limits != self.image.get_extent():
             self.connectEvents("drag")
 
     def startZoom(self) -> None:
@@ -261,12 +256,14 @@ class Canvas(QtCanvas):
         self.disconnectEvents("drag")
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
-        self.setView(press.xdata, release.xdata, press.ydata, release.ydata)
+        self.view_limits = (press.xdata, release.xdata, press.ydata, release.ydata)
+        self.updateView()
         self.rectangle_selector.set_active(False)
         self.connectEvents("drag")
 
     def unzoom(self) -> None:
-        self.setView(*self.extent)
+        self.view_limits = self.image.get_extent()
+        self.updateView()
         self.disconnectEvents("drag")
 
     def connectEvents(self, key: str) -> None:
@@ -302,13 +299,15 @@ class Canvas(QtCanvas):
             y2 += self.drag_origin[1] - event.ydata
             # Bound to image exents
             xmin, xmax, ymin, ymax = self.image.get_extent()
-            view = self.view
+            view = self.view_limits
             if x1 > xmin and x2 < xmax:
                 view = (x1, x2, view[2], view[3])
             if y1 > ymin and y2 < ymax:
                 view = (view[0], view[1], y1, y2)
-            if view != self.view:
-                self.setView(*view)
+            # Update if changed
+            if view != self.view_limits:
+                self.view_limits = view
+                self.updateView()
 
     def updateStatusBar(self, e: MouseEvent) -> None:
         if e.inaxes == self.ax and self.image._A is not None:
