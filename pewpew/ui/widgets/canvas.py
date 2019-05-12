@@ -234,14 +234,18 @@ class Canvas(BasicCanvas):
         data = self.image.get_array()
         x0, x1, y0, y1 = self.image.get_extent()
         ny, nx = data.shape
+        # Calculate half pixel widths
+        px, py = (x1 - x0) / nx / 2.0, (y0 - y1) / ny / 2.0
 
+        # Grid of coords for the center of pixels
         x, y = np.meshgrid(
-            np.linspace(x0, x1, nx + 1)[:-1], np.linspace(y1, y0, ny + 1)[:-1]
+            np.linspace(x0 + px, x1 + px, nx, endpoint=False),
+            np.linspace(y1 + py, y0 + py, ny, endpoint=False),
         )
         pix = np.vstack((x.flatten(), y.flatten())).T
 
         path = Path(vertices)
-        ind = path.contains_points(pix, radius=1)
+        ind = path.contains_points(pix, radius=2)
 
         selected = np.zeros((*data.shape, 4), dtype=np.uint8)
         selected[:, :, 3].flat[~ind] = 128
