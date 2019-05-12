@@ -7,6 +7,7 @@ from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pewpew.ui.widgets import BasicTable, Canvas
+from pewpew.ui.widgets.canvas import BasicCanvas
 
 from pewpew.ui.tools.tool import Tool
 from pewpew.ui.validators import DoublePrecisionDelegate
@@ -18,6 +19,44 @@ from laserlib.calibration import LaserCalibration
 from typing import Dict, List
 from pewpew.ui.docks.dockarea import DockArea
 from pewpew.ui.docks import LaserImageDock
+
+
+class CalibrationCurveDialog(QtWidgets.QDialog):
+    def __init__(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        w: np.ndarray = None,
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(parent)
+        self.canvas = BasicCanvas(self)
+        ax = self.canvas.figure.add_subplot(111)
+
+        m, b, r2 = weighted_linreg(x, y, w)
+        x0, x1 = 0.0, x.max() * 1.1
+
+        ax.scatter(x, y, color="black")
+        ax.plot([x0, x1], [m * x0 + b, m * x1 + b], ls=":", lw=1.5, color="black")
+
+        text = Text(
+            x=0.05,
+            y=0.95,
+            text=f"y = {m:.4f} · x - {b:.4f}\nr² = {r2:.4f}",
+            transform=ax.transAxes,
+            color="black",
+            fontsize=12,
+            horizontalalignment="left",
+            verticalalignment="top",
+        )
+
+        ax.add_artist(text)
+
+        self.canvas.draw()
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.canvas)
+        self.setLayout(layout)
 
 
 class CalibrationTable(BasicTable):
@@ -58,8 +97,10 @@ class CalibrationTable(BasicTable):
 
 class CalibrationCanvas(Canvas):
     def __init__(self, viewconfig: dict, parent: QtWidgets.QWidget = None):
-        super().__init__(viewconfig, connect_mouse_events=False, parent=parent)
-        self.options = {"colorbar": False, "scalebar": False, "label": False}
+        options = {"colorbar": False, "scalebar": False, "label": False}
+        super().__init__(
+            viewconfig, options=options, connect_mouse_events=False, parent=parent
+        )
         div = make_axes_locatable(self.ax)
         self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
 
@@ -289,7 +330,9 @@ class CalibrationTool(Tool):
         if self.combo_isotope.currentText() not in self.dock.laser.data:
             return
         data = self.dock.laser.get(
-            self.combo_isotope.currentText(), calibrate=False, extent=self.canvas.view
+            self.combo_isotope.currentText(),
+            calibrate=False,
+            extent=self.canvas.view_limits,
         )
         if len(data) == 1:
             return
@@ -394,15 +437,33 @@ class CalibrationTool(Tool):
             return
         if event.key() == QtCore.Qt.Key_F5:
             self.draw()
+        elif event.key() == QtCore.Qt.Key_R:
+            self.showCurve()
         super().keyPressEvent(event)
 
-    #     def buttonBoxClicked(self, button: QtWidgets.QAbstractButton) -> None:
-    #         sb = self.button_box.standardButton(button)
+    def showCurve(self) -> None:
+        x = np.array(
+            self.table.columnText(CalibrationTable.COLUMN_CONC), dtype=np.float64
+        )
+        y = np.array(
+            self.table.columnText(CalibrationTable.COLUMN_COUNT), dtype=np.float64
+        )
 
-    #         if sb == QtWidgets.QDialogButtonBox.Ok:
-    #             self.accept()
-    #         else:
-    #             self.reject()
+        # Strip negative x values
+        y = y[x >= 0.0]
+        x = x[x >= 0.0]
+
+        weighting = self.combo_weighting.currentText()
+        if weighting == "x":
+            weights = x
+        elif weighting == "1/x":
+            weights = 1.0 / x
+        elif weighting == "1/(x^2)":
+            weights = 1.0 / (x ** 2)
+        else:  # Default is no weighting
+            weights = None
+        dlg = CalibrationCurveDialog(x, y, weights, self)
+        dlg.show()
 
     def buttonLaser(self) -> None:
         self.hide()
@@ -434,7 +495,8 @@ class CalibrationTool(Tool):
                 self.texts[self.previous_isotope] = texts
                 break
 
-        self.lineedit_units.setText(self.calibrations[isotope].unit)
+        if isotope in self.calibrations:
+            self.lineedit_units.setText(self.calibrations[isotope].unit)
 
         self.updateConcentrations()
         self.updateCounts()
@@ -461,7 +523,13 @@ class CalibrationTool(Tool):
                 unit_from=self.combo_trim.currentText(),
                 unit_to="um",
             )
-        self.canvas.setView(trim_left, trim_right, 0.0, self.canvas.extent[3])
+        self.canvas.view_limits = (
+            trim_left,
+            trim_right,
+            0.0,
+            self.canvas.image.get_extent()[3],
+        )
+        self.canvas.updateView()
         self.updateCounts()
         self.updateResults()
 
