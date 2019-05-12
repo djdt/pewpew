@@ -1,4 +1,4 @@
-from PyQt5 import QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from typing import Tuple
 
@@ -12,7 +12,7 @@ class DecimalValidator(QtGui.QDoubleValidator):
 
     # Make comma invalid.
     def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
-        if ',' in input:
+        if "," in input:
             return (QtGui.QValidator.Invalid, input, pos)
         return super().validate(input, pos)
 
@@ -89,6 +89,16 @@ class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
     def __init__(self, decimals: int, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.decimals = decimals
+
+    def createEditor(
+        self,
+        parent: QtWidgets.QWidget,
+        option: QtWidgets.QStyleOptionViewItem,
+        index: int,
+    ) -> QtWidgets.QWidget:
+        lineedit = QtWidgets.QLineEdit(parent)
+        lineedit.setValidator(QtGui.QDoubleValidator())
+        return lineedit
 
     def displayText(self, value: str, locale: str) -> str:
         try:
