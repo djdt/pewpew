@@ -30,7 +30,7 @@ class ImageDockTitleBar(QtWidgets.QWidget):
             QtGui.QIcon.fromTheme("edit-delete"), ""
         )
         self.button_close.setToolTip("Close the image.")
-        self.button_lasso = QtWidgets.QPushButton(QtGui.QIcon.fromTheme("edir-copy"), "")
+        # self.button_lasso = QtWidgets.QPushButton(QtGui.QIcon.fromTheme("edir-copy"), "")
         self.button_zoom = QtWidgets.QPushButton(QtGui.QIcon.fromTheme("zoom-in"), "")
         self.button_zoom.setToolTip("Zoom into slected area.")
         self.button_zoom_original = QtWidgets.QPushButton(
@@ -39,7 +39,7 @@ class ImageDockTitleBar(QtWidgets.QWidget):
         self.button_zoom_original.setToolTip("Reset to original zoom.")
 
         layout_buttons = QtWidgets.QHBoxLayout()
-        layout_buttons.addWidget(self.button_lasso, QtCore.Qt.AlignLeft)
+        # layout_buttons.addWidget(self.button_lasso, QtCore.Qt.AlignLeft)
         layout_buttons.addWidget(self.button_zoom, QtCore.Qt.AlignRight)
         layout_buttons.addWidget(self.button_zoom_original, QtCore.Qt.AlignRight)
         layout_buttons.addWidget(self.button_close, QtCore.Qt.AlignRight)
@@ -95,7 +95,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.setTitleBarWidget(self.title_bar)
         self.setWindowTitle(self.laser.name)
 
-        self.title_bar.button_lasso.clicked.connect(self.canvas.startLasso)
+        # self.title_bar.button_lasso.clicked.connect(self.canvas.startLasso)
         self.title_bar.button_zoom.clicked.connect(self.canvas.startZoom)
         self.title_bar.button_zoom_original.clicked.connect(self.canvas.unzoom)
         self.title_bar.button_close.clicked.connect(self.onMenuClose)
