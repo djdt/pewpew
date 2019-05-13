@@ -101,10 +101,15 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.title_bar.button_close.clicked.connect(self.onMenuClose)
 
         # Context menu actions
+        self.action_copy_image = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("insert-image"), "Copy Image", self
+        )
+        self.action_copy_image.setStatusTip("Copy image to clipboard.")
+        self.action_copy_image.triggered.connect(self.onMenuCopyImage)
         self.action_copy = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-copy"), "Open Copy", self
         )
-        self.action_copy.setStatusTip("Open a copy of this data")
+        self.action_copy.setStatusTip("Open a copy.")
         self.action_copy.triggered.connect(self.onMenuCopy)
         self.action_save = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("document-save"), "Save", self
@@ -148,7 +153,8 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
     def buildContextMenu(self) -> QtWidgets.QMenu:
         context_menu = QtWidgets.QMenu(self)
-        context_menu.addAction(self.action_copy)
+        context_menu.addAction(self.action_copy_image)
+        # context_menu.addAction(self.action_copy)
         context_menu.addSeparator()
         context_menu.addAction(self.action_save)
         context_menu.addAction(self.action_export)
@@ -170,6 +176,16 @@ class LaserImageDock(QtWidgets.QDockWidget):
     def contextMenuEvent(self, event: QtCore.QEvent) -> None:
         context_menu = self.buildContextMenu()
         context_menu.exec(event.globalPos())
+
+    def onMenuCopyImage(self) -> None:
+        self.canvas.figure.tight_layout()
+        bbox = self.canvas.figure.get_tightbbox(self.canvas.renderer).transformed(
+            self.canvas.figure.dpi_scale_trans
+        )
+        x0, y0, w, h = bbox.bounds
+        QtWidgets.QApplication.clipboard().setPixmap(
+            self.canvas.grab(QtCore.QRect(int(x0), int(y0), int(w), int(h)))
+        )
 
     def onMenuCopy(self) -> None:
         laser_copy = copy.deepcopy(self.laser)
