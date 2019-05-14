@@ -23,7 +23,7 @@ from matplotlib.image import AxesImage
 
 class BasicCanvas(FigureCanvasQTAgg):
     def __init__(self, parent: QtWidgets.QWidget = None):
-        fig = Figure(frameon=False, tight_layout=True, figsize=(5, 5), dpi=100)
+        fig = Figure(frameon=False, figsize=(5, 5), dpi=100)
         super().__init__(fig)
 
         self.setParent(parent)
@@ -31,10 +31,6 @@ class BasicCanvas(FigureCanvasQTAgg):
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
         )
-
-    def sizeHint(self) -> QtCore.QSize:
-        w, h = self.get_width_height()
-        return QtCore.QSize(w, h)
 
     def minimumSizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(250, 250)
@@ -109,6 +105,7 @@ class Canvas(BasicCanvas):
         if self.options["colorbar"]:
             div = make_axes_locatable(self.ax)
             self.cax = div.append_axes(self.options["colorbarpos"], size=0.1, pad=0.05)
+        self.figure.tight_layout()
 
     def drawColorbar(self, label: str) -> None:
         self.cax.clear()
@@ -211,10 +208,11 @@ class Canvas(BasicCanvas):
             )
             self.ax.add_artist(scalebar)
 
-        self.draw()
         # Return to zoom if extent not changed
         if self.view_limits != extent:
             self.updateView()
+
+        self.draw()
 
     def updateView(self) -> None:
         x1, x2, y1, y2 = self.view_limits
