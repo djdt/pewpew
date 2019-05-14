@@ -97,7 +97,7 @@ class Canvas(BasicCanvas):
 
     def redrawFigure(self) -> None:
         self.figure.clear()
-        self.ax = self.figure.add_subplot(111)
+        self.ax = self.figure.subplots()
         self.ax.axis("scaled")
         self.ax.set_facecolor("black")
         self.ax.get_xaxis().set_visible(False)
@@ -105,7 +105,6 @@ class Canvas(BasicCanvas):
         if self.options["colorbar"]:
             div = make_axes_locatable(self.ax)
             self.cax = div.append_axes(self.options["colorbarpos"], size=0.1, pad=0.05)
-        self.figure.tight_layout()
 
     def drawColorbar(self, label: str) -> None:
         self.cax.clear()
@@ -116,6 +115,7 @@ class Canvas(BasicCanvas):
         self.figure.colorbar(
             self.image,
             label=label,
+            ax=self.ax,
             cax=self.cax,
             orientation=orientation,
             ticks=MaxNLocator(nbins=6),
