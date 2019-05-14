@@ -304,9 +304,7 @@ class CalibrationTool(Tool):
         layout_canvas_bar.addWidget(box_trim)
         layout_canvas_bar.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignTop)
 
-        # layout_right = QtWidgets.QVBoxLayout()
         self.layout_top.addWidget(self.button_laser, 0, QtCore.Qt.AlignRight)
-        # layout_right.addWidget(self.button_laser, 0, QtCore.Qt.AlignRight)
         self.layout_right.addWidget(self.canvas)
         self.layout_right.addLayout(layout_canvas_bar)
 
