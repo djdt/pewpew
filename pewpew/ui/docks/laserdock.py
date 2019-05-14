@@ -178,11 +178,13 @@ class LaserImageDock(QtWidgets.QDockWidget):
         context_menu.exec(event.globalPos())
 
     def onMenuCopyImage(self) -> None:
-        self.canvas.figure.tight_layout()
-        bbox = self.canvas.figure.get_tightbbox(self.canvas.renderer).transformed(
-            self.canvas.figure.dpi_scale_trans
-        )
-        x0, y0, w, h = bbox.bounds
+        # TODO a tight layout that actually works would be nice to have
+
+        # bbox = self.canvas.figure.get_tightbbox(self.canvas.renderer).transformed(
+        #     self.canvas.figure.dpi_scale_trans
+        # )
+        # x0, y0, w, h = bbox.bounds
+        x0, y0, w, h = self.canvas.figure.bbox.bounds
         QtWidgets.QApplication.clipboard().setPixmap(
             self.canvas.grab(QtCore.QRect(int(x0), int(y0), int(w), int(h)))
         )
