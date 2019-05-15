@@ -120,6 +120,7 @@ class Canvas(BasicCanvas):
             orientation=orientation,
             ticks=MaxNLocator(nbins=6),
         )
+        self.cax.tick_params(labelsize=self.viewconfig["font"]["size"])
 
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float], aspect: float
