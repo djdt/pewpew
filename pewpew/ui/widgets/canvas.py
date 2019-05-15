@@ -23,7 +23,7 @@ from matplotlib.image import AxesImage
 
 class BasicCanvas(FigureCanvasQTAgg):
     def __init__(self, parent: QtWidgets.QWidget = None):
-        fig = Figure(frameon=False, tight_layout=True, figsize=(5, 5), dpi=100)
+        fig = Figure(frameon=False, constrained_layout=True, figsize=(5, 5), dpi=100)
         super().__init__(fig)
 
         self.setParent(parent)
