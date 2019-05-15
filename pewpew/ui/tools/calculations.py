@@ -1,7 +1,7 @@
 from PyQt5 import QtCore, QtWidgets
 import numpy as np
 
-from laserlib.laser import Laser, LaserData
+from laserlib.laser import Laser
 from pewpew.ui.validators import DecimalValidator
 
 from pewpew.ui.widgets import Canvas
@@ -9,74 +9,6 @@ from pewpew.ui.tools.tool import Tool
 
 from pewpew.ui.docks.dockarea import DockArea
 from pewpew.ui.docks import LaserImageDock
-
-from pewpew.lib.plotimage import plot_laser_data
-
-from typing import Callable, Tuple
-
-
-# class CalculatedData(object):
-#     SYMBOLS = {
-#         "add": "+",
-#         "divide": "/",
-#         "true_divide": "/",
-#         "multiply": "*",
-#         "subtract": "-",
-#         "greater": ">",
-#         "less": "<",
-#         "equal": "=",
-#         "not_equal": "!=",
-#         "where": "=>",
-#     }
-
-#     def __init__(
-#         self,
-#         data1: np.ndarray,
-#         op: Callable = None,
-#         data2: LaserData = None,
-#         cond1: Tuple[Callable, float] = None,
-#         cond2: Tuple[Callable, float] = None,
-#         fill_value: float = -1.0,
-#     ):
-#         self.data1 = data1
-#         self.data2 = data2
-#         self.op = op
-#         self.cond1 = cond1
-#         self.cond2 = cond2
-#         self.fill_value = fill_value
-
-#     def generateName(self) -> str:
-#         name = self.data1.name
-#         if self.cond1 is not None:
-#             name += f"[{CalculatedData.SYMBOLS[self.cond1[0].__name__]}{self.cond1[1]}]"
-#         if self.op is not None:
-#             name += f"{CalculatedData.SYMBOLS[self.op.__name__]}"
-#         elif self.data2 is not None:
-#             name += "=>"
-#         if self.data2 is not None:
-#             name += self.data2.name
-#         if self.cond2 is not None:
-#             name += f"[{CalculatedData.SYMBOLS[self.cond2[0].__name__]}{self.cond2[1]}]"
-#         return name
-
-#     def calculate(self,) -> np.ndarray:
-#         data = self.data1
-#         if self.cond1 is not None:
-#             mask = self.cond1[0](data, self.cond1[1])
-#             data = np.where(mask, data, np.full_like(data, self.fill_value))
-
-#         # If op and data2 are set then return d1 op d2
-#         if self.data2 is not None:
-#             data2 = self.data2
-#             if self.cond2 is not None:
-#                 mask = self.cond2[0](data2, self.cond2[1])
-#                 data2 = np.where(mask, data2, np.full_like(data2, self.fill_value))
-#             if self.op is not None:
-#                 return self.op(data, data2)
-#             else:
-#                 data = np.where(data2 != self.fill_value, data, data2)
-
-#     return data
 
 
 class CalculationsTool(Tool):
@@ -121,7 +53,6 @@ class CalculationsTool(Tool):
         self.setWindowTitle("Calculations Tool")
 
         self.dockarea = dockarea
-        self.viewconfig = viewconfig
 
         self.dock = dock
         self.data = np.zeros_like((1, 1), dtype=float)
@@ -130,8 +61,13 @@ class CalculationsTool(Tool):
 
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
 
-        self.canvas = Canvas(connect_mouse_events=False, parent=self)
-        self.canvas.options = {"colorbar": False, "scalebar": False, "label": False}
+        options = {"colorbar": False, "scalebar": False, "label": False}
+        self.canvas = Canvas(
+            viewconfig=viewconfig,
+            options=options,
+            connect_mouse_events=False,
+            parent=self,
+        )
 
         self.combo_isotope1 = QtWidgets.QComboBox()
         self.combo_isotope1.currentIndexChanged.connect(self.updateData)
@@ -196,7 +132,6 @@ class CalculationsTool(Tool):
         self.updateData()
 
     def updateData(self) -> None:
-
         isotope = self.combo_isotope1.currentText()
 
         if isotope not in self.dock.laser.data:
@@ -244,16 +179,10 @@ class CalculationsTool(Tool):
         self.draw()
 
     def draw(self) -> None:
-        self.canvas.clear()
-        plot_laser_data(
-            self.canvas.figure,
-            self.canvas.ax,
+        self.canvas.drawData(
             self.data,
-            aspect=self.dock.laser.config.aspect(),
-            cmap=self.viewconfig["cmap"]["type"],
-            # colorbar="bottom" if self.options["colorbar"] else None,
-            # colorbar_range=self.viewconfig["cmap"]["range"],
-            # scalebar="upper right" if self.options["scalebar"] else None,
+            self.dock.laser.config.data_extent(self.data),
+            self.dock.laser.config.aspect(),
         )
         self.canvas.draw()
 

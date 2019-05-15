@@ -4,6 +4,27 @@ from typing import List
 
 
 class BasicTable(QtWidgets.QTableWidget):
+    def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+        menu = QtWidgets.QMenu(self)
+        cut_action = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("edit-cut"), "Cut", self
+        )
+        cut_action.triggered.connect(self._cut)
+        copy_action = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("edit-copy"), "Copy", self
+        )
+        copy_action.triggered.connect(self._copy)
+        paste_action = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("edit-paste"), "Paste", self
+        )
+        paste_action.triggered.connect(self._paste)
+
+        menu.addAction(cut_action)
+        menu.addAction(copy_action)
+        menu.addAction(paste_action)
+
+        menu.exec(event.globalPos())
+
     def keyPressEvent(self, event: QtCore.QEvent) -> None:
         if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
             self._advance()
@@ -79,12 +100,12 @@ class BasicTable(QtWidgets.QTableWidget):
 
     def setColumnText(self, column: int, text: List[str] = None) -> None:
         if text is not None:
-            assert(len(text) == self.rowCount())
+            assert len(text) == self.rowCount()
         for row in range(0, self.rowCount()):
             self.item(row, column).setText(text[row] if text is not None else "")
 
     def setRowText(self, row: int, text: List[str] = None) -> None:
         if text is not None:
-            assert(len(text) == self.columnCount())
+            assert len(text) == self.columnCount()
         for column in range(0, self.columnCount()):
             self.item(row, column).setText(text[column] if text is not None else "")

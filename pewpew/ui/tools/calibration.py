@@ -7,8 +7,8 @@ from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pewpew.ui.widgets import BasicTable, Canvas
+from pewpew.ui.widgets.canvas import BasicCanvas
 
-# from pewpew.ui.dialogs import ApplyDialog
 from pewpew.ui.tools.tool import Tool
 from pewpew.ui.validators import DoublePrecisionDelegate
 
@@ -19,6 +19,44 @@ from laserlib.calibration import LaserCalibration
 from typing import Dict, List
 from pewpew.ui.docks.dockarea import DockArea
 from pewpew.ui.docks import LaserImageDock
+
+
+class CalibrationCurveDialog(QtWidgets.QDialog):
+    def __init__(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        w: np.ndarray = None,
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(parent)
+        self.canvas = BasicCanvas(self)
+        ax = self.canvas.figure.add_subplot(111)
+
+        m, b, r2 = weighted_linreg(x, y, w)
+        x0, x1 = 0.0, x.max() * 1.1
+
+        ax.scatter(x, y, color="black")
+        ax.plot([x0, x1], [m * x0 + b, m * x1 + b], ls=":", lw=1.5, color="black")
+
+        text = Text(
+            x=0.05,
+            y=0.95,
+            text=f"y = {m:.4f} · x - {b:.4f}\nr² = {r2:.4f}",
+            transform=ax.transAxes,
+            color="black",
+            fontsize=12,
+            horizontalalignment="left",
+            verticalalignment="top",
+        )
+
+        ax.add_artist(text)
+
+        self.canvas.draw()
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.canvas)
+        self.setLayout(layout)
 
 
 class CalibrationTable(BasicTable):
@@ -58,12 +96,16 @@ class CalibrationTable(BasicTable):
 
 
 class CalibrationCanvas(Canvas):
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__(connect_mouse_events=False, parent=parent)
+    def __init__(self, viewconfig: dict, parent: QtWidgets.QWidget = None):
+        options = {"colorbar": False, "scalebar": False, "label": False}
+        super().__init__(
+            viewconfig, options=options, connect_mouse_events=False, parent=parent
+        )
+        div = make_axes_locatable(self.ax)
+        self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
 
-        self.options = {"colorbar": False, "scalebar": False, "label": False}
-
-    def plotLevels(self, levels: int) -> None:
+    def drawLevels(self, levels: int) -> None:
+        self.bax.clear()
         ax_fraction = 1.0 / levels
         # Draw lines
         for frac in np.linspace(1.0 - ax_fraction, ax_fraction, levels - 1):
@@ -77,38 +119,35 @@ class CalibrationCanvas(Canvas):
             )
             self.ax.add_artist(line)
 
-        # Bookend for text
-        div = make_axes_locatable(self.ax)
-        cax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
-        cax.get_xaxis().set_visible(False)
-        cax.get_yaxis().set_visible(False)
-        cax.set_facecolor("black")
-
         for i, frac in enumerate(np.linspace(1.0, ax_fraction, levels)):
             text = Text(
                 x=0.5,
                 y=frac - (ax_fraction / 2.0),
                 text=CalibrationTable.ROW_LABELS[i],
-                transform=cax.transAxes,
+                transform=self.bax.transAxes,
                 color="white",
                 fontsize=12,
                 horizontalalignment="center",
                 verticalalignment="center",
             )
-            cax.add_artist(text)
+            self.bax.add_artist(text)
 
-        self.draw()
+        # Bookend for text
+        self.bax.get_xaxis().set_visible(False)
+        self.bax.get_yaxis().set_visible(False)
+        self.bax.set_facecolor("black")
 
 
 class ResultsBox(QtWidgets.QGroupBox):
+    LABELS = ["RSQ", "Gradient", "Intercept"]
+
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__("Results", parent)
-        labels = ["RSQ", "Gradient", "Intercept"]
         self.lineedits: List[QtWidgets.QLineEdit] = []
 
         layout = QtWidgets.QFormLayout()
 
-        for label in labels:
+        for label in ResultsBox.LABELS:
             le = QtWidgets.QLineEdit()
             le.setReadOnly(True)
 
@@ -118,27 +157,33 @@ class ResultsBox(QtWidgets.QGroupBox):
         self.setLayout(layout)
 
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
-        # TODO
-        pass
         menu = QtWidgets.QMenu(self)
         copy_action = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-copy"), "Copy All", self
         )
-        copy_action.setShortcut("Ctrl+Shift+C")
         copy_action.triggered.connect(self.copy)
-        stats_action = QtWidgets.QAction("Copy Stats", self)
-        stats_action.triggered.connect(self.stats)
 
         menu.addAction(copy_action)
-        menu.addAction(stats_action)
 
         menu.exec(event.globalPos())
 
     def copy(self) -> None:
-        pass
+        data = (
+            '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
+            "<table>"
+        )
+        text = ""
 
-    def stats(self) -> None:
-        pass
+        for label, lineedit in zip(ResultsBox.LABELS, self.lineedits):
+            value = lineedit.text()
+            data += f"<tr><td>{label}</td><td>{value}</td></tr>"
+            text += f"{label}\t{value}\n"
+        data += "</table>"
+
+        mime = QtCore.QMimeData()
+        mime.setHtml(data)
+        mime.setText(text)
+        QtWidgets.QApplication.clipboard().setMimeData(mime)
 
     def update(self, r2: float, m: float, b: float) -> None:
         for v, le in zip([r2, m, b], self.lineedits):
@@ -157,7 +202,6 @@ class CalibrationTool(Tool):
         self.setWindowTitle("Calibration Standards Tool")
 
         self.dockarea = dockarea
-        self.viewconfig = viewconfig
         self.previous_isotope = ""
 
         self.dock = dock
@@ -181,7 +225,7 @@ class CalibrationTool(Tool):
         # Right side
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
 
-        self.canvas = CalibrationCanvas(parent=self)
+        self.canvas = CalibrationCanvas(viewconfig, parent=self)
 
         self.lineedit_left = QtWidgets.QLineEdit()
         self.lineedit_right = QtWidgets.QLineEdit()
@@ -260,19 +304,14 @@ class CalibrationTool(Tool):
         layout_canvas_bar.addWidget(box_trim)
         layout_canvas_bar.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignTop)
 
-        # layout_right = QtWidgets.QVBoxLayout()
         self.layout_top.addWidget(self.button_laser, 0, QtCore.Qt.AlignRight)
-        # layout_right.addWidget(self.button_laser, 0, QtCore.Qt.AlignRight)
         self.layout_right.addWidget(self.canvas)
         self.layout_right.addLayout(layout_canvas_bar)
 
     def draw(self) -> None:
-        self.canvas.clear()
         if self.combo_isotope.currentText() in self.dock.laser.data:
-            self.canvas.plot(
-                self.dock.laser, self.combo_isotope.currentText(), self.viewconfig
-            )
-            self.canvas.plotLevels(self.spinbox_levels.value())
+            self.canvas.drawLaser(self.dock.laser, self.combo_isotope.currentText())
+            self.canvas.drawLevels(self.spinbox_levels.value())
             self.canvas.draw()
 
     def updateConcentrations(self) -> None:
@@ -289,14 +328,17 @@ class CalibrationTool(Tool):
         if self.combo_isotope.currentText() not in self.dock.laser.data:
             return
         data = self.dock.laser.get(
-            self.combo_isotope.currentText(), calibrate=False, extent=self.canvas.view
+            self.combo_isotope.currentText(),
+            calibrate=False,
+            extent=self.canvas.view_limits,
         )
         if len(data) == 1:
             return
 
-        if self.viewconfig["filtering"]["type"] != "None":
+        if self.canvas.viewconfig["filtering"]["type"] != "None":
             filter_type, window, threshold = (
-                self.viewconfig["filtering"][x] for x in ["type", "window", "threshold"]
+                self.canvas.viewconfig["filtering"][x]
+                for x in ["type", "window", "threshold"]
             )
             data = data.copy()
             if filter_type == "Rolling mean":
@@ -393,15 +435,33 @@ class CalibrationTool(Tool):
             return
         if event.key() == QtCore.Qt.Key_F5:
             self.draw()
+        elif event.key() == QtCore.Qt.Key_R:
+            self.showCurve()
         super().keyPressEvent(event)
 
-    #     def buttonBoxClicked(self, button: QtWidgets.QAbstractButton) -> None:
-    #         sb = self.button_box.standardButton(button)
+    def showCurve(self) -> None:
+        x = np.array(
+            self.table.columnText(CalibrationTable.COLUMN_CONC), dtype=np.float64
+        )
+        y = np.array(
+            self.table.columnText(CalibrationTable.COLUMN_COUNT), dtype=np.float64
+        )
 
-    #         if sb == QtWidgets.QDialogButtonBox.Ok:
-    #             self.accept()
-    #         else:
-    #             self.reject()
+        # Strip negative x values
+        y = y[x >= 0.0]
+        x = x[x >= 0.0]
+
+        weighting = self.combo_weighting.currentText()
+        if weighting == "x":
+            weights = x
+        elif weighting == "1/x":
+            weights = 1.0 / x
+        elif weighting == "1/(x^2)":
+            weights = 1.0 / (x ** 2)
+        else:  # Default is no weighting
+            weights = None
+        dlg = CalibrationCurveDialog(x, y, weights, self)
+        dlg.show()
 
     def buttonLaser(self) -> None:
         self.hide()
@@ -433,7 +493,8 @@ class CalibrationTool(Tool):
                 self.texts[self.previous_isotope] = texts
                 break
 
-        self.lineedit_units.setText(self.calibrations[isotope].unit)
+        if isotope in self.calibrations:
+            self.lineedit_units.setText(self.calibrations[isotope].unit)
 
         self.updateConcentrations()
         self.updateCounts()
@@ -460,7 +521,13 @@ class CalibrationTool(Tool):
                 unit_from=self.combo_trim.currentText(),
                 unit_to="um",
             )
-        self.canvas.setView(trim_left, trim_right, 0.0, self.canvas.extent[3])
+        self.canvas.view_limits = (
+            trim_left,
+            trim_right,
+            0.0,
+            self.canvas.image.get_extent()[3],
+        )
+        self.canvas.updateView()
         self.updateCounts()
         self.updateResults()
 

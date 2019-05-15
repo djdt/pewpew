@@ -30,6 +30,7 @@ class ImageDockTitleBar(QtWidgets.QWidget):
             QtGui.QIcon.fromTheme("edit-delete"), ""
         )
         self.button_close.setToolTip("Close the image.")
+        # self.button_lasso = QtWidgets.QPushButton(QtGui.QIcon.fromTheme("edir-copy"), "")
         self.button_zoom = QtWidgets.QPushButton(QtGui.QIcon.fromTheme("zoom-in"), "")
         self.button_zoom.setToolTip("Zoom into slected area.")
         self.button_zoom_original = QtWidgets.QPushButton(
@@ -38,6 +39,7 @@ class ImageDockTitleBar(QtWidgets.QWidget):
         self.button_zoom_original.setToolTip("Reset to original zoom.")
 
         layout_buttons = QtWidgets.QHBoxLayout()
+        # layout_buttons.addWidget(self.button_lasso, QtCore.Qt.AlignLeft)
         layout_buttons.addWidget(self.button_zoom, QtCore.Qt.AlignRight)
         layout_buttons.addWidget(self.button_zoom_original, QtCore.Qt.AlignRight)
         layout_buttons.addWidget(self.button_close, QtCore.Qt.AlignRight)
@@ -71,7 +73,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         )
 
         self.laser = laser
-        self.canvas = Canvas(parent=self)
+        self.canvas = Canvas(viewconfig=self.window().viewconfig, parent=self)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
@@ -93,15 +95,21 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.setTitleBarWidget(self.title_bar)
         self.setWindowTitle(self.laser.name)
 
+        # self.title_bar.button_lasso.clicked.connect(self.canvas.startLasso)
         self.title_bar.button_zoom.clicked.connect(self.canvas.startZoom)
         self.title_bar.button_zoom_original.clicked.connect(self.canvas.unzoom)
         self.title_bar.button_close.clicked.connect(self.onMenuClose)
 
         # Context menu actions
+        self.action_copy_image = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("insert-image"), "Copy Image", self
+        )
+        self.action_copy_image.setStatusTip("Copy image to clipboard.")
+        self.action_copy_image.triggered.connect(self.onMenuCopyImage)
         self.action_copy = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-copy"), "Open Copy", self
         )
-        self.action_copy.setStatusTip("Open a copy of this data")
+        self.action_copy.setStatusTip("Open a copy.")
         self.action_copy.triggered.connect(self.onMenuCopy)
         self.action_save = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("document-save"), "Save", self
@@ -141,15 +149,12 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.action_close.triggered.connect(self.onMenuClose)
 
     def draw(self) -> None:
-        self.canvas.clear()
-        self.canvas.plot(
-            self.laser, self.combo_isotope.currentText(), self.window().viewconfig
-        )
-        self.canvas.draw()
+        self.canvas.drawLaser(self.laser, self.combo_isotope.currentText())
 
     def buildContextMenu(self) -> QtWidgets.QMenu:
         context_menu = QtWidgets.QMenu(self)
-        context_menu.addAction(self.action_copy)
+        context_menu.addAction(self.action_copy_image)
+        # context_menu.addAction(self.action_copy)
         context_menu.addSeparator()
         context_menu.addAction(self.action_save)
         context_menu.addAction(self.action_export)
@@ -171,6 +176,18 @@ class LaserImageDock(QtWidgets.QDockWidget):
     def contextMenuEvent(self, event: QtCore.QEvent) -> None:
         context_menu = self.buildContextMenu()
         context_menu.exec(event.globalPos())
+
+    def onMenuCopyImage(self) -> None:
+        # The y axis is inverted so we must invert the bounds
+        y = self.canvas.size().height()
+        bbox = self.canvas.figure.get_tightbbox(self.canvas.get_renderer()).transformed(
+            self.canvas.figure.dpi_scale_trans
+        )
+        x0, y0, w, h = bbox.bounds
+        y0 = y - y0 - h
+        QtWidgets.QApplication.clipboard().setPixmap(
+            self.canvas.grab(QtCore.QRect(int(x0), int(y0), int(w), int(h)))
+        )
 
     def onMenuCopy(self) -> None:
         laser_copy = copy.deepcopy(self.laser)
