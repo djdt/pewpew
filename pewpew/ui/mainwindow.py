@@ -455,8 +455,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 dock.draw()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        laser = docks[0] if len(docks) > 0 else LaserImageDock(Laser(), parent=self)
-        cali_tool = StandardsTool(laser, self.dockarea, self.viewconfig, parent=self)
+        laserdock = docks[0] if len(docks) > 0 else LaserImageDock(Laser(), parent=self)
+        cali_tool = StandardsTool(self.dockarea, laserdock, self.viewconfig, parent=self)
         cali_tool.applyPressed.connect(applyTool)
         cali_tool.show()
 
