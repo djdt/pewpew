@@ -1,3 +1,4 @@
+import copy
 from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -23,7 +24,7 @@ from matplotlib.image import AxesImage
 
 class BasicCanvas(FigureCanvasQTAgg):
     def __init__(self, parent: QtWidgets.QWidget = None):
-        fig = Figure(frameon=False, constrained_layout=True, figsize=(5, 5), dpi=100)
+        fig = Figure(frameon=False, tight_layout=True, figsize=(5, 5), dpi=100)
         super().__init__(fig)
 
         self.setParent(parent)
@@ -53,7 +54,7 @@ class Canvas(BasicCanvas):
     ) -> None:
         super().__init__(parent)
         self.viewconfig = viewconfig
-        self.options = Canvas.DEFAULT_OPTIONS
+        self.options = copy.deepcopy(Canvas.DEFAULT_OPTIONS)
         if options is not None:
             self.options.update(options)
         self.image: AxesImage = None
@@ -185,6 +186,7 @@ class Canvas(BasicCanvas):
 
         self.drawData(data, extent, laser.config.aspect())
         if self.options["colorbar"]:
+            print('cb')
             self.drawColorbar(unit)
 
         if self.options["label"]:

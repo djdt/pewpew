@@ -171,7 +171,12 @@ class CalculationsTool(Tool):
             if op is np.where:
                 data = np.where(data2 != self.fill_value, data, data2)
             elif op is not None:
+                # If true divide is used we avoid errors by replacing with one, then zero
+                if op == np.true_divide:
+                    data2[data2 == 0.0] = 1.0
                 data = op(data, data2)
+                if op == np.true_divide:
+                    data[data2 == 0.0] = 0.0
 
         self.data = data
         self.name = name
