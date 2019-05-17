@@ -186,7 +186,6 @@ class Canvas(BasicCanvas):
 
         self.drawData(data, extent, laser.config.aspect())
         if self.options["colorbar"]:
-            print('cb')
             self.drawColorbar(unit)
 
         if self.options["label"]:
