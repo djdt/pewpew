@@ -54,6 +54,19 @@ class StandardsResultsDialog(QtWidgets.QDialog):
         layout.addWidget(self.canvas)
         self.setLayout(layout)
 
+    def contextMenuEvent(self, event: QtCore.QEvent) -> None:
+        context_menu = QtWidgets.QMenu(self)
+        action_copy = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("insert-image"), "Copy Image", self
+        )
+        action_copy.setStatusTip("Copy image to clipboard.")
+        action_copy.triggered.connect(self.copyImage)
+        context_menu.addAction(action_copy)
+        context_menu.exec(event.globalPos())
+
+    def copyImage(self) -> None:
+        QtWidgets.QApplication.clipboard().setPixmap(self.canvas.grab())
+
 
 class StandardsResultsBox(QtWidgets.QGroupBox):
     LABELS = ["RSQ", "Gradient", "Intercept"]
