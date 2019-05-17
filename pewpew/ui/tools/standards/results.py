@@ -26,9 +26,13 @@ class StandardsResultsDialog(QtWidgets.QDialog):
         m, b, r2 = weighted_linreg(x, y, w)
         x0, x1 = 0.0, x.max() * 1.1
 
+        xlabel = "Concentration"
+        if unit != "":
+            xlabel += f" ({unit})"
+
         ax.scatter(x, y, color="black")
         ax.plot([x0, x1], [m * x0 + b, m * x1 + b], ls=":", lw=1.5, color="black")
-        ax.set_xlabel("Concentration ({unit})")
+        ax.set_xlabel(xlabel)
         ax.set_ylabel("Counts")
 
         text = Text(
