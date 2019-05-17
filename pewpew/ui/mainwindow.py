@@ -8,7 +8,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from pewpew import __version__
 from pewpew.ui.dialogs import ConfigDialog, ColorRangeDialog, FilteringDialog
 from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
-from pewpew.ui.tools import Tool, CalculationsTool, CalibrationTool
+from pewpew.ui.tools import Tool, CalculationsTool, StandardsTool
 from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
 from pewpew.ui.widgets.detailederror import DetailedError
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
@@ -456,7 +456,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
         laser = docks[0] if len(docks) > 0 else LaserImageDock(Laser(), parent=self)
-        cali_tool = CalibrationTool(laser, self.dockarea, self.viewconfig, parent=self)
+        cali_tool = StandardsTool(laser, self.dockarea, self.viewconfig, parent=self)
         cali_tool.applyPressed.connect(applyTool)
         cali_tool.show()
 

@@ -2,199 +2,29 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 import copy
 
-from matplotlib.lines import Line2D
-from matplotlib.text import Text
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-from pewpew.ui.widgets import BasicTable, Canvas
-from pewpew.ui.widgets.canvas import BasicCanvas
-
-from pewpew.ui.tools.tool import Tool
-from pewpew.ui.validators import DoublePrecisionDelegate
-
-from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter, weighted_linreg
-
 from laserlib.calibration import LaserCalibration
 
-from typing import Dict, List
+from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
+
+from pewpew.ui.tools.tool import Tool
 from pewpew.ui.docks.dockarea import DockArea
-from pewpew.ui.docks import LaserImageDock
+from pewpew.ui.docks.laserdock import LaserImageDock
+
+from pewpew.ui.tools.standards.canvas import StandardsCanvas
+from pewpew.ui.tools.standards.results import (
+    StandardsResultsBox,
+    StandardsResultsDialog,
+)
+from pewpew.ui.tools.standards.table import StandardsTable
+
+from typing import Dict, List
 
 
-class CalibrationCurveDialog(QtWidgets.QDialog):
+class StandardsTool(Tool):
     def __init__(
         self,
-        x: np.ndarray,
-        y: np.ndarray,
-        w: np.ndarray = None,
-        parent: QtWidgets.QWidget = None,
-    ):
-        super().__init__(parent)
-        self.canvas = BasicCanvas(self)
-        ax = self.canvas.figure.add_subplot(111)
-
-        m, b, r2 = weighted_linreg(x, y, w)
-        x0, x1 = 0.0, x.max() * 1.1
-
-        ax.scatter(x, y, color="black")
-        ax.plot([x0, x1], [m * x0 + b, m * x1 + b], ls=":", lw=1.5, color="black")
-
-        text = Text(
-            x=0.05,
-            y=0.95,
-            text=f"y = {m:.4f} · x - {b:.4f}\nr² = {r2:.4f}",
-            transform=ax.transAxes,
-            color="black",
-            fontsize=12,
-            horizontalalignment="left",
-            verticalalignment="top",
-        )
-
-        ax.add_artist(text)
-
-        self.canvas.draw()
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.canvas)
-        self.setLayout(layout)
-
-
-class CalibrationTable(BasicTable):
-    ROW_LABELS = [c for c in "ABCDEFGHIJKLMNOPQRST"]
-    COLUMN_CONC = 0
-    COLUMN_COUNT = 1
-
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__(0, 2, parent)
-        self.setHorizontalHeaderLabels(["Concentration", "Counts"])
-        self.horizontalHeader().setStretchLastSection(True)
-        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
-        self.setItemDelegate(DoublePrecisionDelegate(4))
-
-    def isComplete(self) -> bool:
-        for row in range(0, self.rowCount()):
-            for column in range(0, self.columnCount()):
-                if self.item(row, column).text() == "":
-                    return False
-        return True
-
-    def setRowCount(self, rows: int) -> None:
-        current_rows = self.rowCount()
-        super().setRowCount(rows)
-
-        if current_rows < rows:
-            self.setVerticalHeaderLabels(CalibrationTable.ROW_LABELS)
-            for row in range(current_rows, rows):
-                item = QtWidgets.QTableWidgetItem()
-                item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-                self.setItem(row, 0, item)
-                item = QtWidgets.QTableWidgetItem()
-                item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-                # Non editable item
-                item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
-                self.setItem(row, 1, item)
-
-
-class CalibrationCanvas(Canvas):
-    def __init__(self, viewconfig: dict, parent: QtWidgets.QWidget = None):
-        options = {"colorbar": False, "scalebar": False, "label": False}
-        super().__init__(
-            viewconfig, options=options, connect_mouse_events=False, parent=parent
-        )
-        div = make_axes_locatable(self.ax)
-        self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
-
-    def drawLevels(self, levels: int) -> None:
-        self.bax.clear()
-        ax_fraction = 1.0 / levels
-        # Draw lines
-        for frac in np.linspace(1.0 - ax_fraction, ax_fraction, levels - 1):
-            line = Line2D(
-                (0.0, 1.0),
-                (frac, frac),
-                transform=self.ax.transAxes,
-                color="black",
-                linestyle="--",
-                linewidth=2.0,
-            )
-            self.ax.add_artist(line)
-
-        for i, frac in enumerate(np.linspace(1.0, ax_fraction, levels)):
-            text = Text(
-                x=0.5,
-                y=frac - (ax_fraction / 2.0),
-                text=CalibrationTable.ROW_LABELS[i],
-                transform=self.bax.transAxes,
-                color="white",
-                fontsize=12,
-                horizontalalignment="center",
-                verticalalignment="center",
-            )
-            self.bax.add_artist(text)
-
-        # Bookend for text
-        self.bax.get_xaxis().set_visible(False)
-        self.bax.get_yaxis().set_visible(False)
-        self.bax.set_facecolor("black")
-
-
-class ResultsBox(QtWidgets.QGroupBox):
-    LABELS = ["RSQ", "Gradient", "Intercept"]
-
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__("Results", parent)
-        self.lineedits: List[QtWidgets.QLineEdit] = []
-
-        layout = QtWidgets.QFormLayout()
-
-        for label in ResultsBox.LABELS:
-            le = QtWidgets.QLineEdit()
-            le.setReadOnly(True)
-
-            layout.addRow(label, le)
-            self.lineedits.append(le)
-
-        self.setLayout(layout)
-
-    def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
-        menu = QtWidgets.QMenu(self)
-        copy_action = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("edit-copy"), "Copy All", self
-        )
-        copy_action.triggered.connect(self.copy)
-
-        menu.addAction(copy_action)
-
-        menu.exec(event.globalPos())
-
-    def copy(self) -> None:
-        data = (
-            '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
-            "<table>"
-        )
-        text = ""
-
-        for label, lineedit in zip(ResultsBox.LABELS, self.lineedits):
-            value = lineedit.text()
-            data += f"<tr><td>{label}</td><td>{value}</td></tr>"
-            text += f"{label}\t{value}\n"
-        data += "</table>"
-
-        mime = QtCore.QMimeData()
-        mime.setHtml(data)
-        mime.setText(text)
-        QtWidgets.QApplication.clipboard().setMimeData(mime)
-
-    def update(self, r2: float, m: float, b: float) -> None:
-        for v, le in zip([r2, m, b], self.lineedits):
-            le.setText(f"{v:.4f}")
-
-
-class CalibrationTool(Tool):
-    def __init__(
-        self,
-        dock: LaserImageDock,
         dockarea: DockArea,
+        dock: LaserImageDock,
         viewconfig: dict,
         parent: QtWidgets.QWidget = None,
     ):
@@ -213,19 +43,19 @@ class CalibrationTool(Tool):
         # Left side
         self.spinbox_levels = QtWidgets.QSpinBox()
 
-        self.table = CalibrationTable(self)
+        self.table = StandardsTable(self)
 
         self.lineedit_units = QtWidgets.QLineEdit()
 
         self.combo_weighting = QtWidgets.QComboBox()
         self.combo_averaging = QtWidgets.QComboBox()
 
-        self.box_result = ResultsBox()
+        self.results_box = StandardsResultsBox()
 
         # Right side
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
 
-        self.canvas = CalibrationCanvas(viewconfig, parent=self)
+        self.canvas = StandardsCanvas(viewconfig, parent=self)
 
         self.lineedit_left = QtWidgets.QLineEdit()
         self.lineedit_right = QtWidgets.QLineEdit()
@@ -256,6 +86,8 @@ class CalibrationTool(Tool):
         self.combo_averaging.addItems(["Mean", "Median"])
         self.combo_averaging.currentIndexChanged.connect(self.comboAveraging)
 
+        self.results_box.button.pressed.connect(self.showCurve)
+
         self.table.itemChanged.connect(self.tableItemChanged)
         self.table.setRowCount(6)
 
@@ -271,9 +103,8 @@ class CalibrationTool(Tool):
         self.combo_trim.currentIndexChanged.connect(self.comboTrim)
 
         self.combo_isotope.addItems(self.dock.laser.isotopes())
+        self.combo_isotope.setCurrentText(self.dock.combo_isotope.currentText())
         self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
-
-        # self.button_box.clicked.connect(self.buttonBoxClicked)
 
     def layoutWidgets(self) -> None:
         layout_cal_form = QtWidgets.QFormLayout()
@@ -288,7 +119,7 @@ class CalibrationTool(Tool):
         self.layout_left.addLayout(layout_cal_form)
         self.layout_left.addWidget(self.table)
         self.layout_left.addLayout(layout_table_form)
-        self.layout_left.addWidget(self.box_result)
+        self.layout_left.addWidget(self.results_box)
 
         layout_box_trim = QtWidgets.QHBoxLayout()
         layout_box_trim.addWidget(QtWidgets.QLabel("Left:"))
@@ -311,7 +142,9 @@ class CalibrationTool(Tool):
     def draw(self) -> None:
         if self.combo_isotope.currentText() in self.dock.laser.data:
             self.canvas.drawLaser(self.dock.laser, self.combo_isotope.currentText())
-            self.canvas.drawLevels(self.spinbox_levels.value())
+            self.canvas.drawLevels(
+                StandardsTable.ROW_LABELS, self.spinbox_levels.value()
+            )
             self.canvas.draw()
 
     def updateConcentrations(self) -> None:
@@ -319,9 +152,9 @@ class CalibrationTool(Tool):
         self.table.blockSignals(True)
         if name in self.texts.keys():
             concentrations = self.texts[name]
-            self.table.setColumnText(CalibrationTable.COLUMN_CONC, concentrations)
+            self.table.setColumnText(StandardsTable.COLUMN_CONC, concentrations)
         else:
-            self.table.setColumnText(CalibrationTable.COLUMN_CONC, None)
+            self.table.setColumnText(StandardsTable.COLUMN_CONC, None)
             self.table.blockSignals(False)
 
     def updateCounts(self) -> None:
@@ -356,48 +189,49 @@ class CalibrationTool(Tool):
                 text.append(f"{np.mean(sections[row])}")
 
         self.table.blockSignals(True)
-        self.table.setColumnText(CalibrationTable.COLUMN_COUNT, text)
+        self.table.setColumnText(StandardsTable.COLUMN_COUNT, text)
         self.table.blockSignals(False)
+
+    def getWeights(self, x: np.ndarray) -> np.ndarray:
+        weighting = self.combo_weighting.currentText()
+        if weighting == "x":
+            return x
+        elif weighting == "1/x":
+            return 1.0 / x
+        elif weighting == "1/(x^2)":
+            return 1.0 / (x ** 2)
+        else:  # Default is no weighting
+            return None
 
     def updateResults(self) -> None:
         # Clear results if not complete
         if not self.table.isComplete():
-            for le in self.box_result.lineedits:
-                le.setText("")
+            self.results_box.clear()
             return
 
         x = np.array(
-            self.table.columnText(CalibrationTable.COLUMN_CONC), dtype=np.float64
+            self.table.columnText(StandardsTable.COLUMN_CONC), dtype=np.float64
         )
         y = np.array(
-            self.table.columnText(CalibrationTable.COLUMN_COUNT), dtype=np.float64
+            self.table.columnText(StandardsTable.COLUMN_COUNT), dtype=np.float64
         )
-
         # Strip negative x values
         y = y[x >= 0.0]
         x = x[x >= 0.0]
-
-        weighting = self.combo_weighting.currentText()
-        if weighting == "x":
-            weights = x
-        elif weighting == "1/x":
-            weights = 1.0 / x
-        elif weighting == "1/(x^2)":
-            weights = 1.0 / (x ** 2)
-        else:  # Default is no weighting
-            weights = None
+        w = self.getWeights(x)
 
         # Replace non finite values with one
-        if weights is not None and not np.all(np.isfinite(weights)):
-            self.box_result.lineedits[0].setText("Error")
+        if w is not None and not np.all(np.isfinite(w)):
+            self.results_box.lineedits[0].setText("Invalid weighting option.")
             return
 
-        m, b, r2 = weighted_linreg(x, y, w=weights)
-        self.box_result.update(r2, m, b)
+        self.results_box.update(x, y, w)
 
         name = self.combo_isotope.currentText()
         self.calibrations[name] = LaserCalibration(
-            intercept=b, gradient=m, unit=self.lineedit_units.text()
+            intercept=self.results_box.b,
+            gradient=self.results_box.m,
+            unit=self.lineedit_units.text(),
         )
 
     @QtCore.pyqtSlot("QWidget*")
@@ -411,6 +245,7 @@ class CalibrationTool(Tool):
             self.combo_isotope.blockSignals(True)
             self.combo_isotope.clear()
             self.combo_isotope.addItems(self.dock.laser.isotopes())
+            self.combo_isotope.setCurrentText(self.dock.combo_isotope.currentText())
             self.combo_isotope.blockSignals(False)
 
             self.lineedit_left.setText("")
@@ -441,26 +276,19 @@ class CalibrationTool(Tool):
 
     def showCurve(self) -> None:
         x = np.array(
-            self.table.columnText(CalibrationTable.COLUMN_CONC), dtype=np.float64
+            self.table.columnText(StandardsTable.COLUMN_CONC), dtype=np.float64
         )
         y = np.array(
-            self.table.columnText(CalibrationTable.COLUMN_COUNT), dtype=np.float64
+            self.table.columnText(StandardsTable.COLUMN_COUNT), dtype=np.float64
         )
-
         # Strip negative x values
         y = y[x >= 0.0]
         x = x[x >= 0.0]
+        w = self.getWeights(x)
 
-        weighting = self.combo_weighting.currentText()
-        if weighting == "x":
-            weights = x
-        elif weighting == "1/x":
-            weights = 1.0 / x
-        elif weighting == "1/(x^2)":
-            weights = 1.0 / (x ** 2)
-        else:  # Default is no weighting
-            weights = None
-        dlg = CalibrationCurveDialog(x, y, weights, self)
+        dlg = StandardsResultsDialog(
+            x, y, w=w, unit=self.lineedit_units.text(), parent=self
+        )
         dlg.show()
 
     def buttonLaser(self) -> None:
@@ -486,7 +314,7 @@ class CalibrationTool(Tool):
 
     def comboIsotope(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
-        texts = self.table.columnText(CalibrationTable.COLUMN_CONC)
+        texts = self.table.columnText(StandardsTable.COLUMN_CONC)
         # Only update if at least one cell is filled
         for text in texts:
             if text != "":
