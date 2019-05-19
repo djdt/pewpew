@@ -14,12 +14,13 @@ class PNGExportOptions(QtWidgets.QGroupBox):
         self.linedit_size_y = QtWidgets.QLineEdit("800")
         self.linedit_size_y.setValidator(QtGui.QIntValidator(0, 9999))
 
-        self.check_colorbar = QtWidgets.QCheckBox("Include color bar.")
-        self.check_colorbar.setChecked(True)
-        self.check_scalebar = QtWidgets.QCheckBox("Include scale bar.")
-        self.check_scalebar.setChecked(True)
-        self.check_label = QtWidgets.QCheckBox("Include isotope label.")
-        self.check_label.setChecked(True)
+        # We can just use the open options
+        # self.check_colorbar = QtWidgets.QCheckBox("Include color bar.")
+        # self.check_colorbar.setChecked(True)
+        # self.check_scalebar = QtWidgets.QCheckBox("Include scale bar.")
+        # self.check_scalebar.setChecked(True)
+        # self.check_label = QtWidgets.QCheckBox("Include isotope label.")
+        # self.check_label.setChecked(True)
 
         layout_size = QtWidgets.QHBoxLayout()
         layout_size.addWidget(QtWidgets.QLabel("Size:"))
@@ -29,23 +30,23 @@ class PNGExportOptions(QtWidgets.QGroupBox):
         options_layout = QtWidgets.QVBoxLayout()
 
         options_layout.addLayout(layout_size)
-        options_layout.addWidget(self.check_colorbar)
-        options_layout.addWidget(self.check_scalebar)
-        options_layout.addWidget(self.check_label)
+        # options_layout.addWidget(self.check_colorbar)
+        # options_layout.addWidget(self.check_scalebar)
+        # options_layout.addWidget(self.check_label)
 
         self.setLayout(options_layout)
 
     def imagesize(self) -> Tuple[int, int]:
         return (int(self.linedit_size_x.text()), int(self.linedit_size_y.text()))
 
-    def colorbarChecked(self) -> bool:
-        return self.check_colorbar.isChecked()
+#     def colorbarChecked(self) -> bool:
+#         return self.check_colorbar.isChecked()
 
-    def scalebarChecked(self) -> bool:
-        return self.check_scalebar.isChecked()
+#     def scalebarChecked(self) -> bool:
+#         return self.check_scalebar.isChecked()
 
-    def labelChecked(self) -> bool:
-        return self.check_label.isChecked()
+#     def labelChecked(self) -> bool:
+#         return self.check_label.isChecked()
 
 
 class PNGExportDialog(ExportDialog):

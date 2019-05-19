@@ -214,8 +214,6 @@ class Canvas(BasicCanvas):
         if self.view_limits != extent:
             self.updateView()
 
-        self.draw()
-
     def updateView(self) -> None:
         x1, x2, y1, y2 = self.view_limits
         self.ax.set_xlim(x1, x2)

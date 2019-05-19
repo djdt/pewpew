@@ -8,7 +8,6 @@ from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog, StatsDialog
 from pewpew.ui.dialogs.export import CSVExportDialog, PNGExportDialog
 
 from laserlib import io
-from pewpew.lib import io as ppio
 from laserlib.laser import Laser
 
 from pewpew.ui.dialogs import ApplyDialog
@@ -164,6 +163,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
     def draw(self) -> None:
         self.canvas.drawLaser(self.laser, self.combo_isotope.currentText())
+        self.canvas.draw_idle()
 
     def buildContextMenu(self) -> QtWidgets.QMenu:
         context_menu = QtWidgets.QMenu(self)
@@ -266,18 +266,18 @@ class LaserImageDock(QtWidgets.QDockWidget):
             )
             if dlg.exec():
                 paths = dlg.generate_paths(self.laser)
+                old_size = self.canvas.figure.get_size_inches()
+                size = dlg.options.imagesize()
+                dpi = self.canvas.figure.get_dpi()
+                self.canvas.figure.set_size_inches(size[0] / dpi, size[1] / dpi)
+
                 for path, isotope, _ in paths:
-                    ppio.png.save(
-                        path,
-                        self.laser,
-                        isotope,
-                        extent=self.canvas.view,
-                        viewconfig=self.window().viewconfig,
-                        size=dlg.options.imagesize(),
-                        include_colorbar=dlg.options.colorbarChecked(),
-                        include_scalebar=dlg.options.scalebarChecked(),
-                        include_label=dlg.options.labelChecked(),
-                    )
+                    self.canvas.drawLaser(self.laser, isotope)
+                    self.canvas.figure.savefig(path, transparent=True, frameon=False)
+
+                self.canvas.figure.set_size_inches(*old_size)
+                self.canvas.drawLaser(self.laser, self.combo_isotope.currentText())
+                self.canvas.draw()
         elif ext == ".vti":
             spacing = *self.laser.config.pixel_size(), self.laser.config.spotsize / 2.0
             io.vtk.save(
