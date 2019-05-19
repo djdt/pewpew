@@ -268,10 +268,8 @@ class StandardsTool(Tool):
             QtCore.Qt.Key_Return,
         ]:
             return
-        if event.key() == QtCore.Qt.Key_F5:
+        elif event.key() == QtCore.Qt.Key_F5:
             self.draw()
-        elif event.key() == QtCore.Qt.Key_R:
-            self.showCurve()
         super().keyPressEvent(event)
 
     def showCurve(self) -> None:
