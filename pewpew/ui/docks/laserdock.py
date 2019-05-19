@@ -26,23 +26,34 @@ class ImageDockTitleBar(QtWidgets.QWidget):
         # self.parent().windowTitleChanged.connect(self.setTitle)
 
         # Button Bar
-        self.button_close = QtWidgets.QPushButton(
-            QtGui.QIcon.fromTheme("edit-delete"), ""
+        self.button_select_rect = QtWidgets.QPushButton(
+            QtGui.QIcon.fromTheme("draw-rectangle"), ""
         )
-        self.button_close.setToolTip("Close the image.")
-        # self.button_lasso = QtWidgets.QPushButton(QtGui.QIcon.fromTheme("edir-copy"), "")
+        self.button_select_lasso = QtWidgets.QPushButton(
+            QtGui.QIcon.fromTheme("edit-select-lasso"), ""
+        )
         self.button_zoom = QtWidgets.QPushButton(QtGui.QIcon.fromTheme("zoom-in"), "")
         self.button_zoom.setToolTip("Zoom into slected area.")
         self.button_zoom_original = QtWidgets.QPushButton(
             QtGui.QIcon.fromTheme("zoom-original"), ""
         )
         self.button_zoom_original.setToolTip("Reset to original zoom.")
+        self.button_close = QtWidgets.QPushButton(
+            QtGui.QIcon.fromTheme("edit-delete"), ""
+        )
+        self.button_close.setToolTip("Close the image.")
+
+        line = QtWidgets.QFrame()
+        line.setFrameShape(QtWidgets.QFrame.VLine)
+        line.setFrameShadow(QtWidgets.QFrame.Sunken)
 
         layout_buttons = QtWidgets.QHBoxLayout()
-        # layout_buttons.addWidget(self.button_lasso, QtCore.Qt.AlignLeft)
-        layout_buttons.addWidget(self.button_zoom, QtCore.Qt.AlignRight)
-        layout_buttons.addWidget(self.button_zoom_original, QtCore.Qt.AlignRight)
-        layout_buttons.addWidget(self.button_close, QtCore.Qt.AlignRight)
+        layout_buttons.addWidget(self.button_select_rect, 0, QtCore.Qt.AlignLeft)
+        layout_buttons.addWidget(self.button_select_lasso, 0, QtCore.Qt.AlignLeft)
+        layout_buttons.addWidget(line)
+        layout_buttons.addWidget(self.button_zoom, 0, QtCore.Qt.AlignRight)
+        layout_buttons.addWidget(self.button_zoom_original, 0, QtCore.Qt.AlignRight)
+        layout_buttons.addWidget(self.button_close, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(self.title, 1)
@@ -51,6 +62,9 @@ class ImageDockTitleBar(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def setTitle(self, title: str) -> None:
+        self.button_select_rect = QtWidgets.QPushButton(
+            QtGui.QIcon.fromTheme("draw-rectangle"), ""
+        )
         if "&" not in title:
             self.title.setText(title)
 
@@ -95,7 +109,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.setTitleBarWidget(self.title_bar)
         self.setWindowTitle(self.laser.name)
 
-        # self.title_bar.button_lasso.clicked.connect(self.canvas.startLasso)
+        self.title_bar.button_select_lasso.clicked.connect(self.canvas.startLasso)
         self.title_bar.button_zoom.clicked.connect(self.canvas.startZoom)
         self.title_bar.button_zoom_original.clicked.connect(self.canvas.unzoom)
         self.title_bar.button_close.clicked.connect(self.onMenuClose)
