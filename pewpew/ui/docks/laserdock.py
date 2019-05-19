@@ -153,7 +153,6 @@ class LaserImageDock(QtWidgets.QDockWidget):
         )
         self.action_stats.setStatusTip("Data histogram and statistics.")
         self.action_stats.triggered.connect(self.onMenuStats)
-        self.action_stats.setEnabled(False)
 
         self.action_close = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-delete"), "Close", self
@@ -335,8 +334,13 @@ class LaserImageDock(QtWidgets.QDockWidget):
             applyDialog(dlg)
 
     def onMenuStats(self) -> None:
-        return
-        dlg = StatsDialog(self.laser, self.window().viewconfig, parent=self)
+        data = self.canvas.image.get_array()
+        if self.canvas.image_mask is not None:
+            print(data.shape)
+            print(self.canvas.image_mask.get_array().shape)
+            data = data[self.canvas.image_mask.get_array() == 1]
+
+        dlg = StatsDialog(data, parent=self)
         dlg.exec()
 
     # def onMenuCalculate(self) -> None:

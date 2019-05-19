@@ -1,52 +1,45 @@
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtGui, QtWidgets
 import numpy as np
 
-from laserlib.laser import Laser
-
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from pewpew.ui.widgets.canvas import BasicCanvas
 
 
 class StatsDialog(QtWidgets.QDialog):
-    def __init__(self, laser: Laser, viewconfig: dict, parent: QtWidgets.QWidget = None):
-        self.laser = laser
-        self.viewconfig = viewconfig
+    def __init__(self, data: np.ndarray, parent: QtWidgets.QWidget = None):
+        self.data = data
         super().__init__(parent)
 
-        fig = Figure(frameon=False, tight_layout=True, figsize=(5, 2), dpi=100)
-        self.ax = fig.add_subplot(111)
-        self.canvas = FigureCanvasQTAgg(fig)
-
-        self.canvas.setParent(parent)
-        self.canvas.setStyleSheet("background-color:transparent;")
-        self.canvas.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
-        )
-
-        self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.addItems(self.laser.isotopes())
-        self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
+        self.canvas = BasicCanvas(figsize=(6, 2))
+        self.canvas.ax = self.canvas.figure.subplots()
 
         self.button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
         self.button_box.rejected.connect(self.close)
 
+        stats_left = QtWidgets.QFormLayout()
+        stats_left.addRow("Shape:", QtWidgets.QLabel(str(data.shape)))
+        stats_left.addRow("Size:", QtWidgets.QLabel(str(data.size)))
+
+        stats_right = QtWidgets.QFormLayout()
+        stats_right.addRow("Min:", QtWidgets.QLabel(f"{np.min(data):.4g}"))
+        stats_right.addRow("Max:", QtWidgets.QLabel(f"{np.max(data):.4g}"))
+        stats_right.addRow("Mean:", QtWidgets.QLabel(f"{np.mean(data):.4g}"))
+        stats_right.addRow("Median:", QtWidgets.QLabel(f"{np.median(data):.4g}"))
+
+        stats_box = QtWidgets.QGroupBox()
+        stats_layout = QtWidgets.QHBoxLayout()
+        stats_layout.addLayout(stats_left)
+        stats_layout.addLayout(stats_right)
+        stats_box.setLayout(stats_layout)
+
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.canvas)
-        layout.addWidget(self.combo_isotope, 1, QtCore.Qt.AlignRight)
+        layout.addWidget(stats_box)
         layout.addWidget(self.button_box)
         self.setLayout(layout)
 
-        self.plot()
+        self.plot(data)
 
-    def onComboIsotope(self) -> None:
-        self.plot()
-
-    def plot(self) -> None:
-        data = self.laser.data[self.combo_isotope.currentText()].data
-        # vmin, vmax = self.viewconfig['cmap']['range']
-        # if isinstance(vmin, str):
-        #     vmin = np.percentile(data, float(vmin.rstrip("%")))
-        # if isinstance(vmax, str):
-        #     vmax = np.percentile(data, float(vmax.rstrip("%")))
-        self.ax.hist(data.ravel(), bins='auto', color='black')
+    def plot(self, data: np.ndarray) -> None:
+        highlight = self.palette().color(QtGui.QPalette.Highlight).name()
+        self.canvas.ax.hist(data.ravel(), bins='auto', color=highlight)
         self.canvas.draw()

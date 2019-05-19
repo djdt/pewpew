@@ -9,6 +9,7 @@ from laserlib.krisskross import KrissKross
 from matplotlib.backend_bases import MouseEvent, LocationEvent
 
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
+from pewpew.lib.colormaps import maskAlphaMap
 
 from matplotlib.widgets import RectangleSelector, LassoSelector
 from matplotlib.ticker import MaxNLocator
@@ -23,8 +24,12 @@ from matplotlib.image import AxesImage
 
 
 class BasicCanvas(FigureCanvasQTAgg):
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        fig = Figure(frameon=False, tight_layout=True, figsize=(5, 5), dpi=100)
+    def __init__(
+        self,
+        figsize: Tuple[float, float] = (5.0, 5.0),
+        parent: QtWidgets.QWidget = None,
+    ):
+        fig = Figure(frameon=False, tight_layout=True, figsize=figsize, dpi=100)
         super().__init__(fig)
 
         self.setParent(parent)
@@ -52,12 +57,14 @@ class Canvas(BasicCanvas):
         connect_mouse_events: bool = True,
         parent: QtWidgets.QWidget = None,
     ) -> None:
-        super().__init__(parent)
+        super().__init__(parent=parent)
         self.viewconfig = viewconfig
         self.options = copy.deepcopy(Canvas.DEFAULT_OPTIONS)
         if options is not None:
             self.options.update(options)
         self.image: AxesImage = None
+        self.image_mask: AxesImage = None
+
         self.redrawFigure()
 
         self.view_limits = (0.0, 0.0, 0.0, 0.0)
@@ -164,6 +171,9 @@ class Canvas(BasicCanvas):
         )
 
     def drawLaser(self, laser: Laser, name: str) -> None:
+        # Set mask to none
+        self.image_mask = None
+
         # Get the trimmed and calibrated data
         kwargs = {"calibrate": self.viewconfig["calibrate"]}
         if isinstance(laser, KrissKross):
@@ -245,9 +255,13 @@ class Canvas(BasicCanvas):
         path = Path(vertices)
         ind = path.contains_points(pix, radius=2)
 
-        selected = np.zeros((*data.shape, 4), dtype=np.uint8)
-        selected[:, :, 3].flat[~ind] = 128
-        self.mask = self.ax.imshow(selected, extent=(x0, x1, y0, y1))
+        selected = np.zeros(data.shape, dtype=np.uint8)
+        selected.flat[ind] = 1
+        # selected = np.zeros((*data.shape, 4), dtype=np.uint8)
+        # selected[:, :, 3].flat[~ind] = 128
+        self.image_mask = self.ax.imshow(
+            selected, cmap=maskAlphaMap, extent=(x0, x1, y0, y1), alpha=0.33,
+        )
 
         if self.view_limits != self.image.get_extent():
             self.connectEvents("drag")

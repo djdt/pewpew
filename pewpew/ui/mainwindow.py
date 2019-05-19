@@ -59,7 +59,7 @@ class MainWindow(QtWidgets.QMainWindow):
     INTERPOLATIONS = ["None", "Bilinear", "Bicubic", "Gaussian", "Spline16"]
     FILTERS = ["None", "Rolling mean", "Rolling median"]
     DEFAULT_VIEW_CONFIG = {
-        "cmap": {"type": "ppSpectral", "range": ("1%", "99%")},
+        "cmap": {"type": ppSpectral, "range": ("1%", "99%")},
         "calibrate": True,
         "filtering": {"type": "None", "window": (3, 3), "threshold": 9},
         "interpolation": "None",

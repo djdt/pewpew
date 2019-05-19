@@ -1,5 +1,5 @@
 from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.cm import register_cmap
+# from matplotlib.cm import register_cmap
 
 ppSpectral = LinearSegmentedColormap.from_list(
     "ppSpectral",
@@ -19,25 +19,8 @@ ppSpectral = LinearSegmentedColormap.from_list(
     ],
 )
 
-register_cmap("ppSpectral", cmap=ppSpectral)
+# register_cmap("ppSpectral", cmap=ppSpectral)
 
-COLORMAPS = [
-    ("Magma", "magma", True, True, "Perceptually uniform colormap from R."),
-    ("Viridis", "viridis", True, True, "Perceptually uniform colormap from R."),
-    ("Cividis", "cividis", True, True, "Perceptually uniform colormap from R."),
-    ("Blue Red", "RdBu_r", False, True, "Diverging colormap from colorbrewer."),
-    (
-        "Blue Yellow Red",
-        "RdYlBu_r",
-        False,
-        True,
-        "Diverging colormap from colorbrewer.",
-    ),
-    (
-        "PP Spectral",
-        "ppSpectral",
-        False,
-        False,
-        "Custom rainbow colormap based on colorbrewer Spectral.",
-    ),
-]
+maskAlphaMap = LinearSegmentedColormap.from_list(
+    "maskAlphaMap", [(0.0, 0.0, 0.0, 1.0), (0.0, 0.0, 0.0, 0.0)]
+)
