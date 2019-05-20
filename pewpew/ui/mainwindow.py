@@ -240,6 +240,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu_view.addSeparator()
 
+        action_option_colorbar = menu_view.addAction("Show Colorbars")
+        action_option_colorbar.setCheckable(True)
+        action_option_colorbar.setChecked(True)
+        action_option_colorbar.toggled.connect(self.menuOptionColorbar)
+
+        action_option_colorbar = menu_view.addAction("Show Labels")
+        action_option_colorbar.setCheckable(True)
+        action_option_colorbar.setChecked(True)
+        action_option_colorbar.toggled.connect(self.menuOptionLabel)
+
+        action_option_colorbar = menu_view.addAction("Show Scalebars")
+        action_option_colorbar.setCheckable(True)
+        action_option_colorbar.setChecked(True)
+        action_option_colorbar.toggled.connect(self.menuOptionScalebar)
+
+        menu_view.addSeparator()
+
         action_refresh = menu_view.addAction(
             QtGui.QIcon.fromTheme("view-refresh"), "Refresh"
         )
@@ -549,6 +566,22 @@ class MainWindow(QtWidgets.QMainWindow):
         if ok:
             self.viewconfig["font"]["size"] = fontsize
             self.refresh()
+
+    def menuOptionColorbar(self, checked: bool) -> None:
+        for dock in self.dockarea.findChildren(LaserImageDock):
+            dock.canvas.options["colorbar"] = checked
+            dock.canvas.redrawFigure()
+            dock.draw()
+
+    def menuOptionLabel(self, checked: bool) -> None:
+        for dock in self.dockarea.findChildren(LaserImageDock):
+            dock.canvas.options["label"] = checked
+            dock.draw()
+
+    def menuOptionScalebar(self, checked: bool) -> None:
+        for dock in self.dockarea.findChildren(LaserImageDock):
+            dock.canvas.options["scalebar"] = checked
+            dock.draw()
 
     def menuRefresh(self) -> None:
         self.refresh()
