@@ -5,14 +5,15 @@ from matplotlib.backend_bases import MouseEvent, LocationEvent
 
 from pewpew.lib.colormaps import maskAlphaMap
 
+from pewpew.ui.canvas.laser import LaserCanvas
+
 from matplotlib.widgets import RectangleSelector, LassoSelector
 from matplotlib.path import Path
 from matplotlib.patheffects import Normal, SimpleLineShadow
 
 from typing import Dict, List
+from laserlib.laser import Laser
 from matplotlib.image import AxesImage
-
-from pewpew.ui.canvas.laser import LaserCanvas
 
 
 class InteractiveLaserCanvas(LaserCanvas):
@@ -76,6 +77,10 @@ class InteractiveLaserCanvas(LaserCanvas):
             self.rectangle_selector.ax = self.ax
         if hasattr(self, "lasso_selector"):
             self.lasso_selector.ax = self.ax
+
+    def drawLaser(self, laser: Laser, name: str) -> None:
+        self.image_selection = None
+        super().drawLaser(laser, name)
 
     def connectEvents(self, key: str) -> None:
         events = self.EVENTS[key]

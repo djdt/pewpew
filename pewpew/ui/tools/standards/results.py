@@ -3,7 +3,7 @@ import numpy as np
 
 from matplotlib.text import Text
 
-from pewpew.ui.widgets.canvas import BasicCanvas
+from pewpew.ui.canvas.basic import BasicCanvas
 
 from pewpew.lib.calc import weighted_linreg
 
