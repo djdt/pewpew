@@ -4,7 +4,7 @@ import numpy as np
 from laserlib.laser import Laser
 from pewpew.ui.validators import DecimalValidator
 
-from pewpew.ui.widgets import Canvas
+from pewpew.ui.canvas.laser import LaserCanvas
 from pewpew.ui.tools.tool import Tool
 
 from pewpew.ui.docks.dockarea import DockArea
@@ -62,10 +62,9 @@ class CalculationsTool(Tool):
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
 
         options = {"colorbar": False, "scalebar": False, "label": False}
-        self.canvas = Canvas(
+        self.canvas = LaserCanvas(
             viewconfig=viewconfig,
             options=options,
-            connect_mouse_events=False,
             parent=self,
         )
 
@@ -171,7 +170,7 @@ class CalculationsTool(Tool):
             if op is np.where:
                 data = np.where(data2 != self.fill_value, data, data2)
             elif op is not None:
-                # If true divide is used we avoid errors by replacing with one, then zero
+                # If true divide is used avoid errors by replacing with one, then zero
                 if op == np.true_divide:
                     data2[data2 == 0.0] = 1.0
                 data = op(data, data2)

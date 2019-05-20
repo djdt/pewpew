@@ -5,17 +5,15 @@ from matplotlib.lines import Line2D
 from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from pewpew.ui.widgets.canvas import Canvas
+from pewpew.ui.canvas.laser import LaserCanvas
 
 from typing import List
 
 
-class StandardsCanvas(Canvas):
+class StandardsCanvas(LaserCanvas):
     def __init__(self, viewconfig: dict, parent: QtWidgets.QWidget = None):
         options = {"colorbar": False, "scalebar": False, "label": False}
-        super().__init__(
-            viewconfig, options=options, connect_mouse_events=False, parent=parent
-        )
+        super().__init__(viewconfig, options=options, parent=parent)
         div = make_axes_locatable(self.ax)
         self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
         self.bax.get_xaxis().set_visible(False)

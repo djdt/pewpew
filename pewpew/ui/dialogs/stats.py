@@ -1,7 +1,7 @@
 from PyQt5 import QtGui, QtWidgets
 import numpy as np
 
-from pewpew.ui.widgets.canvas import BasicCanvas
+from pewpew.ui.canvas.basic import BasicCanvas
 
 
 class StatsDialog(QtWidgets.QDialog):

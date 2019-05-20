@@ -3,7 +3,8 @@ import copy
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from pewpew.ui.widgets import Canvas, OverwriteFilePrompt
+from pewpew.ui.canvas.interactive import InteractiveLaserCanvas
+from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
 from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog, StatsDialog
 from pewpew.ui.dialogs.export import CSVExportDialog, PNGExportDialog
 
@@ -86,7 +87,9 @@ class LaserImageDock(QtWidgets.QDockWidget):
         )
 
         self.laser = laser
-        self.canvas = Canvas(viewconfig=self.window().viewconfig, parent=self)
+        self.canvas = InteractiveLaserCanvas(
+            viewconfig=self.window().viewconfig, parent=self
+        )
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
@@ -108,7 +111,12 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.setTitleBarWidget(self.title_bar)
         self.setWindowTitle(self.laser.name)
 
-        self.title_bar.button_select_lasso.clicked.connect(self.canvas.startLasso)
+        self.title_bar.button_select_rect.clicked.connect(
+            self.canvas.startRectangleSelection
+        )
+        self.title_bar.button_select_lasso.clicked.connect(
+            self.canvas.startLassoSelection
+        )
         self.title_bar.button_zoom.clicked.connect(self.canvas.startZoom)
         self.title_bar.button_zoom_original.clicked.connect(self.canvas.unzoom)
         self.title_bar.button_close.clicked.connect(self.onMenuClose)
@@ -162,7 +170,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
     def draw(self) -> None:
         self.canvas.drawLaser(self.laser, self.combo_isotope.currentText())
-        self.canvas.draw_idle()
+        self.canvas.draw()
 
     def buildContextMenu(self) -> QtWidgets.QMenu:
         context_menu = QtWidgets.QMenu(self)
@@ -335,25 +343,11 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
     def onMenuStats(self) -> None:
         data = self.canvas.image.get_array()
-        if self.canvas.image_mask is not None:
-            print(data.shape)
-            print(self.canvas.image_mask.get_array().shape)
-            data = data[self.canvas.image_mask.get_array() == 1]
+        if self.canvas.image_selection is not None:
+            data = data[self.canvas.image_selection.get_array() == 1]
 
         dlg = StatsDialog(data, parent=self)
         dlg.exec()
-
-    # def onMenuCalculate(self) -> None:
-    #     def applyDialog(dialog: ApplyDialog) -> None:
-    #         if dialog.data is None or hasattr(self.laser.data, dialog.data.name):
-    #             return
-    #         self.laser.data[dialog.data.name] = dialog.data
-    #         self.populateComboIsotopes()
-
-    #     dlg = CalculateDialog(self.laser, parent=self)
-    #     dlg.applyPressed.connect(applyDialog)
-    #     if dlg.exec():
-    #         applyDialog(dlg)
 
     def onMenuClose(self) -> None:
         self.close()

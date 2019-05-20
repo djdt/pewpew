@@ -1,12 +1,8 @@
-import copy
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtGui, QtWidgets
 import numpy as np
 
-from laserlib.laser import Laser
-from laserlib.krisskross import KrissKross
 from matplotlib.backend_bases import MouseEvent, LocationEvent
 
-from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 from pewpew.lib.colormaps import maskAlphaMap
 
 from matplotlib.widgets import RectangleSelector, LassoSelector
@@ -17,7 +13,6 @@ from typing import Dict, List
 from matplotlib.image import AxesImage
 
 from pewpew.ui.canvas.laser import LaserCanvas
-from pewpew.ui import color
 
 
 class InteractiveLaserCanvas(LaserCanvas):
@@ -44,16 +39,18 @@ class InteractiveLaserCanvas(LaserCanvas):
 
         self.image_selection: AxesImage = None
 
+        shadow_color = self.palette().color(QtGui.QPalette.Shadow).name()
+        highlight_color = self.palette().color(QtGui.QPalette.Highlight).name()
         lineshadow = SimpleLineShadow(
-            offset=(0.5, -0.5), alpha=0.66, shadow_color=color.dark
+            offset=(0.5, -0.5), alpha=0.66, shadow_color=shadow_color
         )
         rectprops = {
-            "edgecolor": color.dark,
-            "facecolor": color.highlight,
+            "edgecolor": shadow_color,
+            "facecolor": highlight_color,
             "alpha": 0.33,
         }
         lineprops = {
-            "color": color.highlight,
+            "color": highlight_color,
             "linestyle": "--",
             "path_effects": [lineshadow, Normal()],
         }
@@ -75,8 +72,10 @@ class InteractiveLaserCanvas(LaserCanvas):
 
     def redrawFigure(self) -> None:
         super().redrawFigure()
-        self.rectangle_selector.ax = self.ax
-        self.lasso_selector.ax = self.ax
+        if hasattr(self, "rectangle_selector"):
+            self.rectangle_selector.ax = self.ax
+        if hasattr(self, "lasso_selector"):
+            self.lasso_selector.ax = self.ax
 
     def connectEvents(self, key: str) -> None:
         events = self.EVENTS[key]
@@ -92,6 +91,11 @@ class InteractiveLaserCanvas(LaserCanvas):
         self.rectangle_selector.set_active(False)
         self.lasso_selector.onselect = self.lassoSelection
         self.lasso_selector.set_active(True)
+        # Clear the old selection
+        if self.image_selection is not None:
+            self.image_selection.remove()
+            self.image_selection = None
+            self.draw_idle()
         self.disconnectEvents("drag")
 
     def lassoSelection(self, vertices: List[np.ndarray]) -> None:
