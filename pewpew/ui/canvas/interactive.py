@@ -44,8 +44,14 @@ class InteractiveLaserCanvas(LaserCanvas):
 
         self.image_selection: AxesImage = None
 
-        lineshadow = SimpleLineShadow(offset=(0.5, -0.5), alpha=0.66, shadow_color=color.dark)
-        rectprops = {"edgecolor": color.dark, "facecolor": color.highlight, "alpha": 0.33}
+        lineshadow = SimpleLineShadow(
+            offset=(0.5, -0.5), alpha=0.66, shadow_color=color.dark
+        )
+        rectprops = {
+            "edgecolor": color.dark,
+            "facecolor": color.highlight,
+            "alpha": 0.33,
+        }
         lineprops = {
             "color": color.highlight,
             "linestyle": "--",
@@ -54,7 +60,7 @@ class InteractiveLaserCanvas(LaserCanvas):
 
         self.rectangle_selector = RectangleSelector(
             self.ax,
-            self.zoom,
+            None,
             button=1,
             useblit=True,
             minspanx=5,
@@ -63,9 +69,14 @@ class InteractiveLaserCanvas(LaserCanvas):
         )
         self.rectangle_selector.set_active(False)
         self.lasso_selector = LassoSelector(
-            self.ax, self.lasso, button=1, useblit=True, lineprops=lineprops
+            self.ax, None, button=1, useblit=True, lineprops=lineprops
         )
         self.lasso_selector.set_active(False)
+
+    def redrawFigure(self) -> None:
+        super().redrawFigure()
+        self.rectangle_selector.ax = self.ax
+        self.lasso_selector.ax = self.ax
 
     def connectEvents(self, key: str) -> None:
         events = self.EVENTS[key]
@@ -78,8 +89,9 @@ class InteractiveLaserCanvas(LaserCanvas):
                 self.mpl_disconnect(cid)
 
     def startLassoSelection(self) -> None:
-        self.lasso_selector.set_active(True)
         self.rectangle_selector.set_active(False)
+        self.lasso_selector.onselect = self.lassoSelection
+        self.lasso_selector.set_active(True)
         self.disconnectEvents("drag")
 
     def lassoSelection(self, vertices: List[np.ndarray]) -> None:
@@ -113,20 +125,24 @@ class InteractiveLaserCanvas(LaserCanvas):
             self.connectEvents("drag")
 
     def startRectangleSelection(self) -> None:
+        self.lasso_selector.set_active(False)
+        self.rectangle_selector.onselect = self.rectangleSelection
+        self.rectangle_selector.set_active(True)
         pass
 
     def rectangleSelection(self) -> None:
         pass
 
     def startZoom(self) -> None:
-        self.rectangle_selector.set_active(True)
         self.lasso_selector.set_active(False)
+        self.rectangle_selector.onselect = self.zoom
+        self.rectangle_selector.set_active(True)
         self.disconnectEvents("drag")
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
+        self.rectangle_selector.set_active(False)
         self.view_limits = (press.xdata, release.xdata, press.ydata, release.ydata)
         self.updateView()
-        self.rectangle_selector.set_active(False)
         self.connectEvents("drag")
 
     def unzoom(self) -> None:
