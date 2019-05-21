@@ -60,6 +60,7 @@ class CalculationsTool(Tool):
         self.name = ""
 
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
+        self.button_laser.pressed.connect(self.buttonLaser)
 
         options = {"colorbar": False, "scalebar": False, "label": False}
         self.canvas = LaserCanvas(
@@ -225,7 +226,6 @@ class CalculationsTool(Tool):
         self.dockarea.mouseSelectFinished.disconnect(self.mouseSelectFinished)
         self.activateWindow()
         self.setFocus(QtCore.Qt.OtherFocusReason)
-        self.canvas.view = (0.0, 0.0, 0.0, 0.0)
         self.show()
         self.draw()
 

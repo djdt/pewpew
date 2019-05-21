@@ -257,7 +257,6 @@ class StandardsTool(Tool):
         self.dockarea.mouseSelectFinished.disconnect(self.mouseSelectFinished)
         self.activateWindow()
         self.setFocus(QtCore.Qt.OtherFocusReason)
-        self.canvas.view = (0.0, 0.0, 0.0, 0.0)
         self.show()
         self.draw()
 
