@@ -105,7 +105,6 @@ class InteractiveLaserCanvas(LaserCanvas):
 
     def lassoSelection(self, vertices: List[np.ndarray]) -> None:
         self.lasso_selector.set_active(False)
-        self.draw_idle()
 
         data = self.image.get_array()
         x0, x1, y0, y1 = self.image.get_extent()
@@ -132,15 +131,44 @@ class InteractiveLaserCanvas(LaserCanvas):
 
         if self.view_limits != self.image.get_extent():
             self.connectEvents("drag")
+        self.draw_idle()
 
     def startRectangleSelection(self) -> None:
         self.lasso_selector.set_active(False)
         self.rectangle_selector.onselect = self.rectangleSelection
         self.rectangle_selector.set_active(True)
-        pass
+        if self.image_selection is not None:
+            self.image_selection.remove()
+            self.image_selection = None
+            self.draw_idle()
+        self.disconnectEvents("drag")
 
-    def rectangleSelection(self) -> None:
-        pass
+    def rectangleSelection(self, press: MouseEvent, release: MouseEvent) -> None:
+        self.rectangle_selector.set_active(False)
+
+        xmin, xmax, ymin, ymax = self.image.get_extent()
+        shape = self.image.get_array().shape
+        print(press.xdata, release.xdata, xmin, xmax)
+        x0, x1 = (
+            int(shape[1] * press.xdata / (xmax - xmin)),
+            int(shape[1] * release.xdata / (xmax - xmin)),
+        )
+        y0, y1 = (
+            int(shape[0] * press.ydata / (ymax - ymin)),
+            int(shape[0] * release.ydata / (ymax - ymin)),
+        )
+        print(x0, x1, y0, y1)
+
+        mask = np.zeros(shape, dtype=np.uint8)
+        mask[x0:x1, y0:y1] = 1
+
+        self.image_selection = self.ax.imshow(
+            mask, cmap=maskAlphaMap, extent=(x0, x1, y0, y1), alpha=0.33
+        )
+        self.draw_idle()
+
+        if self.view_limits != self.image.get_extent():
+            self.connectEvents("drag")
 
     def startZoom(self) -> None:
         self.lasso_selector.set_active(False)
