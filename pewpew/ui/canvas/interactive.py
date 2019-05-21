@@ -146,29 +146,38 @@ class InteractiveLaserCanvas(LaserCanvas):
     def rectangleSelection(self, press: MouseEvent, release: MouseEvent) -> None:
         self.rectangle_selector.set_active(False)
 
-        xmin, xmax, ymin, ymax = self.image.get_extent()
-        shape = self.image.get_array().shape
-        print(press.xdata, release.xdata, xmin, xmax)
-        x0, x1 = (
-            int(shape[1] * press.xdata / (xmax - xmin)),
-            int(shape[1] * release.xdata / (xmax - xmin)),
-        )
-        y0, y1 = (
-            int(shape[0] * press.ydata / (ymax - ymin)),
-            int(shape[0] * release.ydata / (ymax - ymin)),
-        )
-        print(x0, x1, y0, y1)
+        data = self.image.get_array()
+        x0, x1, y0, y1 = self.image.get_extent()
+        ny, nx = data.shape
+        # Calculate half pixel widths
+        px, py = (x1 - x0) / nx / 2.0, (y0 - y1) / ny / 2.0
 
-        mask = np.zeros(shape, dtype=np.uint8)
-        mask[x0:x1, y0:y1] = 1
+        # Grid of coords for the center of pixels
+        x, y = np.meshgrid(
+            np.linspace(x0 + px, x1 + px, nx, endpoint=False),
+            np.linspace(y1 + py, y0 + py, ny, endpoint=False),
+        )
+        pix = np.vstack((x.flatten(), y.flatten())).T
+
+        vertices = [
+            (press.xdata, press.ydata),
+            (release.xdata, press.ydata),
+            (release.xdata, release.ydata),
+            (press.xdata, release.ydata),
+        ]
+        path = Path(vertices)
+        ind = path.contains_points(pix, radius=2)
+
+        mask = np.zeros(data.shape, dtype=np.uint8)
+        mask.flat[ind] = 1
 
         self.image_selection = self.ax.imshow(
             mask, cmap=maskAlphaMap, extent=(x0, x1, y0, y1), alpha=0.33
         )
-        self.draw_idle()
 
         if self.view_limits != self.image.get_extent():
             self.connectEvents("drag")
+        self.draw_idle()
 
     def startZoom(self) -> None:
         self.lasso_selector.set_active(False)
