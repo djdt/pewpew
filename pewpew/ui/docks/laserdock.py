@@ -253,7 +253,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 paths = dlg.generate_paths(self.laser)
                 kwargs = {"calibrate": self.window().viewconfig["calibrate"]}
                 if dlg.options.trimmedChecked():
-                    kwargs["extent"] = self.canvas.view
+                    kwargs["extent"] = self.canvas.view_limits
                 for path, isotope, _ in paths:
                     if dlg.options.headerChecked():
                         header = io.csv.make_header(self.laser, isotope)

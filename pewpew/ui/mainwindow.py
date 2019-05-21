@@ -429,7 +429,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 if ext == ".csv":
                     kwargs = {"calibrate": self.viewconfig["calibrate"]}
                     if dlg.options.csv.trimmedChecked():
-                        kwargs["extent"] = dock.canvas.view
+                        kwargs["extent"] = dock.canvas.view_limits
                     if dlg.options.csv.headerChecked():
                         header = io.csv.make_header(dock.laser, isotope)
                     else:
