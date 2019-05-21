@@ -3,7 +3,6 @@ import os.path
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from pewpew.ui.events import MousePressRedirectFilter
-from pewpew.lib import io as ppio
 
 from laserlib import io
 from laserlib.laser import Laser
@@ -122,7 +121,7 @@ class DockArea(QtWidgets.QMainWindow):
                             csv_as = choice
 
                             if csv_as == "PewPew":
-                                lasers.append(ppio.csv.load(path))
+                                lasers.append(io.csv.load(path, read_header=True))
                             elif csv_as == "Thermo iCap":
                                 data = io.thermo.load(path)
                             else:  # Raw

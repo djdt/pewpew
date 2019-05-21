@@ -8,7 +8,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from pewpew import __version__
 from pewpew.ui.dialogs import ConfigDialog, ColorRangeDialog, FilteringDialog
 from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
-from pewpew.ui.tools import Tool, CalculationsTool, CalibrationTool
+from pewpew.ui.tools import Tool, CalculationsTool, StandardsTool
 from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
 from pewpew.ui.widgets.detailederror import DetailedError
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
@@ -16,9 +16,7 @@ from pewpew.ui.docks.dockarea import DockArea
 from pewpew.ui.wizards import KrissKrossWizard
 from pewpew.ui.dialogs.export import ExportAllDialog
 
-from pewpew.lib.colormaps import COLORMAPS
-
-from pewpew.lib import io as ppio
+from pewpew.lib.colormaps import ppSpectral
 
 from laserlib import io
 from laserlib import Laser, LaserConfig, LaserData
@@ -38,10 +36,30 @@ from pewpew.ui.dialogs import ApplyDialog
 
 
 class MainWindow(QtWidgets.QMainWindow):
+    COLORMAPS = [
+        ("Magma", "magma", True, True, "Perceptually uniform colormap from R."),
+        ("Viridis", "viridis", True, True, "Perceptually uniform colormap from R."),
+        ("Cividis", "cividis", True, True, "Perceptually uniform colormap from R."),
+        ("Blue Red", "RdBu_r", False, True, "Diverging colormap from colorbrewer."),
+        (
+            "Blue Yellow Red",
+            "RdYlBu_r",
+            False,
+            True,
+            "Diverging colormap from colorbrewer.",
+        ),
+        (
+            "PP Spectral",
+            ppSpectral,
+            False,
+            False,
+            "Custom rainbow colormap based on colorbrewer Spectral.",
+        ),
+    ]
     INTERPOLATIONS = ["None", "Bilinear", "Bicubic", "Gaussian", "Spline16"]
     FILTERS = ["None", "Rolling mean", "Rolling median"]
     DEFAULT_VIEW_CONFIG = {
-        "cmap": {"type": "ppSpectral", "range": ("1%", "99%")},
+        "cmap": {"type": ppSpectral, "range": ("1%", "99%")},
         "calibrate": True,
         "filtering": {"type": "None", "window": (3, 3), "threshold": 9},
         "interpolation": "None",
@@ -168,7 +186,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # View - colormap
         cmap_group = QtWidgets.QActionGroup(menu_cmap)
-        for name, cmap, print_safe, cb_safe, description in COLORMAPS:
+        for name, cmap, print_safe, cb_safe, description in MainWindow.COLORMAPS:
             action = cmap_group.addAction(name)
             if print_safe:
                 description += " Print safe."
@@ -219,6 +237,23 @@ class MainWindow(QtWidgets.QMainWindow):
         action_fontsize = menu_view.addAction("Fontsize")
         action_fontsize.setStatusTip("Set size of font used in images.")
         action_fontsize.triggered.connect(self.menuFontsize)
+
+        menu_view.addSeparator()
+
+        action_option_colorbar = menu_view.addAction("Show Colorbars")
+        action_option_colorbar.setCheckable(True)
+        action_option_colorbar.setChecked(True)
+        action_option_colorbar.toggled.connect(self.menuOptionColorbar)
+
+        action_option_colorbar = menu_view.addAction("Show Labels")
+        action_option_colorbar.setCheckable(True)
+        action_option_colorbar.setChecked(True)
+        action_option_colorbar.toggled.connect(self.menuOptionLabel)
+
+        action_option_colorbar = menu_view.addAction("Show Scalebars")
+        action_option_colorbar.setCheckable(True)
+        action_option_colorbar.setChecked(True)
+        action_option_colorbar.toggled.connect(self.menuOptionScalebar)
 
         menu_view.addSeparator()
 
@@ -384,6 +419,12 @@ class MainWindow(QtWidgets.QMainWindow):
             paths = dlg.generate_paths(dock.laser, prompt=prompt)
             ext = ExportAllDialog.FORMATS[dlg.combo_formats.currentText()]
 
+            if ext == ".png":
+                old_size = dock.canvas.figure.get_size_inches()
+                size = dlg.options.png.imagesize()
+                dpi = dock.canvas.figure.get_dpi()
+                dock.canvas.figure.set_size_inches(size[0] / dpi, size[1] / dpi)
+
             for path, isotope, _ in paths:
                 if ext == ".csv":
                     kwargs = {"calibrate": self.viewconfig["calibrate"]}
@@ -397,17 +438,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 elif ext == ".npz":
                     io.npz.save(path, [dock.laser])
                 elif ext == ".png":
-                    ppio.png.save(
-                        path,
-                        dock.laser,
-                        isotope,
-                        viewconfig=self.viewconfig,
-                        extent=dock.canvas.view,
-                        size=dlg.options.png.imagesize(),
-                        include_colorbar=dlg.options.png.colorbarChecked(),
-                        include_scalebar=dlg.options.png.scalebarChecked(),
-                        include_label=dlg.options.png.labelChecked(),
-                    )
+                    dock.canvas.drawLaser(dock.laser, isotope)
+                    dock.canvas.figure.savefig(path, transparent=True, frameon=False)
+
                 elif ext == ".vti":
                     spacing = (
                         *dock.laser.config.pixel_size(),
@@ -425,6 +458,11 @@ class MainWindow(QtWidgets.QMainWindow):
                         self, "Invalid Format", f"Unable to export {ext} format."
                     )
                     return
+
+            if ext == ".png":
+                dock.canvas.figure.set_size_inches(*old_size)
+                dock.canvas.drawLaser(dock.laser, dock.combo_isotope.currentText())
+                dock.canvas.draw()
 
     def menuCloseAll(self) -> None:
         for dock in self.dockarea.findChildren(LaserImageDock):
@@ -465,8 +503,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 dock.draw()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        laser = docks[0] if len(docks) > 0 else LaserImageDock(Laser(), parent=self)
-        cali_tool = CalibrationTool(laser, self.dockarea, self.viewconfig, parent=self)
+        laserdock = docks[0] if len(docks) > 0 else LaserImageDock(Laser(), parent=self)
+        cali_tool = StandardsTool(
+            self.dockarea, laserdock, self.viewconfig, parent=self
+        )
         cali_tool.applyPressed.connect(applyTool)
         cali_tool.show()
 
@@ -484,7 +524,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
-        for name, cmap, _, _, _ in COLORMAPS:
+        for name, cmap, _, _, _ in MainWindow.COLORMAPS:
             if name == text:
                 self.viewconfig["cmap"]["type"] = cmap
                 self.refresh()
@@ -536,6 +576,22 @@ class MainWindow(QtWidgets.QMainWindow):
         if ok:
             self.viewconfig["font"]["size"] = fontsize
             self.refresh()
+
+    def menuOptionColorbar(self, checked: bool) -> None:
+        for dock in self.dockarea.findChildren(LaserImageDock):
+            dock.canvas.options["colorbar"] = checked
+            dock.canvas.redrawFigure()
+            dock.draw()
+
+    def menuOptionLabel(self, checked: bool) -> None:
+        for dock in self.dockarea.findChildren(LaserImageDock):
+            dock.canvas.options["label"] = checked
+            dock.draw()
+
+    def menuOptionScalebar(self, checked: bool) -> None:
+        for dock in self.dockarea.findChildren(LaserImageDock):
+            dock.canvas.options["scalebar"] = checked
+            dock.draw()
 
     def menuRefresh(self) -> None:
         self.refresh()

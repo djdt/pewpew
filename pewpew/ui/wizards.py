@@ -46,8 +46,6 @@ class KrissKrossWizard(QtWidgets.QWizard):
                     )
                     return
                 layers.append(lds[0].get_structured())
-            # Read the config from the frist file
-            config = self.layers[0].config
         elif self.field("radio_agilent"):
             for path in paths:
                 layers.append(io.agilent.load(path))
@@ -139,13 +137,13 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
     def buttonAdd(self) -> None:
         if self.field("radio_numpy"):
             paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", "" "Numpy archives(*.npz);;All files(*)"
+                self, "Select Files", "", "Numpy archives(*.npz);;All files(*)"
             )
         elif self.field("radio_agilent"):
             paths = MultipleDirDialog.getExistingDirectories(self, "Select Batches", "")
         elif self.field("radio_thermo"):
             paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", "" "CSV files(*.csv);;All files(*)"
+                self, "Select Files", "", "CSV files(*.csv);;All files(*)"
             )
 
         for path in paths:

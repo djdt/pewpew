@@ -3,12 +3,12 @@ import copy
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from pewpew.ui.widgets import Canvas, OverwriteFilePrompt
+from pewpew.ui.canvas.interactive import InteractiveLaserCanvas
+from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
 from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog, StatsDialog
 from pewpew.ui.dialogs.export import CSVExportDialog, PNGExportDialog
 
 from laserlib import io
-from pewpew.lib import io as ppio
 from laserlib.laser import Laser
 
 from pewpew.ui.dialogs import ApplyDialog
@@ -26,23 +26,34 @@ class ImageDockTitleBar(QtWidgets.QWidget):
         # self.parent().windowTitleChanged.connect(self.setTitle)
 
         # Button Bar
-        self.button_close = QtWidgets.QPushButton(
-            QtGui.QIcon.fromTheme("edit-delete"), ""
+        self.button_select_rect = QtWidgets.QPushButton(
+            QtGui.QIcon.fromTheme("draw-rectangle"), ""
         )
-        self.button_close.setToolTip("Close the image.")
-        # self.button_lasso = QtWidgets.QPushButton(QtGui.QIcon.fromTheme("edir-copy"), "")
+        self.button_select_lasso = QtWidgets.QPushButton(
+            QtGui.QIcon.fromTheme("edit-select-lasso"), ""
+        )
         self.button_zoom = QtWidgets.QPushButton(QtGui.QIcon.fromTheme("zoom-in"), "")
         self.button_zoom.setToolTip("Zoom into slected area.")
         self.button_zoom_original = QtWidgets.QPushButton(
             QtGui.QIcon.fromTheme("zoom-original"), ""
         )
         self.button_zoom_original.setToolTip("Reset to original zoom.")
+        self.button_close = QtWidgets.QPushButton(
+            QtGui.QIcon.fromTheme("edit-delete"), ""
+        )
+        self.button_close.setToolTip("Close the image.")
+
+        line = QtWidgets.QFrame()
+        line.setFrameShape(QtWidgets.QFrame.VLine)
+        line.setFrameShadow(QtWidgets.QFrame.Sunken)
 
         layout_buttons = QtWidgets.QHBoxLayout()
-        # layout_buttons.addWidget(self.button_lasso, QtCore.Qt.AlignLeft)
-        layout_buttons.addWidget(self.button_zoom, QtCore.Qt.AlignRight)
-        layout_buttons.addWidget(self.button_zoom_original, QtCore.Qt.AlignRight)
-        layout_buttons.addWidget(self.button_close, QtCore.Qt.AlignRight)
+        layout_buttons.addWidget(self.button_select_rect, 0, QtCore.Qt.AlignLeft)
+        layout_buttons.addWidget(self.button_select_lasso, 0, QtCore.Qt.AlignLeft)
+        layout_buttons.addWidget(line)
+        layout_buttons.addWidget(self.button_zoom, 0, QtCore.Qt.AlignRight)
+        layout_buttons.addWidget(self.button_zoom_original, 0, QtCore.Qt.AlignRight)
+        layout_buttons.addWidget(self.button_close, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(self.title, 1)
@@ -51,6 +62,9 @@ class ImageDockTitleBar(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def setTitle(self, title: str) -> None:
+        self.button_select_rect = QtWidgets.QPushButton(
+            QtGui.QIcon.fromTheme("draw-rectangle"), ""
+        )
         if "&" not in title:
             self.title.setText(title)
 
@@ -73,7 +87,9 @@ class LaserImageDock(QtWidgets.QDockWidget):
         )
 
         self.laser = laser
-        self.canvas = Canvas(viewconfig=self.window().viewconfig, parent=self)
+        self.canvas = InteractiveLaserCanvas(
+            viewconfig=self.window().viewconfig, parent=self
+        )
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
@@ -95,7 +111,12 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.setTitleBarWidget(self.title_bar)
         self.setWindowTitle(self.laser.name)
 
-        # self.title_bar.button_lasso.clicked.connect(self.canvas.startLasso)
+        self.title_bar.button_select_rect.clicked.connect(
+            self.canvas.startRectangleSelection
+        )
+        self.title_bar.button_select_lasso.clicked.connect(
+            self.canvas.startLassoSelection
+        )
         self.title_bar.button_zoom.clicked.connect(self.canvas.startZoom)
         self.title_bar.button_zoom_original.clicked.connect(self.canvas.unzoom)
         self.title_bar.button_close.clicked.connect(self.onMenuClose)
@@ -140,7 +161,6 @@ class LaserImageDock(QtWidgets.QDockWidget):
         )
         self.action_stats.setStatusTip("Data histogram and statistics.")
         self.action_stats.triggered.connect(self.onMenuStats)
-        self.action_stats.setEnabled(False)
 
         self.action_close = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-delete"), "Close", self
@@ -150,6 +170,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
     def draw(self) -> None:
         self.canvas.drawLaser(self.laser, self.combo_isotope.currentText())
+        self.canvas.draw()
 
     def buildContextMenu(self) -> QtWidgets.QMenu:
         context_menu = QtWidgets.QMenu(self)
@@ -252,18 +273,18 @@ class LaserImageDock(QtWidgets.QDockWidget):
             )
             if dlg.exec():
                 paths = dlg.generate_paths(self.laser)
+                old_size = self.canvas.figure.get_size_inches()
+                size = dlg.options.imagesize()
+                dpi = self.canvas.figure.get_dpi()
+                self.canvas.figure.set_size_inches(size[0] / dpi, size[1] / dpi)
+
                 for path, isotope, _ in paths:
-                    ppio.png.save(
-                        path,
-                        self.laser,
-                        isotope,
-                        extent=self.canvas.view,
-                        viewconfig=self.window().viewconfig,
-                        size=dlg.options.imagesize(),
-                        include_colorbar=dlg.options.colorbarChecked(),
-                        include_scalebar=dlg.options.scalebarChecked(),
-                        include_label=dlg.options.labelChecked(),
-                    )
+                    self.canvas.drawLaser(self.laser, isotope)
+                    self.canvas.figure.savefig(path, transparent=True, frameon=False)
+
+                self.canvas.figure.set_size_inches(*old_size)
+                self.canvas.drawLaser(self.laser, self.combo_isotope.currentText())
+                self.canvas.draw()
         elif ext == ".vti":
             spacing = *self.laser.config.pixel_size(), self.laser.config.spotsize / 2.0
             io.vtk.save(
@@ -321,21 +342,12 @@ class LaserImageDock(QtWidgets.QDockWidget):
             applyDialog(dlg)
 
     def onMenuStats(self) -> None:
-        return
-        dlg = StatsDialog(self.laser, self.window().viewconfig, parent=self)
+        data = self.canvas.image.get_array()
+        if self.canvas.image_selection is not None:
+            data = data[self.canvas.image_selection.get_array() == 1]
+
+        dlg = StatsDialog(data, parent=self)
         dlg.exec()
-
-    # def onMenuCalculate(self) -> None:
-    #     def applyDialog(dialog: ApplyDialog) -> None:
-    #         if dialog.data is None or hasattr(self.laser.data, dialog.data.name):
-    #             return
-    #         self.laser.data[dialog.data.name] = dialog.data
-    #         self.populateComboIsotopes()
-
-    #     dlg = CalculateDialog(self.laser, parent=self)
-    #     dlg.applyPressed.connect(applyDialog)
-    #     if dlg.exec():
-    #         applyDialog(dlg)
 
     def onMenuClose(self) -> None:
         self.close()
