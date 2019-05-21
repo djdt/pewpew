@@ -3,10 +3,16 @@ import numpy as np
 
 from pewpew.ui.canvas.basic import BasicCanvas
 
+from typing import Tuple, Union
+
 
 class StatsDialog(QtWidgets.QDialog):
-    def __init__(self, data: np.ndarray, parent: QtWidgets.QWidget = None):
-        self.data = data
+    def __init__(
+        self,
+        data: np.ndarray,
+        range: Tuple[Union[str, float], Union[str, float]],
+        parent: QtWidgets.QWidget = None,
+    ):
         super().__init__(parent)
 
         self.canvas = BasicCanvas(figsize=(6, 2))
@@ -37,9 +43,20 @@ class StatsDialog(QtWidgets.QDialog):
         layout.addWidget(self.button_box)
         self.setLayout(layout)
 
-        self.plot(data)
+        # Calculate the range
+        if isinstance(range[0], str):
+            vmin = np.percentile(data, float(range[0].rstrip("%")))
+        else:
+            vmin = float(range[0])
+        if isinstance(range[1], str):
+            vmax = np.percentile(data, float(range[1].rstrip("%")))
+        else:
+            vmax = float(range[1])
+
+        plot_data = data[np.logical_and(data >= vmin, data <= vmax)]
+        self.plot(plot_data)
 
     def plot(self, data: np.ndarray) -> None:
         highlight = self.palette().color(QtGui.QPalette.Highlight).name()
-        self.canvas.ax.hist(data.ravel(), bins='auto', color=highlight)
+        self.canvas.ax.hist(data.ravel(), bins="auto", color=highlight)
         self.canvas.draw()

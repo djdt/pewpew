@@ -343,7 +343,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         if self.canvas.image_selection is not None:
             data = data[self.canvas.image_selection.get_array() == 1]
 
-        dlg = StatsDialog(data, parent=self)
+        dlg = StatsDialog(data, self.canvas.viewconfig["cmap"]["range"], parent=self)
         dlg.exec()
 
     def onMenuClose(self) -> None:
