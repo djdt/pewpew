@@ -62,9 +62,6 @@ class ImageDockTitleBar(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def setTitle(self, title: str) -> None:
-        self.button_select_rect = QtWidgets.QPushButton(
-            QtGui.QIcon.fromTheme("draw-rectangle"), ""
-        )
         if "&" not in title:
             self.title.setText(title)
 
