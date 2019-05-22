@@ -125,9 +125,9 @@ class DockArea(QtWidgets.QMainWindow):
                             elif csv_as == "Thermo iCap":
                                 data = io.thermo.load(path)
                             else:  # Raw
-                                data = io.csv.load(path)
+                                data = io.csv.load_raw(path)
                     elif ext == ".txt":
-                        data = io.csv.load(path)
+                        data = io.csv.load_raw(path)
                     elif ext == ".b":
                         data = io.agilent.load(path)
 
