@@ -248,7 +248,10 @@ class LaserImageDock(QtWidgets.QDockWidget):
             )
             if dlg.exec():
                 paths = dlg.generate_paths(self.laser)
-                kwargs = {"calibrate": self.window().viewconfig["calibrate"]}
+                kwargs = {
+                    "calibrate": self.canvas.viewconfig["calibrate"],
+                    "flat": True,
+                }
                 if dlg.options.trimmedChecked():
                     kwargs["extent"] = self.canvas.view_limits
                 for path, isotope, _ in paths:
@@ -287,7 +290,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             io.vtk.save(
                 path,
                 self.laser.get_structured(
-                    calibrate=self.window().viewconfig["calibrate"]
+                    calibrate=self.canvas.viewconfig["calibrate"]
                 ),
                 spacing=spacing,
             )
@@ -340,8 +343,8 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
     def onMenuStats(self) -> None:
         data = self.canvas.image.get_array()
-        if self.canvas.image_selection is not None:
-            data = data[self.canvas.image_selection.get_array() == 1]
+        if self.canvas.image_mask is not None:
+            data = data[self.canvas.image_mask.get_array() == 1]
 
         dlg = StatsDialog(data, self.canvas.viewconfig["cmap"]["range"], parent=self)
         dlg.exec()
