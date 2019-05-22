@@ -11,8 +11,7 @@ from matplotlib.widgets import RectangleSelector, LassoSelector
 from matplotlib.path import Path
 from matplotlib.patheffects import Normal, SimpleLineShadow
 
-from typing import Dict, List
-from laserlib.laser import Laser
+from typing import Dict, List, Tuple
 from matplotlib.image import AxesImage
 
 
@@ -38,7 +37,7 @@ class InteractiveLaserCanvas(LaserCanvas):
         if connect_mouse_events:
             self.connectEvents("status")
 
-        self.image_selection: AxesImage = None
+        self.image_mask: AxesImage = None
 
         shadow_color = self.palette().color(QtGui.QPalette.Shadow).name()
         highlight_color = self.palette().color(QtGui.QPalette.Highlight).name()
@@ -78,9 +77,19 @@ class InteractiveLaserCanvas(LaserCanvas):
         if hasattr(self, "lasso_selector"):
             self.lasso_selector.ax = self.ax
 
-    def drawLaser(self, laser: Laser, name: str) -> None:
-        self.image_selection = None
-        super().drawLaser(laser, name)
+    def drawData(
+        self, data: np.ndarray, extent: Tuple[float, float, float, float], aspect: float
+    ) -> None:
+        super().drawData(data, extent, aspect)
+        if self.image_mask is not None:
+            self.ax.add_image(self.image_mask)
+
+    def drawMask(
+        self, mask: np.ndarray, extent: Tuple[float, float, float, float]
+    ) -> None:
+        self.image_mask = self.ax.imshow(
+            mask, cmap=maskAlphaMap, extent=extent, alpha=0.5
+        )
 
     def connectEvents(self, key: str) -> None:
         events = self.EVENTS[key]
@@ -93,14 +102,9 @@ class InteractiveLaserCanvas(LaserCanvas):
                 self.mpl_disconnect(cid)
 
     def startLassoSelection(self) -> None:
-        self.rectangle_selector.set_active(False)
+        self.clearSelection()
         self.lasso_selector.onselect = self.lassoSelection
         self.lasso_selector.set_active(True)
-        # Clear the old selection
-        if self.image_selection is not None:
-            self.image_selection.remove()
-            self.image_selection = None
-            self.draw_idle()
         self.disconnectEvents("drag")
 
     def lassoSelection(self, vertices: List[np.ndarray]) -> None:
@@ -124,23 +128,15 @@ class InteractiveLaserCanvas(LaserCanvas):
 
         mask = np.zeros(data.shape, dtype=np.uint8)
         mask.flat[ind] = 1
-
-        self.image_selection = self.ax.imshow(
-            mask, cmap=maskAlphaMap, extent=(x0, x1, y0, y1), alpha=0.33
-        )
-
-        if self.view_limits != self.image.get_extent():
+        if self.view_limits != (x0, x1, y0, y1):
             self.connectEvents("drag")
+        self.drawMask(mask, (x0, x1, y0, y1))
         self.draw_idle()
 
     def startRectangleSelection(self) -> None:
-        self.lasso_selector.set_active(False)
+        self.clearSelection()
         self.rectangle_selector.onselect = self.rectangleSelection
         self.rectangle_selector.set_active(True)
-        if self.image_selection is not None:
-            self.image_selection.remove()
-            self.image_selection = None
-            self.draw_idle()
         self.disconnectEvents("drag")
 
     def rectangleSelection(self, press: MouseEvent, release: MouseEvent) -> None:
@@ -171,13 +167,18 @@ class InteractiveLaserCanvas(LaserCanvas):
         mask = np.zeros(data.shape, dtype=np.uint8)
         mask.flat[ind] = 1
 
-        self.image_selection = self.ax.imshow(
-            mask, cmap=maskAlphaMap, extent=(x0, x1, y0, y1), alpha=0.33
-        )
-
-        if self.view_limits != self.image.get_extent():
+        if self.view_limits != (x0, x1, y0, y1):
             self.connectEvents("drag")
+        self.drawMask(mask, (x0, x1, y0, y1))
         self.draw_idle()
+
+    def clearSelection(self) -> None:
+        self.lasso_selector.set_active(False)
+        self.rectangle_selector.set_active(False)
+        if self.image_mask in self.ax.get_images():
+            self.image_mask.remove()
+            self.draw_idle()
+        self.image_mask = None
 
     def startZoom(self) -> None:
         self.lasso_selector.set_active(False)

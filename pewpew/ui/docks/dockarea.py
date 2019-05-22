@@ -176,6 +176,10 @@ class DockArea(QtWidgets.QMainWindow):
             if event.key() == QtCore.Qt.Key_Escape:
                 self.mouseSelectFinished.emit(None)
                 self.endMouseSelect()
+        else:
+            if event.key() == QtCore.Qt.Key_Escape:
+                for dock in self.findChildren(LaserImageDock):
+                    dock.canvas.clearSelection()
 
     def startMouseSelect(self) -> None:
         self.mouse_select = True
