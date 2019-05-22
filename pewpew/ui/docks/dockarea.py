@@ -126,8 +126,10 @@ class DockArea(QtWidgets.QMainWindow):
                                 data = io.thermo.load(path)
                             else:  # Raw
                                 data = io.csv.load_raw(path)
+                                data.dtype = [("_", data.dtype)]
                     elif ext == ".txt":
                         data = io.csv.load_raw(path)
+                        data.dtype = [("_", data.dtype)]
                     elif ext == ".b":
                         data = io.agilent.load(path)
 
