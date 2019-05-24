@@ -27,7 +27,7 @@ class LaserCanvas(BasicCanvas):
     }
 
     def __init__(
-        self, viewconfig: dict, options: dict = None, parent: QtWidgets.QWidget = None
+            self, viewconfig: dict, options: dict = None, parent: QtWidgets.QWidget = None
     ) -> None:
         super().__init__(parent=parent)
         self.viewconfig = viewconfig
@@ -42,7 +42,6 @@ class LaserCanvas(BasicCanvas):
     def redrawFigure(self) -> None:
         self.figure.clear()
         self.ax = self.figure.subplots()
-        self.ax.axis("scaled")
         self.ax.set_facecolor("black")
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
