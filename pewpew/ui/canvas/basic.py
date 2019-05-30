@@ -1,6 +1,7 @@
 from PyQt5 import QtCore, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
+from matplotlib.transforms import Bbox
 
 from typing import List, Tuple
 
@@ -36,16 +37,17 @@ class BasicCanvas(FigureCanvasQTAgg):
         return bbox_artists
 
     def copyToClipboard(self) -> None:
-        # The y axis is inverted so we must invert the bounds
-        y = self.size().height()
-        bbox = self.figure.get_tightbbox(
-            self.renderer, bbox_extra_artists=self.get_default_bbox_extra_artists()
-        ).transformed(self.figure.dpi_scale_trans)
-        x0, y0, w, h = bbox.bounds
-        # Qt and mpl coords differ
-        y0 = y - y0 - h
+        bbox = (
+            self.figure.get_tightbbox(
+                self.get_renderer(),
+                bbox_extra_artists=self.get_default_bbox_extra_artists(),
+            )
+            .transformed(self.figure.dpi_scale_trans)
+            .padded(5)  # Pad to look nicer
+        )
+        (x0, y0), (x1, y1) = bbox.get_points().astype(int)
         QtWidgets.QApplication.clipboard().setPixmap(
-            self.grab(QtCore.QRect(int(x0), int(y0), int(w), int(h)))
+            self.grab(QtCore.QRect(x0, y0, x1 - x0, y1 - y0))
         )
 
     def minimumSizeHint(self) -> QtCore.QSize:
