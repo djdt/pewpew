@@ -46,8 +46,9 @@ class BasicCanvas(FigureCanvasQTAgg):
             .padded(5)  # Pad to look nicer
         )
         (x0, y0), (x1, y1) = bbox.get_points().astype(int)
+        ymax = self.size().height()  # We need to invert for mpl to Qt
         QtWidgets.QApplication.clipboard().setPixmap(
-            self.grab(QtCore.QRect(x0, y0, x1 - x0, y1 - y0))
+            self.grab(QtCore.QRect(x0, ymax - y1, x1 - x0, y1 - y0))
         )
 
     def minimumSizeHint(self) -> QtCore.QSize:
