@@ -123,7 +123,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             QtGui.QIcon.fromTheme("insert-image"), "Copy Image", self
         )
         self.action_copy_image.setStatusTip("Copy image to clipboard.")
-        self.action_copy_image.triggered.connect(self.onMenuCopyImage)
+        self.action_copy_image.triggered.connect(self.canvas.copyToClipboard)
         self.action_copy = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-copy"), "Open Copy", self
         )
@@ -194,18 +194,6 @@ class LaserImageDock(QtWidgets.QDockWidget):
     def contextMenuEvent(self, event: QtCore.QEvent) -> None:
         context_menu = self.buildContextMenu()
         context_menu.exec(event.globalPos())
-
-    def onMenuCopyImage(self) -> None:
-        # The y axis is inverted so we must invert the bounds
-        y = self.canvas.size().height()
-        bbox = self.canvas.figure.get_tightbbox(self.canvas.get_renderer()).transformed(
-            self.canvas.figure.dpi_scale_trans
-        )
-        x0, y0, w, h = bbox.bounds
-        y0 = y - y0 - h
-        QtWidgets.QApplication.clipboard().setPixmap(
-            self.canvas.grab(QtCore.QRect(int(x0), int(y0), int(w), int(h)))
-        )
 
     def onMenuCopy(self) -> None:
         laser_copy = copy.deepcopy(self.laser)
