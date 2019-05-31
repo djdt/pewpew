@@ -97,8 +97,10 @@ class ExportAllDialog(ExportDialog):
     def _generate_path(
         self, laser: Laser = None, isotope: str = None, layer: int = None
     ) -> str:
-        if laser is not None and isotope is not None:
-            if isotope not in laser.isotopes():
+        if laser is not None:
+            if isotope is not None and isotope not in laser.isotopes():
+                return ""
+            elif self._get_isotope() not in laser.isotopes():
                 return ""
         name = self.name if laser is None else laser.name
 
