@@ -1,4 +1,4 @@
-from PyQt5 import QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 
 from pewpew.ui.canvas.basic import BasicCanvas
@@ -14,9 +14,12 @@ class StatsDialog(QtWidgets.QDialog):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
+        self.setWindowTitle("Statistics")
 
         self.canvas = BasicCanvas(figsize=(6, 2))
-        self.canvas.ax = self.canvas.figure.subplots()
+        self.canvas.ax = self.canvas.figure.add_subplot(111)
+        # self.canvas.ax.spines["top"].set_visible(False)
+        # self.canvas.ax.spines["right"].set_visible(False)
 
         self.button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
         self.button_box.rejected.connect(self.close)
@@ -55,6 +58,17 @@ class StatsDialog(QtWidgets.QDialog):
 
         plot_data = data[np.logical_and(data >= vmin, data <= vmax)]
         self.plot(plot_data)
+
+    def contextMenuEvent(self, event: QtCore.QEvent) -> None:
+        action_copy_image = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("insert-image"), "Copy Image", self
+        )
+        action_copy_image.setStatusTip("Copy image to clipboard.")
+        action_copy_image.triggered.connect(self.canvas.copyToClipboard)
+
+        context_menu = QtWidgets.QMenu(self)
+        context_menu.addAction(action_copy_image)
+        context_menu.exec(event.globalPos())
 
     def plot(self, data: np.ndarray) -> None:
         highlight = self.palette().color(QtGui.QPalette.Highlight).name()
