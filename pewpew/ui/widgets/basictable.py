@@ -100,12 +100,12 @@ class BasicTable(QtWidgets.QTableWidget):
 
     def setColumnText(self, column: int, text: List[str] = None) -> None:
         if text is not None:
-            assert len(text) == self.rowCount()
+            assert len(text) <= self.rowCount()
         for row in range(0, self.rowCount()):
             self.item(row, column).setText(text[row] if text is not None else "")
 
     def setRowText(self, row: int, text: List[str] = None) -> None:
         if text is not None:
-            assert len(text) == self.columnCount()
+            assert len(text) <= self.columnCount()
         for column in range(0, self.columnCount()):
             self.item(row, column).setText(text[column] if text is not None else "")

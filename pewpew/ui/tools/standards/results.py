@@ -1,34 +1,30 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-import numpy as np
 
 from matplotlib.text import Text
 
-from pewpew.ui.canvas.basic import BasicCanvas
+from laserlib.calibration import LaserCalibration
 
-from pewpew.lib.calc import weighted_linreg
+from pewpew.ui.canvas.basic import BasicCanvas
 
 from typing import List
 
 
 class StandardsResultsDialog(QtWidgets.QDialog):
-    def __init__(
-        self,
-        x: np.ndarray,
-        y: np.ndarray,
-        w: np.ndarray = None,
-        unit: str = "",
-        parent: QtWidgets.QWidget = None,
-    ):
+    def __init__(self, calibration: LaserCalibration, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.canvas = BasicCanvas(self)
-        ax = self.canvas.figure.add_subplot(111)
+        self.canvas = BasicCanvas(parent=self)
+        ax = self.canvas.figure.subplots()
 
-        m, b, r2 = weighted_linreg(x, y, w)
+        x = calibration.concentrations()
+        y = calibration.counts()
         x0, x1 = 0.0, x.max() * 1.1
 
+        m = calibration.gradient
+        b = calibration.intercept
+
         xlabel = "Concentration"
-        if unit != "":
-            xlabel += f" ({unit})"
+        if calibration.unit != "":
+            xlabel += f" ({calibration.unit})"
 
         ax.scatter(x, y, color="black")
         ax.plot([x0, x1], [m * x0 + b, m * x1 + b], ls=":", lw=1.5, color="black")
@@ -38,7 +34,7 @@ class StandardsResultsDialog(QtWidgets.QDialog):
         text = Text(
             x=0.05,
             y=0.95,
-            text=f"y = {m:.4f} · x - {b:.4f}\nr² = {r2:.4f}",
+            text=str(calibration),
             transform=ax.transAxes,
             color="black",
             fontsize=12,
@@ -76,10 +72,6 @@ class StandardsResultsBox(QtWidgets.QGroupBox):
         self.lineedits: List[QtWidgets.QLineEdit] = []
         self.button = QtWidgets.QPushButton("Plot")
         self.button.setEnabled(False)
-
-        self.r2 = 0.0
-        self.m = 0.0
-        self.b = 0.0
 
         layout = QtWidgets.QFormLayout()
 
@@ -129,8 +121,10 @@ class StandardsResultsBox(QtWidgets.QGroupBox):
             le.setText("")
         self.button.setEnabled(False)
 
-    def update(self, x: np.ndarray, y: np.ndarray, w: np.ndarray = None) -> None:
-        self.m, self.b, self.r2 = weighted_linreg(x, y, w=w)
-        for v, le in zip([self.r2, self.m, self.b], self.lineedits):
+    def update(self, calibration: LaserCalibration) -> None:
+        for v, le in zip(
+            [calibration.rsq, calibration.gradient, calibration.intercept],
+            self.lineedits,
+        ):
             le.setText(f"{v:.4f}")
         self.button.setEnabled(True)

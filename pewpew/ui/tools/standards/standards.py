@@ -150,16 +150,14 @@ class StandardsTool(Tool):
     def updateConcentrations(self) -> None:
         name = self.combo_isotope.currentText()
         self.table.blockSignals(True)
-        if name in self.texts.keys():
-            concentrations = self.texts[name]
+        concentrations = [str(x) for x in self.calibrations[name].concentrations()]
+        if len(concentrations) > 0:
             self.table.setColumnText(StandardsTable.COLUMN_CONC, concentrations)
         else:
             self.table.setColumnText(StandardsTable.COLUMN_CONC, None)
-            self.table.blockSignals(False)
+        self.table.blockSignals(False)
 
     def updateCounts(self) -> None:
-        if self.combo_isotope.currentText() not in self.dock.laser.data:
-            return
         data = self.dock.laser.get(
             self.combo_isotope.currentText(),
             calibrate=False,
@@ -192,17 +190,6 @@ class StandardsTool(Tool):
         self.table.setColumnText(StandardsTable.COLUMN_COUNT, text)
         self.table.blockSignals(False)
 
-    def getWeights(self, x: np.ndarray) -> np.ndarray:
-        weighting = self.combo_weighting.currentText()
-        if weighting == "x":
-            return x
-        elif weighting == "1/x":
-            return 1.0 / x
-        elif weighting == "1/(x^2)":
-            return 1.0 / (x ** 2)
-        else:  # Default is no weighting
-            return None
-
     def updateResults(self) -> None:
         # Clear results if not complete
         if not self.table.isComplete():
@@ -218,21 +205,15 @@ class StandardsTool(Tool):
         # Strip negative x values
         y = y[x >= 0.0]
         x = x[x >= 0.0]
-        w = self.getWeights(x)
-
-        # Replace non finite values with one
-        if w is not None and not np.all(np.isfinite(w)):
-            self.results_box.lineedits[0].setText("Invalid weighting option.")
-            return
-
-        self.results_box.update(x, y, w)
+        points = np.stack([x, y], axis=1)
 
         name = self.combo_isotope.currentText()
-        self.calibrations[name] = LaserCalibration(
-            intercept=self.results_box.b,
-            gradient=self.results_box.m,
+        self.calibrations[name] = LaserCalibration.from_points(
+            points=points,
+            weighting=self.combo_weighting.currentText(),
             unit=self.lineedit_units.text(),
         )
+        self.results_box.update(self.calibrations[name])
 
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
@@ -272,19 +253,8 @@ class StandardsTool(Tool):
         super().keyPressEvent(event)
 
     def showCurve(self) -> None:
-        x = np.array(
-            self.table.columnText(StandardsTable.COLUMN_CONC), dtype=np.float64
-        )
-        y = np.array(
-            self.table.columnText(StandardsTable.COLUMN_COUNT), dtype=np.float64
-        )
-        # Strip negative x values
-        y = y[x >= 0.0]
-        x = x[x >= 0.0]
-        w = self.getWeights(x)
-
         dlg = StandardsResultsDialog(
-            x, y, w=w, unit=self.lineedit_units.text(), parent=self
+            self.calibrations[self.combo_isotope.currentText()], parent=self
         )
         dlg.show()
 
