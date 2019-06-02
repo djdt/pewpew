@@ -18,9 +18,11 @@ class StandardsTable(BasicTable):
 
     def isComplete(self) -> bool:
         for row in range(0, self.rowCount()):
-            for column in range(0, self.columnCount()):
-                if self.item(row, column).text() == "":
-                    return False
+            if self.item(row, StandardsTable.COLUMN_COUNT).text() == "":
+                return False
+            # for column in range(0, self.columnCount()):
+            #     if self.item(row, column).text() == "":
+            #         return False
         return True
 
     def setRowCount(self, rows: int) -> None:

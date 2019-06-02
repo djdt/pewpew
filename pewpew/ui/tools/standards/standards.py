@@ -197,14 +197,16 @@ class StandardsTool(Tool):
             return
 
         x = np.array(
-            self.table.columnText(StandardsTable.COLUMN_CONC), dtype=np.float64
+            [
+                x if x != "" else "nan"
+                for x in self.table.columnText(StandardsTable.COLUMN_CONC)
+            ],
+            dtype=np.float64,
         )
         y = np.array(
             self.table.columnText(StandardsTable.COLUMN_COUNT), dtype=np.float64
         )
         # Strip negative x values
-        y = y[x >= 0.0]
-        x = x[x >= 0.0]
         points = np.stack([x, y], axis=1)
 
         name = self.combo_isotope.currentText()
