@@ -243,11 +243,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 if dlg.options.trimmedChecked():
                     kwargs["extent"] = self.canvas.view_limits
                 for path, isotope, _ in paths:
-                    if dlg.options.headerChecked():
-                        header = io.csv.make_header(self.laser, isotope)
-                    else:
-                        header = ""
-                    io.csv.save(path, self.laser.get(isotope, **kwargs), header=header)
+                    io.csv.save(path, self.laser.get(isotope, **kwargs))
 
         elif ext == ".npz":
             io.npz.save(path, [self.laser])

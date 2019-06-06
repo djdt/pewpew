@@ -299,16 +299,13 @@ class MainWindow(QtWidgets.QMainWindow):
             try:
                 if ext == ".npz":
                     lasers += io.npz.load(path)
-                elif ext == ".csv":
-                    try:
-                        laser = io.csv.load(path, read_header=True)
-                    except io.error.LaserLibException:
-                        laser = io.csv.load(path, read_header=False)
-                        laser.config = copy.copy(self.config)
-                    lasers.append(laser)
-                elif ext == ".txt":
-                    laser = io.csv.load(path, read_header=False)
-                    laser.config = copy.copy(self.config)
+                elif ext in [".csv", ".txt", ".text"]:
+                    laser = Laser.from_structured(
+                        io.csv.load(path),
+                        config=self.config,
+                        name=os.path.basename(os.path.splitext(path)[0]),
+                        filepath=path,
+                    )
                     lasers.append(laser)
                 else:
                     raise io.error.LaserLibException("Invalid file extension.")
@@ -430,11 +427,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     kwargs = {"calibrate": self.viewconfig["calibrate"]}
                     if dlg.options.csv.trimmedChecked():
                         kwargs["extent"] = dock.canvas.view_limits
-                    if dlg.options.csv.headerChecked():
-                        header = io.csv.make_header(dock.laser, isotope)
-                    else:
-                        header = ""
-                    io.csv.save(path, dock.laser.get(isotope, **kwargs), header=header)
+                    io.csv.save(path, dock.laser.get(isotope, **kwargs))
                 elif ext == ".npz":
                     io.npz.save(path, [dock.laser])
                 elif ext == ".png":

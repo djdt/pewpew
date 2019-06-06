@@ -95,7 +95,6 @@ class DockArea(QtWidgets.QMainWindow):
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
         urls = event.mimeData().urls()
         lasers = []
-        csv_as = None
         for url in urls:
             try:
                 if url.isLocalFile():
@@ -106,30 +105,13 @@ class DockArea(QtWidgets.QMainWindow):
                     data = None
                     if ext == ".npz":
                         lasers.extend(io.npz.load(path))
-                    # TODO we could automate this, no real need for choice
                     elif ext == ".csv":
-                        if csv_as is None:
-                            choice, ok = QtWidgets.QInputDialog.getItem(
-                                self,
-                                "Select CSV Type",
-                                "CSV Format",
-                                ["PewPew", "Raw", "Thermo iCap"],
-                                editable=False,
-                            )
-                            if not ok:
-                                return
-                            csv_as = choice
-
-                            if csv_as == "PewPew":
-                                lasers.append(io.csv.load(path, read_header=True))
-                            elif csv_as == "Thermo iCap":
-                                data = io.thermo.load(path)
-                            else:  # Raw
-                                data = io.csv.load_raw(path)
-                                data.dtype = [("_", data.dtype)]
-                    elif ext == ".txt":
-                        data = io.csv.load_raw(path)
-                        data.dtype = [("_", data.dtype)]
+                        try:
+                            data = io.thermo.load(path)
+                        except io.error.LaserLibException:
+                            data = io.csv.load(path)
+                    elif ext in [".txt", ".text"]:
+                        data = io.csv.load(path)
                     elif ext == ".b":
                         data = io.agilent.load(path)
 
