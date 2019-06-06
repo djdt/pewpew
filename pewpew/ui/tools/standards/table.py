@@ -17,13 +17,14 @@ class StandardsTable(BasicTable):
         self.setItemDelegate(DoublePrecisionDelegate(4))
 
     def isComplete(self) -> bool:
+        num_points = 0
         for row in range(0, self.rowCount()):
+            print(row)
             if self.item(row, StandardsTable.COLUMN_COUNT).text() == "":
                 return False
-            # for column in range(0, self.columnCount()):
-            #     if self.item(row, column).text() == "":
-            #         return False
-        return True
+            if self.item(row, StandardsTable.COLUMN_CONC).text() != "":
+                num_points += 1
+        return num_points > 1
 
     def setRowCount(self, rows: int) -> None:
         current_rows = self.rowCount()

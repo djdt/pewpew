@@ -88,8 +88,8 @@ class StandardsTool(Tool):
 
         self.results_box.button.pressed.connect(self.showCurve)
 
-        self.table.itemChanged.connect(self.tableItemChanged)
         self.table.setRowCount(6)
+        self.table.itemChanged.connect(self.tableItemChanged)
 
         self.button_laser.pressed.connect(self.buttonLaser)
 
@@ -339,5 +339,4 @@ class StandardsTool(Tool):
         self.draw()
 
     def tableItemChanged(self, item: QtWidgets.QTableWidgetItem) -> None:
-        if item.text() != "":
-            self.updateResults()
+        self.updateResults()
