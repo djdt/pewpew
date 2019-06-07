@@ -19,7 +19,6 @@ class StandardsTable(BasicTable):
     def isComplete(self) -> bool:
         num_points = 0
         for row in range(0, self.rowCount()):
-            print(row)
             if self.item(row, StandardsTable.COLUMN_COUNT).text() == "":
                 return False
             if self.item(row, StandardsTable.COLUMN_CONC).text() != "":

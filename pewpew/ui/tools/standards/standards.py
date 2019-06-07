@@ -290,8 +290,10 @@ class StandardsTool(Tool):
                 self.texts[self.previous_isotope] = texts
                 break
 
-        if isotope in self.calibrations:
+        if self.calibrations[isotope].unit != "":
             self.lineedit_units.setText(self.calibrations[isotope].unit)
+        if self.calibrations[isotope].weighting is not None:
+            self.combo_weighting.setCurrentText(self.calibrations[isotope].weighting)
 
         self.updateConcentrations()
         self.updateCounts()
