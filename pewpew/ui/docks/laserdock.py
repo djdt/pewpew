@@ -330,6 +330,14 @@ class LaserImageDock(QtWidgets.QDockWidget):
         if self.canvas.image_mask is not None:
             data = data[self.canvas.image_mask.get_array() == 1]
 
+        x0, x1, y0, y1 = self.canvas.view_limits
+        px, py = self.laser.config.pixel_size()
+        x0, x1 = int(x0 / px), int(x1 / px)
+        y0, y1 = int(y0 / py), int(y1 / py)
+        # We have to invert the extent, as mpl use bottom left y coords
+        ymax = data.shape[0]
+        data = data[ymax - y1:ymax - y0, x0:x1]
+
         dlg = StatsDialog(data, self.canvas.viewconfig["cmap"]["range"], parent=self)
         dlg.exec()
 
