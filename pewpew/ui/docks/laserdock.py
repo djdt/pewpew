@@ -1,7 +1,8 @@
+from PyQt5 import QtCore, QtGui, QtWidgets
+import numpy as np
+
 import os.path
 import copy
-
-from PyQt5 import QtCore, QtGui, QtWidgets
 
 from pewpew.ui.canvas.interactive import InteractiveLaserCanvas
 from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
@@ -328,15 +329,18 @@ class LaserImageDock(QtWidgets.QDockWidget):
     def onMenuStats(self) -> None:
         data = self.canvas.image.get_array()
         if self.canvas.image_mask is not None:
-            data = data[self.canvas.image_mask.get_array() == 1]
-
-        x0, x1, y0, y1 = self.canvas.view_limits
-        px, py = self.laser.config.pixel_size()
-        x0, x1 = int(x0 / px), int(x1 / px)
-        y0, y1 = int(y0 / py), int(y1 / py)
-        # We have to invert the extent, as mpl use bottom left y coords
-        ymax = data.shape[0]
-        data = data[ymax - y1:ymax - y0, x0:x1]
+            # Trim out nan rows and columns to get size
+            data = np.where(self.canvas.image_mask.get_array(), data, np.nan)
+            data = data[:, ~np.isnan(data).all(axis=0)]
+            data = data[~np.isnan(data).all(axis=1)]
+        else:  # Trim to view limits
+            x0, x1, y0, y1 = self.canvas.view_limits
+            px, py = self.laser.config.pixel_size()
+            x0, x1 = int(x0 / px), int(x1 / px)
+            y0, y1 = int(y0 / py), int(y1 / py)
+            # We have to invert the extent, as mpl use bottom left y coords
+            ymax = data.shape[0]
+            data = data[ymax - y1:ymax - y0, x0:x1]
 
         dlg = StatsDialog(data, self.canvas.viewconfig["cmap"]["range"], parent=self)
         dlg.exec()

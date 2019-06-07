@@ -26,6 +26,7 @@ class StatsDialog(QtWidgets.QDialog):
 
         stats_left = QtWidgets.QFormLayout()
         stats_left.addRow("Shape:", QtWidgets.QLabel(str(data.shape)))
+        data = data[~np.isnan(data)]
         stats_left.addRow("Size:", QtWidgets.QLabel(str(data.size)))
 
         stats_right = QtWidgets.QFormLayout()

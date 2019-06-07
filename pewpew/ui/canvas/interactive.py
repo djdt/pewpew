@@ -126,8 +126,8 @@ class InteractiveLaserCanvas(LaserCanvas):
         path = Path(vertices)
         ind = path.contains_points(pix, radius=2)
 
-        mask = np.zeros(data.shape, dtype=np.uint8)
-        mask.flat[ind] = 1
+        mask = np.zeros(data.shape, dtype=bool)
+        mask.flat[ind] = True
         if self.view_limits != (x0, x1, y0, y1):
             self.connectEvents("drag")
         self.drawMask(mask, (x0, x1, y0, y1))
@@ -164,8 +164,8 @@ class InteractiveLaserCanvas(LaserCanvas):
         path = Path(vertices)
         ind = path.contains_points(pix, radius=2)
 
-        mask = np.zeros(data.shape, dtype=np.uint8)
-        mask.flat[ind] = 1
+        mask = np.zeros(data.shape, dtype=bool)
+        mask.flat[ind] = True
 
         if self.view_limits != (x0, x1, y0, y1):
             self.connectEvents("drag")
