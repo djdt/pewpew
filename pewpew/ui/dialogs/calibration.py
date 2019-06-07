@@ -2,6 +2,7 @@ from PyQt5 import QtCore, QtWidgets
 import copy
 
 from pewpew.ui.dialogs.applydialog import ApplyDialog
+from pewpew.ui.dialogs.calibrationcurve import CalibrationCurveDialog
 from pewpew.ui.validators import DecimalValidator, DecimalValidatorNoZero
 
 from laserlib.calibration import LaserCalibration
@@ -40,11 +41,22 @@ class CalibrationDialog(ApplyDialog):
         # Check all
         self.check_all = QtWidgets.QCheckBox("Apply config to all images.")
 
+        # Button to plot
+
+        self.button_plot = QtWidgets.QPushButton("Plot")
+        self.button_plot.setEnabled(self.calibrations[current_isotope].points.size > 1)
+        self.button_plot.pressed.connect(self.showCurve)
+
+        layout_isotopes = QtWidgets.QHBoxLayout()
+        layout_isotopes.addWidget(self.button_plot, 0, QtCore.Qt.AlignLeft)
+        layout_isotopes.addWidget(self.combo_isotopes, 0, QtCore.Qt.AlignRight)
+
         # Form layout for line edits
         self.layout_form.addRow("Gradient:", self.lineedit_gradient)
         self.layout_form.addRow("Intercept:", self.lineedit_intercept)
         self.layout_form.addRow("Unit:", self.lineedit_unit)
-        self.layout().insertWidget(1, self.combo_isotopes, 1, QtCore.Qt.AlignRight)
+        self.layout().insertLayout(1, layout_isotopes)
+        # self.layout().insertLayout(1, self.combo_isotopes, 1, QtCore.Qt.AlignRight)
         self.layout().insertWidget(2, self.check_all)
 
         self.updateLineEdits()
@@ -85,6 +97,15 @@ class CalibrationDialog(ApplyDialog):
         self.updateCalibration(previous)
         self.updateLineEdits()
         self.previous_index = self.combo_isotopes.currentIndex()
+        self.button_plot.setEnabled(
+            self.calibrations[self.combo_isotopes.currentText()].points.size > 1
+        )
+
+    def showCurve(self) -> None:
+        dlg = CalibrationCurveDialog(
+            self.calibrations[self.combo_isotopes.currentText()], parent=self
+        )
+        dlg.show()
 
     def apply(self) -> None:
         self.updateCalibration(self.combo_isotopes.currentText())

@@ -9,12 +9,10 @@ from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 from pewpew.ui.tools.tool import Tool
 from pewpew.ui.docks.dockarea import DockArea
 from pewpew.ui.docks.laserdock import LaserImageDock
+from pewpew.ui.dialogs.calibrationcurve import CalibrationCurveDialog
 
 from pewpew.ui.tools.standards.canvas import StandardsCanvas
-from pewpew.ui.tools.standards.results import (
-    StandardsResultsBox,
-    StandardsResultsDialog,
-)
+from pewpew.ui.tools.standards.results import StandardsResultsBox
 from pewpew.ui.tools.standards.table import StandardsTable
 
 from typing import Dict, List
@@ -255,7 +253,7 @@ class StandardsTool(Tool):
         super().keyPressEvent(event)
 
     def showCurve(self) -> None:
-        dlg = StandardsResultsDialog(
+        dlg = CalibrationCurveDialog(
             self.calibrations[self.combo_isotope.currentText()], parent=self
         )
         dlg.show()
