@@ -225,10 +225,16 @@ class InteractiveLaserCanvas(LaserCanvas):
 
     def updateStatusBar(self, event: MouseEvent) -> None:
         if event.inaxes == self.ax and self.image._A is not None:
-            x, y = event.xdata, event.ydata
-            v = self.image.get_cursor_data(event)
             if self.window() is not None and self.window().statusBar() is not None:
-                self.window().statusBar().showMessage(f"{x:.2f},{y:.2f} [{v:.2f}]")
+                x, y = event.xdata, event.ydata
+                v = self.image.get_cursor_data(event)
+                unit = self.window().viewconfig["status_unit"]
+                if unit == "row":
+                    x0, x1, y0, y1 = self.image.get_extent()
+                    w, h = self.image.get_array().shape
+                    x = 1 + int(x / (x1 - x0) * h)
+                    y = w - int(y / (y1 - y0) * w)
+                self.window().statusBar().showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
 
     def clearStatusBar(self, event: LocationEvent) -> None:
         if self.window() is not None and self.window().statusBar() is not None:

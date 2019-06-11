@@ -63,6 +63,7 @@ class MainWindow(QtWidgets.QMainWindow):
         "calibrate": True,
         "filtering": {"type": "None", "window": (3, 3), "threshold": 9},
         "interpolation": "None",
+        "status_unit": "μm",
         "alpha": 1.0,
         "font": {"size": 12},
     }
@@ -87,6 +88,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.createMenus()
         self.statusBar().showMessage("Import or open data to begin.")
+        button_status_um = QtWidgets.QRadioButton("μ")
+        button_status_um.setChecked(True)
+        button_status_um.toggled.connect(self.buttonStatusUnit)
+        button_status_row = QtWidgets.QRadioButton("r")
+        self.statusBar().addPermanentWidget(button_status_um)
+        self.statusBar().addPermanentWidget(button_status_row)
 
     def createMenus(self) -> None:
         # File
@@ -271,6 +278,9 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         action_about.setStatusTip("About this program.")
         action_about.triggered.connect(self.menuAbout)
+
+    def buttonStatusUnit(self, toggled: bool) -> None:
+        self.viewconfig["status_unit"] = "μm" if toggled else "row"
 
     def refresh(self, visible_only: bool = False) -> None:
         if visible_only:
