@@ -1,4 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
+import numpy as np
 
 from matplotlib.text import Text
 
@@ -16,7 +17,7 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
 
         x = calibration.concentrations()
         y = calibration.counts()
-        x0, x1 = 0.0, x.max() * 1.1
+        x0, x1 = 0.0, np.nanmax(x) * 1.1
 
         m = calibration.gradient
         b = calibration.intercept
