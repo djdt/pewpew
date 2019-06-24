@@ -232,8 +232,8 @@ class InteractiveLaserCanvas(LaserCanvas):
                 if unit == "row":
                     x0, x1, y0, y1 = self.image.get_extent()
                     w, h = self.image.get_array().shape
-                    x = 1 + int(x / (x1 - x0) * h)
-                    y = w - int(y / (y1 - y0) * w)
+                    x = int(x / (x1 - x0) * h)
+                    y = int(y / (y1 - y0) * w)
                 self.window().statusBar().showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
 
     def clearStatusBar(self, event: LocationEvent) -> None:
