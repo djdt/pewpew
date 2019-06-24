@@ -4,7 +4,7 @@ from matplotlib.colors import LinearSegmentedColormap
 ppSpectral = LinearSegmentedColormap.from_list(
     "ppSpectral",
     [
-        (0.10196078, 0.086275, 0.133333),
+        (0.000000, 0.000000, 0.000000),
         (0.368627, 0.309804, 0.635294),
         (0.196078, 0.533333, 0.741176),
         (0.400000, 0.760784, 0.647059),
