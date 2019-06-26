@@ -68,7 +68,7 @@ class StandardsTool(Tool):
         self.previous_isotope = self.combo_isotope.currentText()
 
         self.draw()
-        self.updateCounts()
+        self.comboIsotope("")
 
     def initialiseWidgets(self) -> None:
         self.spinbox_levels.setMinimum(1)
