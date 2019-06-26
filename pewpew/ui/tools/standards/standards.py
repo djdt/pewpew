@@ -232,8 +232,7 @@ class StandardsTool(Tool):
             self.lineedit_left.setText("")
             self.lineedit_right.setText("")
 
-            self.updateCounts()
-            self.updateResults()
+            self.comboIsotope("")
 
         self.dockarea.mouseSelectFinished.disconnect(self.mouseSelectFinished)
         self.activateWindow()
