@@ -23,13 +23,11 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         self.beginResetModel()
         self.calibration = calibration
         new_array = np.full_like(self.array, np.nan)
-        min_row = np.min((new_array.shape[0], self.calibration.points.shape[0]))
-        new_array[:min_row] = self.calibration.points[:min_row]
+        if self.calibration.points.size > 0:
+            min_row = np.min((new_array.shape[0], self.calibration.points.shape[0]))
+            new_array[:min_row] = self.calibration.points[:min_row]
         self.array = new_array
         self.endResetModel()
-        # self.dataChanged.emit(
-        #     QtCore.QModelIndex(), QtCore.QModelIndex(), [QtCore.Qt.DisplayRole]
-        # )
 
     def data(
         self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole
@@ -87,7 +85,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
 
     def updateCalibration(self, *args) -> None:
         if np.count_nonzero(~np.isnan(self.array[:, 0])) == 0:
-            self.calibration.points = np.full((2, 1), np.nan, dtype=np.float64)
+            self.calibration.points = np.array([], dtype=np.float64)
         else:
             self.calibration.points = self.array
 

@@ -2,9 +2,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 import copy
 
-from laserlib.calibration import LaserCalibration
-
-from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
+# from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 
 from pewpew.ui.tools.tool import Tool
 from pewpew.ui.docks.dockarea import DockArea
@@ -14,8 +12,6 @@ from pewpew.ui.dialogs.calibrationcurve import CalibrationCurveDialog
 from pewpew.ui.tools.standards.canvas import StandardsCanvas
 from pewpew.ui.tools.standards.results import StandardsResultsBox
 from pewpew.ui.tools.standards.table import StandardsTable
-
-from typing import Dict, List
 
 
 class StandardsTool(Tool):
@@ -84,12 +80,12 @@ class StandardsTool(Tool):
             self.calibrations[self.combo_isotope.currentText()], self
         )
         self.table.setRowCount(6)
+        self.table.model().dataChanged.connect(self.updateResults)
 
         self.layoutWidgets()
 
         self.draw()
         self.updateCounts()
-        self.updateResults()
 
     def layoutWidgets(self) -> None:
         layout_cal_form = QtWidgets.QFormLayout()
@@ -100,7 +96,6 @@ class StandardsTool(Tool):
         layout_table_form.addRow("Weighting:", self.combo_weighting)
         # layout_table_form.addRow("Averaging:", self.combo_averaging)
 
-        # layout_left = QtWidgets.QVBoxLayout()
         self.layout_left.addLayout(layout_cal_form)
         self.layout_left.addWidget(self.table)
         self.layout_left.addLayout(layout_table_form)
@@ -144,7 +139,6 @@ class StandardsTool(Tool):
         )
         if len(data) == 1:
             return
-        print(self.table.model().rowCount())
         buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
         self.table.setCounts([np.mean(b) for b in buckets])
 
@@ -174,26 +168,6 @@ class StandardsTool(Tool):
         else:
             isotope = self.combo_isotope.currentText()
             self.results_box.update(self.calibrations[isotope])
-
-        # x = np.array(
-        #     [
-        #         x if x != "" else "nan"
-        #         for x in self.table.columnText(StandardsTable.COLUMN_CONC)
-        #     ],
-        #     dtype=np.float64,
-        # )
-        # y = np.array(
-        #     self.table.columnText(StandardsTable.COLUMN_COUNT), dtype=np.float64
-        # )
-        # # Strip negative x values
-        # points = np.stack([x, y], axis=1)
-
-        # name = self.combo_isotope.currentText()
-        # self.calibrations[name] = LaserCalibration.from_points(
-        #     points=points,
-        #     weighting=self.combo_weighting.currentText(),
-        #     unit=self.lineedit_units.text(),
-        # )
 
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
@@ -246,7 +220,6 @@ class StandardsTool(Tool):
 
     def comboAveraging(self, text: str) -> None:
         self.updateCounts()
-        self.updateResults()
 
     def comboTrim(self, text: str) -> None:
         if self.combo_trim.currentText() == "rows":
@@ -260,20 +233,19 @@ class StandardsTool(Tool):
 
     def comboIsotope(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
-        # Only update if at least one cell is filled
 
+        self.changeCalibration()
         if self.calibrations[isotope].unit != "":
             self.lineedit_units.setText(self.calibrations[isotope].unit)
         if self.calibrations[isotope].weighting is not None:
             self.combo_weighting.setCurrentText(self.calibrations[isotope].weighting)
-        self.changeCalibration()
         self.updateCounts()
-        self.updateResults()
         self.draw()
 
     def comboWeighting(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
         self.calibrations[isotope].weighting = self.combo_weighting.currentText()
+        self.calibrations[isotope].update_linreg()
         self.updateResults()
 
     def lineEditTrim(self) -> None:
@@ -299,6 +271,7 @@ class StandardsTool(Tool):
             self.canvas.image.get_extent()[3],
         )
         self.canvas.updateView()
+        self.updateCounts()
 
     def lineeditUnits(self) -> None:
         isotope = self.combo_isotope.currentText()
@@ -308,5 +281,4 @@ class StandardsTool(Tool):
     def spinBoxLevels(self) -> None:
         self.table.setRowCount(self.spinbox_levels.value())
         self.updateCounts()
-        self.updateResults()
         self.draw()

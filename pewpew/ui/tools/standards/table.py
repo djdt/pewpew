@@ -1,7 +1,7 @@
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtWidgets
 import numpy as np
 
-from pewpew.ui.validators import DoublePrecisionDelegate
+from pewpew.ui.validators import DoubleSignificantFiguresDelegate
 
 from pewpew.ui.widgets.basictable import BasicTableView
 from pewpew.ui.tools.standards.calibrationpointstablemodel import (
@@ -21,19 +21,30 @@ class StandardsTable(BasicTableView):
         # self.setHorizontalHeader(["Concentration", "Counts"])
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
-        self.setItemDelegate(DoublePrecisionDelegate(4))
+        self.setItemDelegate(DoubleSignificantFiguresDelegate(4))
 
     def isComplete(self) -> bool:
-        if np.nan in self.model().array[:, 1]:
+        if np.nan in self.model().array[:, StandardsTable.COLUMN_COUNT]:
             return False
-        if np.count_nonzero(~np.isnan(self.model().array[:, 0])) < 2:
+        if (
+            np.count_nonzero(
+                ~np.isnan(self.model().array[:, StandardsTable.COLUMN_CONC])
+            )
+            < 2
+        ):
             return False
         return True
 
     def setCounts(self, counts: np.ndarray) -> None:
+        self.model().blockSignals(True)
         for i in range(0, self.model().rowCount()):
-            print(i, counts[i], self.model().rowCount())
-            self.model().setData(self.model().index(i, 1), counts[i])
+            self.model().setData(
+                self.model().index(i, StandardsTable.COLUMN_COUNT), counts[i]
+            )
+        self.model().blockSignals(False)
+        self.model().dataChanged.emit(
+            QtCore.QModelIndex(), QtCore.QModelIndex(), [QtCore.Qt.EditRole]
+        )
 
     def setRowCount(self, rows: int) -> None:
         current_rows = self.model().rowCount()
