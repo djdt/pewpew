@@ -9,7 +9,11 @@ from laserlib.calibration import LaserCalibration
 class CalibrationPointsTableModel(NumpyArrayTableModel):
     def __init__(self, calibration: LaserCalibration, parent: QtCore.QObject = None):
         self.calibration = calibration
-        super().__init__(self.calibration.points, parent)
+        if self.calibration.points.size == 0:
+            points = np.array([[np.nan, np.nan]], dtype=np.float64)
+        else:
+            points = self.calibration.points
+        super().__init__(points, parent)
 
         self.alphabet_rows = True
         self.fill_value = np.nan

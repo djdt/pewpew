@@ -237,8 +237,12 @@ class StandardsTool(Tool):
         self.changeCalibration()
         if self.calibrations[isotope].unit != "":
             self.lineedit_units.setText(self.calibrations[isotope].unit)
+        else:
+            self.calibrations[isotope].unit = self.lineedit_units.text()
         if self.calibrations[isotope].weighting is not None:
             self.combo_weighting.setCurrentText(self.calibrations[isotope].weighting)
+        else:
+            self.calibrations[isotope].weighting = self.combo_weighting.currentText()
         self.updateCounts()
         self.draw()
 
