@@ -3,6 +3,93 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from typing import List
 
 
+class BasicTableView(QtWidgets.QTableView):
+    def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+        menu = QtWidgets.QMenu(self)
+        cut_action = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("edit-cut"), "Cut", self
+        )
+        cut_action.triggered.connect(self._cut)
+        copy_action = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("edit-copy"), "Copy", self
+        )
+        copy_action.triggered.connect(self._copy)
+        paste_action = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("edit-paste"), "Paste", self
+        )
+        paste_action.triggered.connect(self._paste)
+
+        menu.addAction(cut_action)
+        menu.addAction(copy_action)
+        menu.addAction(paste_action)
+
+        menu.exec(event.globalPos())
+
+    def keyPressEvent(self, event: QtCore.QEvent) -> None:
+        if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
+            self._advance()
+        elif event.key() in [QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete]:
+            self._delete()
+        elif event.matches(QtGui.QKeySequence.Copy):
+            self._copy()
+        elif event.matches(QtGui.QKeySequence.Cut):
+            self._cut()
+        elif event.matches(QtGui.QKeySequence.Paste):
+            self._paste()
+        else:
+            super().keyPressEvent(event)
+
+    def _advance(self) -> None:
+        row = self.currentRow()
+        if row + 1 < self.rowCount():
+            self.setCurrentCell(row + 1, self.currentColumn())
+
+    def _copy(self) -> None:
+        selection = sorted(self.selectedIndexes(), key=lambda i: (i.row(), i.column()))
+        data = (
+            '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
+            "<table><tr>"
+        )
+        text = ""
+
+        prev = None
+        for i in selection:
+            if prev is not None and prev.row() != i.row():  # New row
+                data += "</tr><tr>"
+                text += "\n"
+            value = "" if i.data() is None else i.data()
+            data += f"<td>{value}</td>"
+            if i.column() != 0:
+                text += "\t"
+            text += f"{value}"
+            prev = i
+        data += "</tr></table>"
+
+        mime = QtCore.QMimeData()
+        mime.setHtml(data)
+        mime.setText(text)
+        QtWidgets.QApplication.clipboard().setMimeData(mime)
+
+    def _cut(self) -> None:
+        self._copy()
+        self._delete()
+
+    def _delete(self) -> None:
+        for i in self.selectedIndexes():
+            self.model().setData(i, "")
+
+    def _paste(self) -> None:
+        text = QtWidgets.QApplication.clipboard().text("plain")
+        selection = self.selectedIndexes()
+        start_row = min(selection, key=lambda i: i.row()).row()
+        start_column = min(selection, key=lambda i: i.column()).column()
+
+        for row, row_text in enumerate(text[0].split("\n")):
+            for column, text in enumerate(row_text.split("\t")):
+                index = self.model().createIndex(start_row + row, start_column + column)
+                self.model().setData(index, text)
+
+
 class BasicTable(QtWidgets.QTableWidget):
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         menu = QtWidgets.QMenu(self)

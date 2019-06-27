@@ -83,7 +83,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         if not index.isValid():
             return QtCore.QVariant()
 
-        if index.row() > self.rowCount() or index.column() > self.columnCount():
+        if index.row() >= self.rowCount() or index.column() >= self.columnCount():
             return QtCore.QVariant()
 
         if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
@@ -96,9 +96,12 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         self,
         index: QtCore.QModelIndex,
         value: QtCore.QVariant,
-        role: QtCore.Qt.EditRole,
+        role: int = QtCore.Qt.EditRole,
     ) -> bool:
         if not index.isValid():
+            return False
+
+        if index.row() >= self.rowCount() or index.column() >= self.columnCount():
             return False
 
         if role == QtCore.Qt.EditRole:

@@ -27,7 +27,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         self,
         index: QtCore.QModelIndex,
         value: QtCore.QVariant,
-        role: QtCore.Qt.EditRole,
+        role: int = QtCore.Qt.EditRole,
     ) -> bool:
         return super().setData(index, np.nan if value == "" else value, role)
 
