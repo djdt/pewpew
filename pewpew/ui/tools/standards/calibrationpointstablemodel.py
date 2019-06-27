@@ -3,17 +3,33 @@ import numpy as np
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 
+from laserlib.calibration import LaserCalibration
+
 
 class CalibrationPointsTableModel(NumpyArrayTableModel):
-    def __init__(self, points: np.ndarray, parent: QtCore.QObject = None):
-        if points is None:
-            points = np.full((1, 2), np.nan, dtype=np.float64)
-        if points.ndim != 2 or points.shape[1] != 2:
-            raise ValueError("Invalid array for points.")
-        super().__init__(points.astype(np.float64), parent)
+    def __init__(self, calibration: LaserCalibration, parent: QtCore.QObject = None):
+        self.calibration = calibration
+        super().__init__(self.calibration.points, parent)
 
         self.alphabet_rows = True
         self.fill_value = np.nan
+
+        self.dataChanged.connect(self.updateCalibration)
+        self.rowsInserted.connect(self.updateCalibration)
+        self.rowsRemoved.connect(self.updateCalibration)
+        self.modelReset.connect(self.updateCalibration)
+
+    def setCalibration(self, calibration: LaserCalibration) -> None:
+        self.beginResetModel()
+        self.calibration = calibration
+        new_array = np.full_like(self.array, np.nan)
+        min_row = np.min((new_array.shape[0], self.calibration.points.shape[0]))
+        new_array[:min_row] = self.calibration.points[:min_row]
+        self.array = new_array
+        self.endResetModel()
+        # self.dataChanged.emit(
+        #     QtCore.QModelIndex(), QtCore.QModelIndex(), [QtCore.Qt.DisplayRole]
+        # )
 
     def data(
         self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole
@@ -30,6 +46,15 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         role: int = QtCore.Qt.EditRole,
     ) -> bool:
         return super().setData(index, np.nan if value == "" else value, role)
+
+    def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlags:
+        if not index.isValid():
+            return QtCore.Qt.ItemIsEnabled
+
+        flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
+        if index.column() == 0:
+            flags = QtCore.Qt.ItemIsEditable | flags
+        return flags
 
     def headerData(
         self, section: int, orientation: QtCore.Qt.Orientation, role: int
@@ -59,3 +84,11 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         parent: QtCore.QModelIndex = QtCore.QModelIndex(),
     ) -> bool:
         return False
+
+    def updateCalibration(self, *args) -> None:
+        if np.count_nonzero(~np.isnan(self.array[:, 0])) == 0:
+            self.calibration.points = np.full((2, 1), np.nan, dtype=np.float64)
+        else:
+            self.calibration.points = self.array
+
+        self.calibration.update_linreg()
