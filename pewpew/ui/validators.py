@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtGui, QtWidgets
 
 from typing import Tuple
 
@@ -104,5 +104,28 @@ class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
         try:
             num = float(value)
             return f"{num:.{self.decimals}f}"
+        except (TypeError, ValueError):
+            return str(super().displayText(value, locale))
+
+
+class DoubleSignificantFiguresDelegate(QtWidgets.QStyledItemDelegate):
+    def __init__(self, sigfigs: int, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+        self.sigfigs = sigfigs
+
+    def createEditor(
+        self,
+        parent: QtWidgets.QWidget,
+        option: QtWidgets.QStyleOptionViewItem,
+        index: int,
+    ) -> QtWidgets.QWidget:
+        lineedit = QtWidgets.QLineEdit(parent)
+        lineedit.setValidator(QtGui.QDoubleValidator())
+        return lineedit
+
+    def displayText(self, value: str, locale: str) -> str:
+        try:
+            num = float(value)
+            return f"{num:.{self.sigfigs}g}"
         except (TypeError, ValueError):
             return str(super().displayText(value, locale))
