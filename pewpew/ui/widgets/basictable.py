@@ -76,7 +76,8 @@ class BasicTableView(QtWidgets.QTableView):
 
     def _delete(self) -> None:
         for i in self.selectedIndexes():
-            self.model().setData(i, "")
+            if i.flags() & QtCore.Qt.ItemIsEditable:
+                self.model().setData(i, "")
 
     def _paste(self) -> None:
         text = QtWidgets.QApplication.clipboard().text("plain")
@@ -87,7 +88,8 @@ class BasicTableView(QtWidgets.QTableView):
         for row, row_text in enumerate(text[0].split("\n")):
             for column, text in enumerate(row_text.split("\t")):
                 index = self.model().createIndex(start_row + row, start_column + column)
-                self.model().setData(index, text)
+                if index.flags() & QtCore.Qt.ItemIsEditable:
+                    self.model().setData(index, text)
 
 
 class BasicTable(QtWidgets.QTableWidget):
