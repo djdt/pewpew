@@ -57,9 +57,9 @@ class BasicTableView(QtWidgets.QTableView):
             if prev is not None and prev.row() != i.row():  # New row
                 data += "</tr><tr>"
                 text += "\n"
-            value = "" if i.data() is None else i.data()
+            value = i.data()
             data += f"<td>{value}</td>"
-            if i.column() != 0:
+            if prev is not None and prev.row() == i.row():
                 text += "\t"
             text += f"{value}"
             prev = i
