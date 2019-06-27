@@ -36,7 +36,6 @@ class StandardsTool(Tool):
         self.calibrations = {
             k: copy.copy(v.calibration) for k, v in self.dock.laser.data.items()
         }
-        self.texts: Dict[str, List[str]] = {}
 
         # Left side
         self.spinbox_levels = QtWidgets.QSpinBox()
@@ -81,16 +80,16 @@ class StandardsTool(Tool):
         self.combo_isotope.setCurrentText(self.dock.combo_isotope.currentText())
         self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
 
-        self.table = StandardsTable(self.calibrations[self.combo_isotope.currentText()], self)
+        self.table = StandardsTable(
+            self.calibrations[self.combo_isotope.currentText()], self
+        )
         self.table.setRowCount(6)
-        self.table.itemChanged.connect(self.tableItemChanged)
 
-        self.initialiseWidgets()
         self.layoutWidgets()
 
-        self.previous_isotope = self.combo_isotope.currentText()
-
         self.draw()
+        self.updateCounts()
+        self.updateResults()
 
     def layoutWidgets(self) -> None:
         layout_cal_form = QtWidgets.QFormLayout()
@@ -126,82 +125,75 @@ class StandardsTool(Tool):
         self.layout_right.addLayout(layout_canvas_bar)
 
     def draw(self) -> None:
-        if self.combo_isotope.currentText() in self.dock.laser.data:
-            self.canvas.drawLaser(self.dock.laser, self.combo_isotope.currentText())
+        isotope = self.combo_isotope.currentText()
+        if isotope in self.dock.laser.data:
+            self.canvas.drawLaser(self.dock.laser, isotope)
             self.canvas.drawLevels(
                 StandardsTable.ROW_LABELS, self.spinbox_levels.value()
             )
             self.canvas.draw()
 
-    # def updateConcentrations(self) -> None:
-    #     name = self.combo_isotope.currentText()
-    #     self.table.blockSignals(True)
-    #     concentrations = [str(x) for x in self.calibrations[name].concentrations()]
-    #     if len(concentrations) > 0:
-    #         self.table.setColumnText(StandardsTable.COLUMN_CONC, concentrations)
-    #     else:
-    #         self.table.setColumnText(StandardsTable.COLUMN_CONC, None)
-    #     self.table.blockSignals(False)
+    def changeCalibration(self) -> None:
+        isotope = self.combo_isotope.currentText()
+        self.table.model().setCalibration(self.calibrations[isotope])
 
-    # def updateCounts(self) -> None:
-    #     data = self.dock.laser.get(
-    #         self.combo_isotope.currentText(),
-    #         calibrate=False,
-    #         extent=self.canvas.view_limits,
-    #     )
-    #     if len(data) == 1:
-    #         return
+    def updateCounts(self) -> None:
+        isotope = self.combo_isotope.currentText()
+        data = self.dock.laser.get(
+            isotope, calibrate=False, extent=self.canvas.view_limits
+        )
+        if len(data) == 1:
+            return
+        print(self.table.model().rowCount())
+        buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
+        self.table.setCounts([np.mean(b) for b in buckets])
 
-    #     if self.canvas.viewconfig["filtering"]["type"] != "None":
-    #         filter_type, window, threshold = (
-    #             self.canvas.viewconfig["filtering"][x]
-    #             for x in ["type", "window", "threshold"]
-    #         )
-    #         data = data.copy()
-    #         if filter_type == "Rolling mean":
-    #             rolling_mean_filter(data, window, threshold)
-    #         elif filter_type == "Rolling median":
-    #             rolling_median_filter(data, window, threshold)
+        # if self.canvas.viewconfig["filtering"]["type"] != "None":
+        #     filter_type, window, threshold = (
+        #         self.canvas.viewconfig["filtering"][x]
+        #         for x in ["type", "window", "threshold"]
+        #     )
+        #     data = data.copy()
+        #     if filter_type == "Rolling mean":
+        #         rolling_mean_filter(data, window, threshold)
+        #     elif filter_type == "Rolling median":
+        #         rolling_median_filter(data, window, threshold)
 
-    #     sections = np.array_split(data, self.table.rowCount(), axis=0)
-    #     text = []
-    #     averging = self.combo_averaging.currentText()
-    #     for row in range(0, self.table.rowCount()):
-    #         if averging == "Median":
-    #             text.append(f"{np.median(sections[row])}")
-    #         else:  # Mean
-    #             text.append(f"{np.mean(sections[row])}")
+        # averging = self.combo_averaging.currentText()
+        # for row in range(0, self.table.rowCount()):
+        #     if averging == "Median":
+        #         text.append(f"{np.median(sections[row])}")
+        #     else:  # Mean
+        #         text.append(f"{np.mean(sections[row])}")
 
-    #     self.table.blockSignals(True)
-    #     self.table.setColumnText(StandardsTable.COLUMN_COUNT, text)
-    #     self.table.blockSignals(False)
+    def updateResults(self) -> None:
+        # Clear results if not complete
+        if not self.table.isComplete():
+            self.results_box.clear()
+            return
+        else:
+            isotope = self.combo_isotope.currentText()
+            self.results_box.update(self.calibrations[isotope])
 
-    # def updateResults(self) -> None:
-    #     # Clear results if not complete
-    #     if not self.table.isComplete():
-    #         self.results_box.clear()
-    #         return
+        # x = np.array(
+        #     [
+        #         x if x != "" else "nan"
+        #         for x in self.table.columnText(StandardsTable.COLUMN_CONC)
+        #     ],
+        #     dtype=np.float64,
+        # )
+        # y = np.array(
+        #     self.table.columnText(StandardsTable.COLUMN_COUNT), dtype=np.float64
+        # )
+        # # Strip negative x values
+        # points = np.stack([x, y], axis=1)
 
-    #     x = np.array(
-    #         [
-    #             x if x != "" else "nan"
-    #             for x in self.table.columnText(StandardsTable.COLUMN_CONC)
-    #         ],
-    #         dtype=np.float64,
-    #     )
-    #     y = np.array(
-    #         self.table.columnText(StandardsTable.COLUMN_COUNT), dtype=np.float64
-    #     )
-    #     # Strip negative x values
-    #     points = np.stack([x, y], axis=1)
-
-    #     name = self.combo_isotope.currentText()
-    #     self.calibrations[name] = LaserCalibration.from_points(
-    #         points=points,
-    #         weighting=self.combo_weighting.currentText(),
-    #         unit=self.lineedit_units.text(),
-    #     )
-    #     self.results_box.update(self.calibrations[name])
+        # name = self.combo_isotope.currentText()
+        # self.calibrations[name] = LaserCalibration.from_points(
+        #     points=points,
+        #     weighting=self.combo_weighting.currentText(),
+        #     unit=self.lineedit_units.text(),
+        # )
 
     @QtCore.pyqtSlot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
@@ -268,22 +260,20 @@ class StandardsTool(Tool):
 
     def comboIsotope(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
-        texts = self.table.columnText(StandardsTable.COLUMN_CONC)
         # Only update if at least one cell is filled
-        for text in texts:
-            if text != "":
-                self.texts[self.previous_isotope] = texts
-                break
 
         if self.calibrations[isotope].unit != "":
             self.lineedit_units.setText(self.calibrations[isotope].unit)
         if self.calibrations[isotope].weighting is not None:
             self.combo_weighting.setCurrentText(self.calibrations[isotope].weighting)
-
+        self.changeCalibration()
+        self.updateCounts()
+        self.updateResults()
         self.draw()
-        self.previous_isotope = isotope
 
     def comboWeighting(self, text: str) -> None:
+        isotope = self.combo_isotope.currentText()
+        self.calibrations[isotope].weighting = self.combo_weighting.currentText()
         self.updateResults()
 
     def lineEditTrim(self) -> None:
@@ -311,12 +301,12 @@ class StandardsTool(Tool):
         self.canvas.updateView()
 
     def lineeditUnits(self) -> None:
+        isotope = self.combo_isotope.currentText()
         unit = self.lineedit_units.text()
-        self.calibrations[self.combo_isotope.currentText()].unit = unit
+        self.calibrations[isotope].unit = unit
 
     def spinBoxLevels(self) -> None:
         self.table.setRowCount(self.spinbox_levels.value())
-        self.draw()
-
-    def tableItemChanged(self, item: QtWidgets.QTableWidgetItem) -> None:
+        self.updateCounts()
         self.updateResults()
+        self.draw()
