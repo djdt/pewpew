@@ -204,7 +204,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
     def onMenuSave(self) -> None:
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save File", "", "Numpy archive(*.npz);;All files(*)"
+            self, "Save File", self.laser.name, "Numpy archive(*.npz);;All files(*)"
         )
         if path:
             io.npz.save(path, [self.laser])
@@ -213,7 +213,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Export",
-            "",
+            self.laser.name + ".csv",
             "CSV files(*.csv);;Numpy archives(*.npz);;"
             "PNG images(*.png);;VTK Images(*.vti);;All files(*)",
             options=QtWidgets.QFileDialog.DontConfirmOverwrite,
@@ -340,7 +340,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             y0, y1 = int(y0 / py), int(y1 / py)
             # We have to invert the extent, as mpl use bottom left y coords
             ymax = data.shape[0]
-            data = data[ymax - y1:ymax - y0, x0:x1]
+            data = data[ymax - y1 : ymax - y0, x0:x1]
 
         dlg = StatsDialog(data, self.canvas.viewconfig["cmap"]["range"], parent=self)
         dlg.exec()
