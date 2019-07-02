@@ -80,9 +80,12 @@ class ExportDialog(QtWidgets.QDialog):
     ) -> str:
         path, ext = os.path.splitext(self.path)
         if isotope is not None:
+            if os.path.sep in isotope:
+                isotope = isotope.replace(os.path.sep, "_")
             path += f"_{isotope}"
         if layer is not None:
             path += f"_{layer}"
+
         return path + ext
 
     def generate_paths(
