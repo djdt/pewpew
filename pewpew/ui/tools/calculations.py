@@ -2,6 +2,7 @@ from PyQt5 import QtCore, QtWidgets
 import numpy as np
 
 from laserlib.laser import Laser
+from laserlib.krisskross import KrissKross
 from pewpew.ui.validators import DecimalValidator
 
 from pewpew.ui.canvas.laser import LaserCanvas
@@ -137,7 +138,10 @@ class CalculationsTool(Tool):
         if isotope not in self.dock.laser.data:
             return
 
-        data = self.dock.laser.data[isotope].data
+        kwargs = {"calibrate": self.viewconfig["calibrate"]}
+        if isinstance(self.dock.laser, KrissKross):
+            kwargs["flat"] = True
+        data = self.dock.laser.data.get(isotope, **kwargs)
         name = isotope
 
         c1 = CalculationsTool.CONDITIONS[self.combo_condition1.currentText()]
