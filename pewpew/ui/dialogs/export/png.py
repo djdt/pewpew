@@ -6,12 +6,14 @@ from typing import Tuple
 
 
 class PNGExportOptions(QtWidgets.QGroupBox):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self, imagesize: Tuple[int, int] = (1280, 800), parent: QtWidgets.QWidget = None
+    ):
         super().__init__("PNG Options", parent)
 
-        self.linedit_size_x = QtWidgets.QLineEdit("1280")
+        self.linedit_size_x = QtWidgets.QLineEdit(str(imagesize[0]))
         self.linedit_size_x.setValidator(QtGui.QIntValidator(0, 9999))
-        self.linedit_size_y = QtWidgets.QLineEdit("800")
+        self.linedit_size_y = QtWidgets.QLineEdit(str(imagesize[1]))
         self.linedit_size_y.setValidator(QtGui.QIntValidator(0, 9999))
 
         # We can just use the open options
@@ -39,6 +41,7 @@ class PNGExportOptions(QtWidgets.QGroupBox):
     def imagesize(self) -> Tuple[int, int]:
         return (int(self.linedit_size_x.text()), int(self.linedit_size_y.text()))
 
+
 #     def colorbarChecked(self) -> bool:
 #         return self.check_colorbar.isChecked()
 
@@ -56,6 +59,14 @@ class PNGExportDialog(ExportDialog):
         name: str,
         names: int = -1,
         layers: int = -1,
+        viewlimits: Tuple[float, float, float, float] = None,
         parent: QtWidgets.QWidget = None,
     ):
-        super().__init__(path, name, names, layers, PNGExportOptions(), parent)
+        imagesize = (1280, 800)
+        if viewlimits is not None:
+            x = viewlimits[1] - viewlimits[0]
+            y = viewlimits[3] - viewlimits[2]
+            imagesize = (1280, int(1280 * y / x)) if x > y else (int(800 * x / y), 800)
+        super().__init__(
+            path, name, names, layers, PNGExportOptions(imagesize=imagesize), parent
+        )

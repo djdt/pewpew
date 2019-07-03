@@ -254,6 +254,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 name=self.combo_isotope.currentText(),
                 names=len(self.laser.isotopes()),
                 layers=1,
+                viewlimits=self.canvas.view_limits,
                 parent=self,
             )
             if dlg.exec():
