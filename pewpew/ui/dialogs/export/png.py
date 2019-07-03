@@ -66,7 +66,7 @@ class PNGExportDialog(ExportDialog):
         if viewlimits is not None:
             x = viewlimits[1] - viewlimits[0]
             y = viewlimits[3] - viewlimits[2]
-            imagesize = (1280, int(1280 * y / x)) if x > y else (int(800 * x / y), 800)
+            imagesize = (1280, int(1280 * x / y)) if x > y else (int(800 * y / x), 800)
         super().__init__(
             path, name, names, layers, PNGExportOptions(imagesize=imagesize), parent
         )
