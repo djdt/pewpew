@@ -70,6 +70,12 @@ class InteractiveLaserCanvas(LaserCanvas):
         )
         self.lasso_selector.set_active(False)
 
+    def close(self) -> None:
+        # Ensure that events are disconnected before closing
+        for key in self.events:
+            self.mpl_disconnect(self.events[key])
+        super().close()
+
     def redrawFigure(self) -> None:
         super().redrawFigure()
         if hasattr(self, "rectangle_selector"):
