@@ -138,10 +138,10 @@ class CalculationsTool(Tool):
         if isotope not in self.dock.laser.data:
             return
 
-        kwargs = {"calibrate": self.viewconfig["calibrate"]}
+        kwargs = {"calibrate": False}
         if isinstance(self.dock.laser, KrissKross):
             kwargs["flat"] = True
-        data = self.dock.laser.data.get(isotope, **kwargs)
+        data = self.dock.laser.get(isotope, **kwargs)
         name = isotope
 
         c1 = CalculationsTool.CONDITIONS[self.combo_condition1.currentText()]
