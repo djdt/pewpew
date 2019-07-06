@@ -203,17 +203,26 @@ class LaserImageDock(QtWidgets.QDockWidget):
         dock_copy.draw()
 
     def onMenuSave(self) -> None:
-        path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save File", self.laser.name, "Numpy archive(*.npz);;All files(*)"
-        )
+        if self.laser.filepath.lower().endswith(".npz") and os.path.exists(
+            self.laser.filepath
+        ):
+            path = self.laser.filepath
+        else:
+            path, _filter = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Save File",
+                os.path.join(os.path.dirname(self.laser.filepath), self.laser.name),
+                "Numpy archive(*.npz);;All files(*)",
+            )
         if path:
             io.npz.save(path, [self.laser])
+            self.laser.filepath = path
 
     def onMenuExport(self) -> None:
         path, _filter = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Export",
-            self.laser.name + ".csv",
+            os.path.join(os.path.dirname(self.laser.filepath), self.laser.name),
             "CSV files(*.csv);;Numpy archives(*.npz);;"
             "PNG images(*.png);;VTK Images(*.vti);;All files(*)",
             options=QtWidgets.QFileDialog.DontConfirmOverwrite,
