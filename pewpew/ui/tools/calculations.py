@@ -45,8 +45,8 @@ class CalculationsTool(Tool):
 
     def __init__(
         self,
-        dock: LaserImageDock,
         dockarea: DockArea,
+        dock: LaserImageDock,
         viewconfig: dict,
         parent: QtWidgets.QWidget = None,
     ):
