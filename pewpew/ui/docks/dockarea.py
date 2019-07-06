@@ -15,6 +15,7 @@ from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
 class DockArea(QtWidgets.QMainWindow):
 
     mouseSelectFinished = QtCore.pyqtSignal("QWidget*")
+    numberDocksChanged = QtCore.pyqtSignal()
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
@@ -50,6 +51,9 @@ class DockArea(QtWidgets.QMainWindow):
             )
             dock.draw()
             dock.show()
+        for dock in docks:
+            dock.destroyed.connect(self.numberDocksChanged)
+        self.numberDocksChanged.emit()
 
     def orderedDocks(
         self, docks: List[QtWidgets.QDockWidget]

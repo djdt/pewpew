@@ -82,6 +82,7 @@ class MainWindow(QtWidgets.QMainWindow):
         layout = QtWidgets.QHBoxLayout()
 
         self.dockarea = DockArea(self)
+        self.dockarea.numberDocksChanged.connect(self.docksAddedOrRemoved)
         layout.addWidget(self.dockarea)
 
         widget.setLayout(layout)
@@ -174,17 +175,19 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu_edit.addSeparator()
 
-        action_calibration = menu_edit.addAction(
+        self.action_calibration = menu_edit.addAction(
             QtGui.QIcon.fromTheme("document-properties"), "&Standards"
         )
-        action_calibration.setStatusTip("Generate calibration curve from a standard.")
-        action_calibration.triggered.connect(self.menuStandardsTool)
+        self.action_calibration.setStatusTip("Generate calibration curve from a standard.")
+        self.action_calibration.triggered.connect(self.menuStandardsTool)
+        self.action_calibration.setEnabled(False)
 
-        action_operations = menu_edit.addAction(
+        self.action_operations = menu_edit.addAction(
             QtGui.QIcon.fromTheme("document-properties"), "&Operations"
         )
-        action_operations.setStatusTip("Perform calculations using laser data.")
-        action_operations.triggered.connect(self.menuOperationsTool)
+        self.action_operations.setStatusTip("Perform calculations using laser data.")
+        self.action_operations.triggered.connect(self.menuOperationsTool)
+        self.action_operations.setEnabled(False)
 
         # View
         menu_view = self.menuBar().addMenu("&View")
@@ -289,6 +292,12 @@ class MainWindow(QtWidgets.QMainWindow):
             docks = self.dockarea.findChildren(LaserImageDock)
         for d in docks:
             d.draw()
+
+    def docksAddedOrRemoved(self) -> None:
+        num_docks = len(self.dockarea.findChildren(LaserImageDock))
+        enabled = not num_docks == 0
+        self.action_calibration.setEnabled(enabled)
+        self.action_operations.setEnabled(enabled)
 
     def menuOpen(self) -> None:
         paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
@@ -506,10 +515,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 dock.draw()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        laserdock = docks[0] if len(docks) > 0 else LaserImageDock(Laser(), parent=self)
-        cali_tool = StandardsTool(
-            self.dockarea, laserdock, self.viewconfig, parent=self
-        )
+        cali_tool = StandardsTool(self.dockarea, docks[0], self.viewconfig, parent=self)
         cali_tool.applyPressed.connect(applyTool)
         cali_tool.show()
 
@@ -520,8 +526,7 @@ class MainWindow(QtWidgets.QMainWindow):
             tool.updateComboIsotopes()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        laser = docks[0] if len(docks) > 0 else LaserImageDock(Laser(), parent=self)
-        calc_tool = CalculationsTool(laser, self.dockarea, self.viewconfig, parent=self)
+        calc_tool = CalculationsTool(self.dockarea, docks[0], self.viewconfig, parent=self)
         calc_tool.applyPressed.connect(applyTool)
         calc_tool.show()
 

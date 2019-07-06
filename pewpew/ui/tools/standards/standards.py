@@ -2,7 +2,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 import copy
 
-# from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
+from laserlib.calibration import LaserCalibration
 
 from pewpew.ui.tools.tool import Tool
 from pewpew.ui.docks.dockarea import DockArea
@@ -69,18 +69,20 @@ class StandardsTool(Tool):
         self.combo_trim.currentIndexChanged.connect(self.comboTrim)
 
         self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.addItems(self.dock.laser.isotopes())
+        self.combo_isotope.addItems(sorted(self.dock.laser.isotopes()))
         self.combo_isotope.setCurrentText(self.dock.combo_isotope.currentText())
         self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
 
+        isotope = self.combo_isotope.currentText()
         self.table = StandardsTable(
-            self.calibrations[self.combo_isotope.currentText()], self
+            self.calibrations[isotope] if isotope != "" else LaserCalibration(), self
         )
         self.table.setRowCount(6)
         self.table.model().dataChanged.connect(self.updateResults)
 
         self.layoutWidgets()
-
+        self.combo_weighting.setCurrentText(self.calibrations[isotope].weighting)
+        self.lineedit_units.setText(self.calibrations[isotope].unit)
         self.draw()
         self.updateCounts()
 
@@ -157,20 +159,27 @@ class StandardsTool(Tool):
             # Prevent currentIndexChanged being emmited
             self.combo_isotope.blockSignals(True)
             self.combo_isotope.clear()
-            self.combo_isotope.addItems(self.dock.laser.isotopes())
+            self.combo_isotope.addItems(sorted(self.dock.laser.isotopes()))
             self.combo_isotope.setCurrentText(self.dock.combo_isotope.currentText())
             self.combo_isotope.blockSignals(False)
 
             self.lineedit_left.setText("")
             self.lineedit_right.setText("")
 
-            self.comboIsotope("")
+            isotope = self.combo_isotope.currentText()
+            self.combo_weighting.setCurrentText(
+                self.calibrations[isotope].weighting
+            )
+            self.lineedit_units.setText(self.calibrations[isotope].unit)
+            self.draw()
+            self.changeCalibration()
+            self.updateCounts()
+            self.updateResults()
 
         self.dockarea.mouseSelectFinished.disconnect(self.mouseSelectFinished)
         self.activateWindow()
         self.setFocus(QtCore.Qt.OtherFocusReason)
         self.show()
-        self.draw()
 
     def keyPressEvent(self, event: QtCore.QEvent) -> None:
         if event.key() in [
@@ -221,8 +230,8 @@ class StandardsTool(Tool):
             self.combo_weighting.setCurrentText(self.calibrations[isotope].weighting)
         else:
             self.calibrations[isotope].weighting = self.combo_weighting.currentText()
-        self.updateCounts()
         self.draw()
+        self.updateCounts()
 
     def comboWeighting(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
