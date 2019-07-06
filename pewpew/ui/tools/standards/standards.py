@@ -46,9 +46,6 @@ class StandardsTool(Tool):
         self.combo_weighting = QtWidgets.QComboBox()
         self.combo_weighting.addItems(["None", "x", "1/x", "1/(x^2)"])
         self.combo_weighting.currentIndexChanged.connect(self.comboWeighting)
-        # self.combo_averaging = QtWidgets.QComboBox()
-        # self.combo_averaging.addItems(["Mean", "Median"])
-        # self.combo_averaging.currentIndexChanged.connect(self.comboAveraging)
 
         self.results_box = StandardsResultsBox()
         self.results_box.button.pressed.connect(self.showCurve)
@@ -94,7 +91,6 @@ class StandardsTool(Tool):
         layout_table_form = QtWidgets.QFormLayout()
         layout_table_form.addRow("Units:", self.lineedit_units)
         layout_table_form.addRow("Weighting:", self.combo_weighting)
-        # layout_table_form.addRow("Averaging:", self.combo_averaging)
 
         self.layout_left.addLayout(layout_cal_form)
         self.layout_left.addWidget(self.table)
@@ -141,24 +137,6 @@ class StandardsTool(Tool):
             return
         buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
         self.table.setCounts([np.mean(b) for b in buckets])
-
-        # if self.canvas.viewconfig["filtering"]["type"] != "None":
-        #     filter_type, window, threshold = (
-        #         self.canvas.viewconfig["filtering"][x]
-        #         for x in ["type", "window", "threshold"]
-        #     )
-        #     data = data.copy()
-        #     if filter_type == "Rolling mean":
-        #         rolling_mean_filter(data, window, threshold)
-        #     elif filter_type == "Rolling median":
-        #         rolling_median_filter(data, window, threshold)
-
-        # averging = self.combo_averaging.currentText()
-        # for row in range(0, self.table.rowCount()):
-        #     if averging == "Median":
-        #         text.append(f"{np.median(sections[row])}")
-        #     else:  # Mean
-        #         text.append(f"{np.mean(sections[row])}")
 
     def updateResults(self) -> None:
         # Clear results if not complete
