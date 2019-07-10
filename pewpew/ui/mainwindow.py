@@ -94,12 +94,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.createMenus()
         self.statusBar().showMessage("Import or open data to begin.")
-        button_status_um = QtWidgets.QRadioButton("μ")
-        button_status_um.setChecked(True)
-        button_status_um.toggled.connect(self.buttonStatusUnit)
-        button_status_row = QtWidgets.QRadioButton("r")
-        self.statusBar().addPermanentWidget(button_status_um)
-        self.statusBar().addPermanentWidget(button_status_row)
+        self.button_status_um = QtWidgets.QRadioButton("μ")
+        self.button_status_um.setChecked(True)
+        self.button_status_row = QtWidgets.QRadioButton("r")
+        self.button_status_s = QtWidgets.QRadioButton("s")
+        self.button_status_um.toggled.connect(self.buttonStatusUnit)
+        self.button_status_row.toggled.connect(self.buttonStatusUnit)
+        self.button_status_s.toggled.connect(self.buttonStatusUnit)
+        self.statusBar().addPermanentWidget(self.button_status_um)
+        self.statusBar().addPermanentWidget(self.button_status_row)
+        self.statusBar().addPermanentWidget(self.button_status_s)
 
     def createMenus(self) -> None:
         # File
@@ -290,7 +294,12 @@ class MainWindow(QtWidgets.QMainWindow):
         action_about.triggered.connect(self.menuAbout)
 
     def buttonStatusUnit(self, toggled: bool) -> None:
-        self.viewconfig["status_unit"] = "μm" if toggled else "row"
+        if self.button_status_um.isChecked():
+            self.viewconfig["status_unit"] = "μm"
+        elif self.button_status_row.isChecked():
+            self.viewconfig["status_unit"] = "row"
+        else:  # seconds
+            self.viewconfig["status_unit"] = "second"
 
     def refresh(self, visible_only: bool = False) -> None:
         if visible_only:

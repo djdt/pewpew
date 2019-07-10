@@ -12,6 +12,7 @@ from matplotlib.path import Path
 from matplotlib.patheffects import Normal, SimpleLineShadow
 
 from typing import Dict, List, Tuple
+from laserlib.laser import Laser
 from matplotlib.image import AxesImage
 
 
@@ -84,9 +85,9 @@ class InteractiveLaserCanvas(LaserCanvas):
             self.lasso_selector.ax = self.ax
 
     def drawData(
-        self, data: np.ndarray, extent: Tuple[float, float, float, float], aspect: float
+        self, data: np.ndarray, extent: Tuple[float, float, float, float]
     ) -> None:
-        super().drawData(data, extent, aspect)
+        super().drawData(data, extent)
         if self.image_mask is not None:
             self.ax.add_image(self.image_mask)
 
@@ -96,6 +97,16 @@ class InteractiveLaserCanvas(LaserCanvas):
         self.image_mask = self.ax.imshow(
             mask, cmap=maskAlphaMap, extent=extent, alpha=0.5
         )
+
+    def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
+        super().drawLaser(laser, name, layer)
+        # Save some variables for the status bar
+        self.px, self.py = (
+            (laser.config.pixel_width(), laser.config.pixel_height())
+            if layer is None
+            else (laser.config.layer_pixel_width(), laser.config.layer_pixel_height())
+        )
+        self.ps = laser.config.speed
 
     def connectEvents(self, key: str) -> None:
         events = self.EVENTS[key]
@@ -236,10 +247,10 @@ class InteractiveLaserCanvas(LaserCanvas):
                 v = self.image.get_cursor_data(event)
                 unit = self.window().viewconfig["status_unit"]
                 if unit == "row":
-                    x0, x1, y0, y1 = self.image.get_extent()
-                    w, h = self.image.get_array().shape
-                    x = int(x / (x1 - x0) * h)
-                    y = int(y / (y1 - y0) * w)
+                    x, y = int(x / self.px), int(y / self.py)
+                elif unit == "second":
+                    x = event.xdata / self.ps
+                    y = 0
                 self.window().statusBar().showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
 
     def clearStatusBar(self, event: LocationEvent) -> None:
