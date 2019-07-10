@@ -94,9 +94,12 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.combo_isotope.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.populateComboIsotopes()
 
+        self.layout_bottom = QtWidgets.QHBoxLayout()
+        self.layout_bottom.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.canvas)
-        layout.addWidget(self.combo_isotope, 1, QtCore.Qt.AlignRight)
+        layout.addLayout(self.layout_bottom)
 
         widget = QtWidgets.QWidget()
         widget.setLayout(layout)
@@ -281,7 +284,11 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 self.canvas.drawLaser(self.laser, self.combo_isotope.currentText())
                 self.canvas.draw()
         elif ext == ".vti":
-            spacing = *self.laser.config.pixel_size(), self.laser.config.spotsize / 2.0
+            spacing = (
+                self.laser.config.pixel_width(),
+                self.laser.config.pixel_height(),
+                self.laser.config.spotsize / 2.0,
+            )
             io.vtk.save(
                 path,
                 self.laser.get_structured(
@@ -345,7 +352,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             data = data[~np.isnan(data).all(axis=1)]
         else:  # Trim to view limits
             x0, x1, y0, y1 = self.canvas.view_limits
-            px, py = self.laser.config.pixel_size()
+            px, py = self.laser.config.pixel_width(), self.laser.config.pixel_height()
             x0, x1 = int(x0 / px), int(x1 / px)
             y0, y1 = int(y0 / py), int(y1 / py)
             # We have to invert the extent, as mpl use bottom left y coords

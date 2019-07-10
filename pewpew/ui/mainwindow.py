@@ -20,7 +20,7 @@ from pewpew.lib.colormaps import ppSpectral
 
 from laserlib import io
 from laserlib import Laser, LaserConfig, LaserData
-from laserlib.krisskross import KrissKross
+from laserlib.krisskross import KrissKross, KrissKrossData
 
 from typing import List
 from types import TracebackType
@@ -455,7 +455,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 elif ext == ".vti":
                     spacing = (
-                        *dock.laser.config.pixel_size(),
+                        dock.laser.config.pixel_width(),
+                        dock.laser.config.pixel_height(),
                         dock.laser.config.spotsize / 2.0,
                     )
                     io.vtk.save(  # type: ignore
@@ -521,7 +522,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuOperationsTool(self) -> None:
         def applyTool(tool: Tool) -> None:
-            tool.dock.laser.data[tool.name] = LaserData(tool.data)
+            if isinstance(tool.dock.laser, KrissKross):
+                tool.dock.laser.data[tool.name] = KrissKrossData(tool.data)
+            else:
+                tool.dock.laser.data[tool.name] = LaserData(tool.data)
             tool.dock.populateComboIsotopes()
             tool.updateComboIsotopes()
 
