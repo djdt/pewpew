@@ -205,11 +205,7 @@ class OperationsTool(Tool):
         self.draw()
 
     def draw(self) -> None:
-        self.canvas.drawData(
-            self.data,
-            self.dock.laser.config.data_extent(self.data),
-            self.dock.laser.config.aspect(),
-        )
+        self.canvas.drawData(self.data, self.dock.laser.config.data_extent(self.data))
         self.canvas.draw()
 
     def updateComboIsotopes(self) -> None:
@@ -300,9 +296,5 @@ class KrissKrossOperationsTool(OperationsTool):
     def draw(self) -> None:
         # Assemble data
         data = np.mean(krisskross_layers(self.data, self.dock.laser.config), axis=2)
-        self.canvas.drawData(
-            data,
-            self.dock.laser.config.data_extent(data),
-            self.dock.laser.config.aspect(),
-        )
+        self.canvas.drawData(data, self.dock.laser.config.data_extent(data))
         self.canvas.draw()

@@ -45,6 +45,7 @@ class LaserCanvas(BasicCanvas):
         self.ax.set_facecolor("black")
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
+        self.ax.autoscale(False)
         if self.options["colorbar"]:
             div = make_axes_locatable(self.ax)
             self.cax = div.append_axes(self.options["colorbarpos"], size=0.1, pad=0.05)
@@ -66,7 +67,7 @@ class LaserCanvas(BasicCanvas):
         self.cax.tick_params(labelsize=self.viewconfig["font"]["size"])
 
     def drawData(
-        self, data: np.ndarray, extent: Tuple[float, float, float, float], aspect: float
+        self, data: np.ndarray, extent: Tuple[float, float, float, float]
     ) -> None:
         self.ax.clear()
 
@@ -101,7 +102,7 @@ class LaserCanvas(BasicCanvas):
             vmin=vmin,
             vmax=vmax,
             extent=extent,
-            aspect=aspect,
+            aspect="equal",
             origin="upper",
         )
 
@@ -118,13 +119,12 @@ class LaserCanvas(BasicCanvas):
             else ""
         )
 
-        # Get extent and aspect
+        # Get extent
         extent = (
             laser.config.data_extent(data)
             if layer is None
             else laser.config.layer_data_extent(data)
         )
-        aspect = laser.config.aspect() if layer is None else laser.config.layer_aspect()
 
         # Only change the view if new or the laser extent has changed (i.e. conf edit)
         if self.image is None or self.image.get_extent() != extent:
@@ -134,7 +134,7 @@ class LaserCanvas(BasicCanvas):
         if data is None or data.size == 0:
             data = np.array([[0]], dtype=np.float64)
 
-        self.drawData(data, extent, aspect)
+        self.drawData(data, extent)
         if self.options["colorbar"]:
             self.drawColorbar(unit)
 
