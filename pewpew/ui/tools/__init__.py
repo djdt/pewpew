@@ -1,3 +1,3 @@
 from .tool import Tool
-from .calculations import CalculationsTool
+from .operations import OperationsTool, KrissKrossOperationsTool
 from .standards import StandardsTool

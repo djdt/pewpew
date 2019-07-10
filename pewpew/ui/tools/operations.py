@@ -1,8 +1,7 @@
 from PyQt5 import QtCore, QtWidgets
 import numpy as np
 
-from laserlib.laser import Laser
-from laserlib.krisskross import KrissKross
+from laserlib.krisskross.data import krisskross_layers
 from pewpew.ui.validators import DecimalValidator
 
 from pewpew.ui.canvas.laser import LaserCanvas
@@ -11,8 +10,10 @@ from pewpew.ui.tools.tool import Tool
 from pewpew.ui.docks.dockarea import DockArea
 from pewpew.ui.docks import LaserImageDock
 
+from typing import Callable, List
 
-class CalculationsTool(Tool):
+
+class OperationsTool(Tool):
     SYMBOLS = {
         "add": "+",
         "divide": "/",
@@ -51,43 +52,39 @@ class CalculationsTool(Tool):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
-        self.setWindowTitle("Calculations Tool")
+        self.setWindowTitle("Operations Tool")
 
         self.dockarea = dockarea
 
         self.dock = dock
         self.data = np.zeros_like((1, 1), dtype=float)
-        self.fill_value = -1.0
+        self.fill_value = 0.0
         self.name = ""
 
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
         self.button_laser.pressed.connect(self.buttonLaser)
 
         options = {"colorbar": False, "scalebar": False, "label": False}
-        self.canvas = LaserCanvas(
-            viewconfig=viewconfig,
-            options=options,
-            parent=self,
-        )
+        self.canvas = LaserCanvas(viewconfig=viewconfig, options=options, parent=self)
 
         self.combo_isotope1 = QtWidgets.QComboBox()
         self.combo_isotope1.currentIndexChanged.connect(self.updateData)
         self.combo_isotope1.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.combo_condition1 = QtWidgets.QComboBox()
-        self.combo_condition1.addItems(CalculationsTool.CONDITIONS)
+        self.combo_condition1.addItems(OperationsTool.CONDITIONS)
         self.lineedit_condition1 = QtWidgets.QLineEdit()
         self.lineedit_condition1.setValidator(DecimalValidator(-1e9, 1e9, 4))
         self.lineedit_condition1.editingFinished.connect(self.updateData)
 
         self.combo_ops = QtWidgets.QComboBox()
-        self.combo_ops.addItems(CalculationsTool.OPERATIONS)
+        self.combo_ops.addItems(OperationsTool.OPERATIONS)
         self.combo_ops.currentIndexChanged.connect(self.onComboOps)
 
         self.combo_isotope2 = QtWidgets.QComboBox()
         self.combo_isotope2.currentIndexChanged.connect(self.updateData)
         self.combo_isotope2.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.combo_condition2 = QtWidgets.QComboBox()
-        self.combo_condition2.addItems(CalculationsTool.CONDITIONS)
+        self.combo_condition2.addItems(OperationsTool.CONDITIONS)
         self.combo_condition2.currentIndexChanged.connect(self.updateData)
         self.lineedit_condition2 = QtWidgets.QLineEdit()
         self.lineedit_condition2.setValidator(DecimalValidator(-1e9, 1e9, 4))
@@ -96,7 +93,6 @@ class CalculationsTool(Tool):
         self.updateComboIsotopes()
         self.combo_condition1.currentIndexChanged.connect(self.updateData)
         self.combo_isotope2.currentIndexChanged.connect(self.updateData)
-        self.onComboOps()
 
         # Layouts
         group_box_var1 = QtWidgets.QGroupBox()
@@ -131,6 +127,48 @@ class CalculationsTool(Tool):
 
         self.layout_right.addWidget(self.canvas)
         self.updateData()
+        self.onComboOps()
+
+    # def generateName(self, c1, c1v, c2, c2v, op) -> None:
+    #     name = self.combo_isotope1.currentText()
+    #     c1 = OperationsTool.CONDITIONS[self.combo_condition1.currentText()]
+    #     if c1 is not None:
+    #         name += f"[{OperationsTool.SYMBOLS[c1.__name__]}{self.lineedit_condition1.text()}]"
+    #     if self.combo_isotope2.isEnabled():
+    #         op = OperationsTool.OPERATIONS[self.combo_ops.currentText()]
+    #         if op is not None:
+    #             name += f"{OperationsTool.SYMBOLS[op.__name__]}"
+
+    def getMaskedName(
+        self, isotope: str, condition: Callable = None, value: float = None
+    ) -> str:
+        name = isotope
+        if condition is not None:
+            name += f"[{OperationsTool.SYMBOLS[condition.__name__]}{value}]"
+        return name
+
+    def getMaskedData(
+        self, isotope: str, condition: Callable = None, value: float = None
+    ) -> np.ndarray:
+        data = self.dock.laser.get(isotope, calibrate=False)
+        if condition is not None and value is not None:
+            mask = condition(data, value)
+            data = np.where(mask, data, np.full_like(data, self.fill_value))
+        return data
+
+    def performOperation(
+        self, op: Callable, data1: np.ndarray, data2: np.ndarray
+    ) -> np.ndarray:
+        if op is np.where:
+            data = np.where(data2 != self.fill_value, data1, data2)
+        else:
+            # If true divide is used avoid errors by replacing with one, then zero
+            if op == np.true_divide:
+                data2[data2 == 0.0] = 1.0
+            data = op(data1, data2)
+            if op == np.true_divide:
+                data[data2 == 0.0] = 0.0
+        return data
 
     def updateData(self) -> None:
         isotope = self.combo_isotope1.currentText()
@@ -138,53 +176,32 @@ class CalculationsTool(Tool):
         if isotope not in self.dock.laser.data:
             return
 
-        kwargs = {"calibrate": False}
-        if isinstance(self.dock.laser, KrissKross):
-            kwargs["flat"] = True
-        data = self.dock.laser.get(isotope, **kwargs)
-        name = isotope
+        c1 = OperationsTool.CONDITIONS[self.combo_condition1.currentText()]
+        try:
+            c1v = float(self.lineedit_condition1.text())
+        except ValueError:
+            c1v = None
+        data1 = self.getMaskedData(isotope, c1, c1v)
+        name = self.getMaskedName(isotope, c1, c1v)
 
-        c1 = CalculationsTool.CONDITIONS[self.combo_condition1.currentText()]
-        if c1 is not None:
+        op = OperationsTool.OPERATIONS[self.combo_ops.currentText()]
+
+        if self.combo_isotope2.isEnabled() and op is not None:
+            name += f"{OperationsTool.SYMBOLS[op.__name__]}"
+            isotope2 = self.combo_isotope2.currentText()
+            c2 = OperationsTool.CONDITIONS[self.combo_condition2.currentText()]
             try:
-                c1v = float(self.lineedit_condition1.text())
-                mask = c1(data, c1v)
-                data = np.where(mask, data, np.full_like(data, self.fill_value))
-                name += f"[{CalculationsTool.SYMBOLS[c1.__name__]}{c1v}]"
+                c2v = float(self.lineedit_condition2.text())
             except ValueError:
-                pass
+                c2v = None
+            data2 = self.getMaskedData(isotope2, c2, c2v)
+            name += self.getMaskedName(isotope2, c2, c2v)
 
-        if self.combo_isotope2.isEnabled():
-            op = CalculationsTool.OPERATIONS[self.combo_ops.currentText()]
-            if op is not None:
-                name += f"{CalculationsTool.SYMBOLS[op.__name__]}"
+            self.data = self.performOperation(op, data1, data2)
+        else:
+            self.data = data1
 
-            data2 = self.dock.laser.data[self.combo_isotope2.currentText()].data
-            name += self.combo_isotope2.currentText()
-
-            c2 = CalculationsTool.CONDITIONS[self.combo_condition2.currentText()]
-            if c2 is not None:
-                try:
-                    c2v = float(self.lineedit_condition2.text())
-                    mask = c2(data2, c2v)
-                    data2 = np.where(mask, data2, np.full_like(data2, self.fill_value))
-                    name += f"[{CalculationsTool.SYMBOLS[c2.__name__]}{c2v}]"
-                except ValueError:
-                    pass
-
-            if op is np.where:
-                data = np.where(data2 != self.fill_value, data, data2)
-            elif op is not None:
-                # If true divide is used avoid errors by replacing with one, then zero
-                if op == np.true_divide:
-                    data2[data2 == 0.0] = 1.0
-                data = op(data, data2)
-                if op == np.true_divide:
-                    data[data2 == 0.0] = 0.0
-
-        self.data = data
         self.name = name
-
         self.draw()
 
     def draw(self) -> None:
@@ -222,7 +239,6 @@ class CalculationsTool(Tool):
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
         if widget is not None and hasattr(widget, "laser"):
             self.dock = widget
-            self.laser = Laser(config=self.dock.laser.config)
             # Prevent currentIndexChanged being emmited
             self.updateComboIsotopes()
             self.updateData()
@@ -250,3 +266,43 @@ class CalculationsTool(Tool):
         self.dockarea.setFocus(QtCore.Qt.OtherFocusReason)
         self.dockarea.startMouseSelect()
         self.dockarea.mouseSelectFinished.connect(self.mouseSelectFinished)
+
+
+class KrissKrossOperationsTool(OperationsTool):
+    def getMaskedData(
+        self, isotope: str, condition: Callable = None, value: float = None
+    ) -> List[np.ndarray]:
+        data = self.dock.laser.data[isotope].data[:]
+        if condition is not None and value is not None:
+            for i, d in enumerate(data):
+                mask = condition(d, value)
+                data[i] = np.where(mask, d, np.full_like(d, self.fill_value))
+        return data
+
+    def performOperation(
+        self, op: Callable, data1: List[np.ndarray], data2: List[np.ndarray]
+    ) -> List[np.ndarray]:
+        if op is np.where:
+            data = [
+                np.where(d2 != self.fill_value, d1, d2) for d1, d2 in zip(data1, data2)
+            ]
+        else:
+            # If true divide is used avoid errors by replacing with one, then zero
+            if op == np.true_divide:
+                for d in data2:
+                    d[d == 0] = 1.0
+            data = [op(d1, d2) for d1, d2 in zip(data1, data2)]
+            if op == np.true_divide:
+                for d in data2:
+                    d[d == 0] = 0.0
+        return data
+
+    def draw(self) -> None:
+        # Assemble data
+        data = np.mean(krisskross_layers(self.data, self.dock.laser.config), axis=2)
+        self.canvas.drawData(
+            data,
+            self.dock.laser.config.data_extent(data),
+            self.dock.laser.config.aspect(),
+        )
+        self.canvas.draw()

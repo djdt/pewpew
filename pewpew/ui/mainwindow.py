@@ -8,7 +8,12 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from pewpew import __version__
 from pewpew.ui.dialogs import ConfigDialog, ColorRangeDialog, FilteringDialog
 from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
-from pewpew.ui.tools import Tool, CalculationsTool, StandardsTool
+from pewpew.ui.tools import (
+    Tool,
+    OperationsTool,
+    KrissKrossOperationsTool,
+    StandardsTool,
+)
 from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
 from pewpew.ui.widgets.detailederror import DetailedError
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
@@ -178,7 +183,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_calibration = menu_edit.addAction(
             QtGui.QIcon.fromTheme("document-properties"), "&Standards"
         )
-        self.action_calibration.setStatusTip("Generate calibration curve from a standard.")
+        self.action_calibration.setStatusTip(
+            "Generate calibration curve from a standard."
+        )
         self.action_calibration.triggered.connect(self.menuStandardsTool)
         self.action_calibration.setEnabled(False)
 
@@ -530,9 +537,13 @@ class MainWindow(QtWidgets.QMainWindow):
             tool.updateComboIsotopes()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        calc_tool = CalculationsTool(self.dockarea, docks[0], self.viewconfig, parent=self)
-        calc_tool.applyPressed.connect(applyTool)
-        calc_tool.show()
+        if isinstance(docks[0].laser, KrissKross):
+            tool = KrissKrossOperationsTool
+        else:
+            tool = OperationsTool
+        op_tool = tool(self.dockarea, docks[0], self.viewconfig, parent=self)
+        op_tool.applyPressed.connect(applyTool)
+        op_tool.show()
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
