@@ -105,11 +105,12 @@ class LaserCanvas(BasicCanvas):
             origin="upper",
         )
 
-    def drawLaser(self, laser: Laser, name: str) -> None:
+    def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
         # Get the trimmed and calibrated data
-        kwargs = {"calibrate": self.viewconfig["calibrate"]}
+        kwargs = {"calibrate": self.viewconfig["calibrate"], "layer": layer}
         if isinstance(laser, KrissKross):
             kwargs["flat"] = True
+
         data = laser.get(name, **kwargs)
         unit = (
             str(laser.data[name].calibration.unit)

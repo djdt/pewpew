@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtWidgets
 import copy
 
 from pewpew.ui.docks import LaserImageDock
@@ -10,9 +10,27 @@ from pewpew.ui.dialogs import ApplyDialog
 
 class KrissKrossImageDock(LaserImageDock):
     def __init__(self, laser: KrissKross, parent: QtWidgets.QWidget = None):
-
         super().__init__(laser, parent)
-        self.setWindowTitle(f"kk:{self.laser.name}")
+
+        self.combo_layer = QtWidgets.QComboBox()
+        self.combo_layer.currentIndexChanged.connect(self.onComboLayer)
+        self.combo_layer.addItem("*")
+        self.combo_layer.addItems([str(i) for i in range(0, self.laser.layers())])
+        self.layout_bottom.insertWidget(0, self.combo_layer, 1, QtCore.Qt.AlignRight)
+
+        # self.setWindowTitle(f"kk:{self.laser.name}")
+
+    def draw(self) -> None:
+        try:
+            layer = int(self.combo_layer.currentText())
+        except ValueError:
+            layer = None
+
+        self.canvas.drawLaser(self.laser, self.combo_isotope.currentText(), layer=layer)
+        self.canvas.draw()
+
+    def onComboLayer(self, text: str) -> None:
+        self.draw()
 
     def onMenuConfig(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
