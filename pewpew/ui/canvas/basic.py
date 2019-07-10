@@ -20,26 +20,10 @@ class BasicCanvas(FigureCanvasQTAgg):
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
         )
 
-    def get_default_bbox_extra_artists(self) -> List:
-        # Temporary until mpl fixes this
-        bbox_artists = [
-            artist
-            for artist in self.figure.get_children()
-            if (artist.get_visible() and artist.get_in_layout())
-        ]
-        for ax in self.figure.axes:
-            if ax.get_visible():
-                bbox_artists.extend(ax.get_default_bbox_extra_artists())
-        # we don't want the figure's patch to influence the bbox calculation
-        if self.figure.patch in bbox_artists:
-            bbox_artists.remove(self.figure.patch)
-        return bbox_artists
-
     def copyToClipboard(self) -> None:
         bbox = (
             self.figure.get_tightbbox(
                 self.get_renderer(),
-                bbox_extra_artists=self.get_default_bbox_extra_artists(),
             )
             .transformed(self.figure.dpi_scale_trans)
             .padded(5)  # Pad to look nicer
