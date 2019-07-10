@@ -1,4 +1,4 @@
 [submodule "laserlib"]
 	path = laserlib
-	branch = testing
+	branch = master
 	url = https://github.com/djdt/laserlib.git
