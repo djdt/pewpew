@@ -27,7 +27,7 @@ class LaserCanvas(BasicCanvas):
     }
 
     def __init__(
-            self, viewconfig: dict, options: dict = None, parent: QtWidgets.QWidget = None
+        self, viewconfig: dict, options: dict = None, parent: QtWidgets.QWidget = None
     ) -> None:
         super().__init__(parent=parent)
         self.viewconfig = viewconfig
@@ -118,8 +118,15 @@ class LaserCanvas(BasicCanvas):
             else ""
         )
 
+        # Get extent and aspect
+        extent = (
+            laser.config.data_extent(data)
+            if layer is None
+            else laser.config.layer_data_extent(data)
+        )
+        aspect = laser.config.aspect() if layer is None else laser.config.layer_aspect()
+
         # Only change the view if new or the laser extent has changed (i.e. conf edit)
-        extent = laser.config.data_extent(data)
         if self.image is None or self.image.get_extent() != extent:
             self.view_limits = extent
 
@@ -127,7 +134,7 @@ class LaserCanvas(BasicCanvas):
         if data is None or data.size == 0:
             data = np.array([[0]], dtype=np.float64)
 
-        self.drawData(data, extent, laser.config.aspect())
+        self.drawData(data, extent, aspect)
         if self.options["colorbar"]:
             self.drawColorbar(unit)
 
