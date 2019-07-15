@@ -1,5 +1,5 @@
 import copy
-from PyQt5 import QtWidgets
+from PyQt5 import QtGui, QtWidgets
 import numpy as np
 
 from laserlib.laser import Laser
@@ -8,14 +8,23 @@ from laserlib.krisskross import KrissKross
 from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 
 from pewpew.ui.canvas.basic import BasicCanvas
+from pewpew.ui.canvas.interactive import InteractiveCanvas
 
 from matplotlib.ticker import MaxNLocator
 from matplotlib.offsetbox import AnchoredText
 from matplotlib_scalebar.scalebar import ScaleBar
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from typing import Tuple
+from typing import List, Tuple
 from matplotlib.image import AxesImage
+
+from matplotlib.backend_bases import MouseEvent, LocationEvent
+
+from pewpew.lib.colormaps import maskAlphaMap
+
+from matplotlib.widgets import RectangleSelector, LassoSelector
+from matplotlib.path import Path
+from matplotlib.patheffects import Normal, SimpleLineShadow
 
 
 class LaserCanvas(BasicCanvas):
@@ -37,7 +46,25 @@ class LaserCanvas(BasicCanvas):
 
         self.redrawFigure()
         self.image: AxesImage = None
-        self.view_limits = (0.0, 0.0, 0.0, 0.0)
+
+    @property
+    def extent(self) -> Tuple[float, float, float, float]:
+        if self.image is None:
+            return (0, 0, 0, 0)
+        return self.image.get_extent()
+
+    @property
+    def view_limits(self) -> Tuple[float, float, float, float]:
+        x0, x1, = self.ax.get_xlim()
+        y0, y1 = self.ax.get_ylim()
+        return x0, x1, y0, y1
+
+    @view_limits.setter
+    def view_limits(self, limits: Tuple[float, float, float, float]) -> None:
+        x0, x1, y0, y1 = limits
+        self.ax.set_xlim(x0, x1)
+        self.ax.set_ylim(y0, y1)
+        self.draw_idle()
 
     def redrawFigure(self) -> None:
         self.figure.clear()
@@ -127,7 +154,7 @@ class LaserCanvas(BasicCanvas):
         )
 
         # Only change the view if new or the laser extent has changed (i.e. conf edit)
-        if self.image is None or self.image.get_extent() != extent:
+        if self.image is None or self.extent != extent:
             self.view_limits = extent
 
         # If data is empty create a dummy data
@@ -160,12 +187,219 @@ class LaserCanvas(BasicCanvas):
             )
             self.ax.add_artist(scalebar)
 
-        # Return to zoom if extent not changed
-        if self.view_limits != extent:
-            self.updateView()
 
-    def updateView(self) -> None:
-        x1, x2, y1, y2 = self.view_limits
-        self.ax.set_xlim(x1, x2)
-        self.ax.set_ylim(y1, y2)
+class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
+    def __init__(
+        self,
+        viewconfig: dict,
+        options: dict = None,
+        connect_mouse_events: bool = True,
+        parent: QtWidgets.QWidget = None,
+    ) -> None:
+        super().__init__(viewconfig, options, parent=parent)
+
+        self.status_bar = parent.window().statusBar()
+        self.mode = "move"
+        self.button = 1
+
+        self.image_mask: AxesImage = None
+
+        shadow_color = self.palette().color(QtGui.QPalette.Shadow).name()
+        highlight_color = self.palette().color(QtGui.QPalette.Highlight).name()
+        lineshadow = SimpleLineShadow(
+            offset=(0.5, -0.5), alpha=0.66, shadow_color=shadow_color
+        )
+        rectprops = {
+            "edgecolor": shadow_color,
+            "facecolor": highlight_color,
+            "alpha": 0.33,
+        }
+        lineprops = {
+            "color": highlight_color,
+            "linestyle": "--",
+            "path_effects": [lineshadow, Normal()],
+        }
+
+        self.rectangle_selector = RectangleSelector(
+            self.ax,
+            None,
+            button=1,
+            useblit=True,
+            minspanx=5,
+            minspany=5,
+            rectprops=rectprops,
+        )
+        self.rectangle_selector.set_active(False)
+        self.lasso_selector = LassoSelector(
+            self.ax, None, button=1, useblit=True, lineprops=lineprops
+        )
+        self.lasso_selector.set_active(False)
+
+    def redrawFigure(self) -> None:
+        super().redrawFigure()
+        if hasattr(self, "rectangle_selector"):
+            self.rectangle_selector.ax = self.ax
+        if hasattr(self, "lasso_selector"):
+            self.lasso_selector.ax = self.ax
+
+    def drawData(
+        self, data: np.ndarray, extent: Tuple[float, float, float, float]
+    ) -> None:
+        super().drawData(data, extent)
+        if self.image_mask is not None:
+            self.ax.add_image(self.image_mask)
+
+    def drawMask(
+        self, mask: np.ndarray, extent: Tuple[float, float, float, float]
+    ) -> None:
+        self.image_mask = self.ax.imshow(
+            mask, cmap=maskAlphaMap, extent=extent, alpha=0.5
+        )
+
+    def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
+        super().drawLaser(laser, name, layer)
+        # Save some variables for the status bar
+        self.px, self.py = (
+            (laser.config.pixel_width(), laser.config.pixel_height())
+            if layer is None
+            else (laser.config.layer_pixel_width(), laser.config.layer_pixel_height())
+        )
+        self.ps = laser.config.speed
+
+    def startLassoSelection(self) -> None:
+        self.clearSelection()
+        self.lasso_selector.onselect = self.lassoSelection
+        self.lasso_selector.set_active(True)
+        self.mode = "selection"
+
+    def lassoSelection(self, vertices: List[np.ndarray]) -> None:
+        self.lasso_selector.set_active(False)
+
+        data = self.image.get_array()
+        x0, x1, y0, y1 = self.extent
+        ny, nx = data.shape
+        # Calculate half pixel widths
+        px, py = (x1 - x0) / nx / 2.0, (y0 - y1) / ny / 2.0
+
+        # Grid of coords for the center of pixels
+        x, y = np.meshgrid(
+            np.linspace(x0 + px, x1 + px, nx, endpoint=False),
+            np.linspace(y1 + py, y0 + py, ny, endpoint=False),
+        )
+        pix = np.vstack((x.flatten(), y.flatten())).T
+
+        path = Path(vertices)
+        ind = path.contains_points(pix, radius=2)
+
+        mask = np.zeros(data.shape, dtype=bool)
+        mask.flat[ind] = True
+        self.drawMask(mask, (x0, x1, y0, y1))
+        self.mode = "move"
         self.draw_idle()
+
+    def startRectangleSelection(self) -> None:
+        self.clearSelection()
+        self.rectangle_selector.onselect = self.rectangleSelection
+        self.rectangle_selector.set_active(True)
+        self.mode = "selection"
+
+    def rectangleSelection(self, press: MouseEvent, release: MouseEvent) -> None:
+        self.rectangle_selector.set_active(False)
+
+        data = self.image.get_array()
+        x0, x1, y0, y1 = self.extent
+        ny, nx = data.shape
+        # Calculate half pixel widths
+        px, py = (x1 - x0) / nx / 2.0, (y0 - y1) / ny / 2.0
+
+        # Grid of coords for the center of pixels
+        x, y = np.meshgrid(
+            np.linspace(x0 + px, x1 + px, nx, endpoint=False),
+            np.linspace(y1 + py, y0 + py, ny, endpoint=False),
+        )
+        pix = np.vstack((x.flatten(), y.flatten())).T
+
+        vertices = [
+            (press.xdata, press.ydata),
+            (release.xdata, press.ydata),
+            (release.xdata, release.ydata),
+            (press.xdata, release.ydata),
+        ]
+        path = Path(vertices)
+        ind = path.contains_points(pix, radius=2)
+
+        mask = np.zeros(data.shape, dtype=bool)
+        mask.flat[ind] = True
+
+        self.mode = "move"
+        self.drawMask(mask, (x0, x1, y0, y1))
+        self.draw_idle()
+
+    def clearSelection(self) -> None:
+        self.lasso_selector.set_active(False)
+        self.rectangle_selector.set_active(False)
+        if self.image_mask in self.ax.get_images():
+            self.image_mask.remove()
+            self.draw_idle()
+        self.image_mask = None
+
+    def ignore_event(self, event: LocationEvent) -> None:
+        if event.inaxes != self.ax:
+            return True
+        if event.button is not None and event.button != self.button:
+            return True
+        super().ignore_event(event)
+
+    def press(self, event: MouseEvent) -> None:
+        pass
+
+    def release(self, event: MouseEvent) -> None:
+        pass
+
+    def move(self, event: MouseEvent) -> None:
+        if self.mode == "move" and event.button == self.button:
+            x1, x2, y1, y2 = self.view_limits
+            xmin, xmax, ymin, ymax = self.extent
+            dx = self.eventpress.xdata - event.xdata
+            dy = self.eventpress.ydata - event.ydata
+
+            # Move in opposite direction to drag
+            if x1 + dx > xmin and x2 + dx < xmax:
+                x1 += dx
+                x2 += dx
+            if y1 + dy > ymin and y2 + dy < ymax:
+                y1 += dy
+                y2 += dy
+            self.view_limits = x1, x2, y1, y2
+
+        # Update the status bar
+        x, y = event.xdata, event.ydata
+        v = self.image.get_cursor_data(event)
+        unit = self.viewconfig["status_unit"]
+        if unit == "row":
+            x, y = int(x / self.px), int(y / self.py)
+        elif unit == "second":
+            x = event.xdata / self.ps
+            y = 0
+        self.status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
+
+    def axis_enter(self, event: LocationEvent) -> None:
+        pass
+
+    def axis_leave(self, event: LocationEvent) -> None:
+        self.status_bar.clearMessage()
+
+    def startZoom(self) -> None:
+        self.mode = "zoom"
+        self.lasso_selector.set_active(False)
+        self.rectangle_selector.onselect = self.zoom
+        self.rectangle_selector.set_active(True)
+
+    def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
+        self.rectangle_selector.set_active(False)
+        self.view_limits = (press.xdata, release.xdata, press.ydata, release.ydata)
+        self.mode = "move"
+
+    def unzoom(self) -> None:
+        self.view_limits = self.extent
+        self.mode = "move"

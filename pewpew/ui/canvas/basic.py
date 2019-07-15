@@ -2,7 +2,7 @@ from PyQt5 import QtCore, QtWidgets
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
-from typing import List, Tuple
+from typing import Tuple
 
 
 class BasicCanvas(FigureCanvasQTAgg):
