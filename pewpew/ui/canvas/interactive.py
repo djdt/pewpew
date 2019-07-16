@@ -16,11 +16,12 @@ class InteractiveCanvas(BasicCanvas):
         super().__init__(figsize, parent)
         self.cids = []
         self.default_events = {
+            "axis_enter_event": self._axis_enter,
+            "axis_leave_event": self._axis_leave,
             "button_press_event": self._press,
             "button_release_event": self._release,
             "motion_notify_event": self._move,
-            "axis_enter_event": self._axis_enter,
-            "axis_leave_event": self._axis_leave,
+            "scroll_event": self._scroll,
         }
 
         for event, callback in self.default_events.items():
@@ -40,6 +41,16 @@ class InteractiveCanvas(BasicCanvas):
     def ignore_event(self, event: MouseEvent) -> bool:
         return False
 
+    def _axis_enter(self, event: LocationEvent) -> None:
+        if self.ignore_event(event):
+            return
+        self.axis_enter(event)
+
+    def _axis_leave(self, event: LocationEvent) -> None:
+        if self.ignore_event(event):
+            return
+        self.axis_leave(event)
+
     def _press(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
             return
@@ -57,12 +68,7 @@ class InteractiveCanvas(BasicCanvas):
             return
         self.move(event)
 
-    def _axis_enter(self, event: LocationEvent) -> None:
+    def _scroll(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
             return
-        self.axis_enter(event)
-
-    def _axis_leave(self, event: LocationEvent) -> None:
-        if self.ignore_event(event):
-            return
-        self.axis_leave(event)
+        self.scroll(event)

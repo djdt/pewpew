@@ -196,7 +196,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         connect_mouse_events: bool = True,
         parent: QtWidgets.QWidget = None,
     ) -> None:
-        super().__init__(viewconfig, options, parent=parent)
+        super().__init__(viewconfig=viewconfig, options=options, parent=parent)
 
         self.status_bar = parent.window().statusBar()
         self.mode = "move"
@@ -344,9 +344,15 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         self.image_mask = None
 
     def ignore_event(self, event: LocationEvent) -> None:
-        if event.inaxes != self.ax:
+        if event.name in ["scroll_event"]:
             return True
-        if event.button is not None and event.button != self.button:
+        elif (
+            event.name in ["button_press_event", "button_release_event"]
+            and event.button != self.button
+        ):
+            return True
+
+        if event.inaxes != self.ax:
             return True
         super().ignore_event(event)
 

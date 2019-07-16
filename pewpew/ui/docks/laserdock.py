@@ -4,7 +4,7 @@ import numpy as np
 import os.path
 import copy
 
-from pewpew.ui.canvas.interactive import InteractiveLaserCanvas
+from pewpew.ui.canvas.laser import InteractiveLaserCanvas
 from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
 from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog, StatsDialog
 from pewpew.ui.dialogs.export import CSVExportDialog, PNGExportDialog
