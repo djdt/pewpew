@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets
 
-from matplotlib.backend_bases import MouseEvent, LocationEvent
+from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent
 
 from pewpew.ui.canvas.basic import BasicCanvas
 
@@ -18,6 +18,7 @@ class InteractiveCanvas(BasicCanvas):
         self.default_events = {
             "axis_enter_event": self._axis_enter,
             "axis_leave_event": self._axis_leave,
+            "key_press_event": self._keypress,
             "button_press_event": self._press,
             "button_release_event": self._release,
             "motion_notify_event": self._move,
@@ -50,6 +51,11 @@ class InteractiveCanvas(BasicCanvas):
         if self.ignore_event(event):
             return
         self.axis_leave(event)
+
+    def _keypress(self, event: KeyEvent) -> None:
+        if self.ignore_event(event):
+            return
+        self.keypress(event)
 
     def _press(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
