@@ -199,10 +199,9 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         super().__init__(viewconfig=viewconfig, options=options, parent=parent)
 
         self.status_bar = parent.window().statusBar()
-        self.mode = "move"
-        self.button = 1
-
         self.image_mask: AxesImage = None
+        self.state = set(["move"])
+        self.button = 1
 
         shadow_color = self.palette().color(QtGui.QPalette.Shadow).name()
         highlight_color = self.palette().color(QtGui.QPalette.Highlight).name()
@@ -268,12 +267,13 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
 
     def startLassoSelection(self) -> None:
         self.clearSelection()
+        self.state.add("selection")
         self.lasso_selector.onselect = self.lassoSelection
         self.lasso_selector.set_active(True)
-        self.mode = "selection"
 
     def lassoSelection(self, vertices: List[np.ndarray]) -> None:
         self.lasso_selector.set_active(False)
+        self.state.discard("selection")
 
         data = self.image.get_array()
         x0, x1, y0, y1 = self.extent
@@ -294,17 +294,17 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         mask = np.zeros(data.shape, dtype=bool)
         mask.flat[ind] = True
         self.drawMask(mask, (x0, x1, y0, y1))
-        self.mode = "move"
         self.draw_idle()
 
     def startRectangleSelection(self) -> None:
         self.clearSelection()
+        self.state.add("selection")
         self.rectangle_selector.onselect = self.rectangleSelection
         self.rectangle_selector.set_active(True)
-        self.mode = "selection"
 
     def rectangleSelection(self, press: MouseEvent, release: MouseEvent) -> None:
         self.rectangle_selector.set_active(False)
+        self.state.discard("selection")
 
         data = self.image.get_array()
         x0, x1, y0, y1 = self.extent
@@ -331,7 +331,6 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         mask = np.zeros(data.shape, dtype=bool)
         mask.flat[ind] = True
 
-        self.mode = "move"
         self.drawMask(mask, (x0, x1, y0, y1))
         self.draw_idle()
 
@@ -344,7 +343,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         self.image_mask = None
 
     def ignore_event(self, event: LocationEvent) -> None:
-        if event.name in ["scroll_event"]:
+        if event.name in ["scroll_event", "key_press_event"]:
             return True
         elif (
             event.name in ["button_press_event", "button_release_event"]
@@ -363,7 +362,11 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         pass
 
     def move(self, event: MouseEvent) -> None:
-        if self.mode == "move" and event.button == self.button:
+        if (
+            all(state in self.state for state in ["move", "zoom"])
+            and "selection" not in self.state
+            and event.button == self.button
+        ):
             x1, x2, y1, y2 = self.view_limits
             xmin, xmax, ymin, ymax = self.extent
             dx = self.eventpress.xdata - event.xdata
@@ -396,16 +399,17 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         self.status_bar.clearMessage()
 
     def startZoom(self) -> None:
-        self.mode = "zoom"
+        self.state.add("selection")
         self.lasso_selector.set_active(False)
         self.rectangle_selector.onselect = self.zoom
         self.rectangle_selector.set_active(True)
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
+        self.state.add("zoom")
+        self.state.discard("selection")
         self.rectangle_selector.set_active(False)
         self.view_limits = (press.xdata, release.xdata, press.ydata, release.ydata)
-        self.mode = "move"
 
     def unzoom(self) -> None:
+        self.state.discard("zoom")
         self.view_limits = self.extent
-        self.mode = "move"

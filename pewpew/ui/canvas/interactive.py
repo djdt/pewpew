@@ -14,6 +14,7 @@ class InteractiveCanvas(BasicCanvas):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(figsize, parent)
+
         self.cids = []
         self.default_events = {
             "axis_enter_event": self._axis_enter,
