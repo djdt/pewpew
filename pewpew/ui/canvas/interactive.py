@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 
 from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent
 

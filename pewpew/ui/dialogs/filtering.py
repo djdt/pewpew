@@ -1,4 +1,4 @@
-from PyQt5 import QtGui, QtWidgets
+from PySide2 import QtGui, QtWidgets
 
 from pewpew.ui.dialogs.applydialog import ApplyDialog
 

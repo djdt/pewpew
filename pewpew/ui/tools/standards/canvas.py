@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 import numpy as np
 
 from matplotlib.lines import Line2D

@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 import numpy as np
 
 import os.path
@@ -18,7 +18,7 @@ from pewpew.ui.dialogs.export import ExportDialog
 
 class ImageDockTitleBar(QtWidgets.QWidget):
 
-    nameChanged = QtCore.pyqtSignal("QString")
+    nameChanged = QtCore.Signal("QString")
 
     def __init__(self, title: str, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
@@ -197,7 +197,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
     def contextMenuEvent(self, event: QtCore.QEvent) -> None:
         context_menu = self.buildContextMenu()
-        context_menu.exec(event.globalPos())
+        context_menu.popup(event.globalPos())
 
     def onMenuCopy(self) -> None:
         laser_copy = copy.deepcopy(self.laser)

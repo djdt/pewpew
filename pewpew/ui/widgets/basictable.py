@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from typing import List
 
@@ -23,7 +23,7 @@ class BasicTableView(QtWidgets.QTableView):
         menu.addAction(copy_action)
         menu.addAction(paste_action)
 
-        menu.exec(event.globalPos())
+        menu.popup(event.globalPos())
 
     def keyPressEvent(self, event: QtCore.QEvent) -> None:
         if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
@@ -112,7 +112,7 @@ class BasicTable(QtWidgets.QTableWidget):
         menu.addAction(copy_action)
         menu.addAction(paste_action)
 
-        menu.exec(event.globalPos())
+        menu.popup(event.globalPos())
 
     def keyPressEvent(self, event: QtCore.QEvent) -> None:
         if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:

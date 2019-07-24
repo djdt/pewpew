@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 import numpy as np
 
 from pewpew.ui.canvas.basic import BasicCanvas
@@ -69,7 +69,7 @@ class StatsDialog(QtWidgets.QDialog):
 
         context_menu = QtWidgets.QMenu(self)
         context_menu.addAction(action_copy_image)
-        context_menu.exec(event.globalPos())
+        context_menu.popup(event.globalPos())
 
     def plot(self, data: np.ndarray) -> None:
         highlight = self.palette().color(QtGui.QPalette.Highlight).name()

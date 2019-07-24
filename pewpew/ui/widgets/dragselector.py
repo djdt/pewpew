@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets
+from PySide2 import QtCore, QtWidgets
 
 from matplotlib.backend_bases import MouseEvent
 

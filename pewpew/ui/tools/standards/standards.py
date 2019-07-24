@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 import numpy as np
 import copy
 
@@ -149,7 +149,7 @@ class StandardsTool(Tool):
             isotope = self.combo_isotope.currentText()
             self.results_box.update(self.calibrations[isotope])
 
-    @QtCore.pyqtSlot("QWidget*")
+    @QtCore.Slot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
         if widget is not None and hasattr(widget, "laser"):
             self.dock = widget

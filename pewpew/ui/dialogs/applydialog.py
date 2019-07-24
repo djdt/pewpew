@@ -1,10 +1,9 @@
-from PyQt5 import QtCore, QtWidgets
+from PySide2 import QtCore, QtWidgets
 
 
-# TODO We should redo this with the layout built in
 class ApplyDialog(QtWidgets.QDialog):
 
-    applyPressed = QtCore.pyqtSignal(QtCore.QObject)
+    applyPressed = QtCore.Signal(QtCore.QObject)
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)

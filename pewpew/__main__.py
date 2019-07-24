@@ -1,8 +1,8 @@
 import sys
 
-from PyQt5.QtCore import QTimer, Qt
-from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import QApplication
+from PySide2.QtCore import QTimer, Qt
+from PySide2.QtGui import QIcon
+from PySide2.QtWidgets import QApplication
 from pewpew.ui import MainWindow
 from pewpew.resource import app_icon  # noqa: F401
 
@@ -24,4 +24,4 @@ if __name__ == "__main__":
     timer.timeout.connect(lambda: None)
     timer.start(100)
 
-    app.exec()
+    app.exec_()

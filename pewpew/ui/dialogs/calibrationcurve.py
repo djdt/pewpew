@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 import numpy as np
 
 from matplotlib.text import Text
@@ -58,4 +58,4 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
         action_copy.setStatusTip("Copy image to clipboard.")
         action_copy.triggered.connect(self.canvas.copyToClipboard)
         context_menu.addAction(action_copy)
-        context_menu.exec(event.globalPos())
+        context_menu.popup(event.globalPos())

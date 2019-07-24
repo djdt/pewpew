@@ -3,7 +3,7 @@ import sys
 import traceback
 import copy
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew import __version__
 from pewpew.ui.dialogs import ConfigDialog, ColorRangeDialog, FilteringDialog

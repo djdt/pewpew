@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from laserlib.calibration import LaserCalibration
 
@@ -37,7 +37,7 @@ class StandardsResultsBox(QtWidgets.QGroupBox):
 
         menu.addAction(copy_action)
 
-        menu.exec(event.globalPos())
+        menu.popup(event.globalPos())
 
     def copy(self) -> None:
         data = (
