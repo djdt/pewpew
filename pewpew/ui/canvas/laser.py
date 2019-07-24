@@ -1,11 +1,9 @@
-import copy
 from PySide2 import QtGui, QtWidgets
 import numpy as np
+import copy
 
 from laserlib.laser import Laser
-from laserlib.krisskross import KrissKross
-
-from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
+from laserlib.krisskross import KrissKross, KrissKrossConfig
 
 from pewpew.ui.canvas.basic import BasicCanvas
 from pewpew.ui.canvas.interactive import InteractiveCanvas
@@ -99,15 +97,15 @@ class LaserCanvas(BasicCanvas):
         self.ax.clear()
 
         # Filter if required
-        if self.viewconfig["filtering"]["type"] != "None":
-            filter_type, window, threshold = (
-                self.viewconfig["filtering"][x] for x in ["type", "window", "threshold"]
-            )
-            if filter_type == "Rolling mean":
-                # rolling_mean_filter(data, window, threshold)
-                data = rolling_mean_filter(data, window, threshold)
-            elif filter_type == "Rolling median":
-                data = rolling_median_filter(data, window, threshold)
+        # if self.viewconfig["filtering"]["type"] != "None":
+        #     filter_type, window, threshold = (
+        #         self.viewconfig["filtering"][x] for x in ["type", "window", "threshold"]
+        #     )
+        #     if filter_type == "Rolling mean":
+        #         # rolling_mean_filter(data, window, threshold)
+        #         data = rolling_mean_filter(data, window, threshold)
+        #     elif filter_type == "Rolling median":
+        #         data = rolling_median_filter(data, window, threshold)
 
         # Calculate the range
         rmin, rmax = self.viewconfig["cmap"]["range"]
@@ -149,7 +147,7 @@ class LaserCanvas(BasicCanvas):
         # Get extent
         extent = (
             laser.config.data_extent(data)
-            if layer is None
+            if layer is None or not isinstance(laser.config, KrissKrossConfig)
             else laser.config.layer_data_extent(data)
         )
 
@@ -260,7 +258,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         # Save some variables for the status bar
         self.px, self.py = (
             (laser.config.pixel_width(), laser.config.pixel_height())
-            if layer is None
+            if layer is None or not isinstance(laser.config, KrissKrossConfig)
             else (laser.config.layer_pixel_width(), laser.config.layer_pixel_height())
         )
         self.ps = laser.config.speed
@@ -342,7 +340,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.draw_idle()
         self.image_mask = None
 
-    def ignore_event(self, event: LocationEvent) -> None:
+    def ignore_event(self, event: LocationEvent) -> bool:
         if event.name in ["scroll_event", "key_press_event"]:
             return True
         elif (
@@ -353,7 +351,8 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
 
         if event.inaxes != self.ax:
             return True
-        super().ignore_event(event)
+
+        return super().ignore_event(event)
 
     def press(self, event: MouseEvent) -> None:
         pass
