@@ -8,18 +8,17 @@ from laserlib.krisskross import KrissKross, KrissKrossConfig
 from pewpew.ui.canvas.basic import BasicCanvas
 from pewpew.ui.canvas.interactive import InteractiveCanvas
 
+from pewpew.lib.colormaps import maskAlphaMap
+from pewpew.lib.mpltools import image_extent_to_data, mask_to_image
+
 from matplotlib.ticker import MaxNLocator
 from matplotlib.offsetbox import AnchoredText
 from matplotlib_scalebar.scalebar import ScaleBar
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from typing import List, Tuple
+from typing import Tuple
 from matplotlib.image import AxesImage
-
 from matplotlib.backend_bases import MouseEvent, LocationEvent
-
-from pewpew.lib.colormaps import maskAlphaMap
-
 from matplotlib.widgets import RectangleSelector, LassoSelector
 from matplotlib.path import Path
 from matplotlib.patheffects import Normal, SimpleLineShadow
@@ -197,6 +196,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         super().__init__(viewconfig=viewconfig, options=options, parent=parent)
 
         self.status_bar = parent.window().statusBar()
+        self.mask: np.ndarray = None
         self.image_mask: AxesImage = None
         self.state = set(["move"])
         self.button = 1
@@ -247,10 +247,23 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.ax.add_image(self.image_mask)
 
     def drawMask(
-        self, mask: np.ndarray, extent: Tuple[float, float, float, float]
+        self, mask: np.ndarray, extent: Tuple[float, float, float, float] = None
     ) -> None:
+        if extent is None:
+            extent = self.extent
+
+        # highlight = self.palette().color(QtGui.QPalette.Highlight)
         self.image_mask = self.ax.imshow(
-            mask, cmap=maskAlphaMap, extent=extent, alpha=0.5
+            mask,
+            cmap=maskAlphaMap,
+            # mask_to_image(
+            #     mask,
+            #     color=highlight.getRgb()[:3],
+            #     alpha=0.5,
+            # ),
+            extent=extent,
+            aspect="equal",
+            origin="upper",
         )
 
     def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
@@ -269,30 +282,55 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         self.lasso_selector.onselect = self.lassoSelection
         self.lasso_selector.set_active(True)
 
-    def lassoSelection(self, vertices: List[np.ndarray]) -> None:
+    def lassoSelection(self, vertices: np.ndarray) -> None:
         self.lasso_selector.set_active(False)
         self.state.discard("selection")
 
         data = self.image.get_array()
         x0, x1, y0, y1 = self.extent
-        ny, nx = data.shape
-        # Calculate half pixel widths
-        px, py = (x1 - x0) / nx / 2.0, (y0 - y1) / ny / 2.0
-
-        # Grid of coords for the center of pixels
-        x, y = np.meshgrid(
-            np.linspace(x0 + px, x1 + px, nx, endpoint=False),
-            np.linspace(y1 + py, y0 + py, ny, endpoint=False),
-        )
-        pix = np.vstack((x.flatten(), y.flatten())).T
+        # Transform verticies into data coords
+        transform = image_extent_to_data(self.image)
+        vertices = transform.transform(vertices)
+        vx = np.array([np.min(vertices[:, 0]), 1 + np.max(vertices[:, 0])], dtype=int)
+        vy = np.array([np.min(vertices[:, 1]), 1 + np.max(vertices[:, 1])], dtype=int)
+        # Generate point mesh
+        x = np.linspace(vx[0] + 0.5, vx[1] + 0.5, vx[1] - vx[0], endpoint=False)
+        y = np.linspace(vy[0] + 0.5, vy[1] + 0.5, vy[1] - vy[0], endpoint=False)
+        X, Y = np.meshgrid(x, y)
+        pix = np.vstack((X.flatten(), Y.flatten())).T
 
         path = Path(vertices)
         ind = path.contains_points(pix, radius=2)
 
-        mask = np.zeros(data.shape, dtype=bool)
-        mask.flat[ind] = True
-        self.drawMask(mask, (x0, x1, y0, y1))
+        mask = np.zeros(data.shape[:2], dtype=bool)
+        mask[vy[0] : vy[1], vx[0] : vx[1]].flat[ind] = True
+        self.drawMask(mask)
         self.draw_idle()
+
+    # def lassoSelection(self, vertices: List[np.ndarray]) -> None:
+    #     self.lasso_selector.set_active(False)
+    #     self.state.discard("selection")
+
+    #     data = self.image.get_array()
+    #     x0, x1, y0, y1 = self.extent
+    #     ny, nx = data.shape
+    #     # Calculate half pixel widths
+    #     px, py = (x1 - x0) / nx / 2.0, (y0 - y1) / ny / 2.0
+
+    #     # Grid of coords for the center of pixels
+    #     x, y = np.meshgrid(
+    #         np.linspace(x0 + px, x1 + px, nx, endpoint=False),
+    #         np.linspace(y1 + py, y0 + py, ny, endpoint=False),
+    #     )
+    #     pix = np.vstack((x.flatten(), y.flatten())).T
+
+    #     path = Path(vertices)
+    #     ind = path.contains_points(pix, radius=2)
+
+    #     mask = np.zeros(data.shape, dtype=bool)
+    #     mask.flat[ind] = True
+    #     self.drawMask(mask, (x0, x1, y0, y1))
+    #     self.draw_idle()
 
     def startRectangleSelection(self) -> None:
         self.clearSelection()
