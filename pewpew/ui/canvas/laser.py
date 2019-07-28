@@ -9,13 +9,18 @@ from pewpew.lib.calc import rolling_mean_filter, rolling_median_filter
 
 from pewpew.ui.canvas.basic import BasicCanvas
 from pewpew.ui.canvas.interactive import InteractiveCanvas
+from pewpew.ui.canvas.widgets import (
+    _ImageSelectionWidget,
+    LassoImageSelectionWidget,
+    RectangleImageSelectionWidget,
+)
 
 from matplotlib.ticker import MaxNLocator
 from matplotlib.offsetbox import AnchoredText
 from matplotlib_scalebar.scalebar import ScaleBar
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from typing import List, Tuple
+from typing import Tuple
 from matplotlib.image import AxesImage
 
 from matplotlib.backend_bases import MouseEvent, LocationEvent
@@ -199,40 +204,28 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         super().__init__(viewconfig=viewconfig, options=options, parent=parent)
 
         self.status_bar = parent.window().statusBar()
-        self.image_mask: AxesImage = None
         self.state = set(["move"])
         self.button = 1
 
-        shadow_color = self.palette().color(QtGui.QPalette.Shadow).name()
-        highlight_color = self.palette().color(QtGui.QPalette.Highlight).name()
+        shadow_color = self.palette().color(QtGui.QPalette.Shadow)
+        highlight_color = self.palette().color(QtGui.QPalette.Highlight)
         lineshadow = SimpleLineShadow(
-            offset=(0.5, -0.5), alpha=0.66, shadow_color=shadow_color
+            offset=(0.5, -0.5), alpha=0.66, shadow_color=shadow_color.name()
         )
-        rectprops = {
-            "edgecolor": shadow_color,
-            "facecolor": highlight_color,
+        self.rectprops = {
+            "edgecolor": highlight_color.name(),
+            "facecolor": None,
             "alpha": 0.33,
         }
-        lineprops = {
-            "color": highlight_color,
+        self.lineprops = {
+            "color": highlight_color.name(),
             "linestyle": "--",
             "path_effects": [lineshadow, Normal()],
         }
+        self.rgba = highlight_color.rgba()
+        self.rgba[3] = 128
 
-        self.rectangle_selector = RectangleSelector(
-            self.ax,
-            None,
-            button=1,
-            useblit=True,
-            minspanx=5,
-            minspany=5,
-            rectprops=rectprops,
-        )
-        self.rectangle_selector.set_active(False)
-        self.lasso_selector = LassoSelector(
-            self.ax, None, button=1, useblit=True, lineprops=lineprops
-        )
-        self.lasso_selector.set_active(False)
+        self.selector: _ImageSelectionWidget = None
 
     def redrawFigure(self) -> None:
         super().redrawFigure()
@@ -268,79 +261,87 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
     def startLassoSelection(self) -> None:
         self.clearSelection()
         self.state.add("selection")
-        self.lasso_selector.onselect = self.lassoSelection
-        self.lasso_selector.set_active(True)
-
-    def lassoSelection(self, vertices: List[np.ndarray]) -> None:
-        self.lasso_selector.set_active(False)
-        self.state.discard("selection")
-
-        data = self.image.get_array()
-        x0, x1, y0, y1 = self.extent
-        ny, nx = data.shape
-        # Calculate half pixel widths
-        px, py = (x1 - x0) / nx / 2.0, (y0 - y1) / ny / 2.0
-
-        # Grid of coords for the center of pixels
-        x, y = np.meshgrid(
-            np.linspace(x0 + px, x1 + px, nx, endpoint=False),
-            np.linspace(y1 + py, y0 + py, ny, endpoint=False),
+        self.selector = LassoImageSelectionWidget(
+            self.image,
+            self.rgba,
+            useblit=True,
+            button=self.button,
+            lineprops=self.lineprops,
         )
-        pix = np.vstack((x.flatten(), y.flatten())).T
 
-        path = Path(vertices)
-        ind = path.contains_points(pix, radius=2)
+    # def lassoSelection(self, vertices: List[np.ndarray]) -> None:
+    #     self.lasso_selector.set_active(False)
+    #     self.state.discard("selection")
 
-        mask = np.zeros(data.shape, dtype=bool)
-        mask.flat[ind] = True
-        self.drawMask(mask, (x0, x1, y0, y1))
-        self.draw_idle()
+    #     data = self.image.get_array()
+    #     x0, x1, y0, y1 = self.extent
+    #     ny, nx = data.shape
+    #     # Calculate half pixel widths
+    #     px, py = (x1 - x0) / nx / 2.0, (y0 - y1) / ny / 2.0
+
+    #     # Grid of coords for the center of pixels
+    #     x, y = np.meshgrid(
+    #         np.linspace(x0 + px, x1 + px, nx, endpoint=False),
+    #         np.linspace(y1 + py, y0 + py, ny, endpoint=False),
+    #     )
+    #     pix = np.vstack((x.flatten(), y.flatten())).T
+
+    #     path = Path(vertices)
+    #     ind = path.contains_points(pix, radius=2)
+
+    #     mask = np.zeros(data.shape, dtype=bool)
+    #     mask.flat[ind] = True
+    #     self.drawMask(mask, (x0, x1, y0, y1))
+    #     self.draw_idle()
 
     def startRectangleSelection(self) -> None:
         self.clearSelection()
         self.state.add("selection")
-        self.rectangle_selector.onselect = self.rectangleSelection
-        self.rectangle_selector.set_active(True)
-
-    def rectangleSelection(self, press: MouseEvent, release: MouseEvent) -> None:
-        self.rectangle_selector.set_active(False)
-        self.state.discard("selection")
-
-        data = self.image.get_array()
-        x0, x1, y0, y1 = self.extent
-        ny, nx = data.shape
-        # Calculate half pixel widths
-        px, py = (x1 - x0) / nx / 2.0, (y0 - y1) / ny / 2.0
-
-        # Grid of coords for the center of pixels
-        x, y = np.meshgrid(
-            np.linspace(x0 + px, x1 + px, nx, endpoint=False),
-            np.linspace(y1 + py, y0 + py, ny, endpoint=False),
+        self.selector = RectangleImageSelectionWidget(
+            self.image,
+            self.rgba,
+            useblit=True,
+            button=self.button,
+            rectprops=self.rectprops,
         )
-        pix = np.vstack((x.flatten(), y.flatten())).T
 
-        vertices = [
-            (press.xdata, press.ydata),
-            (release.xdata, press.ydata),
-            (release.xdata, release.ydata),
-            (press.xdata, release.ydata),
-        ]
-        path = Path(vertices)
-        ind = path.contains_points(pix, radius=2)
+    # def rectangleSelection(self, press: MouseEvent, release: MouseEvent) -> None:
+    #     self.rectangle_selector.set_active(False)
+    #     self.state.discard("selection")
 
-        mask = np.zeros(data.shape, dtype=bool)
-        mask.flat[ind] = True
+    #     data = self.image.get_array()
+    #     x0, x1, y0, y1 = self.extent
+    #     ny, nx = data.shape
+    #     # Calculate half pixel widths
+    #     px, py = (x1 - x0) / nx / 2.0, (y0 - y1) / ny / 2.0
 
-        self.drawMask(mask, (x0, x1, y0, y1))
-        self.draw_idle()
+    #     # Grid of coords for the center of pixels
+    #     x, y = np.meshgrid(
+    #         np.linspace(x0 + px, x1 + px, nx, endpoint=False),
+    #         np.linspace(y1 + py, y0 + py, ny, endpoint=False),
+    #     )
+    #     pix = np.vstack((x.flatten(), y.flatten())).T
+
+    #     vertices = [
+    #         (press.xdata, press.ydata),
+    #         (release.xdata, press.ydata),
+    #         (release.xdata, release.ydata),
+    #         (press.xdata, release.ydata),
+    #     ]
+    #     path = Path(vertices)
+    #     ind = path.contains_points(pix, radius=2)
+
+    #     mask = np.zeros(data.shape, dtype=bool)
+    #     mask.flat[ind] = True
+
+    #     self.drawMask(mask, (x0, x1, y0, y1))
+    #     self.draw_idle()
 
     def clearSelection(self) -> None:
-        self.lasso_selector.set_active(False)
-        self.rectangle_selector.set_active(False)
-        if self.image_mask in self.ax.get_images():
-            self.image_mask.remove()
-            self.draw_idle()
-        self.image_mask = None
+        if self.selector is not None:
+            self.selector.set_visible(False)
+            self.selector.update()
+        self.selector = None
 
     def ignore_event(self, event: LocationEvent) -> None:
         if event.name in ["scroll_event", "key_press_event"]:
