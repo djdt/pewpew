@@ -1,4 +1,4 @@
-from PySide2 import QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 import numpy as np
 import copy
 
@@ -220,6 +220,11 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         )
 
         self.selector: _SelectorWidget = None
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.key() == QtCore.Qt.Key_Escape:
+            self.clearSelection()
+        super().keyPressEvent(event)
 
     def redrawFigure(self) -> None:
         super().redrawFigure()

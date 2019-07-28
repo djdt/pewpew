@@ -88,6 +88,8 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.canvas = InteractiveLaserCanvas(
             viewconfig=self.window().viewconfig, parent=self
         )
+        self.canvas.setFocusPolicy(QtCore.Qt.ClickFocus)
+        # self.canvas.setFocus()
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.currentIndexChanged.connect(self.onComboIsotope)
