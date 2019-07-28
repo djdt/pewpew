@@ -8,13 +8,9 @@ from laserlib.krisskross import KrissKross, KrissKrossConfig
 from pewpew.ui.canvas.basic import BasicCanvas
 from pewpew.ui.canvas.interactive import InteractiveCanvas
 from pewpew.ui.canvas.widgets import (
-    _ImageSelectionWidget,
     LassoImageSelectionWidget,
     RectangleImageSelectionWidget,
 )
-
-from pewpew.lib.colormaps import maskAlphaMap
-from pewpew.lib.mpltools import image_extent_to_data, mask_to_image
 
 from matplotlib.ticker import MaxNLocator
 from matplotlib.offsetbox import AnchoredText
@@ -24,9 +20,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from typing import Tuple
 from matplotlib.image import AxesImage
 from matplotlib.backend_bases import MouseEvent, LocationEvent
-from matplotlib.widgets import RectangleSelector, LassoSelector
-from matplotlib.path import Path
 from matplotlib.patheffects import Normal, SimpleLineShadow
+from matplotlib.widgets import _SelectorWidget, RectangleSelector
 
 
 class LaserCanvas(BasicCanvas):
@@ -204,25 +199,27 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         self.state = set(["move"])
         self.button = 1
 
-        shadow_color = self.palette().color(QtGui.QPalette.Shadow)
-        highlight_color = self.palette().color(QtGui.QPalette.Highlight)
+        shadow = self.palette().color(QtGui.QPalette.Shadow)
+        highlight = self.palette().color(QtGui.QPalette.Highlight)
         lineshadow = SimpleLineShadow(
-            offset=(0.5, -0.5), alpha=0.66, shadow_color=shadow_color.name()
+            offset=(0.5, -0.5), alpha=0.66, shadow_color=shadow.name()
         )
         self.rectprops = {
-            "edgecolor": highlight_color.name(),
+            "edgecolor": highlight.name(),
             "facecolor": None,
             "alpha": 0.33,
         }
         self.lineprops = {
-            "color": highlight_color.name(),
+            "color": highlight.name(),
             "linestyle": "--",
             "path_effects": [lineshadow, Normal()],
         }
-        self.rgba = highlight_color.rgba()
-        self.rgba[3] = 128
+        self.mask_rgba = np.array(
+            [highlight.red(), highlight.green(), highlight.blue(), 255 * 0.5],
+            dtype=np.uint8,
+        )
 
-        self.selector: _ImageSelectionWidget = None
+        self.selector: _SelectorWidget = None
 
     def redrawFigure(self) -> None:
         super().redrawFigure()
@@ -230,33 +227,6 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.rectangle_selector.ax = self.ax
         if hasattr(self, "lasso_selector"):
             self.lasso_selector.ax = self.ax
-
-    def drawData(
-        self, data: np.ndarray, extent: Tuple[float, float, float, float]
-    ) -> None:
-        super().drawData(data, extent)
-        if self.image_mask is not None:
-            self.ax.add_image(self.image_mask)
-
-    def drawMask(
-        self, mask: np.ndarray, extent: Tuple[float, float, float, float] = None
-    ) -> None:
-        if extent is None:
-            extent = self.extent
-
-        # highlight = self.palette().color(QtGui.QPalette.Highlight)
-        self.image_mask = self.ax.imshow(
-            mask,
-            cmap=maskAlphaMap,
-            # mask_to_image(
-            #     mask,
-            #     color=highlight.getRgb()[:3],
-            #     alpha=0.5,
-            # ),
-            extent=extent,
-            aspect="equal",
-            origin="upper",
-        )
 
     def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
         super().drawLaser(laser, name, layer)
@@ -273,82 +243,28 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         self.state.add("selection")
         self.selector = LassoImageSelectionWidget(
             self.image,
-            self.rgba,
+            self.mask_rgba,
             useblit=True,
             button=self.button,
             lineprops=self.lineprops,
         )
-
-    # def lassoSelection(self, vertices: List[np.ndarray]) -> None:
-    #     self.lasso_selector.set_active(False)
-    #     self.state.discard("selection")
-
-    #     data = self.image.get_array()
-    #     x0, x1, y0, y1 = self.extent
-    #     ny, nx = data.shape
-    #     # Calculate half pixel widths
-    #     px, py = (x1 - x0) / nx / 2.0, (y0 - y1) / ny / 2.0
-
-    #     # Grid of coords for the center of pixels
-    #     x, y = np.meshgrid(
-    #         np.linspace(x0 + px, x1 + px, nx, endpoint=False),
-    #         np.linspace(y1 + py, y0 + py, ny, endpoint=False),
-    #     )
-    #     pix = np.vstack((x.flatten(), y.flatten())).T
-
-    #     path = Path(vertices)
-    #     ind = path.contains_points(pix, radius=2)
-
-    #     mask = np.zeros(data.shape, dtype=bool)
-    #     mask.flat[ind] = True
-    #     self.drawMask(mask, (x0, x1, y0, y1))
-    #     self.draw_idle()
+        self.selector.set_active(True)
 
     def startRectangleSelection(self) -> None:
         self.clearSelection()
         self.state.add("selection")
         self.selector = RectangleImageSelectionWidget(
             self.image,
-            self.rgba,
+            self.mask_rgba,
             useblit=True,
             button=self.button,
             rectprops=self.rectprops,
         )
-
-    # def rectangleSelection(self, press: MouseEvent, release: MouseEvent) -> None:
-    #     self.rectangle_selector.set_active(False)
-    #     self.state.discard("selection")
-
-    #     data = self.image.get_array()
-    #     x0, x1, y0, y1 = self.extent
-    #     ny, nx = data.shape
-    #     # Calculate half pixel widths
-    #     px, py = (x1 - x0) / nx / 2.0, (y0 - y1) / ny / 2.0
-
-    #     # Grid of coords for the center of pixels
-    #     x, y = np.meshgrid(
-    #         np.linspace(x0 + px, x1 + px, nx, endpoint=False),
-    #         np.linspace(y1 + py, y0 + py, ny, endpoint=False),
-    #     )
-    #     pix = np.vstack((x.flatten(), y.flatten())).T
-
-    #     vertices = [
-    #         (press.xdata, press.ydata),
-    #         (release.xdata, press.ydata),
-    #         (release.xdata, release.ydata),
-    #         (press.xdata, release.ydata),
-    #     ]
-    #     path = Path(vertices)
-    #     ind = path.contains_points(pix, radius=2)
-
-    #     mask = np.zeros(data.shape, dtype=bool)
-    #     mask.flat[ind] = True
-
-    #     self.drawMask(mask, (x0, x1, y0, y1))
-    #     self.draw_idle()
+        self.selector.set_active(True)
 
     def clearSelection(self) -> None:
         if self.selector is not None:
+            self.selector.set_active(False)
             self.selector.set_visible(False)
             self.selector.update()
         self.selector = None
@@ -412,15 +328,21 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
 
     def startZoom(self) -> None:
         self.state.add("selection")
-        self.lasso_selector.set_active(False)
-        self.rectangle_selector.onselect = self.zoom
-        self.rectangle_selector.set_active(True)
+        self.selector = RectangleSelector(
+            self.ax,
+            self.zoom,
+            useblit=True,
+            drawtype="box",
+            button=self.button,
+            rectprops=self.rectprops,
+        )
+        self.selector.set_active(True)
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
-        self.state.add("zoom")
+        self.clearSelection()
         self.state.discard("selection")
-        self.rectangle_selector.set_active(False)
         self.view_limits = (press.xdata, release.xdata, press.ydata, release.ydata)
+        self.state.add("zoom")
 
     def unzoom(self) -> None:
         self.state.discard("zoom")

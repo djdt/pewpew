@@ -17,15 +17,17 @@ def image_extent_to_data(image: AxesImage) -> BboxTransform:
 
 
 class _ImageSelectionWidget(object):
-    state_modifier_keys = dict(move="", clear="", add="shift", subtract="control")
+    STATE_MODIFIER_KEYS = dict(move="", clear="", add="shift", subtract="control")
 
-    def __init__(self, selector: _SelectorWidget, image: AxesImage, rgba: np.ndarray):
+    def __init__(
+        self, selector: _SelectorWidget, image: AxesImage, mask_rgba: np.ndarray
+    ):
         self.selector = selector
-        self.selector.state_modifier_keys = _ImageSelectionWidget.state_modifier_keys
+        self.selector.state_modifier_keys = _ImageSelectionWidget.STATE_MODIFIER_KEYS
 
         self.image = image
-        assert len(rgba) == 4
-        self.rgba = rgba
+        assert len(mask_rgba) == 4
+        self.rgba = mask_rgba
 
         self.mask: np.ndarray = np.zeros(
             self.image.get_array().shape[:2], dtype=np.bool
@@ -60,12 +62,22 @@ class _ImageSelectionWidget(object):
         else:
             self.mask_image.set_visible(True)
 
+    def set_active(self, active: bool) -> None:
+        self.selector.set_active(active)
+
+    def set_visible(self, visible: bool) -> None:
+        for artist in self.selector.artists:
+            artist.set_visible(visible)
+
+    def update(self) -> None:
+        self.selector.update()
+
 
 class LassoImageSelectionWidget(_ImageSelectionWidget):
     def __init__(
         self,
         image: AxesImage,
-        rgba: np.ndarray = (255, 255, 255, 128),
+        mask_rgba: np.ndarray = (255, 255, 255, 128),
         useblit: bool = False,
         button: int = 1,
         lineprops: dict = None,
@@ -77,7 +89,7 @@ class LassoImageSelectionWidget(_ImageSelectionWidget):
             button=button,
             lineprops=lineprops,
         )
-        super().__init__(selector, image, rgba)
+        super().__init__(selector, image, mask_rgba)
 
     def onselect(self, vertices: np.ndarray) -> None:
         data = self.image.get_array()
@@ -113,7 +125,7 @@ class RectangleImageSelectionWidget(_ImageSelectionWidget):
     def __init__(
         self,
         image: AxesImage,
-        rgba: np.ndarray = (255, 255, 255, 128),
+        mask_rgba: np.ndarray = (255, 255, 255, 128),
         useblit: bool = False,
         button: int = 1,
         rectprops: dict = None,
@@ -127,7 +139,7 @@ class RectangleImageSelectionWidget(_ImageSelectionWidget):
             drawtype="box",
             interactive=False,
         )
-        super().__init__(selector, image, rgba)
+        super().__init__(selector, image, mask_rgba)
 
     def onselect(self, press: MouseEvent, release: MouseEvent) -> None:
         data = self.image.get_array()

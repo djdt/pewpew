@@ -345,9 +345,9 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
     def onMenuStats(self) -> None:
         data = self.canvas.image.get_array()
-        if self.canvas.image_mask is not None:
+        if self.canvas.selector is not None:
             # Trim out nan rows and columns to get size
-            data = np.where(self.canvas.image_mask.get_array(), data, np.nan)
+            data = np.where(self.canvas.selector.mask, data, np.nan)
             data = data[:, ~np.isnan(data).all(axis=0)]
             data = data[~np.isnan(data).all(axis=1)]
         else:  # Trim to view limits
