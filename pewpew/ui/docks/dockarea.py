@@ -1,6 +1,6 @@
 import os.path
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew.ui.events import MousePressRedirectFilter
 
@@ -14,8 +14,8 @@ from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
 
 class DockArea(QtWidgets.QMainWindow):
 
-    mouseSelectFinished = QtCore.pyqtSignal("QWidget*")
-    numberDocksChanged = QtCore.pyqtSignal()
+    mouseSelectFinished = QtCore.Signal("QWidget*")
+    numberDocksChanged = QtCore.Signal()
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)

@@ -1,4 +1,4 @@
-from PyQt5 import QtCore, QtWidgets
+from PySide2 import QtCore, QtWidgets
 import numpy as np
 
 from laserlib.krisskross.data import krisskross_layers
@@ -71,20 +71,20 @@ class OperationsTool(Tool):
         self.combo_isotope1.currentIndexChanged.connect(self.updateData)
         self.combo_isotope1.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.combo_condition1 = QtWidgets.QComboBox()
-        self.combo_condition1.addItems(OperationsTool.CONDITIONS)
+        self.combo_condition1.addItems(list(OperationsTool.CONDITIONS))
         self.lineedit_condition1 = QtWidgets.QLineEdit()
         self.lineedit_condition1.setValidator(DecimalValidator(-1e9, 1e9, 4))
         self.lineedit_condition1.editingFinished.connect(self.updateData)
 
         self.combo_ops = QtWidgets.QComboBox()
-        self.combo_ops.addItems(OperationsTool.OPERATIONS)
+        self.combo_ops.addItems(list(OperationsTool.OPERATIONS))
         self.combo_ops.currentIndexChanged.connect(self.onComboOps)
 
         self.combo_isotope2 = QtWidgets.QComboBox()
         self.combo_isotope2.currentIndexChanged.connect(self.updateData)
         self.combo_isotope2.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.combo_condition2 = QtWidgets.QComboBox()
-        self.combo_condition2.addItems(OperationsTool.CONDITIONS)
+        self.combo_condition2.addItems(list(OperationsTool.CONDITIONS))
         self.combo_condition2.currentIndexChanged.connect(self.updateData)
         self.lineedit_condition2 = QtWidgets.QLineEdit()
         self.lineedit_condition2.setValidator(DecimalValidator(-1e9, 1e9, 4))
@@ -231,7 +231,7 @@ class OperationsTool(Tool):
 
         self.updateData()
 
-    @QtCore.pyqtSlot("QWidget*")
+    @QtCore.Slot("QWidget*")
     def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
         if widget is not None and hasattr(widget, "laser"):
             self.dock = widget
@@ -295,6 +295,8 @@ class KrissKrossOperationsTool(OperationsTool):
 
     def draw(self) -> None:
         # Assemble data
-        data = np.mean(krisskross_layers(self.data, self.dock.laser.config), axis=2)
+        data = np.mean(
+            krisskross_layers(self.data, self.dock.laser.config), axis=2  # type: ignore
+        )
         self.canvas.drawData(data, self.dock.laser.config.data_extent(data))
         self.canvas.draw()

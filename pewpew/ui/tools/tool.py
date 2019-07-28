@@ -1,9 +1,9 @@
-from PyQt5 import QtCore, QtWidgets
+from PySide2 import QtCore, QtWidgets
 
 
 class Tool(QtWidgets.QDialog):
 
-    applyPressed = QtCore.pyqtSignal(QtCore.QObject)
+    applyPressed = QtCore.Signal(QtCore.QObject)
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)

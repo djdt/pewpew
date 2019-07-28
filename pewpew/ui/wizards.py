@@ -1,7 +1,7 @@
 import os
 from fractions import Fraction
 
-from PyQt5 import QtCore, QtWidgets
+from PySide2 import QtCore, QtWidgets
 
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
 from pewpew.ui.validators import DecimalValidator
@@ -182,7 +182,7 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
     def isComplete(self) -> bool:
         return self.list.count() >= 2
 
-    @QtCore.pyqtProperty(list)
+    @QtCore.Property(list)
     def paths(self) -> List[str]:
         paths = []
         for i in range(0, self.list.count()):
@@ -242,7 +242,7 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
 
         self.registerField("config", self, "config")
 
-    @QtCore.pyqtProperty(QtCore.QVariant)
+    @QtCore.Property(object)
     def config(self) -> KrissKrossConfig:
         if self.lineedit_spotsize.text() != "":
             self.dconfig.spotsize = float(self.lineedit_spotsize.text())

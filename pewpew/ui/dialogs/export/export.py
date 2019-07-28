@@ -1,6 +1,6 @@
 import os.path
 
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 
 from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
 from laserlib.laser import Laser

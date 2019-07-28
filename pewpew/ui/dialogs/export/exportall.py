@@ -1,6 +1,6 @@
 import os.path
 
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 
 from pewpew.ui.dialogs.export.export import ExportDialog
 from pewpew.ui.dialogs.export.csv import CSVExportOptions

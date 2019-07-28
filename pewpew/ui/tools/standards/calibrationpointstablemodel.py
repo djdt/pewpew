@@ -1,9 +1,11 @@
-from PyQt5 import QtCore
+from PySide2 import QtCore
 import numpy as np
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 
 from laserlib.calibration import LaserCalibration
+
+from typing import Any
 
 
 class CalibrationPointsTableModel(NumpyArrayTableModel):
@@ -35,7 +37,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
 
     def data(
         self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole
-    ) -> QtCore.QVariant:
+    ) -> str:
         value = super().data(index, role)
         if value == "nan":
             return ""
@@ -44,7 +46,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
     def setData(
         self,
         index: QtCore.QModelIndex,
-        value: QtCore.QVariant,
+        value: Any,
         role: int = QtCore.Qt.EditRole,
     ) -> bool:
         return super().setData(index, np.nan if value == "" else value, role)
@@ -60,9 +62,9 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
 
     def headerData(
         self, section: int, orientation: QtCore.Qt.Orientation, role: int
-    ) -> QtCore.QVariant:
+    ) -> str:
         if role != QtCore.Qt.DisplayRole:
-            return QtCore.QVariant()
+            return None
 
         if orientation == QtCore.Qt.Horizontal:
             return ("Concentration", "Counts")[section]

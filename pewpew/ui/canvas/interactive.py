@@ -1,10 +1,10 @@
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 
 from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent
 
 from pewpew.ui.canvas.basic import BasicCanvas
 
-from typing import Callable, Tuple
+from typing import Callable, List, Tuple
 
 
 class InteractiveCanvas(BasicCanvas):
@@ -15,7 +15,7 @@ class InteractiveCanvas(BasicCanvas):
     ):
         super().__init__(figsize, parent)
 
-        self.cids = []
+        self.cids: List[int] = []
         self.default_events = {
             "axis_enter_event": self._axis_enter,
             "axis_leave_event": self._axis_leave,
@@ -36,7 +36,7 @@ class InteractiveCanvas(BasicCanvas):
     def connect_event(self, event: str, callback: Callable) -> None:
         self.cids.append(self.mpl_connect(event, callback))
 
-    def disconnect_events(self, key: str) -> None:
+    def disconnect_events(self) -> None:
         for cid in self.cids:
             self.mpl_disconnect(cid)
 

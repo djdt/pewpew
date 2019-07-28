@@ -1,5 +1,7 @@
-from PyQt5 import QtCore
+from PySide2 import QtCore
 import numpy as np
+
+from typing import Any
 
 
 class NumpyArrayTableModel(QtCore.QAbstractTableModel):
@@ -79,23 +81,23 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
     # Data
     def data(
         self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole
-    ) -> QtCore.QVariant:
+    ) -> str:
         if not index.isValid():
-            return QtCore.QVariant()
+            return None
 
         if index.row() >= self.rowCount() or index.column() >= self.columnCount():
-            return QtCore.QVariant()
+            return None
 
         if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
             value = self.array[index.row(), index.column()]
             return str(value)
         else:
-            return QtCore.QVariant()
+            return None
 
     def setData(
         self,
         index: QtCore.QModelIndex,
-        value: QtCore.QVariant,
+        value: Any,
         role: int = QtCore.Qt.EditRole,
     ) -> bool:
         if not index.isValid():
@@ -122,8 +124,8 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
     # Header
     def headerData(
         self, section: int, orientation: QtCore.Qt.Orientation, role: int
-    ) -> QtCore.QVariant:
+    ) -> str:
         if role != QtCore.Qt.DisplayRole:
-            return QtCore.QVariant()
+            return None
 
         return str(section)

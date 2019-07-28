@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets
+from PySide2 import QtWidgets
 
 from pewpew.ui.dialogs.applydialog import ApplyDialog
 from pewpew.ui.validators import PercentOrDecimalValidator

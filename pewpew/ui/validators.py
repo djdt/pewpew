@@ -1,4 +1,4 @@
-from PyQt5 import QtGui, QtWidgets
+from PySide2 import QtGui, QtWidgets
 
 from typing import Tuple
 
