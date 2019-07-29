@@ -206,12 +206,15 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         )
         self.rectprops = {
             "edgecolor": highlight.name(),
-            "facecolor": None,
-            "alpha": 0.33,
+            "facecolor": "none",
+            "linestyle": "-",
+            "linewidth": 1.1,
+            "path_effects": [lineshadow, Normal()],
         }
         self.lineprops = {
             "color": highlight.name(),
             "linestyle": "--",
+            "linewidth": 1.1,
             "path_effects": [lineshadow, Normal()],
         }
         self.mask_rgba = np.array(
@@ -263,7 +266,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.mask_rgba,
             useblit=True,
             button=self.button,
-            rectprops=self.rectprops,
+            lineprops=self.lineprops,
         )
         self.selector.set_active(True)
 
@@ -272,6 +275,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.selector.set_active(False)
             self.selector.set_visible(False)
             self.selector.update()
+        self.state.discard("selection")
         self.selector = None
 
     def ignore_event(self, event: LocationEvent) -> bool:
@@ -332,6 +336,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         self.status_bar.clearMessage()
 
     def startZoom(self) -> None:
+        self.clearSelection()
         self.state.add("selection")
         self.selector = RectangleSelector(
             self.ax,
