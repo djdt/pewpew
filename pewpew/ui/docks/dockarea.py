@@ -97,6 +97,12 @@ class DockArea(QtWidgets.QMainWindow):
             event.ignore()
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
+        # if event.mimeData().hasFormat("text/uri-list"):
+        #     event.accept()
+        # else:
+        #     event.ignore()
+        #     return
+
         urls = event.mimeData().urls()
         lasers = []
         for url in urls:

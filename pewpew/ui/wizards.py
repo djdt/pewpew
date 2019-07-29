@@ -1,13 +1,12 @@
 import os
 from fractions import Fraction
 
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
 from pewpew.ui.validators import DecimalValidator
 
 from laserlib import io
-from laserlib import Laser
 from laserlib.krisskross import KrissKross, KrissKrossConfig
 
 from typing import List
@@ -99,16 +98,49 @@ class KrissKrossStartPage(QtWidgets.QWizardPage):
         self.setLayout(main_layout)
 
 
+class KrissKrossImportList(QtWidgets.QListWidget):
+    def __init__(self, allowed_ext: str = None, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+        self.allowed_ext = allowed_ext
+        self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.setTextElideMode(QtCore.Qt.ElideLeft)
+        self.setDefaultDropAction(QtCore.Qt.MoveAction)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            for url in urls:
+                if url.isLocalFile():
+                    path = url.toLocalFile()
+                    name, ext = os.path.splitext(path)
+                    if self.allowed_ext is None or ext == self.allowed_ext:
+                        self.addItem(path)
+        else:
+            super().dropEvent(event)
+
+
 class KrissKrossImportPage(QtWidgets.QWizardPage):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         self.setTitle("Files and Directories")
         # List and box
-        self.list = QtWidgets.QListWidget()
-        self.list.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        self.list.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
-        self.list.setTextElideMode(QtCore.Qt.ElideLeft)
+        if self.field("radio_numpy"):
+            allowed_ext = ".npz"
+        elif self.field("radio_agilent"):
+            allowed_ext = ".b"
+        elif self.field("radio_thermo"):
+            allowed_ext = ".csv"
+
+        self.list = KrissKrossImportList(allowed_ext=allowed_ext)
         self.list.model().rowsInserted.connect(self.completeChanged)
         self.list.model().rowsRemoved.connect(self.completeChanged)
 
@@ -175,10 +207,6 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
                 self.list.takeItem(self.list.row(item))
         super().keyPressEvent(event)
 
-    # def initializePage(self) -> None:
-    #     # No need for config if numpy are used
-    #     self.setFinalPage(self.field("radio_numpy"))
-
     def isComplete(self) -> bool:
         return self.list.count() >= 2
 
@@ -242,7 +270,7 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
 
         self.registerField("config", self, "config")
 
-    @QtCore.Property(object)
+    @QtCore.Property(KrissKrossConfig)
     def config(self) -> KrissKrossConfig:
         if self.lineedit_spotsize.text() != "":
             self.dconfig.spotsize = float(self.lineedit_spotsize.text())
