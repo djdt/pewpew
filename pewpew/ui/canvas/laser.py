@@ -8,6 +8,7 @@ from laserlib.krisskross import KrissKross, KrissKrossConfig
 from pewpew.ui.canvas.basic import BasicCanvas
 from pewpew.ui.canvas.interactive import InteractiveCanvas
 from pewpew.ui.canvas.widgets import (
+    _ImageSelectionWidget,
     LassoImageSelectionWidget,
     RectangleImageSelectionWidget,
 )
@@ -21,7 +22,7 @@ from typing import Tuple
 from matplotlib.image import AxesImage
 from matplotlib.backend_bases import MouseEvent, LocationEvent
 from matplotlib.patheffects import Normal, SimpleLineShadow
-from matplotlib.widgets import _SelectorWidget, RectangleSelector
+from matplotlib.widgets import RectangleSelector
 
 
 class LaserCanvas(BasicCanvas):
@@ -222,8 +223,6 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             dtype=np.uint8,
         )
 
-        self.selector: _SelectorWidget = None
-
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key_Escape:
             self.clearSelection()
@@ -231,10 +230,8 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
 
     def redrawFigure(self) -> None:
         super().redrawFigure()
-        if hasattr(self, "rectangle_selector"):
-            self.rectangle_selector.ax = self.ax
-        if hasattr(self, "lasso_selector"):
-            self.lasso_selector.ax = self.ax
+        if self.widget is not None:
+            self.widget.ax = self.ax
 
     def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
         super().drawLaser(laser, name, layer)
@@ -249,34 +246,40 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
     def startLassoSelection(self) -> None:
         self.clearSelection()
         self.state.add("selection")
-        self.selector = LassoImageSelectionWidget(
+        self.widget = LassoImageSelectionWidget(
             self.image,
             self.mask_rgba,
             useblit=True,
             button=self.button,
             lineprops=self.lineprops,
         )
-        self.selector.set_active(True)
+        self.widget.set_active(True)
 
     def startRectangleSelection(self) -> None:
         self.clearSelection()
         self.state.add("selection")
-        self.selector = RectangleImageSelectionWidget(
+        self.widget = RectangleImageSelectionWidget(
             self.image,
             self.mask_rgba,
             useblit=True,
             button=self.button,
             lineprops=self.lineprops,
         )
-        self.selector.set_active(True)
+        self.widget.set_active(True)
 
     def clearSelection(self) -> None:
-        if self.selector is not None:
-            self.selector.set_active(False)
-            self.selector.set_visible(False)
-            self.selector.update()
+        if self.widget is not None:
+            self.widget.set_active(False)
+            self.widget.set_visible(False)
+            self.widget.update()
         self.state.discard("selection")
-        self.selector = None
+        self.widget = None
+
+    def getSelection(self) -> np.ndarray:
+        if self.widget is not None and isinstance(self.widget, _ImageSelectionWidget):
+            return self.widget.mask
+        else:
+            return None
 
     def ignore_event(self, event: LocationEvent) -> bool:
         if event.name in ["scroll_event", "key_press_event"]:
@@ -301,7 +304,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
     def move(self, event: MouseEvent) -> None:
         if (
             all(state in self.state for state in ["move", "zoom"])
-            and "selection" not in self.state
+            # and "selection" not in self.state
             and event.button == self.button
         ):
             x1, x2, y1, y2 = self.view_limits
@@ -338,7 +341,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
     def startZoom(self) -> None:
         self.clearSelection()
         self.state.add("selection")
-        self.selector = RectangleSelector(
+        self.widget = RectangleSelector(
             self.ax,
             self.zoom,
             useblit=True,
@@ -346,7 +349,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             button=self.button,
             rectprops=self.rectprops,
         )
-        self.selector.set_active(True)
+        self.widget.set_active(True)
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
         self.clearSelection()
