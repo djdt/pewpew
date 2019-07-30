@@ -57,6 +57,8 @@ class ViewOptions(object):
         self.image = ImageOptions()
         self.font = FontOptions()
 
+        self.status.unit = "um"
+
     DEFAULT_VIEW_CONFIG = {
         "cmap": {"type": ppSpectral, "range": (0.0, "99%")},
         "calibrate": True,

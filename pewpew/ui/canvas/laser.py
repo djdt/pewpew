@@ -243,6 +243,10 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         )
         self.ps = laser.config.speed
 
+    def endSelection(self) -> None:
+        if self.widget is not None:
+            self.widget.set_active(False)
+
     def startLassoSelection(self) -> None:
         self.clearSelection()
         self.state.add("selection")
@@ -340,7 +344,6 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
 
     def startZoom(self) -> None:
         self.clearSelection()
-        self.state.add("selection")
         self.widget = RectangleSelector(
             self.ax,
             self.zoom,
@@ -353,7 +356,6 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
         self.clearSelection()
-        self.state.discard("selection")
         self.view_limits = (press.xdata, release.xdata, press.ydata, release.ydata)
         self.state.add("zoom")
 

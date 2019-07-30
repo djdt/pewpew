@@ -26,6 +26,9 @@ class ImageDockTitleBar(QtWidgets.QWidget):
         self.title = QtWidgets.QLabel(title)
 
         # Button Bar
+        self.button_move = QtWidgets.QPushButton(
+            QtGui.QIcon.fromTheme("transform-move"), ""
+        )
         self.button_select_rect = QtWidgets.QPushButton(
             QtGui.QIcon.fromTheme("draw-rectangle"), ""
         )
@@ -48,6 +51,7 @@ class ImageDockTitleBar(QtWidgets.QWidget):
         line.setFrameShadow(QtWidgets.QFrame.Sunken)
 
         layout_buttons = QtWidgets.QHBoxLayout()
+        layout_buttons.addWidget(self.button_move, 0, QtCore.Qt.AlignLeft)
         layout_buttons.addWidget(self.button_select_rect, 0, QtCore.Qt.AlignLeft)
         layout_buttons.addWidget(self.button_select_lasso, 0, QtCore.Qt.AlignLeft)
         layout_buttons.addWidget(line)
@@ -113,6 +117,9 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.setTitleBarWidget(self.title_bar)
         self.setWindowTitle(self.laser.name)
 
+        self.title_bar.button_move.clicked.connect(
+            self.canvas.endSelection
+        )
         self.title_bar.button_select_rect.clicked.connect(
             self.canvas.startRectangleSelection
         )
