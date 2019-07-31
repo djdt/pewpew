@@ -1,6 +1,7 @@
 from PySide2 import QtWidgets
 
 from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent
+from matplotlib.widgets import AxesWidget
 
 from pewpew.ui.canvas.basic import BasicCanvas
 
@@ -29,6 +30,8 @@ class InteractiveCanvas(BasicCanvas):
         for event, callback in self.default_events.items():
             self.connect_event(event, callback)
 
+        self.widget: AxesWidget = None
+
     def close(self) -> None:
         self.disconnect_events()
         super().close()
@@ -41,6 +44,8 @@ class InteractiveCanvas(BasicCanvas):
             self.mpl_disconnect(cid)
 
     def ignore_event(self, event: MouseEvent) -> bool:
+        if self.widget is not None and self.widget.get_active():
+            return True
         return False
 
     def _axis_enter(self, event: LocationEvent) -> None:

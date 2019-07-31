@@ -24,9 +24,11 @@ class ImageDockTitleBar(QtWidgets.QWidget):
         super().__init__(parent)
 
         self.title = QtWidgets.QLabel(title)
-        # self.parent().windowTitleChanged.connect(self.setTitle)
 
         # Button Bar
+        self.button_move = QtWidgets.QPushButton(
+            QtGui.QIcon.fromTheme("transform-move"), ""
+        )
         self.button_select_rect = QtWidgets.QPushButton(
             QtGui.QIcon.fromTheme("draw-rectangle"), ""
         )
@@ -49,6 +51,7 @@ class ImageDockTitleBar(QtWidgets.QWidget):
         line.setFrameShadow(QtWidgets.QFrame.Sunken)
 
         layout_buttons = QtWidgets.QHBoxLayout()
+        layout_buttons.addWidget(self.button_move, 0, QtCore.Qt.AlignLeft)
         layout_buttons.addWidget(self.button_select_rect, 0, QtCore.Qt.AlignLeft)
         layout_buttons.addWidget(self.button_select_lasso, 0, QtCore.Qt.AlignLeft)
         layout_buttons.addWidget(line)
@@ -114,6 +117,9 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.setTitleBarWidget(self.title_bar)
         self.setWindowTitle(self.laser.name)
 
+        self.title_bar.button_move.clicked.connect(
+            self.canvas.endSelection
+        )
         self.title_bar.button_select_rect.clicked.connect(
             self.canvas.startRectangleSelection
         )
@@ -347,9 +353,10 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
     def onMenuStats(self) -> None:
         data = self.canvas.image.get_array()
-        if self.canvas.selector is not None:
+        mask = self.canvas.getSelection()
+        if mask is not None:
             # Trim out nan rows and columns to get size
-            data = np.where(self.canvas.selector.mask, data, np.nan)
+            data = np.where(mask, data, np.nan)
             data = data[:, ~np.isnan(data).all(axis=0)]
             data = data[~np.isnan(data).all(axis=1)]
         else:  # Trim to view limits
