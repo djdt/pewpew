@@ -15,7 +15,7 @@ class KrissKrossImageDock(LaserImageDock):
         self.combo_layer = QtWidgets.QComboBox()
         self.combo_layer.currentIndexChanged.connect(self.onComboLayer)
         self.combo_layer.addItem("*")
-        self.combo_layer.addItems([str(i) for i in range(0, self.laser.layers())])
+        self.combo_layer.addItems([str(i) for i in range(0, self.laser.layers)])
         self.layout_bottom.insertWidget(0, self.combo_layer, 1, QtCore.Qt.AlignRight)
 
         # self.setWindowTitle(f"kk:{self.laser.name}")
@@ -30,7 +30,10 @@ class KrissKrossImageDock(LaserImageDock):
         self.canvas.draw()
 
     def onComboLayer(self, text: str) -> None:
+        # vlim = self.canvas.view_limits
         self.draw()
+        print(self.canvas.extent)
+        # self.canvas.view_limits = vlim
 
     def onMenuConfig(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:

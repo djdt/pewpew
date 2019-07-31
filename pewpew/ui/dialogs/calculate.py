@@ -25,9 +25,9 @@ class CalculateDialog(ApplyDialog):
         self.data: VirtualData = None  # type: ignore
 
         self.combo_var1 = QtWidgets.QComboBox()
-        self.combo_var1.addItems(self.laser.isotopes())
+        self.combo_var1.addItems(self.laser.isotopes)
         self.combo_var2 = QtWidgets.QComboBox()
-        self.combo_var2.addItems(self.laser.isotopes())
+        self.combo_var2.addItems(self.laser.isotopes)
         self.combo_ops = QtWidgets.QComboBox()
         self.combo_ops.addItems(list(CalculateDialog.VALID_OPS.keys()))
 

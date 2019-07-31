@@ -31,9 +31,7 @@ class ConfigDialog(ApplyDialog):
             self.lineedit_warmup.setValidator(DecimalValidator(0, 100, 1))
             self.spinbox_offsets = QtWidgets.QSpinBox()
             self.spinbox_offsets.setRange(2, 10)
-            self.spinbox_offsets.setValue(
-                self.config.subpixel_gcd.limit_denominator().denominator
-            )
+            self.spinbox_offsets.setValue(self.config._subpixel_size)
 
         # Form layout for line edits
         self.layout_form.addRow("Spotsize (μm):", self.lineedit_spotsize)
@@ -58,7 +56,7 @@ class ConfigDialog(ApplyDialog):
         if isinstance(self.config, KrissKrossConfig):
             if self.lineedit_warmup.text() != "":
                 self.config.warmup = float(self.lineedit_warmup.text())
-            self.config.set_subpixel_offsets(self.spinbox_offsets.value())
+            self.config.set_equal_subpixel_offsets(self.spinbox_offsets.value())
 
     def apply(self) -> None:
         self.updateConfig()

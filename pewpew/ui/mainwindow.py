@@ -407,7 +407,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dockarea.addDockWidgets(docks)
 
     def menuImportKrissKross(self) -> None:
-        kkw = KrissKrossWizard(parent=self)
+        kkw = KrissKrossWizard(config=self.config, parent=self)
         if kkw.exec():
             dock = KrissKrossImageDock(kkw.data, self.dockarea)
             self.dockarea.addDockWidgets([dock])
@@ -441,7 +441,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if not path:
             return
 
-        isotopes = list(set.union(*[set(dock.laser.isotopes()) for dock in docks]))
+        isotopes = list(set.union(*[set(dock.laser.isotopes) for dock in docks]))
         dlg = ExportAllDialog(path, docks[0].laser.name, isotopes, 1, self)
         if not dlg.exec():
             return
@@ -471,11 +471,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 elif ext == ".vti":
                     spacing = (
-                        dock.laser.config.pixel_width(),
-                        dock.laser.config.pixel_height(),
+                        dock.laser.config.get_pixel_width(),
+                        dock.laser.config.get_pixel_height(),
                         dock.laser.config.spotsize / 2.0,
                     )
-                    io.vtk.save(  # type: ignore
+                    io.vtk.save(
                         path,
                         dock.laser.get_structured(
                             calibrate=self.window().viewconfig["calibrate"]
@@ -525,7 +525,7 @@ class MainWindow(QtWidgets.QMainWindow):
         def applyTool(tool: Tool) -> None:
             for dock in self.dockarea.findChildren(LaserImageDock):
                 for isotope in tool.calibrations.keys():
-                    if isotope in dock.laser.isotopes():
+                    if isotope in dock.laser.isotopes:
                         dock.laser.data[isotope].calibration = copy.copy(
                             tool.calibrations[isotope]
                         )

@@ -95,7 +95,7 @@ class ExportDialog(QtWidgets.QDialog):
         if self.check_isotopes.isChecked() and self.check_isotopes.isEnabled():
             if prompt is None:
                 prompt = OverwriteFilePrompt(parent=self)
-            for isotope in laser.isotopes():
+            for isotope in laser.isotopes:
                 path = self._generate_path(laser, isotope)
                 if path == "" or not prompt.promptOverwrite(path):
                     continue

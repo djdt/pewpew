@@ -191,7 +191,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         return context_menu
 
     def populateComboIsotopes(self) -> None:
-        isotopes = sorted(self.laser.isotopes())
+        isotopes = sorted(self.laser.isotopes)
         self.combo_isotope.blockSignals(True)
         self.combo_isotope.clear()
         self.combo_isotope.addItems(isotopes)
@@ -245,7 +245,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             dlg: ExportDialog = CSVExportDialog(
                 path,
                 name=self.combo_isotope.currentText(),
-                names=len(self.laser.isotopes()),
+                names=len(self.laser.isotopes),
                 layers=1,
                 parent=self,
             )
@@ -266,7 +266,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             dlg = PNGExportDialog(
                 path,
                 name=self.combo_isotope.currentText(),
-                names=len(self.laser.isotopes()),
+                names=len(self.laser.isotopes),
                 layers=1,
                 viewlimits=self.canvas.view_limits,
                 parent=self,
@@ -287,8 +287,8 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 self.canvas.draw()
         elif ext == ".vti":
             spacing = (
-                self.laser.config.pixel_width(),
-                self.laser.config.pixel_height(),
+                self.laser.config.get_pixel_width(),
+                self.laser.config.get_pixel_height(),
                 self.laser.config.spotsize / 2.0,
             )
             io.vtk.save(
@@ -312,7 +312,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 docks = [self]
             for dock in docks:
                 for isotope in dlg.calibrations.keys():
-                    if isotope in dock.laser.isotopes():
+                    if isotope in dock.laser.isotopes:
                         dock.laser.data[isotope].calibration = copy.copy(
                             dlg.calibrations[isotope]
                         )
@@ -354,7 +354,8 @@ class LaserImageDock(QtWidgets.QDockWidget):
             data = data[~np.isnan(data).all(axis=1)]
         else:  # Trim to view limits
             x0, x1, y0, y1 = self.canvas.view_limits
-            px, py = self.laser.config.pixel_width(), self.laser.config.pixel_height()
+            # TODO: check this works for krisskross / layers
+            px, py = self.laser.config.get_pixel_width(), self.laser.config.get_pixel_height()
             x0, x1 = int(x0 / px), int(x1 / px)
             y0, y1 = int(y0 / py), int(y1 / py)
             # We have to invert the extent, as mpl use bottom left y coords

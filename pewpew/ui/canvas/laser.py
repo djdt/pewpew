@@ -145,9 +145,9 @@ class LaserCanvas(BasicCanvas):
 
         # Get extent
         extent = (
-            laser.config.data_extent(data)
-            if layer is None or not isinstance(laser.config, KrissKrossConfig)
-            else laser.config.layer_data_extent(data)
+            laser.config.data_extent(data, layer)
+            if isinstance(laser.config, KrissKrossConfig)
+            else laser.config.data_extent(data)
         )
 
         # Only change the view if new or the laser extent has changed (i.e. conf edit)
@@ -240,9 +240,9 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         super().drawLaser(laser, name, layer)
         # Save some variables for the status bar
         self.px, self.py = (
-            (laser.config.pixel_width(), laser.config.pixel_height())
-            if layer is None or not isinstance(laser.config, KrissKrossConfig)
-            else (laser.config.layer_pixel_width(), laser.config.layer_pixel_height())
+            (laser.config.get_pixel_width(layer), laser.config.get_pixel_height(layer))
+            if isinstance(laser.config, KrissKrossConfig)
+            else (laser.config.get_pixel_width(), laser.config.get_pixel_height())
         )
         self.ps = laser.config.speed
 

@@ -7,29 +7,38 @@ from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
 from pewpew.ui.validators import DecimalValidator
 
 from laserlib import io
+from laserlib.config import LaserConfig
 from laserlib.krisskross import KrissKross, KrissKrossConfig
 
 from typing import List
 
 
 class KrissKrossWizard(QtWidgets.QWizard):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, config: LaserConfig, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        config = KrissKrossConfig()
+        self.config = KrissKrossConfig(config.spotsize, config.speed, config.scantime)
 
         self.data: KrissKross = KrissKross()
 
         self.addPage(KrissKrossStartPage())
         self.addPage(KrissKrossImportPage())
-        self.addPage(KrissKrossConfigPage(config))
+        self.addPage(KrissKrossConfigPage(self.config))
 
         self.setWindowTitle("Kriss Kross Import Wizard")
 
         self.resize(540, 480)
 
     def accept(self) -> None:
-        config = self.field("config")
+
+        self.config.spotsize = float(self.field("spotsize"))
+        self.config.speed = float(self.field("speed"))
+        self.config.scantime = float(self.field("scantime"))
+        self.config.warmup = float(self.field("warmup"))
+
+        subpixel_width = self.field("subpixel_width")
+        self.config.set_equal_subpixel_offsets(subpixel_width)
+
         paths = self.field("paths")
         layers = []
 
@@ -54,7 +63,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
 
         self.data = KrissKross.from_structured(
             layers,
-            config=config,
+            config=self.config,
             name=os.path.splitext(os.path.basename(paths[0]))[0],
             filepath=paths[0],
         )
@@ -99,11 +108,14 @@ class KrissKrossStartPage(QtWidgets.QWizardPage):
 
 
 class KrissKrossImportList(QtWidgets.QListWidget):
-    def __init__(self, allowed_ext: str = None, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self, allowed_exts: List[str] = None, parent: QtWidgets.QWidget = None
+    ):
         super().__init__(parent)
-        self.allowed_ext = allowed_ext
+        self.allowed_exts = allowed_exts
         self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.setTextElideMode(QtCore.Qt.ElideLeft)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setDefaultDropAction(QtCore.Qt.MoveAction)
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.setAcceptDrops(True)
@@ -121,7 +133,7 @@ class KrissKrossImportList(QtWidgets.QListWidget):
                 if url.isLocalFile():
                     path = url.toLocalFile()
                     name, ext = os.path.splitext(path)
-                    if self.allowed_ext is None or ext == self.allowed_ext:
+                    if self.allowed_exts is None or ext in self.allowed_exts:
                         self.addItem(path)
         else:
             super().dropEvent(event)
@@ -133,14 +145,8 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
 
         self.setTitle("Files and Directories")
         # List and box
-        if self.field("radio_numpy"):
-            allowed_ext = ".npz"
-        elif self.field("radio_agilent"):
-            allowed_ext = ".b"
-        elif self.field("radio_thermo"):
-            allowed_ext = ".csv"
 
-        self.list = KrissKrossImportList(allowed_ext=allowed_ext)
+        self.list = KrissKrossImportList()
         self.list.model().rowsInserted.connect(self.completeChanged)
         self.list.model().rowsRemoved.connect(self.completeChanged)
 
@@ -165,6 +171,15 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
         self.setLayout(main_layout)
 
         self.registerField("paths", self, "paths")
+
+    def initializePage(self) -> None:
+        if self.field("radio_numpy"):
+            ext = ".npz"
+        elif self.field("radio_agilent"):
+            ext = ".b"
+        elif self.field("radio_thermo"):
+            ext = ".csv"
+        self.list.allowed_exts = [ext]
 
     def buttonAdd(self) -> None:
         if self.field("radio_numpy"):
@@ -222,8 +237,6 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
     def __init__(self, config: KrissKrossConfig, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        self.dconfig = config
-
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setPlaceholderText(str(config.spotsize))
         self.lineedit_spotsize.setValidator(DecimalValidator(0, 1e3, 4))
@@ -268,21 +281,8 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
         layout.addWidget(params_gbox)
         self.setLayout(layout)
 
-        self.registerField("config", self, "config")
-
-    @QtCore.Property(KrissKrossConfig)
-    def config(self) -> KrissKrossConfig:
-        if self.lineedit_spotsize.text() != "":
-            self.dconfig.spotsize = float(self.lineedit_spotsize.text())
-        if self.lineedit_speed.text() != "":
-            self.dconfig.speed = float(self.lineedit_speed.text())
-        if self.lineedit_scantime.text() != "":
-            self.dconfig.scantime = float(self.lineedit_scantime.text())
-        if self.lineedit_warmup.text() != "":
-            self.dconfig.warmup = float(self.lineedit_warmup.text())
-
-        v = self.spinbox_offsets.value()
-        self.dconfig.pixel_offsets = [Fraction(i, v) for i in range(0, v)]
-        self.dconfig._calculate_subpixel_params()
-
-        return self.dconfig
+        self.registerField("spotsize", self.lineedit_spotsize)
+        self.registerField("speed", self.lineedit_speed)
+        self.registerField("scantime", self.lineedit_scantime)
+        self.registerField("warmup", self.lineedit_warmup)
+        self.registerField("subpixel_width", self.spinbox_offsets)

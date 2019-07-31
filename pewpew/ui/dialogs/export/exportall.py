@@ -98,9 +98,9 @@ class ExportAllDialog(ExportDialog):
         self, laser: Laser = None, isotope: str = None, layer: int = None
     ) -> str:
         if laser is not None:
-            if isotope is not None and isotope not in laser.isotopes():
+            if isotope is not None and isotope not in laser.isotopes:
                 return ""
-            elif self._get_isotope() not in laser.isotopes():
+            elif self._get_isotope() not in laser.isotopes:
                 return ""
         name = self.name if laser is None else laser.name
 
