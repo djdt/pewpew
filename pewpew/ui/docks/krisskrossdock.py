@@ -30,10 +30,7 @@ class KrissKrossImageDock(LaserImageDock):
         self.canvas.draw()
 
     def onComboLayer(self, text: str) -> None:
-        # vlim = self.canvas.view_limits
         self.draw()
-        print(self.canvas.extent)
-        # self.canvas.view_limits = vlim
 
     def onMenuConfig(self) -> None:
         def applyDialog(dialog: ApplyDialog) -> None:
