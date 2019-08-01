@@ -117,9 +117,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.setTitleBarWidget(self.title_bar)
         self.setWindowTitle(self.laser.name)
 
-        self.title_bar.button_move.clicked.connect(
-            self.canvas.endSelection
-        )
+        self.title_bar.button_move.clicked.connect(self.canvas.endSelection)
         self.title_bar.button_select_rect.clicked.connect(
             self.canvas.startRectangleSelection
         )
@@ -354,7 +352,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
     def onMenuStats(self) -> None:
         data = self.canvas.image.get_array()
         mask = self.canvas.getSelection()
-        if mask is not None:
+        if mask is not None and not np.all(mask == 0):
             # Trim out nan rows and columns to get size
             data = np.where(mask, data, np.nan)
             data = data[:, ~np.isnan(data).all(axis=0)]
@@ -362,7 +360,10 @@ class LaserImageDock(QtWidgets.QDockWidget):
         else:  # Trim to view limits
             x0, x1, y0, y1 = self.canvas.view_limits
             # TODO: check this works for krisskross / layers
-            px, py = self.laser.config.get_pixel_width(), self.laser.config.get_pixel_height()
+            px, py = (
+                self.laser.config.get_pixel_width(),
+                self.laser.config.get_pixel_height(),
+            )
             x0, x1 = int(x0 / px), int(x1 / px)
             y0, y1 = int(y0 / py), int(y1 / py)
             # We have to invert the extent, as mpl use bottom left y coords
