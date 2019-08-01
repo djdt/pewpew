@@ -261,7 +261,6 @@ class StandardsTool(Tool):
             0.0,
             self.canvas.image.get_extent()[3],
         )
-        self.canvas.updateView()
         self.updateCounts()
 
     def lineeditUnits(self) -> None:

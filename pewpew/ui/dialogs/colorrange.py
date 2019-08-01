@@ -20,12 +20,12 @@ class ColorRangeDialog(ApplyDialog):
         self.lineedit_min.setPlaceholderText(str(current_range[0]))
         self.lineedit_min.setToolTip("Percentile for minium colormap value.")
         self.lineedit_min.setValidator(
-            PercentOrDecimalValidator(parent=self.lineedit_min)
+            PercentOrDecimalValidator(-1e99, 1e99, parent=self.lineedit_min)
         )
         self.lineedit_max = QtWidgets.QLineEdit()
         self.lineedit_max.setPlaceholderText(str(current_range[1]))
         self.lineedit_max.setValidator(
-            PercentOrDecimalValidator(parent=self.lineedit_max)
+            PercentOrDecimalValidator(-1e99, 1e99, parent=self.lineedit_max)
         )
         self.lineedit_max.setToolTip("Percentile for maximum colormap value.")
 
