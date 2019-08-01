@@ -96,17 +96,6 @@ class LaserCanvas(BasicCanvas):
     ) -> None:
         self.ax.clear()
 
-        # Filter if required
-        # if self.viewconfig["filtering"]["type"] != "None":
-        #     filter_type, window, threshold = (
-        #         self.viewconfig["filtering"][x] for x in ["type", "window", "threshold"]
-        #     )
-        #     if filter_type == "Rolling mean":
-        #         # rolling_mean_filter(data, window, threshold)
-        #         data = rolling_mean_filter(data, window, threshold)
-        #     elif filter_type == "Rolling median":
-        #         data = rolling_median_filter(data, window, threshold)
-
         # Calculate the range
         rmin, rmax = self.viewconfig["cmap"]["range"]
         if isinstance(rmin, str):
