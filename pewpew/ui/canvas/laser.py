@@ -94,7 +94,10 @@ class LaserCanvas(BasicCanvas):
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float]
     ) -> None:
+        # Save and restore the ax limits
+        view_limits = self.view_limits
         self.ax.clear()
+        self.view_limits = view_limits
 
         # Calculate the range
         rmin, rmax = self.viewconfig["cmap"]["range"]
@@ -141,7 +144,7 @@ class LaserCanvas(BasicCanvas):
         )
 
         # Only change the view if new or the laser extent has changed (i.e. conf edit)
-        if self.image is None or self.extent != extent:
+        if self.extent != extent:
             self.view_limits = extent
 
         # If data is empty create a dummy data
