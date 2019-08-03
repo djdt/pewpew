@@ -44,7 +44,8 @@ class CalibrationDialog(ApplyDialog):
         # Button to plot
 
         self.button_plot = QtWidgets.QPushButton("Plot")
-        self.button_plot.setEnabled(self.calibrations[current_isotope].points.size > 1)
+        points = self.calibrations[current_isotope].points 
+        self.button_plot.setEnabled(points is not None and points.size > 1)
         self.button_plot.pressed.connect(self.showCurve)
 
         layout_isotopes = QtWidgets.QHBoxLayout()
