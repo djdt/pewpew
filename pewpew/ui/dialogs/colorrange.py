@@ -9,7 +9,7 @@ from typing import Tuple, Union
 class ColorRangeDialog(ApplyDialog):
     def __init__(
         self,
-        current_range: Tuple[Union[int, str], Union[int, str]],
+        current_range: Tuple[Union[float, str], Union[float, str]],
         parent: QtWidgets.QWidget = None,
     ):
         self.range = current_range
