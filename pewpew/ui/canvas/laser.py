@@ -188,7 +188,10 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
     ) -> None:
         super().__init__(viewconfig=viewconfig, options=options, parent=parent)
 
-        self.status_bar = parent.window().statusBar()
+        try:
+            self.status_bar = parent.window().statusBar()
+        except AttributeError:
+            self.status_bar = None
         self.state = set(["move"])
         self.button = 1
 

@@ -10,13 +10,13 @@ def test_tool(qtbot: QtBot):
     tool.show()
 
 
-def test_standards_tool(qtbot: QtBot):
-    tool = StandardsTool()
-    qtbot.addWidget(tool)
-    tool.show()
+# def test_standards_tool(qtbot: QtBot):
+#     tool = StandardsTool()
+#     qtbot.addWidget(tool)
+#     tool.show()
 
 
-def test_operations_tool(qtbot: QtBot):
-    tool = OperationsTool()
-    qtbot.addWidget(tool)
-    tool.show()
+# def test_operations_tool(qtbot: QtBot):
+#     tool = OperationsTool()
+#     qtbot.addWidget(tool)
+#     tool.show()

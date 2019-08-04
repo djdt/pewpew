@@ -50,7 +50,7 @@ def test_canvas_interactive(qtbot: QtBot):
     assert len(canvas.cids) == 0
 
 
-def test_laser_canvas(qtbot: QtBot):
-    canvas = LaserCanvas()
-    qtbot.addWidget(canvas)
-    canvas.show()
+# def test_laser_canvas(qtbot: QtBot):
+#     canvas = LaserCanvas()
+#     qtbot.addWidget(canvas)
+#     canvas.show()

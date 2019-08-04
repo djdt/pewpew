@@ -79,7 +79,9 @@ class ImageDockTitleBar(QtWidgets.QWidget):
 
 
 class LaserImageDock(QtWidgets.QDockWidget):
-    def __init__(self, laser: Laser, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self, laser: Laser, viewconfig: dict, parent: QtWidgets.QWidget = None
+    ):
         super().__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setFeatures(
@@ -88,9 +90,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         )
 
         self.laser = laser
-        self.canvas = InteractiveLaserCanvas(
-            viewconfig=self.window().viewconfig, parent=self
-        )
+        self.canvas = InteractiveLaserCanvas(viewconfig=viewconfig, parent=self)
         self.canvas.setFocusPolicy(QtCore.Qt.ClickFocus)
         # self.canvas.setFocus()
 
