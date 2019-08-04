@@ -26,9 +26,10 @@ class StatsDialog(QtWidgets.QDialog):
 
         stats_left = QtWidgets.QFormLayout()
         stats_left.addRow("Shape:", QtWidgets.QLabel(str(data.shape)))
-        data = data[~np.isnan(data)]
         stats_left.addRow("Size:", QtWidgets.QLabel(str(data.size)))
 
+        # Ensure no nans
+        data = data[~np.isnan(data)]
         stats_right = QtWidgets.QFormLayout()
         stats_right.addRow("Min:", QtWidgets.QLabel(f"{np.min(data):.4g}"))
         stats_right.addRow("Max:", QtWidgets.QLabel(f"{np.max(data):.4g}"))
