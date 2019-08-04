@@ -9,8 +9,10 @@ from pewpew.ui.dialogs import ApplyDialog
 
 
 class KrissKrossImageDock(LaserImageDock):
-    def __init__(self, laser: KrissKross, parent: QtWidgets.QWidget = None):
-        super().__init__(laser, parent)
+    def __init__(
+        self, laser: KrissKross, viewconfig: dict, parent: QtWidgets.QWidget = None
+    ):
+        super().__init__(laser, viewconfig, parent)
 
         self.combo_layer = QtWidgets.QComboBox()
         self.combo_layer.currentIndexChanged.connect(self.onComboLayer)

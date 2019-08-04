@@ -142,9 +142,9 @@ class DockArea(QtWidgets.QMainWindow):
         docks = []
         for laser in lasers:
             if isinstance(laser, KrissKross):
-                docks.append(KrissKrossImageDock(laser, self))
+                docks.append(KrissKrossImageDock(laser, self.window().viewconfig, self))
             else:
-                docks.append(LaserImageDock(laser, self))
+                docks.append(LaserImageDock(laser, self.window().viewconfig, self))
         self.addDockWidgets(docks)
 
     def mousePressEvent(self, event: QtCore.QEvent) -> None:

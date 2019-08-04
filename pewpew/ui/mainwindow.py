@@ -354,7 +354,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if isinstance(laser, KrissKross):
                 docks.append(KrissKrossImageDock(laser, self.dockarea))
             else:
-                docks.append(LaserImageDock(laser, self.dockarea))
+                docks.append(LaserImageDock(laser, self.viewconfig, self.dockarea))
         self.dockarea.addDockWidgets(docks)
 
     def menuImportAgilent(self) -> None:
@@ -369,7 +369,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         name=os.path.basename(os.path.splitext(path)[0]),
                         filepath=path,
                     )
-                    docks.append(LaserImageDock(laser, self.dockarea))
+                    docks.append(LaserImageDock(laser, self.viewconfig, self.dockarea))
                 else:
                     raise io.error.LaserLibException("Invalid batch directory.")
             except io.error.LaserLibException as e:
@@ -396,7 +396,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         name=os.path.basename(os.path.splitext(path)[0]),
                         filepath=path,
                     )
-                    docks.append(LaserImageDock(laser, self.dockarea))
+                    docks.append(LaserImageDock(laser, self.viewconfig, self.dockarea))
                 else:
                     raise io.error.LaserLibException("Invalid file.")
             except io.error.LaserLibException as e:
@@ -409,7 +409,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuImportKrissKross(self) -> None:
         kkw = KrissKrossWizard(config=self.config, parent=self)
         if kkw.exec():
-            dock = KrissKrossImageDock(kkw.data, self.dockarea)
+            dock = KrissKrossImageDock(kkw.data, self.viewconfig, self.dockarea)
             self.dockarea.addDockWidgets([dock])
 
     def menuSaveSession(self) -> None:
@@ -532,7 +532,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 dock.draw()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        cali_tool = StandardsTool(self.dockarea, docks[0], self.viewconfig, parent=self)
+        cali_tool = StandardsTool(docks[0], self.viewconfig, parent=self)
         cali_tool.applyPressed.connect(applyTool)
         cali_tool.show()
 
@@ -550,7 +550,7 @@ class MainWindow(QtWidgets.QMainWindow):
             tool = KrissKrossOperationsTool
         else:
             tool = OperationsTool
-        op_tool = tool(self.dockarea, docks[0], self.viewconfig, parent=self)
+        op_tool = tool(docks[0], self.viewconfig, parent=self)
         op_tool.applyPressed.connect(applyTool)
         op_tool.show()
 
