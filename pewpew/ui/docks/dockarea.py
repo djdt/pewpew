@@ -31,7 +31,7 @@ class DockArea(QtWidgets.QMainWindow):
 
     def addDockWidgets(
         self,
-        docks: List[QtWidgets.QDockWidget],
+        docks: List[LaserImageDock],
         area: QtCore.Qt.DockWidgetArea = QtCore.Qt.LeftDockWidgetArea,
     ) -> None:
         if len(docks) == 0:
@@ -55,16 +55,14 @@ class DockArea(QtWidgets.QMainWindow):
             dock.destroyed.connect(self.numberDocksChanged)
         self.numberDocksChanged.emit()
 
-    def orderedDocks(
-        self, docks: List[QtWidgets.QDockWidget]
-    ) -> List[QtWidgets.QDockWidget]:
+    def orderedDocks(self, docks: List[LaserImageDock]) -> List[LaserImageDock]:
         """Returns docks sorted by leftmost / topmost."""
         return sorted(
             docks,
             key=lambda x: (x.geometry().topLeft().x(), x.geometry().topLeft().y()),
         )
 
-    def largestDock(self, docks: List[QtWidgets.QDockWidget]) -> QtWidgets.QDockWidget:
+    def largestDock(self, docks: List[LaserImageDock]) -> LaserImageDock:
         largest = 0
         dock = None
         for d in self.orderedDocks(docks):
@@ -77,9 +75,7 @@ class DockArea(QtWidgets.QMainWindow):
                 dock = d
         return dock
 
-    def smartSplitDock(
-        self, first: QtWidgets.QDockWidget, second: QtWidgets.QDockWidget
-    ) -> None:
+    def smartSplitDock(self, first: LaserImageDock, second: LaserImageDock) -> None:
         size = first.size()
         minsize = second.minimumSizeHint()
         if size.width() > size.height() and size.width() > 2 * minsize.width():
@@ -155,7 +151,7 @@ class DockArea(QtWidgets.QMainWindow):
         super().mousePressEvent(event)
         if self.mouse_select is True:
             widget = None
-            for dock in self.findChildren(QtWidgets.QDockWidget):
+            for dock in self.findChildren(LaserImageDock):
                 if dock.underMouse():
                     widget = dock
                     break
@@ -171,29 +167,26 @@ class DockArea(QtWidgets.QMainWindow):
 
     def startMouseSelect(self) -> None:
         self.mouse_select = True
-        for dock in self.findChildren(QtWidgets.QDockWidget):
+        for dock in self.findChildren(LaserImageDock):
             if hasattr(dock, "canvas"):
                 dock.canvas.installEventFilter(self.mouse_filter)
 
     def endMouseSelect(self) -> None:
         self.mouse_select = False
-        for dock in self.findChildren(QtWidgets.QDockWidget):
+        for dock in self.findChildren(LaserImageDock):
             if hasattr(dock, "canvas"):
                 dock.canvas.removeEventFilter(self.mouse_filter)
 
     def tabifyAll(
         self, area: QtCore.Qt.DockWidgetArea = QtCore.Qt.LeftDockWidgetArea
     ) -> None:
-        docks = self.findChildren(QtWidgets.QDockWidget)
-        # self.removeDockWidget(docks[0])
+        docks = self.findChildren(LaserImageDock)
         self.addDockWidget(docks[0], area)
 
         for d in docks[1:]:
             self.tabifyDockWidget(docks[0], d)
             d.layout().invalidate()
 
-    def visibleDocks(
-        self, dock_type: type = QtWidgets.QDockWidget
-    ) -> List[QtWidgets.QDockWidget]:
+    def visibleDocks(self, dock_type: type = LaserImageDock) -> List[LaserImageDock]:
         docks = self.findChildren(dock_type)
         return [d for d in docks if not d.visibleRegion().isEmpty()]
