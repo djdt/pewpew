@@ -42,10 +42,10 @@ class CalibrationDialog(ApplyDialog):
         self.check_all = QtWidgets.QCheckBox("Apply config to all images.")
 
         # Button to plot
-
         self.button_plot = QtWidgets.QPushButton("Plot")
-        points = self.calibrations[current_isotope].points 
-        self.button_plot.setEnabled(points is not None and points.size > 1)
+        self.button_plot.setEnabled(
+            self.calibrations[current_isotope].points is not None
+        )
         self.button_plot.pressed.connect(self.showCurve)
 
         layout_isotopes = QtWidgets.QHBoxLayout()
@@ -99,7 +99,7 @@ class CalibrationDialog(ApplyDialog):
         self.updateLineEdits()
         self.previous_index = self.combo_isotopes.currentIndex()
         self.button_plot.setEnabled(
-            self.calibrations[self.combo_isotopes.currentText()].points.size > 1
+            self.calibrations[self.combo_isotopes.currentText()].points is not None
         )
 
     def showCurve(self) -> None:
