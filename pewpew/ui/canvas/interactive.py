@@ -42,6 +42,7 @@ class InteractiveCanvas(BasicCanvas):
     def disconnect_events(self) -> None:
         for cid in self.cids:
             self.mpl_disconnect(cid)
+        self.cids.clear()
 
     def ignore_event(self, event: MouseEvent) -> bool:
         if self.widget is not None and self.widget.get_active():
