@@ -46,7 +46,6 @@ class OperationsTool(Tool):
 
     def __init__(
         self,
-        dockarea: DockArea,
         dock: LaserImageDock,
         viewconfig: dict,
         parent: QtWidgets.QWidget = None,
@@ -54,9 +53,8 @@ class OperationsTool(Tool):
         super().__init__(parent)
         self.setWindowTitle("Operations Tool")
 
-        self.dockarea = dockarea
-
         self.dock = dock
+        self.dockarea = dock.parent()
         self.data = np.zeros_like((1, 1), dtype=float)
         self.fill_value = 0.0
         self.name = ""

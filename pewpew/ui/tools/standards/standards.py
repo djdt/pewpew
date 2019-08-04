@@ -5,7 +5,7 @@ import copy
 from laserlib.calibration import LaserCalibration
 
 from pewpew.ui.tools.tool import Tool
-from pewpew.ui.docks.dockarea import DockArea
+# from pewpew.ui.docks.dockarea import DockArea
 from pewpew.ui.docks.laserdock import LaserImageDock
 from pewpew.ui.dialogs.calibrationcurve import CalibrationCurveDialog
 
@@ -17,7 +17,6 @@ from pewpew.ui.tools.standards.table import StandardsTable
 class StandardsTool(Tool):
     def __init__(
         self,
-        dockarea: DockArea,
         dock: LaserImageDock,
         viewconfig: dict,
         parent: QtWidgets.QWidget = None,
@@ -25,10 +24,9 @@ class StandardsTool(Tool):
         super().__init__(parent)
         self.setWindowTitle("Calibration Standards Tool")
 
-        self.dockarea = dockarea
-        self.previous_isotope = ""
-
         self.dock = dock
+        self.dockarea = dock.parent()
+        self.previous_isotope = ""
         self.calibrations = {
             k: copy.copy(v.calibration) for k, v in self.dock.laser.data.items()
         }
