@@ -1,8 +1,6 @@
 from pytestqt.qtbot import QtBot
-from PySide2 import QtWidgets
+from PySide2 import QtGui, QtWidgets
 import os.path
-import tempfile
-from hashlib import md5
 import numpy as np
 
 from pewpew.ui.canvas.basic import BasicCanvas
@@ -32,12 +30,10 @@ def test_canvas_basic(qtbot: QtBot):
     data_path = os.path.join(
         os.path.dirname(__file__), "data", "basic_canvas_clipboard.png"
     )
-    temp = tempfile.NamedTemporaryFile()
-    QtWidgets.QApplication.clipboard().pixmap().save(temp.name, "png")
-    temp.seek(0)
-    with open(os.path.join(data_path), 'rb') as fp:
-        assert md5(temp.read()).digest() == md5(fp.read()).digest()
-    temp.close()
+
+    actual = QtWidgets.QApplication.clipboard().pixmap().toImage()
+    expected = QtGui.QImage(data_path).convertToFormat(actual.format())
+    assert actual == expected
 
 
 def test_canvas_interactive(qtbot: QtBot):
