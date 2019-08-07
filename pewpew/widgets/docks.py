@@ -249,7 +249,6 @@ class LaserImageDock(QtWidgets.QDockWidget):
                     kwargs["extent"] = self.canvas.view_limits
                 for path, isotope, _ in paths:
                     io.csv.save(path, self.laser.get(isotope, **kwargs))
-
         elif ext == ".npz":
             io.npz.save(path, [self.laser])
         elif ext == ".png":
