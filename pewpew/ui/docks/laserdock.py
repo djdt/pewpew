@@ -134,11 +134,11 @@ class LaserImageDock(QtWidgets.QDockWidget):
         )
         self.action_copy_image.setStatusTip("Copy image to clipboard.")
         self.action_copy_image.triggered.connect(self.canvas.copyToClipboard)
-        self.action_copy = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("edit-copy"), "Open Copy", self
-        )
-        self.action_copy.setStatusTip("Open a copy.")
-        self.action_copy.triggered.connect(self.onMenuCopy)
+        # self.action_copy = QtWidgets.QAction(
+        #     QtGui.QIcon.fromTheme("edit-copy"), "Open Copy", self
+        # )
+        # self.action_copy.setStatusTip("Open a copy.")
+        # self.action_copy.triggered.connect(self.onMenuCopy)
         self.action_save = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("document-save"), "Save", self
         )
@@ -205,11 +205,11 @@ class LaserImageDock(QtWidgets.QDockWidget):
         context_menu = self.buildContextMenu()
         context_menu.popup(event.globalPos())
 
-    def onMenuCopy(self) -> None:
-        laser_copy = copy.deepcopy(self.laser)
-        dock_copy = type(self)(laser_copy, self.parent())
-        self.parent().smartSplitDock(self, dock_copy)
-        dock_copy.draw()
+    # def onMenuCopy(self) -> None:
+    #     laser_copy = copy.deepcopy(self.laser)
+    #     dock_copy = type(self)(laser_copy, self.parent())
+    #     self.parent().smartSplitDock(self, dock_copy)
+    #     dock_copy.draw()
 
     def onMenuSave(self) -> None:
         if self.laser.filepath.lower().endswith(".npz") and os.path.exists(

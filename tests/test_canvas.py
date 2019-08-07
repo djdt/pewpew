@@ -30,7 +30,6 @@ def test_canvas_basic(qtbot: QtBot):
     data_path = os.path.join(
         os.path.dirname(__file__), "data", "basic_canvas_clipboard.png"
     )
-
     actual = QtWidgets.QApplication.clipboard().pixmap().toImage()
     expected = QtGui.QImage(data_path).convertToFormat(actual.format())
     assert actual == expected
