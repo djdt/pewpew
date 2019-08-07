@@ -1,7 +1,6 @@
 from pytestqt.qtbot import QtBot
 
-
-from pewpew.ui.tools import Tool, StandardsTool, OperationsTool
+from pewpew.widgets.tools import Tool, StandardsTool, OperationsTool
 
 
 def test_tool(qtbot: QtBot):

@@ -1,11 +1,11 @@
-from pytestqt.qtbot import QtBot
-from PySide2 import QtGui, QtWidgets
 import os.path
 import numpy as np
 
-from pewpew.ui.canvas.basic import BasicCanvas
-from pewpew.ui.canvas.interactive import InteractiveCanvas
-from pewpew.ui.canvas.laser import LaserCanvas
+from pytestqt.qtbot import QtBot
+
+from PySide2 import QtGui, QtWidgets
+
+from pewpew.widgets.canvases import BasicCanvas, InteractiveCanvas, LaserCanvas
 
 
 def test_canvas_basic(qtbot: QtBot):
@@ -43,9 +43,3 @@ def test_canvas_interactive(qtbot: QtBot):
     assert len(canvas.cids) == 7
     canvas.disconnect_events()
     assert len(canvas.cids) == 0
-
-
-# def test_laser_canvas(qtbot: QtBot):
-#     canvas = LaserCanvas()
-#     qtbot.addWidget(canvas)
-#     canvas.show()

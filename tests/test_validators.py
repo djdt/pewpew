@@ -1,5 +1,6 @@
 from PySide2 import QtCore, QtGui
-from pewpew.ui import validators
+
+from pewpew import validators
 
 QtCore.QLocale.setDefault(QtCore.QLocale(QtCore.QLocale.English))
 

@@ -1,17 +1,16 @@
-from pytestqt.qtbot import QtBot
-from PySide2 import QtCore, QtWidgets
 import numpy as np
+
+from pytestqt.qtbot import QtBot
+
+from PySide2 import QtCore, QtWidgets
 
 from laserlib.laser import Laser
 from laserlib.krisskross import KrissKross
 
 from pewpew.ui.mainwindow import MainWindow
 
-from pewpew.ui.docks.dockarea import DockArea
-from pewpew.ui.docks.laserdock import LaserImageDock
-from pewpew.ui.docks.krisskrossdock import KrissKrossImageDock
-
-from pewpew.ui.dialogs import ApplyDialog, CalibrationDialog
+from pewpew.widgets.dialogs import ApplyDialog
+from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
 
 
 def close_active_modal():
@@ -69,13 +68,3 @@ def test_krisskross_image_dock(qtbot: QtBot):
     qtbot.addWidget(dock)
     dock.draw()
     dock.show()
-
-
-# def test_dock_area(qtbot: QtBot):
-#     dockarea = DockArea()
-#     qtbot.addWidget(dockarea)
-#     dockarea.show()
-
-#     with qtbot.waitSignal(dockarea.numberDocksChanged):
-#         dockarea.addDockWidgets(widgets)
-#     assert dockarea.visibleDocks() == 2

@@ -1,14 +1,13 @@
 import os
-from fractions import Fraction
 
 from PySide2 import QtCore, QtGui, QtWidgets
-
-from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
-from pewpew.ui.validators import DecimalValidator
 
 from laserlib import io
 from laserlib.config import LaserConfig
 from laserlib.krisskross import KrissKross, KrissKrossConfig
+
+from pewpew.validators import DecimalValidator
+from pewpew.widgets.dialogs import MultipleDirDialog
 
 from typing import List
 

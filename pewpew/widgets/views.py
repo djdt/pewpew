@@ -198,3 +198,4 @@ class BasicTable(QtWidgets.QTableWidget):
             assert len(text) <= self.columnCount()
         for column in range(0, self.columnCount()):
             self.item(row, column).setText(text[column] if text is not None else "")
+ 

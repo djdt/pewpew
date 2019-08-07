@@ -5,42 +5,27 @@ import copy
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewpew import __version__
-from pewpew.ui.dialogs import ConfigDialog, ColorRangeDialog, FilteringDialog
-from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
-from pewpew.ui.tools import (
-    Tool,
-    OperationsTool,
-    KrissKrossOperationsTool,
-    StandardsTool,
-)
-from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
-from pewpew.ui.widgets.detailederror import DetailedError
-from pewpew.ui.widgets.multipledirdialog import MultipleDirDialog
-from pewpew.ui.docks.dockarea import DockArea
-from pewpew.ui.wizards import KrissKrossWizard
-from pewpew.ui.dialogs.export import ExportAllDialog
-
-from pewpew.lib.colormaps import ppSpectral
-
 from laserlib import io
 from laserlib import Laser, LaserConfig, LaserData
 from laserlib.krisskross import KrissKross, KrissKrossData
 
+from pewpew import __version__
+
+from pewpew.mpl.colormaps import ppSpectral
+
+from pewpew.widgets import dialogs
+from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
+from pewpew.widgets.exporters import ExportAllDialog
+from pewpew.widgets.prompts import DetailedError, OverwriteFilePrompt
+from pewpew.widgets.tools import get_operations_tool, Tool, StandardsTool
+from pewpew.widgets.windows import DockArea
+from pewpew.widgets.wizards import KrissKrossWizard
+
 from typing import List
 from types import TracebackType
-from pewpew.ui.dialogs import ApplyDialog
 
 
-## TODO make save save to orignal file if exists, import should no longer set source!
-##      only open should.
-## TODO phil would like to have a way to average an area, without background
-## TODO Quality of life changes, remembering last save location, exportall isotope
-## default,
-##      exportall remember last format...
-
-
-class MainWindow(QtWidgets.QMainWindow):
+class PewPewWindow(QtWidgets.QMainWindow):
     COLORMAPS = [
         ("Magma", "magma", True, True, "Perceptually uniform colormap from R."),
         ("Viridis", "viridis", True, True, "Perceptually uniform colormap from R."),
@@ -62,7 +47,7 @@ class MainWindow(QtWidgets.QMainWindow):
         ),
     ]
     INTERPOLATIONS = ["None", "Bilinear", "Bicubic", "Gaussian", "Spline16"]
-    FILTERS = ["None", "Rolling mean", "Rolling median"]
+    # FILTERS = ["None", "Rolling mean", "Rolling median"]
     DEFAULT_VIEW_CONFIG = {
         "cmap": {"type": ppSpectral, "range": (0.0, "99%")},
         "calibrate": True,
@@ -78,7 +63,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Defaults for when applying to multiple images
         self.config = LaserConfig()
-        self.viewconfig: dict = MainWindow.DEFAULT_VIEW_CONFIG
+        self.viewconfig: dict = PewPewWindow.DEFAULT_VIEW_CONFIG
         self.setWindowTitle("Pew Pew")
         self.resize(1280, 800)
 
@@ -207,7 +192,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # View - colormap
         cmap_group = QtWidgets.QActionGroup(menu_cmap)
-        for name, cmap, print_safe, cb_safe, description in MainWindow.COLORMAPS:
+        for name, cmap, print_safe, cb_safe, description in PewPewWindow.COLORMAPS:
             action = cmap_group.addAction(name)
             if print_safe:
                 description += " Print safe."
@@ -231,7 +216,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_interp = menu_view.addMenu("&Interpolation")
         menu_interp.setStatusTip("Interpolation of displayed images.")
         interp_group = QtWidgets.QActionGroup(menu_interp)
-        for interp in MainWindow.INTERPOLATIONS:
+        for interp in PewPewWindow.INTERPOLATIONS:
             action = interp_group.addAction(interp)
             action.setCheckable(True)
             if interp == self.viewconfig["interpolation"]:
@@ -240,20 +225,20 @@ class MainWindow(QtWidgets.QMainWindow):
         interp_group.triggered.connect(self.menuInterpolation)
 
         # View - filtering
-        menu_filter = menu_view.addMenu("&Filtering")
-        menu_filter.setStatusTip("Apply filtering to images.")
-        filter_group = QtWidgets.QActionGroup(menu_filter)
-        for filter in MainWindow.FILTERS:
-            action = filter_group.addAction(filter)
-            action.setCheckable(True)
-            if filter == self.viewconfig["filtering"]["type"]:
-                action.setChecked(True)
-            menu_filter.addAction(action)
-        filter_group.triggered.connect(self.menuFiltering)
+        # menu_filter = menu_view.addMenu("&Filtering")
+        # menu_filter.setStatusTip("Apply filtering to images.")
+        # filter_group = QtWidgets.QActionGroup(menu_filter)
+        # for filter in PewPewWindow.FILTERS:
+        #     action = filter_group.addAction(filter)
+        #     action.setCheckable(True)
+        #     if filter == self.viewconfig["filtering"]["type"]:
+        #         action.setChecked(True)
+        #     menu_filter.addAction(action)
+        # filter_group.triggered.connect(self.menuFiltering)
 
-        action_filter_properties = menu_filter.addAction("Properties...")
-        action_filter_properties.setStatusTip("Set the properties used by filters.")
-        action_filter_properties.triggered.connect(self.menuFilteringProperties)
+        # action_filter_properties = menu_filter.addAction("Properties...")
+        # action_filter_properties.setStatusTip("Set the properties used by filters.")
+        # action_filter_properties.triggered.connect(self.menuFilteringProperties)
 
         action_fontsize = menu_view.addAction("Fontsize")
         action_fontsize.setStatusTip("Set size of font used in images.")
@@ -358,7 +343,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dockarea.addDockWidgets(docks)
 
     def menuImportAgilent(self) -> None:
-        paths = MultipleDirDialog.getExistingDirectories(self, "Batch Directories", "")
+        paths = dialogs.MultipleDirDialog.getExistingDirectories(self, "Batch Directories", "")
         docks = []
         for path in paths:
             try:
@@ -501,7 +486,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.close()
 
     def menuConfig(self) -> None:
-        def applyDialog(dialog: ApplyDialog) -> None:
+        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
             self.config = dialog.config
             for dock in self.dockarea.findChildren(LaserImageDock):
                 dock.laser.config.spotsize = self.config.spotsize
@@ -509,7 +494,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 dock.laser.config.scantime = self.config.scantime
                 dock.draw()
 
-        dlg = ConfigDialog(self.config, parent=self)
+        dlg = dialogs.ConfigDialog(self.config, parent=self)
         dlg.applyPressed.connect(applyDialog)
         dlg.check_all.setEnabled(False)
         dlg.check_all.setChecked(True)
@@ -546,28 +531,24 @@ class MainWindow(QtWidgets.QMainWindow):
             tool.updateComboIsotopes()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        if isinstance(docks[0].laser, KrissKross):
-            tool = KrissKrossOperationsTool
-        else:
-            tool = OperationsTool
-        op_tool = tool(docks[0], self.viewconfig, parent=self)
+        op_tool = get_operations_tool(docks[0], self.viewconfig, parent=self)
         op_tool.applyPressed.connect(applyTool)
         op_tool.show()
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
-        for name, cmap, _, _, _ in MainWindow.COLORMAPS:
+        for name, cmap, _, _, _ in PewPewWindow.COLORMAPS:
             if name == text:
                 self.viewconfig["cmap"]["type"] = cmap
                 self.refresh()
                 return
 
     def menuColormapRange(self) -> None:
-        def applyDialog(dialog: ApplyDialog) -> None:
+        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
             self.viewconfig["cmap"]["range"] = dialog.range
             self.refresh()
 
-        dlg = ColorRangeDialog(self.viewconfig["cmap"]["range"], parent=self)
+        dlg = dialogs.ColorRangeDialog(self.viewconfig["cmap"]["range"], parent=self)
         dlg.applyPressed.connect(applyDialog)
         if dlg.exec():
             applyDialog(dlg)
@@ -576,24 +557,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.viewconfig["interpolation"] = action.text().replace("&", "")
         self.refresh()
 
-    def menuFiltering(self, action: QtWidgets.QAction) -> None:
-        self.viewconfig["filtering"]["type"] = action.text().replace("&", "")
-        self.refresh()
+    # def menuFiltering(self, action: QtWidgets.QAction) -> None:
+    #     self.viewconfig["filtering"]["type"] = action.text().replace("&", "")
+    #     self.refresh()
 
-    def menuFilteringProperties(self) -> None:
-        def applyDialog(dialog: ApplyDialog) -> None:
-            self.viewconfig["filtering"]["window"] = dialog.window
-            self.viewconfig["filtering"]["threshold"] = dialog.threshold
-            self.refresh()
+    # def menuFilteringProperties(self) -> None:
+    #     def applyDialog(dialog: dialogs.ApplyDialog) -> None:
+    #         self.viewconfig["filtering"]["window"] = dialog.window
+    #         self.viewconfig["filtering"]["threshold"] = dialog.threshold
+    #         self.refresh()
 
-        dlg = FilteringDialog(
-            self.viewconfig["filtering"]["window"],
-            self.viewconfig["filtering"]["threshold"],
-            parent=self,
-        )
-        dlg.applyPressed.connect(applyDialog)
-        if dlg.exec():
-            applyDialog(dlg)
+    #     dlg = dialogs.FilteringDialog(
+    #         self.viewconfig["filtering"]["window"],
+    #         self.viewconfig["filtering"]["threshold"],
+    #         parent=self,
+    #     )
+    #     dlg.applyPressed.connect(applyDialog)
+    #     if dlg.exec():
+    #         applyDialog(dlg)
 
     def menuFontsize(self) -> None:
         fontsize, ok = QtWidgets.QInputDialog.getInt(

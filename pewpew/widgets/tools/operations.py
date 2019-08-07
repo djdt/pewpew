@@ -1,16 +1,25 @@
-from PySide2 import QtCore, QtWidgets
 import numpy as np
 
+from PySide2 import QtCore, QtWidgets
+
 from laserlib.krisskross.data import krisskross_layers
-from pewpew.ui.validators import DecimalValidator
 
-from pewpew.ui.canvas.laser import LaserCanvas
-from pewpew.ui.tools.tool import Tool
+from pewpew.validators import DecimalValidator
+from pewpew.widgets.canvases import LaserCanvas
+from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
 
-from pewpew.ui.docks.dockarea import DockArea
-from pewpew.ui.docks import LaserImageDock
+from .tool import Tool
 
 from typing import Callable, List
+
+
+def get_operations_tool(
+    dock: LaserImageDock, viewconfig: dict, parent: QtWidgets.QWidget = None
+) -> Tool:
+    if isinstance(dock, KrissKrossImageDock):
+        return KrissKrossOperationsTool(dock, viewconfig, parent)
+    else:
+        return OperationsTool(dock, viewconfig, parent)
 
 
 class OperationsTool(Tool):
@@ -45,10 +54,7 @@ class OperationsTool(Tool):
     }
 
     def __init__(
-        self,
-        dock: LaserImageDock,
-        viewconfig: dict,
-        parent: QtWidgets.QWidget = None,
+        self, dock: LaserImageDock, viewconfig: dict, parent: QtWidgets.QWidget = None
     ):
         super().__init__(parent)
         self.setWindowTitle("Operations Tool")
@@ -293,8 +299,6 @@ class KrissKrossOperationsTool(OperationsTool):
 
     def draw(self) -> None:
         # Assemble data
-        data = np.mean(
-            krisskross_layers(self.data, self.dock.laser.config), axis=2  # type: ignore
-        )
+        data = np.mean(krisskross_layers(self.data, self.dock.laser.config), axis=2)
         self.canvas.drawData(data, self.dock.laser.config.data_extent(data))
         self.canvas.draw()

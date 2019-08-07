@@ -2,14 +2,14 @@ import os.path
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewpew.ui.events import MousePressRedirectFilter
-
 from laserlib import io
-from laserlib.laser import Laser
+from laserlib import Laser
 from laserlib.krisskross import KrissKross
 
+from pewpew.events import MousePressRedirectFilter
+from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
+
 from typing import List
-from pewpew.ui.docks import LaserImageDock, KrissKrossImageDock
 
 
 class DockArea(QtWidgets.QMainWindow):

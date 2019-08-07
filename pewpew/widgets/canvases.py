@@ -1,28 +1,140 @@
-from PySide2 import QtCore, QtGui, QtWidgets
-import numpy as np
 import copy
+import numpy as np
+
+from PySide2 import QtCore, QtGui, QtWidgets
+
+from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
+from matplotlib.image import AxesImage
+from matplotlib.patheffects import Normal, SimpleLineShadow
+from matplotlib.offsetbox import AnchoredText
+from matplotlib.ticker import MaxNLocator
+from matplotlib.widgets import AxesWidget, RectangleSelector
+
+from matplotlib_scalebar.scalebar import ScaleBar
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from laserlib.laser import Laser
 from laserlib.krisskross import KrissKross, KrissKrossConfig
 
-from pewpew.ui.canvas.basic import BasicCanvas
-from pewpew.ui.canvas.interactive import InteractiveCanvas
-from pewpew.ui.canvas.widgets import (
+from pewpew.mpl.widgets import (
     _ImageSelectionWidget,
-    LassoImageSelectionWidget,
     RectangleImageSelectionWidget,
+    LassoImageSelectionWidget,
 )
 
-from matplotlib.ticker import MaxNLocator
-from matplotlib.offsetbox import AnchoredText
-from matplotlib_scalebar.scalebar import ScaleBar
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+from typing import Callable, List, Tuple
 
-from typing import Tuple
-from matplotlib.image import AxesImage
-from matplotlib.backend_bases import MouseEvent, LocationEvent
-from matplotlib.patheffects import Normal, SimpleLineShadow
-from matplotlib.widgets import RectangleSelector
+
+class BasicCanvas(FigureCanvasQTAgg):
+    def __init__(
+        self,
+        figsize: Tuple[float, float] = (5.0, 5.0),
+        parent: QtWidgets.QWidget = None,
+    ):
+        fig = Figure(frameon=False, tight_layout=True, figsize=figsize, dpi=100)
+        super().__init__(fig)
+
+        self.setParent(parent)
+        self.setStyleSheet("background-color:transparent;")
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
+
+    def copyToClipboard(self) -> None:
+        bbox = (
+            self.figure.get_tightbbox(self.get_renderer())
+            .transformed(self.figure.dpi_scale_trans)
+            .padded(5)  # Pad to look nicer
+        )
+        (x0, y0), (x1, y1) = bbox.get_points().astype(int)
+        ymax = self.size().height()  # We need to invert for mpl to Qt
+        QtWidgets.QApplication.clipboard().setPixmap(
+            self.grab(QtCore.QRect(x0, ymax - y1, x1 - x0, y1 - y0))
+        )
+
+    def minimumSizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(250, 250)
+
+
+class InteractiveCanvas(BasicCanvas):
+    def __init__(
+        self,
+        figsize: Tuple[float, float] = (5.0, 5.0),
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(figsize, parent)
+
+        self.cids: List[int] = []
+        self.default_events = {
+            "axis_enter_event": self._axis_enter,
+            "axis_leave_event": self._axis_leave,
+            "key_press_event": self._keypress,
+            "button_press_event": self._press,
+            "button_release_event": self._release,
+            "motion_notify_event": self._move,
+            "scroll_event": self._scroll,
+        }
+
+        for event, callback in self.default_events.items():
+            self.connect_event(event, callback)
+
+        self.widget: AxesWidget = None
+
+    def close(self) -> None:
+        self.disconnect_events()
+        super().close()
+
+    def connect_event(self, event: str, callback: Callable) -> None:
+        self.cids.append(self.mpl_connect(event, callback))
+
+    def disconnect_events(self) -> None:
+        for cid in self.cids:
+            self.mpl_disconnect(cid)
+        self.cids.clear()
+
+    def ignore_event(self, event: MouseEvent) -> bool:
+        if self.widget is not None and self.widget.get_active():
+            return True
+        return False
+
+    def _axis_enter(self, event: LocationEvent) -> None:
+        if self.ignore_event(event):
+            return
+        self.axis_enter(event)
+
+    def _axis_leave(self, event: LocationEvent) -> None:
+        if self.ignore_event(event):
+            return
+        self.axis_leave(event)
+
+    def _keypress(self, event: KeyEvent) -> None:
+        if self.ignore_event(event):
+            return
+        self.keypress(event)
+
+    def _press(self, event: MouseEvent) -> None:
+        if self.ignore_event(event):
+            return
+        self.eventpress = event
+        self.press(event)
+
+    def _release(self, event: MouseEvent) -> None:
+        if self.ignore_event(event):
+            return
+        self.eventrelease = event
+        self.release(event)
+
+    def _move(self, event: MouseEvent) -> None:
+        if self.ignore_event(event):
+            return
+        self.move(event)
+
+    def _scroll(self, event: MouseEvent) -> None:
+        if self.ignore_event(event):
+            return
+        self.scroll(event)
 
 
 class LaserCanvas(BasicCanvas):

@@ -1,19 +1,16 @@
-from PySide2 import QtCore, QtGui, QtWidgets
-import numpy as np
-
-import os.path
 import copy
+import numpy as np
+import os.path
 
-from pewpew.ui.canvas.laser import InteractiveLaserCanvas
-from pewpew.ui.widgets.overwritefileprompt import OverwriteFilePrompt
-from pewpew.ui.dialogs import CalibrationDialog, ConfigDialog, StatsDialog
-from pewpew.ui.dialogs.export import CSVExportDialog, PNGExportDialog
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from laserlib import io
-from laserlib.laser import Laser
+from laserlib import Laser
+from laserlib.krisskross import KrissKross
 
-from pewpew.ui.dialogs import ApplyDialog
-from pewpew.ui.dialogs.export import ExportDialog
+from pewpew.widgets import dialogs, exporters
+from pewpew.widgets.canvases import InteractiveLaserCanvas
+from pewpew.widgets.prompts import OverwriteFilePrompt
 
 
 class ImageDockTitleBar(QtWidgets.QWidget):
@@ -134,11 +131,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         )
         self.action_copy_image.setStatusTip("Copy image to clipboard.")
         self.action_copy_image.triggered.connect(self.canvas.copyToClipboard)
-        # self.action_copy = QtWidgets.QAction(
-        #     QtGui.QIcon.fromTheme("edit-copy"), "Open Copy", self
-        # )
-        # self.action_copy.setStatusTip("Open a copy.")
-        # self.action_copy.triggered.connect(self.onMenuCopy)
+
         self.action_save = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("document-save"), "Save", self
         )
@@ -182,7 +175,6 @@ class LaserImageDock(QtWidgets.QDockWidget):
     def buildContextMenu(self) -> QtWidgets.QMenu:
         context_menu = QtWidgets.QMenu(self)
         context_menu.addAction(self.action_copy_image)
-        # context_menu.addAction(self.action_copy)
         context_menu.addSeparator()
         context_menu.addAction(self.action_save)
         context_menu.addAction(self.action_export)
@@ -204,12 +196,6 @@ class LaserImageDock(QtWidgets.QDockWidget):
     def contextMenuEvent(self, event: QtCore.QEvent) -> None:
         context_menu = self.buildContextMenu()
         context_menu.popup(event.globalPos())
-
-    # def onMenuCopy(self) -> None:
-    #     laser_copy = copy.deepcopy(self.laser)
-    #     dock_copy = type(self)(laser_copy, self.parent())
-    #     self.parent().smartSplitDock(self, dock_copy)
-    #     dock_copy.draw()
 
     def onMenuSave(self) -> None:
         if self.laser.filepath.lower().endswith(".npz") and os.path.exists(
@@ -246,7 +232,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 return self.onMenuExport()
 
         if ext == ".csv":
-            dlg: ExportDialog = CSVExportDialog(
+            dlg: exporters.ExportDialog = exporters.CSVExportDialog(
                 path,
                 name=self.combo_isotope.currentText(),
                 names=len(self.laser.isotopes),
@@ -267,7 +253,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         elif ext == ".npz":
             io.npz.save(path, [self.laser])
         elif ext == ".png":
-            dlg = PNGExportDialog(
+            dlg = exporters.PNGExportDialog(
                 path,
                 name=self.combo_isotope.currentText(),
                 names=len(self.laser.isotopes),
@@ -309,7 +295,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             return self.onMenuExport()
 
     def onMenuCalibration(self) -> None:
-        def applyDialog(dialog: ApplyDialog) -> None:
+        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
             if dialog.check_all.isChecked():
                 docks = self.parent().findChildren(LaserImageDock)
             else:
@@ -326,7 +312,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             isotope: self.laser.data[isotope].calibration
             for isotope in self.laser.data.keys()
         }
-        dlg = CalibrationDialog(
+        dlg = dialogs.CalibrationDialog(
             calibrations, self.combo_isotope.currentText(), parent=self
         )
         dlg.applyPressed.connect(applyDialog)
@@ -334,7 +320,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             applyDialog(dlg)
 
     def onMenuConfig(self) -> None:
-        def applyDialog(dialog: ApplyDialog) -> None:
+        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
             if dialog.check_all.isChecked():
                 docks = self.parent().findChildren(LaserImageDock)
             else:
@@ -344,7 +330,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
                     dock.laser.config = copy.copy(dialog.config)
                     dock.draw()
 
-        dlg = ConfigDialog(self.laser.config, parent=self)
+        dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
         dlg.applyPressed.connect(applyDialog)
         if dlg.exec():
             applyDialog(dlg)
@@ -370,7 +356,9 @@ class LaserImageDock(QtWidgets.QDockWidget):
             ymax = data.shape[0]
             data = data[ymax - y1 : ymax - y0, x0:x1]
 
-        dlg = StatsDialog(data, self.canvas.viewconfig["cmap"]["range"], parent=self)
+        dlg = dialogs.StatsDialog(
+            data, self.canvas.viewconfig["cmap"]["range"], parent=self
+        )
         dlg.exec()
 
     def onMenuClose(self) -> None:
@@ -383,3 +371,51 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.setWindowTitle(name)
         if self.laser is not None:
             self.laser.name = name
+
+
+class KrissKrossImageDock(LaserImageDock):
+    def __init__(
+        self, laser: KrissKross, viewconfig: dict, parent: QtWidgets.QWidget = None
+    ):
+        super().__init__(laser, viewconfig, parent)
+
+        self.combo_layer = QtWidgets.QComboBox()
+        self.combo_layer.currentIndexChanged.connect(self.onComboLayer)
+        self.combo_layer.addItem("*")
+        self.combo_layer.addItems([str(i) for i in range(0, self.laser.layers)])
+        self.layout_bottom.insertWidget(0, self.combo_layer, 1, QtCore.Qt.AlignRight)
+
+    def draw(self) -> None:
+        try:
+            layer = int(self.combo_layer.currentText())
+        except ValueError:
+            layer = None
+
+        self.canvas.drawLaser(self.laser, self.combo_isotope.currentText(), layer=layer)
+        self.canvas.draw()
+
+    def onComboLayer(self, text: str) -> None:
+        self.draw()
+
+    def onMenuConfig(self) -> None:
+        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
+            if dialog.check_all.isChecked():
+                docks = self.parent().findChildren(KrissKrossImageDock)
+            else:
+                docks = [self]
+            for dock in docks:
+                if type(dock.laser) == KrissKross:
+                    if not dock.laser.check_config_valid(dialog.config):
+                        QtWidgets.QMessageBox.warning(
+                            self,
+                            "Invalid config!",
+                            "Config is not valid for current image(s).",
+                        )
+                        return
+                    dock.laser.config = copy.copy(dialog.config)
+                    dock.draw()
+
+        dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
+        dlg.applyPressed.connect(applyDialog)
+        if dlg.exec():
+            applyDialog(dlg)

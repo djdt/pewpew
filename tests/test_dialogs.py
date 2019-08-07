@@ -1,8 +1,14 @@
-from pytestqt.qtbot import QtBot
 import numpy as np
-from PySide2 import QtCore, QtWidgets
 
-from pewpew.ui.dialogs import (
+from pytestqt.qtbot import QtBot
+
+from PySide2 import QtCore
+
+from laserlib.config import LaserConfig
+from laserlib.calibration import LaserCalibration
+from laserlib.krisskross.config import KrissKrossConfig
+
+from pewpew.widgets.dialogs import (
     ApplyDialog,
     CalibrationDialog,
     CalibrationCurveDialog,
@@ -10,10 +16,6 @@ from pewpew.ui.dialogs import (
     ConfigDialog,
     StatsDialog,
 )
-
-from laserlib.config import LaserConfig
-from laserlib.calibration import LaserCalibration
-from laserlib.krisskross.config import KrissKrossConfig
 
 
 def test_apply_dialog(qtbot: QtBot):

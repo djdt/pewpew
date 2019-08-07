@@ -3,18 +3,18 @@ import sys
 from PySide2.QtCore import QTimer, Qt
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QApplication
-from pewpew.ui import MainWindow
-from pewpew.resource import app_icon  # noqa: F401
+from pewpew.pewpew import PewPewWindow
+from pewpew.resources import app_icon  # noqa: F401
 
 if sys.platform in ['win32', 'darwin']:
-    from pewpew.resource import breath_icons  # noqa: F401
+    from pewpew.resources import breath_icons  # noqa: F401
     QIcon.setThemeName("breath")
 
 if __name__ == "__main__":
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     app = QApplication(sys.argv)
 
-    window = MainWindow()
+    window = PewPewWindow()
     sys.excepthook = window.exceptHook  # type: ignore
     window.show()
     window.setWindowIcon(QIcon(":/app.ico"))
