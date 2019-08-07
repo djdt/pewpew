@@ -371,7 +371,7 @@ class StatsDialog(QtWidgets.QDialog):
         stats_right.addRow("Min:", QtWidgets.QLabel(f"{np.min(data):.4g}"))
         stats_right.addRow("Max:", QtWidgets.QLabel(f"{np.max(data):.4g}"))
         stats_right.addRow("Mean:", QtWidgets.QLabel(f"{np.mean(data):.4g}"))
-        stats_right.addRow("Median:", QtWidgets.QLabel(f"{np.median(data):.4g}"))
+        stats_right.addRow("Median:", QtWidgets.QLabel(f"{np.ma.median(data):.4g}"))
 
         stats_box = QtWidgets.QGroupBox()
         stats_layout = QtWidgets.QHBoxLayout()
