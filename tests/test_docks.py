@@ -39,13 +39,13 @@ def test_laser_image_dock(qtbot: QtBot):
     dock.populateComboIsotopes()
     assert dock.combo_isotope.currentText() == "A1"
 
-    QtCore.QTimer.singleShot(300, close_active_modal)
+    QtCore.QTimer.singleShot(500, close_active_modal)
     dock.onMenuCalibration()
-    QtCore.QTimer.singleShot(300, close_active_modal)
+    QtCore.QTimer.singleShot(500, close_active_modal)
     dock.onMenuConfig()
-    QtCore.QTimer.singleShot(300, close_active_modal)
+    QtCore.QTimer.singleShot(500, close_active_modal)
     dock.onMenuExport()
-    QtCore.QTimer.singleShot(300, close_active_modal)
+    QtCore.QTimer.singleShot(500, close_active_modal)
     dock.onMenuSave()
     QtCore.QTimer.singleShot(1000, close_active_modal)
     dock.onMenuStats()
