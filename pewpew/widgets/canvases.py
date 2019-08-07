@@ -18,7 +18,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from laserlib.laser import Laser
 from laserlib.krisskross import KrissKross, KrissKrossConfig
 
-from pewpew.mpl.widgets import (
+from pewpew.lib.mplwidgets import (
     _ImageSelectionWidget,
     RectangleImageSelectionWidget,
     LassoImageSelectionWidget,

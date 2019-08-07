@@ -11,7 +11,7 @@ from laserlib.krisskross import KrissKross, KrissKrossData
 
 from pewpew import __version__
 
-from pewpew.mpl.colormaps import ppSpectral
+from pewpew.lib.mplcolors import ppSpectral
 
 from pewpew.widgets import dialogs
 from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
@@ -25,7 +25,7 @@ from typing import List
 from types import TracebackType
 
 
-class PewPewWindow(QtWidgets.QMainWindow):
+class PPMainWindow(QtWidgets.QMainWindow):
     COLORMAPS = [
         ("Magma", "magma", True, True, "Perceptually uniform colormap from R."),
         ("Viridis", "viridis", True, True, "Perceptually uniform colormap from R."),
@@ -63,7 +63,7 @@ class PewPewWindow(QtWidgets.QMainWindow):
 
         # Defaults for when applying to multiple images
         self.config = LaserConfig()
-        self.viewconfig: dict = PewPewWindow.DEFAULT_VIEW_CONFIG
+        self.viewconfig: dict = PPMainWindow.DEFAULT_VIEW_CONFIG
         self.setWindowTitle("Pew Pew")
         self.resize(1280, 800)
 
@@ -192,7 +192,7 @@ class PewPewWindow(QtWidgets.QMainWindow):
 
         # View - colormap
         cmap_group = QtWidgets.QActionGroup(menu_cmap)
-        for name, cmap, print_safe, cb_safe, description in PewPewWindow.COLORMAPS:
+        for name, cmap, print_safe, cb_safe, description in PPMainWindow.COLORMAPS:
             action = cmap_group.addAction(name)
             if print_safe:
                 description += " Print safe."
@@ -216,7 +216,7 @@ class PewPewWindow(QtWidgets.QMainWindow):
         menu_interp = menu_view.addMenu("&Interpolation")
         menu_interp.setStatusTip("Interpolation of displayed images.")
         interp_group = QtWidgets.QActionGroup(menu_interp)
-        for interp in PewPewWindow.INTERPOLATIONS:
+        for interp in PPMainWindow.INTERPOLATIONS:
             action = interp_group.addAction(interp)
             action.setCheckable(True)
             if interp == self.viewconfig["interpolation"]:
@@ -228,7 +228,7 @@ class PewPewWindow(QtWidgets.QMainWindow):
         # menu_filter = menu_view.addMenu("&Filtering")
         # menu_filter.setStatusTip("Apply filtering to images.")
         # filter_group = QtWidgets.QActionGroup(menu_filter)
-        # for filter in PewPewWindow.FILTERS:
+        # for filter in PPMainWindow.FILTERS:
         #     action = filter_group.addAction(filter)
         #     action.setCheckable(True)
         #     if filter == self.viewconfig["filtering"]["type"]:
@@ -343,7 +343,9 @@ class PewPewWindow(QtWidgets.QMainWindow):
         self.dockarea.addDockWidgets(docks)
 
     def menuImportAgilent(self) -> None:
-        paths = dialogs.MultipleDirDialog.getExistingDirectories(self, "Batch Directories", "")
+        paths = dialogs.MultipleDirDialog.getExistingDirectories(
+            self, "Batch Directories", ""
+        )
         docks = []
         for path in paths:
             try:
@@ -537,7 +539,7 @@ class PewPewWindow(QtWidgets.QMainWindow):
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
-        for name, cmap, _, _, _ in PewPewWindow.COLORMAPS:
+        for name, cmap, _, _, _ in PPMainWindow.COLORMAPS:
             if name == text:
                 self.viewconfig["cmap"]["type"] = cmap
                 self.refresh()

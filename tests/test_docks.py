@@ -7,7 +7,7 @@ from PySide2 import QtCore, QtWidgets
 from laserlib.laser import Laser
 from laserlib.krisskross import KrissKross
 
-from pewpew.pewpew import PewPewWindow
+from pewpew.main import PPMainWindow
 
 from pewpew.widgets.dialogs import ApplyDialog
 from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
@@ -29,7 +29,7 @@ def test_laser_image_dock(qtbot: QtBot):
         Laser.from_structured(
             np.array(np.random.random((10, 10)), dtype=[("B2", float), ("A1", float)])
         ),
-        PewPewWindow.DEFAULT_VIEW_CONFIG,
+        PPMainWindow.DEFAULT_VIEW_CONFIG,
     )
     qtbot.addWidget(dock)
     dock.buildContextMenu().actions()
@@ -63,7 +63,7 @@ def test_krisskross_image_dock(qtbot: QtBot):
                 np.array(np.random.random((10, 100)), dtype=[("A1", float)]),
             ]
         ),
-        PewPewWindow.DEFAULT_VIEW_CONFIG,
+        PPMainWindow.DEFAULT_VIEW_CONFIG,
     )
     qtbot.addWidget(dock)
     dock.draw()
