@@ -25,7 +25,7 @@ from typing import List
 from types import TracebackType
 
 
-class PPMainWindow(QtWidgets.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
     COLORMAPS = [
         ("Magma", "magma", True, True, "Perceptually uniform colormap from R."),
         ("Viridis", "viridis", True, True, "Perceptually uniform colormap from R."),
@@ -63,7 +63,7 @@ class PPMainWindow(QtWidgets.QMainWindow):
 
         # Defaults for when applying to multiple images
         self.config = LaserConfig()
-        self.viewconfig: dict = PPMainWindow.DEFAULT_VIEW_CONFIG
+        self.viewconfig: dict = MainWindow.DEFAULT_VIEW_CONFIG
         self.setWindowTitle("Pew Pew")
         self.resize(1280, 800)
 
@@ -192,7 +192,7 @@ class PPMainWindow(QtWidgets.QMainWindow):
 
         # View - colormap
         cmap_group = QtWidgets.QActionGroup(menu_cmap)
-        for name, cmap, print_safe, cb_safe, description in PPMainWindow.COLORMAPS:
+        for name, cmap, print_safe, cb_safe, description in MainWindow.COLORMAPS:
             action = cmap_group.addAction(name)
             if print_safe:
                 description += " Print safe."
@@ -216,7 +216,7 @@ class PPMainWindow(QtWidgets.QMainWindow):
         menu_interp = menu_view.addMenu("&Interpolation")
         menu_interp.setStatusTip("Interpolation of displayed images.")
         interp_group = QtWidgets.QActionGroup(menu_interp)
-        for interp in PPMainWindow.INTERPOLATIONS:
+        for interp in MainWindow.INTERPOLATIONS:
             action = interp_group.addAction(interp)
             action.setCheckable(True)
             if interp == self.viewconfig["interpolation"]:
@@ -228,7 +228,7 @@ class PPMainWindow(QtWidgets.QMainWindow):
         # menu_filter = menu_view.addMenu("&Filtering")
         # menu_filter.setStatusTip("Apply filtering to images.")
         # filter_group = QtWidgets.QActionGroup(menu_filter)
-        # for filter in PPMainWindow.FILTERS:
+        # for filter in MainWindow.FILTERS:
         #     action = filter_group.addAction(filter)
         #     action.setCheckable(True)
         #     if filter == self.viewconfig["filtering"]["type"]:
@@ -539,7 +539,7 @@ class PPMainWindow(QtWidgets.QMainWindow):
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
-        for name, cmap, _, _, _ in PPMainWindow.COLORMAPS:
+        for name, cmap, _, _, _ in MainWindow.COLORMAPS:
             if name == text:
                 self.viewconfig["cmap"]["type"] = cmap
                 self.refresh()
