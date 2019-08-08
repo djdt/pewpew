@@ -3,18 +3,9 @@ from matplotlib.widgets import _SelectorWidget
 from matplotlib.lines import Line2D
 from matplotlib.backend_bases import MouseEvent
 from matplotlib.path import Path
-from matplotlib.transforms import Bbox, BboxTransform
 from matplotlib.image import AxesImage
 
-
-def image_extent_to_data(image: AxesImage) -> BboxTransform:
-    x0, x1, y0, y1 = image.get_extent()
-    ny, nx = image.get_array().shape[:2]
-    if image.origin == "upper":
-        y0, y1 = y1, y0
-    return BboxTransform(
-        boxin=Bbox([[x0, y0], [x1, y1]]), boxout=Bbox([[0, 0], [nx, ny]])
-    )
+from pewpew.lib.mpltools import image_extent_to_data
 
 
 class _ImageSelectionWidget(_SelectorWidget):
