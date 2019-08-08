@@ -8,6 +8,7 @@ from laserlib import io
 from laserlib import Laser
 from laserlib.krisskross import KrissKross
 
+from pewpew.lib.mpltools import image_extent_to_data
 from pewpew.widgets import dialogs, exporters
 from pewpew.widgets.canvases import InteractiveLaserCanvas
 from pewpew.widgets.prompts import OverwriteFilePrompt
@@ -344,16 +345,12 @@ class LaserImageDock(QtWidgets.QDockWidget):
             data = data[~np.isnan(data).all(axis=1)]
         else:  # Trim to view limits
             x0, x1, y0, y1 = self.canvas.view_limits
-            # TODO: check this works for krisskross / layers
-            px, py = (
-                self.laser.config.get_pixel_width(),
-                self.laser.config.get_pixel_height(),
+            (x0, y0), (x1, y1) = (
+                image_extent_to_data(self.canvas.image)
+                .transform(((x0, y1), (x1, y0)))
+                .astype(int)
             )
-            x0, x1 = int(x0 / px), int(x1 / px)
-            y0, y1 = int(y0 / py), int(y1 / py)
-            # We have to invert the extent, as mpl use bottom left y coords
-            ymax = data.shape[0]
-            data = data[ymax - y1 : ymax - y0, x0:x1]
+            data = data[y0:y1, x0:x1]  # type: ignore
 
         dlg = dialogs.StatsDialog(
             data, self.canvas.viewconfig["cmap"]["range"], parent=self
