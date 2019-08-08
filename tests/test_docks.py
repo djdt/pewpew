@@ -1,6 +1,7 @@
 import numpy as np
 
 from pytestqt.qtbot import QtBot
+from pytestqt.exceptions import TimeoutError
 
 from PySide2 import QtCore, QtWidgets
 
@@ -9,8 +10,19 @@ from laserlib.krisskross import KrissKross
 
 from pewpew.main import PPMainWindow
 
-from pewpew.widgets.dialogs import ApplyDialog
+from pewpew.widgets import dialogs
+from dialogs import ApplyDialog
 from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
+
+
+def wait_for_and_close(dialog: type = ApplyDialog, max_time: int = 1000):
+    if max_time < 0:
+        raise TimeoutError
+    w = QtWidgets.QApplication.activeModalWidget()
+    if isinstance(w, dialog):
+        w.close()
+        return
+    QtCore.QTimer.singleShot(100, lambda: wait_for_and_close(dialog, max_time - 100))
 
 
 def close_active_modal():
@@ -38,21 +50,16 @@ def test_laser_image_dock(qtbot: QtBot):
     dock.populateComboIsotopes()
     assert dock.combo_isotope.currentText() == "A1"
 
-    QtCore.QTimer.singleShot(500, close_active_modal)
+    wait_for_and_close(ApplyDialog)
     dock.onMenuCalibration()
-    assert not has_dialog(ApplyDialog)
-    QtCore.QTimer.singleShot(500, close_active_modal)
+    wait_for_and_close(ApplyDialog)
     dock.onMenuConfig()
-    assert not has_dialog(ApplyDialog)
-    QtCore.QTimer.singleShot(500, close_active_modal)
+    wait_for_and_close(ApplyDialog)
     dock.onMenuExport()
-    assert not has_dialog(ApplyDialog)
-    QtCore.QTimer.singleShot(500, close_active_modal)
+    wait_for_and_close(ApplyDialog)
     dock.onMenuSave()
-    assert not has_dialog(ApplyDialog)
-    QtCore.QTimer.singleShot(1000, close_active_modal)
+    wait_for_and_close(ApplyDialog)
     dock.onMenuStats()
-    assert not has_dialog(ApplyDialog)
 
 
 def test_krisskross_image_dock(qtbot: QtBot):
