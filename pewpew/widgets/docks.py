@@ -316,8 +316,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             calibrations, self.combo_isotope.currentText(), parent=self
         )
         dlg.applyPressed.connect(applyDialog)
-        if dlg.exec():
-            applyDialog(dlg)
+        dlg.exec()
 
     def onMenuConfig(self) -> None:
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
@@ -332,8 +331,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
         dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
         dlg.applyPressed.connect(applyDialog)
-        if dlg.exec():
-            applyDialog(dlg)
+        dlg.exec()
 
     def onMenuStats(self) -> None:
         data = self.canvas.image.get_array()
@@ -355,7 +353,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         dlg = dialogs.StatsDialog(
             data, self.canvas.viewconfig["cmap"]["range"], parent=self
         )
-        dlg.exec()
+        dlg.show()
 
     def onMenuClose(self) -> None:
         self.close()
