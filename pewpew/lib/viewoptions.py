@@ -15,6 +15,15 @@ class ColorOptions(object):
         "Blue Yellow Red": "RdYlBu_r",
         "Grey": "grey",
     }
+    COLORMAP_DESCRIPTIONS = {
+        "Magma": "Perceptually uniform colormap from R.",
+        "Viridis": "Perceptually uniform colormap from R.",
+        "PewPew": "Custom colormap based on colorbrewers Spectral.",
+        "Cividis": "Perceptually uniform colormap from R.",
+        "Blue Red": "Diverging colormap from colorbrewer.",
+        "Blue Yellow Red": "Diverging colormap from colorbrewer.",
+        "Grey": "Simple black to white gradient.",
+    }
 
     def __init__(
         self,
@@ -55,16 +64,8 @@ class FontOptions(object):
 class ViewOptions(object):
     def __init__(self, *args, **kwargs):
         self.colors = ColorOptions()
-        # self.filter = {}
         self.image = ImageOptions()
         self.font = FontOptions()
 
-    DEFAULT_VIEW_CONFIG = {
-        "cmap": {"type": ppSpectral, "range": (0.0, "99%")},
-        "calibrate": True,
-        "filtering": {"type": "None", "window": (3, 3), "threshold": 9},
-        "interpolation": "None",
-        "status_unit": "μm",
-        "alpha": 1.0,
-        "font": {"size": 12},
-    }
+        self.calibrate = True
+        self.units = "μm"
