@@ -11,7 +11,7 @@ from laserlib.krisskross import KrissKross, KrissKrossData
 
 from pewpew import __version__
 
-from pewpew.lib.mplcolors import ppSpectral
+from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets import dialogs
 from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
@@ -26,44 +26,12 @@ from types import TracebackType
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    COLORMAPS = [
-        ("Magma", "magma", True, True, "Perceptually uniform colormap from R."),
-        ("Viridis", "viridis", True, True, "Perceptually uniform colormap from R."),
-        ("Cividis", "cividis", True, True, "Perceptually uniform colormap from R."),
-        ("Blue Red", "RdBu_r", False, True, "Diverging colormap from colorbrewer."),
-        (
-            "Blue Yellow Red",
-            "RdYlBu_r",
-            False,
-            True,
-            "Diverging colormap from colorbrewer.",
-        ),
-        (
-            "PP Spectral",
-            ppSpectral,
-            False,
-            False,
-            "Custom rainbow colormap based on colorbrewer Spectral.",
-        ),
-    ]
-    INTERPOLATIONS = ["None", "Bilinear", "Bicubic", "Gaussian", "Spline16"]
-    # FILTERS = ["None", "Rolling mean", "Rolling median"]
-    DEFAULT_VIEW_CONFIG = {
-        "cmap": {"type": ppSpectral, "range": (0.0, "99%")},
-        "calibrate": True,
-        "filtering": {"type": "None", "window": (3, 3), "threshold": 9},
-        "interpolation": "None",
-        "status_unit": "μm",
-        "alpha": 1.0,
-        "font": {"size": 12},
-    }
-
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         # Defaults for when applying to multiple images
         self.config = LaserConfig()
-        self.viewconfig: dict = MainWindow.DEFAULT_VIEW_CONFIG
+        self.viewoptions = ViewOptions()
         self.setWindowTitle("Pew Pew")
         self.resize(1280, 800)
 
@@ -192,15 +160,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # View - colormap
         cmap_group = QtWidgets.QActionGroup(menu_cmap)
-        for name, cmap, print_safe, cb_safe, description in MainWindow.COLORMAPS:
+        colors = self.viewoptions.colors
+        for name in colors.COLORMAPS:
             action = cmap_group.addAction(name)
-            if print_safe:
-                description += " Print safe."
-            if cb_safe:
-                description += " Colorblind safe."
-            action.setStatusTip(description)
+            action.setStatusTip(colors.COLORMAP_DESCRIPTIONS[name])
             action.setCheckable(True)
-            if cmap == self.viewconfig["cmap"]["type"]:
+            if colors.COLORMAPS[name] == self.viewoptions.colors.cmap:
                 action.setChecked(True)
             menu_cmap.addAction(action)
         cmap_group.triggered.connect(self.menuColormap)
@@ -216,10 +181,10 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_interp = menu_view.addMenu("&Interpolation")
         menu_interp.setStatusTip("Interpolation of displayed images.")
         interp_group = QtWidgets.QActionGroup(menu_interp)
-        for interp in MainWindow.INTERPOLATIONS:
+        for interp in self.viewoptions.image.INTERPOLATIONS:
             action = interp_group.addAction(interp)
             action.setCheckable(True)
-            if interp == self.viewconfig["interpolation"]:
+            if interp == self.viewoptions.image.interpolation:
                 action.setChecked(True)
             menu_interp.addAction(action)
         interp_group.triggered.connect(self.menuInterpolation)
