@@ -429,9 +429,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     )
                     io.vtk.save(
                         path,
-                        dock.laser.get_structured(
-                            calibrate=self.viewoptions.calibrate
-                        ),
+                        dock.laser.get_structured(calibrate=self.viewoptions.calibrate),
                         spacing=spacing,
                     )
                 else:
@@ -508,15 +506,25 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh()
 
     def menuColormapRange(self) -> None:
-        return
-        # def applyDialog(dialog: dialogs.ApplyDialog) -> None:
-        #     self.viewconfig["cmap"]["range"] = dialog.range
-        #     self.refresh()
+        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
+            for isotope, range in dialog.ranges.items():
+                self.viewoptions.colors.set_range(range, isotope)
+            self.refresh()
 
-        # dlg = dialogs.ColorRangeDialog(self.viewconfig["cmap"]["range"], parent=self)
-        # dlg.applyPressed.connect(applyDialog)
-        # if dlg.exec():
-        #     applyDialog(dlg)
+        isotopes = list(
+            set(
+                [
+                    dock.laser.isotopes
+                    for dock in self.dockarea.findChildren(LaserImageDock)
+                ]
+            )
+        )
+        dlg = dialogs.ColorRangeDialog(
+            self.viewoptions.colors._ranges, isotopes, isotopes[0], parent=self
+        )
+        dlg.applyPressed.connect(applyDialog)
+        if dlg.exec():
+            applyDialog(dlg)
 
     def menuInterpolation(self, action: QtWidgets.QAction) -> None:
         self.viewoptions.image.interpolation = action.text().replace("&", "")

@@ -1,3 +1,4 @@
+import numpy as np
 from matplotlib.colors import Colormap
 
 from pewpew.lib.mplcolors import ppSpectral
@@ -38,26 +39,31 @@ class ColorOptions(object):
     def __init__(
         self,
         cmap: Union[str, Colormap] = ppSpectral,
-        vmin: float = None,
-        vmax: float = None,
+        default_range: Tuple[Union[float, str], Union[float, str]] = (0.0, "99%"),
     ):
         self.cmap = cmap
 
-        self._range = (vmin, vmax)
-        self._ranges: Dict[str, Tuple[float, float]] = {}
+        self.default_range = default_range
+        self._ranges: Dict[str, Tuple[Union[float, str], Union[float, str]]] = {}
 
     def set_cmap(self, name: str) -> None:
         self.cmap = self.COLORMAPS[name]
 
-    def get_range(self, isotope: str = None) -> Tuple[float, float]:
-        if isotope is None:
-            return self._range
-        return self._ranges.setdefault(isotope, self._range)
+    def get_range(self, isotope: str) -> Tuple[Union[float, str], Union[float, str]]:
+        return self._ranges.get(isotope, self.default_range)
 
-    def set_range(self, range: Tuple[float, float], isotope: str = None) -> None:
-        if isotope is None:
-            self._range = range
+    def set_range(
+        self, range: Tuple[Union[float, str], Union[float, str]], isotope: str
+    ) -> None:
         self._ranges[isotope] = range
+
+    def get_range_as_float(self, isotope: str, data: np.ndarray) -> Tuple[float, float]:
+        vmin, vmax = self.get_range(isotope)
+        if isinstance(vmin, str):
+            vmin = np.percentile(data, float(vmin.rstrip("%")))
+        if isinstance(vmax, str):
+            vmax = np.percentile(data, float(vmax.rstrip("%")))
+        return vmin, vmax
 
 
 class ImageOptions(object):

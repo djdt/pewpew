@@ -228,44 +228,65 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
 class ColorRangeDialog(ApplyDialog):
     def __init__(
         self,
-        current_range: Tuple[Union[float, str], Union[float, str]],
+        current_ranges: Dict[str, Tuple],
+        isotopes: List[str],
         current_isotope: str,
         parent: QtWidgets.QWidget = None,
     ):
-        self.range = current_range
         super().__init__(parent)
+        self.ranges = copy.copy(current_ranges)
+        self.previous_isotope = current_isotope
+
         self.setWindowTitle("Colormap Range")
 
         self.lineedit_min = QtWidgets.QLineEdit()
-        self.lineedit_min.setPlaceholderText(str(current_range[0]))
         self.lineedit_min.setToolTip("Percentile for minium colormap value.")
         self.lineedit_min.setValidator(
             PercentOrDecimalValidator(-1e99, 1e99, parent=self.lineedit_min)
         )
         self.lineedit_max = QtWidgets.QLineEdit()
-        self.lineedit_max.setPlaceholderText(str(current_range[1]))
         self.lineedit_max.setValidator(
             PercentOrDecimalValidator(-1e99, 1e99, parent=self.lineedit_max)
         )
         self.lineedit_max.setToolTip("Percentile for maximum colormap value.")
 
+        self.combo_isotopes = QtWidgets.QComboBox()
+        self.combo_isotopes.addItems(list(self.calibrations.keys()))
+        self.combo_isotopes.setCurrentText(current_isotope)
+        self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
+
         self.layout_form.addRow("Minimum:", self.lineedit_min)
         self.layout_form.addRow("Maximum:", self.lineedit_max)
+        self.layout_form.addRow(self.combo_isotopes)
 
-    def updateRange(self) -> None:
-        min, max = self.lineedit_min.text(), self.lineedit_max.text()
-        if min == "":
-            min = self.range[0]
-        elif "%" not in min:
-            min = float(min)
-        if max == "":
-            max = self.range[1]
-        elif "%" not in max:
-            max = float(max)
-        self.range = (min, max)
+        self.updateLineEdits()
+
+    def comboChanged(self) -> None:
+        self.updateRange(self.previous_isotope)
+
+        current_range = self.ranges[self.combo_isotopes.currentText()]
+        self.lineedit_min.setText(str(current_range[0]))
+        self.lineedit_max.setText(str(current_range[1]))
+
+        self.previous_isotope = self.combo_isotopes.currentText()
+
+    def updateRange(self, isotope: str) -> None:
+        tmin, tmax = self.lineedit_min.text(), self.lineedit_max.text()
+        vmin, vmax = self.ranges[isotope]
+
+        if "%" in tmin:
+            vmin = float(tmin)
+        elif tmin != "":
+            vmin = tmin
+        if "%" in tmax:
+            vmax = float(tmax)
+        elif tmax != "":
+            vmax = tmax
+
+        self.ranges[isotope] = (vmin, vmax)
 
     def apply(self) -> None:
-        self.updateRange()
+        self.updateRange(self.combo_isotopes.currentText())
 
 
 class ConfigDialog(ApplyDialog):
