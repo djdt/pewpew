@@ -9,6 +9,7 @@ from laserlib import Laser
 from laserlib.krisskross import KrissKross
 
 from pewpew.lib.mpltools import image_extent_to_data
+from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets import dialogs, exporters
 from pewpew.widgets.canvases import InteractiveLaserCanvas
 from pewpew.widgets.prompts import OverwriteFilePrompt
@@ -78,7 +79,7 @@ class ImageDockTitleBar(QtWidgets.QWidget):
 
 class LaserImageDock(QtWidgets.QDockWidget):
     def __init__(
-        self, laser: Laser, viewconfig: dict, parent: QtWidgets.QWidget = None
+        self, laser: Laser, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
     ):
         super().__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
@@ -88,7 +89,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         )
 
         self.laser = laser
-        self.canvas = InteractiveLaserCanvas(viewconfig=viewconfig, parent=self)
+        self.canvas = InteractiveLaserCanvas(viewoptions=viewoptions, parent=self)
         self.canvas.setFocusPolicy(QtCore.Qt.ClickFocus)
         # self.canvas.setFocus()
 
@@ -243,7 +244,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             if dlg.exec():
                 paths = dlg.generate_paths(self.laser)
                 kwargs = {
-                    "calibrate": self.canvas.viewconfig["calibrate"],
+                    "calibrate": self.canvas.viewoptions["calibrate"],
                     "flat": True,
                 }
                 if dlg.options.trimmedChecked():
@@ -284,7 +285,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             io.vtk.save(
                 path,
                 self.laser.get_structured(
-                    calibrate=self.canvas.viewconfig["calibrate"]
+                    calibrate=self.canvas.viewoptions["calibrate"]
                 ),
                 spacing=spacing,
             )
@@ -351,7 +352,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             data = data[y0:y1, x0:x1]  # type: ignore
 
         dlg = dialogs.StatsDialog(
-            data, self.canvas.viewconfig["cmap"]["range"], parent=self
+            data, self.canvas.viewoptions["cmap"]["range"], parent=self
         )
         dlg.show()
 
@@ -369,9 +370,9 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
 class KrissKrossImageDock(LaserImageDock):
     def __init__(
-        self, laser: KrissKross, viewconfig: dict, parent: QtWidgets.QWidget = None
+        self, laser: KrissKross, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
     ):
-        super().__init__(laser, viewconfig, parent)
+        super().__init__(laser, viewoptions, parent)
 
         self.combo_layer = QtWidgets.QComboBox()
         self.combo_layer.currentIndexChanged.connect(self.onComboLayer)

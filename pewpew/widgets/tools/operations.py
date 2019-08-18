@@ -4,6 +4,7 @@ from PySide2 import QtCore, QtWidgets
 
 from laserlib.krisskross.data import krisskross_layers
 
+from pewpew.lib.viewoptions import ViewOptions
 from pewpew.validators import DecimalValidator
 from pewpew.widgets.canvases import LaserCanvas
 from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
@@ -14,12 +15,12 @@ from typing import Callable, List
 
 
 def get_operations_tool(
-    dock: LaserImageDock, viewconfig: dict, parent: QtWidgets.QWidget = None
+    dock: LaserImageDock, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
 ) -> Tool:
     if isinstance(dock, KrissKrossImageDock):
-        return KrissKrossOperationsTool(dock, viewconfig, parent)
+        return KrissKrossOperationsTool(dock, viewoptions, parent)
     else:
-        return OperationsTool(dock, viewconfig, parent)
+        return OperationsTool(dock, viewoptions, parent)
 
 
 class OperationsTool(Tool):
@@ -54,7 +55,10 @@ class OperationsTool(Tool):
     }
 
     def __init__(
-        self, dock: LaserImageDock, viewconfig: dict, parent: QtWidgets.QWidget = None
+        self,
+        dock: LaserImageDock,
+        viewoptions: ViewOptions,
+        parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Operations Tool")
@@ -69,7 +73,7 @@ class OperationsTool(Tool):
         self.button_laser.pressed.connect(self.buttonLaser)
 
         options = {"colorbar": False, "scalebar": False, "label": False}
-        self.canvas = LaserCanvas(viewconfig=viewconfig, options=options, parent=self)
+        self.canvas = LaserCanvas(viewoptions=viewoptions, options=options, parent=self)
 
         self.combo_isotope1 = QtWidgets.QComboBox()
         self.combo_isotope1.currentIndexChanged.connect(self.updateData)
@@ -132,16 +136,6 @@ class OperationsTool(Tool):
         self.layout_right.addWidget(self.canvas)
         self.updateData()
         self.onComboOps()
-
-    # def generateName(self, c1, c1v, c2, c2v, op) -> None:
-    #     name = self.combo_isotope1.currentText()
-    #     c1 = OperationsTool.CONDITIONS[self.combo_condition1.currentText()]
-    #     if c1 is not None:
-    #         name += f"[{OperationsTool.SYMBOLS[c1.__name__]}{self.lineedit_condition1.text()}]"
-    #     if self.combo_isotope2.isEnabled():
-    #         op = OperationsTool.OPERATIONS[self.combo_ops.currentText()]
-    #         if op is not None:
-    #             name += f"{OperationsTool.SYMBOLS[op.__name__]}"
 
     def getMaskedName(
         self, isotope: str, condition: Callable = None, value: float = None

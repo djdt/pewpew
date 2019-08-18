@@ -229,6 +229,7 @@ class ColorRangeDialog(ApplyDialog):
     def __init__(
         self,
         current_range: Tuple[Union[float, str], Union[float, str]],
+        current_isotope: str,
         parent: QtWidgets.QWidget = None,
     ):
         self.range = current_range

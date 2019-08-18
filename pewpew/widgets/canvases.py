@@ -23,6 +23,7 @@ from pewpew.lib.mplwidgets import (
     RectangleImageSelectionWidget,
     LassoImageSelectionWidget,
 )
+from pewpew.lib.viewoptions import ViewOptions
 
 from typing import Callable, List, Tuple
 
@@ -146,10 +147,13 @@ class LaserCanvas(BasicCanvas):
     }
 
     def __init__(
-        self, viewconfig: dict, options: dict = None, parent: QtWidgets.QWidget = None
+        self,
+        viewoptions: ViewOptions,
+        options: dict = None,
+        parent: QtWidgets.QWidget = None,
     ) -> None:
         super().__init__(parent=parent)
-        self.viewconfig = viewconfig
+        self.viewoptions = viewoptions
         self.options = copy.deepcopy(LaserCanvas.DEFAULT_OPTIONS)
         if options is not None:
             self.options.update(options)
@@ -201,7 +205,7 @@ class LaserCanvas(BasicCanvas):
             orientation=orientation,
             ticks=MaxNLocator(nbins=6),
         )
-        self.cax.tick_params(labelsize=self.viewconfig["font"]["size"])
+        self.cax.tick_params(labelsize=self.viewoptions.font.size)
 
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float]
@@ -212,7 +216,7 @@ class LaserCanvas(BasicCanvas):
         self.view_limits = view_limits
 
         # Calculate the range
-        rmin, rmax = self.viewconfig["cmap"]["range"]
+        rmin, rmax = self.viewoptions.colors.get_range()
         if isinstance(rmin, str):
             vmin = np.percentile(data, float(rmin.rstrip("%")))
         else:
@@ -225,9 +229,9 @@ class LaserCanvas(BasicCanvas):
         # Plot the image
         self.image = self.ax.imshow(
             data,
-            cmap=self.viewconfig["cmap"]["type"],
-            interpolation=self.viewconfig["interpolation"].lower(),
-            alpha=self.viewconfig["alpha"],
+            cmap=self.viewoptions.colors.cmap,
+            interpolation=self.viewoptions.image.interpolation,
+            alpha=self.viewoptions.image.alpha,
             vmin=vmin,
             vmax=vmax,
             extent=extent,
@@ -237,15 +241,13 @@ class LaserCanvas(BasicCanvas):
 
     def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
         # Get the trimmed and calibrated data
-        kwargs = {"calibrate": self.viewconfig["calibrate"], "layer": layer}
+        kwargs = {"calibrate": self.viewoptions.calibrate, "layer": layer}
         if isinstance(laser, KrissKross):
             kwargs["flat"] = True
 
         data = laser.get(name, **kwargs)
         unit = (
-            str(laser.data[name].calibration.unit)
-            if self.viewconfig["calibrate"]
-            else ""
+            str(laser.data[name].calibration.unit) if self.viewoptions.calibrate else ""
         )
 
         # Get extent
@@ -274,7 +276,7 @@ class LaserCanvas(BasicCanvas):
                 pad=0.2,
                 borderpad=0.1,
                 frameon=False,
-                prop={"color": "white", "size": self.viewconfig["font"]["size"]},
+                prop=self.viewoptions.font.props(),
             )
             self.ax.add_artist(text)
 
@@ -284,8 +286,8 @@ class LaserCanvas(BasicCanvas):
                 "um",
                 location="upper right",
                 frameon=False,
-                color="white",
-                font_properties={"size": self.viewconfig["font"]["size"]},
+                color=self.viewoptions.font.color,
+                font_properties=self.viewoptions.font.props(),
             )
             self.ax.add_artist(scalebar)
 
@@ -293,12 +295,12 @@ class LaserCanvas(BasicCanvas):
 class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
     def __init__(
         self,
-        viewconfig: dict,
+        viewoptions: ViewOptions,
         options: dict = None,
         connect_mouse_events: bool = True,
         parent: QtWidgets.QWidget = None,
     ) -> None:
-        super().__init__(viewconfig=viewconfig, options=options, parent=parent)
+        super().__init__(viewoptions=viewoptions, options=options, parent=parent)
 
         try:
             self.status_bar = parent.window().statusBar()
@@ -435,7 +437,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         # Update the status bar
         x, y = event.xdata, event.ydata
         v = self.image.get_cursor_data(event)
-        unit = self.viewconfig["status_unit"]
+        unit = self.viewoptions.units
         if unit == "row":
             x, y = int(x / self.px), int(y / self.py)
         elif unit == "second":

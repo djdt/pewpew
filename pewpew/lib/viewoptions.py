@@ -2,7 +2,17 @@ from matplotlib.colors import Colormap
 
 from pewpew.lib.mplcolors import ppSpectral
 
-from typing import Tuple, Union
+from typing import Dict, Tuple, Union
+
+
+class ViewOptions(object):
+    def __init__(self, *args, **kwargs) -> None:
+        self.colors = ColorOptions()
+        self.image = ImageOptions()
+        self.font = FontOptions()
+
+        self.calibrate = True
+        self.units = "μm"
 
 
 class ColorOptions(object):
@@ -34,7 +44,10 @@ class ColorOptions(object):
         self.cmap = cmap
 
         self._range = (vmin, vmax)
-        self._ranges = {}
+        self._ranges: Dict[str, Tuple[float, float]] = {}
+
+    def set_cmap(self, name: str) -> None:
+        self.cmap = self.COLORMAPS[name]
 
     def get_range(self, isotope: str = None) -> Tuple[float, float]:
         if isotope is None:
@@ -60,12 +73,5 @@ class FontOptions(object):
         self.size = size
         self.color = color
 
-
-class ViewOptions(object):
-    def __init__(self, *args, **kwargs):
-        self.colors = ColorOptions()
-        self.image = ImageOptions()
-        self.font = FontOptions()
-
-        self.calibrate = True
-        self.units = "μm"
+    def props(self) -> dict:
+        return {"size": self.size, "color": self.color}

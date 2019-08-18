@@ -245,11 +245,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def buttonStatusUnit(self, toggled: bool) -> None:
         if self.button_status_um.isChecked():
-            self.viewconfig["status_unit"] = "μm"
+            self.viewoptions.units = "μm"
         elif self.button_status_row.isChecked():
-            self.viewconfig["status_unit"] = "row"
+            self.viewoptions.units = "row"
         else:  # seconds
-            self.viewconfig["status_unit"] = "second"
+            self.viewoptions.units = "second"
 
     def refresh(self, visible_only: bool = False) -> None:
         if visible_only:
@@ -304,7 +304,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if isinstance(laser, KrissKross):
                 docks.append(KrissKrossImageDock(laser, self.dockarea))
             else:
-                docks.append(LaserImageDock(laser, self.viewconfig, self.dockarea))
+                docks.append(LaserImageDock(laser, self.viewoptions, self.dockarea))
         self.dockarea.addDockWidgets(docks)
 
     def menuImportAgilent(self) -> None:
@@ -321,7 +321,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         name=os.path.basename(os.path.splitext(path)[0]),
                         filepath=path,
                     )
-                    docks.append(LaserImageDock(laser, self.viewconfig, self.dockarea))
+                    docks.append(LaserImageDock(laser, self.viewoptions, self.dockarea))
                 else:
                     raise io.error.LaserLibException("Invalid batch directory.")
             except io.error.LaserLibException as e:
@@ -348,7 +348,7 @@ class MainWindow(QtWidgets.QMainWindow):
                         name=os.path.basename(os.path.splitext(path)[0]),
                         filepath=path,
                     )
-                    docks.append(LaserImageDock(laser, self.viewconfig, self.dockarea))
+                    docks.append(LaserImageDock(laser, self.viewoptions, self.dockarea))
                 else:
                     raise io.error.LaserLibException("Invalid file.")
             except io.error.LaserLibException as e:
@@ -361,7 +361,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuImportKrissKross(self) -> None:
         kkw = KrissKrossWizard(config=self.config, parent=self)
         if kkw.exec():
-            dock = KrissKrossImageDock(kkw.data, self.viewconfig, self.dockarea)
+            dock = KrissKrossImageDock(kkw.data, self.viewoptions, self.dockarea)
             self.dockarea.addDockWidgets([dock])
 
     def menuSaveSession(self) -> None:
@@ -411,7 +411,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             for path, isotope, _ in paths:
                 if ext == ".csv":
-                    kwargs = {"calibrate": self.viewconfig["calibrate"]}
+                    kwargs = {"calibrate": self.viewoptions.calibrate}
                     if dlg.options.csv.trimmedChecked():
                         kwargs["extent"] = dock.canvas.view_limits
                     io.csv.save(path, dock.laser.get(isotope, **kwargs))
@@ -430,7 +430,7 @@ class MainWindow(QtWidgets.QMainWindow):
                     io.vtk.save(
                         path,
                         dock.laser.get_structured(
-                            calibrate=self.window().viewconfig["calibrate"]
+                            calibrate=self.viewoptions.calibrate
                         ),
                         spacing=spacing,
                     )
@@ -470,7 +470,7 @@ class MainWindow(QtWidgets.QMainWindow):
             applyDialog(dlg)
 
     def menuCalibrate(self, checked: bool) -> None:
-        self.viewconfig["calibrate"] = checked
+        self.viewoptions.calibrate = checked
         self.refresh()
 
     def menuStandardsTool(self) -> None:
@@ -484,7 +484,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 dock.draw()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        cali_tool = StandardsTool(docks[0], self.viewconfig, parent=self)
+        cali_tool = StandardsTool(docks[0], self.viewoptions, parent=self)
         cali_tool.applyPressed.connect(applyTool)
         cali_tool.show()
 
@@ -498,30 +498,28 @@ class MainWindow(QtWidgets.QMainWindow):
             tool.updateComboIsotopes()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        op_tool = get_operations_tool(docks[0], self.viewconfig, parent=self)
+        op_tool = get_operations_tool(docks[0], self.viewoptions, parent=self)
         op_tool.applyPressed.connect(applyTool)
         op_tool.show()
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
-        for name, cmap, _, _, _ in MainWindow.COLORMAPS:
-            if name == text:
-                self.viewconfig["cmap"]["type"] = cmap
-                self.refresh()
-                return
+        self.viewoptions.colors.set_cmap(text)
+        self.refresh()
 
     def menuColormapRange(self) -> None:
-        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
-            self.viewconfig["cmap"]["range"] = dialog.range
-            self.refresh()
+        return
+        # def applyDialog(dialog: dialogs.ApplyDialog) -> None:
+        #     self.viewconfig["cmap"]["range"] = dialog.range
+        #     self.refresh()
 
-        dlg = dialogs.ColorRangeDialog(self.viewconfig["cmap"]["range"], parent=self)
-        dlg.applyPressed.connect(applyDialog)
-        if dlg.exec():
-            applyDialog(dlg)
+        # dlg = dialogs.ColorRangeDialog(self.viewconfig["cmap"]["range"], parent=self)
+        # dlg.applyPressed.connect(applyDialog)
+        # if dlg.exec():
+        #     applyDialog(dlg)
 
     def menuInterpolation(self, action: QtWidgets.QAction) -> None:
-        self.viewconfig["interpolation"] = action.text().replace("&", "")
+        self.viewoptions.image.interpolation = action.text().replace("&", "")
         self.refresh()
 
     # def menuFiltering(self, action: QtWidgets.QAction) -> None:
@@ -548,13 +546,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
             "Fontsize",
             "Fontsize",
-            value=self.viewconfig["font"]["size"],
+            value=self.viewoptions.font.size,
             min=0,
             max=100,
             step=1,
         )
         if ok:
-            self.viewconfig["font"]["size"] = fontsize
+            self.viewoptions.font.size = fontsize
             self.refresh()
 
     def menuOptionColorbar(self, checked: bool) -> None:

@@ -10,6 +10,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 from laserlib import LaserCalibration
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
+from pewpew.lib.viewoptions import ViewOptions
 from pewpew.validators import DoubleSignificantFiguresDelegate
 from pewpew.widgets.canvases import LaserCanvas
 from pewpew.widgets.docks import LaserImageDock
@@ -25,7 +26,7 @@ class StandardsTool(Tool):
     def __init__(
         self,
         dock: LaserImageDock,
-        viewconfig: dict,
+        viewoptions: ViewOptions,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
@@ -59,7 +60,7 @@ class StandardsTool(Tool):
         self.button_laser = QtWidgets.QPushButton("Select &Image...")
         self.button_laser.pressed.connect(self.buttonLaser)
 
-        self.canvas = StandardsCanvas(viewconfig, parent=self)
+        self.canvas = StandardsCanvas(viewoptions, parent=self)
 
         self.lineedit_left = QtWidgets.QLineEdit()
         self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
@@ -172,9 +173,7 @@ class StandardsTool(Tool):
             self.lineedit_right.setText("")
 
             isotope = self.combo_isotope.currentText()
-            self.combo_weighting.setCurrentText(
-                self.calibrations[isotope].weighting
-            )
+            self.combo_weighting.setCurrentText(self.calibrations[isotope].weighting)
             self.lineedit_units.setText(self.calibrations[isotope].unit)
             self.draw()
             self.changeCalibration()
@@ -280,9 +279,9 @@ class StandardsTool(Tool):
 
 
 class StandardsCanvas(LaserCanvas):
-    def __init__(self, viewconfig: dict, parent: QtWidgets.QWidget = None):
+    def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):
         options = {"colorbar": False, "scalebar": False, "label": False}
-        super().__init__(viewconfig, options=options, parent=parent)
+        super().__init__(viewoptions, options=options, parent=parent)
         div = make_axes_locatable(self.ax)
         self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
         self.bax.get_xaxis().set_visible(False)
@@ -411,19 +410,14 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         self.array = new_array
         self.endResetModel()
 
-    def data(
-        self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole
-    ) -> str:
+    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole) -> str:
         value = super().data(index, role)
         if value == "nan":
             return ""
         return value
 
     def setData(
-        self,
-        index: QtCore.QModelIndex,
-        value: Any,
-        role: int = QtCore.Qt.EditRole,
+        self, index: QtCore.QModelIndex, value: Any, role: int = QtCore.Qt.EditRole
     ) -> bool:
         return super().setData(index, np.nan if value == "" else value, role)
 
@@ -450,18 +444,12 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
             return str(section)
 
     def insertColumns(
-        self,
-        position: int,
-        columns: int,
-        parent: QtCore.QModelIndex = QtCore.QModelIndex(),
+        self, position: int, columns: int, parent: QtCore.QModelIndex = None
     ) -> bool:
         return False
 
     def removeColumns(
-        self,
-        position: int,
-        columns: int,
-        parent: QtCore.QModelIndex = QtCore.QModelIndex(),
+        self, position: int, columns: int, parent: QtCore.QModelIndex = None
     ) -> bool:
         return False
 
