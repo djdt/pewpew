@@ -280,11 +280,13 @@ class ColorRangeDialog(ApplyDialog):
         self.lineedit_max.setPlaceholderText(str(self.default_range[1]))
         tmin, tmax = "", ""
 
+        # If the combobox is disabled then shown default range as true text
         if self.combo_isotopes.isEnabled():
             tmin, tmax = "", ""
         else:
             tmin, tmax = str(self.default_range[0]), str(self.default_range[1])
 
+        # If there is a current isotope then update text to it's value, if exists
         current_isotope = self.combo_isotopes.currentText()
         if current_isotope in self.ranges:
             range = self.ranges[current_isotope]
