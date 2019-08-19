@@ -276,14 +276,22 @@ class ColorRangeDialog(ApplyDialog):
         self.updateLineEdits()
 
     def updateLineEdits(self) -> None:
-        current_isotope = self.combo_isotopes.currentText()
-        if self.combo_isotopes.isEnabled():
-            current_range = self.ranges.get(current_isotope, self.default_range)
-        else:
-            current_range = self.default_range
+        self.lineedit_min.setPlaceholderText(str(self.default_range[0]))
+        self.lineedit_max.setPlaceholderText(str(self.default_range[1]))
+        tmin, tmax = "", ""
 
-        self.lineedit_min.setText(str(current_range[0]))
-        self.lineedit_max.setText(str(current_range[1]))
+        if self.combo_isotopes.isEnabled():
+            tmin, tmax = "", ""
+        else:
+            tmin, tmax = str(self.default_range[0]), str(self.default_range[1])
+
+        current_isotope = self.combo_isotopes.currentText()
+        if current_isotope in self.ranges:
+            range = self.ranges[current_isotope]
+            tmin, tmax = str(range[0]), str(range[1])
+
+        self.lineedit_min.setText(tmin)
+        self.lineedit_max.setText(tmax)
 
     def comboChanged(self) -> None:
         self.updateRange(self.previous_isotope)
@@ -298,6 +306,10 @@ class ColorRangeDialog(ApplyDialog):
             vmin = tmin if "%" in tmin else float(tmin)
         if tmax != "":
             vmax = tmax if "%" in tmax else float(tmax)
+
+        # Unless at least one value is set return
+        if tmin == "" and tmax == "":
+            return
 
         if isotope is not None:
             self.ranges[isotope] = (vmin, vmax)
