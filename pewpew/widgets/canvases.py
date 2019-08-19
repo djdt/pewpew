@@ -208,7 +208,10 @@ class LaserCanvas(BasicCanvas):
         self.cax.tick_params(labelsize=self.viewoptions.font.size)
 
     def drawData(
-        self, data: np.ndarray, extent: Tuple[float, float, float, float]
+        self,
+        data: np.ndarray,
+        extent: Tuple[float, float, float, float],
+        isotope: str = None,
     ) -> None:
         # Save and restore the ax limits
         view_limits = self.view_limits
@@ -216,15 +219,7 @@ class LaserCanvas(BasicCanvas):
         self.view_limits = view_limits
 
         # Calculate the range
-        rmin, rmax = self.viewoptions.colors.get_range()
-        if isinstance(rmin, str):
-            vmin = np.percentile(data, float(rmin.rstrip("%")))
-        else:
-            vmin = float(rmin)
-        if isinstance(rmax, str):
-            vmax = np.percentile(data, float(rmax.rstrip("%")))
-        else:
-            vmax = float(rmax)
+        vmin, vmax = self.viewoptions.colors.get_range_as_float(isotope, data)
 
         # Plot the image
         self.image = self.ax.imshow(
@@ -265,7 +260,7 @@ class LaserCanvas(BasicCanvas):
         if data is None or data.size == 0:
             data = np.array([[0]], dtype=np.float64)
 
-        self.drawData(data, extent)
+        self.drawData(data, extent, name)
         if self.options["colorbar"]:
             self.drawColorbar(unit)
 
@@ -287,7 +282,7 @@ class LaserCanvas(BasicCanvas):
                 location="upper right",
                 frameon=False,
                 color=self.viewoptions.font.color,
-                font_properties=self.viewoptions.font.props(),
+                font_properties={"size": self.viewoptions.font.size},
             )
             self.ax.add_artist(scalebar)
 

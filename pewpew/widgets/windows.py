@@ -29,6 +29,12 @@ class DockArea(QtWidgets.QMainWindow):
         self.mouse_select = False
         self.mouse_filter = MousePressRedirectFilter(self)
 
+    def uniqueIsotopes(self) -> List[str]:
+        isotopes = set()
+        for dock in self.findChildren(LaserImageDock):
+            isotopes.update(dock.laser.isotopes)
+        return sorted(isotopes)
+
     def addDockWidgets(
         self,
         docks: List[LaserImageDock],
@@ -142,9 +148,9 @@ class DockArea(QtWidgets.QMainWindow):
         docks = []
         for laser in lasers:
             if isinstance(laser, KrissKross):
-                docks.append(KrissKrossImageDock(laser, self.window().viewconfig, self))
+                docks.append(KrissKrossImageDock(laser, self.window().viewoptions, self))
             else:
-                docks.append(LaserImageDock(laser, self.window().viewconfig, self))
+                docks.append(LaserImageDock(laser, self.window().viewoptions, self))
         self.addDockWidgets(docks)
 
     def mousePressEvent(self, event: QtCore.QEvent) -> None:

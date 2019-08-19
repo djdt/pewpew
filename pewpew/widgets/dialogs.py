@@ -8,6 +8,7 @@ from matplotlib.text import Text
 from laserlib import LaserCalibration, LaserConfig
 from laserlib.krisskross import KrissKrossConfig
 
+from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets.canvases import BasicCanvas
 from pewpew.validators import (
     DecimalValidator,
@@ -228,14 +229,14 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
 class ColorRangeDialog(ApplyDialog):
     def __init__(
         self,
-        current_ranges: Dict[str, Tuple],
+        viewoptions: ViewOptions,
         isotopes: List[str],
-        current_isotope: str,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
-        self.ranges = copy.copy(current_ranges)
-        self.previous_isotope = current_isotope
+        self.default_range = viewoptions.colors.default_range
+        self.ranges = copy.copy(viewoptions.colors._ranges)
+        self.previous_isotope = isotopes[0] if len(isotopes) > 0 else None
 
         self.setWindowTitle("Colormap Range")
 
@@ -250,43 +251,62 @@ class ColorRangeDialog(ApplyDialog):
         )
         self.lineedit_max.setToolTip("Percentile for maximum colormap value.")
 
-        self.combo_isotopes = QtWidgets.QComboBox()
-        self.combo_isotopes.addItems(list(self.calibrations.keys()))
-        self.combo_isotopes.setCurrentText(current_isotope)
-        self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
-
         self.layout_form.addRow("Minimum:", self.lineedit_min)
         self.layout_form.addRow("Maximum:", self.lineedit_max)
+
+        # Only add the isotopes combo if there are any open files
+        self.combo_isotopes = QtWidgets.QComboBox()
+        self.combo_isotopes.addItems(isotopes)
+        self.combo_isotopes.setCurrentText(self.previous_isotope)
+        self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
+        self.combo_isotopes.setVisible(len(isotopes) > 0)
         self.layout_form.addRow(self.combo_isotopes)
+
+        # Checkbox
+        self.check_all = QtWidgets.QCheckBox("Apply range to all elements.")
+        self.check_all.setChecked(len(isotopes) == 0)
+        self.check_all.setEnabled(len(isotopes) > 0)
+        self.check_all.clicked.connect(self.enableComboIsotope)
+        self.layout().insertWidget(1, self.check_all)
 
         self.updateLineEdits()
 
-    def comboChanged(self) -> None:
-        self.updateRange(self.previous_isotope)
+    def enableComboIsotope(self, enabled: bool) -> None:
+        self.combo_isotopes.setEnabled(enabled)
+        self.updateLineEdits()
 
-        current_range = self.ranges[self.combo_isotopes.currentText()]
+    def updateLineEdits(self) -> None:
+        current_isotope = self.combo_isotopes.currentText()
+        if self.combo_isotopes.isEnabled():
+            current_range = self.ranges.get(current_isotope, self.default_range)
+        else:
+            current_range = self.default_range
+
         self.lineedit_min.setText(str(current_range[0]))
         self.lineedit_max.setText(str(current_range[1]))
 
+    def comboChanged(self) -> None:
+        self.updateRange(self.previous_isotope)
+        self.updateLineEdits()
         self.previous_isotope = self.combo_isotopes.currentText()
 
-    def updateRange(self, isotope: str) -> None:
+    def updateRange(self, isotope: str = None) -> None:
         tmin, tmax = self.lineedit_min.text(), self.lineedit_max.text()
-        vmin, vmax = self.ranges[isotope]
+        vmin, vmax = self.ranges.get(isotope, self.default_range)
 
-        if "%" in tmin:
-            vmin = float(tmin)
-        elif tmin != "":
-            vmin = tmin
-        if "%" in tmax:
-            vmax = float(tmax)
-        elif tmax != "":
-            vmax = tmax
+        if tmin != "":
+            vmin = tmin if "%" in tmin else float(tmin)
+        if tmax != "":
+            vmax = tmax if "%" in tmax else float(tmax)
 
-        self.ranges[isotope] = (vmin, vmax)
+        if isotope is not None:
+            self.ranges[isotope] = (vmin, vmax)
+        else:
+            self.default_range = (vmin, vmax)
 
     def apply(self) -> None:
-        self.updateRange(self.combo_isotopes.currentText())
+        current_isotope = self.combo_isotopes.currentText()
+        self.updateRange(current_isotope if self.combo_isotopes.isEnabled() else None)
 
 
 class ConfigDialog(ApplyDialog):

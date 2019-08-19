@@ -509,18 +509,11 @@ class MainWindow(QtWidgets.QMainWindow):
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
             for isotope, range in dialog.ranges.items():
                 self.viewoptions.colors.set_range(range, isotope)
+            self.viewoptions.colors.default_range = dialog.default_range
             self.refresh()
 
-        isotopes = list(
-            set(
-                [
-                    dock.laser.isotopes
-                    for dock in self.dockarea.findChildren(LaserImageDock)
-                ]
-            )
-        )
         dlg = dialogs.ColorRangeDialog(
-            self.viewoptions.colors._ranges, isotopes, isotopes[0], parent=self
+            self.viewoptions, self.dockarea.uniqueIsotopes(), parent=self
         )
         dlg.applyPressed.connect(applyDialog)
         if dlg.exec():
