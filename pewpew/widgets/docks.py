@@ -241,7 +241,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 layers=1,
                 parent=self,
             )
-            if dlg.exec():
+            if dlg.open():
                 paths = dlg.generate_paths(self.laser)
                 kwargs = {
                     "calibrate": self.canvas.viewoptions["calibrate"],
@@ -262,7 +262,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 viewlimits=self.canvas.view_limits,
                 parent=self,
             )
-            if dlg.exec():
+            if dlg.open():
                 paths = dlg.generate_paths(self.laser)
                 old_size = self.canvas.figure.get_size_inches()
                 size = dlg.options.imagesize()
@@ -317,7 +317,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
             calibrations, self.combo_isotope.currentText(), parent=self
         )
         dlg.applyPressed.connect(applyDialog)
-        dlg.exec()
+        dlg.open()
 
     def onMenuConfig(self) -> None:
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
@@ -332,7 +332,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
         dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
         dlg.applyPressed.connect(applyDialog)
-        dlg.exec()
+        dlg.open()
 
     def onMenuStats(self) -> None:
         data = self.canvas.image.get_array()
@@ -370,7 +370,10 @@ class LaserImageDock(QtWidgets.QDockWidget):
 
 class KrissKrossImageDock(LaserImageDock):
     def __init__(
-        self, laser: KrissKross, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
+        self,
+        laser: KrissKross,
+        viewoptions: ViewOptions,
+        parent: QtWidgets.QWidget = None,
     ):
         super().__init__(laser, viewoptions, parent)
 
@@ -412,5 +415,5 @@ class KrissKrossImageDock(LaserImageDock):
 
         dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
         dlg.applyPressed.connect(applyDialog)
-        if dlg.exec():
+        if dlg.open():
             applyDialog(dlg)

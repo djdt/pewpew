@@ -395,7 +395,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         isotopes = list(set.union(*[set(dock.laser.isotopes) for dock in docks]))
         dlg = ExportAllDialog(path, docks[0].laser.name, isotopes, 1, self)
-        if not dlg.exec():
+        if not dlg.open():
             return
 
         prompt = OverwriteFilePrompt(parent=self)
@@ -464,7 +464,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.check_all.setEnabled(False)
         dlg.check_all.setChecked(True)
 
-        if dlg.exec():
+        if dlg.open():
             applyDialog(dlg)
 
     def menuCalibrate(self, checked: bool) -> None:
@@ -516,7 +516,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.viewoptions, self.dockarea.uniqueIsotopes(), parent=self
         )
         dlg.applyPressed.connect(applyDialog)
-        if dlg.exec_():
+        if dlg.open():
             applyDialog(dlg)
 
     def menuInterpolation(self, action: QtWidgets.QAction) -> None:
@@ -539,7 +539,7 @@ class MainWindow(QtWidgets.QMainWindow):
     #         parent=self,
     #     )
     #     dlg.applyPressed.connect(applyDialog)
-    #     if dlg.exec():
+    #     if dlg.open():
     #         applyDialog(dlg)
 
     def menuFontsize(self) -> None:
