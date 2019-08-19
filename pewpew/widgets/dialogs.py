@@ -260,19 +260,19 @@ class ColorRangeDialog(ApplyDialog):
         self.combo_isotopes.setCurrentText(self.previous_isotope)
         self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
         self.combo_isotopes.setVisible(len(isotopes) > 0)
-        self.layout_form.addRow(self.combo_isotopes)
+        self.layout().insertWidget(1, self.combo_isotopes, 0, QtCore.Qt.AlignRight)
 
         # Checkbox
         self.check_all = QtWidgets.QCheckBox("Apply range to all elements.")
         self.check_all.setChecked(len(isotopes) == 0)
         self.check_all.setEnabled(len(isotopes) > 0)
         self.check_all.clicked.connect(self.enableComboIsotope)
-        self.layout().insertWidget(1, self.check_all)
+        self.layout().insertWidget(2, self.check_all)
 
         self.updateLineEdits()
 
     def enableComboIsotope(self, enabled: bool) -> None:
-        self.combo_isotopes.setEnabled(enabled)
+        self.combo_isotopes.setEnabled(not enabled)
         self.updateLineEdits()
 
     def updateLineEdits(self) -> None:

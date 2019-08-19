@@ -516,7 +516,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.viewoptions, self.dockarea.uniqueIsotopes(), parent=self
         )
         dlg.applyPressed.connect(applyDialog)
-        if dlg.exec():
+        if dlg.exec_():
             applyDialog(dlg)
 
     def menuInterpolation(self, action: QtWidgets.QAction) -> None:
