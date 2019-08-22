@@ -8,6 +8,7 @@ from laserlib.config import LaserConfig
 from laserlib.calibration import LaserCalibration
 from laserlib.krisskross.config import KrissKrossConfig
 
+from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets.dialogs import (
     ApplyDialog,
     CalibrationDialog,
@@ -58,14 +59,14 @@ def test_calibration_curve_dialog(qtbot: QtBot):
 
 
 def test_colorrange_dialog(qtbot: QtBot):
-    dialog = ColorRangeDialog((0.0, 99.0))
+    dialog = ColorRangeDialog(ViewOptions(), ["A", "B", "C"])
     qtbot.addWidget(dialog)
     dialog.show()
 
     dialog.lineedit_min.setText("1%")
     dialog.lineedit_max.setText("999.9")
-    dialog.updateRange()
-    assert dialog.range == ("1%", 999.9)
+    dialog.updateRange("A")
+    assert dialog.ranges["A"] == ("1%", 999.9)
 
 
 def test_laser_config_dialog(qtbot: QtBot):

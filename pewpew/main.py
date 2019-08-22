@@ -506,6 +506,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh()
 
     def menuColormapRange(self) -> None:
+        def isotopeChanged(text: str) -> None:
+            for dock in self.dockarea.findChildren(LaserImageDock):
+                if text in dock.laser.isotopes:
+                    dock.combo_isotopes.setCurrentText(text)
+
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
             for isotope, range in dialog.ranges.items():
                 self.viewoptions.colors.set_range(range, isotope)
@@ -515,6 +520,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg = dialogs.ColorRangeDialog(
             self.viewoptions, self.dockarea.uniqueIsotopes(), parent=self
         )
+        dlg.combo_isotopes.currentTextChanged.connect(isotopeChanged)
         dlg.applyPressed.connect(applyDialog)
         if dlg.open():
             applyDialog(dlg)

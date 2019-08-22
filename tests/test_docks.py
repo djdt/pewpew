@@ -7,8 +7,7 @@ from PySide2 import QtWidgets
 from laserlib.laser import Laser
 from laserlib.krisskross import KrissKross
 
-from pewpew.main import MainWindow
-
+from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets import dialogs
 from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
 
@@ -20,25 +19,25 @@ def test_laser_image_dock(qtbot: QtBot):
         Laser.from_structured(
             np.array(np.random.random((10, 10)), dtype=[("B2", float), ("A1", float)])
         ),
-        MainWindow.DEFAULT_VIEW_CONFIG,
+        ViewOptions(),
     )
     qtbot.addWidget(dock)
     dock.buildContextMenu()
     dock.show()
-    dock.combo_isotope.setCurrentText("B2")
+    dock.combo_isotopes.setCurrentText("B2")
     dock.populateComboIsotopes()
-    assert dock.combo_isotope.currentText() == "A1"
+    assert dock.combo_isotopes.currentText() == "A1"
 
-    wait_for_and_close_modal(dialogs.CalibrationDialog)
     dock.onMenuCalibration()
-    wait_for_and_close_modal(dialogs.ConfigDialog)
+    dock.dlg.close()
     dock.onMenuConfig()
-    wait_for_and_close_modal(QtWidgets.QWidget)
+    dock.dlg.close()
     dock.onMenuExport()
-    wait_for_and_close_modal(QtWidgets.QWidget)
+    dock.dlg.close()
     dock.onMenuSave()
-    wait_for_and_close_top_level(dialogs.StatsDialog)
+    dock.dlg.close()
     dock.onMenuStats()
+    dock.dlg.close()
 
     dock.close()
 
@@ -51,15 +50,15 @@ def test_krisskross_image_dock(qtbot: QtBot):
                 np.array(np.random.random((10, 60)), dtype=[("A1", float)]),
             ]
         ),
-        MainWindow.DEFAULT_VIEW_CONFIG,
+        ViewOptions(),
     )
     qtbot.addWidget(dock)
     dock.buildContextMenu()
     dock.show()
 
-    wait_for_and_close_modal(dialogs.ConfigDialog)
     dock.onMenuConfig()
-    wait_for_and_close_top_level(dialogs.StatsDialog)
+    dock.dlg.close()
     dock.onMenuStats()
+    dock.dlg.close()
 
     dock.close()

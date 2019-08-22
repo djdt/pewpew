@@ -31,7 +31,7 @@ def wait_for_and_close_modal(
 ) -> None:
     if max_time < 0:
         QtWidgets.QApplication.exit()
-        raise TimeoutError
+        raise TimeoutError(type)
 
     w = QtWidgets.QApplication.activeModalWidget()
     if isinstance(w, type):
