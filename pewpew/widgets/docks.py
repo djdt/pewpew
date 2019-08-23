@@ -216,75 +216,15 @@ class LaserImageDock(QtWidgets.QDockWidget):
             io.npz.save(path, [self.laser])
             self.laser.filepath = path
 
-    def onMenuExport(self) -> None:
-        self.dlg = QtWidgets.QFileDialog(
-            self,
-            "Export",
-            os.path.join(os.path.dirname(self.laser.filepath), self.laser.name),
-            "CSV files(*.csv);;Numpy archives(*.npz);;"
-            "PNG images(*.png);;VTK Images(*.vti);;All files(*)",
-        )
-        # path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-        #     self,
-        #     "Export",
-        #     os.path.join(os.path.dirname(self.laser.filepath), self.laser.name),
-        #     "CSV files(*.csv);;Numpy archives(*.npz);;"
-        #     "PNG images(*.png);;VTK Images(*.vti);;All files(*)",
-        #     options=QtWidgets.QFileDialog.DontConfirmOverwrite,
-        # )
-        if not self.dlg.open():
+    def onMenuExportFileSelected(self, path: str) -> None:
+        if path == "":
             return
-
-        path = self.dlg.selectedFiles()
         ext = os.path.splitext(path)[1].lower()
-
         if ext in [".npz", ".vti"]:  # Show an overwrite dialog
             if not OverwriteFilePrompt.promptOverwriteSingleFile(path, self):
                 return self.onMenuExport()
-
-        if ext == ".csv":
-            self.dlg: exporters.ExportDialog = exporters.CSVExportDialog(
-                path,
-                name=self.combo_isotopes.currentText(),
-                names=len(self.laser.isotopes),
-                layers=1,
-                parent=self,
-            )
-            if self.dlg.open():
-                paths = self.dlg.generate_paths(self.laser)
-                kwargs = {
-                    "calibrate": self.canvas.viewoptions["calibrate"],
-                    "flat": True,
-                }
-                if self.dlg.options.trimmedChecked():
-                    kwargs["extent"] = self.canvas.view_limits
-                for path, isotope, _ in paths:
-                    io.csv.save(path, self.laser.get(isotope, **kwargs))
-        elif ext == ".npz":
+        if ext == ".npz":
             io.npz.save(path, [self.laser])
-        elif ext == ".png":
-            self.dlg = exporters.PNGExportDialog(
-                path,
-                name=self.combo_isotopes.currentText(),
-                names=len(self.laser.isotopes),
-                layers=1,
-                viewlimits=self.canvas.view_limits,
-                parent=self,
-            )
-            if self.dlg.open():
-                paths = self.dlg.generate_paths(self.laser)
-                old_size = self.canvas.figure.get_size_inches()
-                size = self.dlg.options.imagesize()
-                dpi = self.canvas.figure.get_dpi()
-                self.canvas.figure.set_size_inches(size[0] / dpi, size[1] / dpi)
-
-                for path, isotope, _ in paths:
-                    self.canvas.drawLaser(self.laser, isotope)
-                    self.canvas.figure.savefig(path, transparent=True, frameon=False)
-
-                self.canvas.figure.set_size_inches(*old_size)
-                self.canvas.drawLaser(self.laser, self.combo_isotopes.currentText())
-                self.canvas.draw()
         elif ext == ".vti":
             spacing = (
                 self.laser.config.get_pixel_width(),
@@ -298,11 +238,100 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 ),
                 spacing=spacing,
             )
+        elif ext == ".csv":
+            self.dlg = exporters.CSVExportDialog(
+                self.laser,
+                self.combo_isotopes.currentText(),
+                parent=self,
+            )
+            self.dlg.open()
+        elif ext == ".png":
+            self.dlg = exporters.PNGExportDialog(
+                path,
+                self.laser,
+                self.combo_isotopes.currentText(),
+                parent=self,
+            )
+            self.dlg.open()
         else:
             QtWidgets.QMessageBox.warning(
                 self, "Invalid Format", f"Unable to export {ext} format."
             )
-            return self.onMenuExport()
+
+    def onMenuExport(self) -> None:
+        self.dlg = QtWidgets.QFileDialog(
+            self,
+            "Export",
+            os.path.join(os.path.dirname(self.laser.filepath), self.laser.name),
+            "CSV files(*.csv);;Numpy archives(*.npz);;"
+            "PNG images(*.png);;VTK Images(*.vti);;All files(*)",
+        )
+        self.dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        self.dlg.setOption(QtWidgets.QFileDialog.DontConfirmOverwrite, True)
+        self.dlg.fileSelected.connect(self.onMenuExportFileSelected)
+        self.dlg.open()
+
+#         if ext == ".csv":
+#             self.dlg: exporters.ExportDialog = exporters.CSVExportDialog(
+#                 path,
+#                 name=self.combo_isotopes.currentText(),
+#                 names=len(self.laser.isotopes),
+#                 layers=1,
+#                 parent=self,
+#             )
+#             if self.dlg.open():
+#                 paths = self.dlg.generate_paths(self.laser)
+#                 kwargs = {
+#                     "calibrate": self.canvas.viewoptions["calibrate"],
+#                     "flat": True,
+#                 }
+#                 if self.dlg.options.trimmedChecked():
+#                     kwargs["extent"] = self.canvas.view_limits
+#                 for path, isotope, _ in paths:
+#                     io.csv.save(path, self.laser.get(isotope, **kwargs))
+#         elif ext == ".npz":
+#             io.npz.save(path, [self.laser])
+#         elif ext == ".png":
+#             self.dlg = exporters.PNGExportDialog(
+#                 path,
+#                 name=self.combo_isotopes.currentText(),
+#                 names=len(self.laser.isotopes),
+#                 layers=1,
+#                 viewlimits=self.canvas.view_limits,
+#                 parent=self,
+#             )
+#             if self.dlg.open():
+#                 paths = self.dlg.generate_paths(self.laser)
+#                 old_size = self.canvas.figure.get_size_inches()
+#                 size = self.dlg.options.imagesize()
+#                 dpi = self.canvas.figure.get_dpi()
+#                 self.canvas.figure.set_size_inches(size[0] / dpi, size[1] / dpi)
+
+#                 for path, isotope, _ in paths:
+#                     self.canvas.drawLaser(self.laser, isotope)
+#                     self.canvas.figure.savefig(path, transparent=True, frameon=False)
+
+#                 self.canvas.figure.set_size_inches(*old_size)
+#                 self.canvas.drawLaser(self.laser, self.combo_isotopes.currentText())
+#                 self.canvas.draw()
+#         elif ext == ".vti":
+#             spacing = (
+#                 self.laser.config.get_pixel_width(),
+#                 self.laser.config.get_pixel_height(),
+#                 self.laser.config.spotsize / 2.0,
+#             )
+#             io.vtk.save(
+#                 path,
+#                 self.laser.get_structured(
+#                     calibrate=self.canvas.viewoptions["calibrate"]
+#                 ),
+#                 spacing=spacing,
+#             )
+#         else:
+#             QtWidgets.QMessageBox.warning(
+#                 self, "Invalid Format", f"Unable to export {ext} format."
+#             )
+#             return self.onMenuExport()
 
     def onMenuCalibration(self) -> None:
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
@@ -363,8 +392,7 @@ class LaserImageDock(QtWidgets.QDockWidget):
         self.dlg = dialogs.StatsDialog(
             data,
             self.canvas.viewoptions.colors.get_range_as_float(
-                self.combo_isotopes.currentText(),
-                data,
+                self.combo_isotopes.currentText(), data
             ),
             parent=self,
         )

@@ -2,8 +2,10 @@ from PySide2 import QtGui, QtWidgets
 
 import os.path
 
+from laserlib import io
 from laserlib.laser import Laser
 
+from pewpew.widgets.canvases import BasicCanvas
 from pewpew.widgets.prompts import OverwriteFilePrompt
 
 from typing import List, Tuple
@@ -70,23 +72,19 @@ class ExportAllOptions(QtWidgets.QStackedWidget):
 class ExportDialog(QtWidgets.QDialog):
     def __init__(
         self,
-        path: str,
-        isotope: str,
-        nisotopes: int,
-        nlayers: int,
+        laser: Laser,
+        current_isotope: str,
         options: QtWidgets.QWidget,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
-        self.path = path
-        self.isotope = isotope
-
         self.setWindowTitle("Export")
-
+        self.isotope = current_isotope
+        self.laser = laser
         self.options = options
 
         self.check_isotopes = QtWidgets.QCheckBox("Export all isotopes.")
-        if nisotopes < 2:
+        if len(laser.isotopes) < 2:
             self.check_isotopes.setEnabled(False)
         self.check_isotopes.stateChanged.connect(self._update)
         # self.check_layers = QtWidgets.QCheckBox("Save all layers.")
@@ -131,73 +129,91 @@ class ExportDialog(QtWidgets.QDialog):
             )
         )
 
-    def _get_isotope(self) -> str:
-        return self.isotope
-
-    def _generate_path(
-        self, laser: Laser = None, isotope: str = None, layer: int = None
-    ) -> str:
-        path, ext = os.path.splitext(self.path)
+    def _generate_path(self, path: str, isotope: str = None, layer: int = None) -> str:
+        base, ext = os.path.splitext(path)
         if isotope is not None:
             if os.path.sep in isotope:
                 isotope = isotope.replace(os.path.sep, "_")
-            path += f"_{isotope}"
+            base += f"_{isotope}"
         if layer is not None:
-            path += f"_{layer}"
+            base += f"_{layer}"
 
-        return path + ext
+        return base + ext
 
-    def generate_paths(
-        self, laser: Laser, prompt: QtWidgets.QMessageBox = None
-    ) -> List[Tuple[str, str, int]]:
+    def _generate_paths(self, path: str) -> List[Tuple[str, str, int]]:
         paths = []
         if self.check_isotopes.isChecked() and self.check_isotopes.isEnabled():
-            if prompt is None:
-                prompt = OverwriteFilePrompt(parent=self)
-            for isotope in laser.isotopes:
-                path = self._generate_path(laser, isotope)
-                if path == "" or not prompt.promptOverwrite(path):
+            prompt = OverwriteFilePrompt(parent=self)
+            for isotope in self.laser.isotopes:
+                p = self._generate_path(path, isotope)
+                if p == "" or not prompt.promptOverwrite(path):
                     continue
-                paths.append((path, isotope, -1))
+                paths.append((p, isotope, -1))
         else:
-            if prompt is None:
-                prompt = OverwriteFilePrompt(show_all_buttons=False, parent=self)
-            path = self._generate_path(laser, None)
-            if path != "" and prompt.promptOverwrite(path):
-                paths.append((path, self._get_isotope(), -1))
+            prompt = OverwriteFilePrompt(show_all_buttons=False, parent=self)
+            p = self._generate_path(path)
+            if p != "" and prompt.promptOverwrite(path):
+                paths.append((p, self.isotope, -1))
         return paths
+
+    def export(self, path: str) -> bool:
+        return NotImplementedError
 
 
 class CSVExportDialog(ExportDialog):
     def __init__(
         self,
-        path: str,
-        name: str,
-        names: int = -1,
-        layers: int = -1,
+        laser: Laser,
+        current_isotope: str,
         parent: QtWidgets.QWidget = None,
     ):
-        super().__init__(path, name, names, layers, CSVExportOptions(), parent)
+        super().__init__(laser, current_isotope, CSVExportOptions(), parent)
+
+    def export(
+        self,
+        path: str,
+        calibrate: bool,
+        view_limits: Tuple[float, float, float, float] = None,
+    ) -> None:
+        paths = self._generate_paths(path)
+        kwargs = {"calibrate": calibrate, "flat": True}
+        if self.dlg.options.trimmedChecked():
+            kwargs["extent"] = view_limits
+        for path, isotope, _ in paths:
+            io.csv.save(path, self.laser.get(isotope, **kwargs))
 
 
 class PNGExportDialog(ExportDialog):
     def __init__(
         self,
-        path: str,
-        name: str,
-        names: int = -1,
-        layers: int = -1,
-        viewlimits: Tuple[float, float, float, float] = None,
+        laser: Laser,
+        current_isotope: str,
+        view_limits: Tuple[float, float, float, float] = None,
         parent: QtWidgets.QWidget = None,
     ):
         imagesize = (1280, 800)
-        if viewlimits is not None:
-            x = viewlimits[1] - viewlimits[0]
-            y = viewlimits[3] - viewlimits[2]
+        if view_limits is not None:
+            x = view_limits[1] - view_limits[0]
+            y = view_limits[3] - view_limits[2]
             imagesize = (1280, int(1280 * x / y)) if x > y else (int(800 * y / x), 800)
         super().__init__(
-            path, name, names, layers, PNGExportOptions(imagesize=imagesize), parent
+            laser, current_isotope, PNGExportOptions(imagesize=imagesize), parent
         )
+
+    def export(self, path: str, canvas: BasicCanvas) -> None:
+        paths = self._generate_paths(path)
+        old_size = canvas.figure.get_size_inches()
+        size = self.options.imagesize()
+        dpi = canvas.figure.get_dpi()
+        canvas.figure.set_size_inches(size[0] / dpi, size[1] / dpi)
+
+        for path, isotope, _ in paths:
+            canvas.drawLaser(self.laser, isotope)
+            canvas.figure.savefig(path, transparent=True, frameon=False)
+
+        canvas.figure.set_size_inches(*old_size)
+        canvas.drawLaser(self.laser, self.current_isotope)
+        canvas.draw()
 
 
 class ExportAllDialog(ExportDialog):
