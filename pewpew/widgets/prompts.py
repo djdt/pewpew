@@ -89,7 +89,9 @@ class OverwriteFilePrompt(QtWidgets.QMessageBox):
                 return False
         return True
 
-    def promptOverwriteSingleFile(path: str, parent: QtWidgets.QWidget = None) -> bool:
-        return OverwriteFilePrompt(show_all_buttons=False, parent=parent).promptOverwrite(
-            path
-        )
+    def promptOverwriteSingleFile(
+        self, path: str, parent: QtWidgets.QWidget = None
+    ) -> bool:
+        return OverwriteFilePrompt(
+            show_all_buttons=False, parent=parent
+        ).promptOverwrite(path)
