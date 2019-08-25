@@ -69,122 +69,153 @@ class VtiExportOptions(QtWidgets.QGroupBox):
 
 
 class ExportDialog(QtWidgets.QFileDialog):
-    FILTER_DICT = {
-        ".csv": "CSV Documents (*.csv)",
-        ".npz": "Numpy Archives (*.npz)",
-        ".png": "PNG Images (*.png)",
-        ".vti": "VTK Images (*.vti)",
-    }
-
     def __init__(self, laser: Laser, directory: str, parent: QtWidgets.QWidget = None):
-        super().__init__(parent, "Export Laser", directory)
-        self.setNameFilters(ExportDialog.FILTER_DICT.values().append("All Files (*)"))
-        self.resize(QtCore.QSize(800, 600))
-        self.laser = laser
-
+        super().__init__(
+            parent,
+            "Export",
+            directory,
+            "CSV files(*.csv);;Numpy archives(*.npz);;"
+            "PNG images(*.png);;VTK Images(*.vti);;All files(*)",
+        )
         self.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
         self.setOption(QtWidgets.QFileDialog.DontConfirmOverwrite, True)
-        self.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
-        self.setViewMode(QtWidgets.QFileDialog.Detail)
 
-        self.filterSelected.connect(self.updateOptions)
-
-        # Grab the filename lineedit so we can hook it up
-        filename_edit = self.findChild(QtWidgets.QLineEdit)
-        filename_edit.textChanged.connect(self.onFileNameChanged)
-
-        self.check_all_isotopes = QtWidgets.QCheckBox("Export all isotopes.")
-        self.check_all_isotopes.setChecked(False)
-
-        self.options_button = QtWidgets.QCheckBox("Format options...")
-        self.options_button.toggled.connect(self.showOptions)
-
-        self.csv_options = CsvExportOptions()
-        self.png_options = PngExportOptions((1280, 800))
-        spacing = (
-            self.laser.config.get_pixel_width(),
-            self.laser.config.get_pixel_height(),
-            self.laser.config.spotsize / 2.0,
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
         )
-        self.vti_options = VtiExportOptions(spacing)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
 
-        self.options = QtWidgets.QStackedWidget()
-        self.options.addWidget(self.csv_options)
-        self.options.addWidget(self.png_options)
-        self.options.addWidget(self.vti_options)
-        self.options.setVisible(False)
-        self.options.setSizePolicy(
-            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
-        )
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
 
-        layout = self.layout()
-        layout.addWidget(self.check_all_isotopes, 4, 0, 1, -1)
-        layout.addWidget(self.options_button, 5, 0, 1, -1)
-        layout.addWidget(self.options, 6, 0, 1, -1)
+    def accept(self) -> None:
+        # Check its ok, open an options dialog
+        return
 
-    def onFileNameChanged(self, name: str) -> None:
-        ext = name[name.rfind(".") :].lower()
-        if ext in ExportDialog.FILTER_DICT:
-            self.selectNameFilter(ExportDialog.FILTER_DICT[ext])
-        else:
-            return
-        self.updateOptions(self.selectedNameFilter())
-
-    def showOptions(self, show: bool) -> None:
-        self.options.setVisible(show)
-
-    def updateOptions(self, filter: str):
-        if filter == "CSV files(*.csv)":
-            self.options_button.setEnabled(True)
-            self.options.setCurrentWidget(self.csv_options)
-        elif filter == "Numpy archives(*.npz)":
-            self.options_button.setEnabled(False)
-        elif filter == "PNG images(*.png)":
-            self.options_button.setEnabled(True)
-            self.options.setCurrentWidget(self.png_options)
-        elif filter == "VTK Images(*.vti)":
-            self.options_button.setEnabled(True)
-            self.options.setCurrentWidget(self.vti_options)
-
-        if self.options_button.isChecked() and self.options_button.isEnabled():
-            self.showOptions(True)
-        else:
-            self.showOptions(False)
-
-    # def export(self) -> None:
-
-    def accept(self):
-        path = self.selectedFiles()[0]
-
-        base, ext = os.path.splitext(path)
-        # if ext.lower() not in ['.csv', '.npz', '.png', '.vti']:
-
-        ext = self.selectedNameFilter()
-        ext = ext[ext.rfind(".") : -1]
-        if not ext.endswith(".csv"):
-            return
-        print(path)
-        super().accept()
-
-    # print('what')
-    # raise NotImplementedError
+    def close(self) -> None:
+        if self.dlg is not None and self.dlg.isVisible():
+            self.dlg.close()
+        super().close()
 
 
-class NumpyArchiveMimeType(QtCore.QMimeType):
-    def __init__(self):
-        db = QtCore.QMimeDatabase()
-        super().__init__(db.mimeTypeForName("application/zip"))
-        self.aliases = "archive/numpy"
-        self.comment = "Numpy archive."
+# class ExportDialog(QtWidgets.QFileDialog):
+#     FILTER_DICT = {
+#         ".csv": "CSV Documents (*.csv)",
+#         ".npz": "Numpy Archives (*.npz)",
+#         ".png": "PNG Images (*.png)",
+#         ".vti": "VTK Images (*.vti)",
+#     }
+
+#     def __init__(self, laser: Laser, directory: str, parent: QtWidgets.QWidget = None):
+#         super().__init__(parent, "Export Laser", directory)
+#         filters = list(ExportDialog.FILTER_DICT.values())
+#         self.setNameFilters(filters + ["All Files (*)"])
+#         self.resize(QtCore.QSize(800, 600))
+#         self.laser = laser
+
+#         self.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+#         self.setOption(QtWidgets.QFileDialog.DontConfirmOverwrite, True)
+#         self.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
+#         self.setViewMode(QtWidgets.QFileDialog.Detail)
+
+#         self.filterSelected.connect(self.updateOptions)
+
+#         # Grab the filename lineedit so we can hook it up
+#         filename_edit = self.findChild(QtWidgets.QLineEdit)
+#         filename_edit.textChanged.connect(self.onFileNameChanged)
+
+#         self.check_all_isotopes = QtWidgets.QCheckBox("Export all isotopes.")
+#         self.check_all_isotopes.setChecked(False)
+
+#         self.options_button = QtWidgets.QCheckBox("Format options...")
+#         self.options_button.toggled.connect(self.showOptions)
+
+#         self.csv_options = CsvExportOptions()
+#         self.png_options = PngExportOptions((1280, 800))
+#         spacing = (
+#             self.laser.config.get_pixel_width(),
+#             self.laser.config.get_pixel_height(),
+#             self.laser.config.spotsize / 2.0,
+#         )
+#         self.vti_options = VtiExportOptions(spacing)
+
+#         self.options = QtWidgets.QStackedWidget()
+#         self.options.addWidget(self.csv_options)
+#         self.options.addWidget(self.png_options)
+#         self.options.addWidget(self.vti_options)
+#         self.options.setVisible(False)
+#         self.options.setSizePolicy(
+#             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+#         )
+
+#         layout = self.layout()
+#         layout.addWidget(self.check_all_isotopes, 4, 0, 1, -1)
+#         layout.addWidget(self.options_button, 5, 0, 1, -1)
+#         layout.addWidget(self.options, 6, 0, 1, -1)
+
+#     def onFileNameChanged(self, name: str) -> None:
+#         ext = name[name.rfind(".") :].lower()
+#         if ext in ExportDialog.FILTER_DICT:
+#             self.selectNameFilter(ExportDialog.FILTER_DICT[ext])
+#         else:
+#             return
+#         self.updateOptions(self.selectedNameFilter())
+
+#     def showOptions(self, show: bool) -> None:
+#         self.options.setVisible(show)
+
+#     def updateOptions(self, filter: str):
+#         if filter == "CSV files(*.csv)":
+#             self.options_button.setEnabled(True)
+#             self.options.setCurrentWidget(self.csv_options)
+#         elif filter == "Numpy archives(*.npz)":
+#             self.options_button.setEnabled(False)
+#         elif filter == "PNG images(*.png)":
+#             self.options_button.setEnabled(True)
+#             self.options.setCurrentWidget(self.png_options)
+#         elif filter == "VTK Images(*.vti)":
+#             self.options_button.setEnabled(True)
+#             self.options.setCurrentWidget(self.vti_options)
+
+#         if self.options_button.isChecked() and self.options_button.isEnabled():
+#             self.showOptions(True)
+#         else:
+#             self.showOptions(False)
+
+#     # def export(self) -> None:
+
+#     def accept(self):
+#         path = self.selectedFiles()[0]
+
+#         base, ext = os.path.splitext(path)
+#         ext = ext.lower()
+#         if ext not in ExportDialog.FILTER_DICT:
+#             ext = next(
+#                 key
+#                 for key, value in ExportDialog.FILTER_DICT.items()
+#                 if value == self.selectedNameFilter()
+#             )
+#         # if ext.lower() not in ['.csv', '.npz', '.png', '.vti']:
+
+#         print(path, base, ext)
+#         super().accept()
+
+#     # print('what')
+#     # raise NotImplementedError
+
+
+# class NumpyArchiveMimeType(QtCore.QMimeType):
+#     def __init__(self):
+#         db = QtCore.QMimeDatabase()
+#         super().__init__(db.mimeTypeForName("application/zip"))
+#         self.aliases = "archive/numpy"
+#         self.comment = "Numpy archive."
 
 
 if __name__ == "__main__":
-    db = QtCore.QMimeDatabase()
-    mime = db.mimeTypeForName("application/zip")
-    print(mime.filterString(), mime.comment(), mime.preferredSuffix())
-    mime = NumpyArchiveMimeType()
-    print(mime.comment())
-    # app = QtWidgets.QApplication()
-    # fd = ExportDialog(Laser(), "")
-    # fd.show()
-    # app.exec_()
+    app = QtWidgets.QApplication()
+    fd = ExportDialog(Laser(), "")
+    fd.show()
+    app.exec_()
