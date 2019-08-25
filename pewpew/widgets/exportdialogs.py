@@ -1,3 +1,4 @@
+import os.path
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from laserlib.laser import Laser
@@ -68,15 +69,16 @@ class VtiExportOptions(QtWidgets.QGroupBox):
 
 
 class ExportDialog(QtWidgets.QFileDialog):
+    FILTER_DICT = {
+        ".csv": "CSV Documents (*.csv)",
+        ".npz": "Numpy Archives (*.npz)",
+        ".png": "PNG Images (*.png)",
+        ".vti": "VTK Images (*.vti)",
+    }
+
     def __init__(self, laser: Laser, directory: str, parent: QtWidgets.QWidget = None):
-        super().__init__(
-            parent,
-            "Export Laser",
-            directory,
-            "CSV files(*.csv);;Numpy archives(*.npz);;"
-            "PNG images(*.png);;VTK Images(*.vti);;All files(*)",
-        )
-        self.setStyle(QtWidgets.QMacStyle())
+        super().__init__(parent, "Export Laser", directory)
+        self.setNameFilters(ExportDialog.FILTER_DICT.values().append("All Files (*)"))
         self.resize(QtCore.QSize(800, 600))
         self.laser = laser
 
@@ -122,14 +124,8 @@ class ExportDialog(QtWidgets.QFileDialog):
 
     def onFileNameChanged(self, name: str) -> None:
         ext = name[name.rfind(".") :].lower()
-        if ext == ".csv":
-            self.selectNameFilter("CSV files(*.csv)")
-        elif ext == ".npz":
-            self.selectNameFilter("Numpy archives(*.npz)")
-        elif ext == ".png":
-            self.selectNameFilter("PNG images(*.png)")
-        elif ext == ".vti":
-            self.selectNameFilter("VTK Images(*.vti)")
+        if ext in ExportDialog.FILTER_DICT:
+            self.selectNameFilter(ExportDialog.FILTER_DICT[ext])
         else:
             return
         self.updateOptions(self.selectedNameFilter())
@@ -155,10 +151,18 @@ class ExportDialog(QtWidgets.QFileDialog):
         else:
             self.showOptions(False)
 
+    # def export(self) -> None:
+
     def accept(self):
         path = self.selectedFiles()[0]
+
+        base, ext = os.path.splitext(path)
+        # if ext.lower() not in ['.csv', '.npz', '.png', '.vti']:
+
         ext = self.selectedNameFilter()
         ext = ext[ext.rfind(".") : -1]
+        if not ext.endswith(".csv"):
+            return
         print(path)
         super().accept()
 
@@ -166,8 +170,21 @@ class ExportDialog(QtWidgets.QFileDialog):
     # raise NotImplementedError
 
 
+class NumpyArchiveMimeType(QtCore.QMimeType):
+    def __init__(self):
+        db = QtCore.QMimeDatabase()
+        super().__init__(db.mimeTypeForName("application/zip"))
+        self.aliases = "archive/numpy"
+        self.comment = "Numpy archive."
+
+
 if __name__ == "__main__":
-    app = QtWidgets.QApplication()
-    fd = ExportDialog(Laser(), "")
-    fd.show()
-    app.exec_()
+    db = QtCore.QMimeDatabase()
+    mime = db.mimeTypeForName("application/zip")
+    print(mime.filterString(), mime.comment(), mime.preferredSuffix())
+    mime = NumpyArchiveMimeType()
+    print(mime.comment())
+    # app = QtWidgets.QApplication()
+    # fd = ExportDialog(Laser(), "")
+    # fd.show()
+    # app.exec_()
