@@ -76,6 +76,7 @@ class ExportDialog(QtWidgets.QFileDialog):
             "CSV files(*.csv);;Numpy archives(*.npz);;"
             "PNG images(*.png);;VTK Images(*.vti);;All files(*)",
         )
+        self.setStyle(QtWidgets.QMacStyle())
         self.resize(QtCore.QSize(800, 600))
         self.laser = laser
 
@@ -116,9 +117,8 @@ class ExportDialog(QtWidgets.QFileDialog):
 
         layout = self.layout()
         layout.addWidget(self.check_all_isotopes, 4, 0, 1, -1)
-        layout.addWidget(self.preview, 5, 0, 1, -1)
-        layout.addWidget(self.options_button, 6, 0, 1, -1)
-        layout.addWidget(self.options, 7, 0, 1, -1)
+        layout.addWidget(self.options_button, 5, 0, 1, -1)
+        layout.addWidget(self.options, 6, 0, 1, -1)
 
     def onFileNameChanged(self, name: str) -> None:
         ext = name[name.rfind(".") :].lower()
@@ -138,7 +138,6 @@ class ExportDialog(QtWidgets.QFileDialog):
         self.options.setVisible(show)
 
     def updateOptions(self, filter: str):
-
         if filter == "CSV files(*.csv)":
             self.options_button.setEnabled(True)
             self.options.setCurrentWidget(self.csv_options)
@@ -156,7 +155,13 @@ class ExportDialog(QtWidgets.QFileDialog):
         else:
             self.showOptions(False)
 
-    # def accept(self):
+    def accept(self):
+        path = self.selectedFiles()[0]
+        ext = self.selectedNameFilter()
+        ext = ext[ext.rfind(".") : -1]
+        print(path)
+        super().accept()
+
     # print('what')
     # raise NotImplementedError
 
