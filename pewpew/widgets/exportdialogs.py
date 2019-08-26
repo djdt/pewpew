@@ -5,6 +5,8 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from laserlib import io
 from laserlib.laser import Laser
 
+from pewpew.lib.viewoptions import ViewOptions
+
 from pewpew.widgets.canvases import LaserCanvas
 from pewpew.widgets.prompts import OverwriteFilePrompt
 
@@ -199,18 +201,12 @@ class ExportDialog(QtWidgets.QDialog):
 
     def generatePaths(self, path: str) -> List[Tuple[str, str]]:
         if self.exportAllIsotopes():
-            return [(self.generatePath(path, i), i) for i in self.laser.isotopes]
+            paths = [(self.generatePath(path, i), i) for i in self.laser.isotopes]
         else:
-            return [(self.generatePath(path), self.isotope)]
+            paths = [(self.generatePath(path), self.isotope)]
 
-    def accept(self) -> None:
-        paths = self.generatePaths()
         prompt = OverwriteFilePrompt()
-        paths = [p for p, _ in paths if prompt.promptOverwrite(p)]
-
-        if len(paths) != 0:
-            for p in paths:
-                self.export(p)
+        return [(p, i) for p, i in paths if p != "" and prompt.promptOverwrite(p)]
 
 
 class CsvExportDialog(ExportDialog):
@@ -225,11 +221,13 @@ class CsvExportDialog(ExportDialog):
         calibrate: bool,
         view_limits: Tuple[float, float, float, float] = None,
     ) -> None:
-        paths = self._generate_paths(path)
+        paths = self.generatePaths(path)
+        if len(paths) == 0:
+            return
         kwargs = {"calibrate": calibrate, "flat": True}
-        if self.dlg.options.trimmedChecked():
+        if self.options.getOptions()["trim"]:
             kwargs["extent"] = view_limits
-        for path, isotope, _ in paths:
+        for path, isotope in paths:
             io.csv.save(path, self.laser.get(isotope, **kwargs))
 
 
@@ -255,17 +253,40 @@ class PngExportDialog(ExportDialog):
             parent,
         )
 
-    def export(self, paths: List[str]) -> None:
+    def export(self, path: str, viewoptions: ViewOptions) -> None:
+        paths = self.generatePaths(path)
+        if len(paths) == 0:
+            return
         options = self.canvas.getOptions()
         size = options["imagesize"]
 
-        canvas = LaserCanvas(options=options["canvas"])
+        canvas = LaserCanvas(viewoptions, options=options["canvas"])
         dpi = canvas.figure.get_dpi()
         canvas.figure.set_size_inches(size[0] / dpi, size[1] / dpi)
 
         for path, isotope, _ in paths:
             canvas.drawLaser(self.laser, isotope)
             canvas.figure.savefig(path, transparent=True, frameon=False)
+
+
+class VtiExportDialog(ExportDialog):
+    def __init__(
+        self, laser: Laser, current_isotope: str, parent: QtWidgets.QWidget = None
+    ):
+        spacing = (
+            laser.config.get_pixel_width(),
+            laser.config.get_pixel_height(),
+            laser.config.spotsize / 2.0,
+        )
+        super().__init__(laser, current_isotope, VtiExportOptions(spacing), parent)
+
+    def export(self, path: str, calibrate: bool) -> None:
+        paths = self.generatePaths(path)
+        if len(paths) != 1:
+            return
+        kwargs = {"calibrate": calibrate}
+        for path, isotope in paths:
+            io.vti.save(path, self.laser.get(isotope, **kwargs))
 
 
 if __name__ == "__main__":
