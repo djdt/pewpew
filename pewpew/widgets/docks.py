@@ -10,7 +10,7 @@ from laserlib.krisskross import KrissKross
 
 from pewpew.lib.mpltools import image_extent_to_data
 from pewpew.lib.viewoptions import ViewOptions
-from pewpew.widgets import dialogs, exporters
+from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.canvases import InteractiveLaserCanvas
 from pewpew.widgets.prompts import OverwriteFilePrompt
 
@@ -223,11 +223,25 @@ class LaserImageDock(QtWidgets.QDockWidget):
         if ext == ".npz":
             if OverwriteFilePrompt.promptOverwriteSingleFile(path, self):
                 io.npz.save(path, [self.laser])
-        elif ext in [".csv", ".png", ".vti"]:
-            dlg = ExportDialog(
+        elif ext == ".csv":
+            dlg = exportdialogs.CsvExportDialog(
                 self.laser, self.combo_isotopes.currentText(), parent=self
             )
-            dlg.exec()
+            if dlg.exec_():
+                dlg.export(path, self.viewoptions.calibrate, self.canvas.view_limits)
+
+        elif ext == ".png":
+            dlg = exportdialogs.PngExportDialog(
+                self.laser, self.combo_isotopes.currentText(), parent=self
+            )
+            if dlg.exec_():
+                dlg.export(path, self.viewoptions, self.canvas.options)
+        elif ext == ".vti":
+            dlg = exportdialogs.VtiExportDialog(
+                self.laser, self.combo_isotopes.currentText(), parent=self
+            )
+            if dlg.exec_():
+                dlg.export(path, self.viewoptions.calibrate)
         else:
             QtWidgets.QMessageBox.warning(
                 self, "Invalid Format", f"Unable to export {ext} format."
