@@ -225,20 +225,20 @@ class LaserImageDock(QtWidgets.QDockWidget):
                 io.npz.save(path, [self.laser])
         elif ext == ".csv":
             dlg = exportdialogs.CsvExportDialog(
-                self.laser, self.combo_isotopes.currentText(), parent=self
+                path, self.laser, self.combo_isotopes.currentText(), parent=self
             )
             if dlg.exec_():
                 dlg.export(path, self.viewoptions.calibrate, self.canvas.view_limits)
 
         elif ext == ".png":
             dlg = exportdialogs.PngExportDialog(
-                self.laser, self.combo_isotopes.currentText(), parent=self
+                path, self.laser, self.combo_isotopes.currentText(), parent=self
             )
             if dlg.exec_():
                 dlg.export(path, self.viewoptions, self.canvas.options)
         elif ext == ".vti":
             dlg = exportdialogs.VtiExportDialog(
-                self.laser, self.combo_isotopes.currentText(), parent=self
+                path, self.laser, self.combo_isotopes.currentText(), parent=self
             )
             if dlg.exec_():
                 dlg.export(path, self.viewoptions.calibrate)
