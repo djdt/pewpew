@@ -14,7 +14,7 @@ from typing import List, Tuple
 
 
 class ExportOptions(QtWidgets.QGroupBox):
-    inputChanged = QtCore.Signal(str)
+    inputChanged = QtCore.Signal()
 
     def __init__(self, title: str, parent: QtWidgets.QWidget = None):
         super().__init__(title, parent)
@@ -109,7 +109,7 @@ class VtiExportOptions(ExportOptions):
         self.linedit_size_y.setEnabled(False)
         self.linedit_size_z = QtWidgets.QLineEdit(str(spacing[2]))
         self.linedit_size_z.setValidator(QtGui.QDoubleValidator(-1e99, 1e99, 4))
-        self.linedit_size_z.textEdited.connect(self.inputChanged.emit)
+        self.linedit_size_z.textEdited.connect(QtCore.Signal(self.inputChanged))
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(QtWidgets.QLabel("Spacing:"), 0)
@@ -138,6 +138,7 @@ class VtiExportOptions(ExportOptions):
 class ExportDialog(QtWidgets.QDialog):
     def __init__(
         self,
+        path: str,
         laser: Laser,
         current_isotope: str,
         options: ExportOptions,
@@ -145,8 +146,9 @@ class ExportDialog(QtWidgets.QDialog):
     ):
         super().__init__(parent)
         self.setWindowTitle("Export")
-        self.isotope = current_isotope
         self.laser = laser
+        self.path = path
+        self.isotope = current_isotope
 
         self.options = options
         self.options.inputChanged.connect(self.optionsChanged)
@@ -189,7 +191,7 @@ class ExportDialog(QtWidgets.QDialog):
         self.lineedit_preview.setText(
             os.path.basename(
                 self.generatePath(
-                    isotope=self.isotope if self.exportAllIsotopes() else ""
+                    self.path, isotope=self.isotope if self.exportAllIsotopes() else ""
                 )
             )
         )
@@ -211,9 +213,13 @@ class ExportDialog(QtWidgets.QDialog):
 
 class CsvExportDialog(ExportDialog):
     def __init__(
-        self, laser: Laser, current_isotope: str, parent: QtWidgets.QWidget = None
+        self,
+        path: str,
+        laser: Laser,
+        current_isotope: str,
+        parent: QtWidgets.QWidget = None,
     ):
-        super().__init__(laser, current_isotope, CsvExportOptions(), parent)
+        super().__init__(path, laser, current_isotope, CsvExportOptions(), parent)
 
     def export(
         self,
@@ -234,6 +240,7 @@ class CsvExportDialog(ExportDialog):
 class PngExportDialog(ExportDialog):
     def __init__(
         self,
+        path: str,
         laser: Laser,
         current_isotope: str,
         canvas: LaserCanvas,
@@ -247,6 +254,7 @@ class PngExportDialog(ExportDialog):
         else:
             imagesize = (1280, 800)
         super().__init__(
+            path,
             laser,
             current_isotope,
             PngExportOptions(imagesize=imagesize, options=canvas.options),
@@ -271,14 +279,20 @@ class PngExportDialog(ExportDialog):
 
 class VtiExportDialog(ExportDialog):
     def __init__(
-        self, laser: Laser, current_isotope: str, parent: QtWidgets.QWidget = None
+        self,
+        path: str,
+        laser: Laser,
+        current_isotope: str,
+        parent: QtWidgets.QWidget = None,
     ):
         spacing = (
             laser.config.get_pixel_width(),
             laser.config.get_pixel_height(),
             laser.config.spotsize / 2.0,
         )
-        super().__init__(laser, current_isotope, VtiExportOptions(spacing), parent)
+        super().__init__(
+            path, laser, current_isotope, VtiExportOptions(spacing), parent
+        )
 
     def export(self, path: str, calibrate: bool) -> None:
         paths = self.generatePaths(path)
@@ -287,10 +301,3 @@ class VtiExportDialog(ExportDialog):
         kwargs = {"calibrate": calibrate}
         for path, isotope in paths:
             io.vti.save(path, self.laser.get(isotope, **kwargs))
-
-
-if __name__ == "__main__":
-    app = QtWidgets.QApplication()
-    ed = PngExportOptions((10, 10))
-    ed.show()
-    app.exec_()
