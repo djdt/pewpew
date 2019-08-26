@@ -86,11 +86,7 @@ class ExportDialog(QtWidgets.QDialog):
         self.check_isotopes = QtWidgets.QCheckBox("Export all isotopes.")
         if len(laser.isotopes) < 2:
             self.check_isotopes.setEnabled(False)
-        self.check_isotopes.stateChanged.connect(self._update)
-        # self.check_layers = QtWidgets.QCheckBox("Save all layers.")
-        # if layers < 2:
-        #     self.check_layers.setEnabled(False)
-        # self.check_layers.stateChanged(self.drawPreview())
+        self.check_isotopes.stateChanged.connect(self.updatePreview)
 
         self.lineedit_preview = QtWidgets.QLineEdit()
         self.lineedit_preview.setEnabled(False)
@@ -112,12 +108,11 @@ class ExportDialog(QtWidgets.QDialog):
         layout_main = QtWidgets.QVBoxLayout()
         layout_main.addWidget(self.options)
         layout_main.addWidget(self.check_isotopes)
-        # layout_main.addWidget(self.check_layers)
         layout_main.addLayout(layout_preview)
         layout_main.addWidget(self.button_box)
         self.setLayout(layout_main)
 
-    def _update(self) -> None:
+    def updatePreview(self) -> None:
         self.lineedit_preview.setText(
             os.path.basename(
                 self._generate_path(
@@ -129,7 +124,7 @@ class ExportDialog(QtWidgets.QDialog):
             )
         )
 
-    def _generate_path(self, path: str, isotope: str = None, layer: int = None) -> str:
+    def generate_path(self, path: str, isotope: str = None, layer: int = None) -> str:
         base, ext = os.path.splitext(path)
         if isotope is not None:
             if os.path.sep in isotope:
@@ -140,7 +135,7 @@ class ExportDialog(QtWidgets.QDialog):
 
         return base + ext
 
-    def _generate_paths(self, path: str) -> List[Tuple[str, str, int]]:
+    def generatePaths(self, path: str) -> List[Tuple[str, str, int]]:
         paths = []
         if self.check_isotopes.isChecked() and self.check_isotopes.isEnabled():
             prompt = OverwriteFilePrompt(parent=self)
@@ -242,7 +237,7 @@ class ExportAllDialog(ExportDialog):
         self.combo_isotopes.currentIndexChanged.connect(self._update)
 
         self.combo_formats = QtWidgets.QComboBox()
-        self.combo_formats.addItems(ExportAllDialog.FORMATS.keys())
+        self.combo_formats.addItems(list(ExportAllDialog.FORMATS.keys()))
         self.combo_formats.currentIndexChanged.connect(self._update)
 
         super().__init__(

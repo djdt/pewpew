@@ -1,33 +1,54 @@
 import os.path
+
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from laserlib import io
 from laserlib.laser import Laser
 
-from typing import Tuple
+from pewpew.widgets.canvases import LaserCanvas
+from pewpew.widgets.prompts import OverwriteFilePrompt
+
+from typing import List, Tuple
 
 
-class CsvExportOptions(QtWidgets.QGroupBox):
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
+class ExportOptions(QtWidgets.QGroupBox):
+    inputChanged = QtCore.Signal(str)
+
+    def __init__(self, title: str, parent: QtWidgets.QWidget = None):
+        super().__init__(title, parent)
         self.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
 
+    def isComplete(self) -> bool:
+        return True
+
+    def getOptions(self) -> dict:
+        return {}
+
+
+class CsvExportOptions(ExportOptions):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__("Csv Options", parent=parent)
         self.check_trim = QtWidgets.QCheckBox("Trim data to view.")
         self.check_trim.setChecked(True)
+        self.check_trim.clicked.connect(self.inputChanged.emit)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.check_trim)
         self.setLayout(layout)
 
+    def getOptions(self) -> dict:
+        return {"trim": self.check_trim.isChecked()}
 
-class PngExportOptions(QtWidgets.QGroupBox):
+
+class PngExportOptions(ExportOptions):
     def __init__(self, imagesize: Tuple[int, int], parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
-        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
-
+        super().__init__("Png Options", parent=parent)
         self.linedit_size_x = QtWidgets.QLineEdit(str(imagesize[0]))
         self.linedit_size_x.setValidator(QtGui.QIntValidator(0, 9999))
+        self.linedit_size_x.textEdited.connect(self.inputChanged.emit)
         self.linedit_size_y = QtWidgets.QLineEdit(str(imagesize[1]))
         self.linedit_size_y.setValidator(QtGui.QIntValidator(0, 9999))
+        self.linedit_size_y.textEdited.connect(self.inputChanged.emit)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(QtWidgets.QLabel("Size:"), 0)
@@ -38,23 +59,33 @@ class PngExportOptions(QtWidgets.QGroupBox):
 
         self.setLayout(layout)
 
+    def isComplete(self) -> bool:
+        return (
+            self.linedit_size_x.hasAcceptableInput()
+            and self.linedit_size_y.hasAcceptableInput()
+        )
 
-class VtiExportOptions(QtWidgets.QGroupBox):
+    def getOptions(self) -> dict:
+        return {
+            "imagesize": (
+                int(self.linedit_size_x.text()),
+                int(self.linedit_size_y.text()),
+            )
+        }
+
+
+class VtiExportOptions(ExportOptions):
     def __init__(
         self, spacing: Tuple[float, float, float], parent: QtWidgets.QWidget = None
     ):
-        super().__init__(parent)
-        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
-        x, y, z = spacing
-
-        self.linedit_size_x = QtWidgets.QLineEdit(str(x))
+        super().__init__("Vti Options", parent=parent)
+        self.linedit_size_x = QtWidgets.QLineEdit(str(spacing[0]))
         self.linedit_size_x.setEnabled(False)
-        # self.linedit_size_x.setValidator(DecimalValidator(0, 1e99, 4))
-        self.linedit_size_y = QtWidgets.QLineEdit(str(y))
+        self.linedit_size_y = QtWidgets.QLineEdit(str(spacing[1]))
         self.linedit_size_y.setEnabled(False)
-        # self.linedit_size_y.setValidator(DecimalValidator(0, 1e99, 4))
-        self.linedit_size_z = QtWidgets.QLineEdit(str(z))
+        self.linedit_size_z = QtWidgets.QLineEdit(str(spacing[2]))
         self.linedit_size_z.setValidator(QtGui.QDoubleValidator(-1e99, 1e99, 4))
+        self.linedit_size_z.textEdited.connect(self.inputChanged.emit)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(QtWidgets.QLabel("Spacing:"), 0)
@@ -67,155 +98,170 @@ class VtiExportOptions(QtWidgets.QGroupBox):
 
         self.setLayout(layout)
 
+    def isComplete(self) -> bool:
+        return self.linedit_size_z.hasAcceptableInput()
 
-class ExportDialog(QtWidgets.QFileDialog):
-    def __init__(self, laser: Laser, directory: str, parent: QtWidgets.QWidget = None):
-        super().__init__(
-            parent,
-            "Export",
-            directory,
-            "CSV files(*.csv);;Numpy archives(*.npz);;"
-            "PNG images(*.png);;VTK Images(*.vti);;All files(*)",
-        )
-        self.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-        self.setOption(QtWidgets.QFileDialog.DontConfirmOverwrite, True)
+    def getOptions(self) -> dict:
+        return {
+            "spacing": (
+                float(self.linedit_size_x.text()),
+                float(self.linedit_size_y.text()),
+                float(self.linedit_size_z.text()),
+            )
+        }
 
-        self.buttons = QtWidgets.QDialogButtonBox(
+
+class ExportDialog(QtWidgets.QDialog):
+    def __init__(
+        self,
+        laser: Laser,
+        current_isotope: str,
+        options: ExportOptions,
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(parent)
+        self.setWindowTitle("Export")
+        self.isotope = current_isotope
+        self.laser = laser
+
+        self.options = options
+        self.options.inputChanged.connect(self.optionsChanged)
+
+        self.check_isotopes = QtWidgets.QCheckBox("Export all isotopes.")
+        if len(laser.isotopes) < 2 or options == ".vti":
+            self.check_isotopes.setEnabled(False)
+        self.check_isotopes.stateChanged.connect(self.updatePreview)
+
+        self.lineedit_preview = QtWidgets.QLineEdit()
+        self.lineedit_preview.setEnabled(False)
+
+        self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
         )
-        self.buttons.accepted.connect(self.accept)
-        self.buttons.rejected.connect(self.reject)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
 
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.buttons)
-        self.setLayout(layout)
+        layout_preview = QtWidgets.QHBoxLayout()
+        layout_preview.addWidget(QtWidgets.QLabel("Preview:"))
+        layout_preview.addWidget(self.lineedit_preview)
+
+        layout_main = QtWidgets.QVBoxLayout()
+        layout_main.addWidget(self.options)
+        layout_main.addWidget(self.check_isotopes)
+        layout_main.addLayout(layout_preview)
+        layout_main.addWidget(self.button_box)
+        self.setLayout(layout_main)
+
+        self.updatePreview()
+
+    def optionsChanged(self) -> None:
+        ok = self.button_box.button(QtWidgets.QDialogButtonBox.Ok)
+        ok.setEnabled(self.options.isComplete())
+
+    def exportAllIsotopes(self) -> bool:
+        return self.check_isotopes.isChecked() and self.check_isotopes.isEnabled()
+
+    def updatePreview(self) -> None:
+        self.lineedit_preview.setText(
+            os.path.basename(
+                self.generatePath(
+                    isotope=self.isotope if self.exportAllIsotopes() else ""
+                )
+            )
+        )
+
+    def generatePath(self, path: str, isotope: str = "") -> str:
+        base, ext = os.path.splitext(path)
+        isotope = isotope.replace(os.path.sep, "_")
+        return f"{base}{'_' if isotope else ''}{isotope}{ext}"
+
+    def generatePaths(self, path: str) -> List[Tuple[str, str]]:
+        if self.exportAllIsotopes():
+            return [(self.generatePath(path, i), i) for i in self.laser.isotopes]
+        else:
+            return [(self.generatePath(path), self.isotope)]
 
     def accept(self) -> None:
-        # Check its ok, open an options dialog
-        return
+        paths = self.generatePaths()
+        prompt = OverwriteFilePrompt()
+        paths = [p for p, _ in paths if prompt.promptOverwrite(p)]
 
-    def close(self) -> None:
-        if self.dlg is not None and self.dlg.isVisible():
-            self.dlg.close()
-        super().close()
-
-
-# class ExportDialog(QtWidgets.QFileDialog):
-#     FILTER_DICT = {
-#         ".csv": "CSV Documents (*.csv)",
-#         ".npz": "Numpy Archives (*.npz)",
-#         ".png": "PNG Images (*.png)",
-#         ".vti": "VTK Images (*.vti)",
-#     }
-
-#     def __init__(self, laser: Laser, directory: str, parent: QtWidgets.QWidget = None):
-#         super().__init__(parent, "Export Laser", directory)
-#         filters = list(ExportDialog.FILTER_DICT.values())
-#         self.setNameFilters(filters + ["All Files (*)"])
-#         self.resize(QtCore.QSize(800, 600))
-#         self.laser = laser
-
-#         self.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-#         self.setOption(QtWidgets.QFileDialog.DontConfirmOverwrite, True)
-#         self.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
-#         self.setViewMode(QtWidgets.QFileDialog.Detail)
-
-#         self.filterSelected.connect(self.updateOptions)
-
-#         # Grab the filename lineedit so we can hook it up
-#         filename_edit = self.findChild(QtWidgets.QLineEdit)
-#         filename_edit.textChanged.connect(self.onFileNameChanged)
-
-#         self.check_all_isotopes = QtWidgets.QCheckBox("Export all isotopes.")
-#         self.check_all_isotopes.setChecked(False)
-
-#         self.options_button = QtWidgets.QCheckBox("Format options...")
-#         self.options_button.toggled.connect(self.showOptions)
-
-#         self.csv_options = CsvExportOptions()
-#         self.png_options = PngExportOptions((1280, 800))
-#         spacing = (
-#             self.laser.config.get_pixel_width(),
-#             self.laser.config.get_pixel_height(),
-#             self.laser.config.spotsize / 2.0,
-#         )
-#         self.vti_options = VtiExportOptions(spacing)
-
-#         self.options = QtWidgets.QStackedWidget()
-#         self.options.addWidget(self.csv_options)
-#         self.options.addWidget(self.png_options)
-#         self.options.addWidget(self.vti_options)
-#         self.options.setVisible(False)
-#         self.options.setSizePolicy(
-#             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
-#         )
-
-#         layout = self.layout()
-#         layout.addWidget(self.check_all_isotopes, 4, 0, 1, -1)
-#         layout.addWidget(self.options_button, 5, 0, 1, -1)
-#         layout.addWidget(self.options, 6, 0, 1, -1)
-
-#     def onFileNameChanged(self, name: str) -> None:
-#         ext = name[name.rfind(".") :].lower()
-#         if ext in ExportDialog.FILTER_DICT:
-#             self.selectNameFilter(ExportDialog.FILTER_DICT[ext])
-#         else:
-#             return
-#         self.updateOptions(self.selectedNameFilter())
-
-#     def showOptions(self, show: bool) -> None:
-#         self.options.setVisible(show)
-
-#     def updateOptions(self, filter: str):
-#         if filter == "CSV files(*.csv)":
-#             self.options_button.setEnabled(True)
-#             self.options.setCurrentWidget(self.csv_options)
-#         elif filter == "Numpy archives(*.npz)":
-#             self.options_button.setEnabled(False)
-#         elif filter == "PNG images(*.png)":
-#             self.options_button.setEnabled(True)
-#             self.options.setCurrentWidget(self.png_options)
-#         elif filter == "VTK Images(*.vti)":
-#             self.options_button.setEnabled(True)
-#             self.options.setCurrentWidget(self.vti_options)
-
-#         if self.options_button.isChecked() and self.options_button.isEnabled():
-#             self.showOptions(True)
-#         else:
-#             self.showOptions(False)
-
-#     # def export(self) -> None:
-
-#     def accept(self):
-#         path = self.selectedFiles()[0]
-
-#         base, ext = os.path.splitext(path)
-#         ext = ext.lower()
-#         if ext not in ExportDialog.FILTER_DICT:
-#             ext = next(
-#                 key
-#                 for key, value in ExportDialog.FILTER_DICT.items()
-#                 if value == self.selectedNameFilter()
-#             )
-#         # if ext.lower() not in ['.csv', '.npz', '.png', '.vti']:
-
-#         print(path, base, ext)
-#         super().accept()
-
-#     # print('what')
-#     # raise NotImplementedError
+        if len(paths) != 0:
+            for p in paths:
+                self.export(p)
 
 
-# class NumpyArchiveMimeType(QtCore.QMimeType):
-#     def __init__(self):
-#         db = QtCore.QMimeDatabase()
-#         super().__init__(db.mimeTypeForName("application/zip"))
-#         self.aliases = "archive/numpy"
-#         self.comment = "Numpy archive."
+class CsvExportDialog(ExportDialog):
+    def __init__(
+        self, laser: Laser, current_isotope: str, parent: QtWidgets.QWidget = None
+    ):
+        super().__init__(laser, current_isotope, CsvExportOptions(), parent)
+
+    def export(
+        self,
+        path: str,
+        calibrate: bool,
+        view_limits: Tuple[float, float, float, float] = None,
+    ) -> None:
+        paths = self._generate_paths(path)
+        kwargs = {"calibrate": calibrate, "flat": True}
+        if self.dlg.options.trimmedChecked():
+            kwargs["extent"] = view_limits
+        for path, isotope, _ in paths:
+            io.csv.save(path, self.laser.get(isotope, **kwargs))
 
 
-if __name__ == "__main__":
-    app = QtWidgets.QApplication()
-    fd = ExportDialog(Laser(), "")
-    fd.show()
-    app.exec_()
+class PngExportDialog(ExportDialog):
+    def __init__(
+        self,
+        laser: Laser,
+        current_isotope: str,
+        canvas: LaserCanvas,
+        parent: QtWidgets.QWidget = None,
+    ):
+        self.canvas = canvas
+        view_limits = canvas.view_limits
+        if view_limits is not None:
+            x = view_limits[1] - view_limits[0]
+            y = view_limits[3] - view_limits[2]
+            imagesize = (1280, int(1280 * x / y)) if x > y else (int(800 * y / x), 800)
+        else:
+            imagesize = (1280, 800)
+        super().__init__(
+            laser, current_isotope, PngExportOptions(imagesize=imagesize), parent
+        )
+
+    def export(self, path: str) -> None:
+        paths = self._generate_paths(path)
+        old_size = self.canvas.figure.get_size_inches()
+        size = self.options.imagesize()
+        dpi = self.canvas.figure.get_dpi()
+        self.canvas.figure.set_size_inches(size[0] / dpi, size[1] / dpi)
+
+        for path, isotope, _ in paths:
+            self.canvas.drawLaser(self.laser, isotope)
+            self.canvas.figure.savefig(path, transparent=True, frameon=False)
+
+        self.canvas.figure.set_size_inches(*old_size)
+        self.canvas.drawLaser(self.laser, self.current_isotope)
+        self.canvas.draw()
+
+
+class CsvExportDialog(ExportDialog):
+    def __init__(
+        self, laser: Laser, current_isotope: str, parent: QtWidgets.QWidget = None
+    ):
+        super().__init__(laser, current_isotope, CsvExportOptions(), parent)
+
+    def export(
+        self,
+        path: str,
+        calibrate: bool,
+        view_limits: Tuple[float, float, float, float] = None,
+    ) -> None:
+        paths = self._generate_paths(path)
+        kwargs = {"calibrate": calibrate, "flat": True}
+        if self.dlg.options.trimmedChecked():
+            kwargs["extent"] = view_limits
+        for path, isotope, _ in paths:
+            io.csv.save(path, self.laser.get(isotope, **kwargs))

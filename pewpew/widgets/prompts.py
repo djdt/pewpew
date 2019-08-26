@@ -1,5 +1,8 @@
-from PySide2 import QtWidgets
 import os.path
+
+from PySide2 import QtWidgets
+
+from typing import List
 
 
 class DetailedError(QtWidgets.QMessageBox):
@@ -95,3 +98,15 @@ class OverwriteFilePrompt(QtWidgets.QMessageBox):
         return OverwriteFilePrompt(
             show_all_buttons=False, parent=parent
         ).promptOverwrite(path)
+
+
+class OverwriteFilesPrompt(QtWidgets.QMessageBox):
+    def __init__(self, files: List[str], parent: QtWidgets.QWidget = None):
+        buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+        super().__init__(
+            QtWidgets.QMessageBox.Warning,
+            "Overwrite multiple files?",
+            "\n".join([os.path.basename(f) for f in files]),
+            buttons,
+            parent,
+        )
