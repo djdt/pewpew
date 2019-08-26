@@ -41,7 +41,12 @@ class CsvExportOptions(ExportOptions):
 
 
 class PngExportOptions(ExportOptions):
-    def __init__(self, imagesize: Tuple[int, int], parent: QtWidgets.QWidget = None):
+    def __init__(
+        self,
+        imagesize: Tuple[int, int],
+        options: dict,
+        parent: QtWidgets.QWidget = None,
+    ):
         super().__init__("Png Options", parent=parent)
         self.linedit_size_x = QtWidgets.QLineEdit(str(imagesize[0]))
         self.linedit_size_x.setValidator(QtGui.QIntValidator(0, 9999))
@@ -50,13 +55,25 @@ class PngExportOptions(ExportOptions):
         self.linedit_size_y.setValidator(QtGui.QIntValidator(0, 9999))
         self.linedit_size_y.textEdited.connect(self.inputChanged.emit)
 
-        layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(QtWidgets.QLabel("Size:"), 0)
-        layout.addWidget(self.linedit_size_x, 0)
-        layout.addWidget(QtWidgets.QLabel("x"), 0, QtCore.Qt.AlignCenter)
-        layout.addWidget(self.linedit_size_y, 0)
-        layout.addStretch(1)
+        self.check_colorbar = QtWidgets.QCheckBox("Include colorbar.")
+        self.check_colorbar.setChecked(options["colorbar"])
+        self.check_scalebar = QtWidgets.QCheckBox("Include scalebar.")
+        self.check_colorbar.setChecked(options["scalebar"])
+        self.check_label = QtWidgets.QCheckBox("Include isotope label.")
+        self.check_colorbar.setChecked(options["label"])
 
+        layout_edits = QtWidgets.QHBoxlayout()
+        layout_edits.addWidget(QtWidgets.QLabel("Size:"), 0)
+        layout_edits.addWidget(self.linedit_size_x, 0)
+        layout_edits.addWidget(QtWidgets.QLabel("x"), 0, QtCore.Qt.AlignCenter)
+        layout_edits.addWidget(self.linedit_size_y, 0)
+        layout_edits.addStretch(1)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addLayout(layout_edits)
+        layout.addWidget(self.check_colorbar)
+        layout.addWidget(self.check_scalebar)
+        layout.addWidget(self.check_labek)
         self.setLayout(layout)
 
     def isComplete(self) -> bool:
@@ -67,10 +84,15 @@ class PngExportOptions(ExportOptions):
 
     def getOptions(self) -> dict:
         return {
+            "canvas": {
+                "colorbar": self.check_colorbar.isChecked(),
+                "scalebar": self.check_scalebar.isChecked(),
+                "label": self.check_label.isChecked(),
+            },
             "imagesize": (
                 int(self.linedit_size_x.text()),
                 int(self.linedit_size_y.text()),
-            )
+            ),
         }
 
 
@@ -219,7 +241,6 @@ class PngExportDialog(ExportDialog):
         canvas: LaserCanvas,
         parent: QtWidgets.QWidget = None,
     ):
-        self.canvas = canvas
         view_limits = canvas.view_limits
         if view_limits is not None:
             x = view_limits[1] - view_limits[0]
@@ -228,40 +249,27 @@ class PngExportDialog(ExportDialog):
         else:
             imagesize = (1280, 800)
         super().__init__(
-            laser, current_isotope, PngExportOptions(imagesize=imagesize), parent
+            laser,
+            current_isotope,
+            PngExportOptions(imagesize=imagesize, options=canvas.options),
+            parent,
         )
 
-    def export(self, path: str) -> None:
-        paths = self._generate_paths(path)
-        old_size = self.canvas.figure.get_size_inches()
-        size = self.options.imagesize()
-        dpi = self.canvas.figure.get_dpi()
-        self.canvas.figure.set_size_inches(size[0] / dpi, size[1] / dpi)
+    def export(self, paths: List[str]) -> None:
+        options = self.canvas.getOptions()
+        size = options["imagesize"]
+
+        canvas = LaserCanvas(options=options["canvas"])
+        dpi = canvas.figure.get_dpi()
+        canvas.figure.set_size_inches(size[0] / dpi, size[1] / dpi)
 
         for path, isotope, _ in paths:
-            self.canvas.drawLaser(self.laser, isotope)
-            self.canvas.figure.savefig(path, transparent=True, frameon=False)
-
-        self.canvas.figure.set_size_inches(*old_size)
-        self.canvas.drawLaser(self.laser, self.current_isotope)
-        self.canvas.draw()
+            canvas.drawLaser(self.laser, isotope)
+            canvas.figure.savefig(path, transparent=True, frameon=False)
 
 
-class CsvExportDialog(ExportDialog):
-    def __init__(
-        self, laser: Laser, current_isotope: str, parent: QtWidgets.QWidget = None
-    ):
-        super().__init__(laser, current_isotope, CsvExportOptions(), parent)
-
-    def export(
-        self,
-        path: str,
-        calibrate: bool,
-        view_limits: Tuple[float, float, float, float] = None,
-    ) -> None:
-        paths = self._generate_paths(path)
-        kwargs = {"calibrate": calibrate, "flat": True}
-        if self.dlg.options.trimmedChecked():
-            kwargs["extent"] = view_limits
-        for path, isotope, _ in paths:
-            io.csv.save(path, self.laser.get(isotope, **kwargs))
+if __name__ == "__main__":
+    app = QtWidgets.QApplication()
+    ed = PngExportOptions((10, 10))
+    ed.show()
+    app.exec_()
