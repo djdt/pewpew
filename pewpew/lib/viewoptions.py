@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib.colors import Colormap
 
-from pewpew.lib.mplcolors import ppSpectral
+from pewpew.lib.mplcolors import ppSpectral, googleTurbo
 
 from typing import Dict, Tuple, Union
 
@@ -53,22 +53,24 @@ class ColorOptions(object):
 
 class ImageOptions(object):
     COLORMAPS = {
-        "Magma": "magma",
-        "Viridis": "viridis",
-        "PewPew": ppSpectral,
-        "Cividis": "cividis",
         "Blue Red": "RdBu_r",
         "Blue Yellow Red": "RdYlBu_r",
+        "Cividis": "cividis",
         "Grey": "gray",
+        "Magma": "magma",
+        "PewPew": ppSpectral,
+        "Turbo": googleTurbo,
+        "Viridis": "viridis",
     }
     COLORMAP_DESCRIPTIONS = {
-        "Magma": "Perceptually uniform colormap from R.",
-        "Viridis": "Perceptually uniform colormap from R.",
-        "PewPew": "Custom colormap based on colorbrewers Spectral.",
-        "Cividis": "Perceptually uniform colormap from R.",
         "Blue Red": "Diverging colormap from colorbrewer.",
         "Blue Yellow Red": "Diverging colormap from colorbrewer.",
+        "Cividis": "Perceptually uniform colormap from R.",
         "Grey": "Simple black to white gradient.",
+        "Magma": "Perceptually uniform colormap from R.",
+        "PewPew": "Custom colormap based on colorbrewers Spectral.",
+        "Turbo": "Google's improved version of rainbow colormap jet.",
+        "Viridis": "Perceptually uniform colormap from R.",
     }
     INTERPOLATIONS = {"None": "none", "Bilinear": "bilinear", "Bicubic": "bicubic"}
 
