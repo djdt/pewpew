@@ -139,24 +139,11 @@ class InteractiveCanvas(BasicCanvas):
 
 
 class LaserCanvas(BasicCanvas):
-    DEFAULT_OPTIONS = {
-        "colorbar": True,
-        "scalebar": True,
-        "label": True,
-        "colorbarpos": "bottom",
-    }
-
     def __init__(
-        self,
-        viewoptions: ViewOptions,
-        options: dict = None,
-        parent: QtWidgets.QWidget = None,
+        self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
     ) -> None:
         super().__init__(parent=parent)
         self.viewoptions = viewoptions
-        self.options = copy.deepcopy(LaserCanvas.DEFAULT_OPTIONS)
-        if options is not None:
-            self.options.update(options)
 
         self.redrawFigure()
         self.image: AxesImage = None
@@ -181,19 +168,22 @@ class LaserCanvas(BasicCanvas):
         self.draw_idle()
 
     def redrawFigure(self) -> None:
+        # Restore view limits
         self.figure.clear()
         self.ax = self.figure.subplots()
         self.ax.set_facecolor("black")
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
         self.ax.autoscale(False)
-        if self.options["colorbar"]:
+        if self.viewoptions.canvas.colorbar:
             div = make_axes_locatable(self.ax)
-            self.cax = div.append_axes(self.options["colorbarpos"], size=0.1, pad=0.05)
+            self.cax = div.append_axes(
+                self.viewoptions.canvas.colorbarpos, size=0.1, pad=0.05
+            )
 
     def drawColorbar(self, label: str) -> None:
         self.cax.clear()
-        if self.options["colorbarpos"] in ["right", "left"]:
+        if self.viewoptions.canvas.colorbarpos in ["right", "left"]:
             orientation = "vertical"
         else:
             orientation = "horizontal"
@@ -213,10 +203,7 @@ class LaserCanvas(BasicCanvas):
         extent: Tuple[float, float, float, float],
         isotope: str = None,
     ) -> None:
-        # Save and restore the ax limits
-        view_limits = self.view_limits
         self.ax.clear()
-        self.view_limits = view_limits
 
         # Calculate the range
         vmin, vmax = self.viewoptions.colors.get_range_as_float(isotope, data)
@@ -224,7 +211,7 @@ class LaserCanvas(BasicCanvas):
         # Plot the image
         self.image = self.ax.imshow(
             data,
-            cmap=self.viewoptions.colors.cmap,
+            cmap=self.viewoptions.image.cmap,
             interpolation=self.viewoptions.image.interpolation,
             alpha=self.viewoptions.image.alpha,
             vmin=vmin,
@@ -236,9 +223,7 @@ class LaserCanvas(BasicCanvas):
 
     def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
         # Get the trimmed and calibrated data
-        kwargs = {"calibrate": self.viewoptions.calibrate, "layer": layer}
-        if isinstance(laser, KrissKross):
-            kwargs["flat"] = True
+        kwargs = {"calibrate": self.viewoptions.calibrate, "layer": layer, "flat": True}
 
         data = laser.get(name, **kwargs)
         unit = (
@@ -260,11 +245,15 @@ class LaserCanvas(BasicCanvas):
         if data is None or data.size == 0:
             data = np.array([[0]], dtype=np.float64)
 
+        # Restor any view limit
+        view_limits = self.view_limits
         self.drawData(data, extent, name)
-        if self.options["colorbar"]:
+        self.view_limits = view_limits
+
+        if self.viewoptions.canvas.colorbar:
             self.drawColorbar(unit)
 
-        if self.options["label"]:
+        if self.viewoptions.canvas.label:
             text = AnchoredText(
                 name,
                 "upper left",
@@ -275,7 +264,7 @@ class LaserCanvas(BasicCanvas):
             )
             self.ax.add_artist(text)
 
-        if self.options["scalebar"]:
+        if self.viewoptions.canvas.scalebar:
             scalebar = ScaleBar(
                 1.0,
                 "um",
@@ -291,11 +280,10 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
     def __init__(
         self,
         viewoptions: ViewOptions,
-        options: dict = None,
         connect_mouse_events: bool = True,
         parent: QtWidgets.QWidget = None,
     ) -> None:
-        super().__init__(viewoptions=viewoptions, options=options, parent=parent)
+        super().__init__(viewoptions=viewoptions, parent=parent)
 
         try:
             self.status_bar = parent.window().statusBar()

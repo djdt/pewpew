@@ -160,12 +160,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # View - colormap
         cmap_group = QtWidgets.QActionGroup(menu_cmap)
-        colors = self.viewoptions.colors
-        for name in colors.COLORMAPS:
+        colors = self.viewoptions.image.COLORMAPS
+        for name in colors:
             action = cmap_group.addAction(name)
-            action.setStatusTip(colors.COLORMAP_DESCRIPTIONS[name])
+            action.setStatusTip(self.viewoptions.image.COLORMAP_DESCRIPTIONS[name])
             action.setCheckable(True)
-            if colors.COLORMAPS[name] == self.viewoptions.colors.cmap:
+            if colors[name] == self.viewoptions.image.cmap:
                 action.setChecked(True)
             menu_cmap.addAction(action)
         cmap_group.triggered.connect(self.menuColormap)
@@ -502,7 +502,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
-        self.viewoptions.colors.set_cmap(text)
+        self.viewoptions.image.set_cmap(text)
         self.refresh()
 
     def menuColormapRange(self) -> None:
@@ -563,19 +563,21 @@ class MainWindow(QtWidgets.QMainWindow):
             self.refresh()
 
     def menuOptionColorbar(self, checked: bool) -> None:
+        self.viewoptions.canvas.colorbar = checked
         for dock in self.dockarea.findChildren(LaserImageDock):
-            dock.canvas.options["colorbar"] = checked
+            view_limits = dock.canvas.view_limits
             dock.canvas.redrawFigure()
+            dock.canvas.view_limits = view_limits
             dock.draw()
 
     def menuOptionLabel(self, checked: bool) -> None:
+        self.viewoptions.canvas.label = checked
         for dock in self.dockarea.findChildren(LaserImageDock):
-            dock.canvas.options["label"] = checked
             dock.draw()
 
     def menuOptionScalebar(self, checked: bool) -> None:
+        self.viewoptions.canvas.scalebar = checked
         for dock in self.dockarea.findChildren(LaserImageDock):
-            dock.canvas.options["scalebar"] = checked
             dock.draw()
 
     def menuRefresh(self) -> None:

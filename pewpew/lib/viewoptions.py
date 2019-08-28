@@ -8,46 +8,31 @@ from typing import Dict, Tuple, Union
 
 class ViewOptions(object):
     def __init__(self, *args, **kwargs) -> None:
+        self.canvas = CanvasOptions()
         self.colors = ColorOptions()
-        self.image = ImageOptions()
         self.font = FontOptions()
+        self.image = ImageOptions()
 
         self.calibrate = True
         self.units = "μm"
 
 
-class ColorOptions(object):
-    COLORMAPS = {
-        "Magma": "magma",
-        "Viridis": "viridis",
-        "PewPew": ppSpectral,
-        "Cividis": "cividis",
-        "Blue Red": "RdBu_r",
-        "Blue Yellow Red": "RdYlBu_r",
-        "Grey": "grey",
-    }
-    COLORMAP_DESCRIPTIONS = {
-        "Magma": "Perceptually uniform colormap from R.",
-        "Viridis": "Perceptually uniform colormap from R.",
-        "PewPew": "Custom colormap based on colorbrewers Spectral.",
-        "Cividis": "Perceptually uniform colormap from R.",
-        "Blue Red": "Diverging colormap from colorbrewer.",
-        "Blue Yellow Red": "Diverging colormap from colorbrewer.",
-        "Grey": "Simple black to white gradient.",
-    }
-
+class CanvasOptions(object):
     def __init__(
-        self,
-        cmap: Union[str, Colormap] = ppSpectral,
-        default_range: Tuple[Union[float, str], Union[float, str]] = (0.0, "99%"),
+        self, colorbar: bool = True, scalebar: bool = True, label: bool = True
     ):
-        self.cmap = cmap
+        self.colorbar = colorbar
+        self.colorbarpos = "bottom"
+        self.scalebar = scalebar
+        self.label = label
 
+
+class ColorOptions(object):
+    def __init__(
+        self, default_range: Tuple[Union[float, str], Union[float, str]] = (0.0, "99%")
+    ):
         self.default_range = default_range
         self._ranges: Dict[str, Tuple[Union[float, str], Union[float, str]]] = {}
-
-    def set_cmap(self, name: str) -> None:
-        self.cmap = self.COLORMAPS[name]
 
     def get_range(self, isotope: str) -> Tuple[Union[float, str], Union[float, str]]:
         return self._ranges.get(isotope, self.default_range)
@@ -67,11 +52,38 @@ class ColorOptions(object):
 
 
 class ImageOptions(object):
+    COLORMAPS = {
+        "Magma": "magma",
+        "Viridis": "viridis",
+        "PewPew": ppSpectral,
+        "Cividis": "cividis",
+        "Blue Red": "RdBu_r",
+        "Blue Yellow Red": "RdYlBu_r",
+        "Grey": "grey",
+    }
+    COLORMAP_DESCRIPTIONS = {
+        "Magma": "Perceptually uniform colormap from R.",
+        "Viridis": "Perceptually uniform colormap from R.",
+        "PewPew": "Custom colormap based on colorbrewers Spectral.",
+        "Cividis": "Perceptually uniform colormap from R.",
+        "Blue Red": "Diverging colormap from colorbrewer.",
+        "Blue Yellow Red": "Diverging colormap from colorbrewer.",
+        "Grey": "Simple black to white gradient.",
+    }
     INTERPOLATIONS = {"None": "none", "Bilinear": "bilinear", "Bicubic": "bicubic"}
 
-    def __init__(self, interpolation: str = "none", alpha: float = 1.0):
+    def __init__(
+        self,
+        cmap: Union[str, Colormap] = ppSpectral,
+        interpolation: str = "none",
+        alpha: float = 1.0,
+    ):
+        self.cmap = cmap
         self.interpolation = interpolation
         self.alpha = alpha
+
+    def set_cmap(self, name: str) -> None:
+        self.cmap = self.COLORMAPS[name]
 
 
 class FontOptions(object):
