@@ -1,4 +1,3 @@
-import copy
 import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -16,7 +15,7 @@ from matplotlib_scalebar.scalebar import ScaleBar
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from laserlib.laser import Laser
-from laserlib.krisskross import KrissKross, KrissKrossConfig
+from laserlib.krisskross import KrissKrossConfig
 
 from pewpew.lib.mplwidgets import (
     _ImageSelectionWidget,
