@@ -59,7 +59,7 @@ class ImageOptions(object):
         "Cividis": "cividis",
         "Blue Red": "RdBu_r",
         "Blue Yellow Red": "RdYlBu_r",
-        "Grey": "grey",
+        "Grey": "gray",
     }
     COLORMAP_DESCRIPTIONS = {
         "Magma": "Perceptually uniform colormap from R.",
