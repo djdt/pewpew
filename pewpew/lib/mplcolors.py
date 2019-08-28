@@ -1,4 +1,4 @@
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 
 # from matplotlib.cm import register_cmap
 
@@ -20,8 +20,7 @@ ppSpectral = LinearSegmentedColormap.from_list(
     ],
 )
 
-googleTurbo = LinearSegmentedColormap.from_list(
-    "Turbo",
+googleTurbo = ListedColormap(
     [
         [0.18995, 0.07176, 0.23217],
         [0.19483, 0.08339, 0.26149],
@@ -280,6 +279,7 @@ googleTurbo = LinearSegmentedColormap.from_list(
         [0.49321, 0.01963, 0.00955],
         [0.47960, 0.01583, 0.01055],
     ],
+    "Turbo",
 )
 
 # register_cmap("ppSpectral", cmap=ppSpectral)
