@@ -2,6 +2,11 @@ import os.path
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from laserlib import io
+from laserlib.laser import Laser
+
+from pewpew.widgets.prompts import OverwriteFilePrompt
+
 from typing import List, Tuple
 
 
@@ -137,6 +142,8 @@ class ExportDialog(QtWidgets.QDialog):
 
         self.lineedit_directory = QtWidgets.QLineEdit(directory)
         self.lineedit_directory.setClearButtonEnabled(True)
+        self.lineedit_directory.textChanged.connect(self.validate)
+
         icon = QtGui.QIcon.fromTheme("document-open-folder")
         self.button_directory = QtWidgets.QPushButton(
             icon, "Open" if icon.isNull() else ""
@@ -144,9 +151,10 @@ class ExportDialog(QtWidgets.QDialog):
         self.button_directory.clicked.connect(self.selectDirectory)
         self.lineedit_filename = QtWidgets.QLineEdit(filename)
         self.lineedit_filename.textChanged.connect(self.filenameChanged)
+        self.lineedit_filename.textChanged.connect(self.validate)
 
         self.options = ExportOptions()
-        self.options.inputChanged.connect(self.optionsChanged)
+        self.options.inputChanged.connect(self.validate)
 
         self.combo_type = QtWidgets.QComboBox()
         for i in range(0, self.options.count()):
@@ -161,9 +169,7 @@ class ExportDialog(QtWidgets.QDialog):
         self.check_calibrate.setChecked(True)
         self.check_calibrate.setToolTip("Calibrate the data before exporting.")
 
-        self.check_all_isotopes = QtWidgets.QCheckBox(
-            "Export all isotopes."
-        )
+        self.check_all_isotopes = QtWidgets.QCheckBox("Export all isotopes.")
         self.check_all_isotopes.setChecked(True)
         self.check_all_isotopes.setToolTip(
             "Export all isotopes for the current image.\n"
@@ -199,8 +205,23 @@ class ExportDialog(QtWidgets.QDialog):
         # Init with correct filename
         self.filenameChanged(filename)
 
+    def isComplete(self) -> bool:
+        if not os.path.exists(self.lineedit_directory.text()):
+            return False
+        if self.lineedit_filename.text() == "":
+            return False
+        if not self.options.isComplete():
+            return False
+        return True
+
+    def validate(self) -> None:
+        ok = self.button_box.button(QtWidgets.QDialogButtonBox.Ok)
+        ok.setEnabled(self.isComplete())
+
     def isExportAll(self) -> bool:
-        return self.check_all_isotopes.isChecked() and self.check_all_isotopes.isEnabled()
+        return (
+            self.check_all_isotopes.isChecked() and self.check_all_isotopes.isEnabled()
+        )
 
     def updatePreview(self) -> None:
         base, ext = os.path.splitext(self.lineedit_filename.text())
@@ -223,10 +244,6 @@ class ExportDialog(QtWidgets.QDialog):
         self.combo_type.setCurrentIndex(index)
         self.updatePreview()
 
-    def optionsChanged(self) -> None:
-        ok = self.button_box.button(QtWidgets.QDialogButtonBox.Ok)
-        ok.setEnabled(self.options.isComplete())
-
     def typeChanged(self, index: int) -> None:
         self.options.setCurrentIndex(index)
         # Hide options when not needed
@@ -244,10 +261,34 @@ class ExportDialog(QtWidgets.QDialog):
         dlg = QtWidgets.QFileDialog(self, "Select Directory", "")
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
         dlg.setFileMode(QtWidgets.QFileDialog.Directory)
-        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, False)
         dlg.fileSelected.connect(self.lineedit_directory.setText)
         dlg.open()
         return dlg
+
+    def getPath(self) -> str:
+        return os.path.join(
+            self.lineedit_directory.text(), self.lineedit_filename.text()
+        )
+
+    def getPathForIsotope(self, isotope: str) -> str:
+        base, ext = os.path.splitext(self.getPath())
+        isotope = isotope.replace(os.path.sep, "_")
+        return f"{base}_{isotope}{ext}"
+
+    def generatePaths(self) -> List[Tuple[str, str]]:
+        if self.isExportAll():
+            paths = [(self.getPathForIsotope(i), i) for i in self.laser.isotopes]
+        else:
+            paths = [(self.getPath(), self.isotope)]
+
+        prompt = OverwriteFilePrompt()
+        return [(p, i) for p, i in paths if p != "" and prompt.promptOverwrite(p)]
+
+    def export(self, path: str) -> None:
+        raise NotImplementedError
+
+
 # class ExportDialog(QtWidgets.QDialog):
 #     def __init__(
 #         self,
