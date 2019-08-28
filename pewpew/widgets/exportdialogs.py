@@ -104,6 +104,9 @@ class ExportOptions(QtWidgets.QStackedWidget):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Preferred
+        )
         self.currentChanged.connect(self.inputChanged)
 
         self.npz = self.addWidget(OptionsBox("Numpy Archives", ".npz"))
@@ -115,6 +118,12 @@ class ExportOptions(QtWidgets.QStackedWidget):
 
         for i in range(0, self.count()):
             self.widget(i).inputChanged.connect(self.inputChanged)
+
+    def sizeHint(self) -> QtCore.QSize:
+        sizes = [self.widget(i).sizeHint() for i in range(0, self.count())]
+        return QtCore.QSize(
+            max(s.width() for s in sizes), max(s.height() for s in sizes)
+        )
 
     def bestImageSize(
         self, extents: Tuple[float, float, float, float], size: Tuple[int, int]
@@ -158,6 +167,7 @@ class ExportDialog(QtWidgets.QDialog):
         filename = os.path.basename(path)
 
         self.lineedit_directory = QtWidgets.QLineEdit(directory)
+        self.lineedit_directory.setMinimumWidth(300)
         self.lineedit_directory.setClearButtonEnabled(True)
         self.lineedit_directory.textChanged.connect(self.validate)
 
@@ -192,7 +202,6 @@ class ExportDialog(QtWidgets.QDialog):
         self.check_calibrate.setToolTip("Calibrate the data before exporting.")
 
         self.check_export_all = QtWidgets.QCheckBox("Export all isotopes.")
-        self.check_export_all.setChecked(True)
         self.check_export_all.setToolTip(
             "Export all isotopes for the current image.\n"
             "The filename will be appended with the isotopes name."
@@ -269,7 +278,10 @@ class ExportDialog(QtWidgets.QDialog):
     def typeChanged(self, index: int) -> None:
         self.options.setCurrentIndex(index)
         # Hide options when not needed
-        self.options.setVisible(not self.options.currentIndex() == self.options.npz)
+        self.options.setVisible(
+            self.options.currentIndex() in [self.options.png, self.options.vti]
+        )
+        self.adjustSize()
         # Enable or disable checks
         self.check_calibrate.setEnabled(self.options.allowCalibrate())
         self.check_export_all.setEnabled(self.options.allowExportAll())
