@@ -389,3 +389,20 @@ class ExportAllDialog(ExportDialog):
     def getPath(self, name: str) -> str:
         base, ext = os.path.splitext(self.lineedit_filename.text())
         return os.path.join(self.lineedit_directory.text(), f"{base}_{name}{ext}")
+
+    def accept(self) -> None:
+        allpaths = []
+        prompt = OverwriteFilePrompt()
+        for laser in self.lasers:
+            paths = self.generatePaths(laser)
+            allpaths.append(
+                [(p, i) for p, i in paths if p != "" and prompt.promptOverwrite(p)]
+            )
+        if any(len(p) == 0 for p in allpaths):
+            return
+
+        for paths, laser, viewlimits in zip(allpaths, self.lasers, self.viewlimits):
+            if not self.export(paths, laser, viewlimits):
+                return
+
+        QtWidgets.QDialog.accept()
