@@ -310,26 +310,27 @@ class ExportDialog(QtWidgets.QDialog):
         isotope = isotope.replace(os.path.sep, "_")
         return f"{base}_{isotope}{ext}"
 
-    def generatePaths(self) -> List[Tuple[str, str]]:
+    def generatePaths(self, laser: Laser) -> List[Tuple[str, str]]:
         if self.isExportAll():
-            paths = [(self.getPathForIsotope(i), i) for i in self.laser.isotopes]
+            paths = [(self.getPathForIsotope(i), i) for i in laser.isotopes]
         else:
             paths = [(self.getPath(), self.isotope)]
 
         prompt = OverwriteFilePrompt()
         return [(p, i) for p, i in paths if p != "" and prompt.promptOverwrite(p)]
 
-    def export(self) -> bool:
-        paths = self.generatePaths()
-        if len(paths) == 0:
-            return False
-
+    def export(
+        self,
+        paths: List[str],
+        laser: Laser,
+        viewlimits: Tuple[float, float, float, float],
+    ) -> bool:
         index = self.options.currentIndex()
         try:
             if index == self.options.csv:
                 kwargs = {"calibrate": self.isCalibrate(), "flat": True}
                 for path, isotope in paths:
-                    data = self.laser.get(isotope, **kwargs)
+                    data = laser.get(isotope, **kwargs)
                     io.csv.save(path, data)
 
             elif index == self.options.png:
@@ -338,19 +339,19 @@ class ExportDialog(QtWidgets.QDialog):
                 dpi = canvas.figure.get_dpi()
                 canvas.figure.set_size_inches(x / dpi, y / dpi)
                 for path, isotope in paths:
-                    canvas.drawLaser(self.laser, isotope)
-                    canvas.view_limits = self.viewlimits
+                    canvas.drawLaser(laser, isotope)
+                    canvas.view_limits = viewlimits
                     canvas.figure.savefig(path, transparent=True, frameon=False)
 
                 canvas.close()
 
             elif index == self.options.vti:
                 spacing = self.options.widget(index).spacing()
-                data = self.laser.get_structured(calibrate=self.isCalibrate())
+                data = laser.get_structured(calibrate=self.isCalibrate())
                 io.vtk.save(paths[0][0], data, spacing)
 
             else:  # npz
-                io.npz.save(paths[0][0], [self.laser])
+                io.npz.save(paths[0][0], [laser])
         except io.error.LaserLibException as e:
             QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
             return False
@@ -358,5 +359,33 @@ class ExportDialog(QtWidgets.QDialog):
         return True
 
     def accept(self) -> None:
-        if self.export():
+        paths = self.generatePaths(self.laser)
+        prompt = OverwriteFilePrompt()
+        paths = [(p, i) for p, i in paths if p != "" and prompt.promptOverwrite(p)]
+        if len(paths) == 0:
+            return
+        if self.export(paths, self.laser, self.viewlimits):
             super().accept()
+
+
+class ExportAllDialog(ExportDialog):
+    def __init__(
+        self,
+        lasers: List[Laser],
+        isotope: str,
+        viewlimits_list: List[Tuple[float, float, float, float]],
+        viewoptions: ViewOptions,
+        parent: QtWidgets.QWidget = None,
+    ):
+        self.lasers = lasers
+
+    def updatePreview(self) -> None:
+        base, ext = os.path.splitext(self.lineedit_filename.text())
+        base += "_<NAME>"
+        if self.isExportAll():
+            base += "_<ISOTOPE>"
+        self.lineedit_preview.setText(base + ext)
+
+    def getPath(self, name: str) -> str:
+        base, ext = os.path.splitext(self.lineedit_filename.text())
+        return os.path.join(self.lineedit_directory.text(), f"{base}_{name}{ext}")
