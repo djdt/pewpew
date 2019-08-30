@@ -2,16 +2,11 @@ import numpy as np
 
 from pytestqt.qtbot import QtBot
 
-from PySide2 import QtWidgets
-
 from laserlib.laser import Laser
 from laserlib.krisskross import KrissKross
 
 from pewpew.lib.viewoptions import ViewOptions
-from pewpew.widgets import dialogs
 from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
-
-from funcs import wait_for_and_close_modal, wait_for_and_close_top_level
 
 
 def test_laser_image_dock(qtbot: QtBot):
