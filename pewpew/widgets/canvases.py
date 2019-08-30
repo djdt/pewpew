@@ -367,6 +367,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.widget.set_active(False)
             self.widget.set_visible(False)
             self.widget.update()
+            self.draw_idle()
         self.state.discard("selection")
         self.widget = None
 
