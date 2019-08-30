@@ -15,8 +15,8 @@ from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets import dialogs
 from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
-from pewpew.widgets.exporters import ExportAllDialog
-from pewpew.widgets.prompts import DetailedError, OverwriteFilePrompt
+from pewpew.widgets.exportdialogs import ExportAllDialog
+from pewpew.widgets.prompts import DetailedError
 from pewpew.widgets.tools import get_operations_tool, Tool, StandardsTool
 from pewpew.widgets.windows import DockArea
 from pewpew.widgets.wizards import KrissKrossWizard
@@ -382,66 +382,19 @@ class MainWindow(QtWidgets.QMainWindow):
         lds = [d.laser for d in docks]
         io.npz.save(path, lds)
 
-    def menuExportAll(self) -> None:
+    def menuExportAll(self) -> QtWidgets.QDialog:
         docks = self.dockarea.findChildren(LaserImageDock)
         if len(docks) == 0:
             return
 
-        path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, "Export To Directory", ""
+        dlg = ExportAllDialog(
+            [dock.laser for dock in docks],
+            self.dockarea.uniqueIsotopes(),
+            self.viewoptions,
+            self,
         )
-        if not path:
-            return
-
-        isotopes = list(set.union(*[set(dock.laser.isotopes) for dock in docks]))
-        dlg = ExportAllDialog(path, docks[0].laser.name, isotopes, 1, self)
-        if not dlg.open():
-            return
-
-        prompt = OverwriteFilePrompt(parent=self)
-        for dock in docks:
-            paths = dlg.generate_paths(dock.laser, prompt=prompt)
-            ext = ExportAllDialog.FORMATS[dlg.combo_formats.currentText()]
-
-            if ext == ".png":
-                old_size = dock.canvas.figure.get_size_inches()
-                size = dlg.options.png.imagesize()
-                dpi = dock.canvas.figure.get_dpi()
-                dock.canvas.figure.set_size_inches(size[0] / dpi, size[1] / dpi)
-
-            for path, isotope, _ in paths:
-                if ext == ".csv":
-                    kwargs = {"calibrate": self.viewoptions.calibrate}
-                    if dlg.options.csv.trimmedChecked():
-                        kwargs["extent"] = dock.canvas.view_limits
-                    io.csv.save(path, dock.laser.get(isotope, **kwargs))
-                elif ext == ".npz":
-                    io.npz.save(path, [dock.laser])
-                elif ext == ".png":
-                    dock.canvas.drawLaser(dock.laser, isotope)
-                    dock.canvas.figure.savefig(path, transparent=True, frameon=False)
-
-                elif ext == ".vti":
-                    spacing = (
-                        dock.laser.config.get_pixel_width(),
-                        dock.laser.config.get_pixel_height(),
-                        dock.laser.config.spotsize / 2.0,
-                    )
-                    io.vtk.save(
-                        path,
-                        dock.laser.get_structured(calibrate=self.viewoptions.calibrate),
-                        spacing=spacing,
-                    )
-                else:
-                    QtWidgets.QMessageBox.warning(
-                        self, "Invalid Format", f"Unable to export {ext} format."
-                    )
-                    return
-
-            if ext == ".png":
-                dock.canvas.figure.set_size_inches(*old_size)
-                dock.canvas.drawLaser(dock.laser, dock.combo_isotope.currentText())
-                dock.canvas.draw()
+        dlg.open()
+        return dlg
 
     def menuCloseAll(self) -> None:
         for dock in self.dockarea.findChildren(LaserImageDock):
@@ -450,7 +403,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def menuExit(self) -> None:
         self.close()
 
-    def menuConfig(self) -> None:
+    def menuConfig(self) -> QtWidgets.QDialog:
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
             self.config = dialog.config
             for dock in self.dockarea.findChildren(LaserImageDock):
@@ -463,9 +416,8 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.applyPressed.connect(applyDialog)
         dlg.check_all.setEnabled(False)
         dlg.check_all.setChecked(True)
-
-        if dlg.open():
-            applyDialog(dlg)
+        dlg.open()
+        return dlg
 
     def menuCalibrate(self, checked: bool) -> None:
         self.viewoptions.calibrate = checked
@@ -505,7 +457,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.viewoptions.image.set_cmap(text)
         self.refresh()
 
-    def menuColormapRange(self) -> None:
+    def menuColormapRange(self) -> QtWidgets.QDialog:
         def isotopeChanged(text: str) -> None:
             for dock in self.dockarea.findChildren(LaserImageDock):
                 if text in dock.laser.isotopes:
@@ -522,31 +474,12 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         dlg.combo_isotopes.currentTextChanged.connect(isotopeChanged)
         dlg.applyPressed.connect(applyDialog)
-        if dlg.open():
-            applyDialog(dlg)
+        dlg.open()
+        return dlg
 
     def menuInterpolation(self, action: QtWidgets.QAction) -> None:
         self.viewoptions.image.interpolation = action.text().replace("&", "")
         self.refresh()
-
-    # def menuFiltering(self, action: QtWidgets.QAction) -> None:
-    #     self.viewconfig["filtering"]["type"] = action.text().replace("&", "")
-    #     self.refresh()
-
-    # def menuFilteringProperties(self) -> None:
-    #     def applyDialog(dialog: dialogs.ApplyDialog) -> None:
-    #         self.viewconfig["filtering"]["window"] = dialog.window
-    #         self.viewconfig["filtering"]["threshold"] = dialog.threshold
-    #         self.refresh()
-
-    #     dlg = dialogs.FilteringDialog(
-    #         self.viewconfig["filtering"]["window"],
-    #         self.viewconfig["filtering"]["threshold"],
-    #         parent=self,
-    #     )
-    #     dlg.applyPressed.connect(applyDialog)
-    #     if dlg.open():
-    #         applyDialog(dlg)
 
     def menuFontsize(self) -> None:
         fontsize, ok = QtWidgets.QInputDialog.getInt(
