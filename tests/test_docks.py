@@ -28,16 +28,16 @@ def test_laser_image_dock(qtbot: QtBot):
     dock.populateComboIsotopes()
     assert dock.combo_isotopes.currentText() == "A1"
 
-    dock.onMenuCalibration()
-    dock.dlg.close()
-    dock.onMenuConfig()
-    dock.dlg.close()
-    dock.onMenuExport()
-    dock.dlg.close()
-    dock.onMenuSave()
-    dock.dlg.close()
-    dock.onMenuStats()
-    dock.dlg.close()
+    dlg = dock.onMenuCalibration()
+    dlg.close()
+    dlg = dock.onMenuConfig()
+    dlg.close()
+    dlg = dock.onMenuExport()
+    dlg.close()
+    dlg = dock.onMenuSave()
+    dlg.close()
+    dlg = dock.onMenuStats()
+    dlg.close()
 
     dock.close()
 
@@ -56,9 +56,9 @@ def test_krisskross_image_dock(qtbot: QtBot):
     dock.buildContextMenu()
     dock.show()
 
-    dock.onMenuConfig()
-    dock.dlg.close()
-    dock.onMenuStats()
-    dock.dlg.close()
+    dlg = dock.onMenuConfig()
+    dlg.close()
+    dlg = dock.onMenuStats()
+    dlg.close()
 
     dock.close()
