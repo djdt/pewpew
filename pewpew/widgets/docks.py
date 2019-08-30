@@ -49,17 +49,23 @@ class ImageDockTitleBar(QtWidgets.QWidget):
         line.setFrameShape(QtWidgets.QFrame.VLine)
         line.setFrameShadow(QtWidgets.QFrame.Sunken)
 
+        layout_select_buttons = QtWidgets.QHBoxLayout()
+        layout_select_buttons.addWidget(self.button_move, 0, QtCore.Qt.AlignLeft)
+        layout_select_buttons.addWidget(self.button_select_rect, 0, QtCore.Qt.AlignLeft)
+        layout_select_buttons.addWidget(
+            self.button_select_lasso, 0, QtCore.Qt.AlignLeft
+        )
         layout_buttons = QtWidgets.QHBoxLayout()
-        layout_buttons.addWidget(self.button_move, 0, QtCore.Qt.AlignLeft)
-        layout_buttons.addWidget(self.button_select_rect, 0, QtCore.Qt.AlignLeft)
-        layout_buttons.addWidget(self.button_select_lasso, 0, QtCore.Qt.AlignLeft)
-        layout_buttons.addWidget(line)
-        layout_buttons.addWidget(self.button_zoom, 0, QtCore.Qt.AlignRight)
-        layout_buttons.addWidget(self.button_zoom_original, 0, QtCore.Qt.AlignRight)
-        layout_buttons.addWidget(self.button_close, 0, QtCore.Qt.AlignRight)
+        layout_buttons.addWidget(self.button_zoom, 0, QtCore.Qt.AlignLeft)
+        layout_buttons.addWidget(self.button_zoom_original, 0, QtCore.Qt.AlignLeft)
+        layout_buttons.addWidget(self.button_close, 0, QtCore.Qt.AlignLeft)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(self.title, 1)
+        layout.addLayout(layout_select_buttons, 0)
+        layout.addSpacing(5)
+        layout.addWidget(line)
+        layout.addSpacing(5)
         layout.addLayout(layout_buttons, 0)
 
         self.setLayout(layout)
