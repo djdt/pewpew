@@ -180,6 +180,9 @@ class ExportDialog(QtWidgets.QDialog):
         self.lineedit_filename.textChanged.connect(self.filenameChanged)
         self.lineedit_filename.textChanged.connect(self.validate)
 
+        self.lineedit_preview = QtWidgets.QLineEdit()
+        self.lineedit_preview.setEnabled(False)
+
         spacing = (
             laser.config.get_pixel_width(),
             laser.config.get_pixel_height(),
@@ -193,9 +196,6 @@ class ExportDialog(QtWidgets.QDialog):
             item = f"{self.options.widget(i).filetype} ({self.options.widget(i).ext})"
             self.combo_type.addItem(item)
         self.combo_type.currentIndexChanged.connect(self.typeChanged)
-
-        self.lineedit_preview = QtWidgets.QLineEdit()
-        self.lineedit_preview.setEnabled(False)
 
         self.check_calibrate = QtWidgets.QCheckBox("Calibrate data.")
         self.check_calibrate.setChecked(True)
@@ -234,6 +234,9 @@ class ExportDialog(QtWidgets.QDialog):
 
         # Init with correct filename
         self.filenameChanged(filename)
+
+    def sizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(600, 200)
 
     def isComplete(self) -> bool:
         if not os.path.exists(self.lineedit_directory.text()):
@@ -316,8 +319,7 @@ class ExportDialog(QtWidgets.QDialog):
         else:
             paths = [(self.getPath(), self.isotope)]
 
-        prompt = OverwriteFilePrompt()
-        return [(p, i) for p, i in paths if p != "" and prompt.promptOverwrite(p)]
+        return [(p, i) for p, i in paths if p != ""]
 
     def export(
         self,
@@ -330,8 +332,9 @@ class ExportDialog(QtWidgets.QDialog):
             if index == self.options.csv:
                 kwargs = {"calibrate": self.isCalibrate(), "flat": True}
                 for path, isotope in paths:
-                    data = laser.get(isotope, **kwargs)
-                    io.csv.save(path, data)
+                    if isotope in laser.isotopes:
+                        data = laser.get(isotope, **kwargs)
+                        io.csv.save(path, data)
 
             elif index == self.options.png:
                 x, y = self.options.widget(index).imagesize()
@@ -339,9 +342,10 @@ class ExportDialog(QtWidgets.QDialog):
                 dpi = canvas.figure.get_dpi()
                 canvas.figure.set_size_inches(x / dpi, y / dpi)
                 for path, isotope in paths:
-                    canvas.drawLaser(laser, isotope)
-                    canvas.view_limits = viewlimits
-                    canvas.figure.savefig(path, transparent=True, frameon=False)
+                    if isotope in laser.isotopes:
+                        canvas.drawLaser(laser, isotope)
+                        canvas.view_limits = viewlimits
+                        canvas.figure.savefig(path, transparent=True, frameon=False)
 
                 canvas.close()
 
@@ -361,7 +365,7 @@ class ExportDialog(QtWidgets.QDialog):
     def accept(self) -> None:
         paths = self.generatePaths(self.laser)
         prompt = OverwriteFilePrompt()
-        paths = [(p, i) for p, i in paths if p != "" and prompt.promptOverwrite(p)]
+        paths = [p for p in paths if prompt.promptOverwrite(p[0])]
         if len(paths) == 0:
             return
         if self.export(paths, self.laser, self.viewlimits):
@@ -372,12 +376,31 @@ class ExportAllDialog(ExportDialog):
     def __init__(
         self,
         lasers: List[Laser],
-        isotope: str,
-        viewlimits_list: List[Tuple[float, float, float, float]],
+        isotopes: List[str],
         viewoptions: ViewOptions,
         parent: QtWidgets.QWidget = None,
     ):
         self.lasers = lasers
+        super().__init__(lasers[0], "", (0, 1, 0, 1), viewoptions, parent)
+
+        self.combo_isotopes = QtWidgets.QComboBox()
+        self.combo_isotopes.addItems(isotopes)
+        layout_isotopes = QtWidgets.QHBoxLayout()
+        layout_isotopes.addWidget(QtWidgets.QLabel("Isotope:"))
+        layout_isotopes.addWidget(self.combo_isotopes)
+        self.layout().insertLayout(2, layout_isotopes)
+
+        self.check_export_all.clicked.connect(self.showIsotopes)
+        self.showIsotopes()
+
+    def showIsotopes(self) -> None:
+        self.combo_isotopes.setEnabled(
+            self.options.allowExportAll() and not self.isExportAll()
+        )
+
+    def typeChanged(self, index: int) -> None:
+        super().typeChanged(index)
+        self.showIsotopes()
 
     def updatePreview(self) -> None:
         base, ext = os.path.splitext(self.lineedit_filename.text())
@@ -393,11 +416,11 @@ class ExportAllDialog(ExportDialog):
     def accept(self) -> None:
         allpaths = []
         prompt = OverwriteFilePrompt()
+        self.isotope = self.combo_isotopes.currentText()
         for laser in self.lasers:
             paths = self.generatePaths(laser)
-            allpaths.append(
-                [(p, i) for p, i in paths if p != "" and prompt.promptOverwrite(p)]
-            )
+            allpaths.append([p for p in paths if prompt.promptOverwrite(p[0])])
+
         if any(len(p) == 0 for p in allpaths):
             return
 
