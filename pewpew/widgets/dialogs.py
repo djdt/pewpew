@@ -380,7 +380,7 @@ class ConfigDialog(ApplyDialog):
 
 
 class MultipleDirDialog(QtWidgets.QFileDialog):
-    def __init__(self, title: str, directory: str, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: QtWidgets.QWidget, title: str, directory: str):
         super().__init__(parent, title, directory)
         self.setFileMode(QtWidgets.QFileDialog.Directory)
         self.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
