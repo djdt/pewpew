@@ -385,7 +385,9 @@ class MultipleDirDialog(QtWidgets.QFileDialog):
         self.setFileMode(QtWidgets.QFileDialog.Directory)
         self.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
         self.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
-        for view in self.findChildren((QtWidgets.QListView, QtWidgets.QTreeView)):
+        children = self.findChildren(QtWidgets.QListView)
+        children.extend(self.findChildren(QtWidgets.QTreeView))
+        for view in children:
             if isinstance(view.model(), QtWidgets.QFileSystemModel):
                 view.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
