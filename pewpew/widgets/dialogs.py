@@ -395,7 +395,7 @@ class MultipleDirDialog(QtWidgets.QFileDialog):
     def getExistingDirectories(
         parent: QtWidgets.QWidget, title: str, directory: str
     ) -> List[str]:
-        dlg = MultipleDirDialog(title, directory, parent)
+        dlg = MultipleDirDialog(parent, title, directory)
         if dlg.exec():
             return list(dlg.selectedFiles())
         else:
