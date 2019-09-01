@@ -25,7 +25,7 @@ class DecimalValidatorNoZero(DecimalValidator):
     def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
         result = super().validate(input, pos)
         if result[0] == QtGui.QValidator.Acceptable and float(input) == 0.0:
-            result = (QtGui.QValidator.Invalid, input, pos)
+            result = (QtGui.QValidator.Intermediate, input, pos)
         return result
 
 
