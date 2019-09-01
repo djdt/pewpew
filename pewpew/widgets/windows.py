@@ -40,24 +40,32 @@ class DockArea(QtWidgets.QMainWindow):
         docks: List[LaserImageDock],
         area: QtCore.Qt.DockWidgetArea = QtCore.Qt.LeftDockWidgetArea,
     ) -> None:
-        if len(docks) == 0:
-            return
-        # Add a new dock widget
+        # if len(docks) == 0:
+        #     return
+        # # Add a new dock widget
+        # super().addDockWidget(area, docks[0])
+        # origin = self.largestDock(self.visibleDocks())
+        # if origin is not None:
+        #     self.smartSplitDock(origin, docks[0])
+        # docks[0].draw()
+        # docks[0].show()
+        # for dock in docks[1:]:
+        #     super().addDockWidget(area, dock)
+        #     self.smartSplitDock(
+        #         self.largestDock([d for d in docks if not d.visibleRegion().isEmpty()]),
+        #         dock,
+        #     )
+        #     dock.draw()
+        #     dock.show()
+        # for dock in docks:
+        #     dock.destroyed.connect(self.numberDocksChanged)
+
         super().addDockWidget(area, docks[0])
-        origin = self.largestDock(self.visibleDocks())
-        if origin is not None:
-            self.smartSplitDock(origin, docks[0])
-        docks[0].draw()
-        docks[0].show()
         for dock in docks[1:]:
             super().addDockWidget(area, dock)
-            self.smartSplitDock(
-                self.largestDock([d for d in docks if not d.visibleRegion().isEmpty()]),
-                dock,
-            )
-            dock.draw()
-            dock.show()
+            self.tabifyDockWidget(docks[0], dock)
         for dock in docks:
+            dock.draw()
             dock.destroyed.connect(self.numberDocksChanged)
         self.numberDocksChanged.emit()
 
