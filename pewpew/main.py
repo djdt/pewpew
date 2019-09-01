@@ -5,12 +5,13 @@ import copy
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from laserlib import io
 from laserlib import Laser, LaserConfig, LaserData
+from laserlib.io.error import LaserLibException
 from laserlib.krisskross import KrissKross, KrissKrossData
 
 from pewpew import __version__
 
+from pewpew.lib import io
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets import dialogs
@@ -189,22 +190,6 @@ class MainWindow(QtWidgets.QMainWindow):
             menu_interp.addAction(action)
         interp_group.triggered.connect(self.menuInterpolation)
 
-        # View - filtering
-        # menu_filter = menu_view.addMenu("&Filtering")
-        # menu_filter.setStatusTip("Apply filtering to images.")
-        # filter_group = QtWidgets.QActionGroup(menu_filter)
-        # for filter in MainWindow.FILTERS:
-        #     action = filter_group.addAction(filter)
-        #     action.setCheckable(True)
-        #     if filter == self.viewconfig["filtering"]["type"]:
-        #         action.setChecked(True)
-        #     menu_filter.addAction(action)
-        # filter_group.triggered.connect(self.menuFiltering)
-
-        # action_filter_properties = menu_filter.addAction("Properties...")
-        # action_filter_properties.setStatusTip("Set the properties used by filters.")
-        # action_filter_properties.triggered.connect(self.menuFilteringProperties)
-
         action_fontsize = menu_view.addAction("Fontsize")
         action_fontsize.setStatusTip("Set size of font used in images.")
         action_fontsize.triggered.connect(self.menuFontsize)
@@ -265,98 +250,48 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_calibration.setEnabled(enabled)
         self.action_operations.setEnabled(enabled)
 
-    def menuOpen(self) -> None:
-        paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
+    def menuOpen(self) -> QtWidgets.QDialog:
+        dlg = QtWidgets.QFileDialog(
             self,
             "Open File(s).",
             "",
-            "CSV files(*.csv *.txt);;Numpy Archives(*.npz);;"
+            "CSV Documents(*.csv *.txt);;Numpy Archives(*.npz);;"
             "Pew Pew Sessions(*.pew);;All files(*)",
-            "All files(*)",
         )
-        lasers: List[Laser] = []
-        if len(paths) == 0:
+        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+        dlg.filesSelected.connect(self.importFiles)
+        dlg.open()
+        return dlg
+
+    def importFiles(self, paths: str) -> None:
+        try:
+            lasers = io.import_any(paths, self.config)
+        except LaserLibException as e:
+            QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
             return
-        for path in paths:
-            name, ext = os.path.splitext(path)
-            name = os.path.basename(name)
-            ext = ext.lower()
-            try:
-                if ext == ".npz":
-                    lasers += io.npz.load(path)
-                elif ext in [".csv", ".txt", ".text"]:
-                    laser = Laser.from_structured(
-                        io.csv.load(path),
-                        config=self.config,
-                        name=os.path.basename(os.path.splitext(path)[0]),
-                        filepath=path,
-                    )
-                    lasers.append(laser)
-                else:
-                    raise io.error.LaserLibException("Invalid file extension.")
-            except io.error.LaserLibException as e:
-                QtWidgets.QMessageBox.warning(
-                    self, type(e).__name__, f"{os.path.basename(path)}: {e}"
-                )
-                return
+
         docks = []
         for laser in lasers:
             if isinstance(laser, KrissKross):
-                docks.append(KrissKrossImageDock(laser, self.dockarea))
+                docks.append(KrissKrossImageDock(laser, self.viewoptions))
             else:
-                docks.append(LaserImageDock(laser, self.viewoptions, self.dockarea))
+                docks.append(LaserImageDock(laser, self.viewoptions))
         self.dockarea.addDockWidgets(docks)
 
-    def menuImportAgilent(self) -> None:
-        paths = dialogs.MultipleDirDialog.getExistingDirectories(
-            self, "Batch Directories", ""
+    def menuImportAgilent(self) -> QtWidgets.QDialog:
+        dlg = dialogs.MultipleDirDialog(self, "Batch Directories", "")
+        dlg.filesSelected.connect(self.importFiles)
+        dlg.open()
+        return dlg
+
+    def menuImportThermoiCap(self) -> QtWidgets.QDialog:
+        dlg = QtWidgets.QFileDialog(
+            self, "Import iCAP Data", "", "iCAP CSV Documents(*.csv);;All Files(*)"
         )
-        docks = []
-        for path in paths:
-            try:
-                if path.lower().endswith(".b"):
-                    laser = Laser.from_structured(
-                        io.agilent.load(path),
-                        config=self.config,
-                        name=os.path.basename(os.path.splitext(path)[0]),
-                        filepath=path,
-                    )
-                    docks.append(LaserImageDock(laser, self.viewoptions, self.dockarea))
-                else:
-                    raise io.error.LaserLibException("Invalid batch directory.")
-            except io.error.LaserLibException as e:
-                QtWidgets.QMessageBox.warning(
-                    self, type(e).__name__, f"{os.path.basename(path)}: {e}"
-                )
-                return
-        self.dockarea.addDockWidgets(docks)
-
-    def menuImportThermoiCap(self) -> None:
-        paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-            self, "Import CSVs", "", "CSV files(*.csv);;All files(*)"
-        )
-
-        if len(paths) == 0:
-            return
-        docks = []
-        for path in paths:
-            try:
-                if path.lower().endswith(".csv"):
-                    laser = Laser.from_structured(
-                        io.thermo.load(path),
-                        config=self.config,
-                        name=os.path.basename(os.path.splitext(path)[0]),
-                        filepath=path,
-                    )
-                    docks.append(LaserImageDock(laser, self.viewoptions, self.dockarea))
-                else:
-                    raise io.error.LaserLibException("Invalid file.")
-            except io.error.LaserLibException as e:
-                QtWidgets.QMessageBox.warning(
-                    self, type(e).__name__, f"{os.path.basename(path)}: {e}"
-                )
-                return
-        self.dockarea.addDockWidgets(docks)
+        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+        dlg.filesSelected.connect(self.importFiles)
+        dlg.open()
+        return dlg
 
     def menuImportKrissKross(self) -> None:
         kkw = KrissKrossWizard(config=self.config, parent=self)
