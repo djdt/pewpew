@@ -28,8 +28,8 @@ def test_decimal_validator():
 def test_decimal_validator_no_zero():
     validator = validators.DecimalValidatorNoZero(-100.0, 100.0, 3)
     # Reject zero
-    assert validator.validate("0", 0)[0] == QtGui.QValidator.Invalid
-    assert validator.validate("-0", 0)[0] == QtGui.QValidator.Invalid
+    assert validator.validate("0.", 0)[0] == QtGui.QValidator.Intermediate
+    assert validator.validate("-0", 0)[0] == QtGui.QValidator.Intermediate
 
 
 def test_percent_or_decimal_validator():
