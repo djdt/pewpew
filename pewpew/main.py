@@ -31,7 +31,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Defaults for when applying to multiple images
         self.config = LaserConfig()
         self.viewoptions = ViewOptions()
-        self.setWindowTitle("Pew Pew")
+        self.setWindowTitle("Pewpew")
         self.resize(1280, 800)
 
         widget = QtWidgets.QWidget()
@@ -93,12 +93,13 @@ class MainWindow(QtWidgets.QMainWindow):
         action_save.triggered.connect(self.menuSaveSession)
         action_save.setEnabled(False)
 
-        action_export = menu_file.addAction(
+        self.action_export = menu_file.addAction(
             QtGui.QIcon.fromTheme("document-save-as"), "&Export all"
         )
-        action_export.setShortcut("Ctrl+X")
-        action_export.setStatusTip("Export all images to a different format.")
-        action_export.triggered.connect(self.menuExportAll)
+        self.action_export.setShortcut("Ctrl+X")
+        self.action_export.setStatusTip("Export all images to a different format.")
+        self.action_export.triggered.connect(self.menuExportAll)
+        self.action_export.setEnabled(False)
 
         menu_file.addSeparator()
 
@@ -159,12 +160,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # View - colormap
         cmap_group = QtWidgets.QActionGroup(menu_cmap)
-        colors = self.viewoptions.image.COLORMAPS
-        for name in colors:
+        for name, cmap in self.viewoptions.image.COLORMAPS.items():
             action = cmap_group.addAction(name)
             action.setStatusTip(self.viewoptions.image.COLORMAP_DESCRIPTIONS[name])
             action.setCheckable(True)
-            if colors[name] == self.viewoptions.image.cmap:
+            if cmap == self.viewoptions.image.cmap:
                 action.setChecked(True)
             menu_cmap.addAction(action)
         cmap_group.triggered.connect(self.menuColormap)
@@ -180,8 +180,8 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_interp = menu_view.addMenu("&Interpolation")
         menu_interp.setStatusTip("Interpolation of displayed images.")
         interp_group = QtWidgets.QActionGroup(menu_interp)
-        for interp in self.viewoptions.image.INTERPOLATIONS:
-            action = interp_group.addAction(interp)
+        for name, interp in self.viewoptions.image.INTERPOLATIONS.items():
+            action = interp_group.addAction(name)
             action.setCheckable(True)
             if interp == self.viewoptions.image.interpolation:
                 action.setChecked(True)
@@ -245,6 +245,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def docksAddedOrRemoved(self) -> None:
         num_docks = len(self.dockarea.findChildren(LaserImageDock))
         enabled = not num_docks == 0
+        self.action_export.setEnabled(enabled)
         self.action_calibration.setEnabled(enabled)
         self.action_operations.setEnabled(enabled)
 
@@ -291,11 +292,14 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.open()
         return dlg
 
-    def menuImportKrissKross(self) -> None:
-        kkw = KrissKrossWizard(config=self.config, parent=self)
-        if kkw.exec():
-            dock = KrissKrossImageDock(kkw.data, self.viewoptions, self.dockarea)
-            self.dockarea.addDockWidgets([dock])
+    def menuImportKrissKross(self) -> QtWidgets.QWizard:
+        def import_krisskross(kk: KrissKross) -> None:
+            self.dockarea.addDockWidgets([KrissKrossImageDock(kk, self.view_limits)])
+
+        wiz = KrissKrossWizard(config=self.config, parent=self)
+        wiz.laserImported.connect(import_krisskross)
+        wiz.open()
+        return wiz
 
     def menuSaveSession(self) -> None:
         # Save the window state
@@ -472,7 +476,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
         )
 
-    def closeEvent(self, event: QtCore.QEvent) -> None:
-        for dock in self.dockarea.findChildren(LaserImageDock):
-            dock.close()
-        super().closeEvent(event)
+    # def closeEvent(self, event: QtCore.QEvent) -> None:
+    #     for dock in self.dockarea.findChildren(LaserImageDock):
+    #         dock.close()
+    #     super().closeEvent(event)
