@@ -6,7 +6,7 @@ from laserlib import io
 from laserlib.config import LaserConfig
 from laserlib.krisskross import KrissKross, KrissKrossConfig
 
-from pewpew.validators import DecimalValidator
+from pewpew.validators import DecimalValidator, DecimalValidatorNoZero
 from pewpew.widgets.dialogs import MultipleDirDialog
 
 from typing import List
@@ -237,24 +237,29 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
         super().__init__(parent)
 
         self.lineedit_spotsize = QtWidgets.QLineEdit()
-        self.lineedit_spotsize.setPlaceholderText(str(config.spotsize))
-        self.lineedit_spotsize.setValidator(DecimalValidator(0, 1e3, 4))
+        self.lineedit_spotsize.setText(str(config.spotsize))
+        self.lineedit_spotsize.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
+        self.lineedit_spotsize.textEdited.connect(self.completeChanged)
+
         self.lineedit_speed = QtWidgets.QLineEdit()
-        self.lineedit_speed.setPlaceholderText(str(config.speed))
-        self.lineedit_speed.setValidator(DecimalValidator(0, 1e3, 4))
+        self.lineedit_speed.setText(str(config.speed))
+        self.lineedit_speed.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
+        self.lineedit_speed.textEdited.connect(self.completeChanged)
+
         self.lineedit_scantime = QtWidgets.QLineEdit()
-        self.lineedit_scantime.setPlaceholderText(str(config.scantime))
-        self.lineedit_scantime.setValidator(DecimalValidator(0, 1e3, 4))
+        self.lineedit_scantime.setText(str(config.scantime))
+        self.lineedit_scantime.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
+        self.lineedit_scantime.textEdited.connect(self.completeChanged)
 
         # Krisskross params
         self.lineedit_warmup = QtWidgets.QLineEdit()
-        self.lineedit_warmup.setPlaceholderText(str(config.warmup))
+        self.lineedit_warmup.setText(str(config.warmup))
         self.lineedit_warmup.setValidator(DecimalValidator(0, 1e2, 2))
+        self.lineedit_warmup.textEdited.connect(self.completeChanged)
+
         self.spinbox_offsets = QtWidgets.QSpinBox()
         self.spinbox_offsets.setRange(2, 10)
-        self.spinbox_offsets.setValue(
-            config.subpixel_gcd.limit_denominator().denominator
-        )
+        self.spinbox_offsets.setValue(config._subpixel_size)
         self.spinbox_offsets.setToolTip(
             "The number of subpixels per pixel in each dimension."
         )
@@ -285,3 +290,13 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
         self.registerField("scantime", self.lineedit_scantime)
         self.registerField("warmup", self.lineedit_warmup)
         self.registerField("subpixel_width", self.spinbox_offsets)
+
+    def isComplete(self) -> bool:
+        return all(
+            [
+                self.lineedit_spotsize.hasAcceptableInput(),
+                self.lineedit_speed.hasAcceptableInput(),
+                self.lineedit_scantime.hasAcceptableInput(),
+                self.lineedit_warmup.hasAcceptableInput(),
+            ]
+        )
