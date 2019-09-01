@@ -1,11 +1,10 @@
-import os.path
 import sys
 import traceback
 import copy
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from laserlib import Laser, LaserConfig, LaserData
+from laserlib import LaserConfig, LaserData
 from laserlib.io.error import LaserLibException
 from laserlib.krisskross import KrissKross, KrissKrossData
 
@@ -22,7 +21,6 @@ from pewpew.widgets.tools import get_operations_tool, Tool, StandardsTool
 from pewpew.widgets.windows import DockArea
 from pewpew.widgets.wizards import KrissKrossWizard
 
-from typing import List
 from types import TracebackType
 
 
