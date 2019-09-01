@@ -183,13 +183,13 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
     def buttonAdd(self) -> None:
         if self.field("radio_numpy"):
             paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", "", "Numpy archives(*.npz);;All files(*)"
+                self, "Select Files", "", "Numpy Archives(*.npz);;All Files(*)"
             )
         elif self.field("radio_agilent"):
             paths = MultipleDirDialog.getExistingDirectories(self, "Select Batches", "")
         elif self.field("radio_thermo"):
             paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", "", "CSV files(*.csv);;All files(*)"
+                self, "Select Files", "", "CSV Documents(*.csv);;All Files(*)"
             )
 
         for path in paths:
