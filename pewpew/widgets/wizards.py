@@ -13,12 +13,12 @@ from typing import List
 
 
 class KrissKrossWizard(QtWidgets.QWizard):
+    laserImported = QtCore.Signal(KrissKross)
+
     def __init__(self, config: LaserConfig, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         self.config = KrissKrossConfig(config.spotsize, config.speed, config.scantime)
-
-        self.data: KrissKross = KrissKross()
 
         self.addPage(KrissKrossStartPage())
         self.addPage(KrissKrossImportPage())
@@ -60,11 +60,13 @@ class KrissKrossWizard(QtWidgets.QWizard):
             for path in paths:
                 layers.append(io.thermo.load(path))
 
-        self.data = KrissKross.from_structured(
-            layers,
-            config=self.config,
-            name=os.path.splitext(os.path.basename(paths[0]))[0],
-            filepath=paths[0],
+        self.laserImported.emit(
+            KrissKross.from_structured(
+                layers,
+                config=self.config,
+                name=os.path.splitext(os.path.basename(paths[0]))[0],
+                filepath=paths[0],
+            )
         )
 
         super().accept()
