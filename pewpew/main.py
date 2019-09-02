@@ -293,11 +293,11 @@ class MainWindow(QtWidgets.QMainWindow):
         return dlg
 
     def menuImportKrissKross(self) -> QtWidgets.QWizard:
-        def import_krisskross(kk: KrissKross) -> None:
-            self.dockarea.addDockWidgets([KrissKrossImageDock(kk, self.view_limits)])
+        def wizardComplete(laser: KrissKross) -> None:
+            self.dockarea.addDockWidgets([KrissKrossImageDock(laser, self.viewoptions)])
 
         wiz = KrissKrossWizard(config=self.config, parent=self)
-        wiz.laserImported.connect(import_krisskross)
+        wiz.laserImported.connect(wizardComplete)
         wiz.open()
         return wiz
 

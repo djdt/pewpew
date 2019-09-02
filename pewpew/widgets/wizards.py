@@ -20,6 +20,8 @@ class KrissKrossWizard(QtWidgets.QWizard):
 
         self.config = KrissKrossConfig(config.spotsize, config.speed, config.scantime)
 
+        self.laser = None
+
         self.addPage(KrissKrossStartPage())
         self.addPage(KrissKrossImportPage())
         self.addPage(KrissKrossConfigPage(self.config))
@@ -30,6 +32,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
 
     def accept(self) -> None:
 
+        print("set config le")
         self.config.spotsize = float(self.field("spotsize"))
         self.config.speed = float(self.field("speed"))
         self.config.scantime = float(self.field("scantime"))
@@ -43,6 +46,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
 
         if self.field("radio_numpy"):
             for path in paths:
+                print("load path", path)
                 lds = io.npz.load(path)
                 if len(lds) > 1:
                     QtWidgets.QMessageBox.warning(
@@ -68,7 +72,6 @@ class KrissKrossWizard(QtWidgets.QWizard):
                 filepath=paths[0],
             )
         )
-
         super().accept()
 
 
@@ -139,6 +142,11 @@ class KrissKrossImportList(QtWidgets.QListWidget):
         else:
             super().dropEvent(event)
 
+    def getPaths(self) -> List[str]:
+        return [self.item(i).text() for i in range(0, self.count())]
+
+    paths = QtCore.Property("QStringList", getPaths)
+
 
 class KrissKrossImportPage(QtWidgets.QWizardPage):
     def __init__(self, parent: QtWidgets.QWidget = None):
@@ -171,7 +179,7 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
         main_layout.addWidget(dir_box)
         self.setLayout(main_layout)
 
-        self.registerField("paths", self, "paths")
+        self.registerField("paths", self.list, "paths")
 
     def initializePage(self) -> None:
         if self.field("radio_numpy"):
@@ -225,13 +233,6 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
 
     def isComplete(self) -> bool:
         return self.list.count() >= 2
-
-    @QtCore.Property(list)
-    def paths(self) -> List[str]:
-        paths = []
-        for i in range(0, self.list.count()):
-            paths.append(self.list.item(i).text())
-        return paths
 
 
 class KrissKrossConfigPage(QtWidgets.QWizardPage):
