@@ -144,6 +144,8 @@ class FormulaParser(object):
         return callable(a, b)
 
     def parseType(self, tokens: List[str]) -> dict:
+        if len(tokens) == 0:
+            raise FormulaException(f"Unexpected end to input.")
         t = tokens.pop(0)
         if self.isNumber(t):
             return dict(type="num", value=t)
@@ -151,7 +153,7 @@ class FormulaParser(object):
             return dict(type="var", value=t)
         elif t == "(":
             expr = self.parseAddition(tokens)
-            if tokens[0] != ")":
+            if len(tokens) == 0 or tokens[0] != ")":
                 raise FormulaException("Mismatched parenthesis.")
             tokens.pop(0)
             return expr
@@ -192,6 +194,16 @@ class FormulaParser(object):
 
         return result
 
+    def validate(self, expr: dict) -> bool:
+        if expr["type"] in "+-*/^":
+            return self.validate(expr["left"]) and self.validate(expr["right"])
+        elif expr["type"] == "num":
+            return True
+        elif expr["type"] == "var":
+            return expr["value"] in self.variables
+        else:
+            return False
+
     def reduce(self, expr: dict) -> Union[float, np.ndarray]:
         if expr["type"] in "+-*/^":
             lhs = self.reduce(expr["left"])
@@ -210,3 +222,13 @@ class FormulaParser(object):
                 raise FormulaException(f"Unknown variable '{expr['value']}'.")
         else:
             raise FormulaException(f"Unknown expression type.")
+
+    def validateString(self, string: str) -> bool:
+        try:
+            expr = self.parse(string)
+        except FormulaException:
+            return False
+        return self.validate(expr)
+
+    def reduceString(self, string: str) -> Union[float, np.ndarray]:
+        return self.reduce(self.parse(string))
