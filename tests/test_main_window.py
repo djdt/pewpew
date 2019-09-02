@@ -8,9 +8,13 @@ from pewpew.main import MainWindow
 from pewpew.widgets.docks import LaserImageDock
 
 
-def test_main_window_dialogs(qtbot: QtBot):
+def test_main_window_empty(qtbot: QtBot):
     window = MainWindow()
     qtbot.addWidget(window)
+
+    assert not window.action_calibration.isEnabled()
+    assert not window.action_export.isEnabled()
+    assert not window.action_operations.isEnabled()
 
     dlg = window.menuOpen()
     dlg.close()
@@ -22,8 +26,11 @@ def test_main_window_dialogs(qtbot: QtBot):
     dlg.close()
     dlg = window.menuColormapRange()
     dlg.close()
-    dlg = window.menuExportAll()
-    assert dlg is None
+
+
+def test_main_window_laser(qtbot: QtBot):
+    window = MainWindow()
+    qtbot.addWidget(window)
     window.dockarea.addDockWidgets(
         [
             LaserImageDock(
@@ -34,5 +41,10 @@ def test_main_window_dialogs(qtbot: QtBot):
             )
         ]
     )
+
+    assert window.action_calibration.isEnabled()
+    assert window.action_export.isEnabled()
+    assert window.action_operations.isEnabled()
+
     dlg = window.menuExportAll()
     dlg.close()
