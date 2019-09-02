@@ -1,28 +1,7 @@
 import numpy as np
 import re
 
-# from PySide2 import QtCore, QtWidgets
-
-# from laserlib.krisskross.data import krisskross_layers
-
-# from pewpew.lib.viewoptions import ViewOptions
-# from pewpew.validators import DecimalValidator
-# from pewpew.widgets.canvases import LaserCanvas
-# from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
-
-# from .tool import Tool
-
 from typing import List, Union
-
-
-# class CalulationsLineEdit(QtWidgets.QLineEdit):
-#     OPERATORS = ["+", "-", "/", "*", "^"]
-
-#     def __init__(self, istopes: List[str], parent: QtWidgets.QWidget = None):
-#         super().__init__(parent)
-
-#     def hasAcceptableInput(self):
-#         return super().hasAcceptableInput()
 
 
 class FormulaException(Exception):
@@ -137,8 +116,3 @@ class FormulaParser(object):
                 raise FormulaException(f"Unknown variable '{expr['value']}'.")
         else:
             raise FormulaException(f"Unknown expression type.")
-
-
-p = FormulaParser({"P31": np.random.random((10, 10))})
-r1 = p.parse("1 + 2 * (11.001 + 1)")
-r2 = p.parse("1 + P32 + 1")
