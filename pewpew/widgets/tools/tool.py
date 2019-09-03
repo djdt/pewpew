@@ -9,8 +9,7 @@ class Tool(QtWidgets.QDialog):
         super().__init__(parent)
 
         self.layout_top = QtWidgets.QHBoxLayout()
-        self.layout_left = QtWidgets.QVBoxLayout()
-        self.layout_right = QtWidgets.QVBoxLayout()
+        self.layout_center = QtWidgets.QVBoxLayout()
         self.layout_bottom = QtWidgets.QHBoxLayout()
 
         self.button_box = QtWidgets.QDialogButtonBox(
@@ -22,13 +21,9 @@ class Tool(QtWidgets.QDialog):
         self.button_box.clicked.connect(self.buttonClicked)
         self.layout_bottom.addWidget(self.button_box)
 
-        layout_center = QtWidgets.QHBoxLayout()
-        layout_center.addLayout(self.layout_left)
-        layout_center.addLayout(self.layout_right)
-
         layout = QtWidgets.QVBoxLayout()
         layout.addLayout(self.layout_top)
-        layout.addLayout(layout_center)
+        layout.addLayout(self.layout_center)
         layout.addLayout(self.layout_bottom)
         self.setLayout(layout)
 

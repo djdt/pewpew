@@ -4,9 +4,9 @@ import copy
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from laserlib import LaserConfig, LaserData
+from laserlib import LaserConfig
 from laserlib.io.error import LaserLibException
-from laserlib.krisskross import KrissKross, KrissKrossData
+from laserlib.krisskross import KrissKross
 
 from pewpew import __version__
 
@@ -17,7 +17,7 @@ from pewpew.widgets import dialogs
 from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.prompts import DetailedError
-from pewpew.widgets.tools import get_operations_tool, Tool, StandardsTool
+from pewpew.widgets.tools import Tool, CalculationsTool, StandardsTool
 from pewpew.widgets.windows import DockArea
 from pewpew.widgets.wizards import KrissKrossWizard
 
@@ -376,18 +376,18 @@ class MainWindow(QtWidgets.QMainWindow):
         cali_tool.show()
 
     def menuOperationsTool(self) -> None:
-        def applyTool(tool: Tool) -> None:
-            if isinstance(tool.dock.laser, KrissKross):
-                tool.dock.laser.data[tool.name] = KrissKrossData(tool.data)
-            else:
-                tool.dock.laser.data[tool.name] = LaserData(tool.data)
-            tool.dock.populateComboIsotopes()
-            tool.updateComboIsotopes()
+        # def applyTool(tool: Tool) -> None:
+        #     if isinstance(tool.dock.laser, KrissKross):
+        #         tool.dock.laser.data[tool.name] = KrissKrossData(tool.data)
+        #     else:
+        #         tool.dock.laser.data[tool.name] = LaserData(tool.data)
+        #     tool.dock.populateComboIsotopes()
+        #     tool.updateComboIsotopes()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        op_tool = get_operations_tool(docks[0], self.viewoptions, parent=self)
-        op_tool.applyPressed.connect(applyTool)
-        op_tool.show()
+        tool = CalculationsTool(docks[0], self.viewoptions, parent=self)
+        # op_tool.applyPressed.connect(applyTool)
+        tool.show()
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
