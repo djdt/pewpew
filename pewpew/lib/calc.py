@@ -104,14 +104,27 @@ class FormulaException(Exception):
 
 class FormulaParser(object):
     def __init__(self, variables: dict):
+        boolean_token = "[\\>\\<]\\=?|\\!?\\="
         number_token = "\\d+\\.?\\d*"
+        operator_token = "[\\^\\*\\/\\+\\-]"
         variable_token = "\\d*[a-zA-Z]+\\d*"
 
-        self.regexp_isvar = re.compile(variable_token)
+        self.regexp_isbool = re.compile(boolean_token)
         self.regexp_isnum = re.compile(number_token)
+        self.regexp_isop = re.compile(operator_token)
+        self.regexp_isvar = re.compile(variable_token)
         self.regexp_tokenise = re.compile(
-            f"\\s*({variable_token}|{number_token}|\\S)\\s*"
+            f"\\s*([\\(\\)]|{boolean_token}|{number_token}|{operator_token}|{variable_token})\\s*"
         )
+
+        self.booleans = {
+            "<": np.less,
+            "<=": np.less_equal,
+            ">": np.greater,
+            ">=": np.greater_equal,
+            "=": np.equal,
+            "!=": np.not_equal,
+        }
 
         self.operations = {
             "+": np.add,
@@ -123,25 +136,28 @@ class FormulaParser(object):
 
         self.variables = variables
 
-    def isVariable(self, string: str) -> bool:
-        return self.regexp_isvar.match(string) is not None
+    def isBoolean(self, string: str) -> bool:
+        return self.regexp_isnum.match(string) is not None
 
     def isNumber(self, string: str) -> bool:
         return self.regexp_isnum.match(string) is not None
 
-    def findOuterParenthesis(self, tokens: List) -> np.ndarray:
-        try:
-            start = tokens.index("(")
-            end = next(i for i in reversed(range(len(tokens))) if tokens[i] == ")")
-        except (ValueError, StopIteration):
-            raise FormulaException("Mismatched parenthesis.")
-        return start, end
+    def isOperator(self, string: str) -> bool:
+        return self.regexp_isop.match(string) is not None
 
-    def applyOp(
-        self, a: Union[float, np.ndarray], op: str, b: Union[float, np.ndarray]
-    ) -> Union[float, np.ndarray]:
-        callable = FormulaParser.OPERATIONS[op]
-        return callable(a, b)
+    def isVariable(self, string: str) -> bool:
+        return self.regexp_isvar.match(string) is not None
+
+    def parseOperators(self, tokens: List[str], ops: List[str]) -> dict:
+        if len(ops) == 0:
+            return self.parseType(tokens)
+
+        expr = self.parseOperators(tokens, ops[1:])
+        while len(tokens) > 0 and tokens[0] == ops[0]:
+            token = tokens.pop(0)
+            rhs = self.parseOperators(tokens, ops[1:])
+            expr = dict(type="op", value=token, left=expr, right=rhs)
+        return expr
 
     def parseType(self, tokens: List[str]) -> dict:
         if len(tokens) == 0:
@@ -152,7 +168,7 @@ class FormulaParser(object):
         elif self.isVariable(t):
             return dict(type="var", value=t)
         elif t == "(":
-            expr = self.parseAddition(tokens)
+            expr = self.parseOperators(tokens, list(self.operations))
             if len(tokens) == 0 or tokens[0] != ")":
                 raise FormulaException("Mismatched parenthesis.")
             tokens.pop(0)
@@ -160,34 +176,11 @@ class FormulaParser(object):
         else:
             raise FormulaException(f"Unexpected input '{t}'.")
 
-    def parsePowers(self, tokens: List[str]) -> dict:
-        expr = self.parseType(tokens)
-        while len(tokens) > 0 and tokens[0] == "^":
-            t = tokens.pop(0)
-            rhs = self.parseType(tokens)
-            expr = dict(type=t, left=expr, right=rhs)
-        return expr
-
-    def parseMultiplication(self, tokens: List[str]) -> dict:
-        expr = self.parsePowers(tokens)
-        while len(tokens) > 0 and tokens[0] in "*/":
-            t = tokens.pop(0)
-            rhs = self.parsePowers(tokens)
-            expr = dict(type=t, left=expr, right=rhs)
-        return expr
-
-    def parseAddition(self, tokens: List[str]) -> dict:
-        expr = self.parseMultiplication(tokens)
-        while len(tokens) > 0 and tokens[0] in "+-":
-            t = tokens.pop(0)
-            rhs = self.parseMultiplication(tokens)
-            expr = dict(type=t, left=expr, right=rhs)
-        return expr
-
     def parse(self, string: str) -> dict:
         tokens = self.regexp_tokenise.findall(string)
 
-        result = self.parseAddition(tokens)
+        ops = list(self.booleans.keys()) + list(self.operations.keys())
+        result = self.parseOperators(tokens, ops)
 
         if len(tokens) != 0:
             raise FormulaException(f"Unexpected input '{tokens[0]}'.")
@@ -195,7 +188,7 @@ class FormulaParser(object):
         return result
 
     def validate(self, expr: dict) -> bool:
-        if expr["type"] in "+-*/^":
+        if expr["type"] == "op":
             return self.validate(expr["left"]) and self.validate(expr["right"])
         elif expr["type"] == "num":
             return True
@@ -205,10 +198,10 @@ class FormulaParser(object):
             return False
 
     def reduce(self, expr: dict) -> Union[float, np.ndarray]:
-        if expr["type"] in "+-*/^":
+        if expr["type"] == "op":
             lhs = self.reduce(expr["left"])
             rhs = self.reduce(expr["right"])
-            op = self.operations[expr["type"]]
+            op = self.operations[expr["value"]]
             return op(lhs, rhs)
         elif expr["type"] == "num":
             try:
@@ -232,3 +225,8 @@ class FormulaParser(object):
 
     def reduceString(self, string: str) -> Union[float, np.ndarray]:
         return self.reduce(self.parse(string))
+
+
+p = FormulaParser({"a": np.random.random((3, 3))})
+# print(p.parse("1 + 2 <= 3 ^ 4"))
+print(p.reduceString("(1 + 2 + 3) ^ 4 - a"))
