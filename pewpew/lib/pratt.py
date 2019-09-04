@@ -12,11 +12,8 @@ class Parser(object):
     def __init__(self, variables: dict):
         number_token = "\\d+\\.?\\d*(?:[eE]\\d+)?"
         operator_token = "[\\+\\-\\*\\/\\^\\!\\=\\<\\>]+"
-        variable_token = "\\d*[a-zA-Z]+\\d*"
+        variable_token = "\\d*[a-zA-Z]+\\d*"  # also covers if then else
 
-        self.regexp_isnum = re.compile(number_token)
-        self.regexp_isop = re.compile(operator_token)
-        self.regexp_isvar = re.compile(variable_token)
         self.regexp_tokenise = re.compile(
             f"\\s*([\\(\\)]|{number_token}|{operator_token}|{variable_token})\\s*"
         )
@@ -85,6 +82,7 @@ class Parser(object):
             raise ParserException(f"Unknown expression type.")
 
 
+# Null Commands
 class Null(object):
     rbp = -1
 
@@ -135,6 +133,7 @@ class IfThenElse(Null):
         return dict(type="ternary", value="if", left=lexpr, center=expr, right=rexpr)
 
 
+# Left Commands
 class Left(object):
     lbp = -1
 
