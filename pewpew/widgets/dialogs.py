@@ -25,8 +25,9 @@ class ApplyDialog(QtWidgets.QDialog):
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-
-        self.layout_form = QtWidgets.QFormLayout()
+        self.layout_top = QtWidgets.QHBoxLayout()
+        self.layout_center = QtWidgets.QVBoxLayout()
+        self.layout_bottom = QtWidgets.QHBoxLayout()
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Cancel
@@ -35,40 +36,38 @@ class ApplyDialog(QtWidgets.QDialog):
             self,
         )
         self.button_box.clicked.connect(self.buttonClicked)
+        self.layout_bottom.addWidget(self.button_box)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addLayout(self.layout_form)
-        layout.addWidget(self.button_box)
-
+        layout.addLayout(self.layout_top)
+        layout.addLayout(self.layout_center)
+        layout.addLayout(self.layout_bottom)
         self.setLayout(layout)
 
     def buttonClicked(self, button: QtWidgets.QAbstractButton) -> None:
         sb = self.button_box.standardButton(button)
 
         if sb == QtWidgets.QDialogButtonBox.Apply:
-            if self.complete():
-                self.apply()
-                self.applyPressed.emit(self)
-            else:
-                self.error()
+            self.apply()
+            self.applyPressed.emit(self)
         elif sb == QtWidgets.QDialogButtonBox.Ok:
-            if self.complete():
-                self.apply()
-                self.applyPressed.emit(self)
-                self.accept()
-            else:
-                self.error()
+            self.apply()
+            self.applyPressed.emit(self)
+            self.accept()
         else:
             self.reject()
 
     def apply(self) -> None:
         pass
 
-    def complete(self) -> bool:
+    def isComplete(self) -> bool:
         return True
 
-    def error(self) -> None:
-        pass
+    @QtCore.Slot()
+    def completeChanged(self) -> None:
+        enabled = self.isComplete()
+        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(enabled)
+        self.button_box.button(QtWidgets.QDialogButtonBox.Apply).setEnabled(enabled)
 
 
 class CalibrationDialog(ApplyDialog):
