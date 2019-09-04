@@ -64,6 +64,7 @@ class CalculationsTool(Tool):
 
         self.formula = FormulaLineEdit("", variables={})
         self.formula.textChanged.connect(self.updateCanvas)
+        self.formula.textChanged.connect(self.completeChanged)
         self.canvas = LaserCanvas(self.viewoptions)
 
         self.combo_isotopes = QtWidgets.QComboBox()
@@ -73,8 +74,8 @@ class CalculationsTool(Tool):
         layout_form.addRow("Insert:", self.combo_isotopes)
         layout_form.addRow("Formula:", self.formula)
 
-        self.layout_center.addWidget(self.canvas)
-        self.layout_center.addLayout(layout_form)
+        self.layout_main.addWidget(self.canvas)
+        self.layout_main.addLayout(layout_form)
 
         self.newDockAdded()
 
@@ -97,6 +98,9 @@ class CalculationsTool(Tool):
         self.canvas.drawData(result, extent)
         self.canvas.draw()
 
+    def isComplete(self) -> bool:
+        return self.formula.hasAcceptableInput()
+
     def newDockAdded(self) -> None:
         self.combo_isotopes.clear()
         self.combo_isotopes.addItem("Isotopes")
@@ -107,25 +111,3 @@ class CalculationsTool(Tool):
         }
         self.formula.valid = True
         self.formula.setText(self.dock.laser.isotopes[0])
-
-    @QtCore.Slot("QWidget*")
-    def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
-        if widget is not None and hasattr(widget, "laser"):
-            self.dock = widget
-
-        self.dockarea.mouseSelectFinished.disconnect(self.mouseSelectFinished)
-        self.activateWindow()
-        self.setFocus(QtCore.Qt.OtherFocusReason)
-        self.show()
-        self.draw()
-
-    def keyPressEvent(self, event: QtCore.QEvent) -> None:
-        if event.key() in [
-            QtCore.Qt.Key_Escape,
-            QtCore.Qt.Key_Enter,
-            QtCore.Qt.Key_Return,
-        ]:
-            return
-        if event.key() == QtCore.Qt.Key_F5:
-            self.draw()
-        super().keyPressEvent(event)

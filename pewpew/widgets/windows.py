@@ -164,12 +164,6 @@ class DockArea(QtWidgets.QMainWindow):
     def mousePressEvent(self, event: QtCore.QEvent) -> None:
         super().mousePressEvent(event)
         if self.mouse_select is True:
-            widget = None
-            for dock in self.findChildren(LaserImageDock):
-                if dock.underMouse():
-                    widget = dock
-                    break
-            self.mouseSelectFinished.emit(widget)
             self.endMouseSelect()
 
     def keyPressEvent(self, event: QtCore.QEvent) -> None:
@@ -179,13 +173,24 @@ class DockArea(QtWidgets.QMainWindow):
                 self.mouseSelectFinished.emit(None)
                 self.endMouseSelect()
 
-    def startMouseSelect(self) -> None:
+    @QtCore.Slot("QtWidget*")
+    def startMouseSelect(self, widget: QtWidgets.QWidget) -> None:
+        self.activateWindow()
+        self.setFocus(QtCore.Qt.OtherFocusReason)
+        self.mouseSelectFinished.connect(widget.mouseSelectFinished)
+
         self.mouse_select = True
         for dock in self.findChildren(LaserImageDock):
             if hasattr(dock, "canvas"):
                 dock.canvas.installEventFilter(self.mouse_filter)
 
     def endMouseSelect(self) -> None:
+        for dock in self.findChildren(LaserImageDock):
+            if dock.underMouse():
+                self.mouseSelectFinished.emit(dock)
+                break
+
+        self.mouseSelectFinished.disconnect()
         self.mouse_select = False
         for dock in self.findChildren(LaserImageDock):
             if hasattr(dock, "canvas"):

@@ -1,62 +1,39 @@
 from PySide2 import QtCore, QtWidgets
 
+from pewpew.widgets.dialogs import ApplyDialog
 
-class Tool(QtWidgets.QDialog):
 
-    applyPressed = QtCore.Signal(QtCore.QObject)
+class Tool(ApplyDialog):
+    mouseSelectFinished = QtCore.Signal()
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-
+        self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
         self.layout_top = QtWidgets.QHBoxLayout()
-        self.layout_center = QtWidgets.QVBoxLayout()
-        self.layout_bottom = QtWidgets.QHBoxLayout()
+        self.layout().insertLayout(0, self.layout_top)
 
-        self.button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Cancel
-            | QtWidgets.QDialogButtonBox.Ok
-            | QtWidgets.QDialogButtonBox.Apply,
-            self,
-        )
-        self.button_box.clicked.connect(self.buttonClicked)
-        self.layout_bottom.addWidget(self.button_box)
+    def sizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(800, 600)
 
-        layout = QtWidgets.QVBoxLayout()
-        layout.addLayout(self.layout_top)
-        layout.addLayout(self.layout_center)
-        layout.addLayout(self.layout_bottom)
-        self.setLayout(layout)
+    # @QtCore.Slot("QWidget*")
+    # def mouseSelectFinished(self, widget: QtWidgets.QWidget) -> None:
+    #     self.mouseSelectFinished.emit()
+    #     if widget is not None and hasattr(widget, "laser"):
+    #         self.dock = widget
 
-    def buttonClicked(self, button: QtWidgets.QAbstractButton) -> None:
-        sb = self.button_box.standardButton(button)
+    #     self.dockarea.mouseSelectFinished.disconnect(self.mouseSelectFinished)
+    #     self.activateWindow()
+    #     self.setFocus(QtCore.Qt.OtherFocusReason)
+    #     self.show()
+    #     self.draw()
 
-        if sb == QtWidgets.QDialogButtonBox.Apply:
-            if self.isComplete():
-                self.apply()
-                self.applyPressed.emit(self)
-            else:
-                self.error()
-        elif sb == QtWidgets.QDialogButtonBox.Ok:
-            if self.isComplete():
-                self.apply()
-                self.applyPressed.emit(self)
-                self.accept()
-            else:
-                self.error()
-        else:
-            self.reject()
-
-    def apply(self) -> None:
-        pass
-
-    def isComplete(self) -> bool:
-        return True
-
-    @QtCore.Slot()
-    def completeChanged(self) -> None:
-        enabled = self.isComplete()
-        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(enabled)
-        self.button_box.button(QtWidgets.QDialogButtonBox.Apply).setEnabled(enabled)
-
-    def error(self) -> None:
-        pass
+    def keyPressEvent(self, event: QtCore.QEvent) -> None:
+        if event.key() in [
+            QtCore.Qt.Key_Escape,
+            QtCore.Qt.Key_Enter,
+            QtCore.Qt.Key_Return,
+        ]:
+            return
+        if event.key() == QtCore.Qt.Key_F5:
+            self.draw()
+        super().keyPressEvent(event)

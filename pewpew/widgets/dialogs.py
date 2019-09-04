@@ -25,9 +25,8 @@ class ApplyDialog(QtWidgets.QDialog):
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.layout_top = QtWidgets.QHBoxLayout()
-        self.layout_center = QtWidgets.QVBoxLayout()
-        self.layout_bottom = QtWidgets.QHBoxLayout()
+        self.layout_main = QtWidgets.QVBoxLayout()
+        self.layout_buttons = QtWidgets.QHBoxLayout()
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Cancel
@@ -36,12 +35,11 @@ class ApplyDialog(QtWidgets.QDialog):
             self,
         )
         self.button_box.clicked.connect(self.buttonClicked)
-        self.layout_bottom.addWidget(self.button_box)
+        self.layout_buttons.addWidget(self.button_box)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addLayout(self.layout_top)
-        layout.addLayout(self.layout_center)
-        layout.addLayout(self.layout_bottom)
+        layout.addLayout(self.layout_main)
+        layout.addLayout(self.layout_buttons)
         self.setLayout(layout)
 
     def buttonClicked(self, button: QtWidgets.QAbstractButton) -> None:
