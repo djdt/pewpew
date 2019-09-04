@@ -42,6 +42,7 @@ class Parser(object):
     def parseExpr(self, tokens: List[str], prec: int = 0) -> dict:
         if len(tokens) == 0:
             raise ParserException("Unexpected end of input.")
+
         token = tokens.pop(0)
         cmd = self.nullcmds.get(token, Value(token))
         expr = cmd.nud(self, tokens)
@@ -55,7 +56,10 @@ class Parser(object):
 
     def parse(self, string: str) -> dict:
         tokens = self.regexp_tokenise.findall(string)
-        return self.parseExpr(tokens)
+        result = self.parseExpr(tokens)
+        if len(tokens) != 0:
+            raise ParserException(f"Unexpected input '{tokens[0]}'.")
+        return result
 
     def reduce(self, expr: dict) -> Union[float, np.ndarray]:
         if expr["type"] == "value":
