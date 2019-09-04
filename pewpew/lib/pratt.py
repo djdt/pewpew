@@ -81,6 +81,9 @@ class Parser(object):
         else:
             raise ParserException(f"Unknown expression type.")
 
+    def reduceString(self, string: str) -> dict:
+        return self.reduce(self.parse(string))
+
 
 # Null Commands
 class Null(object):
