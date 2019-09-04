@@ -31,13 +31,13 @@ class Tool(QtWidgets.QDialog):
         sb = self.button_box.standardButton(button)
 
         if sb == QtWidgets.QDialogButtonBox.Apply:
-            if self.complete():
+            if self.isComplete():
                 self.apply()
                 self.applyPressed.emit(self)
             else:
                 self.error()
         elif sb == QtWidgets.QDialogButtonBox.Ok:
-            if self.complete():
+            if self.isComplete():
                 self.apply()
                 self.applyPressed.emit(self)
                 self.accept()
@@ -49,8 +49,14 @@ class Tool(QtWidgets.QDialog):
     def apply(self) -> None:
         pass
 
-    def complete(self) -> bool:
+    def isComplete(self) -> bool:
         return True
+
+    @QtCore.Slot()
+    def completeChanged(self) -> None:
+        enabled = self.isComplete()
+        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(enabled)
+        self.button_box.button(QtWidgets.QDialogButtonBox.Apply).setEnabled(enabled)
 
     def error(self) -> None:
         pass
