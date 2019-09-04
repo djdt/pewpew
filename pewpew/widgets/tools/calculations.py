@@ -2,7 +2,7 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewpew.lib.calc import FormulaParser
+from pewpew.lib.pratt import Parser, ParserException
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets.canvases import LaserCanvas
@@ -16,8 +16,8 @@ class FormulaLineEdit(QtWidgets.QLineEdit):
     def __init__(self, text: str, variables: dict, parent: QtWidgets.QWidget = None):
         super().__init__(text, parent)
 
-        self.parser = FormulaParser(variables)
-        self.textChanged.connect(self.updateParser)
+        self.parser = Parser(variables)
+        # self.textChanged.connect(self.updateParser)
 
         self._valid = True
 
@@ -34,9 +34,6 @@ class FormulaLineEdit(QtWidgets.QLineEdit):
         palette = self.palette()
         palette.setColor(QtGui.QPalette.Base, self.cgood if valid else self.cbad)
         self.setPalette(palette)
-
-    def updateParser(self) -> None:
-        self.valid = self.parser.validateString(self.text())
 
     def hasAcceptableInput(self) -> bool:
         return self.valid
@@ -86,11 +83,14 @@ class CalculationsTool(Tool):
         self.combo_isotopes.setCurrentIndex(0)
 
     def updateCanvas(self) -> None:
-        if not self.formula.valid:
+        try:
+            result = self.formula.value()
+            self.formula.valid = True
+        except ParserException:
+            self.formula.valid = False
             return
-        result = self.formula.value()
         # Remove all nan and inf values
-        result = np.where(np.isfinite(result), result, 0.0)
+        # result = np.where(np.isfinite(result), result, 0.0)
         if isinstance(result, np.ndarray):
             extent = self.dock.laser.config.data_extent(result)
             self.canvas.drawData(result, extent)

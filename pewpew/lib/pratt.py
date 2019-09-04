@@ -12,7 +12,7 @@ class Parser(object):
     def __init__(self, variables: dict):
         number_token = "\\d+\\.?\\d*(?:[eE]\\d+)?"
         operator_token = "[\\+\\-\\*\\/\\^\\!\\=\\<\\>]+"
-        variable_token = "\\d*[a-zA-Z]+\\d*"  # also covers if then else
+        variable_token = "\\d*[a-zA-Z][a-zA-Z0-9_\\-]*"  # also covers if then else
 
         self.regexp_tokenise = re.compile(
             f"\\s*([\\(\\)]|{number_token}|{operator_token}|{variable_token})\\s*"
@@ -40,6 +40,8 @@ class Parser(object):
         }
 
     def parseExpr(self, tokens: List[str], prec: int = 0) -> dict:
+        if len(tokens) == 0:
+            raise ParserException("Unexpected end of input.")
         token = tokens.pop(0)
         cmd = self.nullcmds.get(token, Value(token))
         expr = cmd.nud(self, tokens)
@@ -116,7 +118,7 @@ class UnaryOp(Null):
 class Parens(Null):
     def nud(self, parser: Parser, tokens: List[str]) -> dict:
         expr = parser.parseExpr(tokens)
-        if tokens.pop(0) != ")":
+        if len(tokens) == 0 or tokens.pop(0) != ")":
             raise ParserException("Mismatched parenthesis.")
         return expr
 
@@ -127,10 +129,10 @@ class IfThenElse(Null):
 
     def nud(self, parser: Parser, tokens: List[str]) -> dict:
         lexpr = parser.parseExpr(tokens)
-        if tokens.pop(0) != "then":
+        if len(tokens) == 0 or tokens.pop(0) != "then":
             raise ParserException("Missing 'then' statement.")
         expr = parser.parseExpr(tokens)
-        if tokens.pop(0) != "else":
+        if len(tokens) == 0 or tokens.pop(0) != "else":
             raise ParserException("Missing 'else' statement.")
         rexpr = parser.parseExpr(tokens)
         return dict(type="ternary", value="if", left=lexpr, center=expr, right=rexpr)
