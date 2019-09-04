@@ -15,12 +15,10 @@ from typing import Union
 class FormulaLineEdit(QtWidgets.QLineEdit):
     def __init__(self, text: str, variables: dict, parent: QtWidgets.QWidget = None):
         super().__init__(text, parent)
-
+        self.setClearButtonEnabled(True)
         self.parser = Parser(variables)
-        # self.textChanged.connect(self.updateParser)
 
         self._valid = True
-
         self.cgood = self.palette().color(QtGui.QPalette.Base)
         self.cbad = QtGui.QColor.fromRgb(255, 172, 172)
 
@@ -39,7 +37,13 @@ class FormulaLineEdit(QtWidgets.QLineEdit):
         return self.valid
 
     def value(self) -> Union[float, np.ndarray]:
-        return self.parser.reduceString(self.text())
+        try:
+            result = self.parser.reduceString(self.text())
+            self.valid = True
+            return result
+        except ParserException:
+            self.valid = False
+            return None
 
 
 class CalculationsTool(Tool):
@@ -83,25 +87,24 @@ class CalculationsTool(Tool):
         self.combo_isotopes.setCurrentIndex(0)
 
     def updateCanvas(self) -> None:
-        try:
-            result = self.formula.value()
-            self.formula.valid = True
-        except ParserException:
-            self.formula.valid = False
+        result = self.formula.value()
+
+        if result is None or isinstance(result, float):
             return
         # Remove all nan and inf values
-        # result = np.where(np.isfinite(result), result, 0.0)
-        if isinstance(result, np.ndarray):
-            extent = self.dock.laser.config.data_extent(result)
-            self.canvas.drawData(result, extent)
-            self.canvas.draw()
+        result = np.where(np.isfinite(result), result, 0.0)
+        extent = self.dock.laser.config.data_extent(result)
+        self.canvas.drawData(result, extent)
+        self.canvas.draw()
 
     def newDockAdded(self) -> None:
         self.combo_isotopes.clear()
         self.combo_isotopes.addItem("Isotopes")
         self.combo_isotopes.addItems(self.dock.laser.isotopes)
 
-        self.formula.parser.variables = {k: v.data for k, v in self.dock.laser.data.items()}
+        self.formula.parser.variables = {
+            k: v.data for k, v in self.dock.laser.data.items()
+        }
         self.formula.valid = True
         self.formula.setText(self.dock.laser.isotopes[0])
 
