@@ -15,28 +15,29 @@ class Parser(object):
         variable_token = "\\d*[a-zA-Z][a-zA-Z0-9_\\-]*"  # also covers if then else
 
         self.regexp_tokenise = re.compile(
-            f"\\s*([\\(\\)]|{number_token}|{operator_token}|{variable_token})\\s*"
+            f"\\s*([\\(\\)\\,]|{number_token}|{operator_token}|{variable_token})\\s*"
         )
 
         self.variables = variables
 
         self.nullcmds = {
             "(": Parens(),
-            "if": IfThenElse(np.where),
-            "-": UnaryOp("-", np.negative, 30),
+            "if": Ternary("if", "then", "else", np.where),
+            "percentile": BinaryFunction("percentile", np.percentile),
+            "-": Unary("-", np.negative, 30),
         }
         self.leftcmds = {
-            "<": BinaryOp("<", np.less, 10),
-            "<=": BinaryOp("<=", np.less_equal, 10),
-            ">": BinaryOp(">", np.greater, 10),
-            ">=": BinaryOp(">=", np.greater_equal, 10),
-            "=": BinaryOp("=", np.equal, 10),
-            "!=": BinaryOp("!=", np.not_equal, 10),
-            "+": BinaryOp("+", np.add, 20),
-            "-": BinaryOp("-", np.subtract, 20),
-            "*": BinaryOp("*", np.multiply, 30),
-            "/": BinaryOp("/", np.divide, 30),
-            "^": BinaryOp("^", np.power, 50, right=True),
+            "<": LeftBinary("<", np.less, 10),
+            "<=": LeftBinary("<=", np.less_equal, 10),
+            ">": LeftBinary(">", np.greater, 10),
+            ">=": LeftBinary(">=", np.greater_equal, 10),
+            "=": LeftBinary("=", np.equal, 10),
+            "!=": LeftBinary("!=", np.not_equal, 10),
+            "+": LeftBinary("+", np.add, 20),
+            "-": LeftBinary("-", np.subtract, 20),
+            "*": LeftBinary("*", np.multiply, 30),
+            "/": LeftBinary("/", np.divide, 30),
+            "^": LeftBinary("^", np.power, 50, right=True),
         }
 
     def parseExpr(self, tokens: List[str], prec: int = 0) -> dict:
@@ -47,11 +48,11 @@ class Parser(object):
         cmd = self.nullcmds.get(token, Value(token))
         expr = cmd.nud(self, tokens)
         while len(tokens) > 0:
-            cmd = self.leftcmds.get(tokens[0], Left())
-            if prec > cmd.lbp:
+            lcmd = self.leftcmds.get(tokens[0], Left())
+            if prec > lcmd.lbp:
                 break
             tokens.pop(0)
-            expr = cmd.led(self, tokens, expr)
+            expr = lcmd.led(self, tokens, expr)
         return expr
 
     def parse(self, string: str) -> dict:
@@ -69,25 +70,32 @@ class Parser(object):
                 return float(expr["value"])
             except ValueError:
                 raise ParserException(f"Unknown value '{expr['value']}'.")
-        elif expr["type"] == "unary":
-            a = self.reduce(expr["right"])
-            op = self.nullcmds[expr["value"]]
-            return op.func(a)
-        elif expr["type"] == "binary":
-            a = self.reduce(expr["left"])
-            b = self.reduce(expr["right"])
+        elif expr["type"] == "null":
+            args = [self.reduce(expr["a"])]
+            if expr["order"] in ["binary", "ternary"]:
+                args.append(self.reduce(expr["b"]))
+            if expr["order"] == "ternary":
+                args.append(self.reduce(expr["c"]))
+
+            op: Union[Null, Left] = self.nullcmds[expr["value"]]
+            if not isinstance(op, (Unary, Binary, Ternary)):
+                raise ParserException("Invalid null token.")
+            return op.func(*args)
+        elif expr["type"] == "left":
+            args = [self.reduce(expr["a"])]
+            if expr["order"] in ["binary", "ternary"]:
+                args.append(self.reduce(expr["b"]))
+            if expr["order"] == "ternary":
+                args.append(self.reduce(expr["c"]))
+
             op = self.leftcmds[expr["value"]]
-            return op.func(a, b)
-        elif expr["type"] == "ternary":
-            a = self.reduce(expr["left"])
-            b = self.reduce(expr["center"])
-            c = self.reduce(expr["right"])
-            op = self.nullcmds[expr["value"]]
-            return op.func(a, b, c)
+            if not isinstance(op, (LeftBinary)):
+                raise ParserException("Invalid left token.")
+            return op.func(*args)
         else:
             raise ParserException(f"Unknown expression type.")
 
-    def reduceString(self, string: str) -> dict:
+    def reduceString(self, string: str) -> Union[float, np.ndarray]:
         return self.reduce(self.parse(string))
 
 
@@ -99,26 +107,6 @@ class Null(object):
         raise NotImplementedError
 
 
-class Value(object):
-    def __init__(self, value: str):
-        self.value = value
-
-    def nud(self, parser: Parser, tokens: List[str]) -> dict:
-        return dict(type="value", value=self.value)
-
-
-class UnaryOp(Null):
-    def __init__(self, symbol: str, func: Callable, rbp: int):
-        self.symbol = symbol
-        self.func = func
-        self.rbp = rbp
-
-    def nud(self, parser: Parser, tokens: List[str]) -> dict:
-        return dict(
-            type="unary", value=self.symbol, right=parser.parseExpr(tokens, self.rbp)
-        )
-
-
 class Parens(Null):
     def nud(self, parser: Parser, tokens: List[str]) -> dict:
         expr = parser.parseExpr(tokens)
@@ -127,19 +115,70 @@ class Parens(Null):
         return expr
 
 
-class IfThenElse(Null):
-    def __init__(self, func: Callable):
+class Value(object):
+    def __init__(self, value: str):
+        self.value = value
+
+    def nud(self, parser: Parser, tokens: List[str]) -> dict:
+        return dict(type="value", value=self.value)
+
+
+class Unary(Null):
+    def __init__(self, symbol: str, func: Callable, rbp: int):
+        self.symbol = symbol
         self.func = func
+        self.rbp = rbp
+
+    def nud(self, parser: Parser, tokens: List[str]) -> dict:
+        expr = parser.parseExpr(tokens, self.rbp)
+        return dict(type="null", order="unary", value=self.symbol, a=expr)
+
+
+class Binary(Null):
+    def __init__(self, symbol: str, div: str, func: Callable):
+        self.symbol = symbol
+        self.func = func
+        self.div = div
+
+    def nud(self, parser: Parser, tokens: List[str]) -> dict:
+        expr = parser.parseExpr(tokens)
+        if len(tokens) == 0 or tokens.pop(0) != self.div:
+            raise ParserException(f"Missing '{self.div}' statement.")
+        rexpr = parser.parseExpr(tokens)
+        return dict(type="null", order="binary", value=self.symbol, a=expr, b=rexpr)
+
+
+class Ternary(Null):
+    def __init__(self, symbol: str, div: str, div2: str, func: Callable):
+        self.symbol = symbol
+        self.func = func
+        self.div = div
+        self.div2 = div2
 
     def nud(self, parser: Parser, tokens: List[str]) -> dict:
         lexpr = parser.parseExpr(tokens)
-        if len(tokens) == 0 or tokens.pop(0) != "then":
-            raise ParserException("Missing 'then' statement.")
+        if len(tokens) == 0 or tokens.pop(0) != self.div:
+            raise ParserException(f"Missing '{self.div}' statement.")
         expr = parser.parseExpr(tokens)
-        if len(tokens) == 0 or tokens.pop(0) != "else":
-            raise ParserException("Missing 'else' statement.")
+        if len(tokens) == 0 or tokens.pop(0) != self.div2:
+            raise ParserException(f"Missing '{self.div2}' statement.")
         rexpr = parser.parseExpr(tokens)
-        return dict(type="ternary", value="if", left=lexpr, center=expr, right=rexpr)
+        return dict(
+            type="null", order="ternary", value=self.symbol, a=lexpr, b=expr, c=rexpr
+        )
+
+
+class BinaryFunction(Binary):
+    def __init__(self, symbol: str, func: Callable):
+        super().__init__(symbol, ",", func)
+
+    def nud(self, parser: Parser, tokens: List[str]) -> dict:
+        if len(tokens) == 0 or tokens.pop(0) != "(":
+            raise ParserException("Missing opening parenthesis.")
+        result = super().nud(parser, tokens)
+        if len(tokens) == 0 or tokens.pop(0) != ")":
+            raise ParserException("Missing closing parenthesis.")
+        return result
 
 
 # Left Commands
@@ -150,7 +189,7 @@ class Left(object):
         raise NotImplementedError
 
 
-class BinaryOp(Left):
+class LeftBinary(Left):
     def __init__(self, symbol: str, func: Callable, lbp: int, right: bool = False):
         self.symbol = symbol
         self.func = func
@@ -163,9 +202,13 @@ class BinaryOp(Left):
 
     def led(self, parser: Parser, tokens: List[str], expr: dict) -> dict:
         rexpr = parser.parseExpr(tokens, self.rbp)
-        return dict(type="binary", value=self.symbol, left=expr, right=rexpr)
+        return dict(type="left", order="binary", value=self.symbol, a=expr, b=rexpr)
 
 
-class PostFix(BinaryOp):
-    def led(self, parser: Parser, tokens: List[str], expr: dict) -> dict:
-        return dict(type="postfix", left=expr)
+if __name__ == "__main__":
+    parser = Parser({"a": np.random.random((3, 3)), "b": np.arange(9).reshape(3, 3)})
+    print(parser.regexp_tokenise.findall("percentile(a, 10)"))
+
+    print(parser.reduceString("a / (b + 1)"))
+    print(parser.reduceString("if a > 0.5 then a else b"))
+    print(parser.reduceString("percentile(a , 10)"))
