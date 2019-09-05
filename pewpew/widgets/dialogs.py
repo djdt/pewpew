@@ -117,7 +117,7 @@ class CalibrationDialog(ApplyDialog):
         layout_form.addRow("Unit:", self.lineedit_unit)
 
         self.layout_main.addLayout(layout_form)
-        self.layout_main.addWidget(layout_isotopes)
+        self.layout_main.addLayout(layout_isotopes)
         self.layout_main.addWidget(self.check_all)
 
         self.updateLineEdits()
