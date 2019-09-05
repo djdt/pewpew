@@ -1,6 +1,6 @@
 import numpy as np
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtGui, QtWidgets
 
 from pewpew.lib.pratt import Parser, ParserException
 from pewpew.lib.viewoptions import ViewOptions

@@ -27,6 +27,9 @@ class Tool(ApplyDialog):
     #     self.show()
     #     self.draw()
 
+    def refresh(self) -> None:
+        pass
+
     def keyPressEvent(self, event: QtCore.QEvent) -> None:
         if event.key() in [
             QtCore.Qt.Key_Escape,
@@ -35,5 +38,5 @@ class Tool(ApplyDialog):
         ]:
             return
         if event.key() == QtCore.Qt.Key_F5:
-            self.draw()
+            self.refresh()
         super().keyPressEvent(event)
