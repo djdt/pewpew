@@ -111,12 +111,14 @@ class CalibrationDialog(ApplyDialog):
         layout_isotopes.addWidget(self.combo_isotopes, 0, QtCore.Qt.AlignRight)
 
         # Form layout for line edits
-        self.layout_form.addRow("Gradient:", self.lineedit_gradient)
-        self.layout_form.addRow("Intercept:", self.lineedit_intercept)
-        self.layout_form.addRow("Unit:", self.lineedit_unit)
-        self.layout().insertLayout(1, layout_isotopes)
-        # self.layout().insertLayout(1, self.combo_isotopes, 1, QtCore.Qt.AlignRight)
-        self.layout().insertWidget(2, self.check_all)
+        layout_form = QtWidgets.QFormLayout()
+        layout_form.addRow("Gradient:", self.lineedit_gradient)
+        layout_form.addRow("Intercept:", self.lineedit_intercept)
+        layout_form.addRow("Unit:", self.lineedit_unit)
+
+        self.layout_main.addLayout(layout_form)
+        self.layout_main.addWidget(layout_isotopes)
+        self.layout_main.addWidget(self.check_all)
 
         self.updateLineEdits()
 
@@ -248,23 +250,26 @@ class ColorRangeDialog(ApplyDialog):
         )
         self.lineedit_max.setToolTip("Percentile for maximum colormap value.")
 
-        self.layout_form.addRow("Minimum:", self.lineedit_min)
-        self.layout_form.addRow("Maximum:", self.lineedit_max)
-
         # Only add the isotopes combo if there are any open files
         self.combo_isotopes = QtWidgets.QComboBox()
         self.combo_isotopes.addItems(isotopes)
         self.combo_isotopes.setCurrentText(self.previous_isotope)
         self.combo_isotopes.currentIndexChanged.connect(self.comboChanged)
         self.combo_isotopes.setVisible(len(isotopes) > 0)
-        self.layout().insertWidget(1, self.combo_isotopes, 0, QtCore.Qt.AlignRight)
 
         # Checkbox
         self.check_all = QtWidgets.QCheckBox("Apply range to all elements.")
         self.check_all.setChecked(len(isotopes) == 0)
         self.check_all.setEnabled(len(isotopes) > 0)
         self.check_all.clicked.connect(self.enableComboIsotope)
-        self.layout().insertWidget(2, self.check_all)
+
+        layout_form = QtWidgets.QFormLayout()
+        layout_form.addRow("Minimum:", self.lineedit_min)
+        layout_form.addRow("Maximum:", self.lineedit_max)
+
+        self.layout_main.addLayout(layout_form)
+        self.layout_main.addWidget(self.combo_isotopes, 0, QtCore.Qt.AlignRight)
+        self.layout_main.addWidget(self.check_all)
 
         self.updateLineEdits()
 
@@ -347,18 +352,19 @@ class ConfigDialog(ApplyDialog):
             self.spinbox_offsets.setRange(2, 10)
             self.spinbox_offsets.setValue(self.config._subpixel_size)  # type: ignore
 
-        # Form layout for line edits
-        self.layout_form.addRow("Spotsize (μm):", self.lineedit_spotsize)
-        self.layout_form.addRow("Speed (μm):", self.lineedit_speed)
-        self.layout_form.addRow("Scantime (s):", self.lineedit_scantime)
-
-        if isinstance(config, KrissKrossConfig):
-            self.layout_form.addRow("Warmup (s):", self.lineedit_warmup)
-            self.layout_form.addRow("Subpixel width:", self.spinbox_offsets)
-
-        # Checkbox
         self.check_all = QtWidgets.QCheckBox("Apply config to all images.")
-        self.layout().insertWidget(1, self.check_all)
+
+        # Form layout for line edits
+        layout_form = QtWidgets.QFormLayout()
+        layout_form.addRow("Spotsize (μm):", self.lineedit_spotsize)
+        layout_form.addRow("Speed (μm):", self.lineedit_speed)
+        layout_form.addRow("Scantime (s):", self.lineedit_scantime)
+        if isinstance(config, KrissKrossConfig):
+            layout_form.addRow("Warmup (s):", self.lineedit_warmup)
+            layout_form.addRow("Subpixel width:", self.spinbox_offsets)
+
+        self.layout_main.addLayout(layout_form)
+        self.layout_main.addWidget(self.check_all)
 
     def updateConfig(self) -> None:
         if self.lineedit_spotsize.text() != "":
