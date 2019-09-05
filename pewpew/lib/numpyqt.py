@@ -23,7 +23,10 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         return self.array.shape[0]
 
     def insertRows(
-        self, position: int, rows: int, parent: QtCore.QModelIndex = None
+        self,
+        position: int,
+        rows: int,
+        parent: QtCore.QModelIndex = QtCore.QModelIndex(),
     ) -> bool:
         self.beginInsertRows(parent, position, position + rows - 1)
         self.array = np.insert(
@@ -36,7 +39,10 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         return True
 
     def insertColumns(
-        self, position: int, columns: int, parent: QtCore.QModelIndex = None
+        self,
+        position: int,
+        columns: int,
+        parent: QtCore.QModelIndex = QtCore.QModelIndex(),
     ) -> bool:
         self.beginInsertColumns(parent, position, position + columns - 1)
         self.array = np.insert(
@@ -49,7 +55,10 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         return True
 
     def removeRows(
-        self, position: int, rows: int, parent: QtCore.QModelIndex = None
+        self,
+        position: int,
+        rows: int,
+        parent: QtCore.QModelIndex = QtCore.QModelIndex(),
     ) -> bool:
         self.beginRemoveRows(parent, position, position + rows - 1)
         self.array = np.delete(self.array, np.arange(position, position + rows), axis=0)
@@ -57,7 +66,10 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         return True
 
     def removeColumns(
-        self, position: int, columns: int, parent: QtCore.QModelIndex = None
+        self,
+        position: int,
+        columns: int,
+        parent: QtCore.QModelIndex = QtCore.QModelIndex(),
     ) -> bool:
         self.beginRemoveColumns(parent, position, position + columns - 1)
         self.array = np.delete(
