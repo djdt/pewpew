@@ -360,7 +360,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.viewoptions.calibrate = checked
         self.refresh()
 
-    def menuStandardsTool(self) -> None:
+    def menuStandardsTool(self) -> QtWidgets.QDialog:
         def applyTool(tool: Tool) -> None:
             for dock in self.dockarea.findChildren(LaserImageDock):
                 for isotope in tool.calibrations.keys():
@@ -371,23 +371,19 @@ class MainWindow(QtWidgets.QMainWindow):
                 dock.draw()
 
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        cali_tool = StandardsTool(docks[0], self.viewoptions, parent=self)
-        cali_tool.applyPressed.connect(applyTool)
-        cali_tool.show()
+        tool = StandardsTool(docks[0], self.viewoptions, parent=self)
+        tool.applyPressed.connect(applyTool)
+        tool.mouseSelectStarted.connect(self.dockarea.startMouseSelect)
+        tool.show()
+        return tool
 
-    def menuOperationsTool(self) -> None:
-        # def applyTool(tool: Tool) -> None:
-        #     if isinstance(tool.dock.laser, KrissKross):
-        #         tool.dock.laser.data[tool.name] = KrissKrossData(tool.data)
-        #     else:
-        #         tool.dock.laser.data[tool.name] = LaserData(tool.data)
-        #     tool.dock.populateComboIsotopes()
-        #     tool.updateComboIsotopes()
-
+    def menuOperationsTool(self) -> QtWidgets.QDialog:
         docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
         tool = CalculationsTool(docks[0], self.viewoptions, parent=self)
-        # op_tool.applyPressed.connect(applyTool)
+        tool.applyPressed.connect(docks[0].populateComboIsotopes)
+        tool.mouseSelectStarted.connect(self.dockarea.startMouseSelect)
         tool.show()
+        return tool
 
     def menuColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")

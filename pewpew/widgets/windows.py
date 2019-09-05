@@ -177,7 +177,7 @@ class DockArea(QtWidgets.QMainWindow):
     def startMouseSelect(self, widget: QtWidgets.QWidget) -> None:
         self.activateWindow()
         self.setFocus(QtCore.Qt.OtherFocusReason)
-        self.mouseSelectFinished.connect(widget.mouseSelectFinished)
+        self.mouseSelectFinished.connect(widget.endMouseSelect)
 
         self.mouse_select = True
         for dock in self.findChildren(LaserImageDock):
@@ -189,8 +189,8 @@ class DockArea(QtWidgets.QMainWindow):
             if dock.underMouse():
                 self.mouseSelectFinished.emit(dock)
                 break
-
         self.mouseSelectFinished.disconnect()
+
         self.mouse_select = False
         for dock in self.findChildren(LaserImageDock):
             if hasattr(dock, "canvas"):
