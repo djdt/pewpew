@@ -19,7 +19,7 @@ class ValidColorLineEdit(QtWidgets.QLineEdit):
         self.color_good = self.palette().color(QtGui.QPalette.Base)
         self.color_bad = QtGui.QColor.fromRgb(255, 172, 172)
 
-    def revalidate(self) -> bool:
+    def revalidate(self) -> None:
         palette = self.palette()
         if self.hasAcceptableInput():
             color = self.color_good
@@ -37,9 +37,11 @@ class NameLineEdit(ValidColorLineEdit):
         self.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Minimum)
         self.badchars = " +-=*/\\^<>!()[]"
         self.badnames = badnames
-        self._badnames = ["", "if", "then", "else"]
+        self._badnames = ["if", "then", "else", "percentile"]
 
     def hasAcceptableInput(self) -> bool:
+        if self.text() == "":
+            return False
         if any(c in self.text() for c in self.badchars):
             return False
         if self.text() in self._badnames:
@@ -53,23 +55,26 @@ class FormulaLineEdit(ValidColorLineEdit):
     def __init__(self, text: str, variables: dict, parent: QtWidgets.QWidget = None):
         super().__init__(text, parent)
         self.setClearButtonEnabled(True)
+        self.textChanged.disconnect(self.revalidate)
+        self.textChanged.connect(self.calculate)
         self.parser = Parser(variables)
 
-        self.valid = True
+        self._value: Union[float, np.ndarray] = None
         self.cgood = self.palette().color(QtGui.QPalette.Base)
         self.cbad = QtGui.QColor.fromRgb(255, 172, 172)
 
     def hasAcceptableInput(self) -> bool:
-        return self.valid
+        return self._value is not None
+
+    def calculate(self) -> None:
+        try:
+            self._value = self.parser.reduceString(self.text())
+        except ParserException:
+            self._value = None
+        self.revalidate()
 
     def value(self) -> Union[float, np.ndarray]:
-        try:
-            result = self.parser.reduceString(self.text())
-            self.valid = True
-            return result
-        except ParserException:
-            self.valid = False
-            return None
+        return self._value
 
 
 class CalculationsTool(Tool):
@@ -91,6 +96,7 @@ class CalculationsTool(Tool):
         self.canvas = LaserCanvas(self.viewoptions)
 
         self.lineedit_name = NameLineEdit("", badnames=[])
+        self.lineedit_name.revalidate()
         self.lineedit_name.textChanged.connect(self.completeChanged)
 
         self.combo_isotopes = QtWidgets.QComboBox()
