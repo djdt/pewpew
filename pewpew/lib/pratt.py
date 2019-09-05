@@ -11,7 +11,7 @@ class ParserException(Exception):
 class Parser(object):
     def __init__(self, variables: dict):
         number_token = "\\d+\\.?\\d*(?:[eE]\\d+)?"
-        operator_token = "[\\+\\-\\*\\/\\^\\!\\=\\<\\>]+"
+        operator_token = "[\\+\\-\\*\\/\\^\\!\\=\\<\\>\\?\\:]+"
         variable_token = "\\d*[a-zA-Z][a-zA-Z0-9_\\-]*"  # also covers if then else
 
         self.regexp_tokenise = re.compile(
@@ -27,6 +27,7 @@ class Parser(object):
             "-": Unary("-", np.negative, 30),
         }
         self.leftcmds = {
+            "?": LeftTernary("?", ":", np.where, 10),
             "<": LeftBinary("<", np.less, 10),
             "<=": LeftBinary("<=", np.less_equal, 10),
             ">": LeftBinary(">", np.greater, 10),
@@ -35,8 +36,8 @@ class Parser(object):
             "!=": LeftBinary("!=", np.not_equal, 10),
             "+": LeftBinary("+", np.add, 20),
             "-": LeftBinary("-", np.subtract, 20),
-            "*": LeftBinary("*", np.multiply, 30),
-            "/": LeftBinary("/", np.divide, 30),
+            "*": LeftBinary("*", np.multiply, 40),
+            "/": LeftBinary("/", np.divide, 40),
             "^": LeftBinary("^", np.power, 50, right=True),
         }
 
@@ -89,7 +90,7 @@ class Parser(object):
                 args.append(self.reduce(expr["c"]))
 
             op = self.leftcmds[expr["value"]]
-            if not isinstance(op, (LeftBinary)):
+            if not isinstance(op, (LeftBinary, LeftTernary)):
                 raise ParserException("Invalid left token.")
             return op.func(*args)
         else:
@@ -205,10 +206,29 @@ class LeftBinary(Left):
         return dict(type="left", order="binary", value=self.symbol, a=expr, b=rexpr)
 
 
+class LeftTernary(Left):
+    def __init__(self, symbol: str, div: str, func: Callable, lbp: int):
+        self.symbol = symbol
+        self.func = func
+        self.div = div
+        self.lbp = lbp
+
+    @property
+    def rbp(self):
+        return self.lbp + 1
+
+    def led(self, parser: Parser, tokens: List[str], lexpr: dict) -> dict:
+        expr = parser.parseExpr(tokens)
+        if len(tokens) == 0 or tokens.pop(0) != self.div:
+            raise ParserException(f"Missing '{self.div}' statement.")
+        rexpr = parser.parseExpr(tokens, self.rbp)
+        return dict(
+            type="left", order="ternary", value=self.symbol, a=lexpr, b=expr, c=rexpr
+        )
+
+
 if __name__ == "__main__":
     parser = Parser({"a": np.random.random((3, 3)), "b": np.arange(9).reshape(3, 3)})
-    print(parser.regexp_tokenise.findall("percentile(a, 10)"))
 
-    print(parser.reduceString("a / (b + 1)"))
-    print(parser.reduceString("if a > 0.5 then a else b"))
-    print(parser.reduceString("percentile(a , 10)"))
+    print(parser.reduceString("if a > 0.5 then a else b * 100 ^ 2"))
+    print(parser.reduceString("a > 0.5 ? a : b * 100 ^ 2"))
