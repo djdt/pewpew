@@ -206,6 +206,9 @@ class LaserCanvas(BasicCanvas):
 
         # Calculate the range
         vmin, vmax = self.viewoptions.colors.get_range_as_float(isotope, data)
+        # Ensure than vmin is actually lower than vmax
+        if vmin > vmax:
+            vmin, vmax = vmax, vmin
 
         # Plot the image
         self.image = self.ax.imshow(
