@@ -27,7 +27,7 @@ class ViewSpace(QtWidgets.QSplitter):
         self.action_close_view = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("view-close"), "Close View"
         )
-        self.action_close_view.triggered.connect(self.closeView)
+        self.action_close_view.triggered.connect(self.slotCloseActiveView)
 
     def slotSplitHorizontal(self) -> None:
         self.splitView()
@@ -35,10 +35,45 @@ class ViewSpace(QtWidgets.QSplitter):
     def slotSplitVertical(self) -> None:
         self.splitView(None, QtCore.Qt.Vertical)
 
-    def closeView(self) -> None:
-        if self.active_view is not None and self.count() > 1:
-            self.active_view.close()
+    def slotCloseActiveView(self) -> None:
+        if self.active_view is not None:
+            self.closeView(self.active_view)
             self.active_view = None
+
+    def closeView(self, view: View) -> None:
+        if view is None:
+            return
+
+        if len(self.findChildren(View)) == 1:
+            return
+
+        splitter = view.parent()
+        if splitter is None:
+            return
+
+        view.close()
+        view.deleteLater()
+
+        if splitter.count() != 1:
+            return
+
+        if splitter != self:
+            parent_splitter = splitter.parent()
+            if parent_splitter is not None:
+                index = parent_splitter.indexOf(splitter)
+                sizes = parent_splitter.sizes()
+                parent_splitter.insertWidget(index, splitter.widget(0))
+                splitter.deleteLater()
+                parent_splitter.setSizes(sizes)
+        # Doesn't seem to enter here?
+        elif isinstance(splitter.widget(0), QtWidgets.QSplitter):
+            child_splitter = splitter.widget(0)
+            sizes = child_splitter.sizes()
+            splitter.setOrientation(child_splitter.orientation())
+            splitter.addWidget(child_splitter.widget(0))
+            splitter.addWidget(child_splitter.widget(0))
+            child_splitter.deleteLater()
+            splitter.setSizes(sizes)
 
     def splitView(
         self,
@@ -61,13 +96,15 @@ class ViewSpace(QtWidgets.QSplitter):
             new_splitter = QtWidgets.QSplitter(orientation)
             new_splitter.setChildrenCollapsible(False)
             new_splitter.addWidget(view)
-            new_splitter.addWidget(View(self, new_splitter))
+            new_view = View(self, new_splitter)
+            new_splitter.addWidget(new_view)
             splitter.insertWidget(index, new_splitter)
 
             splitter.setSizes(sizes)
 
             new_size = (sum(new_splitter.sizes()) - new_splitter.handleWidth()) / 2.0
             new_splitter.setSizes([new_size, new_size])
+            self.setActiveView(new_view)
 
     def activeView(self) -> View:
         if self.active_view is None:
@@ -153,6 +190,10 @@ class ViewTitleBar(QtWidgets.QWidget):
         line.setFrameShape(QtWidgets.QFrame.VLine)
         layout.addWidget(line)
         self.setLayout(layout)
+
+
+class LaserView(View):
+    pass
 
 
 if __name__ == "__main__":
