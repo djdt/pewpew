@@ -2,7 +2,8 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewpew.lib.pratt import Parser, Reducer, Expr, ParserException, BinaryFunction
+from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
+from pewpew.lib.pratt import BinaryFunction
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets.canvases import LaserCanvas
@@ -60,19 +61,19 @@ class FormulaLineEdit(ValidColorLineEdit):
         self.textChanged.disconnect(self.revalidate)
         self.textChanged.connect(self.calculate)
         self.parser = Parser(variables)
-        self.expr: Expr = None
+        self.expr = ""
 
         self.cgood = self.palette().color(QtGui.QPalette.Base)
         self.cbad = QtGui.QColor.fromRgb(255, 172, 172)
 
     def hasAcceptableInput(self) -> bool:
-        return self.expr is not None
+        return self.expr != ""
 
     def calculate(self) -> None:
         try:
             self.expr = self.parser.parse(self.text())
         except ParserException:
-            self.expr = None
+            self.expr = ""
         self.revalidate()
 
 
@@ -106,7 +107,7 @@ class CalculationsTool(Tool):
         self.formula.textChanged.connect(self.updateCanvas)
         self.formula.textChanged.connect(self.completeChanged)
 
-        self.reducer.operations.update({"percentile": np.percentile})
+        self.reducer.operations.update({"percentile": (np.percentile, 2)})
         self.formula.parser.nulls.update({"percentile": BinaryFunction("percentile")})
 
         layout_form = QtWidgets.QFormLayout()
@@ -142,9 +143,10 @@ class CalculationsTool(Tool):
         return True
 
     def updateCanvas(self) -> None:
-        if self.formula.expr is None:
+        try:
+            result = self.reducer.reduce(self.formula.expr)
+        except ReducerException:
             return
-        result = self.reducer.reduce(self.formula.expr)
         if isinstance(result, float):
             return
         # Remove all nan and inf values

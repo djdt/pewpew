@@ -8,6 +8,10 @@ class ParserException(Exception):
     pass
 
 
+class ReducerException(Exception):
+    pass
+
+
 class Expr(object):
     def __init__(self, value: str, children: list = None):
         self.value = value
@@ -17,7 +21,7 @@ class Expr(object):
         if self.children is None:
             return self.value
         else:
-            return f"( {self.value} {' '.join([str(c) for c in self.children])} )"
+            return f"{self.value} {' '.join([str(c) for c in self.children])}"
 
 
 # Null Commands
@@ -25,7 +29,7 @@ class Null(object):
     rbp = -1
 
     def nud(self, parser: "Parser", tokens: List[str]) -> dict:
-        raise NotImplementedError
+        raise ParserException("Invalid token.")
 
 
 class Parens(Null):
@@ -97,12 +101,25 @@ class BinaryFunction(Binary):
         return result
 
 
+class TernaryFunction(Ternary):
+    def __init__(self, value: str):
+        super().__init__(value, ",", ",")
+
+    def nud(self, parser: "Parser", tokens: List[str]) -> dict:
+        if len(tokens) == 0 or tokens.pop(0) != "(":
+            raise ParserException("Missing opening parenthesis.")
+        result = super().nud(parser, tokens)
+        if len(tokens) == 0 or tokens.pop(0) != ")":
+            raise ParserException("Missing closing parenthesis.")
+        return result
+
+
 # Left Commands
 class Left(object):
     lbp = -1
 
     def led(self, parser: "Parser", tokens: List[str], expr: dict) -> dict:
-        raise NotImplementedError
+        raise ParserException("Invalid token.")
 
 
 class LeftBinary(Left):
@@ -139,9 +156,9 @@ class LeftTernary(Left):
 
 
 class Parser(object):
-    def __init__(self, variables: List[str]):
-        number_token = "\\d+\\.?\\d*(?:[eE]\\d+)?"
-        operator_token = "[\\+\\-\\*\\/\\^\\!\\=\\<\\>\\?\\:]+"
+    def __init__(self, variables: List[str] = []):
+        number_token = "\\d+\\.?\\d*(?:[eE][+\\-]?\\d+)?"
+        operator_token = "[+\\-\\*/^!=<>?:]+"
         variable_token = "\\d*[a-zA-Z][a-zA-Z0-9_\\-]*"  # also covers if then else
 
         self.regexp_number = re.compile(number_token)
@@ -150,8 +167,25 @@ class Parser(object):
         )
 
         self.variables = variables
-        self.nulls = {}
-        self.lefts = {}
+        self.nulls = {
+            "(": Parens(),
+            "if": Ternary("?", "then", "else"),
+            "-": Unary("u-", 30),
+        }
+        self.lefts = {
+            "?": LeftTernary("?", ":", 10),
+            "<": LeftBinary("<", 10),
+            "<=": LeftBinary("<=", 10),
+            ">": LeftBinary(">", 10),
+            ">=": LeftBinary(">=", 10),
+            "=": LeftBinary("=", 10),
+            "!=": LeftBinary("!=", 10),
+            "+": LeftBinary("+", 20),
+            "-": LeftBinary("-", 20),
+            "*": LeftBinary("*", 40),
+            "/": LeftBinary("/", 40),
+            "^": LeftBinary("^", 50, right=True),
+        }
 
     def getNull(self, token: str) -> Null:
         if token in self.nulls:
@@ -180,80 +214,52 @@ class Parser(object):
             expr = lcmd.led(self, tokens, expr)
         return expr
 
-    def parse(self, string: str) -> dict:
+    def parse(self, string: str) -> str:
         tokens = self.regexp_tokenise.findall(string)
         result = self.parseExpr(tokens)
         if len(tokens) != 0:
             raise ParserException(f"Unexpected input '{tokens[0]}'.")
-        return result
+        return str(result)
 
 
 class Reducer(object):
-    def __init__(self, variables: dict):
-        self.operations = {}
+    def __init__(self, variables: dict = {}):
+        self.operations = {
+            "u-": (np.negative, 1),
+            "+": (np.add, 2),
+            "-": (np.subtract, 2),
+            "*": (np.multiply, 2),
+            "/": (np.divide, 2),
+            "^": (np.power, 2),
+            ">": (np.greater, 2),
+            ">=": (np.greater_equal, 2),
+            "<": (np.less, 2),
+            "<=": (np.less_equal, 2),
+            "=": (np.equal, 2),
+            "!=": (np.not_equal, 2),
+            "?": (np.where, 3),
+        }
         self.variables = variables
 
-    def reduceExpr(self, expr: Expr) -> Union[float, np.ndarray]:
-        if expr.children is None:
-            if expr.value in self.variables:
-                return self.variables[expr.value]
-            else:
-                try:
-                    return float(expr.value)
-                except ValueError:
-                    raise ParserException(f"Not a number '{expr.value}'.")
-        elif expr.value in self.operations:
-            op = self.operations[expr.value]
-            args = [self.reduceExpr(c) for c in expr.children]
+    def reduceExpr(self, tokens: List[str]) -> Union[float, np.ndarray]:
+        if len(tokens) == 0:
+            raise ReducerException("Unexpected end of input.")
+        token = tokens.pop(0)
+        if token in self.operations:
+            op, nargs = self.operations[token]
+            args = [self.reduceExpr(tokens) for i in range(nargs)]
             return op(*args)
+        elif token in self.variables:
+            return self.variables[token]
         else:
-            raise ParserException(f"Unknown value {expr.value}.")
+            try:
+                return float(token)
+            except ValueError:
+                raise ReducerException(f"Unexpected input '{token}'.")
 
-
-if __name__ == "__main__":
-
-    basic_arith_null = {
-        "(": Parens(),
-        "if": Ternary("?", "then", "else"),
-        "-": Unary("u-", 30),
-    }
-    basic_arith_left = {
-        "?": LeftTernary("?", ":", 10),
-        "<": LeftBinary("<", 10),
-        "<=": LeftBinary("<=", 10),
-        ">": LeftBinary(">", 10),
-        ">=": LeftBinary(">=", 10),
-        "=": LeftBinary("=", 10),
-        "!=": LeftBinary("!=", 10),
-        "+": LeftBinary("+", 20),
-        "-": LeftBinary("-", 20),
-        "*": LeftBinary("*", 40),
-        "/": LeftBinary("/", 40),
-        "^": LeftBinary("^", 50, right=True),
-    }
-    var = {"a": np.random.random((3, 3)), "b": np.arange(9).reshape(3, 3)}
-
-    parser = Parser(list(var.keys()))
-    parser.nulls.update(basic_arith_null)
-    parser.lefts.update(basic_arith_left)
-
-    lex = parser.parse("if b > 0.5 then 1 else b * 100 ^ 2")
-
-    reducer = Reducer(var)
-    reducer.operations.update(
-        {
-            "u-": np.negative,
-            "+": np.add,
-            "-": np.subtract,
-            "*": np.multiply,
-            "/": np.divide,
-            "^": np.power,
-            ">": np.greater,
-            ">=": np.greater_equal,
-            "<": np.less,
-            "<=": np.less_equal,
-            "=": np.equal,
-            "!=": np.not_equal,
-            "?": np.where,
-        }
-    )
+    def reduce(self, string: str) -> Union[float, np.ndarray]:
+        tokens = string.split(" ")
+        result = self.reduceExpr(tokens)
+        if len(tokens) != 0:
+            raise ReducerException(f"Unexpected input '{tokens[0]}'.")
+        return result
