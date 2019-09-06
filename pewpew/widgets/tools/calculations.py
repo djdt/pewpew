@@ -2,14 +2,14 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewpew.lib.pratt import Parser, ParserException
+from pewpew.lib.pratt import Parser, Reducer, Expr, ParserException, BinaryFunction
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets.canvases import LaserCanvas
 from pewpew.widgets.docks import LaserImageDock
 from pewpew.widgets.tools import Tool
 
-from typing import List, Union
+from typing import List
 
 
 class ValidColorLineEdit(QtWidgets.QLineEdit):
@@ -52,29 +52,28 @@ class NameLineEdit(ValidColorLineEdit):
 
 
 class FormulaLineEdit(ValidColorLineEdit):
-    def __init__(self, text: str, variables: dict, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self, text: str, variables: List[str], parent: QtWidgets.QWidget = None
+    ):
         super().__init__(text, parent)
         self.setClearButtonEnabled(True)
         self.textChanged.disconnect(self.revalidate)
         self.textChanged.connect(self.calculate)
         self.parser = Parser(variables)
+        self.expr: Expr = None
 
-        self._value: Union[float, np.ndarray] = None
         self.cgood = self.palette().color(QtGui.QPalette.Base)
         self.cbad = QtGui.QColor.fromRgb(255, 172, 172)
 
     def hasAcceptableInput(self) -> bool:
-        return self._value is not None
+        return self.expr is not None
 
     def calculate(self) -> None:
         try:
-            self._value = self.parser.reduceString(self.text())
+            self.expr = self.parser.parse(self.text())
         except ParserException:
-            self._value = None
+            self.expr = None
         self.revalidate()
-
-    def value(self) -> Union[float, np.ndarray]:
-        return self._value
 
 
 class CalculationsTool(Tool):
@@ -102,9 +101,13 @@ class CalculationsTool(Tool):
         self.combo_isotopes = QtWidgets.QComboBox()
         self.combo_isotopes.activated.connect(self.insertVariable)
 
-        self.formula = FormulaLineEdit("", variables={})
+        self.reducer = Reducer({})
+        self.formula = FormulaLineEdit("", variables=[])
         self.formula.textChanged.connect(self.updateCanvas)
         self.formula.textChanged.connect(self.completeChanged)
+
+        self.reducer.operations.update({"percentile": np.percentile})
+        self.formula.parser.nulls.update({"percentile": BinaryFunction("percentile")})
 
         layout_form = QtWidgets.QFormLayout()
         layout_form.addRow("Name:", self.lineedit_name)
@@ -139,9 +142,10 @@ class CalculationsTool(Tool):
         return True
 
     def updateCanvas(self) -> None:
-        result = self.formula.value()
-
-        if result is None or isinstance(result, float):
+        if self.formula.expr is None:
+            return
+        result = self.reducer.reduce(self.formula.expr)
+        if isinstance(result, float):
             return
         # Remove all nan and inf values
         result = np.where(np.isfinite(result), result, 0.0)
@@ -156,9 +160,8 @@ class CalculationsTool(Tool):
 
         self.lineedit_name.badnames = self.dock.laser.isotopes
 
-        self.formula.parser.variables = {
-            k: v.data for k, v in self.dock.laser.data.items()
-        }
+        self.reducer.variables = {k: v.data for k, v in self.dock.laser.data.items()}
+        self.formula.parser.variables = list(self.dock.laser.isotopes)
         self.formula.valid = True
         self.formula.setText(self.dock.laser.isotopes[0])
 
