@@ -24,6 +24,8 @@ def test_main_window_empty(qtbot: QtBot):
     dlg.close()
     dlg = window.menuImportKrissKross()
     dlg.close()
+    dlg = window.menuConfig()
+    dlg.close()
     dlg = window.menuColormapRange()
     dlg.close()
 
@@ -47,4 +49,8 @@ def test_main_window_laser(qtbot: QtBot):
     assert window.action_operations.isEnabled()
 
     dlg = window.menuExportAll()
+    dlg.close()
+    dlg = window.menuStandardsTool()
+    dlg.close()
+    dlg = window.menuOperationsTool()
     dlg.close()

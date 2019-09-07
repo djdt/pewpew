@@ -88,11 +88,15 @@ class StandardsTool(Tool):
 
         self.table = StandardsTable(self.calibrations[current_isotope], self)
         self.table.setRowCount(6)
+        self.table.model().dataChanged.connect(self.completeChanged)
         self.table.model().dataChanged.connect(self.updateResults)
 
         self.layoutWidgets()
         self.draw()
         self.updateCounts()
+
+    def isComplete(self):
+        return self.table.isComplete()
 
     def layoutWidgets(self) -> None:
         layout_cal_form = QtWidgets.QFormLayout()
@@ -155,25 +159,19 @@ class StandardsTool(Tool):
 
     def updateResults(self) -> None:
         # Clear results if not complete
-        if not self.table.isComplete():
+        if not self.isComplete():
             self.results_box.clear()
             return
         else:
             isotope = self.combo_isotope.currentText()
             self.results_box.update(self.calibrations[isotope])
 
-    def showCurve(self) -> None:
+    def showCurve(self) -> QtWidgets.QDialog:
         dlg = CalibrationCurveDialog(
             self.calibrations[self.combo_isotope.currentText()], parent=self
         )
         dlg.show()
-
-    def buttonLaser(self) -> None:
-        self.hide()
-        self.dockarea.activateWindow()
-        self.dockarea.setFocus(QtCore.Qt.OtherFocusReason)
-        self.dockarea.startMouseSelect()
-        self.dockarea.mouseSelectFinished.connect(self.mouseSelectFinished)
+        return dlg
 
     def comboTrim(self, text: str) -> None:
         if self.combo_trim.currentText() == "rows":
@@ -200,7 +198,7 @@ class StandardsTool(Tool):
         self.draw()
         self.updateCounts()
 
-    def comboWeighting(self, text: str) -> None:
+    def comboWeighting(self, index: int) -> None:
         isotope = self.combo_isotope.currentText()
         self.calibrations[isotope].weighting = self.combo_weighting.currentText()
         self.calibrations[isotope].update_linreg()
@@ -210,21 +208,23 @@ class StandardsTool(Tool):
         if self.lineedit_left.text() == "":
             trim_left = 0.0
         else:
-            trim_left = self.dock.laser.convert(
-                float(self.lineedit_left.text()),
-                unit_from=self.combo_trim.currentText(),
-                unit_to="um",
-            )
-        trim_right = self.canvas.image.get_extent()[1]
-        if self.lineedit_right.text() != "":
-            trim_right -= self.dock.laser.convert(
-                float(self.lineedit_right.text()),
-                unit_from=self.combo_trim.currentText(),
-                unit_to="um",
-            )
+            trim_left = float(self.lineedit_left.text())
+        if self.lineedit_right.text() == "":
+            trim_right = 0.0
+        else:
+            trim_right = float(self.lineedit_right.text())
+
+        # Convert units
+        units = self.combo_trim.currentText()
+        multiplier = 1.0
+        if units in ["rows", "s"]:
+            multiplier *= self.dock.laser.config.get_pixel_width()
+        if units == "s":
+            multiplier /= self.dock.laser.config.scantime
+
         self.canvas.view_limits = (
-            trim_left,
-            trim_right,
+            trim_left * multiplier,
+            self.canvas.image.get_extent()[1] - trim_right * multiplier,
             0.0,
             self.canvas.image.get_extent()[3],
         )
@@ -350,6 +350,7 @@ class StandardsResultsBox(QtWidgets.QGroupBox):
             value = lineedit.text()
             data += f"<tr><td>{label}</td><td>{value}</td></tr>"
             text += f"{label}\t{value}\n"
+        text = text.rstrip("\n")
         data += "</table>"
 
         mime = QtCore.QMimeData()
@@ -442,7 +443,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         return False
 
     def updateCalibration(self, *args) -> None:
-        if np.count_nonzero(~np.isnan(self.array[:, 0])) == 0:
+        if np.count_nonzero(np.nan_to_num(self.array[:, 0])) < 2:
             self.calibration._points = None
         else:
             self.calibration.points = self.array
@@ -469,7 +470,7 @@ class StandardsTable(BasicTableView):
             return False
         if (
             np.count_nonzero(
-                ~np.isnan(self.model().array[:, StandardsTable.COLUMN_CONC])
+                np.nan_to_num(self.model().array[:, StandardsTable.COLUMN_CONC])
             )
             < 2
         ):

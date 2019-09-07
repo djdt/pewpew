@@ -8,7 +8,10 @@ class Tool(ApplyDialog):
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.MinimumExpanding,
+            QtWidgets.QSizePolicy.MinimumExpanding,
+        )
 
         self.button_select = QtWidgets.QPushButton("Select &Image")
         self.button_select.pressed.connect(self.startMouseSelect)
