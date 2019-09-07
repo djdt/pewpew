@@ -40,9 +40,8 @@ class BasicTableView(QtWidgets.QTableView):
             super().keyPressEvent(event)
 
     def _advance(self) -> None:
-        row = self.currentRow()
-        if row + 1 < self.rowCount():
-            self.setCurrentCell(row + 1, self.currentColumn())
+        index = self.moveCursor(QtWidgets.QAbstractItemView.MoveDown, QtCore.Qt.NoModifier)
+        self.setCurrentIndex(index)
 
     def _copy(self) -> None:
         selection = sorted(self.selectedIndexes(), key=lambda i: (i.row(), i.column()))
