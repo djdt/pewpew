@@ -110,45 +110,37 @@ class ViewSpace(QtWidgets.QSplitter):
         if self.active_view is None:
             view = self.findChildren(View)[0]
             self.active_view = view
+
         return self.active_view
 
     def setActiveView(self, view: View) -> None:
+        if self.active_view is not None:
+            self.active_view.setActive(False)
+        view.setActive(True)
         self.active_view = view
 
 
 class View(QtWidgets.QWidget):
     def __init__(self, viewspace: ViewSpace, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
+        self.active = False
         self.viewspace = viewspace
 
         self.stack = QtWidgets.QStackedWidget()
-        self.titlebar = ViewTitleBar(self)
+        self.stack.setFrameStyle(QtWidgets.QFrame.StyledPanel | QtWidgets.QFrame.Sunken)
 
-        box = QtWidgets.QGroupBox()
-        layout_box = QtWidgets.QVBoxLayout()
-        layout_box.setSpacing(0)
-        layout_box.setContentsMargins(0, 0, 0, 0)
-        layout_box.addWidget(self.stack)
-        box.setLayout(layout_box)
+        self.tabs = ViewTabBar(self.stack, self)
+        self.titlebar = ViewTitleBar(self.tabs, self)
 
         layout = QtWidgets.QVBoxLayout()
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.titlebar, 0)
-        layout.addWidget(box, 1)
+        layout.addWidget(self.stack, 1)
         self.setLayout(layout)
 
-    def addTab(self, widget: QtWidgets.QWidget, title: str) -> None:
-        index = self.titlebar.tabs.addTab(title)
-        self.stack.insertWidget(index, widget)
-
-    def changeTab(self, index: int) -> None:
-        self.stack.setCurrentIndex(index)
-
-    def removeTab(self, index: int) -> None:
-        w = self.stack.widget(index)
-        if w is not None:
-            self.stack.removeWidget(w)
+    def setActive(self, active: bool) -> None:
+        self.active = True
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if obj and event.type() == QtCore.QEvent.MouseButtonPress:
@@ -156,17 +148,87 @@ class View(QtWidgets.QWidget):
         return False
 
 
-class ViewTitleBar(QtWidgets.QWidget):
-    def __init__(self, view: View):
-        super().__init__(view)
-        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Maximum)
-        self.view = view
+class ViewTabBar(QtWidgets.QTabBar):
+    def __init__(
+        self, stack: QtWidgets.QStackedWidget, parent: QtWidgets.QWidget = None
+    ):
+        super().__init__(parent)
+        self.stack = stack
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum
+        )
+        self.setExpanding(False)
+        self.setTabsClosable(True)
+        self.setMovable(True)
+        self.setAcceptDrops(True)
+        self.setMouseTracking(True)
 
-        self.tabs = QtWidgets.QTabBar()
-        self.tabs.setTabsClosable(True)
-        self.tabs.tabCloseRequested.connect(self.tabs.removeTab)
-        self.tabs.tabCloseRequested.connect(self.view.removeTab)
-        self.tabs.currentChanged.connect(self.view.changeTab)
+        self.tabCloseRequested.connect(self.removeTab)
+        self.currentChanged.connect(self.stack.setCurrentIndex)
+        self.tabMoved.connect(self.moveStackWidget)
+
+    def addTab(self, text: str, widget: QtWidgets.QWidget) -> None:
+        index = super().addTab(text)
+        self.stack.insertWidget(index, widget)
+
+    def insertTab(self, index: int, text: str, widget: QtWidgets.QWidget) -> None:
+        index = super().insertTab(index, text)
+        self.stack.insertWidget(index, widget)
+
+    def tabRemoved(self, index: int) -> None:
+        super().tabRemoved(index)
+        self.stack.removeWidget(self.stack.widget(index))
+
+    def moveStackWidget(self, ifrom: int, ito: int) -> None:
+        self.stack.insertWidget(ito, self.stack.widget(ifrom))
+
+    def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
+        if event.buttons() == QtCore.Qt.RightButton:
+            index = self.tabAt(event.pos())
+
+            rect = self.tabRect(index)
+            pixmap = QtGui.QPixmap(rect.size())
+            self.render(pixmap, QtCore.QPoint(), QtGui.QRegion(rect))
+
+            mime_data = QtCore.QMimeData()
+            mime_data.setData(
+                "application/x-pewpewtabbar", QtCore.QByteArray().number(index)
+            )
+
+            drag = QtGui.QDrag(self)
+            drag.setMimeData(mime_data)
+            drag.setPixmap(pixmap)
+            drag.setDragCursor(
+                QtGui.QCursor(QtCore.Qt.OpenHandCursor).pixmap(), QtCore.Qt.MoveAction
+            )
+            drag.start(QtCore.Qt.MoveAction)
+        else:
+            super().mouseMoveEvent(event)
+
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+        if event.mimeData().hasFormat("application/x-pewpewtabbar"):
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+        dest = event.source().tabAt(event.pos())
+        src, ok = event.mimeData().data("application/x-pewpewtabbar").toInt()
+        if ok and event.source() == self:
+            self.moveTab(src, dest)
+        elif ok and isinstance(event.source(), ViewTabBar):
+            text = event.source().tabText(src)
+            widget = event.source().stack.widget(src)
+            self.insertTab(dest, text, widget)
+            event.source().removeTab(src)
+        else:
+            super().dropEvent(event)
+
+
+class ViewTitleBar(QtWidgets.QWidget):
+    def __init__(self, tabs: ViewTabBar, view: View):
+        super().__init__(view)
+        self.view = view
 
         self.split_button = QtWidgets.QToolButton()
         self.split_button.setAutoRaise(True)
@@ -183,8 +245,7 @@ class ViewTitleBar(QtWidgets.QWidget):
         line = QtWidgets.QFrame()
         line.setFrameShape(QtWidgets.QFrame.VLine)
         layout.addWidget(line)
-        layout.addWidget(self.tabs, 0, QtCore.Qt.AlignLeft)
-        layout.addStretch(1)
+        layout.addWidget(tabs, 1)
         layout.addWidget(self.split_button)
         line = QtWidgets.QFrame()
         line.setFrameShape(QtWidgets.QFrame.VLine)
@@ -199,16 +260,19 @@ class LaserView(View):
 if __name__ == "__main__":
     app = QtWidgets.QApplication()
     mw = QtWidgets.QMainWindow()
-    viewspace = ViewSpace()
     w = QtWidgets.QWidget()
     w.setMinimumSize(800, 600)
+
+    viewspace = ViewSpace()
+
     lo = QtWidgets.QVBoxLayout()
     lo.addWidget(viewspace)
+
     w.setLayout(lo)
     mw.setCentralWidget(w)
     view = View(viewspace)
     viewspace.addWidget(view)
     for i in range(0, 5):
-        view.addTab(QtWidgets.QGroupBox(str(i)), str(i))
+        view.tabs.addTab(str(i), QtWidgets.QLabel(str(i)))
     mw.show()
     app.exec_()
