@@ -1,8 +1,12 @@
+import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
+import sys
 
-class View:
-    pass
+sys.path.append("/home/tom/Documents/python/pewpew")
+
+from pewpew.widgets.canvases import LaserCanvas
+from pewpew.lib.viewoptions import ViewOptions
 
 
 class ViewSpace(QtWidgets.QSplitter):
@@ -17,11 +21,11 @@ class ViewSpace(QtWidgets.QSplitter):
         self.active_view = None
 
         self.action_split_horz = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("view-split-left-right"), "Split &Horizontal"
+            QtGui.QIcon.fromTheme("view-split-left-right"), "Split &Vertical"
         )
         self.action_split_horz.triggered.connect(self.slotSplitHorizontal)
         self.action_split_vert = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("view-split-top-bottom"), "Split &Vertical"
+            QtGui.QIcon.fromTheme("view-split-top-bottom"), "Split &Horizontal"
         )
         self.action_split_vert.triggered.connect(self.slotSplitVertical)
         self.action_close_view = QtWidgets.QAction(
@@ -40,7 +44,7 @@ class ViewSpace(QtWidgets.QSplitter):
             self.closeView(self.active_view)
             self.active_view = None
 
-    def closeView(self, view: View) -> None:
+    def closeView(self, view: "View") -> None:
         if view is None:
             return
 
@@ -106,23 +110,27 @@ class ViewSpace(QtWidgets.QSplitter):
             new_splitter.setSizes([new_size, new_size])
             self.setActiveView(new_view)
 
-    def activeView(self) -> View:
+    def activeView(self) -> "View":
         if self.active_view is None:
             view = self.findChildren(View)[0]
             self.active_view = view
 
         return self.active_view
 
-    def setActiveView(self, view: View) -> None:
+    def setActiveView(self, view: "View") -> None:
+        if self.active_view == view:
+            return
         if self.active_view is not None:
-            self.active_view.setActive(False)
-        view.setActive(True)
+            self.active_view.active = False
+        view.active = True
         self.active_view = view
 
 
 class View(QtWidgets.QWidget):
     def __init__(self, viewspace: ViewSpace, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
+        self.setAcceptDrops(True)
+
         self.active = False
         self.viewspace = viewspace
 
@@ -130,6 +138,7 @@ class View(QtWidgets.QWidget):
         self.stack.setFrameStyle(QtWidgets.QFrame.StyledPanel | QtWidgets.QFrame.Sunken)
 
         self.tabs = ViewTabBar(self.stack, self)
+        self.tabs.currentChanged.connect(self.setActive)
         self.titlebar = ViewTitleBar(self.tabs, self)
 
         layout = QtWidgets.QVBoxLayout()
@@ -139,13 +148,25 @@ class View(QtWidgets.QWidget):
         layout.addWidget(self.stack, 1)
         self.setLayout(layout)
 
-    def setActive(self, active: bool) -> None:
-        self.active = True
+    def setActive(self) -> None:
+        self.viewspace.setActiveView(self)
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if obj and event.type() == QtCore.QEvent.MouseButtonPress:
-            self.viewspace.setActiveView(self)
+            self.setActive()
         return False
+
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+        if event.mimeData().hasFormat("application/x-pewpewtabbar"):
+            self.tabs.dragEnterEvent(event)
+        else:
+            super().dragEnterEvent(event)
+
+    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+        if event.mimeData().hasFormat("application/x-pewpewtabbar"):
+            self.tabs.dropEvent(event)
+        else:
+            super().dragEnterEvent(event)
 
 
 class ViewTabBar(QtWidgets.QTabBar):
@@ -157,9 +178,11 @@ class ViewTabBar(QtWidgets.QTabBar):
         self.setSizePolicy(
             QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum
         )
+        self.setElideMode(QtCore.Qt.ElideRight)
         self.setExpanding(False)
         self.setTabsClosable(True)
         self.setMovable(True)
+
         self.setAcceptDrops(True)
         self.setMouseTracking(True)
 
@@ -167,13 +190,15 @@ class ViewTabBar(QtWidgets.QTabBar):
         self.currentChanged.connect(self.stack.setCurrentIndex)
         self.tabMoved.connect(self.moveStackWidget)
 
-    def addTab(self, text: str, widget: QtWidgets.QWidget) -> None:
+    def addTab(self, text: str, widget: QtWidgets.QWidget) -> int:
         index = super().addTab(text)
         self.stack.insertWidget(index, widget)
+        return index
 
-    def insertTab(self, index: int, text: str, widget: QtWidgets.QWidget) -> None:
+    def insertTab(self, index: int, text: str, widget: QtWidgets.QWidget) -> int:
         index = super().insertTab(index, text)
         self.stack.insertWidget(index, widget)
+        return index
 
     def tabRemoved(self, index: int) -> None:
         super().tabRemoved(index)
@@ -181,6 +206,23 @@ class ViewTabBar(QtWidgets.QTabBar):
 
     def moveStackWidget(self, ifrom: int, ito: int) -> None:
         self.stack.insertWidget(ito, self.stack.widget(ifrom))
+
+    def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent) -> QtWidgets.QDialog:
+        if event.buttons() == QtCore.Qt.LeftButton:
+            index = self.tabAt(event.pos())
+            if index == -1:
+                return
+            dlg = QtWidgets.QInputDialog(self)
+            dlg.setWindowTitle("Rename")
+            dlg.setLabelText("Name:")
+            dlg.setTextValue(self.tabText(index))
+            dlg.setInputMode(QtWidgets.QInputDialog.TextInput)
+            dlg.textValueSelected.connect(lambda s: self.setTabText(index, s))
+            dlg.open()
+            return dlg
+        else:
+            super().mouseDoubleClickEvent(event)
+            return None
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         if event.buttons() == QtCore.Qt.RightButton:
@@ -219,7 +261,8 @@ class ViewTabBar(QtWidgets.QTabBar):
         elif ok and isinstance(event.source(), ViewTabBar):
             text = event.source().tabText(src)
             widget = event.source().stack.widget(src)
-            self.insertTab(dest, text, widget)
+            index = self.insertTab(dest, text, widget)
+            self.setCurrentIndex(index)
             event.source().removeTab(src)
         else:
             super().dropEvent(event)
@@ -273,6 +316,8 @@ if __name__ == "__main__":
     view = View(viewspace)
     viewspace.addWidget(view)
     for i in range(0, 5):
-        view.tabs.addTab(str(i), QtWidgets.QLabel(str(i)))
+        canvas = LaserCanvas(ViewOptions())
+        canvas.drawData(np.random.random((10, 10)), (0, 1, 0, 1))
+        view.tabs.addTab(str(i), canvas)
     mw.show()
     app.exec_()
