@@ -6,9 +6,7 @@ from typing import List
 class BasicTableView(QtWidgets.QTableView):
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         menu = QtWidgets.QMenu(self)
-        cut_action = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("edit-cut"), "Cut", self
-        )
+        cut_action = QtWidgets.QAction(QtGui.QIcon.fromTheme("edit-cut"), "Cut", self)
         cut_action.triggered.connect(self._cut)
         copy_action = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-copy"), "Copy", self
@@ -40,7 +38,9 @@ class BasicTableView(QtWidgets.QTableView):
             super().keyPressEvent(event)
 
     def _advance(self) -> None:
-        index = self.moveCursor(QtWidgets.QAbstractItemView.MoveDown, QtCore.Qt.NoModifier)
+        index = self.moveCursor(
+            QtWidgets.QAbstractItemView.MoveDown, QtCore.Qt.NoModifier
+        )
         self.setCurrentIndex(index)
 
     def _copy(self) -> None:
@@ -94,9 +94,7 @@ class BasicTableView(QtWidgets.QTableView):
 class BasicTable(QtWidgets.QTableWidget):
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         menu = QtWidgets.QMenu(self)
-        cut_action = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("edit-cut"), "Cut", self
-        )
+        cut_action = QtWidgets.QAction(QtGui.QIcon.fromTheme("edit-cut"), "Cut", self)
         cut_action.triggered.connect(self._cut)
         copy_action = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("edit-copy"), "Copy", self
