@@ -1,13 +1,6 @@
 import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
-import sys
-
-sys.path.append("/home/tom/Documents/python/pewpew")
-
-from pewpew.widgets.canvases import LaserCanvas
-from pewpew.lib.viewoptions import ViewOptions
-
 
 class ViewSpace(QtWidgets.QSplitter):
     view_index = 0
@@ -18,7 +11,7 @@ class ViewSpace(QtWidgets.QSplitter):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(orientation, parent)
-        self.active_view = None
+        self.active_view: "View" = None
 
         self.action_split_horz = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("view-split-left-right"), "Split &Vertical"
@@ -296,11 +289,14 @@ class ViewTitleBar(QtWidgets.QWidget):
         self.setLayout(layout)
 
 
-class LaserView(View):
-    pass
-
-
 if __name__ == "__main__":
+    import sys
+
+    sys.path.append("/home/tom/Documents/python/pewpew")
+    from laserlib.laser import Laser
+    from pewpew.widgets.laser import LaserWidget
+    from pewpew.lib.viewoptions import ViewOptions
+
     app = QtWidgets.QApplication()
     mw = QtWidgets.QMainWindow()
     w = QtWidgets.QWidget()
@@ -315,9 +311,13 @@ if __name__ == "__main__":
     mw.setCentralWidget(w)
     view = View(viewspace)
     viewspace.addWidget(view)
+    viewoptions = ViewOptions()
     for i in range(0, 5):
-        canvas = LaserCanvas(ViewOptions())
-        canvas.drawData(np.random.random((10, 10)), (0, 1, 0, 1))
-        view.tabs.addTab(str(i), canvas)
+        laser = Laser.from_structured(
+            np.array(np.random.random((20, 20)), dtype=[("A1", float), ("B2", float)])
+        )
+        widget = LaserWidget(laser, viewoptions)
+        widget.canvas.drawLaser(widget.laser, "A1")
+        view.tabs.addTab(str(i), widget)
     mw.show()
     app.exec_()

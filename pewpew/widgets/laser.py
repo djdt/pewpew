@@ -22,8 +22,17 @@ class LaserWidget(QtWidgets.QWidget):
         self.combo_isotopes.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.populateIsotopes()
 
+        self.view_button = QtWidgets.QToolButton()
+        self.view_button.setAutoRaise(True)
+        self.view_button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+        self.view_button.setIcon(QtGui.QIcon.fromTheme("zoom-in"))
+        self.view_button.addAction(QtWidgets.QAction("zo"))
+        self.view_button.installEventFilter(self)
+
         layout_bar = QtWidgets.QHBoxLayout()
-        layout_bar.addWidget(self.combo_isotopes, 0, QtCore.Qt.AlignLeft)
+        layout_bar.addWidget(self.view_button, 0, QtCore.Qt.AlignLeft)
+        layout_bar.addStretch(1)
+        layout_bar.addWidget(self.combo_isotopes, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.canvas, 1)

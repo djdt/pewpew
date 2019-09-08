@@ -288,7 +288,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         super().__init__(viewoptions=viewoptions, parent=parent)
 
         try:
-            self.status_bar = parent.window().statusBar()
+            self.status_bar = self.window().statusBar()
         except AttributeError:
             self.status_bar = None
         self.state = set(["move"])
@@ -421,15 +421,16 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.view_limits = x1, x2, y1, y2
 
         # Update the status bar
-        x, y = event.xdata, event.ydata
-        v = self.image.get_cursor_data(event)
-        unit = self.viewoptions.units
-        if unit == "row":
-            x, y = int(x / self.px), int(y / self.py)
-        elif unit == "second":
-            x = event.xdata / self.ps
-            y = 0
-        self.status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
+        if self.status_bar is not None:
+            x, y = event.xdata, event.ydata
+            v = self.image.get_cursor_data(event)
+            unit = self.viewoptions.units
+            if unit == "row":
+                x, y = int(x / self.px), int(y / self.py)
+            elif unit == "second":
+                x = event.xdata / self.ps
+                y = 0
+            self.status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
 
     def axis_enter(self, event: LocationEvent) -> None:
         pass
