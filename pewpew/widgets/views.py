@@ -23,23 +23,17 @@ class ViewSpace(QtWidgets.QSplitter):
         self.action_split_horz = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("view-split-left-right"), "Split &Vertical"
         )
-        self.action_split_horz.triggered.connect(self.slotSplitHorizontal)
+        self.action_split_horz.triggered.connect(self.splitHorizontal)
         self.action_split_vert = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("view-split-top-bottom"), "Split &Horizontal"
         )
-        self.action_split_vert.triggered.connect(self.slotSplitVertical)
+        self.action_split_vert.triggered.connect(self.splitVertical)
         self.action_close_view = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("view-close"), "Close View"
         )
-        self.action_close_view.triggered.connect(self.slotCloseActiveView)
+        self.action_close_view.triggered.connect(self.closeActiveView)
 
-    def slotSplitHorizontal(self) -> None:
-        self.splitView()
-
-    def slotSplitVertical(self) -> None:
-        self.splitView(None, QtCore.Qt.Vertical)
-
-    def slotCloseActiveView(self) -> None:
+    def closeActiveView(self) -> None:
         if self.active_view is not None:
             self.closeView(self.active_view)
             self.active_view = None
@@ -78,6 +72,12 @@ class ViewSpace(QtWidgets.QSplitter):
             splitter.addWidget(child_splitter.widget(0))
             child_splitter.deleteLater()
             splitter.setSizes(sizes)
+
+    def splitHorizontal(self) -> None:
+        self.splitView()
+
+    def splitVertical(self) -> None:
+        self.splitView(None, QtCore.Qt.Vertical)
 
     def splitView(
         self,
@@ -181,7 +181,7 @@ class ViewTabBar(QtWidgets.QTabBar):
         self.setElideMode(QtCore.Qt.ElideRight)
         self.setExpanding(False)
         self.setTabsClosable(True)
-        self.setMovable(True)
+        # self.setMovable(True)
 
         self.setAcceptDrops(True)
         self.setMouseTracking(True)
@@ -225,7 +225,7 @@ class ViewTabBar(QtWidgets.QTabBar):
             return None
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
-        if event.buttons() == QtCore.Qt.RightButton:
+        if event.buttons() == QtCore.Qt.LeftButton:
             index = self.tabAt(event.pos())
 
             rect = self.tabRect(index)
@@ -254,16 +254,16 @@ class ViewTabBar(QtWidgets.QTabBar):
             super().dragEnterEvent(event)
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
-        dest = event.source().tabAt(event.pos())
+        dest = self.tabAt(event.pos())
         src, ok = event.mimeData().data("application/x-pewpewtabbar").toInt()
         if ok and event.source() == self:
             self.moveTab(src, dest)
         elif ok and isinstance(event.source(), ViewTabBar):
             text = event.source().tabText(src)
             widget = event.source().stack.widget(src)
+            event.source().removeTab(src)
             index = self.insertTab(dest, text, widget)
             self.setCurrentIndex(index)
-            event.source().removeTab(src)
         else:
             super().dropEvent(event)
 
