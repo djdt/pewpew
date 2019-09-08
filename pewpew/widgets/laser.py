@@ -4,7 +4,8 @@ from laserlib.laser import Laser
 
 from pewpew.lib.viewoptions import ViewOptions
 
-from pewpew.canvases import InteractiveLaserCanvas
+from pewpew.widgets.actions import ActionGenerator
+from pewpew.widgets.canvases import InteractiveLaserCanvas
 from pewpew.widgets.views import View, ViewTitleBar
 
 
@@ -31,16 +32,22 @@ class LaserWidget(QtWidgets.QWidget):
 
     def contextMenu(self) -> QtWidgets.QMenu:
         context_menu = QtWidgets.QMenu(self)
-        context_menu.addAction(self.action_copy_image)
+        context_menu.addAction(
+            ActionGenerator().getAction("copy-image", self.canvas.copyToClipboard)
+        )
         context_menu.addSeparator()
-        context_menu.addAction(self.action_save)
-        context_menu.addAction(self.action_export)
+        context_menu.addAction(ActionGenerator().getAction("save"), self.menuSave)
+        context_menu.addAction(ActionGenerator().getAction("export"), self.menuExport)
         context_menu.addSeparator()
-        context_menu.addAction(self.action_calibration)
-        context_menu.addAction(self.action_config)
-        context_menu.addAction(self.action_stats)
-        context_menu.addSeparator()
-        context_menu.addAction(self.action_close)
+        context_menu.addAction(
+            ActionGenerator().getAction("dialog-calibration"), self.menuCalibration
+        )
+        context_menu.addAction(
+            ActionGenerator().getAction("dialog-config"), self.menuConfig
+        )
+        context_menu.addAction(
+            ActionGenerator().getAction("dialog-statistics"), self.menuStats
+        )
         return context_menu
 
     def populateIsotopes(self) -> None:
