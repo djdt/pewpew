@@ -174,7 +174,6 @@ class ViewTabBar(QtWidgets.QTabBar):
         self.setElideMode(QtCore.Qt.ElideRight)
         self.setExpanding(False)
         self.setTabsClosable(True)
-        # self.setMovable(True)
 
         self.setAcceptDrops(True)
         self.setMouseTracking(True)
@@ -220,6 +219,8 @@ class ViewTabBar(QtWidgets.QTabBar):
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         if event.buttons() == QtCore.Qt.LeftButton:
             index = self.tabAt(event.pos())
+            if index == -1:
+                return
 
             rect = self.tabRect(index)
             pixmap = QtGui.QPixmap(rect.size())
