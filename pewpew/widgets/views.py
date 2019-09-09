@@ -3,8 +3,6 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 
 class ViewSpace(QtWidgets.QSplitter):
-    view_index = 0
-
     def __init__(
         self,
         orientation: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
@@ -25,6 +23,12 @@ class ViewSpace(QtWidgets.QSplitter):
             QtGui.QIcon.fromTheme("view-close"), "Close View"
         )
         self.action_close_view.triggered.connect(self.closeActiveView)
+
+    def countStacks(self) -> int:
+        widgets = 0
+        for view in self.findChildren(View):
+            widgets += view.stack.count()
+        return widgets
 
     def closeActiveView(self) -> None:
         if self.active_view is not None:
@@ -118,6 +122,10 @@ class ViewSpace(QtWidgets.QSplitter):
         view.active = True
         self.active_view = view
 
+    def refresh(self) -> None:
+        for view in self.findChildren(View):
+            view.refresh()
+
 
 class View(QtWidgets.QWidget):
     def __init__(self, viewspace: ViewSpace, parent: QtWidgets.QWidget = None):
@@ -130,8 +138,12 @@ class View(QtWidgets.QWidget):
         self.stack = QtWidgets.QStackedWidget()
         self.stack.setFrameStyle(QtWidgets.QFrame.StyledPanel | QtWidgets.QFrame.Sunken)
 
-        self.tabs = ViewTabBar(self.stack, self)
+        self.tabs = ViewTabBar(self)
         self.tabs.currentChanged.connect(self.setActive)
+        self.tabs.currentChanged.connect(self.stack.setCurrentIndex)
+        self.tabs.tabMoved.connect(self.moveStackWidget)
+        self.tabs.tabClosed.connect(self.removeTab)
+
         self.titlebar = ViewTitleBar(self.tabs, self)
 
         layout = QtWidgets.QVBoxLayout()
@@ -140,6 +152,23 @@ class View(QtWidgets.QWidget):
         layout.addWidget(self.titlebar, 0)
         layout.addWidget(self.stack, 1)
         self.setLayout(layout)
+
+    def addTab(self, text: str, widget: QtWidgets.QWidget) -> int:
+        index = self.tabs.addTab(text)
+        self.stack.insertWidget(index, widget)
+        return index
+
+    def insertTab(self, index: int, text: str, widget: QtWidgets.QWidget) -> int:
+        index = self.tabs.insertTab(index, text)
+        self.stack.insertWidget(index, widget)
+        return index
+
+    def removeTab(self, index: int) -> None:
+        self.tabs.removeTab(index)
+        self.stack.removeWidget(self.stack.widget(index))
+
+    def moveStackWidget(self, ifrom: int, ito: int) -> None:
+        self.stack.insertWidget(ito, self.stack.widget(ifrom))
 
     def setActive(self) -> None:
         self.viewspace.setActiveView(self)
@@ -161,43 +190,26 @@ class View(QtWidgets.QWidget):
         else:
             super().dragEnterEvent(event)
 
+    def refresh(self) -> None:
+        pass
+
 
 class ViewTabBar(QtWidgets.QTabBar):
-    def __init__(
-        self, stack: QtWidgets.QStackedWidget, parent: QtWidgets.QWidget = None
-    ):
+    tabClosed = QtCore.Signal(int)
+
+    def __init__(self, view: View, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.stack = stack
+        self.view = view
         self.setSizePolicy(
             QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum
         )
         self.setElideMode(QtCore.Qt.ElideRight)
         self.setExpanding(False)
         self.setTabsClosable(True)
-
         self.setAcceptDrops(True)
         self.setMouseTracking(True)
 
-        self.tabCloseRequested.connect(self.removeTab)
-        self.currentChanged.connect(self.stack.setCurrentIndex)
-        self.tabMoved.connect(self.moveStackWidget)
-
-    def addTab(self, text: str, widget: QtWidgets.QWidget) -> int:
-        index = super().addTab(text)
-        self.stack.insertWidget(index, widget)
-        return index
-
-    def insertTab(self, index: int, text: str, widget: QtWidgets.QWidget) -> int:
-        index = super().insertTab(index, text)
-        self.stack.insertWidget(index, widget)
-        return index
-
-    def tabRemoved(self, index: int) -> None:
-        super().tabRemoved(index)
-        self.stack.removeWidget(self.stack.widget(index))
-
-    def moveStackWidget(self, ifrom: int, ito: int) -> None:
-        self.stack.insertWidget(ito, self.stack.widget(ifrom))
+        self.tabCloseRequested.connect(self.tabClosed)
 
     def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent) -> QtWidgets.QDialog:
         if event.buttons() == QtCore.Qt.LeftButton:
@@ -256,9 +268,11 @@ class ViewTabBar(QtWidgets.QTabBar):
             self.moveTab(src, dest)
         elif ok and isinstance(event.source(), ViewTabBar):
             text = event.source().tabText(src)
-            widget = event.source().stack.widget(src)
+            widget = event.source().view.stack.widget(src)
+
             event.source().removeTab(src)
-            index = self.insertTab(dest, text, widget)
+
+            index = self.view.insertTab(dest, text, widget)
             self.setCurrentIndex(index)
         else:
             super().dropEvent(event)
@@ -322,6 +336,6 @@ if __name__ == "__main__":
         )
         widget = LaserWidget(laser, viewoptions)
         widget.canvas.drawLaser(widget.laser, "A1")
-        view.tabs.addTab(str(i), widget)
+        view.addTab(str(i), widget)
     mw.show()
     app.exec_()
