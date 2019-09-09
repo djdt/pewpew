@@ -14,12 +14,11 @@ from pewpew.lib import io
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets import dialogs
-from pewpew.widgets.docks import LaserImageDock, KrissKrossImageDock
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.prompts import DetailedError
 from pewpew.widgets.tools import Tool, CalculationsTool, StandardsTool
-from pewpew.widgets.windows import DockArea
 from pewpew.widgets.wizards import KrissKrossWizard
+from pewpew.widgets.laser import LaserViewSpace
 
 from types import TracebackType
 
@@ -31,33 +30,31 @@ class MainWindow(QtWidgets.QMainWindow):
         # Defaults for when applying to multiple images
         self.config = LaserConfig()
         self.viewoptions = ViewOptions()
-        self.setWindowTitle("Pewpew")
+        self.setWindowTitle("PewPew")
         self.resize(1280, 800)
 
-        widget = QtWidgets.QWidget()
-        self.setCentralWidget(widget)
-        layout = QtWidgets.QHBoxLayout()
+        self.viewspace = LaserViewSpace()
 
-        self.dockarea = DockArea(self)
-        self.dockarea.numberDocksChanged.connect(self.docksAddedOrRemoved)
-        layout.addWidget(self.dockarea)
+        # widget = QtWidgets.QWidget()
+        # layout = QtWidgets.QVBoxLayout()
+        # layout.addWidget(self.viewspace)
+        # widget.setLayout(layout)
+        self.setCentralWidget(self.viewspace)
+        # self.dockarea.numberDocksChanged.connect(self.docksAddedOrRemoved)
 
-        widget.setLayout(layout)
-
+        self.createActions()
         self.createMenus()
-        self.statusBar().showMessage("Import or open data to begin.")
+        self.statusBar().showMessage(f"Welcome to PewPew version {__version__}.")
         self.button_status_um = QtWidgets.QRadioButton("μ")
-        self.button_status_um.setChecked(True)
         self.button_status_row = QtWidgets.QRadioButton("r")
         self.button_status_s = QtWidgets.QRadioButton("s")
+        self.button_status_um.setChecked(True)
         self.button_status_um.toggled.connect(self.buttonStatusUnit)
         self.button_status_row.toggled.connect(self.buttonStatusUnit)
         self.button_status_s.toggled.connect(self.buttonStatusUnit)
         self.statusBar().addPermanentWidget(self.button_status_um)
         self.statusBar().addPermanentWidget(self.button_status_row)
         self.statusBar().addPermanentWidget(self.button_status_s)
-
-        self.createActions()
 
     def createActions(self):
         self.action_open = QtWidgets.QAction(
@@ -76,7 +73,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "CSV Documents(*.csv *.txt);;Numpy Archives(*.npz);;"
             "Pew Pew Sessions(*.pew);;All files(*)",
         )
-        dlg.setCurrentFilter("All files(*)")
+        dlg.selectNameFilter("All files(*)")
         dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
         dlg.filesSelected.connect(view.openDocument)
         dlg.open()
@@ -85,12 +82,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def createMenus(self) -> None:
         # File
         menu_file = self.menuBar().addMenu("&File")
-        action_open = menu_file.addAction(
-            QtGui.QIcon.fromTheme("document-open"), "&Open"
-        )
-        action_open.setShortcut("Ctrl+O")
-        action_open.setStatusTip("Open sessions and images.")
-        action_open.triggered.connect(self.menuOpen)
+        menu_file.addAction(self.action_open)
+        # action_open = menu_file.addAction(
+        #     QtGui.QIcon.fromTheme("document-open"), "&Open"
+        # )
+        # action_open.setShortcut("Ctrl+O")
+        # action_open.setStatusTip("Open sessions and images.")
+        # action_open.triggered.connect(self.menuOpen)
 
         # File -> Import
         menu_import = menu_file.addMenu("&Import")
@@ -259,17 +257,11 @@ class MainWindow(QtWidgets.QMainWindow):
         else:  # seconds
             self.viewoptions.units = "second"
 
-    def refresh(self, visible_only: bool = False) -> None:
-        if visible_only:
-            docks = self.dockarea.visibleDocks()
-        else:
-            docks = self.dockarea.findChildren(LaserImageDock)
-        for d in docks:
-            d.draw()
+    def refresh(self) -> None:
+        self.viewspace.refresh()
 
-    def docksAddedOrRemoved(self) -> None:
-        num_docks = len(self.dockarea.findChildren(LaserImageDock))
-        enabled = not num_docks == 0
+    def updateActionAvailablity(self) -> None:
+        enabled = self.viewspace.countViewTabs() > 0
         self.action_export.setEnabled(enabled)
         self.action_calibration.setEnabled(enabled)
         self.action_operations.setEnabled(enabled)

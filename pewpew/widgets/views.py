@@ -1,8 +1,13 @@
 import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from typing import List
+
 
 class ViewSpace(QtWidgets.QSplitter):
+    numViewsChanged = QtCore.Signal()
+    numTabsChanged = QtCore.Signal()
+
     def __init__(
         self,
         orientation: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
@@ -10,6 +15,7 @@ class ViewSpace(QtWidgets.QSplitter):
     ):
         super().__init__(orientation, parent)
         self.active_view: "View" = None
+        self.views: List[View] = []
 
         self.action_split_horz = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("view-split-left-right"), "Split &Vertical"
@@ -24,10 +30,19 @@ class ViewSpace(QtWidgets.QSplitter):
         )
         self.action_close_view.triggered.connect(self.closeActiveView)
 
-    def countStacks(self) -> int:
+        self.addWidget(self.createView())
+
+    def createView(self) -> "View":
+        view = View(self)
+        view.numTabsChanged.connect(self.numTabsChanged)
+        self.views.append(view)
+        self.numViewsChanged.emit()
+        return view
+
+    def countViewTabs(self) -> int:
         widgets = 0
-        for view in self.findChildren(View):
-            widgets += view.stack.count()
+        for view in self.views:
+            widgets += view.tabs.count()
         return widgets
 
     def closeActiveView(self) -> None:
@@ -39,12 +54,15 @@ class ViewSpace(QtWidgets.QSplitter):
         if view is None:
             return
 
-        if len(self.findChildren(View)) == 1:
+        if len(self.views) == 1:
             return
 
         splitter = view.parent()
         if splitter is None:
             return
+
+        self.views.remove(view)
+        self.numViewsChanged.emit()
 
         view.close()
         view.deleteLater()
@@ -90,26 +108,28 @@ class ViewSpace(QtWidgets.QSplitter):
         if splitter.count() == 1:
             size = (splitter.sizes()[0] - splitter.handleWidth()) / 2.0
             splitter.setOrientation(orientation)
-            splitter.insertWidget(index - 1, View(self, splitter))
+            new_view = self.createView()
+            self.addWidget(new_view)
+            splitter.insertWidget(index - 1, new_view)
             splitter.setSizes([size, size])
         else:
             sizes = splitter.sizes()
             new_splitter = QtWidgets.QSplitter(orientation)
             new_splitter.setChildrenCollapsible(False)
             new_splitter.addWidget(view)
-            new_view = View(self, new_splitter)
+            new_view = self.createView()
             new_splitter.addWidget(new_view)
+
             splitter.insertWidget(index, new_splitter)
 
             splitter.setSizes(sizes)
-
             new_size = (sum(new_splitter.sizes()) - new_splitter.handleWidth()) / 2.0
             new_splitter.setSizes([new_size, new_size])
             self.setActiveView(new_view)
 
     def activeView(self) -> "View":
         if self.active_view is None:
-            view = self.findChildren(View)[0]
+            view = self.views[0]
             self.active_view = view
 
         return self.active_view
@@ -123,11 +143,13 @@ class ViewSpace(QtWidgets.QSplitter):
         self.active_view = view
 
     def refresh(self) -> None:
-        for view in self.findChildren(View):
+        for view in self.views:
             view.refresh()
 
 
 class View(QtWidgets.QWidget):
+    numTabsChanged = QtCore.Signal()
+
     def __init__(self, viewspace: ViewSpace, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setAcceptDrops(True)
@@ -156,16 +178,19 @@ class View(QtWidgets.QWidget):
     def addTab(self, text: str, widget: QtWidgets.QWidget) -> int:
         index = self.tabs.addTab(text)
         self.stack.insertWidget(index, widget)
+        self.numTabsChanged.emit()
         return index
 
     def insertTab(self, index: int, text: str, widget: QtWidgets.QWidget) -> int:
         index = self.tabs.insertTab(index, text)
         self.stack.insertWidget(index, widget)
+        self.numTabsChanged.emit()
         return index
 
     def removeTab(self, index: int) -> None:
         self.tabs.removeTab(index)
         self.stack.removeWidget(self.stack.widget(index))
+        self.numTabsChanged.emit()
 
     def moveStackWidget(self, ifrom: int, ito: int) -> None:
         self.stack.insertWidget(ito, self.stack.widget(ifrom))
@@ -270,7 +295,7 @@ class ViewTabBar(QtWidgets.QTabBar):
             text = event.source().tabText(src)
             widget = event.source().view.stack.widget(src)
 
-            event.source().removeTab(src)
+            event.source().view.removeTab(src)
 
             index = self.view.insertTab(dest, text, widget)
             self.setCurrentIndex(index)
@@ -306,36 +331,35 @@ class ViewTitleBar(QtWidgets.QWidget):
         self.setLayout(layout)
 
 
-if __name__ == "__main__":
-    import sys
+# if __name__ == "__main__":
+#     import sys
 
-    sys.path.append("/home/tom/Documents/python/pewpew")
-    from laserlib.laser import Laser
-    from pewpew.widgets.laser import LaserWidget
-    from pewpew.lib.viewoptions import ViewOptions
+#     sys.path.append("/home/tom/Documents/python/pewpew")
+#     from laserlib.laser import Laser
+#     from pewpew.widgets.laser import LaserWidget
+#     from pewpew.lib.viewoptions import ViewOptions
 
-    app = QtWidgets.QApplication()
-    mw = QtWidgets.QMainWindow()
-    mw.copyImage = lambda x: print(x, x.sender())
-    w = QtWidgets.QWidget()
-    w.setMinimumSize(800, 600)
+#     app = QtWidgets.QApplication()
+#     mw = QtWidgets.QMainWindow()
+#     mw.copyImage = lambda x: print(x, x.sender())
+#     w = QtWidgets.QWidget()
+#     w.setMinimumSize(800, 600)
 
-    viewspace = ViewSpace()
+#     viewspace = ViewSpace()
+#     viewspace.numTabsChanged.connect(lambda: print(viewspace.countViewTabs()))
 
-    lo = QtWidgets.QVBoxLayout()
-    lo.addWidget(viewspace)
+#     lo = QtWidgets.QVBoxLayout()
+#     lo.addWidget(viewspace)
 
-    w.setLayout(lo)
-    mw.setCentralWidget(w)
-    view = View(viewspace)
-    viewspace.addWidget(view)
-    viewoptions = ViewOptions()
-    for i in range(0, 5):
-        laser = Laser.from_structured(
-            np.array(np.random.random((20, 20)), dtype=[("A1", float), ("B2", float)])
-        )
-        widget = LaserWidget(laser, viewoptions)
-        widget.canvas.drawLaser(widget.laser, "A1")
-        view.addTab(str(i), widget)
-    mw.show()
-    app.exec_()
+#     w.setLayout(lo)
+#     mw.setCentralWidget(w)
+#     viewoptions = ViewOptions()
+#     for i in range(0, 5):
+#         laser = Laser.from_structured(
+#             np.array(np.random.random((20, 20)), dtype=[("A1", float), ("B2", float)])
+#         )
+#         widget = LaserWidget(laser, viewoptions)
+#         widget.canvas.drawLaser(widget.laser, "A1")
+#         viewspace.views[0].addTab(str(i), widget)
+#     mw.show()
+#     app.exec_()

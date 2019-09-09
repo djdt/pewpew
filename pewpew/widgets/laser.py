@@ -6,19 +6,35 @@ from laserlib.io.error import LaserLibException
 from pewpew.lib import io
 from pewpew.lib.viewoptions import ViewOptions
 
-from pewpew.widgets.actions import ActionGenerator
 from pewpew.widgets.canvases import InteractiveLaserCanvas
-from pewpew.widgets.views import View
+from pewpew.widgets.views import View, ViewSpace
+
+
+class LaserViewSpace(ViewSpace):
+    def __init__(self, parent: QtWidgets.QWidget()):
+        super().__init__(parent)
+        self.options = ViewOptions()
+
+    def createView(self) -> "LaserView":
+        view = LaserView(self)
+        view.numTabsChanged.connect(self.numTabsChanged)
+        self.views.append(view)
+        self.numViewsChanged.emit()
+        return view
 
 
 class LaserView(View):
     def openDocument(self, paths: str) -> QtWidgets.QDialog:
         try:
             for laser in io.import_any(paths, self.window().config):
-                self.addTab(laser.name, laser)
+                self.addTab(laser.name, LaserWidget(laser, self.viewspace.viewoptions))
         except LaserLibException as e:
             QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
             return
+
+    def refresh(self) -> None:
+        for i in range(0, self.stack.count()):
+            self.stack.widget(i).refresh()
 
     # def saveDocument(self) -> QtWidgets.QDialog:
     #     def save_npz(path: str):
@@ -43,7 +59,6 @@ class LaserView(View):
     #     dlg.fileSelected.connect(save_npz)
     #     dlg.open()
     #     return dlg
-
 
 
 class LaserWidget(QtWidgets.QWidget):
