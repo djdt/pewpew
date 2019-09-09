@@ -57,6 +57,31 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar().addPermanentWidget(self.button_status_row)
         self.statusBar().addPermanentWidget(self.button_status_s)
 
+        self.createActions()
+
+    def createActions(self):
+        self.action_open = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("document-open"), "&Open"
+        )
+        self.action_open.setShortcut("Save document to numpy archive.")
+        self.action_open.setStatusTip("Open new documents.")
+        self.action_open.triggered.connect(self.actionOpen)
+
+    def actionOpen(self) -> None:
+        view = self.viewspace.activeView()
+        dlg = QtWidgets.QFileDialog(
+            self,
+            "Open File(s).",
+            "",
+            "CSV Documents(*.csv *.txt);;Numpy Archives(*.npz);;"
+            "Pew Pew Sessions(*.pew);;All files(*)",
+        )
+        dlg.setCurrentFilter("All files(*)")
+        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+        dlg.filesSelected.connect(view.openDocument)
+        dlg.open()
+        return dlg
+
     def createMenus(self) -> None:
         # File
         menu_file = self.menuBar().addMenu("&File")

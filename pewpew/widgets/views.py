@@ -203,7 +203,8 @@ class ViewTabBar(QtWidgets.QTabBar):
         if event.buttons() == QtCore.Qt.LeftButton:
             index = self.tabAt(event.pos())
             if index == -1:
-                return
+                super().mouseDoubleClickEvent(event)
+                return None
             dlg = QtWidgets.QInputDialog(self)
             dlg.setWindowTitle("Rename")
             dlg.setLabelText("Name:")
@@ -220,6 +221,7 @@ class ViewTabBar(QtWidgets.QTabBar):
         if event.buttons() == QtCore.Qt.LeftButton:
             index = self.tabAt(event.pos())
             if index == -1:
+                super().mouseMoveEvent(event)
                 return
 
             rect = self.tabRect(index)
@@ -300,6 +302,7 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication()
     mw = QtWidgets.QMainWindow()
+    mw.copyImage = lambda x: print(x, x.sender())
     w = QtWidgets.QWidget()
     w.setMinimumSize(800, 600)
 
