@@ -163,7 +163,7 @@ class Parser(object):
 
         self.regexp_number = re.compile(number_token)
         self.regexp_tokenise = re.compile(
-            f"\\s*([\\(\\)\\,]|{number_token}|{operator_token}|{variable_token})\\s*"
+            f"\\s*([\\(\\)\\,]|{variable_token}|{number_token}|{operator_token})\\s*"
         )
 
         self.variables = variables
