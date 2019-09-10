@@ -11,11 +11,10 @@ from laserlib.io.error import LaserLibException
 from pewpew.lib.io import import_any
 from pewpew.lib.viewoptions import ViewOptions
 
-from pewpew.widgets import dialogs
 from pewpew.widgets.canvases import InteractiveLaserCanvas
 from pewpew.widgets.views import View, ViewSpace
 
-from typing import List, Tuple
+from typing import List
 
 
 class LaserViewSpace(ViewSpace):
@@ -46,28 +45,16 @@ class LaserViewSpace(ViewSpace):
         view = self.activeView()
         view.saveDocument(path)
 
-    def applyConfig(self, dlg: dialogs.ConfigDialog) -> None:
-        if dlg.check_all.isChecked():
-            self.config = copy.copy(dlg.config)
-            for view in self.views:
-                view.applyConfig(self.config)
-        else:
-            widget = self.activeView().activeWidget()
-            widget.laser.config = copy.copy(dlg.config)
-            widget.refresh()
+    def applyConfig(self, config: LaserConfig) -> None:
+        self.config = copy.copy(config)
+        for view in self.views:
+            view.applyConfig(self.config)
+        self.refresh()
 
-    def applyCalibration(self, dlg: dialogs.CalibrationDialog) -> None:
-        if dlg.check_all.isChecked():
-            for view in self.views:
-                view.applyCalibration(dlg.calibration)
-        else:
-            widget = self.activeView().activeWidget()
-            for iso in widget.laser.isotopes:
-                if iso in dlg.calibrations:
-                    widget.laser.data[iso].calibration = copy.copy(
-                        dlg.calibrations[iso]
-                    )
-            widget.refresh()
+    def applyCalibration(self, calibration: dict) -> None:
+        for view in self.views:
+            view.applyCalibration(calibration)
+        self.refresh()
 
     def setCurrentIsotope(self, isotope: str) -> None:
         for view in self.views:
@@ -110,7 +97,7 @@ class LaserView(View):
             widget.laser.config = copy.copy(config)
         self.refresh()
 
-    def applyCallibration(self, calibration: dict) -> None:
+    def applyCalibration(self, calibration: dict) -> None:
         for widget in self.widgets():
             for iso in widget.laser.isotopes:
                 if iso in calibration:
