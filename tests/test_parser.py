@@ -6,11 +6,12 @@ from pewpew.lib.pratt import BinaryFunction, TernaryFunction
 
 
 def test_parser_basic():
-    parser = Parser(["a"])
+    parser = Parser(["a1", "1a"])
 
     # Test input
     assert str(parser.parse("1.0e-1")) == "1.0e-1"
-    assert str(parser.parse("a")) == "a"
+    assert str(parser.parse("a1")) == "a1"
+    assert str(parser.parse("1a")) == "1a"
     # Test ops
     assert str(parser.parse("1 + 2 - 3")) == "- + 1 2 3"
     assert str(parser.parse("1 * 2 / 3")) == "/ * 1 2 3"
