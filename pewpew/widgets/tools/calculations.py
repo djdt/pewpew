@@ -7,8 +7,9 @@ from pewpew.lib.pratt import BinaryFunction
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets.canvases import LaserCanvas
-from pewpew.widgets.docks import LaserImageDock
+from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import Tool
+from pewpew.widgets.views import ViewSpace
 
 from typing import List
 
@@ -80,18 +81,19 @@ class FormulaLineEdit(ValidColorLineEdit):
 class CalculationsTool(Tool):
     def __init__(
         self,
-        dock: LaserImageDock,
-        viewoptions: ViewOptions,
+        viewspace: ViewSpace,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
-        self.dock = dock
+        self.viewspace = viewspace
+        self.widget = viewspace.activeWidget()
+
         # Custom viewoptions
         self.viewoptions = ViewOptions()
         self.viewoptions.canvas.colorbar = False
         self.viewoptions.canvas.label = False
         self.viewoptions.canvas.scalebar = False
-        self.viewoptions.image.cmap = viewoptions.image.cmap
+        self.viewoptions.image.cmap = viewspace.options.image.cmap
 
         self.canvas = LaserCanvas(self.viewoptions)
 
@@ -118,13 +120,14 @@ class CalculationsTool(Tool):
         self.layout_main.addWidget(self.canvas)
         self.layout_main.addLayout(layout_form)
 
-        self.newDockAdded()
+        self.widgetChanged()
 
     def apply(self) -> None:
-        self.dock.laser.add(
+        self.widget.laser.add(
             self.lineedit_name.text(), np.array(self.canvas.image.get_array())
         )
-        self.newDockAdded()
+        self.widget.populateIsotopes()
+        self.widgetChanged()
 
     def insertVariable(self, index: int) -> None:
         if index == 0:
@@ -138,7 +141,7 @@ class CalculationsTool(Tool):
         if not self.formula.hasAcceptableInput():
             return False
         name = self.lineedit_name.text()
-        if name == "" or " " in name or name in self.dock.laser.isotopes:
+        if name == "" or " " in name or name in self.widget.laser.isotopes:
             return False
         return True
 
@@ -151,28 +154,35 @@ class CalculationsTool(Tool):
             return
         # Remove all nan and inf values
         result = np.where(np.isfinite(result), result, 0.0)
-        extent = self.dock.laser.config.data_extent(result)
+        extent = self.widget.laser.config.data_extent(result)
         self.canvas.drawData(result, extent)
         self.canvas.draw()
 
-    def newDockAdded(self) -> None:
+    def widgetChanged(self) -> None:
         self.combo_isotopes.clear()
         self.combo_isotopes.addItem("Isotopes")
-        self.combo_isotopes.addItems(self.dock.laser.isotopes)
+        self.combo_isotopes.addItems(self.widget.laser.isotopes)
 
-        self.lineedit_name.badnames = self.dock.laser.isotopes
+        self.lineedit_name.badnames = self.widget.laser.isotopes
 
-        self.reducer.variables = {k: v.data for k, v in self.dock.laser.data.items()}
-        self.formula.parser.variables = list(self.dock.laser.isotopes)
+        self.reducer.variables = {k: v.data for k, v in self.widget.laser.data.items()}
+        self.formula.parser.variables = self.widget.laser.isotopes
         self.formula.valid = True
-        self.formula.setText(self.dock.laser.isotopes[0])
+        self.formula.setText(self.widget.laser.isotopes[0])
 
         self.updateCanvas()
 
+    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+        if isinstance(obj, LaserCanvas) and event.type() == QtCore.QEvent.MouseButtonPress:
+            self.widget = obj.parent()
+            self.widgetChanged()
+            self.endMouseSelect()
+        return False
+
     @QtCore.Slot("QWidget*")
     def endMouseSelect(self, widget: QtWidgets.QWidget) -> None:
-        if self.dock == widget:
+        if self.widget == widget:
             return
-        self.dock = widget
-        self.newDockAdded()
+        self.widget = widget
+        self.widgetChanged()
         super().endMouseSelect(widget)
