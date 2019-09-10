@@ -311,9 +311,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh()
 
     def actionStandardsTool(self) -> QtWidgets.QDialog:
+        def applyTool(tool: StandardsTool) -> None:
+            self.viewspace.applyCalibration(tool.calibrations)
+
         widget = self.viewspace.activeWidget()
         tool = StandardsTool(widget, self.viewspace.options, parent=self)
-        tool.applyPressed.connect(self.viewspace.applyCalibration)
+        tool.applyPressed.connect(applyTool)
         tool.mouseSelectStarted.connect(self.viewspace.mouseSelectStart)
         tool.mouseSelectEnded.connect(self.viewspace.mouseSelectEnd)
         tool.show()
