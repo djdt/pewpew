@@ -15,7 +15,7 @@ from pewpew.widgets import dialogs
 from pewpew.widgets.canvases import InteractiveLaserCanvas
 from pewpew.widgets.views import View, ViewSpace
 
-from typing import Tuple
+from typing import List, Tuple
 
 
 class LaserViewSpace(ViewSpace):
@@ -23,6 +23,13 @@ class LaserViewSpace(ViewSpace):
         super().__init__(parent)
         self.config = LaserConfig()
         self.options = ViewOptions()
+
+    def uniqueIsotopes(self) -> List[str]:
+        isotopes = set()
+        for view in self.views:
+            for widget in view.widgets():
+                isotopes.update(widget.laser.isotopes)
+        return sorted(isotopes)
 
     def createView(self) -> "LaserView":
         view = LaserView(self)
@@ -62,6 +69,10 @@ class LaserViewSpace(ViewSpace):
                     )
             widget.refresh()
 
+    def setCurrentIsotope(self, isotope: str) -> None:
+        for view in self.views:
+            view.setCurrentIsotope(isotope)
+
 
 class LaserView(View):
     def refresh(self) -> None:
@@ -93,6 +104,11 @@ class LaserView(View):
                 if iso in calibration:
                     widget.laser.data[iso].calibration = copy.copy(calibration[iso])
         self.refresh()
+
+    def setCurrentIsotope(self, isotope: str) -> None:
+        for widget in self.widgets():
+            if isotope in widget.laser.isotopes:
+                widget.combo_isotopes.setCurrentText(isotope)
 
 
 class LaserWidget(QtWidgets.QWidget):
@@ -131,9 +147,15 @@ class LaserWidget(QtWidgets.QWidget):
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
         menu = QtWidgets.QMenu(self)
 
+        menu.addAction(self.window().action_copy_image)
+        menu.addSeparator()
         menu.addAction(self.window().action_open)
         menu.addAction(self.window().action_save)
         menu.addAction(self.window().action_export)
+        menu.addSeparator()
+        menu.addAction(self.window().action_config)
+        menu.addAction(self.window().action_calibration)
+        menu.addAction(self.window().action_statistics)
         menu.exec_(event.globalPos())
 
     def populateIsotopes(self) -> None:
