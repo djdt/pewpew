@@ -429,7 +429,7 @@ class MainWindow(QtWidgets.QMainWindow):
             (
                 "Visualiser / converter for LA-ICP-MS data.\n"
                 f"Version {__version__}\n"
-                "Developed by the UTS Elemental Bio-Imaging Group.\n"
+                "Developed by the Atomic Medicine Initiative.\n"
                 "https://github.com/djdt/pewpew"
             ),
         )
