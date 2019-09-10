@@ -142,6 +142,15 @@ class ViewSpace(QtWidgets.QSplitter):
             view.setActive(True)
         self.active_view = view
 
+    def activeWidget(self) -> QtWidgets.QWidget:
+        widget = self.active_view.activeWidget()
+        if widget is None:
+            for view in self.views:
+                widget = view.activeWidget()
+                if widget is not None:
+                    break
+        return widget
+
     def refresh(self) -> None:
         for view in self.views:
             view.refresh()
@@ -177,6 +186,11 @@ class View(QtWidgets.QWidget):
         layout.addWidget(self.stack, 1)
         self.setLayout(layout)
 
+    def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(self.window().action_open)
+        menu.exec_(event.globalPos())
+
     def widgets(self) -> List[QtWidgets.QWidget]:
         return [self.stack.widget(i) for i in range(self.stack.count())]
 
@@ -210,11 +224,11 @@ class View(QtWidgets.QWidget):
 
     def setActive(self, active: bool) -> None:
         self.active = active
-        # if active:
-        #     color = self.palette().color(QtGui.QPalette.Window).name()
-        # else:
-        #     color = self.palette().color(QtGui.QPalette.Mid).name()
-        # self.setForegroundRole(QtGui.QPalette.Highligh
+        if active:
+            color = self.palette().color(QtGui.QPalette.Highlight).name()
+        else:
+            color = self.palette().color(QtGui.QPalette.Shadow).name()
+        self.stack.setStyleSheet(f"QStackedWidget, QStackedWidget > QWidget {{ color: {color} }}")
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if obj and event.type() == QtCore.QEvent.MouseButtonPress:

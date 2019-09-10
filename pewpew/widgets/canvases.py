@@ -281,17 +281,10 @@ class LaserCanvas(BasicCanvas):
 
 class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
     def __init__(
-        self,
-        viewoptions: ViewOptions,
-        connect_mouse_events: bool = True,
-        parent: QtWidgets.QWidget = None,
+        self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
     ) -> None:
         super().__init__(viewoptions=viewoptions, parent=parent)
 
-        try:
-            self.status_bar = self.window().statusBar()
-        except AttributeError:
-            self.status_bar = None
         self.state = set(["move"])
         self.button = 1
 
@@ -384,9 +377,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
     def getMaskedData(self) -> np.ndarray:
         x0, x1, y0, y1 = self.view_limits
         (x0, y0), (x1, y1) = (
-            image_extent_to_data(self.image)
-            .transform(((x0, y1), (x1, y0)))
-            .astype(int)
+            image_extent_to_data(self.image).transform(((x0, y1), (x1, y0))).astype(int)
         )
         data = self.image.get_array()[y0:y1, x0:x1]  # type: ignore
         mask = self.getSelection()
@@ -439,7 +430,8 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.view_limits = x1, x2, y1, y2
 
         # Update the status bar
-        if self.status_bar is not None:
+        try:
+            status_bar = self.window().statusBar()
             x, y = event.xdata, event.ydata
             v = self.image.get_cursor_data(event)
             unit = self.viewoptions.units
@@ -448,13 +440,19 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             elif unit == "second":
                 x = event.xdata / self.ps
                 y = 0
-            self.status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
+            status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
+        except AttributeError:
+            pass
 
     def axis_enter(self, event: LocationEvent) -> None:
         pass
 
     def axis_leave(self, event: LocationEvent) -> None:
-        self.status_bar.clearMessage()
+        try:
+            status_bar = self.window().statusBar()
+            status_bar.clearMessage()
+        except AttributeError:
+            pass
 
     def startZoom(self) -> None:
         self.clearSelection()

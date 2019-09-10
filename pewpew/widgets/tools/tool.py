@@ -5,6 +5,7 @@ from pewpew.widgets.dialogs import ApplyDialog
 
 class Tool(ApplyDialog):
     mouseSelectStarted = QtCore.Signal("QWidget*")
+    mouseSelectEnded = QtCore.Signal("QWidget*")
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
@@ -27,11 +28,14 @@ class Tool(ApplyDialog):
         self.hide()
         self.mouseSelectStarted.emit(self)
 
-    @QtCore.Slot("QWidget*")
-    def endMouseSelect(self, widget: QtWidgets.QWidget) -> None:
+    def endMouseSelect(self) -> None:
+        self.mouseSelectEnded.emit(self)
         self.activateWindow()
         self.setFocus(QtCore.Qt.OtherFocusReason)
         self.show()
+
+    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+        raise NotImplementedError
 
     def refresh(self) -> None:
         pass

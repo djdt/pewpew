@@ -173,16 +173,8 @@ class CalculationsTool(Tool):
         self.updateCanvas()
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        if isinstance(obj, LaserCanvas) and event.type() == QtCore.QEvent.MouseButtonPress:
+        if event.type() == QtCore.QEvent.MouseButtonDblClick and isinstance(obj, LaserCanvas):
             self.widget = obj.parent()
             self.widgetChanged()
             self.endMouseSelect()
         return False
-
-    @QtCore.Slot("QWidget*")
-    def endMouseSelect(self, widget: QtWidgets.QWidget) -> None:
-        if self.widget == widget:
-            return
-        self.widget = widget
-        self.widgetChanged()
-        super().endMouseSelect(widget)

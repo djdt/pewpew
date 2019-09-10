@@ -1,4 +1,5 @@
 import sys
+import copy
 import traceback
 import os.path
 
@@ -63,7 +64,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Laser
         self.action_copy_image = qAction(
-            "insert-image", "Copy Image", "Copy image to clipboard.", self.actionCopyImage
+            "insert-image",
+            "Copy Image",
+            "Copy image to clipboard.",
+            self.actionCopyImage,
         )
         self.action_config = qAction(
             "document-edit", "Config", "Edit the documents config.", self.actionConfig
@@ -197,18 +201,36 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_export_all.setShortcut("Ctrl+X")
 
     def actionCopyImage(self) -> None:
-        widget = self.viewspace.activeView().activeWidget()
+        widget = self.viewspace.activeWidget()
         widget.canvas.copyToClipboard()
 
     def actionConfig(self) -> QtWidgets.QDialog:
-        widget = self.viewspace.activeView().activeWidget()
+        def applyDialog(dlg: dialogs.ConfigDialog) -> None:
+            if dlg.check_all.isChecked():
+                self.viewspace.applyConfig(dlg.config)
+            else:
+                widget.laser.config = copy.copy(dlg.config)
+                widget.refresh()
+
+        widget = self.viewspace.activeWidget()
         dlg = dialogs.ConfigDialog(widget.laser.config, parent=self)
-        dlg.applyPressed.connect(self.viewspace.applyConfig)
+        dlg.applyPressed.connect(applyDialog)
         dlg.open()
         return dlg
 
     def actionCalibration(self) -> QtWidgets.QDialog:
-        widget = self.viewspace.activeView().activeWidget()
+        def applyPress(dlg: dialogs.CalibrationDialog) -> None:
+            if dlg.check_all.isChecked():
+                self.viewspace.applyCalibration(dlg.calibrations)
+            else:
+                for iso in widget.laser.isotopes:
+                    if iso in dlg.calibrations:
+                        widget.laser.data[iso].calibration = copy.copy(
+                            dlg.calibrations[iso]
+                        )
+                widget.refresh()
+
+        widget = self.viewspace.activeWidget()
         calibrations = {
             k: widget.laser.data[k].calibration for k in widget.laser.data.keys()
         }
@@ -220,17 +242,14 @@ class MainWindow(QtWidgets.QMainWindow):
         return dlg
 
     def actionStatistics(self) -> QtWidgets.QDialog:
-        widget = self.viewspace.activeView().activeWidget()
+        widget = self.viewspace.activeWidget()
         data = widget.canvas.getMaskedData()
         area = (
             widget.laser.config.get_pixel_width()
             * widget.laser.config.get_pixel_height()
         )
         dlg = dialogs.StatsDialog(
-            data,
-            area,
-            widget.canvas.image.get_clim(),
-            parent=self,
+            data, area, widget.canvas.image.get_clim(), parent=self
         )
         dlg.open()
         return dlg
@@ -250,11 +269,10 @@ class MainWindow(QtWidgets.QMainWindow):
         return dlg
 
     def actionSave(self) -> QtWidgets.QDialog:
-        view = self.viewspace.activeView()
-        widget = view.activeWidget()
+        widget = self.viewspace.activeWidget()
         filepath = widget.laser.filepath
         if filepath.lower().endswith(".npz") and os.path.exists(filepath):
-            view.saveDocument(filepath)
+            self.viewspace.saveDocument(filepath)
             return None
         else:
             filepath = widget.laserFilePath()
@@ -262,12 +280,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self, "Save File", filepath, "Numpy archive(*.npz);;All files(*)"
         )
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-        dlg.fileSelected.connect(view.saveDocument)
+        dlg.fileSelected.connect(self.viewspace.saveDocument)
         dlg.open()
         return dlg
 
     def actionExport(self) -> QtWidgets.QDialog:
-        widget = self.viewspace.activeView().activeWidget()
+        widget = self.viewspace.activeWidget()
         if widget is None:
             return None
         dlg = ExportDialog(
@@ -293,18 +311,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh()
 
     def actionStandardsTool(self) -> QtWidgets.QDialog:
-        widget = self.viewspace.activeView().activeWidget()
+        widget = self.viewspace.activeWidget()
         tool = StandardsTool(widget, self.viewspace.options, parent=self)
         tool.applyPressed.connect(self.viewspace.applyCalibration)
-        tool.mouseSelectStarted.connect(lambda x: None)
+        tool.mouseSelectStarted.connect(self.viewspace.mouseSelectStart)
+        tool.mouseSelectEnded.connect(self.viewspace.mouseSelectEnd)
         tool.show()
         return tool
 
     def actionCalculationsTool(self) -> QtWidgets.QDialog:
-        widget = self.viewspace.activeView().activeWidget()
-        tool = CalculationsTool(widget, self.viewspace.options, parent=self)
-        tool.applyPressed.connect(self.viewspace.applyCalibration)
-        tool.mouseSelectStarted.connect(lambda x: None)
+        tool = CalculationsTool(self.viewspace, parent=self)
+        # tool.applyPressed.connect(self.refresh())
+        tool.mouseSelectStarted.connect(self.viewspace.mouseSelectStart)
+        tool.mouseSelectEnded.connect(self.viewspace.mouseSelectEnd)
         tool.show()
         return tool
 
