@@ -12,6 +12,7 @@ from laserlib.krisskross import KrissKross
 from pewpew import __version__
 
 from pewpew.lib import io
+from pewpew.lib.mpltools import image_extent_to_data
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets import dialogs
@@ -36,15 +37,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.resize(1280, 800)
 
         self.viewspace = LaserViewSpace()
-
-        self.installEventFilter(self.viewspace)
-
-        # widget = QtWidgets.QWidget()
-        # layout = QtWidgets.QVBoxLayout()
-        # layout.addWidget(self.viewspace)
-        # widget.setLayout(layout)
+        self.viewspace.numTabsChanged.connect(self.updateActionAvailablity)
         self.setCentralWidget(self.viewspace)
-        # self.dockarea.numberDocksChanged.connect(self.docksAddedOrRemoved)
 
         self.createActions()
         self.createMenus()
@@ -60,6 +54,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar().addPermanentWidget(self.button_status_row)
         self.statusBar().addPermanentWidget(self.button_status_s)
 
+        self.updateActionAvailablity()
+
     def createActions(self):
         def qAction(
             icon: str, label: str, status: str, func: Callable
@@ -70,6 +66,9 @@ class MainWindow(QtWidgets.QMainWindow):
             return action
 
         # Laser
+        self.action_copy_image = qAction(
+            "insert-image", "Copy Image", "Copy image to clipboard.", self.actionCopyImage
+        )
         self.action_config = qAction(
             "document-edit", "Config", "Edit the documents config.", self.actionConfig
         )
@@ -78,6 +77,12 @@ class MainWindow(QtWidgets.QMainWindow):
             "Calibration",
             "Edit the documents calibration.",
             self.actionCalibration,
+        )
+        self.action_statistics = qAction(
+            "dialog-information",
+            "Statistics",
+            "Open statisitics dialog for selected data.",
+            self.actionStatistics,
         )
         # Laser IO
         self.action_open = qAction(
@@ -99,7 +104,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_config_default.setShortcut("Ctrl+K")
         self.action_exit = qAction(
-            "application-exit", "Quit", "Exit the program.", self.actionExit
+            "application-exit", "Quit", "Exit the program.", self.close
         )
         self.action_exit.setShortcut("Ctrl+Shift+Q")
         self.action_toggle_calibrate = qAction(
@@ -107,7 +112,73 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_toggle_calibrate.setShortcut("Ctrl+L")
         self.action_toggle_calibrate.setCheckable(True)
-        self.action_toggle_calibrate.setChecked(True)
+        self.action_toggle_calibrate.setChecked(self.viewspace.options.calibrate)
+
+        self.action_standards_tool = qAction(
+            "document-properties",
+            "Standards Tool",
+            "Open the standards calibration tool.",
+            self.actionStandardsTool,
+        )
+        self.action_calculations_tool = qAction(
+            "document-properties",
+            "Calculations Tool",
+            "Open the calculations tool.",
+            self.actionCalculationsTool,
+        )
+
+        self.action_group_colormap = QtWidgets.QActionGroup(self)
+        for name, cmap in self.viewspace.options.image.COLORMAPS.items():
+            action = self.action_group_colormap.addAction(name)
+            action.setStatusTip(
+                self.viewspace.options.image.COLORMAP_DESCRIPTIONS[name]
+            )
+            action.setCheckable(True)
+            if cmap == self.viewspace.options.image.cmap:
+                action.setChecked(True)
+        self.action_group_colormap.triggered.connect(self.actionGroupColormap)
+
+        self.action_colormap_range = qAction(
+            "", "Set &Range", "Set the range of the colormap.", self.actionColormapRange
+        )
+        self.action_colormap_range.setShortcut("Ctrl+R")
+
+        self.action_group_interp = QtWidgets.QActionGroup(self)
+        for name, interp in self.viewspace.options.image.INTERPOLATIONS.items():
+            action = self.action_group_interp.addAction(name)
+            action.setCheckable(True)
+            if interp == self.viewoptions.image.interpolation:
+                action.setChecked(True)
+        self.action_group_interp.triggered.connect(self.actionGroupInterp)
+
+        self.action_fontsize = qAction(
+            "insert-text", "Fontsize", "Set size of fonts.", self.actionFontsize
+        )
+
+        self.action_toggle_colorbar = qAction(
+            "", "Show Colorbar", "Toggle colorbars.", self.actionToggleColorbar
+        )
+        self.action_toggle_colorbar.setCheckable(True)
+        self.action_toggle_colorbar.setChecked(self.viewspace.options.canvas.colorbar)
+        self.action_toggle_label = qAction(
+            "", "Show Labels", "Toggle element labels.", self.actionToggleLabel
+        )
+        self.action_toggle_label.setCheckable(True)
+        self.action_toggle_label.setChecked(self.viewspace.options.canvas.label)
+        self.action_toggle_scalebar = qAction(
+            "", "Show Scalebar", "Toggle scalebar.", self.actionToggleScalebar
+        )
+        self.action_toggle_scalebar.setCheckable(True)
+        self.action_toggle_scalebar.setChecked(self.viewspace.options.canvas.scalebar)
+
+        self.action_refresh = qAction(
+            "view-refresh", "Refresh", "Redraw documents.", self.refresh
+        )
+        self.action_refresh.setShortcut("F5")
+
+        self.action_about = qAction(
+            "help-about", "&About", "About PewPew.", self.actionAbout
+        )
         # Mainwindow IO
         self.action_import_agilent = qAction(
             "", "Import Agilent", "Import Agilent batches.", self.actionImportAgilent
@@ -129,22 +200,42 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_export_all.setShortcut("Ctrl+X")
 
+    def actionCopyImage(self) -> None:
+        widget = self.viewspace.activeView().activeWidget()
+        widget.canvas.copyToClipboard()
+
     def actionConfig(self) -> QtWidgets.QDialog:
-        view = self.viewspace.activeView()
-        widget = view.activeWidget()
-        dlg = dialogs.ConfigDialog(widget.config, parent=self)
+        widget = self.viewspace.activeView().activeWidget()
+        dlg = dialogs.ConfigDialog(widget.laser.config, parent=self)
         dlg.applyPressed.connect(self.viewspace.applyConfig)
         dlg.open()
         return dlg
 
     def actionCalibration(self) -> QtWidgets.QDialog:
-        view = self.viewspace.activeView()
-        widget = view.activeWidget()
+        widget = self.viewspace.activeView().activeWidget()
         calibrations = {
-            k: widget.laser.data[k].calibration for k in self.laser.data.keys()
+            k: widget.laser.data[k].calibration for k in widget.laser.data.keys()
         }
-        dlg = dialogs.CalibrationDialog(calibrations, parent=self)
+        dlg = dialogs.CalibrationDialog(
+            calibrations, widget.combo_isotopes.currentText(), parent=self
+        )
         dlg.applyPressed.connect(self.viewspace.applyCalibration)
+        dlg.open()
+        return dlg
+
+    def actionStatistics(self) -> QtWidgets.QDialog:
+        widget = self.viewspace.activeView().activeWidget()
+        data = widget.canvas.getMaskedData()
+        area = (
+            widget.laser.config.get_pixel_width()
+            * widget.laser.config.get_pixel_height()
+        )
+        dlg = dialogs.StatsDialog(
+            data,
+            area,
+            widget.canvas.image.get_clim(),
+            parent=self,
+        )
         dlg.open()
         return dlg
 
@@ -180,8 +271,7 @@ class MainWindow(QtWidgets.QMainWindow):
         return dlg
 
     def actionExport(self) -> QtWidgets.QDialog:
-        view = self.viewspace.activeView()
-        widget = view.activeWidget()
+        widget = self.viewspace.activeView().activeWidget()
         if widget is None:
             return None
         dlg = ExportDialog(
@@ -204,16 +294,80 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionToggleCalibrate(self, checked: bool) -> None:
         self.viewspace.options.calibrate = checked
-        self.viewspace.refresh()
+        self.refresh()
 
-    def actionCalibrationTool(self) -> QtWidgets.QDialog:
-        tool = StandardsTool(
-            self.viewspace.activeView(), self.viewspace.options, parent=self
-        )
+    def actionStandardsTool(self) -> QtWidgets.QDialog:
+        widget = self.viewspace.activeView().activeWidget()
+        tool = StandardsTool(widget, self.viewspace.options, parent=self)
         tool.applyPressed.connect(self.viewspace.applyCalibration)
         tool.mouseSelectStarted.connect(lambda x: None)
         tool.show()
         return tool
+
+    def actionCalculationsTool(self) -> QtWidgets.QDialog:
+        widget = self.viewspace.activeView().activeWidget()
+        tool = CalculationsTool(widget, self.viewspace.options, parent=self)
+        tool.applyPressed.connect(self.viewspace.applyCalibration)
+        tool.mouseSelectStarted.connect(lambda x: None)
+        tool.show()
+        return tool
+
+    def actionGroupColormap(self, action: QtWidgets.QAction) -> None:
+        text = action.text().replace("&", "")
+        self.viewspace.options.image.set_cmap(text)
+        self.refresh()
+
+    def actionColormapRange(self) -> QtWidgets.QDialog:
+        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
+            for isotope, range in dialog.ranges.items():
+                self.viewspace.options.colors.set_range(range, isotope)
+            self.viewspace.options.colors.default_range = dialog.default_range
+            self.refresh()
+
+        dlg = dialogs.ColorRangeDialog(
+            self.viewspace.options, self.viewspace.uniqueIsotopes(), parent=self
+        )
+        dlg.combo_isotopes.currentTextChanged.connect(self.viewspace.setCurrentIsotope)
+        dlg.applyPressed.connect(applyDialog)
+        dlg.open()
+        return dlg
+
+    def actionGroupInterp(self, action: QtWidgets.QAction) -> None:
+        text = action.text().replace("&", "")
+        self.viewspace.options.image.interpolation = text
+        self.refresh()
+
+    def actionFontsize(self) -> None:
+        fontsize, ok = QtWidgets.QInputDialog.getInt(
+            self,
+            "Fontsize",
+            "Fontsize",
+            value=self.viewoptions.font.size,
+            min=0,
+            max=100,
+            step=1,
+        )
+        if ok:
+            self.viewspace.options.font.size = fontsize
+            self.refresh()
+
+    def actionToggleColorbar(self, checked: bool) -> None:
+        self.viewoptions.canvas.colorbar = checked
+        # Hard refresh
+        for view in self.viewspace.views:
+            for widget in view.widgets():
+                view_limits = widget.canvas.view_limits
+                widget.canvas.redrawFigure()
+                widget.canvas.view_limits = view_limits
+                widget.draw()
+
+    def actionToggleLabel(self, checked: bool) -> None:
+        self.viewoptions.canvas.label = checked
+        self.refresh()
+
+    def actionToggleScalebar(self, checked: bool) -> None:
+        self.viewoptions.canvas.scalebar = checked
+        self.refresh()
 
     def actionImportAgilent(self) -> QtWidgets.QDialog:
         dlg = dialogs.MultipleDirDialog(self, "Batch Directories", "")
@@ -244,15 +398,23 @@ class MainWindow(QtWidgets.QMainWindow):
         lasers = []
         for view in self.viewspace.views:
             lasers.extend(view.widgets())
-        isotopes = set()
-        for laser in lasers:
-            isotopes.update(laser.isotopes)
-        dlg = ExportAllDialog(lasers, sorted(isotopes), self.viewspace.options, self)
+        dlg = ExportAllDialog(
+            lasers, self.viewspace.uniqueIsotopes(), self.viewspace.options, self
+        )
         dlg.open()
         return dlg
 
-    def actionExit(self) -> None:
-        self.close()
+    def actionAbout(self) -> QtWidgets.QDialog:
+        QtWidgets.QMessageBox.about(
+            self,
+            "About PewPew",
+            (
+                "Visualiser / converter for LA-ICP-MS data.\n"
+                f"Version {__version__}\n"
+                "Developed by the UTS Elemental Bio-Imaging Group.\n"
+                "https://github.com/djdt/pewpew"
+            ),
+        )
 
     def createMenus(self) -> None:
         # File
@@ -274,97 +436,36 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_edit = self.menuBar().addMenu("&Edit")
         menu_edit.addAction(self.action_config_default)
         menu_edit.addAction(self.action_toggle_calibrate)
-
         menu_edit.addSeparator()
 
-        self.action_calibration = menu_edit.addAction(
-            QtGui.QIcon.fromTheme("document-properties"), "&Standards"
-        )
-        self.action_calibration.setStatusTip(
-            "Generate calibration curve from a standard."
-        )
-        self.action_calibration.triggered.connect(self.menuStandardsTool)
-        self.action_calibration.setEnabled(False)
-
-        self.action_operations = menu_edit.addAction(
-            QtGui.QIcon.fromTheme("document-properties"), "&Operations"
-        )
-        self.action_operations.setStatusTip("Perform calculations using laser data.")
-        self.action_operations.triggered.connect(self.menuOperationsTool)
-        self.action_operations.setEnabled(False)
+        menu_edit.addAction(self.action_standards_tool)
+        menu_edit.addAction(self.action_calculations_tool)
 
         # View
         menu_view = self.menuBar().addMenu("&View")
         menu_cmap = menu_view.addMenu("&Colormap")
         menu_cmap.setStatusTip("Colormap of displayed images.")
-
-        # View - colormap
-        cmap_group = QtWidgets.QActionGroup(menu_cmap)
-        for name, cmap in self.viewoptions.image.COLORMAPS.items():
-            action = cmap_group.addAction(name)
-            action.setStatusTip(self.viewoptions.image.COLORMAP_DESCRIPTIONS[name])
-            action.setCheckable(True)
-            if cmap == self.viewoptions.image.cmap:
-                action.setChecked(True)
-            menu_cmap.addAction(action)
-        cmap_group.triggered.connect(self.menuColormap)
-        menu_cmap.addSeparator()
-        action_cmap_range = menu_cmap.addAction("&Range...")
-        action_cmap_range.setStatusTip(
-            "Set the minimum and maximum values or percentiles of the colormap."
-        )
-        action_cmap_range.setShortcut("Ctrl+R")
-        action_cmap_range.triggered.connect(self.menuColormapRange)
+        menu_cmap.addActions(self.action_group_colormap.actions())
+        menu_cmap.addAction(self.action_colormap_range)
 
         # View - interpolation
         menu_interp = menu_view.addMenu("&Interpolation")
         menu_interp.setStatusTip("Interpolation of displayed images.")
-        interp_group = QtWidgets.QActionGroup(menu_interp)
-        for name, interp in self.viewoptions.image.INTERPOLATIONS.items():
-            action = interp_group.addAction(name)
-            action.setCheckable(True)
-            if interp == self.viewoptions.image.interpolation:
-                action.setChecked(True)
-            menu_interp.addAction(action)
-        interp_group.triggered.connect(self.menuInterpolation)
+        menu_interp.addActions(self.action_group_interp.actions())
 
-        action_fontsize = menu_view.addAction("Fontsize")
-        action_fontsize.setStatusTip("Set size of font used in images.")
-        action_fontsize.triggered.connect(self.menuFontsize)
-
+        menu_view.addAction(self.action_fontsize)
         menu_view.addSeparator()
 
-        action_option_colorbar = menu_view.addAction("Show Colorbars")
-        action_option_colorbar.setCheckable(True)
-        action_option_colorbar.setChecked(True)
-        action_option_colorbar.toggled.connect(self.menuOptionColorbar)
-
-        action_option_colorbar = menu_view.addAction("Show Labels")
-        action_option_colorbar.setCheckable(True)
-        action_option_colorbar.setChecked(True)
-        action_option_colorbar.toggled.connect(self.menuOptionLabel)
-
-        action_option_colorbar = menu_view.addAction("Show Scalebars")
-        action_option_colorbar.setCheckable(True)
-        action_option_colorbar.setChecked(True)
-        action_option_colorbar.toggled.connect(self.menuOptionScalebar)
-
+        menu_view.addAction(self.action_toggle_colorbar)
+        menu_view.addAction(self.action_toggle_label)
+        menu_view.addAction(self.action_toggle_scalebar)
         menu_view.addSeparator()
 
-        action_refresh = menu_view.addAction(
-            QtGui.QIcon.fromTheme("view-refresh"), "Refresh"
-        )
-        action_refresh.setStatusTip("Redraw all images.")
-        action_refresh.setShortcut("F5")
-        action_refresh.triggered.connect(self.menuRefresh)
+        menu_view.addAction(self.action_refresh)
 
         # Help
         menu_help = self.menuBar().addMenu("&Help")
-        action_about = menu_help.addAction(
-            QtGui.QIcon.fromTheme("help-about"), "&About"
-        )
-        action_about.setStatusTip("About this program.")
-        action_about.triggered.connect(self.menuAbout)
+        menu_help.addAction(self.action_about)
 
     def buttonStatusUnit(self, toggled: bool) -> None:
         if self.button_status_um.isChecked():
@@ -379,221 +480,150 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def updateActionAvailablity(self) -> None:
         enabled = self.viewspace.countViewTabs() > 0
+        self.action_save.setEnabled(enabled)
+        self.action_config.setEnabled(enabled)
         self.action_export.setEnabled(enabled)
-        self.action_calibration.setEnabled(enabled)
-        self.action_operations.setEnabled(enabled)
+        self.action_export_all.setEnabled(enabled)
+        self.action_standards_tool.setEnabled(enabled)
+        self.action_calculations_tool.setEnabled(enabled)
 
-    def menuOpen(self) -> QtWidgets.QDialog:
-        dlg = QtWidgets.QFileDialog(
-            self,
-            "Open File(s).",
-            "",
-            "CSV Documents(*.csv *.txt);;Numpy Archives(*.npz);;"
-            "Pew Pew Sessions(*.pew);;All files(*)",
-        )
-        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-        dlg.filesSelected.connect(self.importFiles)
-        dlg.open()
-        return dlg
+    # def importFiles(self, paths: str) -> None:
+    #     try:
+    #         lasers = io.import_any(paths, self.config)
+    #     except LaserLibException as e:
+    #         QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
+    #         return
 
-    def importFiles(self, paths: str) -> None:
-        try:
-            lasers = io.import_any(paths, self.config)
-        except LaserLibException as e:
-            QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
-            return
+    #     docks = []
+    #     for laser in lasers:
+    #         if isinstance(laser, KrissKross):
+    #             docks.append(KrissKrossImageDock(laser, self.viewoptions))
+    #         else:
+    #             docks.append(LaserImageDock(laser, self.viewoptions))
+    #     self.dockarea.addDockWidgets(docks)
 
-        docks = []
-        for laser in lasers:
-            if isinstance(laser, KrissKross):
-                docks.append(KrissKrossImageDock(laser, self.viewoptions))
-            else:
-                docks.append(LaserImageDock(laser, self.viewoptions))
-        self.dockarea.addDockWidgets(docks)
+    # def menuImportAgilent(self) -> QtWidgets.QDialog:
+    #     dlg = dialogs.MultipleDirDialog(self, "Batch Directories", "")
+    #     dlg.filesSelected.connect(self.importFiles)
+    #     dlg.open()
+    #     return dlg
 
-    def menuImportAgilent(self) -> QtWidgets.QDialog:
-        dlg = dialogs.MultipleDirDialog(self, "Batch Directories", "")
-        dlg.filesSelected.connect(self.importFiles)
-        dlg.open()
-        return dlg
+    # def menuImportThermoiCap(self) -> QtWidgets.QDialog:
+    #     dlg = QtWidgets.QFileDialog(
+    #         self, "Import iCAP Data", "", "iCAP CSV Documents(*.csv);;All Files(*)"
+    #     )
+    #     dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+    #     dlg.filesSelected.connect(self.importFiles)
+    #     dlg.open()
+    #     return dlg
 
-    def menuImportThermoiCap(self) -> QtWidgets.QDialog:
-        dlg = QtWidgets.QFileDialog(
-            self, "Import iCAP Data", "", "iCAP CSV Documents(*.csv);;All Files(*)"
-        )
-        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-        dlg.filesSelected.connect(self.importFiles)
-        dlg.open()
-        return dlg
+    # def menuImportKrissKross(self) -> QtWidgets.QWizard:
+    #     def wizardComplete(laser: KrissKross) -> None:
+    #         self.dockarea.addDockWidgets([KrissKrossImageDock(laser, self.viewoptions)])
 
-    def menuImportKrissKross(self) -> QtWidgets.QWizard:
-        def wizardComplete(laser: KrissKross) -> None:
-            self.dockarea.addDockWidgets([KrissKrossImageDock(laser, self.viewoptions)])
+    #     wiz = KrissKrossWizard(config=self.config, parent=self)
+    #     wiz.laserImported.connect(wizardComplete)
+    #     wiz.open()
+    #     return wiz
 
-        wiz = KrissKrossWizard(config=self.config, parent=self)
-        wiz.laserImported.connect(wizardComplete)
-        wiz.open()
-        return wiz
+    # def menuSaveSession(self) -> None:
+    #     # Save the window state
+    #     settings = QtCore.QSettings("Pewpew", "Pewpew")
+    #     settings.setValue("geometry", self.saveGeometry())
+    #     settings.setValue("windowState", self.saveState())
 
-    def menuSaveSession(self) -> None:
-        # Save the window state
-        settings = QtCore.QSettings("Pewpew", "Pewpew")
-        settings.setValue("geometry", self.saveGeometry())
-        settings.setValue("windowState", self.saveState())
+    #     docks = self.dockarea.findChildren(LaserImageDock)
+    #     if len(docks) == 0:
+    #         QtWidgets.QMessageBox.information(self, "Save Session", "Nothing to save.")
+    #         return
+    #     path, _filter = QtWidgets.QFileDialog.getSaveFileName(
+    #         self, "Save File", "", "Pew Pew sessions(*.pew);;All files(*)"
+    #     )
+    #     if path == "":
+    #         return
+    #     lds = [d.laser for d in docks]
+    #     io.npz.save(path, lds)
 
-        docks = self.dockarea.findChildren(LaserImageDock)
-        if len(docks) == 0:
-            QtWidgets.QMessageBox.information(self, "Save Session", "Nothing to save.")
-            return
-        path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Save File", "", "Pew Pew sessions(*.pew);;All files(*)"
-        )
-        if path == "":
-            return
-        lds = [d.laser for d in docks]
-        io.npz.save(path, lds)
+    # def menuExportAll(self) -> QtWidgets.QDialog:
+    #     docks = self.dockarea.findChildren(LaserImageDock)
+    #     if len(docks) == 0:
+    #         return
 
-    def menuExportAll(self) -> QtWidgets.QDialog:
-        docks = self.dockarea.findChildren(LaserImageDock)
-        if len(docks) == 0:
-            return
+    #     dlg = ExportAllDialog(
+    #         [dock.laser for dock in docks],
+    #         self.dockarea.uniqueIsotopes(),
+    #         self.viewoptions,
+    #         self,
+    #     )
+    #     dlg.open()
+    #     return dlg
 
-        dlg = ExportAllDialog(
-            [dock.laser for dock in docks],
-            self.dockarea.uniqueIsotopes(),
-            self.viewoptions,
-            self,
-        )
-        dlg.open()
-        return dlg
+    # def menuCloseAll(self) -> None:
+    #     for dock in self.dockarea.findChildren(LaserImageDock):
+    #         dock.close()
 
-    def menuCloseAll(self) -> None:
-        for dock in self.dockarea.findChildren(LaserImageDock):
-            dock.close()
+    # def menuExit(self) -> None:
+    #     self.close()
 
-    def menuExit(self) -> None:
-        self.close()
+    # def menuConfig(self) -> QtWidgets.QDialog:
+    #     def applyDialog(dialog: dialogs.ApplyDialog) -> None:
+    #         self.config = dialog.config
+    #         for dock in self.dockarea.findChildren(LaserImageDock):
+    #             dock.laser.config.spotsize = self.config.spotsize
+    #             dock.laser.config.speed = self.config.speed
+    #             dock.laser.config.scantime = self.config.scantime
+    #             dock.draw()
 
-    def menuConfig(self) -> QtWidgets.QDialog:
-        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
-            self.config = dialog.config
-            for dock in self.dockarea.findChildren(LaserImageDock):
-                dock.laser.config.spotsize = self.config.spotsize
-                dock.laser.config.speed = self.config.speed
-                dock.laser.config.scantime = self.config.scantime
-                dock.draw()
+    #     dlg = dialogs.ConfigDialog(self.config, parent=self)
+    #     dlg.applyPressed.connect(applyDialog)
+    #     dlg.check_all.setEnabled(False)
+    #     dlg.check_all.setChecked(True)
+    #     dlg.open()
+    #     return dlg
 
-        dlg = dialogs.ConfigDialog(self.config, parent=self)
-        dlg.applyPressed.connect(applyDialog)
-        dlg.check_all.setEnabled(False)
-        dlg.check_all.setChecked(True)
-        dlg.open()
-        return dlg
+    # def menuCalibrate(self, checked: bool) -> None:
+    #     self.viewoptions.calibrate = checked
+    #     self.refresh()
 
-    def menuCalibrate(self, checked: bool) -> None:
-        self.viewoptions.calibrate = checked
-        self.refresh()
+    # def menuStandardsTool(self) -> QtWidgets.QDialog:
+    #     def applyTool(tool: Tool) -> None:
+    #         for dock in self.dockarea.findChildren(LaserImageDock):
+    #             for isotope in tool.calibrations.keys():
+    #                 if isotope in dock.laser.isotopes:
+    #                     dock.laser.data[isotope].calibration = copy.copy(
+    #                         tool.calibrations[isotope]
+    #                     )
+    #             dock.draw()
 
-    def menuStandardsTool(self) -> QtWidgets.QDialog:
-        def applyTool(tool: Tool) -> None:
-            for dock in self.dockarea.findChildren(LaserImageDock):
-                for isotope in tool.calibrations.keys():
-                    if isotope in dock.laser.isotopes:
-                        dock.laser.data[isotope].calibration = copy.copy(
-                            tool.calibrations[isotope]
-                        )
-                dock.draw()
+    #     docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
+    #     tool = StandardsTool(docks[0], self.viewoptions, parent=self)
+    #     tool.applyPressed.connect(applyTool)
+    #     tool.mouseSelectStarted.connect(self.dockarea.startMouseSelect)
+    #     tool.show()
+    #     return tool
 
-        docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        tool = StandardsTool(docks[0], self.viewoptions, parent=self)
-        tool.applyPressed.connect(applyTool)
-        tool.mouseSelectStarted.connect(self.dockarea.startMouseSelect)
-        tool.show()
-        return tool
+    # def menuOperationsTool(self) -> QtWidgets.QDialog:
+    #     docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
+    #     tool = CalculationsTool(docks[0], self.viewoptions, parent=self)
+    #     tool.applyPressed.connect(docks[0].populateComboIsotopes)
+    #     tool.mouseSelectStarted.connect(self.dockarea.startMouseSelect)
+    #     tool.show()
+    #     return tool
 
-    def menuOperationsTool(self) -> QtWidgets.QDialog:
-        docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-        tool = CalculationsTool(docks[0], self.viewoptions, parent=self)
-        tool.applyPressed.connect(docks[0].populateComboIsotopes)
-        tool.mouseSelectStarted.connect(self.dockarea.startMouseSelect)
-        tool.show()
-        return tool
+    # def menuRefresh(self) -> None:
+    #     self.refresh()
 
-    def menuColormap(self, action: QtWidgets.QAction) -> None:
-        text = action.text().replace("&", "")
-        self.viewoptions.image.set_cmap(text)
-        self.refresh()
-
-    def menuColormapRange(self) -> QtWidgets.QDialog:
-        def isotopeChanged(text: str) -> None:
-            for dock in self.dockarea.findChildren(LaserImageDock):
-                if text in dock.laser.isotopes:
-                    dock.combo_isotopes.setCurrentText(text)
-
-        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
-            for isotope, range in dialog.ranges.items():
-                self.viewoptions.colors.set_range(range, isotope)
-            self.viewoptions.colors.default_range = dialog.default_range
-            self.refresh()
-
-        dlg = dialogs.ColorRangeDialog(
-            self.viewoptions, self.dockarea.uniqueIsotopes(), parent=self
-        )
-        dlg.combo_isotopes.currentTextChanged.connect(isotopeChanged)
-        dlg.applyPressed.connect(applyDialog)
-        dlg.open()
-        return dlg
-
-    def menuInterpolation(self, action: QtWidgets.QAction) -> None:
-        self.viewoptions.image.interpolation = action.text().replace("&", "")
-        self.refresh()
-
-    def menuFontsize(self) -> None:
-        fontsize, ok = QtWidgets.QInputDialog.getInt(
-            self,
-            "Fontsize",
-            "Fontsize",
-            value=self.viewoptions.font.size,
-            min=0,
-            max=100,
-            step=1,
-        )
-        if ok:
-            self.viewoptions.font.size = fontsize
-            self.refresh()
-
-    def menuOptionColorbar(self, checked: bool) -> None:
-        self.viewoptions.canvas.colorbar = checked
-        for dock in self.dockarea.findChildren(LaserImageDock):
-            view_limits = dock.canvas.view_limits
-            dock.canvas.redrawFigure()
-            dock.canvas.view_limits = view_limits
-            dock.draw()
-
-    def menuOptionLabel(self, checked: bool) -> None:
-        self.viewoptions.canvas.label = checked
-        for dock in self.dockarea.findChildren(LaserImageDock):
-            dock.draw()
-
-    def menuOptionScalebar(self, checked: bool) -> None:
-        self.viewoptions.canvas.scalebar = checked
-        for dock in self.dockarea.findChildren(LaserImageDock):
-            dock.draw()
-
-    def menuRefresh(self) -> None:
-        self.refresh()
-
-    def menuAbout(self) -> None:
-        QtWidgets.QMessageBox.about(
-            self,
-            "About Pewpew",
-            (
-                "Visualiser / converter for LA-ICP-MS data.\n"
-                f"Version {__version__}\n"
-                "Developed by the UTS Elemental Bio-Imaging Group.\n"
-                "https://github.com/djdt/pewpew"
-            ),
-        )
+    # def menuAbout(self) -> None:
+    #     QtWidgets.QMessageBox.about(
+    #         self,
+    #         "About Pewpew",
+    #         (
+    #             "Visualiser / converter for LA-ICP-MS data.\n"
+    #             f"Version {__version__}\n"
+    #             "Developed by the UTS Elemental Bio-Imaging Group.\n"
+    #             "https://github.com/djdt/pewpew"
+    #         ),
+    #     )
 
     def exceptHook(self, type: type, value: BaseException, tb: TracebackType) -> None:
         if type == KeyboardInterrupt:
@@ -605,8 +635,3 @@ class MainWindow(QtWidgets.QMainWindow):
             "".join(traceback.format_exception(type, value, tb)),
             self,
         )
-
-    # def closeEvent(self, event: QtCore.QEvent) -> None:
-    #     for dock in self.dockarea.findChildren(LaserImageDock):
-    #         dock.close()
-    #     super().closeEvent(event)
