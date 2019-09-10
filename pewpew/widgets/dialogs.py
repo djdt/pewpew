@@ -409,6 +409,7 @@ class StatsDialog(QtWidgets.QDialog):
     def __init__(
         self,
         data: np.ndarray,
+        pixel_area: float,
         range: Tuple[Union[str, float], Union[str, float]],
         parent: QtWidgets.QWidget = None,
     ):
@@ -424,6 +425,7 @@ class StatsDialog(QtWidgets.QDialog):
         stats_left = QtWidgets.QFormLayout()
         stats_left.addRow("Shape:", QtWidgets.QLabel(str(data.shape)))
         stats_left.addRow("Size:", QtWidgets.QLabel(str(data.size)))
+        stats_left.addRow("Area:", QtWidgets.QLabel(f"{data.size * pixel_area:.4g} μm²"))
 
         # Discard shape and ensure no nans
         data = data[~np.isnan(data)].ravel()
@@ -447,15 +449,7 @@ class StatsDialog(QtWidgets.QDialog):
         self.setLayout(layout)
 
         # Calculate the range
-        if isinstance(range[0], str):
-            vmin = np.percentile(data, float(range[0].rstrip("%")))
-        else:
-            vmin = float(range[0])
-        if isinstance(range[1], str):
-            vmax = np.percentile(data, float(range[1].rstrip("%")))
-        else:
-            vmax = float(range[1])
-
+        vmin, vmax = range
         plot_data = data[np.logical_and(data >= vmin, data <= vmax)]
         self.plot(plot_data)
 
