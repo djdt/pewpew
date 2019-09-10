@@ -1,4 +1,3 @@
-import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from typing import List
@@ -138,9 +137,9 @@ class ViewSpace(QtWidgets.QSplitter):
         if self.active_view == view:
             return
         if self.active_view is not None:
-            self.active_view.active = False
+            self.active_view.setActive(False)
         if view is not None:
-            view.active = True
+            view.setActive(True)
         self.active_view = view
 
     def refresh(self) -> None:
@@ -154,6 +153,7 @@ class View(QtWidgets.QWidget):
     def __init__(self, viewspace: ViewSpace, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setAcceptDrops(True)
+        self.setFocusPolicy(QtCore.Qt.ClickFocus)
 
         self.active = False
         self.viewspace = viewspace
@@ -162,10 +162,11 @@ class View(QtWidgets.QWidget):
         self.stack.setFrameStyle(QtWidgets.QFrame.StyledPanel | QtWidgets.QFrame.Sunken)
 
         self.tabs = ViewTabBar(self)
-        self.tabs.currentChanged.connect(self.setActive)
+        self.tabs.setDrawBase(False)
         self.tabs.currentChanged.connect(self.stack.setCurrentIndex)
         self.tabs.tabMoved.connect(self.moveStackWidget)
         self.tabs.tabClosed.connect(self.removeTab)
+        self.tabs.installEventFilter(self)
 
         self.titlebar = ViewTitleBar(self.tabs, self)
 
@@ -204,12 +205,20 @@ class View(QtWidgets.QWidget):
     def moveStackWidget(self, ifrom: int, ito: int) -> None:
         self.stack.insertWidget(ito, self.stack.widget(ifrom))
 
-    def setActive(self) -> None:
+    def focusInEvent(self, event: QtGui.QFocusEvent) -> None:
         self.viewspace.setActiveView(self)
+
+    def setActive(self, active: bool) -> None:
+        self.active = active
+        # if active:
+        #     color = self.palette().color(QtGui.QPalette.Window).name()
+        # else:
+        #     color = self.palette().color(QtGui.QPalette.Mid).name()
+        # self.setForegroundRole(QtGui.QPalette.Highligh
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if obj and event.type() == QtCore.QEvent.MouseButtonPress:
-            self.setActive()
+            self.viewspace.setActiveView(self)
         return False
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
@@ -329,46 +338,6 @@ class ViewTitleBar(QtWidgets.QWidget):
         # Layout the windgets
         layout = QtWidgets.QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        line = QtWidgets.QFrame()
-        line.setFrameShape(QtWidgets.QFrame.VLine)
-        layout.addWidget(line)
         layout.addWidget(tabs, 1)
         layout.addWidget(self.split_button)
-        line = QtWidgets.QFrame()
-        line.setFrameShape(QtWidgets.QFrame.VLine)
-        layout.addWidget(line)
         self.setLayout(layout)
-
-
-# if __name__ == "__main__":
-#     import sys
-
-#     sys.path.append("/home/tom/Documents/python/pewpew")
-#     from laserlib.laser import Laser
-#     from pewpew.widgets.laser import LaserWidget
-#     from pewpew.lib.viewoptions import ViewOptions
-
-#     app = QtWidgets.QApplication()
-#     mw = QtWidgets.QMainWindow()
-#     mw.copyImage = lambda x: print(x, x.sender())
-#     w = QtWidgets.QWidget()
-#     w.setMinimumSize(800, 600)
-
-#     viewspace = ViewSpace()
-#     viewspace.numTabsChanged.connect(lambda: print(viewspace.countViewTabs()))
-
-#     lo = QtWidgets.QVBoxLayout()
-#     lo.addWidget(viewspace)
-
-#     w.setLayout(lo)
-#     mw.setCentralWidget(w)
-#     viewoptions = ViewOptions()
-#     for i in range(0, 5):
-#         laser = Laser.from_structured(
-#             np.array(np.random.random((20, 20)), dtype=[("A1", float), ("B2", float)])
-#         )
-#         widget = LaserWidget(laser, viewoptions)
-#         widget.canvas.drawLaser(widget.laser, "A1")
-#         viewspace.views[0].addTab(str(i), widget)
-#     mw.show()
-#     app.exec_()
