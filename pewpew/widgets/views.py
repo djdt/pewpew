@@ -143,7 +143,7 @@ class ViewSpace(QtWidgets.QSplitter):
         self.active_view = view
 
     def activeWidget(self) -> QtWidgets.QWidget:
-        widget = self.active_view.activeWidget()
+        widget = self.activeView().activeWidget()
         if widget is None:
             for view in self.views:
                 widget = view.activeWidget()
