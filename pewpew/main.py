@@ -1,24 +1,20 @@
 import sys
 import traceback
-import copy
 import os.path
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtGui, QtWidgets
 
 from laserlib import LaserConfig
-from laserlib.io.error import LaserLibException
 from laserlib.krisskross import KrissKross
 
 from pewpew import __version__
 
-from pewpew.lib import io
-from pewpew.lib.mpltools import image_extent_to_data
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportDialog, ExportAllDialog
 from pewpew.widgets.prompts import DetailedError
-from pewpew.widgets.tools import Tool, CalculationsTool, StandardsTool
+from pewpew.widgets.tools import CalculationsTool, StandardsTool
 from pewpew.widgets.wizards import KrissKrossWizard
 from pewpew.widgets.laser import LaserViewSpace, LaserWidget
 
