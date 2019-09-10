@@ -13,9 +13,9 @@ from pewpew.lib.numpyqt import NumpyArrayTableModel
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.validators import DoubleSignificantFiguresDelegate
 from pewpew.widgets.canvases import LaserCanvas
-from pewpew.widgets.docks import LaserImageDock
 from pewpew.widgets.dialogs import CalibrationCurveDialog
 from pewpew.widgets.modelviews import BasicTableView
+from pewpew.widgets.laser import LaserWidget
 
 from .tool import Tool
 
@@ -25,12 +25,13 @@ from typing import Any, List
 class StandardsTool(Tool):
     def __init__(
         self,
-        dock: LaserImageDock,
+        widget: LaserWidget,
         viewoptions: ViewOptions,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
-        self.setWindowTitle("Calibration Standards Tool")
+        self.setWindowTitle("Calibration Standards")
+        self.widget = widget
 
         self.viewoptions = ViewOptions()
         self.viewoptions.canvas.colorbar = False
@@ -38,12 +39,11 @@ class StandardsTool(Tool):
         self.viewoptions.canvas.scalebar = False
         self.viewoptions.image.cmap = viewoptions.image.cmap
 
-        self.dock = dock
         self.calibrations = {
-            k: copy.copy(v.calibration) for k, v in self.dock.laser.data.items()
+            k: copy.copy(v.calibration) for k, v in self.widget.laser.data.items()
         }
         self.previous_isotope = ""
-        current_isotope = self.dock.combo_isotopes.currentText()
+        current_isotope = self.widget.combo_isotopes.currentText()
 
         # Left side
         self.spinbox_levels = QtWidgets.QSpinBox()
@@ -82,7 +82,7 @@ class StandardsTool(Tool):
         self.combo_trim.currentIndexChanged.connect(self.comboTrim)
 
         self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.addItems(sorted(self.dock.laser.isotopes))
+        self.combo_isotope.addItems(sorted(self.widget.laser.isotopes))
         self.combo_isotope.setCurrentText(current_isotope)
         self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
 
@@ -136,8 +136,8 @@ class StandardsTool(Tool):
 
     def draw(self) -> None:
         isotope = self.combo_isotope.currentText()
-        if isotope in self.dock.laser.data:
-            self.canvas.drawLaser(self.dock.laser, isotope)
+        if isotope in self.widget.laser.data:
+            self.canvas.drawLaser(self.widget.laser, isotope)
             self.canvas.drawLevels(
                 StandardsTable.ROW_LABELS, self.spinbox_levels.value()
             )
@@ -149,7 +149,7 @@ class StandardsTool(Tool):
 
     def updateCounts(self) -> None:
         isotope = self.combo_isotope.currentText()
-        data = self.dock.laser.get(
+        data = self.widget.laser.get(
             isotope, calibrate=False, extent=self.canvas.view_limits
         )
         if len(data) == 1:
@@ -218,9 +218,9 @@ class StandardsTool(Tool):
         units = self.combo_trim.currentText()
         multiplier = 1.0
         if units in ["rows", "s"]:
-            multiplier *= self.dock.laser.config.get_pixel_width()
+            multiplier *= self.widget.laser.config.get_pixel_width()
         if units == "s":
-            multiplier /= self.dock.laser.config.scantime
+            multiplier /= self.widget.laser.config.scantime
 
         self.canvas.view_limits = (
             trim_left * multiplier,
@@ -240,17 +240,15 @@ class StandardsTool(Tool):
         self.updateCounts()
         self.draw()
 
-    @QtCore.Slot("QWidget*")
-    def endMouseSelect(self, widget: QtWidgets.QWidget) -> None:
-        self.dock = widget
+    def widgetChanged(self) -> None:
         self.calibrations = {
-            k: copy.copy(v.calibration) for k, v in widget.laser.data.items()
+            k: copy.copy(v.calibration) for k, v in self.widget.laser.data.items()
         }
         # Prevent currentIndexChanged being emmited
         self.combo_isotope.blockSignals(True)
         self.combo_isotope.clear()
-        self.combo_isotope.addItems(sorted(self.dock.laser.isotopes))
-        self.combo_isotope.setCurrentText(self.dock.combo_isotopes.currentText())
+        self.combo_isotope.addItems(sorted(self.widget.laser.isotopes))
+        self.combo_isotope.setCurrentText(self.widget.combo_isotopes.currentText())
         self.combo_isotope.blockSignals(False)
 
         self.lineedit_left.setText("")
@@ -264,7 +262,14 @@ class StandardsTool(Tool):
         self.updateCounts()
         self.updateResults()
 
-        super().endMouseSelect(widget)
+    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+        if event.type() == QtCore.QEvent.MouseButtonDblClick and isinstance(
+            obj, LaserCanvas
+        ):
+            self.widget = obj.parent()
+            self.widgetChanged()
+            self.endMouseSelect()
+        return False
 
 
 class StandardsCanvas(LaserCanvas):

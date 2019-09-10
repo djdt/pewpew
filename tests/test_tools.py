@@ -1,13 +1,12 @@
 import numpy as np
 from PySide2 import QtCore, QtWidgets
-import pytest
 from pytestqt.qtbot import QtBot
 
 from laserlib.laser import Laser
 
 from pewpew.lib.viewoptions import ViewOptions
-from pewpew.widgets.docks import LaserImageDock
 
+from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import Tool, StandardsTool, CalculationsTool
 
 
@@ -20,8 +19,9 @@ def test_tool(qtbot: QtBot):
         tool.startMouseSelect()
         assert not tool.isVisible()
 
-    tool.endMouseSelect(None)
-    assert tool.isVisible()
+    with qtbot.waitSignal(tool.mouseSelectEnded):
+        tool.endMouseSelect()
+        assert tool.isVisible()
 
     qtbot.keyPress(tool, QtCore.Qt.Key_Escape)
     assert tool.isVisible()
@@ -33,7 +33,7 @@ def test_standards_tool(qtbot: QtBot):
         np.array(np.arange(100).reshape((10, 10)), dtype=[("A1", float), ("B2", float)])
     )
     viewoptions = ViewOptions()
-    tool = StandardsTool(LaserImageDock(laser, viewoptions), viewoptions)
+    tool = StandardsTool(LaserWidget(laser, viewoptions), viewoptions)
     qtbot.addWidget(tool)
     tool.show()
 
@@ -93,7 +93,7 @@ def test_calculations_tool(qtbot: QtBot):
         np.array(np.random.random((10, 10)), dtype=[("A1", float)])
     )
     viewoptions = ViewOptions()
-    tool = CalculationsTool(LaserImageDock(laser, viewoptions), viewoptions)
+    tool = CalculationsTool(LaserWidget(laser, viewoptions), viewoptions)
     qtbot.addWidget(tool)
     tool.show()
 

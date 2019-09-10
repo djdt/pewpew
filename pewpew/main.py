@@ -5,12 +5,9 @@ import os.path
 
 from PySide2 import QtGui, QtWidgets
 
-from laserlib import LaserConfig
 from laserlib.krisskross import KrissKross
 
 from pewpew import __version__
-
-from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportDialog, ExportAllDialog
@@ -26,10 +23,6 @@ from types import TracebackType
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-
-        # Defaults for when applying to multiple images
-        self.config = LaserConfig()
-        self.viewoptions = ViewOptions()
         self.setWindowTitle("PewPew")
         self.resize(1280, 800)
 
@@ -147,7 +140,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for name, interp in self.viewspace.options.image.INTERPOLATIONS.items():
             action = self.action_group_interp.addAction(name)
             action.setCheckable(True)
-            if interp == self.viewoptions.image.interpolation:
+            if interp == self.viewspace.options.image.interpolation:
                 action.setChecked(True)
         self.action_group_interp.triggered.connect(self.actionGroupInterp)
 
@@ -323,7 +316,8 @@ class MainWindow(QtWidgets.QMainWindow):
         return tool
 
     def actionCalculationsTool(self) -> QtWidgets.QDialog:
-        tool = CalculationsTool(self.viewspace, parent=self)
+        widget = self.viewspace.activeWidget()
+        tool = CalculationsTool(widget, self.viewspace.options, parent=self)
         # tool.applyPressed.connect(self.refresh())
         tool.mouseSelectStarted.connect(self.viewspace.mouseSelectStart)
         tool.mouseSelectEnded.connect(self.viewspace.mouseSelectEnd)
@@ -356,21 +350,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh()
 
     def actionFontsize(self) -> None:
-        fontsize, ok = QtWidgets.QInputDialog.getInt(
-            self,
-            "Fontsize",
-            "Fontsize",
-            value=self.viewoptions.font.size,
-            min=0,
-            max=100,
-            step=1,
-        )
-        if ok:
-            self.viewspace.options.font.size = fontsize
+        def applyDialog(size: int) -> None:
+            self.viewspace.options.font.size = size
             self.refresh()
 
+        dlg = QtWidgets.QInputDialog(self)
+        dlg.setWindowTitle("Fontsize")
+        dlg.setLabelText("Fontisze:")
+        dlg.setIntValue(self.viewspace.options.font.size)
+        dlg.setIntRange(0, 100)
+        dlg.setInputMode(QtWidgets.QInputDialog.IntInput)
+        dlg.intValueSelected.connect(applyDialog)
+        dlg.open()
+        return dlg
+
     def actionToggleColorbar(self, checked: bool) -> None:
-        self.viewoptions.canvas.colorbar = checked
+        self.viewspace.options.canvas.colorbar = checked
         # Hard refresh
         for view in self.viewspace.views:
             for widget in view.widgets():
@@ -380,11 +375,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 widget.draw()
 
     def actionToggleLabel(self, checked: bool) -> None:
-        self.viewoptions.canvas.label = checked
+        self.viewspace.options.canvas.label = checked
         self.refresh()
 
     def actionToggleScalebar(self, checked: bool) -> None:
-        self.viewoptions.canvas.scalebar = checked
+        self.viewspace.options.canvas.scalebar = checked
         self.refresh()
 
     def actionImportAgilent(self) -> QtWidgets.QDialog:
@@ -407,7 +402,7 @@ class MainWindow(QtWidgets.QMainWindow):
             view = self.viewspace.activeView()
             view.addTab(laser.name, LaserWidget(laser, self.viewspace.options))
 
-        wiz = KrissKrossWizard(config=self.config, parent=self)
+        wiz = KrissKrossWizard(config=self.viewspace.config, parent=self)
         wiz.laserImported.connect(wizardComplete)
         wiz.open()
         return wiz
@@ -415,7 +410,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def actionExportAll(self) -> QtWidgets.QDialog:
         lasers = []
         for view in self.viewspace.views:
-            lasers.extend(view.widgets())
+            lasers.extend(w.laser for w in view.widgets())
         dlg = ExportAllDialog(
             lasers, self.viewspace.uniqueIsotopes(), self.viewspace.options, self
         )
@@ -487,161 +482,26 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def buttonStatusUnit(self, toggled: bool) -> None:
         if self.button_status_um.isChecked():
-            self.viewoptions.units = "μm"
+            self.viewspace.options.units = "μm"
         elif self.button_status_row.isChecked():
-            self.viewoptions.units = "row"
+            self.viewspace.options.units = "row"
         else:  # seconds
-            self.viewoptions.units = "second"
+            self.viewspace.options.units = "second"
 
     def refresh(self) -> None:
         self.viewspace.refresh()
 
     def updateActionAvailablity(self) -> None:
         enabled = self.viewspace.countViewTabs() > 0
+        self.action_copy_image.setEnabled(enabled)
         self.action_save.setEnabled(enabled)
         self.action_config.setEnabled(enabled)
+        self.action_calibration.setEnabled(enabled)
+        self.action_statistics.setEnabled(enabled)
         self.action_export.setEnabled(enabled)
         self.action_export_all.setEnabled(enabled)
         self.action_standards_tool.setEnabled(enabled)
         self.action_calculations_tool.setEnabled(enabled)
-
-    # def importFiles(self, paths: str) -> None:
-    #     try:
-    #         lasers = io.import_any(paths, self.config)
-    #     except LaserLibException as e:
-    #         QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
-    #         return
-
-    #     docks = []
-    #     for laser in lasers:
-    #         if isinstance(laser, KrissKross):
-    #             docks.append(KrissKrossImageDock(laser, self.viewoptions))
-    #         else:
-    #             docks.append(LaserImageDock(laser, self.viewoptions))
-    #     self.dockarea.addDockWidgets(docks)
-
-    # def menuImportAgilent(self) -> QtWidgets.QDialog:
-    #     dlg = dialogs.MultipleDirDialog(self, "Batch Directories", "")
-    #     dlg.filesSelected.connect(self.importFiles)
-    #     dlg.open()
-    #     return dlg
-
-    # def menuImportThermoiCap(self) -> QtWidgets.QDialog:
-    #     dlg = QtWidgets.QFileDialog(
-    #         self, "Import iCAP Data", "", "iCAP CSV Documents(*.csv);;All Files(*)"
-    #     )
-    #     dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-    #     dlg.filesSelected.connect(self.importFiles)
-    #     dlg.open()
-    #     return dlg
-
-    # def menuImportKrissKross(self) -> QtWidgets.QWizard:
-    #     def wizardComplete(laser: KrissKross) -> None:
-    #         self.dockarea.addDockWidgets([KrissKrossImageDock(laser, self.viewoptions)])
-
-    #     wiz = KrissKrossWizard(config=self.config, parent=self)
-    #     wiz.laserImported.connect(wizardComplete)
-    #     wiz.open()
-    #     return wiz
-
-    # def menuSaveSession(self) -> None:
-    #     # Save the window state
-    #     settings = QtCore.QSettings("Pewpew", "Pewpew")
-    #     settings.setValue("geometry", self.saveGeometry())
-    #     settings.setValue("windowState", self.saveState())
-
-    #     docks = self.dockarea.findChildren(LaserImageDock)
-    #     if len(docks) == 0:
-    #         QtWidgets.QMessageBox.information(self, "Save Session", "Nothing to save.")
-    #         return
-    #     path, _filter = QtWidgets.QFileDialog.getSaveFileName(
-    #         self, "Save File", "", "Pew Pew sessions(*.pew);;All files(*)"
-    #     )
-    #     if path == "":
-    #         return
-    #     lds = [d.laser for d in docks]
-    #     io.npz.save(path, lds)
-
-    # def menuExportAll(self) -> QtWidgets.QDialog:
-    #     docks = self.dockarea.findChildren(LaserImageDock)
-    #     if len(docks) == 0:
-    #         return
-
-    #     dlg = ExportAllDialog(
-    #         [dock.laser for dock in docks],
-    #         self.dockarea.uniqueIsotopes(),
-    #         self.viewoptions,
-    #         self,
-    #     )
-    #     dlg.open()
-    #     return dlg
-
-    # def menuCloseAll(self) -> None:
-    #     for dock in self.dockarea.findChildren(LaserImageDock):
-    #         dock.close()
-
-    # def menuExit(self) -> None:
-    #     self.close()
-
-    # def menuConfig(self) -> QtWidgets.QDialog:
-    #     def applyDialog(dialog: dialogs.ApplyDialog) -> None:
-    #         self.config = dialog.config
-    #         for dock in self.dockarea.findChildren(LaserImageDock):
-    #             dock.laser.config.spotsize = self.config.spotsize
-    #             dock.laser.config.speed = self.config.speed
-    #             dock.laser.config.scantime = self.config.scantime
-    #             dock.draw()
-
-    #     dlg = dialogs.ConfigDialog(self.config, parent=self)
-    #     dlg.applyPressed.connect(applyDialog)
-    #     dlg.check_all.setEnabled(False)
-    #     dlg.check_all.setChecked(True)
-    #     dlg.open()
-    #     return dlg
-
-    # def menuCalibrate(self, checked: bool) -> None:
-    #     self.viewoptions.calibrate = checked
-    #     self.refresh()
-
-    # def menuStandardsTool(self) -> QtWidgets.QDialog:
-    #     def applyTool(tool: Tool) -> None:
-    #         for dock in self.dockarea.findChildren(LaserImageDock):
-    #             for isotope in tool.calibrations.keys():
-    #                 if isotope in dock.laser.isotopes:
-    #                     dock.laser.data[isotope].calibration = copy.copy(
-    #                         tool.calibrations[isotope]
-    #                     )
-    #             dock.draw()
-
-    #     docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-    #     tool = StandardsTool(docks[0], self.viewoptions, parent=self)
-    #     tool.applyPressed.connect(applyTool)
-    #     tool.mouseSelectStarted.connect(self.dockarea.startMouseSelect)
-    #     tool.show()
-    #     return tool
-
-    # def menuOperationsTool(self) -> QtWidgets.QDialog:
-    #     docks = self.dockarea.orderedDocks(self.dockarea.visibleDocks(LaserImageDock))
-    #     tool = CalculationsTool(docks[0], self.viewoptions, parent=self)
-    #     tool.applyPressed.connect(docks[0].populateComboIsotopes)
-    #     tool.mouseSelectStarted.connect(self.dockarea.startMouseSelect)
-    #     tool.show()
-    #     return tool
-
-    # def menuRefresh(self) -> None:
-    #     self.refresh()
-
-    # def menuAbout(self) -> None:
-    #     QtWidgets.QMessageBox.about(
-    #         self,
-    #         "About Pewpew",
-    #         (
-    #             "Visualiser / converter for LA-ICP-MS data.\n"
-    #             f"Version {__version__}\n"
-    #             "Developed by the UTS Elemental Bio-Imaging Group.\n"
-    #             "https://github.com/djdt/pewpew"
-    #         ),
-    #     )
 
     def exceptHook(self, type: type, value: BaseException, tb: TracebackType) -> None:
         if type == KeyboardInterrupt:

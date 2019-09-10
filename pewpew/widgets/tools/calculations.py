@@ -9,7 +9,6 @@ from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets.canvases import LaserCanvas
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import Tool
-from pewpew.widgets.views import ViewSpace
 
 from typing import List
 
@@ -81,19 +80,20 @@ class FormulaLineEdit(ValidColorLineEdit):
 class CalculationsTool(Tool):
     def __init__(
         self,
-        viewspace: ViewSpace,
+        widget: LaserWidget,
+        viewoptions: ViewOptions,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
-        self.viewspace = viewspace
-        self.widget = viewspace.activeWidget()
+        self.setWindowTitle("Calculator")
+        self.widget = widget
 
         # Custom viewoptions
         self.viewoptions = ViewOptions()
         self.viewoptions.canvas.colorbar = False
         self.viewoptions.canvas.label = False
         self.viewoptions.canvas.scalebar = False
-        self.viewoptions.image.cmap = viewspace.options.image.cmap
+        self.viewoptions.image.cmap = viewoptions.image.cmap
 
         self.canvas = LaserCanvas(self.viewoptions)
 
@@ -173,7 +173,9 @@ class CalculationsTool(Tool):
         self.updateCanvas()
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        if event.type() == QtCore.QEvent.MouseButtonDblClick and isinstance(obj, LaserCanvas):
+        if event.type() == QtCore.QEvent.MouseButtonDblClick and isinstance(
+            obj, LaserCanvas
+        ):
             self.widget = obj.parent()
             self.widgetChanged()
             self.endMouseSelect()
