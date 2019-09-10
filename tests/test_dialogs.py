@@ -112,6 +112,6 @@ def test_stats_dialog(qtbot: QtBot):
     x = np.random.random([10, 10])
     x[0, 0] = np.nan
 
-    dialog = StatsDialog(x, (0.0, "50%"))
+    dialog = StatsDialog(x, 10, (0, 1))
     qtbot.addWidget(dialog)
     dialog.show()

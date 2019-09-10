@@ -425,7 +425,9 @@ class StatsDialog(QtWidgets.QDialog):
         stats_left = QtWidgets.QFormLayout()
         stats_left.addRow("Shape:", QtWidgets.QLabel(str(data.shape)))
         stats_left.addRow("Size:", QtWidgets.QLabel(str(data.size)))
-        stats_left.addRow("Area:", QtWidgets.QLabel(f"{data.size * pixel_area:.4g} μm²"))
+        stats_left.addRow(
+            "Area:", QtWidgets.QLabel(f"{data.size * pixel_area:.4g} μm²")
+        )
 
         # Discard shape and ensure no nans
         data = data[~np.isnan(data)].ravel()
