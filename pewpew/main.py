@@ -1,6 +1,7 @@
 import sys
 import traceback
 import copy
+import os.path
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -14,12 +15,13 @@ from pewpew.lib import io
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets import dialogs
-from pewpew.widgets.exportdialogs import ExportAllDialog
+from pewpew.widgets.exportdialogs import ExportDialog, ExportAllDialog
 from pewpew.widgets.prompts import DetailedError
 from pewpew.widgets.tools import Tool, CalculationsTool, StandardsTool
 from pewpew.widgets.wizards import KrissKrossWizard
-from pewpew.widgets.laser import LaserViewSpace
+from pewpew.widgets.laser import LaserViewSpace, LaserWidget
 
+from typing import Callable
 from types import TracebackType
 
 
@@ -34,6 +36,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.resize(1280, 800)
 
         self.viewspace = LaserViewSpace()
+
+        self.installEventFilter(self.viewspace)
 
         # widget = QtWidgets.QWidget()
         # layout = QtWidgets.QVBoxLayout()
@@ -57,15 +61,94 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar().addPermanentWidget(self.button_status_s)
 
     def createActions(self):
-        self.action_open = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("document-open"), "&Open"
-        )
-        self.action_open.setShortcut("Save document to numpy archive.")
-        self.action_open.setStatusTip("Open new documents.")
-        self.action_open.triggered.connect(self.actionOpen)
+        def qAction(
+            icon: str, label: str, status: str, func: Callable
+        ) -> QtWidgets.QAction:
+            action = QtWidgets.QAction(QtGui.QIcon.fromTheme(icon), label)
+            action.setStatusTip(status)
+            action.triggered.connect(func)
+            return action
 
-    def actionOpen(self) -> None:
+        # Laser
+        self.action_config = qAction(
+            "document-edit", "Config", "Edit the documents config.", self.actionConfig
+        )
+        self.action_calibration = qAction(
+            "go-top",
+            "Calibration",
+            "Edit the documents calibration.",
+            self.actionCalibration,
+        )
+        # Laser IO
+        self.action_open = qAction(
+            "document-open", "&Open", "Open new document(s).", self.actionOpen
+        )
+        self.action_open.setShortcut("Ctrl+O")
+        self.action_save = qAction(
+            "document-save", "&Save", "Save document to numpy archive.", self.actionSave
+        )
+        self.action_export = qAction(
+            "document-save-as", "E&xport", "Export documents.", self.actionExport
+        )
+        # Mainwindow
+        self.action_config_default = qAction(
+            "document-edit",
+            "Default Config",
+            "Edit the default config.",
+            self.actionConfigDefault,
+        )
+        self.action_config_default.setShortcut("Ctrl+K")
+        self.action_exit = qAction(
+            "application-exit", "Quit", "Exit the program.", self.actionExit
+        )
+        self.action_exit.setShortcut("Ctrl+Shift+Q")
+        self.action_toggle_calibrate = qAction(
+            "go-top", "Ca&librate", "Toggle calibration.", self.actionToggleCalibrate
+        )
+        self.action_toggle_calibrate.setShortcut("Ctrl+L")
+        self.action_toggle_calibrate.setCheckable(True)
+        self.action_toggle_calibrate.setChecked(True)
+        # Mainwindow IO
+        self.action_import_agilent = qAction(
+            "", "Import Agilent", "Import Agilent batches.", self.actionImportAgilent
+        )
+        self.action_import_thermo = qAction(
+            "", "Import Thermo", "Import Thermo iCap CSVs.", self.actionImportThermo
+        )
+        self.action_import_srr = qAction(
+            "",
+            "Import Kriss Kross",
+            "Open the Kriss-Kross import wizard.",
+            self.actionImportSRR,
+        )
+        self.action_export_all = qAction(
+            "document-save-as",
+            "E&xport All",
+            "Export all open documents.",
+            self.actionExportAll,
+        )
+        self.action_export_all.setShortcut("Ctrl+X")
+
+    def actionConfig(self) -> QtWidgets.QDialog:
         view = self.viewspace.activeView()
+        widget = view.activeWidget()
+        dlg = dialogs.ConfigDialog(widget.config, parent=self)
+        dlg.applyPressed.connect(self.viewspace.applyConfig)
+        dlg.open()
+        return dlg
+
+    def actionCalibration(self) -> QtWidgets.QDialog:
+        view = self.viewspace.activeView()
+        widget = view.activeWidget()
+        calibrations = {
+            k: widget.laser.data[k].calibration for k in self.laser.data.keys()
+        }
+        dlg = dialogs.CalibrationDialog(calibrations, parent=self)
+        dlg.applyPressed.connect(self.viewspace.applyCalibration)
+        dlg.open()
+        return dlg
+
+    def actionOpen(self) -> QtWidgets.QDialog:
         dlg = QtWidgets.QFileDialog(
             self,
             "Open File(s).",
@@ -75,88 +158,122 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         dlg.selectNameFilter("All files(*)")
         dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-        dlg.filesSelected.connect(view.openDocument)
+        dlg.filesSelected.connect(self.viewspace.openDocument)
         dlg.open()
         return dlg
+
+    def actionSave(self) -> QtWidgets.QDialog:
+        view = self.viewspace.activeView()
+        widget = view.activeWidget()
+        filepath = widget.laser.filepath
+        if filepath.lower().endswith(".npz") and os.path.exists(filepath):
+            view.saveDocument(filepath)
+            return None
+        else:
+            filepath = widget.laserFilePath()
+        dlg = QtWidgets.QFileDialog(
+            self, "Save File", filepath, "Numpy archive(*.npz);;All files(*)"
+        )
+        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        dlg.fileSelected.connect(view.saveDocument)
+        dlg.open()
+        return dlg
+
+    def actionExport(self) -> QtWidgets.QDialog:
+        view = self.viewspace.activeView()
+        widget = view.activeWidget()
+        if widget is None:
+            return None
+        dlg = ExportDialog(
+            widget.laser,
+            widget.combo_isotopes.currentText(),
+            widget.canvas.view_limits,
+            widget.canvas.viewoptions,
+            self,
+        )
+        dlg.open()
+        return dlg
+
+    def actionConfigDefault(self) -> QtWidgets.QDialog:
+        dlg = dialogs.ConfigDialog(self.viewspace.config, parent=self)
+        dlg.check_all.setChecked(True)
+        dlg.check_all.setEnabled(False)
+        dlg.applyPressed.connect(self.viewspace.applyConfig)
+        dlg.open()
+        return dlg
+
+    def actionToggleCalibrate(self, checked: bool) -> None:
+        self.viewspace.options.calibrate = checked
+        self.viewspace.refresh()
+
+    def actionCalibrationTool(self) -> QtWidgets.QDialog:
+        tool = StandardsTool(
+            self.viewspace.activeView(), self.viewspace.options, parent=self
+        )
+        tool.applyPressed.connect(self.viewspace.applyCalibration)
+        tool.mouseSelectStarted.connect(lambda x: None)
+        tool.show()
+        return tool
+
+    def actionImportAgilent(self) -> QtWidgets.QDialog:
+        dlg = dialogs.MultipleDirDialog(self, "Batch Directories", "")
+        dlg.filesSelected.connect(self.viewspace.openDocument)
+        dlg.open()
+        return dlg
+
+    def actionImportThermo(self) -> QtWidgets.QDialog:
+        dlg = QtWidgets.QFileDialog(
+            self, "Import iCAP Data", "", "iCAP CSV Documents(*.csv);;All Files(*)"
+        )
+        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+        dlg.filesSelected.connect(self.viewspace.openDocument)
+        dlg.open()
+        return dlg
+
+    def actionImportSRR(self) -> QtWidgets.QWizard:
+        def wizardComplete(laser: KrissKross) -> None:
+            view = self.viewspace.activeView()
+            view.addTab(laser.name, LaserWidget(laser, self.viewspace.options))
+
+        wiz = KrissKrossWizard(config=self.config, parent=self)
+        wiz.laserImported.connect(wizardComplete)
+        wiz.open()
+        return wiz
+
+    def actionExportAll(self) -> QtWidgets.QDialog:
+        lasers = []
+        for view in self.viewspace.views:
+            lasers.extend(view.widgets())
+        isotopes = set()
+        for laser in lasers:
+            isotopes.update(laser.isotopes)
+        dlg = ExportAllDialog(lasers, sorted(isotopes), self.viewspace.options, self)
+        dlg.open()
+        return dlg
+
+    def actionExit(self) -> None:
+        self.close()
 
     def createMenus(self) -> None:
         # File
         menu_file = self.menuBar().addMenu("&File")
         menu_file.addAction(self.action_open)
-        # action_open = menu_file.addAction(
-        #     QtGui.QIcon.fromTheme("document-open"), "&Open"
-        # )
-        # action_open.setShortcut("Ctrl+O")
-        # action_open.setStatusTip("Open sessions and images.")
-        # action_open.triggered.connect(self.menuOpen)
-
         # File -> Import
         menu_import = menu_file.addMenu("&Import")
-        action_import = menu_import.addAction("&Agilent Batch")
-        action_import.setStatusTip("Import Agilent image data (.b).")
-        action_import.triggered.connect(self.menuImportAgilent)
-
-        action_import = menu_import.addAction("&Thermo iCap CSV")
-        action_import.setStatusTip(
-            "Import data exported using the CSV export function."
-        )
-        action_import.triggered.connect(self.menuImportThermoiCap)
-
-        action_import = menu_import.addAction("&Kriss Kross...")
-        action_import.setStatusTip("Start the Kriss Kross import wizard.")
-        action_import.triggered.connect(self.menuImportKrissKross)
-
+        menu_import.addAction(self.action_import_agilent)
+        menu_import.addAction(self.action_import_thermo)
+        menu_import.addAction(self.action_import_srr)
         menu_file.addSeparator()
 
-        action_save = menu_file.addAction(
-            QtGui.QIcon.fromTheme("document-save"), "&Save Session"
-        )
-        action_save.setShortcut("Ctrl+S")
-        action_save.setStatusTip("Save session to file.")
-        action_save.triggered.connect(self.menuSaveSession)
-        action_save.setEnabled(False)
-
-        self.action_export = menu_file.addAction(
-            QtGui.QIcon.fromTheme("document-save-as"), "&Export all"
-        )
-        self.action_export.setShortcut("Ctrl+X")
-        self.action_export.setStatusTip("Export all images to a different format.")
-        self.action_export.triggered.connect(self.menuExportAll)
-        self.action_export.setEnabled(False)
-
+        menu_file.addAction(self.action_export_all)
         menu_file.addSeparator()
 
-        action_close = menu_file.addAction(
-            QtGui.QIcon.fromTheme("edit-delete"), "Close All"
-        )
-        action_close.setStatusTip("Close all open images.")
-        action_close.setShortcut("Ctrl+Q")
-        action_close.triggered.connect(self.menuCloseAll)
-
-        menu_file.addSeparator()
-
-        action_exit = menu_file.addAction(
-            QtGui.QIcon.fromTheme("application-exit"), "E&xit"
-        )
-        action_exit.setStatusTip("Quit the program.")
-        action_exit.setShortcut("Ctrl+Shift+Q")
-        action_exit.triggered.connect(self.menuExit)
+        menu_file.addAction(self.action_exit)
 
         # Edit
         menu_edit = self.menuBar().addMenu("&Edit")
-        action_config = menu_edit.addAction(
-            QtGui.QIcon.fromTheme("document-edit"), "&Config"
-        )
-        action_config.setStatusTip("Update the configs for visible images.")
-        action_config.setShortcut("Ctrl+K")
-        action_config.triggered.connect(self.menuConfig)
-
-        action_calibrate = menu_edit.addAction("Ca&librate")
-        action_calibrate.setStatusTip("Toggle calibration.")
-        action_calibrate.setShortcut("Ctrl+L")
-        action_calibrate.setCheckable(True)
-        action_calibrate.setChecked(True)
-        action_calibrate.toggled.connect(self.menuCalibrate)
+        menu_edit.addAction(self.action_config_default)
+        menu_edit.addAction(self.action_toggle_calibrate)
 
         menu_edit.addSeparator()
 

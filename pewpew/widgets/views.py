@@ -139,7 +139,8 @@ class ViewSpace(QtWidgets.QSplitter):
             return
         if self.active_view is not None:
             self.active_view.active = False
-        view.active = True
+        if view is not None:
+            view.active = True
         self.active_view = view
 
     def refresh(self) -> None:
