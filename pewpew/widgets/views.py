@@ -175,6 +175,14 @@ class View(QtWidgets.QWidget):
         layout.addWidget(self.stack, 1)
         self.setLayout(layout)
 
+    def widgets(self) -> List[QtWidgets.QWidget]:
+        return [self.stack.widget(i) for i in range(self.stack.count())]
+
+    def activeWidget(self) -> QtWidgets.QWidget:
+        if self.stack.count() == 0:
+            return None
+        return self.stack.widget(self.stack.currentIndex())
+
     def addTab(self, text: str, widget: QtWidgets.QWidget) -> int:
         index = self.tabs.addTab(text)
         self.stack.insertWidget(index, widget)
