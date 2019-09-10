@@ -73,6 +73,18 @@ class LaserViewSpace(ViewSpace):
         for view in self.views:
             view.setCurrentIsotope(isotope)
 
+    @QtCore.Slot("QWidget*")
+    def mouseSelectStart(self, callback_widget: QtWidgets.QWidget) -> None:
+        for view in self.views:
+            for widget in view.widgets():
+                widget.installEventFilter(callback_widget)
+
+    @QtCore.Slot("QWidget*")
+    def mouseSelectEnd(self, callback_widget: QtWidgets.QWidget) -> None:
+        for view in self.views:
+            for widget in view.widgets():
+                widget.removeEventFilter(callback_widget)
+
 
 class LaserView(View):
     def refresh(self) -> None:
@@ -119,6 +131,8 @@ class LaserWidget(QtWidgets.QWidget):
         self.laser = laser
 
         self.canvas = InteractiveLaserCanvas(viewoptions)
+        # self.canvas.setFocusPolicy(QtCore.Qt.ClickFocus)
+
         self.combo_isotopes = QtWidgets.QComboBox()
         self.combo_isotopes.currentIndexChanged.connect(self.refresh)
         self.combo_isotopes.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
