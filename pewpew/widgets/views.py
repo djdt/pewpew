@@ -36,6 +36,7 @@ class ViewSpace(QtWidgets.QSplitter):
         view.numTabsChanged.connect(self.numTabsChanged)
         self.views.append(view)
         self.numViewsChanged.emit()
+        self.setActiveView(view)
         return view
 
     def countViewTabs(self) -> int:
@@ -63,9 +64,10 @@ class ViewSpace(QtWidgets.QSplitter):
         self.views.remove(view)
         self.numViewsChanged.emit()
 
+        splitter.replaceWidget(splitter.indexOf(view), QtWidgets.QWidget())
         view.close()
-        view.deleteLater()
 
+        assert splitter.count() == 1
         if splitter.count() != 1:
             return
 
@@ -87,15 +89,15 @@ class ViewSpace(QtWidgets.QSplitter):
             child_splitter.deleteLater()
             splitter.setSizes(sizes)
 
-    def splitHorizontal(self) -> None:
-        self.splitView()
+    def splitHorizontal(self, view: "View" = None) -> None:
+        self.splitView(view)
 
-    def splitVertical(self) -> None:
-        self.splitView(None, QtCore.Qt.Vertical)
+    def splitVertical(self, view: "View" = None) -> None:
+        self.splitView(view, QtCore.Qt.Vertical)
 
     def splitView(
         self,
-        view: QtWidgets.QWidget = None,
+        view: "View" = None,
         orientation: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
     ) -> None:
         if view is None:
@@ -112,9 +114,11 @@ class ViewSpace(QtWidgets.QSplitter):
             splitter.insertWidget(index - 1, new_view)
             splitter.setSizes([size, size])
         else:
-            sizes = splitter.sizes()
             new_splitter = QtWidgets.QSplitter(orientation)
             new_splitter.setChildrenCollapsible(False)
+
+            sizes = splitter.sizes()
+
             new_splitter.addWidget(view)
             new_view = self.createView()
             new_splitter.addWidget(new_view)
@@ -124,7 +128,6 @@ class ViewSpace(QtWidgets.QSplitter):
             splitter.setSizes(sizes)
             new_size = (sum(new_splitter.sizes()) - new_splitter.handleWidth()) / 2.0
             new_splitter.setSizes([new_size, new_size])
-            self.setActiveView(new_view)
 
     def activeView(self) -> "View":
         if self.active_view is None:
@@ -161,6 +164,7 @@ class View(QtWidgets.QWidget):
 
     def __init__(self, viewspace: ViewSpace, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setAcceptDrops(True)
         self.setFocusPolicy(QtCore.Qt.ClickFocus)
 
