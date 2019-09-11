@@ -23,7 +23,7 @@ from types import TracebackType
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.setWindowTitle("PewPew")
+        self.setWindowTitle("pew²")
         self.resize(1280, 800)
 
         self.viewspace = LaserViewSpace()
@@ -32,7 +32,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.createActions()
         self.createMenus()
-        self.statusBar().showMessage(f"Welcome to PewPew version {__version__}.")
+        self.statusBar().showMessage(f"Welcome to pew² version {__version__}.")
         self.button_status_um = QtWidgets.QRadioButton("μ")
         self.button_status_row = QtWidgets.QRadioButton("r")
         self.button_status_s = QtWidgets.QRadioButton("s")
@@ -170,7 +170,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_refresh.setShortcut("F5")
 
         self.action_about = qAction(
-            "help-about", "&About", "About PewPew.", self.actionAbout
+            "help-about", "&About", "About pew².", self.actionAbout
         )
         # Mainwindow IO
         self.action_import_agilent = qAction(
@@ -420,7 +420,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def actionAbout(self) -> QtWidgets.QDialog:
         QtWidgets.QMessageBox.about(
             self,
-            "About PewPew",
+            "About pew²",
             (
                 "Visualiser / converter for LA-ICP-MS data.\n"
                 f"Version {__version__}\n"
