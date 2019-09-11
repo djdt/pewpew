@@ -226,7 +226,9 @@ class View(QtWidgets.QWidget):
             color = self.palette().color(QtGui.QPalette.Highlight).name()
         else:
             color = self.palette().color(QtGui.QPalette.Shadow).name()
-        self.stack.setStyleSheet(f"QStackedWidget, QStackedWidget > QWidget {{ color: {color} }}")
+        self.stack.setStyleSheet(
+            f"QStackedWidget, QStackedWidget > QWidget {{ color: {color} }}"
+        )
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if obj and event.type() == QtCore.QEvent.MouseButtonPress:
@@ -236,14 +238,10 @@ class View(QtWidgets.QWidget):
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasFormat("application/x-pewpewtabbar"):
             self.tabs.dragEnterEvent(event)
-        else:
-            super().dragEnterEvent(event)
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
         if event.mimeData().hasFormat("application/x-pewpewtabbar"):
             self.tabs.dropEvent(event)
-        else:
-            super().dragEnterEvent(event)
 
     def refresh(self) -> None:
         pass
@@ -267,54 +265,55 @@ class ViewTabBar(QtWidgets.QTabBar):
         self.tabCloseRequested.connect(self.tabClosed)
 
     def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent) -> QtWidgets.QDialog:
-        if event.button() == QtCore.Qt.LeftButton:
-            index = self.tabAt(event.pos())
-            if index == -1:
-                super().mouseDoubleClickEvent(event)
-                return None
-            dlg = QtWidgets.QInputDialog(self)
-            dlg.setWindowTitle("Rename")
-            dlg.setLabelText("Name:")
-            dlg.setTextValue(self.tabText(index))
-            dlg.setInputMode(QtWidgets.QInputDialog.TextInput)
-            dlg.textValueSelected.connect(lambda s: self.setTabText(index, s))
-            dlg.open()
-            return dlg
-        else:
-            super().mouseDoubleClickEvent(event)
+        if event.button() != QtCore.Qt.LeftButton:
             return None
+        index = self.tabAt(event.pos())
+        if index == -1:
+            return None
+        dlg = QtWidgets.QInputDialog(self)
+        dlg.setWindowTitle("Rename")
+        dlg.setLabelText("Name:")
+        dlg.setTextValue(self.tabText(index))
+        dlg.setInputMode(QtWidgets.QInputDialog.TextInput)
+        dlg.textValueSelected.connect(lambda s: self.setTabText(index, s))
+        dlg.open()
+        return dlg
+
+    def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+        if event.button() == QtCore.Qt.LeftButton:
+            self.drag_start_pos = event.pos()
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
-        if event.buttons() == QtCore.Qt.LeftButton:
-            index = self.tabAt(event.pos())
-            if index == -1:
-                super().mouseMoveEvent(event)
-                return
+        if not event.buttons() & QtCore.Qt.LeftButton:
+            return
+        if (
+            event.pos() - self.drag_start_pos
+        ).manhattanLength() < QtWidgets.QApplication.startDragDistance():
+            return
+        index = self.tabAt(event.pos())
+        if index == -1:
+            return
 
-            rect = self.tabRect(index)
-            pixmap = QtGui.QPixmap(rect.size())
-            self.render(pixmap, QtCore.QPoint(), QtGui.QRegion(rect))
+        rect = self.tabRect(index)
+        pixmap = QtGui.QPixmap(rect.size())
+        self.render(pixmap, QtCore.QPoint(), QtGui.QRegion(rect))
 
-            mime_data = QtCore.QMimeData()
-            mime_data.setData(
-                "application/x-pewpewtabbar", QtCore.QByteArray().number(index)
-            )
+        mime_data = QtCore.QMimeData()
+        mime_data.setData(
+            "application/x-pewpewtabbar", QtCore.QByteArray().number(index)
+        )
 
-            drag = QtGui.QDrag(self)
-            drag.setMimeData(mime_data)
-            drag.setPixmap(pixmap)
-            drag.setDragCursor(
-                QtGui.QCursor(QtCore.Qt.OpenHandCursor).pixmap(), QtCore.Qt.MoveAction
-            )
-            drag.start(QtCore.Qt.MoveAction)
-        else:
-            super().mouseMoveEvent(event)
+        drag = QtGui.QDrag(self)
+        drag.setMimeData(mime_data)
+        drag.setPixmap(pixmap)
+        drag.setDragCursor(
+            QtGui.QCursor(QtCore.Qt.OpenHandCursor).pixmap(), QtCore.Qt.MoveAction
+        )
+        drag.exec_(QtCore.Qt.MoveAction)
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasFormat("application/x-pewpewtabbar"):
             event.acceptProposedAction()
-        else:
-            super().dragEnterEvent(event)
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
         dest = self.tabAt(event.pos())
@@ -329,8 +328,6 @@ class ViewTabBar(QtWidgets.QTabBar):
 
             index = self.view.insertTab(dest, text, widget)
             self.setCurrentIndex(index)
-        else:
-            super().dropEvent(event)
 
 
 class ViewTitleBar(QtWidgets.QWidget):
