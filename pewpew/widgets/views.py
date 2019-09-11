@@ -189,11 +189,6 @@ class View(QtWidgets.QWidget):
         layout.addWidget(self.stack, 1)
         self.setLayout(layout)
 
-    def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
-        menu = QtWidgets.QMenu(self)
-        menu.addAction(self.window().action_open)
-        menu.exec_(event.globalPos())
-
     def widgets(self) -> List[QtWidgets.QWidget]:
         return [self.stack.widget(i) for i in range(self.stack.count())]
 
@@ -272,7 +267,7 @@ class ViewTabBar(QtWidgets.QTabBar):
         self.tabCloseRequested.connect(self.tabClosed)
 
     def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent) -> QtWidgets.QDialog:
-        if event.buttons() == QtCore.Qt.LeftButton:
+        if event.button() == QtCore.Qt.LeftButton:
             index = self.tabAt(event.pos())
             if index == -1:
                 super().mouseDoubleClickEvent(event)

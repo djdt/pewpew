@@ -74,6 +74,11 @@ class LaserViewSpace(ViewSpace):
 
 
 class LaserView(View):
+    def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(self.window().action_open)
+        menu.exec_(event.globalPos())
+
     def refresh(self) -> None:
         if self.stack.count() > 0:
             self.stack.widget(self.stack.currentIndex()).refresh()
