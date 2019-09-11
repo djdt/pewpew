@@ -19,11 +19,11 @@ class ViewSpace(QtWidgets.QSplitter):
         self.action_split_horz = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("view-split-left-right"), "Split &Vertical"
         )
-        self.action_split_horz.triggered.connect(self.splitHorizontal)
+        self.action_split_horz.triggered.connect(self.splitActiveHorizontal)
         self.action_split_vert = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("view-split-top-bottom"), "Split &Horizontal"
         )
-        self.action_split_vert.triggered.connect(self.splitVertical)
+        self.action_split_vert.triggered.connect(self.splitActiveVertical)
         self.action_close_view = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("view-close"), "Close View"
         )
@@ -46,9 +46,8 @@ class ViewSpace(QtWidgets.QSplitter):
         return widgets
 
     def closeActiveView(self) -> None:
-        if self.active_view is not None:
-            self.closeView(self.active_view)
-            self.active_view = None
+        self.closeView(self.activeView())
+        self.active_view = None
 
     def closeView(self, view: "View") -> None:
         if view is None:
@@ -64,12 +63,10 @@ class ViewSpace(QtWidgets.QSplitter):
         self.views.remove(view)
         self.numViewsChanged.emit()
 
-        splitter.replaceWidget(splitter.indexOf(view), QtWidgets.QWidget())
-        view.close()
+        view.deleteLater()
+        view.setParent(None)
 
         assert splitter.count() == 1
-        if splitter.count() != 1:
-            return
 
         if splitter != self:
             parent_splitter = splitter.parent()
@@ -78,6 +75,7 @@ class ViewSpace(QtWidgets.QSplitter):
                 sizes = parent_splitter.sizes()
                 parent_splitter.insertWidget(index, splitter.widget(0))
                 splitter.deleteLater()
+                splitter.setParent(None)
                 parent_splitter.setSizes(sizes)
         # Doesn't seem to enter here?
         elif isinstance(splitter.widget(0), QtWidgets.QSplitter):
@@ -87,13 +85,14 @@ class ViewSpace(QtWidgets.QSplitter):
             splitter.addWidget(child_splitter.widget(0))
             splitter.addWidget(child_splitter.widget(0))
             child_splitter.deleteLater()
+            child_splitter.setParent(None)
             splitter.setSizes(sizes)
 
-    def splitHorizontal(self, view: "View" = None) -> None:
-        self.splitView(view)
+    def splitActiveHorizontal(self) -> None:
+        self.splitView()
 
-    def splitVertical(self, view: "View" = None) -> None:
-        self.splitView(view, QtCore.Qt.Vertical)
+    def splitActiveVertical(self) -> None:
+        self.splitView(None, QtCore.Qt.Vertical)
 
     def splitView(
         self,
