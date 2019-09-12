@@ -15,6 +15,7 @@ from pewpew.widgets.dialogs import (
     CalibrationCurveDialog,
     ColorRangeDialog,
     ConfigDialog,
+    MultipleDirDialog,
     StatsDialog,
 )
 
@@ -22,8 +23,12 @@ from pewpew.widgets.dialogs import (
 def test_apply_dialog(qtbot: QtBot):
     dialog = ApplyDialog()
     qtbot.addWidget(dialog)
-    dialog.show()
+    dialog.open()
 
+    for button in dialog.button_box.buttons():
+        dialog.buttonClicked(button)
+
+    dialog.close()
 
 def test_calibration_dialog(qtbot: QtBot):
     cals = {
@@ -32,7 +37,7 @@ def test_calibration_dialog(qtbot: QtBot):
     }
     dialog = CalibrationDialog(cals, "B")
     qtbot.addWidget(dialog)
-    dialog.show()
+    dialog.open()
 
     assert dialog.combo_isotopes.currentText() == "B"
     assert not dialog.button_plot.isEnabled()
@@ -49,31 +54,44 @@ def test_calibration_dialog(qtbot: QtBot):
     assert dialog.calibrations["B"].intercept == 2.0
     assert dialog.calibrations["B"].unit == "ppm"
 
+    dialog.showCurve()
+
+    dialog.apply()
+    dialog.close()
+
 
 def test_calibration_curve_dialog(qtbot: QtBot):
     dialog = CalibrationCurveDialog(
         LaserCalibration.from_points([[0, 1], [1, 2], [2, 3], [4, 4]])
     )
     qtbot.addWidget(dialog)
-    dialog.show()
+    dialog.open()
 
 
 def test_colorrange_dialog(qtbot: QtBot):
     dialog = ColorRangeDialog(ViewOptions(), ["A", "B", "C"])
     qtbot.addWidget(dialog)
-    dialog.show()
+    dialog.open()
 
     dialog.lineedit_min.setText("1%")
     dialog.lineedit_max.setText("999.9")
-    dialog.updateRange("A")
+    dialog.combo_isotopes.setCurrentText("B")
     assert dialog.ranges["A"] == ("1%", 999.9)
+    assert "B" not in dialog.ranges
+    dialog.combo_isotopes.setCurrentText("A")
+    assert dialog.lineedit_min.text() == "1%"
+    assert dialog.lineedit_max.text() == "999.9"
+    assert "B" not in dialog.ranges
+
+    dialog.apply()
+    dialog.close()
 
 
 def test_laser_config_dialog(qtbot: QtBot):
     config = LaserConfig()
     dialog = ConfigDialog(config)
     qtbot.addWidget(dialog)
-    dialog.show()
+    dialog.open()
 
     assert not hasattr(dialog, "lineedit_warmup")
     assert not hasattr(dialog, "spinbox_offsets")
@@ -90,11 +108,14 @@ def test_laser_config_dialog(qtbot: QtBot):
     assert dialog.config.speed == 2.0
     assert dialog.config.scantime == 3.0
 
+    dialog.apply()
+    dialog.close()
+
 
 def test_config_dialog_krisskross(qtbot: QtBot):
     dialog = ConfigDialog(KrissKrossConfig())
     qtbot.addWidget(dialog)
-    dialog.show()
+    dialog.open()
 
     assert hasattr(dialog, "lineedit_warmup")
     assert hasattr(dialog, "spinbox_offsets")
@@ -107,6 +128,16 @@ def test_config_dialog_krisskross(qtbot: QtBot):
     assert dialog.config.warmup == 7.5  # type: ignore
     assert dialog.config._subpixel_size == 3  # type: ignore
 
+    dialog.apply()
+    dialog.close()
+
+
+def test_multi_dir_dialog(qtbot: QtBot):
+    dialog = MultipleDirDialog(None, "MDD", "")
+    qtbot.addWidget(dialog)
+    dialog.open()
+    dialog.close()
+
 
 def test_stats_dialog(qtbot: QtBot):
     x = np.random.random([10, 10])
@@ -114,4 +145,5 @@ def test_stats_dialog(qtbot: QtBot):
 
     dialog = StatsDialog(x, 10, (0, 1))
     qtbot.addWidget(dialog)
-    dialog.show()
+    dialog.open()
+    dialog.close()
