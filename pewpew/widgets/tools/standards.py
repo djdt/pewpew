@@ -155,7 +155,7 @@ class StandardsTool(Tool):
         if len(data) == 1:
             return
         buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
-        self.table.setCounts([np.mean(b) for b in buckets])
+        self.table.setCounts([np.nanmean(b) for b in buckets])
 
     def updateResults(self) -> None:
         # Clear results if not complete
@@ -463,6 +463,10 @@ class StandardsTable(BasicTableView):
 
     def __init__(self, calibration, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+        self.setSizeAdjustPolicy(
+            QtWidgets.QAbstractScrollArea.AdjustToContentsOnFirstShow
+        )
         model = CalibrationPointsTableModel(calibration, self)
         self.setModel(model)
         # self.setHorizontalHeader(["Concentration", "Counts"])
