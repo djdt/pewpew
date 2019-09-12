@@ -237,7 +237,7 @@ class View(QtWidgets.QWidget):
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasFormat("application/x-pewpewtabbar"):
-            self.tabs.dragEnterEvent(event)
+            event.acceptProposedAction()
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
         if event.mimeData().hasFormat("application/x-pewpewtabbar"):
@@ -307,7 +307,7 @@ class ViewTabBar(QtWidgets.QTabBar):
         drag.setMimeData(mime_data)
         drag.setPixmap(pixmap)
         drag.setDragCursor(
-            QtGui.QCursor(QtCore.Qt.OpenHandCursor).pixmap(), QtCore.Qt.MoveAction
+            QtGui.QCursor(QtCore.Qt.DragMoveCursor).pixmap(), QtCore.Qt.MoveAction
         )
         drag.exec_(QtCore.Qt.MoveAction)
 
@@ -328,6 +328,10 @@ class ViewTabBar(QtWidgets.QTabBar):
 
             index = self.view.insertTab(dest, text, widget)
             self.setCurrentIndex(index)
+        else:
+            return
+
+        event.acceptProposedAction()
 
 
 class ViewTitleBar(QtWidgets.QWidget):

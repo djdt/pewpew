@@ -114,6 +114,26 @@ class LaserView(View):
             if isotope in widget.laser.isotopes:
                 widget.combo_isotopes.setCurrentText(isotope)
 
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+        if event.mimeData().hasUrls():
+            paths = [
+                url.toLocalFile() for url in event.mimeData().urls() if url.isLocalFile()
+            ]
+            lasers = import_any(paths, self.viewspace.config)
+            for laser in lasers:
+                self.addTab(laser.name, LaserWidget(laser, self.viewspace.options))
+
+            event.acceptProposedAction()
+        else:
+            super().dropEvent(event)
+
+
 
 class LaserWidget(QtWidgets.QWidget):
     def __init__(
