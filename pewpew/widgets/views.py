@@ -253,6 +253,7 @@ class ViewTabBar(QtWidgets.QTabBar):
     def __init__(self, view: View, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.view = view
+        self.drag_start_pos = QtCore.QPoint(0, 0)
         self.setSizePolicy(
             QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum
         )
