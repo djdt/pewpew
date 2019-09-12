@@ -9,6 +9,7 @@ from pewpew.lib.numpyqt import NumpyArrayTableModel
 
 def test_numpy_array_table_model(qtbot: QtBot):
     model = NumpyArrayTableModel(np.random.random([5, 3]))
+    qtbot.addWidget(model)
 
     assert model.columnCount() == 3
     assert model.rowCount() == 5
@@ -32,9 +33,15 @@ def test_numpy_array_table_model(qtbot: QtBot):
     assert model.array.shape == (5, 3)
 
     assert model.data(model.index(0, 0)) == str(model.array[0, 0])
+    assert model.data(model.index(0, -1)) is None
+    assert model.data(model.index(0, 3)) is None
 
     with qtbot.waitSignal(model.dataChanged):
-        model.setData(model.index(0, 0), np.nan)
+        assert model.setData(model.index(0, 0), np.nan)
+
+    assert not model.setData(model.index(0, -1), np.nan)
+    assert not model.setData(model.index(0, 3), np.nan)
+    assert not model.setData(model.index(0, 0), np.nan, QtCore.Qt.DisplayRole)
 
     assert model.data(model.index(0, 0)) == "nan"
 
