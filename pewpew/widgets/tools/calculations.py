@@ -25,7 +25,7 @@ additional_reducer_functions = {
     "median": (np.median, 1),
     "otsu": (otsu, 1),
     "percentile": (np.percentile, 2),
-    "threshold": (lambda x, a: np.where(x > a, a, 0.0), 2),
+    "threshold": (lambda x, a: np.where(x > a, x, 0.0), 2),
 }
 
 
@@ -54,7 +54,8 @@ class NameLineEdit(ValidColorLineEdit):
         self.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Minimum)
         self.badchars = " +-=*/\\^<>!()[]"
         self.badnames = badnames
-        self._badnames = ["if", "then", "else", "percentile"]
+        self._badnames = ["if", "then", "else"]
+        self._badnames.extend(additional_parser_functions.keys())
 
     def hasAcceptableInput(self) -> bool:
         if self.text() == "":
@@ -120,6 +121,11 @@ class CalculationsTool(Tool):
         self.combo_isotopes = QtWidgets.QComboBox()
         self.combo_isotopes.activated.connect(self.insertVariable)
 
+        self.combo_functions = QtWidgets.QComboBox()
+        self.combo_functions.addItem("Functions")
+        self.combo_functions.addItems(list(additional_parser_functions.keys()))
+        self.combo_functions.activated.connect(self.insertFunction)
+
         self.reducer = Reducer({})
         self.formula = FormulaLineEdit("", variables=[])
         self.formula.textChanged.connect(self.updateCanvas)
@@ -128,9 +134,13 @@ class CalculationsTool(Tool):
         self.reducer.operations.update(additional_reducer_functions)
         self.formula.parser.nulls.update(additional_parser_functions)
 
+        layout_combos = QtWidgets.QHBoxLayout()
+        layout_combos.addWidget(self.combo_isotopes)
+        layout_combos.addWidget(self.combo_functions)
+
         layout_form = QtWidgets.QFormLayout()
         layout_form.addRow("Name:", self.lineedit_name)
-        layout_form.addRow("Insert:", self.combo_isotopes)
+        layout_form.addRow("Insert:", layout_combos)
         layout_form.addRow("Formula:", self.formula)
 
         self.layout_main.addWidget(self.canvas)
@@ -145,13 +155,27 @@ class CalculationsTool(Tool):
         self.widget.populateIsotopes()
         self.widgetChanged()
 
+    def insertFunction(self, index: int) -> None:
+        if index == 0:
+            return
+        text = self.formula.text()
+        if text != "" and text[-1] not in " (":
+            text += " "
+        text += self.combo_functions.currentText() + "("
+        self.formula.setText(text)
+        self.combo_functions.setCurrentIndex(0)
+        self.formula.setFocus()
+
     def insertVariable(self, index: int) -> None:
         if index == 0:
             return
-        self.formula.setText(
-            self.formula.text() + " " + self.combo_isotopes.currentText()
-        )
+        text = self.formula.text()
+        if text != "" and text[-1] not in " (":
+            text += " "
+        text += self.combo_isotopes.currentText()
+        self.formula.setText(text)
         self.combo_isotopes.setCurrentIndex(0)
+        self.formula.setFocus()
 
     def isComplete(self) -> bool:
         if not self.formula.hasAcceptableInput():
@@ -184,7 +208,7 @@ class CalculationsTool(Tool):
         self.reducer.variables = {k: v.data for k, v in self.widget.laser.data.items()}
         self.formula.parser.variables = self.widget.laser.isotopes
         self.formula.valid = True
-        self.formula.setText(self.widget.laser.isotopes[0])
+        self.formula.setText(self.widget.combo_isotopes.currentText())
 
         self.updateCanvas()
 
