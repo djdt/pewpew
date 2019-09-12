@@ -5,6 +5,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 from laserlib import io
 from laserlib.laser import Laser
+from laserlib.krisskross import KrissKross, KrissKrossConfig
 from laserlib.config import LaserConfig
 from laserlib.io.error import LaserLibException
 
@@ -99,7 +100,12 @@ class LaserView(View):
 
     def applyConfig(self, config: LaserConfig) -> None:
         for widget in self.widgets():
-            widget.laser.config = copy.copy(config)
+            if not isinstance(config, KrissKrossConfig) or widget.is_srr:
+                widget.laser.config = copy.copy(config)
+            else:  # Manually fill in the 3
+                widget.laser.config.spotsize = config.spotsize
+                widget.laser.config.speed = config.speed
+                widget.laser.config.scantime = config.scantime
         self.refresh()
 
     def applyCalibration(self, calibration: dict) -> None:
@@ -142,13 +148,22 @@ class LaserWidget(QtWidgets.QWidget):
     ):
         super().__init__(parent)
         self.laser = laser
+        self.is_srr = isinstance(laser, KrissKross)
 
         self.canvas = InteractiveLaserCanvas(viewoptions, parent=self)
         # self.canvas.setFocusPolicy(QtCore.Qt.ClickFocus)
 
+        self.combo_layers = QtWidgets.QComboBox()
+        self.combo_layers.addItem("*")
+        self.combo_layers.addItems([str(i) for i in range(0, self.laser.layers)])
+        self.combo_layers.currentIndexChanged.connect(self.refresh)
+        if not self.is_srr:
+            self.combo_layers.setEnabled(False)
+            self.combo_layers.setVisible(False)
+
         self.combo_isotopes = QtWidgets.QComboBox()
-        self.combo_isotopes.currentIndexChanged.connect(self.refresh)
         self.combo_isotopes.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        self.combo_isotopes.currentIndexChanged.connect(self.refresh)
         self.populateIsotopes()
 
         self.view_button = QtWidgets.QToolButton()
@@ -161,6 +176,7 @@ class LaserWidget(QtWidgets.QWidget):
         layout_bar = QtWidgets.QHBoxLayout()
         layout_bar.addWidget(self.view_button, 0, QtCore.Qt.AlignLeft)
         layout_bar.addStretch(1)
+        layout_bar.addWidget(self.combo_layers, 0, QtCore.Qt.AlignRight)
         layout_bar.addWidget(self.combo_isotopes, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QVBoxLayout()
@@ -196,4 +212,11 @@ class LaserWidget(QtWidgets.QWidget):
         super().showEvent(event)
 
     def refresh(self) -> None:
-        self.canvas.drawLaser(self.laser, self.combo_isotopes.currentText())
+        if self.combo_layers.currentIndex() == 0:
+            layer = None
+        else:
+            layer = int(self.combo_layers.currentText())
+
+        self.canvas.drawLaser(
+            self.laser, self.combo_isotopes.currentText(), layer=layer
+        )
