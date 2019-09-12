@@ -75,6 +75,10 @@ class LaserViewSpace(ViewSpace):
 
 
 class LaserView(View):
+    def addLaser(self, laser: Laser) -> int:
+        widget = LaserWidget(laser, self.viewspace.options)
+        return self.addTab(laser.name, widget)
+
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         menu = QtWidgets.QMenu(self)
         menu.addAction(self.window().action_open)
@@ -87,11 +91,9 @@ class LaserView(View):
     def openDocument(self, paths: str, config: LaserConfig) -> None:
         try:
             for laser in import_any(paths, config):
-                widget = LaserWidget(laser, self.viewspace.options)
-                self.addTab(laser.name, widget)
+                self.addLaser(laser)
         except LaserLibException as e:
             QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
-            return
 
     def saveDocument(self, path: str) -> bool:
         widget = self.activeWidget()
@@ -136,7 +138,7 @@ class LaserView(View):
         try:
             lasers = import_any(paths, self.viewspace.config)
             for laser in lasers:
-                self.addTab(laser.name, LaserWidget(laser, self.viewspace.options))
+                self.addLaser(laser)
             event.acceptProposedAction()
         except io.error.LaserLibException:
             event.ignore()

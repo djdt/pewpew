@@ -14,7 +14,7 @@ from pewpew.widgets.exportdialogs import ExportDialog, ExportAllDialog
 from pewpew.widgets.prompts import DetailedError
 from pewpew.widgets.tools import CalculationsTool, StandardsTool
 from pewpew.widgets.wizards import KrissKrossWizard
-from pewpew.widgets.laser import LaserViewSpace, LaserWidget
+from pewpew.widgets.laser import LaserViewSpace
 
 from typing import Callable
 from types import TracebackType
@@ -401,7 +401,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def actionImportSRR(self) -> QtWidgets.QWizard:
         def wizardComplete(laser: KrissKross) -> None:
             view = self.viewspace.activeView()
-            view.addTab(laser.name, LaserWidget(laser, self.viewspace.options))
+            view.addLaser(laser)
 
         wiz = KrissKrossWizard(config=self.viewspace.config, parent=self)
         wiz.laserImported.connect(wizardComplete)
