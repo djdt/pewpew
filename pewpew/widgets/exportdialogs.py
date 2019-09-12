@@ -26,18 +26,6 @@ class OptionsBox(QtWidgets.QGroupBox):
         return True
 
 
-# class CsvOptionsBox(OptionsBox):
-#     def __init__(self, parent: QtWidgets.QWidget = None):
-#         super().__init__("CSV Documents", ".csv", parent)
-#         self.check_trim = QtWidgets.QCheckBox("Trim data to view.")
-#         self.check_trim.setChecked(True)
-#         self.check_trim.clicked.connect(self.inputChanged)
-
-#         layout = QtWidgets.QVBoxLayout()
-#         layout.addWidget(self.check_trim)
-#         self.setLayout(layout)
-
-
 class PngOptionsBox(OptionsBox):
     def __init__(self, imagesize: Tuple[int, int], parent: QtWidgets.QWidget = None):
         super().__init__("PNG Images", ".png", parent)

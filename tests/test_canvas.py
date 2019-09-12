@@ -43,3 +43,7 @@ def test_canvas_interactive(qtbot: QtBot):
     assert len(canvas.cids) == 7
     canvas.disconnect_events()
     assert len(canvas.cids) == 0
+
+
+def test_canvas_interactive_laser(qtbot: QtBot):
+    pass
