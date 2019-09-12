@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
-from pewpew.lib.pratt import BinaryFunction, TernaryFunction
+from pewpew.lib.pratt import UnaryFunction, BinaryFunction, TernaryFunction
 
 
 def test_parser_basic():
@@ -41,8 +41,15 @@ def test_parser_basic():
 
 def test_parser_additional():
     parser = Parser()
-    parser.nulls.update({"bf": BinaryFunction("bf"), "tf": TernaryFunction("tf")})
+    parser.nulls.update(
+        {
+            "uf": UnaryFunction("uf"),
+            "bf": BinaryFunction("bf"),
+            "tf": TernaryFunction("tf"),
+        }
+    )
 
+    assert str(parser.parse("uf(1 + 2)")) == "uf + 1 2"
     assert str(parser.parse("bf(1 + 2, 3 * 4)")) == "bf + 1 2 * 3 4"
     assert str(parser.parse("tf(1 + 2, 3, 4 + 5)")) == "tf + 1 2 3 + 4 5"
 
