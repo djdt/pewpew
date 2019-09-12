@@ -17,7 +17,6 @@ def otsu(x: np.ndarray):
     u2 = (np.cumsum((hist * bin_centers)[::-1]) / w2[::-1])[::-1]
 
     i = np.argmax(w1[:-1] * w2[1:] * (u1[:-1] - u2[1:]) ** 2)
-    print(i, bin_centers[i])
     return bin_centers[i]
 
 
