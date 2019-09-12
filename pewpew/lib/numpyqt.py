@@ -116,7 +116,10 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
 
     # Header
     def headerData(
-        self, section: int, orientation: QtCore.Qt.Orientation, role: int
+        self,
+        section: int,
+        orientation: QtCore.Qt.Orientation,
+        role: QtCore.Qt.ItemDataRole,
     ) -> str:
         if role != QtCore.Qt.DisplayRole:
             return None
