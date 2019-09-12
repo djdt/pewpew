@@ -1,7 +1,24 @@
 import numpy as np
-import re
 
-from typing import Callable, List, Union, Tuple
+from typing import Tuple
+
+
+def otsu(x: np.ndarray):
+    # from scikit-learn
+    hist, bin_edges = np.histogram(
+        x, range=(x.min(), np.percentile(x, 90)), bins="auto"
+    )
+    bin_centers = (bin_edges[1:] + bin_edges[:-1]) / 2
+
+    w1 = np.cumsum(hist)
+    w2 = np.cumsum(hist[::-1])[::-1]
+
+    u1 = np.cumsum(hist * bin_centers) / w1
+    u2 = (np.cumsum((hist * bin_centers)[::-1]) / w2[::-1])[::-1]
+
+    i = np.argmax(w1[:-1] * w2[1:] * (u1[:-1] - u2[1:]) ** 2)
+    print(i, bin_centers[i])
+    return bin_centers[i]
 
 
 def rolling_mean_filter(

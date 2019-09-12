@@ -90,7 +90,7 @@ class Ternary(Null):
 
 class UnaryFunction(Unary):
     def __init__(self, value: str):
-        super().__init__(value)
+        super().__init__(value, 0)
 
     def nud(self, parser: "Parser", tokens: List[str]) -> dict:
         if len(tokens) == 0 or tokens.pop(0) != "(":

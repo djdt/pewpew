@@ -2,8 +2,9 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from pewpew.lib.calc import otsu
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
-from pewpew.lib.pratt import BinaryFunction
+from pewpew.lib.pratt import BinaryFunction, UnaryFunction
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets.canvases import LaserCanvas
@@ -11,6 +12,21 @@ from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import Tool
 
 from typing import List
+
+additional_parser_functions = {
+    "mean": UnaryFunction("mean"),
+    "median": UnaryFunction("median"),
+    "otsu": UnaryFunction("otsu"),
+    "percentile": BinaryFunction("percentile"),
+    "threshold": BinaryFunction("threshold"),
+}
+additional_reducer_functions = {
+    "mean": (np.mean, 1),
+    "median": (np.median, 1),
+    "otsu": (otsu, 1),
+    "percentile": (np.percentile, 2),
+    "threshold": (lambda x, a: np.where(x > a, a, 0.0), 2),
+}
 
 
 class ValidColorLineEdit(QtWidgets.QLineEdit):
@@ -109,8 +125,8 @@ class CalculationsTool(Tool):
         self.formula.textChanged.connect(self.updateCanvas)
         self.formula.textChanged.connect(self.completeChanged)
 
-        self.reducer.operations.update({"percentile": (np.percentile, 2)})
-        self.formula.parser.nulls.update({"percentile": BinaryFunction("percentile")})
+        self.reducer.operations.update(additional_reducer_functions)
+        self.formula.parser.nulls.update(additional_parser_functions)
 
         layout_form = QtWidgets.QFormLayout()
         layout_form.addRow("Name:", self.lineedit_name)
