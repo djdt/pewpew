@@ -88,6 +88,19 @@ class Ternary(Null):
         return Expr(self.value, children=[lexpr, expr, rexpr])
 
 
+class UnaryFunction(Unary):
+    def __init__(self, value: str):
+        super().__init__(value)
+
+    def nud(self, parser: "Parser", tokens: List[str]) -> dict:
+        if len(tokens) == 0 or tokens.pop(0) != "(":
+            raise ParserException("Missing opening parenthesis.")
+        result = super().nud(parser, tokens)
+        if len(tokens) == 0 or tokens.pop(0) != ")":
+            raise ParserException("Missing closing parenthesis.")
+        return result
+
+
 class BinaryFunction(Binary):
     def __init__(self, value: str):
         super().__init__(value, ",")
