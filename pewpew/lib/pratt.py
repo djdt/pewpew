@@ -248,7 +248,7 @@ class Reducer(object):
     def __init__(self, variables: dict = None):
         self.variables = {}
         if variables is not None:
-            self.variables.extend(variables)
+            self.variables.update(variables)
 
         self.operations = {
             "u-": (np.negative, 1),
