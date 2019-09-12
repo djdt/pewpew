@@ -48,6 +48,11 @@ class Value(Null):
         return Expr(self.value)
 
 
+class NaN(Null):
+    def nud(self, parser: "Parser", tokens: List[str]) -> dict:
+        return Expr(np.nan)
+
+
 class Unary(Null):
     def __init__(self, value: str, rbp: int):
         self.value = value
@@ -169,7 +174,7 @@ class LeftTernary(Left):
 
 
 class Parser(object):
-    def __init__(self, variables: List[str] = []):
+    def __init__(self, variables: List[str] = None):
         number_token = "\\d+\\.?\\d*(?:[eE][+\\-]?\\d+)?"
         operator_token = "[+\\-\\*/^!=<>?:]+"
         variable_token = "\\d*[a-zA-Z][a-zA-Z0-9_\\-]*"  # also covers if then else
@@ -179,10 +184,14 @@ class Parser(object):
             f"\\s*([\\(\\)\\,]|{variable_token}|{number_token}|{operator_token})\\s*"
         )
 
-        self.variables = variables
+        self.variables = []
+        if variables is not None:
+            self.variables.extend(variables)
+
         self.nulls = {
             "(": Parens(),
             "if": Ternary("?", "then", "else"),
+            "nan": NaN(),
             "-": Unary("u-", 30),
         }
         self.lefts = {
@@ -236,7 +245,11 @@ class Parser(object):
 
 
 class Reducer(object):
-    def __init__(self, variables: dict = {}):
+    def __init__(self, variables: dict = None):
+        self.variables = {}
+        if variables is not None:
+            self.variables.extend(variables)
+
         self.operations = {
             "u-": (np.negative, 1),
             "+": (np.add, 2),
@@ -252,7 +265,6 @@ class Reducer(object):
             "!=": (np.not_equal, 2),
             "?": (np.where, 3),
         }
-        self.variables = variables
 
     def reduceExpr(self, tokens: List[str]) -> Union[float, np.ndarray]:
         if len(tokens) == 0:
