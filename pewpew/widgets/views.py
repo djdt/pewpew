@@ -282,17 +282,18 @@ class ViewTabBar(QtWidgets.QTabBar):
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         if event.button() == QtCore.Qt.LeftButton:
             self.drag_start_pos = event.pos()
+        super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
-        if not event.buttons() & QtCore.Qt.LeftButton:
-            return
         if (
-            event.pos() - self.drag_start_pos
-        ).manhattanLength() < QtWidgets.QApplication.startDragDistance():
-            return
+            not event.buttons() & QtCore.Qt.LeftButton
+            or (event.pos() - self.drag_start_pos).manhattanLength()
+            < QtWidgets.QApplication.startDragDistance()
+        ):
+            return super().mouseMoveEvent(event)
         index = self.tabAt(event.pos())
         if index == -1:
-            return
+            return super().mouseMoveEvent(event)
 
         rect = self.tabRect(index)
         pixmap = QtGui.QPixmap(rect.size())

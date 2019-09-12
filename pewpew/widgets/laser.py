@@ -121,18 +121,19 @@ class LaserView(View):
             super().dragEnterEvent(event)
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
-        if event.mimeData().hasUrls():
-            paths = [
-                url.toLocalFile() for url in event.mimeData().urls() if url.isLocalFile()
-            ]
+        if not event.mimeData().hasUrls():
+            return super().dropEvent(event)
+
+        paths = [
+            url.toLocalFile() for url in event.mimeData().urls() if url.isLocalFile()
+        ]
+        try:
             lasers = import_any(paths, self.viewspace.config)
             for laser in lasers:
                 self.addTab(laser.name, LaserWidget(laser, self.viewspace.options))
-
             event.acceptProposedAction()
-        else:
-            super().dropEvent(event)
-
+        except io.error.LaserLibException:
+            event.ignore()
 
 
 class LaserWidget(QtWidgets.QWidget):
