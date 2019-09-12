@@ -12,6 +12,7 @@ def test_parser_basic():
     assert str(parser.parse("1.0e-1")) == "1.0e-1"
     assert str(parser.parse("a1")) == "a1"
     assert str(parser.parse("1a")) == "1a"
+    assert str(parser.parse("nan")) == "nan"
     # Test ops
     assert str(parser.parse("1 + 2 - 3")) == "- + 1 2 3"
     assert str(parser.parse("1 * 2 / 3")) == "/ * 1 2 3"
@@ -93,6 +94,7 @@ def test_reduce_basic():
     # Values
     assert reducer.reduce("1") == 1.0
     assert np.all(reducer.reduce("a") == np.array([[0, 1], [2, 3]]))
+    assert reducer.reduce("nan") is np.nan
     # Basic
     assert reducer.reduce("+ + 1 2 3") == 6.0
     assert reducer.reduce("* + 1 2 3") == 9.0
