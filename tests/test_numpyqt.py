@@ -37,3 +37,7 @@ def test_numpy_array_table_model(qtbot: QtBot):
         model.setData(model.index(0, 0), np.nan)
 
     assert model.data(model.index(0, 0)) == "nan"
+
+    assert model.flags(model.index(0, 0)) & QtCore.Qt.ItemIsEditable != 0
+
+    assert model.headerData(0, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == "0"
