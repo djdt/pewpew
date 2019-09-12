@@ -2,7 +2,7 @@ from pytestqt.qtbot import QtBot
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewpew.widgets.views import ViewSpace, View, ViewTabBar, ViewTitleBar
+from pewpew.widgets.views import ViewSpace, View
 
 
 def test_view_space_active(qtbot: QtBot):
@@ -94,6 +94,7 @@ def test_view_tabs(qtbot: QtBot):
         view.addTab("3", QtWidgets.QLabel("3"))
     with qtbot.waitSignal(view.numTabsChanged):
         view.insertTab(1, "2", QtWidgets.QLabel("2"))
+    assert view.tabs.count() == 3
     assert [view.tabs.tabText(i) for i in range(3)] == ["1", "2", "3"]
     assert [view.stack.widget(i).text() for i in range(3)] == ["1", "2", "3"]
     # Moving tabs
@@ -104,6 +105,7 @@ def test_view_tabs(qtbot: QtBot):
     # Removing tabs
     with qtbot.waitSignal(viewspace.numTabsChanged):
         view.removeTab(1)
+    assert view.tabs.count() == 2
     assert [view.tabs.tabText(i) for i in range(2)] == ["3", "2"]
     assert [view.stack.widget(i).text() for i in range(2)] == ["3", "2"]
 
@@ -117,10 +119,12 @@ def test_view_tab_bar(qtbot: QtBot):
     viewspace = ViewSpace()
     qtbot.addWidget(viewspace)
     viewspace.show()
-    view = viewspace.activeView()
-    tabs = view.tabs
-    view.addTab("1", QtWidgets.QLabel("1"))
-    view.addTab("2", QtWidgets.QLabel("2"))
+    viewspace.splitActiveHorizontal()
+    tabs = viewspace.views[0].tabs
+    # tabs2 = viewspace.views[1].tabs
+
+    tabs.view.addTab("1", QtWidgets.QLabel("1"))
+    tabs.view.addTab("2", QtWidgets.QLabel("2"))
     # Test double click rename
     mouse_event = QtGui.QMouseEvent(
         QtCore.QEvent.MouseButtonDblClick,
@@ -135,4 +139,23 @@ def test_view_tab_bar(qtbot: QtBot):
     dlg.textValueSelected.emit("3")
     dlg.close()
     assert tabs.tabText(0) == "3"
-    # Test drag and drop
+    # Test drag and drop same bar
+    with qtbot.assertNotEmitted(tabs.view.numTabsChanged, wait=100):
+        qtbot.mousePress(tabs, QtCore.Qt.LeftButton, pos=tabs.tabRect(0).center())
+        qtbot.mouseRelease(tabs, QtCore.Qt.LeftButton, pos=tabs.tabRect(1).center())
+    assert tabs.tabText(0) == "3"
+    assert tabs.tabText(1) == "2"
+    # Test drag and drop to new bar / view
+    # Broken in QTest
+
+
+# def test_view_title_bar(qtbot: QtBot):
+#     viewspace = ViewSpace()
+#     qtbot.addWidget(viewspace)
+#     viewspace.show()
+#     viewspace.splitActiveHorizontal()
+
+#     # Blocking
+#     qtbot.mouseClick(viewspace.views[1].titlebar.split_button, QtCore.Qt.LeftButton)
+#     viewspace.view
+#     assert viewspace.views[1].active

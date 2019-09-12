@@ -1,0 +1,15 @@
+;;;;Sample 1;Sample 2;Sample 3;
+;;;;line 1;line 2;line 3;
+MainRuns;0;1A;Time;0.1;0.2;0.3;
+MainRuns;1;1A;Time;0.1;0.2;0.3;
+MainRuns;2;1A;Time;0.1;0.2;0.3;
+MainRuns;0;1A;Counter;0.0000000000;1.0000000000;2.0000000000;
+MainRuns;1;1A;Counter;0.0000000000;1.0000000000;2.0000000000;
+MainRuns;2;1A;Counter;;1.0000000000;2.0000000000;
+MainRuns;0;2B;Time;0.1;0.2;0.3;
+MainRuns;1;2B;Time;0.1;0.2;0.3;
+MainRuns;2;2B;Time;0.1;0.2;0.3;
+MainRuns;0;2B;Counter;0.0000000000;0.1000000000;0.2000000000;
+MainRuns;1;2B;Counter;0.0000000000;0.1000000000;0.2000000000;
+MainRuns;2;2B;Counter;;0.1000000000;0.2000000000;
+
