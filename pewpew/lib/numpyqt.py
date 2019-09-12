@@ -5,9 +5,7 @@ from typing import Any
 
 
 class NumpyArrayTableModel(QtCore.QAbstractTableModel):
-    def __init__(
-        self, array: np.ndarray, hide_nan: bool = True, parent: QtCore.QObject = None
-    ):
+    def __init__(self, array: np.ndarray, parent: QtCore.QObject = None):
         super().__init__(parent)
         self.array = array
         self.fill_value = 0.0
