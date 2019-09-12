@@ -50,7 +50,7 @@ class Value(Null):
 
 class NaN(Null):
     def nud(self, parser: "Parser", tokens: List[str]) -> dict:
-        return Expr(np.nan)
+        return Expr("nan")
 
 
 class Unary(Null):
@@ -246,7 +246,7 @@ class Parser(object):
 
 class Reducer(object):
     def __init__(self, variables: dict = None):
-        self.variables = {}
+        self.variables = {"nan": np.nan}
         if variables is not None:
             self.variables.update(variables)
 
