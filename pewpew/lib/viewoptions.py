@@ -45,9 +45,9 @@ class ColorOptions(object):
     def get_range_as_float(self, isotope: str, data: np.ndarray) -> Tuple[float, float]:
         vmin, vmax = self.get_range(isotope)
         if isinstance(vmin, str):
-            vmin = np.percentile(data, float(vmin.rstrip("%")))
+            vmin = np.nanpercentile(data, float(vmin.rstrip("%")))
         if isinstance(vmax, str):
-            vmax = np.percentile(data, float(vmax.rstrip("%")))
+            vmax = np.nanpercentile(data, float(vmax.rstrip("%")))
         return vmin, vmax
 
 
