@@ -212,7 +212,7 @@ class MainWindow(QtWidgets.QMainWindow):
         return dlg
 
     def actionCalibration(self) -> QtWidgets.QDialog:
-        def applyPress(dlg: dialogs.CalibrationDialog) -> None:
+        def applyDialog(dlg: dialogs.CalibrationDialog) -> None:
             if dlg.check_all.isChecked():
                 self.viewspace.applyCalibration(dlg.calibrations)
             else:
@@ -230,7 +230,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg = dialogs.CalibrationDialog(
             calibrations, widget.combo_isotopes.currentText(), parent=self
         )
-        dlg.applyPressed.connect(self.viewspace.applyCalibration)
+        dlg.applyPressed.connect(applyDialog)
         dlg.open()
         return dlg
 
@@ -346,7 +346,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionGroupInterp(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
-        self.viewspace.options.image.interpolation = text
+        interp = self.viewspace.options.image.INTERPOLATIONS[text]
+        self.viewspace.options.image.interpolation = interp
         self.refresh()
 
     def actionFontsize(self) -> None:
@@ -372,7 +373,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 view_limits = widget.canvas.view_limits
                 widget.canvas.redrawFigure()
                 widget.canvas.view_limits = view_limits
-                widget.draw()
+                widget.refresh()
 
     def actionToggleLabel(self, checked: bool) -> None:
         self.viewspace.options.canvas.label = checked
@@ -418,8 +419,8 @@ class MainWindow(QtWidgets.QMainWindow):
         return dlg
 
     def actionAbout(self) -> QtWidgets.QDialog:
-        QtWidgets.QMessageBox.about(
-            self,
+        dlg = QtWidgets.QMessageBox(
+            QtWidgets.QMessageBox.Information,
             "About pew²",
             (
                 "Visualiser / converter for LA-ICP-MS data.\n"
@@ -427,7 +428,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 "Developed by the Atomic Medicine Initiative.\n"
                 "https://github.com/djdt/pewpew"
             ),
+            parent=self,
         )
+        if self.windowIcon() is not None:
+            dlg.setIconPixmap(self.windowIcon().pixmap(64, 64))
+        dlg.open()
+        return dlg
 
     def createMenus(self) -> None:
         # File
