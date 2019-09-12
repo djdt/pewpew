@@ -182,4 +182,3 @@ class RectangleImageSelectionWidget(_ImageSelectionWidget):
         self.line.set_data([[], []])
         self.line.set_visible(False)
         self.update()
- 
