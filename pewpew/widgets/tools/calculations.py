@@ -21,11 +21,11 @@ additional_parser_functions = {
     "threshold": BinaryFunction("threshold"),
 }
 additional_reducer_functions = {
-    "mean": (np.mean, 1),
-    "median": (np.median, 1),
+    "mean": (np.nanmean, 1),
+    "median": (np.nanmedian, 1),
     "otsu": (otsu, 1),
-    "percentile": (np.percentile, 2),
-    "threshold": (lambda x, a: np.where(x > a, x, 0.0), 2),
+    "percentile": (np.nanpercentile, 2),
+    "threshold": (lambda x, a: np.where(x > a, x, np.nan), 2),
 }
 
 
@@ -54,7 +54,7 @@ class NameLineEdit(ValidColorLineEdit):
         self.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Minimum)
         self.badchars = " +-=*/\\^<>!()[]"
         self.badnames = badnames
-        self._badnames = ["if", "then", "else"]
+        self._badnames = ["nan", "if", "then", "else"]
         self._badnames.extend(additional_parser_functions.keys())
 
     def hasAcceptableInput(self) -> bool:
@@ -127,6 +127,7 @@ class CalculationsTool(Tool):
         self.combo_functions.activated.connect(self.insertFunction)
 
         self.reducer = Reducer({})
+        self.result = None
         self.formula = FormulaLineEdit("", variables=[])
         self.formula.textChanged.connect(self.updateCanvas)
         self.formula.textChanged.connect(self.completeChanged)
@@ -149,9 +150,7 @@ class CalculationsTool(Tool):
         self.widgetChanged()
 
     def apply(self) -> None:
-        self.widget.laser.add(
-            self.lineedit_name.text(), np.array(self.canvas.image.get_array())
-        )
+        self.widget.laser.add(self.lineedit_name.text(), np.array(self.result))
         self.widget.populateIsotopes()
         self.widgetChanged()
 
@@ -187,15 +186,16 @@ class CalculationsTool(Tool):
 
     def updateCanvas(self) -> None:
         try:
-            result = self.reducer.reduce(self.formula.expr)
+            self.result = self.reducer.reduce(self.formula.expr)
         except ReducerException:
+            self.result = None
             return
-        if isinstance(result, float):
+        if isinstance(self.result, float):
             return
         # Remove all nan and inf values
-        result = np.where(np.isfinite(result), result, 0.0)
-        extent = self.widget.laser.config.data_extent(result)
-        self.canvas.drawData(result, extent)
+        # result = np.where(np.isfinite(result), result, np.nan)
+        extent = self.widget.laser.config.data_extent(self.result)
+        self.canvas.drawData(self.result, extent)
         self.canvas.draw()
 
     def widgetChanged(self) -> None:

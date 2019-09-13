@@ -94,7 +94,9 @@ def test_reduce_basic():
     # Values
     assert reducer.reduce("1") == 1.0
     assert np.all(reducer.reduce("a") == np.array([[0, 1], [2, 3]]))
-    assert reducer.reduce("nan") is np.nan
+    # NaN
+    assert np.isnan(reducer.reduce("nan"))
+    assert np.all(np.isnan(reducer.reduce("+ a nan")))
     # Basic
     assert reducer.reduce("+ + 1 2 3") == 6.0
     assert reducer.reduce("* + 1 2 3") == 9.0

@@ -246,7 +246,7 @@ class Parser(object):
 
 class Reducer(object):
     def __init__(self, variables: dict = None):
-        self.variables = {"nan": np.nan}
+        self.variables = {}
         if variables is not None:
             self.variables.update(variables)
 

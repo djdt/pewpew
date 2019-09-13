@@ -211,6 +211,7 @@ class LaserCanvas(BasicCanvas):
         if vmin > vmax:
             vmin, vmax = vmax, vmin
 
+        # Cmap bad to red
         # Plot the image
         self.image = self.ax.imshow(
             data,
@@ -440,7 +441,10 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             elif unit == "second":
                 x = event.xdata / self.ps
                 y = 0
-            status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
+            if np.isfinite(v):
+                status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
+            else:
+                status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
         except AttributeError:
             pass
 

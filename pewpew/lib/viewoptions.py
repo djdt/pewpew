@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib.colors import Colormap
+from matplotlib.cm import get_cmap
 
 from pewpew.lib.mplcolors import ppSpectral, googleTurbo
 
