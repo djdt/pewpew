@@ -77,7 +77,8 @@ class LaserViewSpace(ViewSpace):
 class LaserView(View):
     def addLaser(self, laser: Laser) -> int:
         widget = LaserWidget(laser, self.viewspace.options)
-        return self.addTab(laser.name, widget)
+        name = laser.name if laser.name == "" else "__noname__"
+        return self.addTab(name, widget)
 
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         menu = QtWidgets.QMenu(self)
