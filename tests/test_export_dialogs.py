@@ -13,7 +13,8 @@ def test_export_dialog(qtbot: QtBot):
     dlg = ExportDialog(
         Laser.from_structured(
             np.array(np.random.random((5, 5)), dtype=[("A1", float)]),
-            filepath="/home/user/laser.npz"
+            filepath="/home/user/file.npz",
+            name="laser",
         ),
         "A1",
         (0, 100, 0, 100),
