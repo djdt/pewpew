@@ -126,7 +126,7 @@ def test_view_tab_bar(qtbot: QtBot):
     tabs.view.addTab("1", QtWidgets.QLabel("1"))
     tabs.view.addTab("2", QtWidgets.QLabel("2"))
     # Test double click rename
-    dlg = tabs.tabRename(0)
+    dlg = tabs.tabRenameDialog(0)
     assert dlg.textValue() == "1"
     dlg.textValueSelected.emit("3")
     dlg.close()
