@@ -5,7 +5,7 @@ from typing import Tuple
 
 def otsu(x: np.ndarray):
     # from scikit-learn
-    hist, bin_edges = np.histogram(x, range=(x.min(), np.nanpercentile(x, 90)), bins=64)
+    hist, bin_edges = np.histogram(x, bins=256)
     bin_centers = (bin_edges[1:] + bin_edges[:-1]) / 2
 
     w1 = np.cumsum(hist)
