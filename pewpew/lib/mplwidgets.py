@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib.widgets import _SelectorWidget
 from matplotlib.lines import Line2D
-from matplotlib.backend_bases import MouseEvent
+from matplotlib.backend_bases import KeyEvent, MouseEvent
 from matplotlib.path import Path
 from matplotlib.image import AxesImage
 
@@ -58,6 +58,11 @@ class _ImageSelectionWidget(_SelectorWidget):
         self.line.set_visible(False)
         self.verts = None
         self.update()
+
+    def _on_key_release(self, event: KeyEvent) -> None:
+        if event.key == self.state_modifier_keys["clear"]:
+            self.mask = np.zeros_like(self.mask)
+            self._update_mask_image()
 
     def update_mask(self, vertices: np.ndarray) -> None:
         data = self.image.get_array()
