@@ -75,10 +75,24 @@ class LaserViewSpace(ViewSpace):
 
 
 class LaserView(View):
+    def __init__(self, viewspace: ViewSpace, parent: QtWidgets.QWidget = None):
+        super().__init__(viewspace, parent)
+        self.tabs.tabTextChanged.connect(self.renameLaser)
+
     def addLaser(self, laser: Laser) -> int:
         widget = LaserWidget(laser, self.viewspace.options)
-        name = laser.name if laser.name == "" else "__noname__"
+        name = laser.name if laser.name != "" else "__noname__"
         return self.addTab(name, widget)
+
+    def renameLaser(self, index: int) -> None:
+        self.stack.widget(index).laser.name = self.tabs.tabText(index)
+        self.setTabModified(index)
+
+    def setTabModified(self, index: int, modified: bool = True) -> None:
+        if modified:
+            self.tabs.setTabIcon(index, QtGui.QIcon.fromTheme("document-save"))
+        else:
+            self.tabs.setTabIcon(index, QtGui.QIcon())
 
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         menu = QtWidgets.QMenu(self)
@@ -100,6 +114,7 @@ class LaserView(View):
         widget = self.activeWidget()
         io.npz.save(path, [widget.laser])
         widget.laser.filepath = path
+        self.setTabModified(self.stack.indexOf(widget), False)
 
     def applyConfig(self, config: LaserConfig) -> None:
         for widget in self.widgets():
@@ -146,6 +161,8 @@ class LaserView(View):
 
 
 class LaserWidget(QtWidgets.QWidget):
+    laserModified = QtCore.Signal()
+
     def __init__(
         self, laser: Laser, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
     ):

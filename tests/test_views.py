@@ -126,15 +126,7 @@ def test_view_tab_bar(qtbot: QtBot):
     tabs.view.addTab("1", QtWidgets.QLabel("1"))
     tabs.view.addTab("2", QtWidgets.QLabel("2"))
     # Test double click rename
-    mouse_event = QtGui.QMouseEvent(
-        QtCore.QEvent.MouseButtonDblClick,
-        tabs.tabRect(0).center(),
-        QtCore.QPoint(0, 0),
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.NoModifier,
-    )
-    dlg = tabs.mouseDoubleClickEvent(mouse_event)
+    dlg = tabs.tabRename(0)
     assert dlg.textValue() == "1"
     dlg.textValueSelected.emit("3")
     dlg.close()

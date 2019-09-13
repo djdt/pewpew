@@ -177,7 +177,7 @@ class View(QtWidgets.QWidget):
         self.tabs.setDrawBase(False)
         self.tabs.currentChanged.connect(self.stack.setCurrentIndex)
         self.tabs.tabMoved.connect(self.moveStackWidget)
-        self.tabs.tabClosed.connect(self.removeTab)
+        self.tabs.tabCloseRequested.connect(self.removeTab)
         self.tabs.installEventFilter(self)
 
         self.titlebar = ViewTitleBar(self.tabs, self)
@@ -248,7 +248,7 @@ class View(QtWidgets.QWidget):
 
 
 class ViewTabBar(QtWidgets.QTabBar):
-    tabClosed = QtCore.Signal(int)
+    tabTextChanged = QtCore.Signal(int)
 
     def __init__(self, view: View, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
@@ -263,14 +263,16 @@ class ViewTabBar(QtWidgets.QTabBar):
         self.setAcceptDrops(True)
         self.setMouseTracking(True)
 
-        self.tabCloseRequested.connect(self.tabClosed)
+        self.tabBarDoubleClicked.connect(self.tabRenameDialog)
 
-    def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent) -> QtWidgets.QDialog:
-        if event.button() != QtCore.Qt.LeftButton:
-            return None
-        index = self.tabAt(event.pos())
+    def setTabText(self, index: int, text: str) -> None:
+        if text != "" and text != self.tabText(index):
+            super().setTabText(index, text)
+            self.tabTextChanged.emit(index)
+
+    def tabRenameDialog(self, index: int) -> None:
         if index == -1:
-            return None
+            return
         dlg = QtWidgets.QInputDialog(self)
         dlg.setWindowTitle("Rename")
         dlg.setLabelText("Name:")
@@ -350,7 +352,7 @@ class ViewTitleBar(QtWidgets.QWidget):
         self.split_button.addAction(self.view.viewspace.action_close_view)
         self.split_button.installEventFilter(self.view)
 
-        # Layout the windgets
+        # Layout the widgets
         layout = QtWidgets.QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(tabs, 1)

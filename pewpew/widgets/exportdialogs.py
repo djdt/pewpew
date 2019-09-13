@@ -150,7 +150,10 @@ class ExportDialog(QtWidgets.QDialog):
         self.viewlimits = viewlimits
         self.viewoptions = viewoptions
 
-        path = laser.filepath
+        path = os.path.join(
+            os.path.dirname(self.laser.filepath), self.laser.name + ".npz"
+        )
+        # path = laser.filepath
         directory = os.path.dirname(path)
         filename = os.path.basename(path)
 
