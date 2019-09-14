@@ -13,9 +13,17 @@ from pewpew.lib.io import import_any
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets.canvases import InteractiveLaserCanvas
+from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.views import View, ViewSpace
 
-from typing import List
+from typing import Callable, List
+
+
+def qAction(icon: str, label: str, status: str, func: Callable) -> QtWidgets.QAction:
+    action = QtWidgets.QAction(QtGui.QIcon.fromTheme(icon), label)
+    action.setStatusTip(status)
+    action.triggered.connect(func)
+    return action
 
 
 class LaserViewSpace(ViewSpace):
@@ -23,6 +31,16 @@ class LaserViewSpace(ViewSpace):
         super().__init__(parent)
         self.config = LaserConfig()
         self.options = ViewOptions()
+
+        # self.action_config = qAction(
+        #     "document-edit", "Config", "Edit the documents config.", self.actionConfig
+        # )
+        # self.action_calibration = qAction(
+        #     "go-top",
+        #     "Calibration",
+        #     "Edit the documents calibration.",
+        #     self.actionCalibration,
+        # )
 
     def uniqueIsotopes(self) -> List[str]:
         isotopes = set()
@@ -46,6 +64,10 @@ class LaserViewSpace(ViewSpace):
         view = self.activeView()
         view.saveDocument(path)
 
+    def setCurrentIsotope(self, isotope: str) -> None:
+        for view in self.views:
+            view.setCurrentIsotope(isotope)
+
     def applyConfig(self, config: LaserConfig) -> None:
         self.config = copy.copy(config)
         for view in self.views:
@@ -56,10 +78,6 @@ class LaserViewSpace(ViewSpace):
         for view in self.views:
             view.applyCalibration(calibration)
         self.refresh()
-
-    def setCurrentIsotope(self, isotope: str) -> None:
-        for view in self.views:
-            view.setCurrentIsotope(isotope)
 
     @QtCore.Slot("QWidget*")
     def mouseSelectStart(self, callback_widget: QtWidgets.QWidget) -> None:
@@ -80,7 +98,7 @@ class LaserView(View):
         self.tabs.tabTextChanged.connect(self.renameLaser)
 
     def addLaser(self, laser: Laser) -> int:
-        widget = LaserWidget(laser, self.viewspace.options)
+        widget = LaserWidget(laser, self.viewspace.options, self)
         name = laser.name if laser.name != "" else "__noname__"
         return self.addTab(name, widget)
 
@@ -97,7 +115,7 @@ class LaserView(View):
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         menu = QtWidgets.QMenu(self)
         menu.addAction(self.window().action_open)
-        menu.exec_(event.globalPos())
+        menu.popup(event.globalPos())
 
     def refresh(self) -> None:
         if self.stack.count() > 0:
@@ -117,20 +135,25 @@ class LaserView(View):
         self.setTabModified(self.stack.indexOf(widget), False)
 
     def applyConfig(self, config: LaserConfig) -> None:
-        for widget in self.widgets():
+        for index, widget in enumerate(self.widgets()):
             if not isinstance(config, KrissKrossConfig) or widget.is_srr:
                 widget.laser.config = copy.copy(config)
             else:  # Manually fill in the 3
                 widget.laser.config.spotsize = config.spotsize
                 widget.laser.config.speed = config.speed
                 widget.laser.config.scantime = config.scantime
+            self.setTabModified(index)
         self.refresh()
 
     def applyCalibration(self, calibration: dict) -> None:
-        for widget in self.widgets():
+        for index, widget in enumerate(self.widgets()):
+            modified = False
             for iso in widget.laser.isotopes:
                 if iso in calibration:
                     widget.laser.data[iso].calibration = copy.copy(calibration[iso])
+                    modified = True
+            if modified:
+                self.setTabModified(index)
         self.refresh()
 
     def setCurrentIsotope(self, isotope: str) -> None:
@@ -164,9 +187,14 @@ class LaserWidget(QtWidgets.QWidget):
     laserModified = QtCore.Signal()
 
     def __init__(
-        self, laser: Laser, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
+        self,
+        laser: Laser,
+        viewoptions: ViewOptions,
+        view: LaserView,
+        parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
+        self.view = view
         self.laser = laser
         self.is_srr = isinstance(laser, KrissKross)
 
@@ -210,15 +238,15 @@ class LaserWidget(QtWidgets.QWidget):
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
         menu = QtWidgets.QMenu(self)
 
-        menu.addAction(self.window().action_copy_image)
+        menu.addAction(self.action_copy_image)
         menu.addSeparator()
-        menu.addAction(self.window().action_open)
-        menu.addAction(self.window().action_save)
-        menu.addAction(self.window().action_export)
+        menu.addAction(self.action_open)
+        menu.addAction(self.action_save)
+        menu.addAction(self.action_export)
         menu.addSeparator()
-        menu.addAction(self.window().action_config)
-        menu.addAction(self.window().action_calibration)
-        menu.addAction(self.window().action_statistics)
+        menu.addAction(self.action_config)
+        menu.addAction(self.action_calibration)
+        menu.addAction(self.action_statistics)
         menu.exec_(event.globalPos())
 
     def populateIsotopes(self) -> None:
@@ -240,3 +268,82 @@ class LaserWidget(QtWidgets.QWidget):
         self.canvas.drawLaser(
             self.laser, self.combo_isotopes.currentText(), layer=layer
         )
+
+    def applyConfig(self, config: LaserConfig) -> None:
+        if not isinstance(config, KrissKrossConfig) or self.is_srr:
+            self.laser.config = copy.copy(config)
+        else:  # Manually fill in the 3
+            self.laser.config.spotsize = config.spotsize
+            self.laser.config.speed = config.speed
+            self.laser.config.scantime = config.scantime
+        self.view.setTabModified(self.view.stack.indexOf(self))
+        self.refresh()
+
+    def applyCalibration(self, calibrations: dict) -> None:
+        for iso in self.laser.isotopes:
+            if iso in calibrations:
+                self.laser.data[iso].calibration = copy.copy(calibrations[iso])
+        self.view.setTabModified(self.view.stack.indexOf(self))
+        self.refresh()
+
+    # Actions
+    def actionCopyImage(self) -> None:
+        self.canvas.copyToClipboard()
+
+    def actionConfig(self) -> QtWidgets.QDialog:
+        dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
+        dlg.configSelected.connect(
+            lambda c, b: self.view.viewspace.applyConfig(c)
+            if b
+            else self.applyConfig(c)
+        )
+        dlg.open()
+        return dlg
+
+    def actionCalibration(self) -> QtWidgets.QDialog:
+        calibrations = {k: self.laser.data[k].calibration for k in self.laser.data}
+        dlg = dialogs.CalibrationDialog(
+            calibrations, self.combo_isotopes.currentText(), parent=self
+        )
+        dlg.calibrationSelected.connect(
+            lambda c, b: self.view.viewspace.applyCalibration(c)
+            if b
+            else self.applyCalibration(c)
+        )
+        dlg.open()
+        return dlg
+
+    def actionExport(self) -> QtWidgets.QDialog:
+        dlg = exportdialogs.ExportDialog(
+            self.laser,
+            self.combo_isotopes.currentText(),
+            self.canvas.view_limits,
+            self.canvas.viewoptions,
+            self,
+        )
+        dlg.open()
+        return dlg
+
+    def actionSave(self) -> QtWidgets.QDialog:
+        filepath = self.laser.filepath
+        if filepath.lower().endswith(".npz") and os.path.exists(filepath):
+            self.viewspace.saveDocument(filepath)
+            return None
+        else:
+            filepath = self.laserFilePath()
+        dlg = QtWidgets.QFileDialog(
+            self, "Save File", filepath, "Numpy archive(*.npz);;All files(*)"
+        )
+        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        dlg.fileSelected.connect(self.viewspace.saveDocument)
+        dlg.open()
+        return dlg
+
+    def actionStatistics(self) -> QtWidgets.QDialog:
+        data = self.canvas.getMaskedData()
+        area = (
+            self.laser.config.get_pixel_width() * self.laser.config.get_pixel_height()
+        )
+        dlg = dialogs.StatsDialog(data, area, self.canvas.image.get_clim(), parent=self)
+        dlg.open()
+        return dlg

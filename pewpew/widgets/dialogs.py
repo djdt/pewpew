@@ -69,6 +69,8 @@ class ApplyDialog(QtWidgets.QDialog):
 
 
 class CalibrationDialog(ApplyDialog):
+    calibrationsSelected = QtCore.Signal(dict, bool)
+
     def __init__(
         self,
         calibrations: Dict[str, LaserCalibration],
@@ -170,6 +172,7 @@ class CalibrationDialog(ApplyDialog):
 
     def apply(self) -> None:
         self.updateCalibration(self.combo_isotopes.currentText())
+        self.calibrationsSelected.emit(self.calibrations, self.check_all.isChecked())
 
 
 class CalibrationCurveDialog(QtWidgets.QDialog):
@@ -326,6 +329,8 @@ class ColorRangeDialog(ApplyDialog):
 
 
 class ConfigDialog(ApplyDialog):
+    configSelected = QtCore.Signal(dict, bool)
+
     def __init__(self, config: LaserConfig, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Configuration")
@@ -380,6 +385,7 @@ class ConfigDialog(ApplyDialog):
 
     def apply(self) -> None:
         self.updateConfig()
+        self.configSelected.emit(self.config, self.check_all.isChecked())
 
 
 class MultipleDirDialog(QtWidgets.QFileDialog):

@@ -198,16 +198,11 @@ class MainWindow(QtWidgets.QMainWindow):
         widget.canvas.copyToClipboard()
 
     def actionConfig(self) -> QtWidgets.QDialog:
-        def applyDialog(dlg: dialogs.ConfigDialog) -> None:
-            if dlg.check_all.isChecked():
-                self.viewspace.applyConfig(dlg.config)
-            else:
-                widget.laser.config = copy.copy(dlg.config)
-                widget.refresh()
-
         widget = self.viewspace.activeWidget()
         dlg = dialogs.ConfigDialog(widget.laser.config, parent=self)
-        dlg.applyPressed.connect(applyDialog)
+        dlg.configSelected.connect(
+            lambda c, b: self.viewspace.applyConfig(c) if b else widget.applyConfig(c)
+        )
         dlg.open()
         return dlg
 
@@ -230,7 +225,11 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg = dialogs.CalibrationDialog(
             calibrations, widget.combo_isotopes.currentText(), parent=self
         )
-        dlg.applyPressed.connect(applyDialog)
+        dlg.calibrationSelected.connect(
+            lambda c, b: self.viewspace.applyCalibration(c)
+            if b
+            else widget.applyCalibration(c)
+        )
         dlg.open()
         return dlg
 
@@ -292,10 +291,13 @@ class MainWindow(QtWidgets.QMainWindow):
         return dlg
 
     def actionConfigDefault(self) -> QtWidgets.QDialog:
+        def applyDialog(dlg: dialogs.ConfigDialog) -> None:
+            self.viewspace.applyConfig(dlg.config)
+
         dlg = dialogs.ConfigDialog(self.viewspace.config, parent=self)
         dlg.check_all.setChecked(True)
         dlg.check_all.setEnabled(False)
-        dlg.applyPressed.connect(self.viewspace.applyConfig)
+        dlg.applyPressed.connect(applyDialog)
         dlg.open()
         return dlg
 
