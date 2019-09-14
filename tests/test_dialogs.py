@@ -2,7 +2,7 @@ import numpy as np
 
 from pytestqt.qtbot import QtBot
 
-from PySide2 import QtCore
+from PySide2 import QtCore, QtGui
 
 from laserlib.config import LaserConfig
 from laserlib.calibration import LaserCalibration
@@ -28,7 +28,6 @@ def test_apply_dialog(qtbot: QtBot):
     for button in dialog.button_box.buttons():
         dialog.buttonClicked(button)
 
-    dialog.close()
 
 def test_calibration_dialog(qtbot: QtBot):
     cals = {
@@ -57,7 +56,6 @@ def test_calibration_dialog(qtbot: QtBot):
     dialog.showCurve()
 
     dialog.apply()
-    dialog.close()
 
 
 def test_calibration_curve_dialog(qtbot: QtBot):
@@ -66,6 +64,10 @@ def test_calibration_curve_dialog(qtbot: QtBot):
     )
     qtbot.addWidget(dialog)
     dialog.open()
+
+    dialog.contextMenuEvent(
+        QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
+    )
 
 
 def test_colorrange_dialog(qtbot: QtBot):
@@ -84,7 +86,6 @@ def test_colorrange_dialog(qtbot: QtBot):
     assert "B" not in dialog.ranges
 
     dialog.apply()
-    dialog.close()
 
 
 def test_laser_config_dialog(qtbot: QtBot):
@@ -109,7 +110,6 @@ def test_laser_config_dialog(qtbot: QtBot):
     assert dialog.config.scantime == 3.0
 
     dialog.apply()
-    dialog.close()
 
 
 def test_config_dialog_krisskross(qtbot: QtBot):
@@ -136,7 +136,6 @@ def test_multi_dir_dialog(qtbot: QtBot):
     dialog = MultipleDirDialog(None, "MDD", "")
     qtbot.addWidget(dialog)
     dialog.open()
-    dialog.close()
 
 
 def test_stats_dialog(qtbot: QtBot):
@@ -146,4 +145,7 @@ def test_stats_dialog(qtbot: QtBot):
     dialog = StatsDialog(x, 10, (0, 1))
     qtbot.addWidget(dialog)
     dialog.open()
-    dialog.close()
+
+    dialog.contextMenuEvent(
+        QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
+    )
