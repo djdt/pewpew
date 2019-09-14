@@ -34,17 +34,69 @@ def test_lasso_image_selection_widget():
     img = ax.imshow(np.random.random((50, 50)), extent=(0, 100, 0, 100))
     ax.figure.canvas.draw()
 
-    tool = RectangleImageSelectionWidget(img)
+    tool = LassoImageSelectionWidget(img)
     tool.set_active(True)
 
     assert not np.any(tool.mask)
 
+    tool.press(FakeEvent(tool.ax, 50, 50))
+    tool.onmove(FakeEvent(tool.ax, 50, 75))
+    tool.onmove(FakeEvent(tool.ax, 75, 75))
+    tool.onmove(FakeEvent(tool.ax, 75, 50))
+    tool.release(FakeEvent(tool.ax, 75, 50))
+
+    assert not np.any(tool.mask[:12, :25])
+    assert np.all(tool.mask[12:25, 25:37])
+    assert not np.any(tool.mask[25:, 37:])
+
     tool.press(FakeEvent(tool.ax, 0, 0))
-    tool.onmove(FakeEvent(tool.ax, 50, 50))
-    tool.release(FakeEvent(tool.ax, 50, 50))
+    tool.onmove(FakeEvent(tool.ax, 0, 50))
+    tool.onmove(FakeEvent(tool.ax, 100, 50))
+    tool.onmove(FakeEvent(tool.ax, 100, 0))
+    tool.release(FakeEvent(tool.ax, 100, 0))
 
     assert np.all(tool.mask[25:, :25])
     assert not np.any(tool.mask[:25, 25:])
+
+    # Test add on shift
+    tool.on_key_press(FakeEvent(tool.ax, 0, 0, key="shift"))
+    tool.press(FakeEvent(tool.ax, 100, 50))
+    tool.onmove(FakeEvent(tool.ax, 100, 100))
+    tool.onmove(FakeEvent(tool.ax, 0, 100))
+    tool.onmove(FakeEvent(tool.ax, 0, 50))
+    tool.release(FakeEvent(tool.ax, 0, 50))
+    tool.on_key_release(FakeEvent(tool.ax, 0, 50, key="shift"))
+
+    assert np.all(tool.mask)
+
+    # Test subtract on control
+    tool.on_key_press(FakeEvent(tool.ax, 0, 0, key="control"))
+    tool.press(FakeEvent(tool.ax, 24, 25))  # 24?
+    tool.onmove(FakeEvent(tool.ax, 75, 25))
+    tool.onmove(FakeEvent(tool.ax, 75, 75))
+    tool.onmove(FakeEvent(tool.ax, 25, 75))
+    tool.release(FakeEvent(tool.ax, 25, 75))
+    tool.on_key_release(FakeEvent(tool.ax, 25, 75, key="control"))
+
+    assert np.all(tool.mask[:12, :12])
+    assert not np.any(tool.mask[12:37, 12:37])
+    assert np.all(tool.mask[37:, 37:])
+
+    # Test clear on escape
+    tool.on_key_press(FakeEvent(tool.ax, 0, 0, key="escape"))
+    tool.on_key_release(FakeEvent(tool.ax, 0, 0, key="escape"))
+    assert not np.any(tool.mask)
+
+
+def test_rectangle_image_selection_widget():
+    fig, ax = plt.subplots()
+    img = ax.imshow(np.random.random((50, 50)), extent=(0, 100, 0, 100))
+    ax.figure.canvas.draw()
+
+    tool = RectangleImageSelectionWidget(img)
+    tool.set_active(True)
+
+    assert not np.any(tool.mask)
 
     tool.press(FakeEvent(tool.ax, 50, 50))
     tool.onmove(FakeEvent(tool.ax, 75, 75))
@@ -54,12 +106,19 @@ def test_lasso_image_selection_widget():
     assert np.all(tool.mask[12:25, 25:37])
     assert not np.any(tool.mask[25:, 37:])
 
+    tool.press(FakeEvent(tool.ax, 0, 0))
+    tool.onmove(FakeEvent(tool.ax, 100, 50))
+    tool.release(FakeEvent(tool.ax, 100, 50))
+
+    assert np.all(tool.mask[25:, :25])
+    assert not np.any(tool.mask[:25, 25:])
+
     # Test add on shift
     tool.on_key_press(FakeEvent(tool.ax, 0, 0, key="shift"))
-    tool.press(FakeEvent(tool.ax, 0, 0))
-    tool.onmove(FakeEvent(tool.ax, 100, 100))
-    tool.release(FakeEvent(tool.ax, 100, 100))
-    tool.on_key_release(FakeEvent(tool.ax, 100, 100, key="shift"))
+    tool.press(FakeEvent(tool.ax, 100, 50))
+    tool.onmove(FakeEvent(tool.ax, 0, 100))
+    tool.release(FakeEvent(tool.ax, 0, 100))
+    tool.on_key_release(FakeEvent(tool.ax, 0, 100, key="shift"))
 
     assert np.all(tool.mask)
 
