@@ -85,14 +85,29 @@ class ImageOptions(object):
         self.interpolation = interpolation
         self.alpha = alpha
 
-    def set_cmap(self, name: str) -> None:
+    def set_cmap_name(self, name: str) -> None:
         self.cmap = self.COLORMAPS[name]
+
+    def get_cmap_name(self) -> str:
+        for k, v in self.COLORMAPS.items():
+            if v == self.cmap:
+                return k
+        return ""
+
+    def get_interpolation_name(self) -> str:
+        for k, v in self.INTERPOLATIONS.items():
+            if v == self.interpolation:
+                return k
+        return ""
 
 
 class FontOptions(object):
     def __init__(self, size: int = 12, color: str = "white"):
         self.size = size
         self.color = color
+
+    def set_size(self, size: int) -> None:
+        self.size = size
 
     def props(self) -> dict:
         return {"size": self.size, "color": self.color}
