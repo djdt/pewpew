@@ -324,6 +324,7 @@ class LaserWidget(QtWidgets.QWidget):
         dlg.open()
         return dlg
 
+
     def actionSave(self) -> QtWidgets.QDialog:
         filepath = self.laser.filepath
         if filepath.lower().endswith(".npz") and os.path.exists(filepath):
