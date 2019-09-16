@@ -33,7 +33,7 @@ def test_standards_tool(qtbot: QtBot):
         np.array(np.arange(100).reshape((10, 10)), dtype=[("A1", float), ("B2", float)])
     )
     viewoptions = ViewOptions()
-    tool = StandardsTool(LaserWidget(laser, viewoptions), viewoptions)
+    tool = StandardsTool(LaserWidget(laser, viewoptions, None))
     qtbot.addWidget(tool)
     tool.show()
 
@@ -93,7 +93,7 @@ def test_calculations_tool(qtbot: QtBot):
         np.array(np.random.random((10, 10)), dtype=[("A1", float)])
     )
     viewoptions = ViewOptions()
-    tool = CalculationsTool(LaserWidget(laser, viewoptions), viewoptions)
+    tool = CalculationsTool(LaserWidget(laser, viewoptions, None))
     qtbot.addWidget(tool)
     tool.show()
 

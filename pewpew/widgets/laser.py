@@ -32,16 +32,6 @@ class LaserViewSpace(ViewSpace):
         self.config = LaserConfig()
         self.options = ViewOptions()
 
-        # self.action_config = qAction(
-        #     "document-edit", "Config", "Edit the documents config.", self.actionConfig
-        # )
-        # self.action_calibration = qAction(
-        #     "go-top",
-        #     "Calibration",
-        #     "Edit the documents calibration.",
-        #     self.actionCalibration,
-        # )
-
     def uniqueIsotopes(self) -> List[str]:
         isotopes = set()
         for view in self.views:
@@ -56,13 +46,13 @@ class LaserViewSpace(ViewSpace):
         self.numViewsChanged.emit()
         return view
 
-    def openDocument(self, paths: str) -> None:
-        view = self.activeView()
-        view.openDocument(paths, self.config)
+    # def openDocument(self, paths: str) -> None:
+    #     view = self.activeView()
+    #     view.openDocument(paths, self.config)
 
-    def saveDocument(self, path: str) -> None:
-        view = self.activeView()
-        view.saveDocument(path)
+    # def saveDocument(self, path: str) -> None:
+    #     view = self.activeView()
+    #     view.saveDocument(path)
 
     def setCurrentIsotope(self, isotope: str) -> None:
         for view in self.views:
@@ -97,6 +87,10 @@ class LaserView(View):
         super().__init__(viewspace, parent)
         self.tabs.tabTextChanged.connect(self.renameLaser)
 
+        self.action_open = qAction(
+            "document-open", "&Open", "Open new document(s).", self.actionOpen
+        )
+
     def addLaser(self, laser: Laser) -> int:
         widget = LaserWidget(laser, self.viewspace.options, self)
         name = laser.name if laser.name != "" else "__noname__"
@@ -106,33 +100,62 @@ class LaserView(View):
         self.stack.widget(index).laser.name = self.tabs.tabText(index)
         self.setTabModified(index)
 
+    def refresh(self) -> None:
+        if self.stack.count() > 0:
+            self.stack.widget(self.stack.currentIndex()).refresh()
+
+    def setCurrentIsotope(self, isotope: str) -> None:
+        for widget in self.widgets():
+            if isotope in widget.laser.isotopes:
+                widget.combo_isotopes.setCurrentText(isotope)
+
     def setTabModified(self, index: int, modified: bool = True) -> None:
         if modified:
             self.tabs.setTabIcon(index, QtGui.QIcon.fromTheme("document-save"))
         else:
             self.tabs.setTabIcon(index, QtGui.QIcon())
 
+    # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         menu = QtWidgets.QMenu(self)
-        menu.addAction(self.window().action_open)
+        menu.addAction(self.action_open)
         menu.popup(event.globalPos())
 
-    def refresh(self) -> None:
-        if self.stack.count() > 0:
-            self.stack.widget(self.stack.currentIndex()).refresh()
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
 
-    def openDocument(self, paths: str, config: LaserConfig) -> None:
+    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+        if not event.mimeData().hasUrls():
+            return super().dropEvent(event)
+
+        paths = [
+            url.toLocalFile() for url in event.mimeData().urls() if url.isLocalFile()
+        ]
         try:
-            for laser in import_any(paths, config):
+            lasers = import_any(paths, self.viewspace.config)
+            for laser in lasers:
                 self.addLaser(laser)
+            event.acceptProposedAction()
+        except io.error.LaserLibException:
+            event.ignore()
+
+    # Callbacks
+    def openDocument(self, paths: str) -> None:
+        try:
+            for laser in import_any(paths, self.viewspace.config):
+                self.addLaser(laser)
+
         except LaserLibException as e:
             QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
 
-    def saveDocument(self, path: str) -> bool:
-        widget = self.activeWidget()
-        io.npz.save(path, [widget.laser])
-        widget.laser.filepath = path
-        self.setTabModified(self.stack.indexOf(widget), False)
+    # def saveDocument(self, path: str) -> bool:
+    #     widget = self.activeWidget()
+    #     io.npz.save(path, [widget.laser])
+    #     widget.laser.filepath = path
+    #     self.setTabModified(self.stack.indexOf(widget), False)
 
     def applyConfig(self, config: LaserConfig) -> None:
         for index, widget in enumerate(self.widgets()):
@@ -156,31 +179,20 @@ class LaserView(View):
                 self.setTabModified(index)
         self.refresh()
 
-    def setCurrentIsotope(self, isotope: str) -> None:
-        for widget in self.widgets():
-            if isotope in widget.laser.isotopes:
-                widget.combo_isotopes.setCurrentText(isotope)
-
-    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-        else:
-            super().dragEnterEvent(event)
-
-    def dropEvent(self, event: QtGui.QDropEvent) -> None:
-        if not event.mimeData().hasUrls():
-            return super().dropEvent(event)
-
-        paths = [
-            url.toLocalFile() for url in event.mimeData().urls() if url.isLocalFile()
-        ]
-        try:
-            lasers = import_any(paths, self.viewspace.config)
-            for laser in lasers:
-                self.addLaser(laser)
-            event.acceptProposedAction()
-        except io.error.LaserLibException:
-            event.ignore()
+    # Actions
+    def actionOpen(self) -> QtWidgets.QDialog:
+        dlg = QtWidgets.QFileDialog(
+            self,
+            "Open File(s).",
+            "",
+            "CSV Documents(*.csv *.txt);;Numpy Archives(*.npz);;"
+            "Pew Pew Sessions(*.pew);;All files(*)",
+        )
+        dlg.selectNameFilter("All files(*)")
+        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+        dlg.filesSelected.connect(self.openDocument)
+        dlg.open()
+        return dlg
 
 
 class LaserWidget(QtWidgets.QWidget):
@@ -232,22 +244,23 @@ class LaserWidget(QtWidgets.QWidget):
         layout.addLayout(layout_bar)
         self.setLayout(layout)
 
+        self.createActions()
+
     def laserFilePath(self, ext: str = ".npz") -> str:
         return os.path.join(os.path.dirname(self.laser.filepath), self.laser.name + ext)
 
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
         menu = QtWidgets.QMenu(self)
-
         menu.addAction(self.action_copy_image)
         menu.addSeparator()
-        menu.addAction(self.action_open)
+        menu.addAction(self.view.action_open)
         menu.addAction(self.action_save)
         menu.addAction(self.action_export)
         menu.addSeparator()
         menu.addAction(self.action_config)
         menu.addAction(self.action_calibration)
         menu.addAction(self.action_statistics)
-        menu.exec_(event.globalPos())
+        menu.popup(event.globalPos())
 
     def populateIsotopes(self) -> None:
         self.combo_isotopes.blockSignals(True)
@@ -269,6 +282,7 @@ class LaserWidget(QtWidgets.QWidget):
             self.laser, self.combo_isotopes.currentText(), layer=layer
         )
 
+    # Callbacks
     def applyConfig(self, config: LaserConfig) -> None:
         if not isinstance(config, KrissKrossConfig) or self.is_srr:
             self.laser.config = copy.copy(config)
@@ -286,19 +300,40 @@ class LaserWidget(QtWidgets.QWidget):
         self.view.setTabModified(self.view.stack.indexOf(self))
         self.refresh()
 
-    # Actions
-    def actionCopyImage(self) -> None:
-        self.canvas.copyToClipboard()
+    def saveDocument(self, path: str) -> bool:
+        io.npz.save(path, [self.laser])
+        self.laser.filepath = path
+        self.view.setTabModified(self.view.stack.indexOf(self), False)
 
-    def actionConfig(self) -> QtWidgets.QDialog:
-        dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
-        dlg.configSelected.connect(
-            lambda c, b: self.view.viewspace.applyConfig(c)
-            if b
-            else self.applyConfig(c)
+    # Actions
+    def createActions(self) -> None:
+        self.action_calibration = qAction(
+            "go-top",
+            "Ca&libration",
+            "Edit the documents calibration.",
+            self.actionCalibration,
         )
-        dlg.open()
-        return dlg
+        self.action_config = qAction(
+            "document-edit", "&Config", "Edit the document's config.", self.actionConfig
+        )
+        self.action_copy_image = qAction(
+            "insert-image",
+            "Copy &Image",
+            "Copy image to clipboard.",
+            self.actionCopyImage,
+        )
+        self.action_export = qAction(
+            "document-save-as", "E&xport", "Export documents.", self.actionExport
+        )
+        self.action_save = qAction(
+            "document-save", "&Save", "Save document to numpy archive.", self.actionSave
+        )
+        self.action_statistics = qAction(
+            "dialog-information",
+            "Statistics",
+            "Open statisitics dialog for selected data.",
+            self.actionStatistics,
+        )
 
     def actionCalibration(self) -> QtWidgets.QDialog:
         calibrations = {k: self.laser.data[k].calibration for k in self.laser.data}
@@ -313,6 +348,19 @@ class LaserWidget(QtWidgets.QWidget):
         dlg.open()
         return dlg
 
+    def actionConfig(self) -> QtWidgets.QDialog:
+        dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
+        dlg.configSelected.connect(
+            lambda c, b: self.view.viewspace.applyConfig(c)
+            if b
+            else self.applyConfig(c)
+        )
+        dlg.open()
+        return dlg
+
+    def actionCopyImage(self) -> None:
+        self.canvas.copyToClipboard()
+
     def actionExport(self) -> QtWidgets.QDialog:
         dlg = exportdialogs.ExportDialog(
             self.laser,
@@ -324,11 +372,10 @@ class LaserWidget(QtWidgets.QWidget):
         dlg.open()
         return dlg
 
-
     def actionSave(self) -> QtWidgets.QDialog:
         filepath = self.laser.filepath
         if filepath.lower().endswith(".npz") and os.path.exists(filepath):
-            self.viewspace.saveDocument(filepath)
+            self.saveDocument(filepath)
             return None
         else:
             filepath = self.laserFilePath()
@@ -336,7 +383,7 @@ class LaserWidget(QtWidgets.QWidget):
             self, "Save File", filepath, "Numpy archive(*.npz);;All files(*)"
         )
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-        dlg.fileSelected.connect(self.viewspace.saveDocument)
+        dlg.fileSelected.connect(self.saveDocument)
         dlg.open()
         return dlg
 
