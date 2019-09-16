@@ -25,7 +25,6 @@ def test_canvas_basic(qtbot: QtBot):
     qtbot.waitForWindowShown(canvas)
     canvas.draw()
     canvas.copyToClipboard()
-    canvas.close()
     # Test that the image generated is the same
     data_path = os.path.join(
         os.path.dirname(__file__), "data", "basic_canvas_clipboard.png"
@@ -33,6 +32,7 @@ def test_canvas_basic(qtbot: QtBot):
     actual = QtWidgets.QApplication.clipboard().pixmap().toImage()
     expected = QtGui.QImage(data_path).convertToFormat(actual.format())
     assert actual == expected
+    canvas.close()
 
 
 def test_canvas_interactive(qtbot: QtBot):
