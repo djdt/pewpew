@@ -186,6 +186,7 @@ class ExportDialog(QtWidgets.QDialog):
         for i in range(0, self.options.count()):
             item = f"{self.options.widget(i).filetype} ({self.options.widget(i).ext})"
             self.combo_type.addItem(item)
+        self.combo_type.setCurrentIndex(-1)
         self.combo_type.currentIndexChanged.connect(self.typeChanged)
 
         self.check_calibrate = QtWidgets.QCheckBox("Calibrate data.")
@@ -210,20 +211,20 @@ class ExportDialog(QtWidgets.QDialog):
         layout_directory.addWidget(self.button_directory)
 
         layout = QtWidgets.QVBoxLayout()
-        layout_form = QtWidgets.QFormLayout()
-        layout_form.addRow("Directory:", layout_directory)
-        layout_form.addRow("Filename:", self.lineedit_filename)
-        layout_form.addRow("Preview:", self.lineedit_preview)
-        layout_form.addRow("Type:", self.combo_type)
+        self.layout_form = QtWidgets.QFormLayout()
+        self.layout_form.addRow("Directory:", layout_directory)
+        self.layout_form.addRow("Filename:", self.lineedit_filename)
+        self.layout_form.addRow("Preview:", self.lineedit_preview)
+        self.layout_form.addRow("Type:", self.combo_type)
 
-        layout.addLayout(layout_form)
+        layout.addLayout(self.layout_form)
         layout.addWidget(self.options)
         layout.addWidget(self.check_calibrate)
         layout.addWidget(self.check_export_all)
         layout.addWidget(self.button_box)
         self.setLayout(layout)
 
-        # Init with correct filename
+        # Init with correct filename and type
         self.filenameChanged(filename)
 
     def sizeHint(self) -> QtCore.QSize:
@@ -372,10 +373,22 @@ class ExportAllDialog(ExportDialog):
         parent: QtWidgets.QWidget = None,
     ):
         self.lasers = lasers
-        super().__init__(lasers[0], "", (0, 1, 0, 1), viewoptions, parent)
-
         self.combo_isotopes = QtWidgets.QComboBox()
         self.combo_isotopes.addItems(isotopes)
+        self.lineedit_prefix = QtWidgets.QLineEdit("")
+        self.lineedit_prefix.textChanged.connect(self.updatePreview)
+        super().__init__(
+            Laser(name="<NAME>", filepath=lasers[0].filepath),
+            "",
+            (0, 1, 0, 1),
+            viewoptions,
+            parent,
+        )
+        # Adjust widgets for all
+        label = self.layout_form.labelForField(self.lineedit_filename)
+        label.setText("Prefix:")
+        self.layout_form.replaceWidget(self.lineedit_filename, self.lineedit_prefix)
+
         layout_isotopes = QtWidgets.QHBoxLayout()
         layout_isotopes.addWidget(QtWidgets.QLabel("Isotope:"))
         layout_isotopes.addWidget(self.combo_isotopes)
@@ -395,14 +408,34 @@ class ExportAllDialog(ExportDialog):
 
     def updatePreview(self) -> None:
         base, ext = os.path.splitext(self.lineedit_filename.text())
-        base += "_<NAME>"
+        prefix = self.lineedit_prefix.text()
+        if prefix != "":
+            prefix += "_"
         if self.isExportAll():
             base += "_<ISOTOPE>"
-        self.lineedit_preview.setText(base + ext)
+        self.lineedit_preview.setText(prefix + base + ext)
 
     def getPath(self, name: str) -> str:
         base, ext = os.path.splitext(self.lineedit_filename.text())
-        return os.path.join(self.lineedit_directory.text(), f"{base}_{name}{ext}")
+        prefix = self.lineedit_prefix.text()
+        if prefix != "":
+            prefix += "_"
+        return os.path.join(
+            self.lineedit_directory.text(), f"{prefix}{base}_{name}{ext}"
+        )
+
+    def getPathForIsotope(self, isotope: str, name: str) -> str:
+        base, ext = os.path.splitext(self.getPath(name))
+        isotope = isotope.replace(os.path.sep, "_")
+        return f"{base}_{isotope}{ext}"
+
+    def generatePaths(self, laser: Laser) -> List[Tuple[str, str]]:
+        if self.isExportAll():
+            paths = [(self.getPathForIsotope(i, laser.name), i) for i in laser.isotopes]
+        else:
+            paths = [(self.getPath(laser.name), self.isotope)]
+
+        return [(p, i) for p, i in paths if p != ""]
 
     def accept(self) -> None:
         allpaths = []
