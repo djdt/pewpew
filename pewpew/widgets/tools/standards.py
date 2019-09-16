@@ -23,10 +23,11 @@ from typing import Any, List
 
 
 class StandardsTool(Tool):
+    calibrationSelected = QtCore.Signal(dict)
+
     def __init__(
         self,
         widget: LaserWidget,
-        viewoptions: ViewOptions,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
@@ -37,7 +38,7 @@ class StandardsTool(Tool):
         self.viewoptions.canvas.colorbar = False
         self.viewoptions.canvas.label = False
         self.viewoptions.canvas.scalebar = False
-        self.viewoptions.image.cmap = viewoptions.image.cmap
+        self.viewoptions.image.cmap = widget.canvas.viewoptions.image.cmap
 
         self.calibrations = {
             k: copy.copy(v.calibration) for k, v in self.widget.laser.data.items()
@@ -94,6 +95,9 @@ class StandardsTool(Tool):
         self.layoutWidgets()
         self.draw()
         self.updateCounts()
+
+    def apply(self) -> None:
+        self.calibrationSelected.emit(self.calibrations)
 
     def isComplete(self):
         return self.table.isComplete()

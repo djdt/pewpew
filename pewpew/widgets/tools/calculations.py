@@ -98,7 +98,6 @@ class CalculationsTool(Tool):
     def __init__(
         self,
         widget: LaserWidget,
-        viewoptions: ViewOptions,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
@@ -110,7 +109,7 @@ class CalculationsTool(Tool):
         self.viewoptions.canvas.colorbar = False
         self.viewoptions.canvas.label = False
         self.viewoptions.canvas.scalebar = False
-        self.viewoptions.image.cmap = viewoptions.image.cmap
+        self.viewoptions.image.cmap = widget.canvas.viewoptions.image.cmap
 
         self.canvas = LaserCanvas(self.viewoptions)
 
