@@ -5,22 +5,15 @@ from pytestqt.qtbot import QtBot
 from laserlib.laser import Laser
 
 from pewpew.main import MainWindow
-from pewpew.widgets.laser import LaserWidget
 
 
 def test_main_window_actions_empty(qtbot: QtBot):
     window = MainWindow()
     qtbot.addWidget(window)
 
-    assert not window.action_copy_image.isEnabled()
-    assert not window.action_config.isEnabled()
-    assert not window.action_calibration.isEnabled()
-    assert not window.action_statistics.isEnabled()
-    assert not window.action_save.isEnabled()
-    assert not window.action_export.isEnabled()
     assert not window.action_export_all.isEnabled()
-    assert not window.action_calculations_tool.isEnabled()
-    assert not window.action_standards_tool.isEnabled()
+    assert not window.action_tool_calculations.isEnabled()
+    assert not window.action_tool_standards.isEnabled()
 
     dlg = window.actionOpen()
     dlg.close()
@@ -30,7 +23,7 @@ def test_main_window_actions_empty(qtbot: QtBot):
     dlg.close()
     dlg = window.actionImportSRR()
     dlg.close()
-    dlg = window.actionConfigDefault()
+    dlg = window.actionConfig()
     dlg.close()
     dlg = window.actionColormapRange()
     dlg.close()
@@ -71,70 +64,38 @@ def test_main_window_actions_empty(qtbot: QtBot):
 def test_main_window_actions_widget(qtbot: QtBot):
     window = MainWindow()
     qtbot.addWidget(window)
-    window.viewspace.views[0].addTab(
-        "A1",
-        LaserWidget(
-            Laser.from_structured(
-                np.array(np.random.random((10, 10)), dtype=[("A1", float)])
-            ),
-            window.viewspace.options,
-        ),
+    window.viewspace.views[0].addLaser(
+        Laser.from_structured(
+            np.array(np.random.random((10, 10)), dtype=[("A1", float)])
+        )
     )
     window.viewspace.refresh()
 
-    assert window.action_copy_image.isEnabled()
-    assert window.action_config.isEnabled()
-    assert window.action_calibration.isEnabled()
-    assert window.action_statistics.isEnabled()
-    assert window.action_save.isEnabled()
-    assert window.action_export.isEnabled()
     assert window.action_export_all.isEnabled()
-    assert window.action_calculations_tool.isEnabled()
-    assert window.action_standards_tool.isEnabled()
+    assert window.action_tool_calculations.isEnabled()
+    assert window.action_tool_standards.isEnabled()
 
     window.actionToggleColorbar(False)
 
-    dlg = window.actionConfig()
-    dlg.close()
-    dlg = window.actionCalibration()
-    dlg.close()
-    dlg = window.actionStatistics()
-    dlg.close()
-    dlg = window.actionSave()
-    dlg.close()
-    dlg = window.actionExport()
-    dlg.close()
     dlg = window.actionExportAll()
     dlg.close()
-    dlg = window.actionStandardsTool()
+    dlg = window.actionToolCalculations()
     dlg.close()
-    dlg = window.actionCalculationsTool()
+    dlg = window.actionToolStandards()
     dlg.close()
-
-    window.actionCopyImage()
 
 
 def test_main_window_apply_dialogs(qtbot: QtBot):
     window = MainWindow()
     qtbot.addWidget(window)
-    window.viewspace.views[0].addTab(
-        "A1",
-        LaserWidget(
-            Laser.from_structured(
-                np.array(np.random.random((10, 10)), dtype=[("A1", float)])
-            ),
-            window.viewspace.options,
-        ),
+    window.viewspace.views[0].addLaser(
+        Laser.from_structured(
+            np.array(np.random.random((10, 10)), dtype=[("A1", float)])
+        )
     )
     window.viewspace.refresh()
 
     dlg = window.actionConfig()
-    dlg.applyPressed.emit(dlg)
-    dlg.close()
-    dlg = window.actionConfigDefault()
-    dlg.applyPressed.emit(dlg)
-    dlg.close()
-    dlg = window.actionCalibration()
     dlg.applyPressed.emit(dlg)
     dlg.close()
     dlg = window.actionColormapRange()
