@@ -7,7 +7,9 @@ from laserlib.laser import Laser
 from laserlib.config import LaserConfig
 from laserlib.calibration import LaserCalibration
 
-from pewpew.widgets.laser import LaserWidget, LaserView, LaserViewSpace
+from pewpew.lib.viewoptions import ViewOptions
+
+from pewpew.widgets.laser import LaserWidget, LaserViewSpace
 
 from typing import List
 
@@ -74,7 +76,6 @@ def test_laser_view(qtbot: QtBot):
     viewspace = LaserViewSpace()
     qtbot.addWidget(viewspace)
     view = viewspace.activeView()
-
     view.addLaser(rand_laser(["A1", "B2", "C3"]))
 
     view.tabs.setTabText(0, "newname")
@@ -83,3 +84,38 @@ def test_laser_view(qtbot: QtBot):
     view.contextMenuEvent(
         QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
     )
+
+    dlg = view.actionOpen()
+    dlg.close()
+
+
+def test_laser_widget(qtbot: QtBot):
+    viewspace = LaserViewSpace()
+    qtbot.addWidget(viewspace)
+    view = viewspace.activeView()
+    view.addLaser(rand_laser(["A1", "B2", "C3"]))
+    widget = view.activeWidget()
+    widget.show()
+
+    widget.applyConfig(LaserConfig(1.0, 1.0, 1.0))
+    assert widget.laser.config.spotsize == 1.0
+    widget.applyCalibration({"B2": LaserCalibration(2.0, 2.0)})
+    assert widget.laser.data["B2"].calibration.intercept == 2.0
+
+
+def test_laser_widget_actions(qtbot: QtBot):
+    widget = LaserWidget(rand_laser(["A1"]), ViewOptions(), None)
+    qtbot.addWidget(widget)
+    widget.show()
+
+    dlg = widget.actionCalibration()
+    dlg.close()
+    dlg = widget.actionConfig()
+    dlg.close()
+    widget.actionCopyImage()
+    dlg = widget.actionExport()
+    dlg.close()
+    dlg = widget.actionSave()
+    dlg.close()
+    dlg = widget.actionStatistics()
+    dlg.close()

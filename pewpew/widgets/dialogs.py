@@ -69,7 +69,7 @@ class ApplyDialog(QtWidgets.QDialog):
 
 
 class CalibrationDialog(ApplyDialog):
-    calibrationsSelected = QtCore.Signal(dict, bool)
+    calibrationSelected = QtCore.Signal(dict, bool)
 
     def __init__(
         self,
@@ -172,7 +172,7 @@ class CalibrationDialog(ApplyDialog):
 
     def apply(self) -> None:
         self.updateCalibration(self.combo_isotopes.currentText())
-        self.calibrationsSelected.emit(self.calibrations, self.check_all.isChecked())
+        self.calibrationSelected.emit(self.calibrations, self.check_all.isChecked())
 
 
 class CalibrationCurveDialog(QtWidgets.QDialog):

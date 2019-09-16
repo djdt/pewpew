@@ -227,7 +227,10 @@ class View(QtWidgets.QWidget):
         else:
             color = self.palette().color(QtGui.QPalette.Shadow).name()
         self.stack.setStyleSheet(
-            f"QStackedWidget, QStackedWidget > QWidget {{ color: {color} }}"
+            (
+                "View > QStackedWidget,"
+                f"View > QStackedWidget > QWidget {{ color: {color} }}"
+            )
         )
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
