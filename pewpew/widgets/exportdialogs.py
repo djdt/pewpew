@@ -336,7 +336,7 @@ class ExportDialog(QtWidgets.QDialog):
                     if isotope in laser.isotopes:
                         canvas.drawLaser(laser, isotope)
                         canvas.view_limits = viewlimits
-                        canvas.figure.savefig(path, transparent=True, frameon=False)
+                        canvas.figure.savefig(path, transparent=True, facecolor=None)
 
                 canvas.close()
 
