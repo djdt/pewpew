@@ -450,7 +450,6 @@ class ExportAllDialog(ExportDialog):
             return
 
         for paths, laser in zip(paths, self.lasers):
-            print(paths, laser)
             if not self.export(paths, laser, None):
                 return
 
