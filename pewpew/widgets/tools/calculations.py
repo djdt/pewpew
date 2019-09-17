@@ -158,29 +158,21 @@ class CalculationsTool(Tool):
     def insertFunction(self, index: int) -> None:
         if index == 0:
             return
-        text = self.formula.text()
-        if text != "" and text[-1] not in " (":
-            text += " "
-        text += self.combo_functions.currentText() + "("
-        self.formula.setText(text)
+        self.formula.insert(self.combo_functions.currentText() + "(")
         self.combo_functions.setCurrentIndex(0)
         self.formula.setFocus()
 
     def insertVariable(self, index: int) -> None:
         if index == 0:
             return
-        text = self.formula.text()
-        if text != "" and text[-1] not in " (":
-            text += " "
-        text += self.combo_isotopes.currentText()
-        self.formula.setText(text)
+        self.formula.insert(self.combo_isotopes.currentText())
         self.combo_isotopes.setCurrentIndex(0)
         self.formula.setFocus()
 
     def isComplete(self) -> bool:
         if not self.formula.hasAcceptableInput():
             return False
-        if isinstance(self.result, float):
+        if np.isscalar(self.result):
             return False
         name = self.lineedit_name.text()
         if name == "" or " " in name or name in self.widget.laser.isotopes:
@@ -194,7 +186,7 @@ class CalculationsTool(Tool):
             self.result = None
             self.output.clear()
             return
-        if isinstance(self.result, float):
+        if np.isscalar(self.result):
             self.output.setText(f"{self.result:.10g}")
         else:
             self.output.clear()
