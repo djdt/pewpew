@@ -212,7 +212,7 @@ class Parser(object):
     def getNull(self, token: str) -> Null:
         if token in self.nulls:
             return self.nulls[token]
-        if token in self.variables or self.regexp_number.match(token) is not None:
+        if token in self.variables or self.regexp_number.fullmatch(token) is not None:
             return Value(token)
         return Null()
 
