@@ -42,7 +42,6 @@ def test_export_dialog(qtbot: QtBot):
     assert dlg.options.currentIndex() == dlg.options.png
 
     dlg.check_export_all.setChecked(True)
-    dlg.check_export_all.clicked.emit()
     assert dlg.lineedit_preview.text() == "laser_<ISOTOPE>.png"
 
     dlg.lineedit_filename.setText("laser.npz")
@@ -65,11 +64,11 @@ def test_export_dialog(qtbot: QtBot):
         dlg.export(paths, dlg.laser, dlg.viewlimits)
         assert os.path.exists(os.path.join(tempdir, "temp.npz"))
         # Test export all isotopes and png
+
+    with tempfile.TemporaryDirectory() as tempdir:
         dlg.lineedit_directory.setText(tempdir)
         dlg.lineedit_filename.setText("temp.png")
-        paths = dlg.generatePaths(dlg.laser)
-        assert paths == [(os.path.join(tempdir, "temp_A1.png"), "A1")]
-        dlg.export(paths, dlg.laser, dlg.viewlimits)
+        dlg.accept()
         assert os.path.exists(os.path.join(tempdir, "temp_A1.png"))
 
     dlg.close()
@@ -78,7 +77,7 @@ def test_export_dialog(qtbot: QtBot):
 def test_export_all_dialog(qtbot: QtBot):
     dlg = ExportAllDialog(
         [
-            rand_laser(["A1"], "/home/user/laser.npz"),
+            rand_laser(["A1"], "/home/user/laser1.npz"),
             rand_laser(["B2"], "/home/user/laser2.npz"),
             rand_laser(["C3"], "/home/user/laser3.npz"),
             rand_laser(["B2", "C3"], "/home/user/laser4.npz"),
@@ -93,23 +92,28 @@ def test_export_all_dialog(qtbot: QtBot):
     assert dlg.lineedit_filename.text() == "<NAME>.npz"
     assert dlg.lineedit_preview.text() == "<NAME>.npz"
 
-    dlg.lineedit_prefix.setText("0123")
+    dlg.lineedit_prefix.setText("01")
 
-    assert dlg.lineedit_preview.text() == "0123_<NAME>.npz"
-
+    assert dlg.lineedit_preview.text() == "01_<NAME>.npz"
     assert not dlg.check_export_all.isEnabled()
     assert not dlg.check_calibrate.isEnabled()
     assert not dlg.combo_isotopes.isEnabled()
 
     dlg.combo_type.setCurrentIndex(dlg.options.csv)
-    assert dlg.lineedit_preview.text() == "0123_<NAME>_<ISOTOPE>.csv"
+    assert dlg.lineedit_preview.text() == "01_<NAME>.csv"
     assert dlg.check_export_all.isEnabled()
     assert dlg.check_calibrate.isEnabled()
     assert dlg.combo_isotopes.isEnabled()
 
     dlg.check_export_all.setChecked(True)
-    dlg.check_export_all.clicked.emit()
+    assert dlg.lineedit_preview.text() == "01_<NAME>_<ISOTOPE>.csv"
     assert not dlg.combo_isotopes.isEnabled()
 
     with tempfile.TemporaryDirectory() as tempdir:
         dlg.lineedit_directory.setText(tempdir)
+        dlg.accept()
+        assert os.path.exists(os.path.join(tempdir, "01_laser1_A1.csv"))
+        assert os.path.exists(os.path.join(tempdir, "01_laser2_B2.csv"))
+        assert os.path.exists(os.path.join(tempdir, "01_laser3_C3.csv"))
+        assert os.path.exists(os.path.join(tempdir, "01_laser4_B2.csv"))
+        assert os.path.exists(os.path.join(tempdir, "01_laser4_C3.csv"))

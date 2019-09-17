@@ -317,7 +317,7 @@ class ExportDialog(QtWidgets.QDialog):
         self,
         paths: List[str],
         laser: Laser,
-        viewlimits: Tuple[float, float, float, float],
+        viewlimits: Tuple[float, float, float, float] = None,
     ) -> bool:
         index = self.options.currentIndex()
         try:
@@ -336,7 +336,8 @@ class ExportDialog(QtWidgets.QDialog):
                 for path, isotope in paths:
                     if isotope in laser.isotopes:
                         canvas.drawLaser(laser, isotope)
-                        canvas.view_limits = viewlimits
+                        if viewlimits is not None:
+                            canvas.view_limits = viewlimits
                         canvas.figure.savefig(path, transparent=True, facecolor=None)
 
                 canvas.close()
@@ -416,12 +417,12 @@ class ExportAllDialog(ExportDialog):
         self.lineedit_preview.setText(prefix + base + ext)
 
     def getPath(self, name: str) -> str:
-        base, ext = os.path.splitext(self.lineedit_filename.text())
+        _, ext = os.path.splitext(self.lineedit_filename.text())
         prefix = self.lineedit_prefix.text()
         if prefix != "":
             prefix += "_"
         return os.path.join(
-            self.lineedit_directory.text(), f"{prefix}{base}_{name}{ext}"
+            self.lineedit_directory.text(), f"{prefix}{name}{ext}"
         )
 
     def getPathForIsotope(self, isotope: str, name: str) -> str:
@@ -438,18 +439,19 @@ class ExportAllDialog(ExportDialog):
         return [(p, i) for p, i in paths if p != ""]
 
     def accept(self) -> None:
-        allpaths = []
+        paths = []
         prompt = OverwriteFilePrompt()
         self.isotope = self.combo_isotopes.currentText()
         for laser in self.lasers:
-            paths = self.generatePaths(laser)
-            allpaths.append([p for p in paths if prompt.promptOverwrite(p[0])])
+            laserpaths = self.generatePaths(laser)
+            paths.append([p for p in laserpaths if prompt.promptOverwrite(p[0])])
 
-        if any(len(p) == 0 for p in allpaths):
+        if any(len(p) == 0 for p in paths):
             return
 
-        for paths, laser, viewlimits in zip(allpaths, self.lasers, self.viewlimits):
-            if not self.export(paths, laser, viewlimits):
+        for paths, laser in zip(paths, self.lasers):
+            print(paths, laser)
+            if not self.export(paths, laser, None):
                 return
 
-        QtWidgets.QDialog.accept()
+        QtWidgets.QDialog.accept(self)
