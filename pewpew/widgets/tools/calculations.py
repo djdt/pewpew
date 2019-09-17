@@ -180,6 +180,8 @@ class CalculationsTool(Tool):
     def isComplete(self) -> bool:
         if not self.formula.hasAcceptableInput():
             return False
+        if isinstance(self.result, float):
+            return False
         name = self.lineedit_name.text()
         if name == "" or " " in name or name in self.widget.laser.isotopes:
             return False
