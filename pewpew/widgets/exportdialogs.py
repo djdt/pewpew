@@ -198,7 +198,7 @@ class ExportDialog(QtWidgets.QDialog):
             "Export all isotopes for the current image.\n"
             "The filename will be appended with the isotopes name."
         )
-        self.check_export_all.clicked.connect(self.updatePreview)
+        self.check_export_all.stateChanged.connect(self.updatePreview)
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
@@ -394,7 +394,7 @@ class ExportAllDialog(ExportDialog):
         layout_isotopes.addWidget(self.combo_isotopes)
         self.layout().insertLayout(2, layout_isotopes)
 
-        self.check_export_all.clicked.connect(self.showIsotopes)
+        self.check_export_all.stateChanged.connect(self.showIsotopes)
         self.showIsotopes()
 
     def showIsotopes(self) -> None:
