@@ -95,11 +95,7 @@ class FormulaLineEdit(ValidColorLineEdit):
 
 
 class CalculationsTool(Tool):
-    def __init__(
-        self,
-        widget: LaserWidget,
-        parent: QtWidgets.QWidget = None,
-    ):
+    def __init__(self, widget: LaserWidget, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Calculator")
         self.widget = widget
@@ -112,6 +108,11 @@ class CalculationsTool(Tool):
         self.viewoptions.image.cmap = widget.canvas.viewoptions.image.cmap
 
         self.canvas = LaserCanvas(self.viewoptions)
+        self.output = QtWidgets.QLineEdit("Result")
+        self.output.setEnabled(False)
+        self.output.setSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding
+        )
 
         self.lineedit_name = NameLineEdit("", badnames=[])
         self.lineedit_name.revalidate()
@@ -142,6 +143,7 @@ class CalculationsTool(Tool):
         layout_form.addRow("Name:", self.lineedit_name)
         layout_form.addRow("Insert:", layout_combos)
         layout_form.addRow("Formula:", self.formula)
+        layout_form.addRow("Result:", self.output)
 
         self.layout_main.addWidget(self.canvas)
         self.layout_main.addLayout(layout_form)
@@ -188,14 +190,15 @@ class CalculationsTool(Tool):
             self.result = self.reducer.reduce(self.formula.expr)
         except ReducerException:
             self.result = None
+            self.output.clear()
             return
         if isinstance(self.result, float):
-            return
-        # Remove all nan and inf values
-        # result = np.where(np.isfinite(result), result, np.nan)
-        extent = self.widget.laser.config.data_extent(self.result)
-        self.canvas.drawData(self.result, extent)
-        self.canvas.draw()
+            self.output.setText(f"{self.result:.10g}")
+        else:
+            self.output.clear()
+            extent = self.widget.laser.config.data_extent(self.result)
+            self.canvas.drawData(self.result, extent)
+            self.canvas.draw()
 
     def widgetChanged(self) -> None:
         self.combo_isotopes.clear()
