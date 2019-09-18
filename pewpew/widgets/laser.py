@@ -12,18 +12,12 @@ from laserlib.io.error import LaserLibException
 from pewpew.lib.io import import_any
 from pewpew.lib.viewoptions import ViewOptions
 
+from pewpew.widgets.actions import qAction
 from pewpew.widgets.canvases import InteractiveLaserCanvas
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.views import View, ViewSpace
 
-from typing import Callable, List
-
-
-def qAction(icon: str, label: str, status: str, func: Callable) -> QtWidgets.QAction:
-    action = QtWidgets.QAction(QtGui.QIcon.fromTheme(icon), label)
-    action.setStatusTip(status)
-    action.triggered.connect(func)
-    return action
+from typing import List
 
 
 class LaserViewSpace(ViewSpace):
@@ -45,14 +39,6 @@ class LaserViewSpace(ViewSpace):
         self.views.append(view)
         self.numViewsChanged.emit()
         return view
-
-    # def openDocument(self, paths: str) -> None:
-    #     view = self.activeView()
-    #     view.openDocument(paths, self.config)
-
-    # def saveDocument(self, path: str) -> None:
-    #     view = self.activeView()
-    #     view.saveDocument(path)
 
     def setCurrentIsotope(self, isotope: str) -> None:
         for view in self.views:
@@ -211,7 +197,6 @@ class LaserWidget(QtWidgets.QWidget):
         self.is_srr = isinstance(laser, KrissKross)
 
         self.canvas = InteractiveLaserCanvas(viewoptions, parent=self)
-        # self.canvas.setFocusPolicy(QtCore.Qt.ClickFocus)
 
         self.combo_layers = QtWidgets.QComboBox()
         self.combo_layers.addItem("*")
@@ -226,14 +211,30 @@ class LaserWidget(QtWidgets.QWidget):
         self.combo_isotopes.currentIndexChanged.connect(self.refresh)
         self.populateIsotopes()
 
+        self.selection_button = QtWidgets.QToolButton()
+        self.selection_button.setAutoRaise(True)
+        self.selection_button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+        self.selection_button.setIcon(QtGui.QIcon.fromTheme("select"))
+        self.action_select_none = qAction("transform-move", "End Selection", "End selection tool.", self.canvas.endSelection)
+        self.selection_button.addAction(self.action_select_none)
+        self.action_select_rect = qAction("draw-rectangle", "Rectangle Selector", "Start the rectangle selector tool.", self.canvas.startRectangleSelection)
+        self.selection_button.addAction(self.action_select_rect)
+        self.action_select_lasso = qAction("draw-freehand", "Lasso Selector", "Start the lasso selector tool.", self.canvas.startLassoSelection)
+        self.selection_button.addAction(self.action_select_lasso)
+        self.selection_button.installEventFilter(self)
+
         self.view_button = QtWidgets.QToolButton()
         self.view_button.setAutoRaise(True)
         self.view_button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
         self.view_button.setIcon(QtGui.QIcon.fromTheme("zoom-in"))
-        self.view_button.addAction(QtWidgets.QAction("zo"))
+        self.action_zoom_in = qAction("zoom-in", "Zoom to Area", "Start zoom area selection.", self.canvas.startZoom)
+        self.view_button.addAction(self.action_zoom_in)
+        self.action_zoom_out = qAction("zoom-original", "Reset Zoom", "Reset zoom to full imgae extent.", self.canvas.unzoom)
+        self.view_button.addAction(self.action_zoom_out)
         self.view_button.installEventFilter(self)
 
         layout_bar = QtWidgets.QHBoxLayout()
+        layout_bar.addWidget(self.selection_button, 0, QtCore.Qt.AlignLeft)
         layout_bar.addWidget(self.view_button, 0, QtCore.Qt.AlignLeft)
         layout_bar.addStretch(1)
         layout_bar.addWidget(self.combo_layers, 0, QtCore.Qt.AlignRight)
@@ -325,9 +326,15 @@ class LaserWidget(QtWidgets.QWidget):
         self.action_export = qAction(
             "document-save-as", "E&xport", "Export documents.", self.actionExport
         )
+        self.action_export.setShortcut("Ctrl+X")
+        # Add the export action so we can use it via shortcut
+        self.addAction(self.action_export)
         self.action_save = qAction(
             "document-save", "&Save", "Save document to numpy archive.", self.actionSave
         )
+        self.action_save.setShortcut("Ctrl+S")
+        # Add the save action so we can use it via shortcut
+        self.addAction(self.action_save)
         self.action_statistics = qAction(
             "dialog-information",
             "Statistics",

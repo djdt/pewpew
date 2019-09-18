@@ -1,23 +1,18 @@
 import sys
-import copy
 import traceback
-import os.path
 
-from PySide2 import QtGui, QtWidgets
-
-from laserlib.krisskross import KrissKross
+from PySide2 import QtWidgets
 
 from pewpew import __version__
 
 from pewpew.widgets.actions import qAction, qActionGroup
 from pewpew.widgets import dialogs
-from pewpew.widgets.exportdialogs import ExportDialog, ExportAllDialog
+from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.prompts import DetailedError
 from pewpew.widgets.tools import CalculationsTool, StandardsTool
 from pewpew.widgets.wizards import KrissKrossWizard
 from pewpew.widgets.laser import LaserViewSpace
 
-from typing import Callable
 from types import TracebackType
 
 
@@ -72,7 +67,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "Export all open documents.",
             self.actionExportAll,
         )
-        self.action_export_all.setShortcut("Ctrl+X")
+        self.action_export_all.setShortcut("Ctrl+Shift+X")
         self.action_fontsize = qAction(
             "insert-text", "Fontsize", "Set size of fonts.", self.actionFontsize
         )
@@ -237,18 +232,8 @@ class MainWindow(QtWidgets.QMainWindow):
         return wiz
 
     def actionOpen(self) -> QtWidgets.QDialog:
-        dlg = QtWidgets.QFileDialog(
-            self,
-            "Open File(s).",
-            "",
-            "CSV Documents(*.csv *.txt);;Numpy Archives(*.npz);;"
-            "Pew Pew Sessions(*.pew);;All files(*)",
-        )
-        dlg.selectNameFilter("All files(*)")
-        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-        dlg.filesSelected.connect(self.viewspace.activeView().openDocument)
-        dlg.open()
-        return dlg
+        view = self.viewspace.activeView()
+        return view.actionOpen()
 
     def actionToggleCalibrate(self, checked: bool) -> None:
         self.viewspace.options.calibrate = checked

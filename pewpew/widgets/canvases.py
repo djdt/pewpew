@@ -347,6 +347,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             lineprops=self.lineprops,
         )
         self.widget.set_active(True)
+        self.setFocus(QtCore.Qt.NoFocusReason)
 
     def startRectangleSelection(self) -> None:
         self.clearSelection()
@@ -359,6 +360,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             lineprops=self.lineprops,
         )
         self.widget.set_active(True)
+        self.setFocus(QtCore.Qt.NoFocusReason)
 
     def clearSelection(self) -> None:
         if self.widget is not None:

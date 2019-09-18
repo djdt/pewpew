@@ -145,6 +145,7 @@ class ExportDialog(QtWidgets.QDialog):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
+        self.setWindowTitle("Export")
         self.laser = laser
         self.isotope = isotope
         self.viewlimits = viewlimits
@@ -385,6 +386,7 @@ class ExportAllDialog(ExportDialog):
             viewoptions,
             parent,
         )
+        self.setWindowTitle("Export All")
         # Adjust widgets for all
         label = self.layout_form.labelForField(self.lineedit_filename)
         label.setText("Prefix:")
