@@ -11,8 +11,16 @@ from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 from typing import Tuple
 
 
-class MetricScaleBar(AnchoredSizeBar):
-    units = {"pm": 1e-12, "nm": 1e-9, "μm": 1e-6, "mm": 1e-3, "cm": 1e-2, "m": 1.0}
+class MetricSizeBar(AnchoredSizeBar):
+    units = {
+        "pm": 1e-12,
+        "nm": 1e-9,
+        "μm": 1e-6,
+        "mm": 1e-3,
+        "cm": 1e-2,
+        "m": 1.0,
+        "km": 1e3,
+    }
     allowed_lengths = [1, 2, 5, 10, 20, 50, 100, 200, 500]
 
     def __init__(
