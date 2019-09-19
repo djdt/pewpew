@@ -74,16 +74,3 @@ def image_extent_to_data(image: AxesImage) -> BboxTransform:
     return BboxTransform(
         boxin=Bbox([[x0, y0], [x1, y1]]), boxout=Bbox([[0, 0], [nx, ny]])
     )
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
-    fig, ax = plt.subplots()
-    ax.set_facecolor("black")
-    ax.set_xlim(0, 100)
-    ax.set_ylim(0, 100)
-
-    sb = MetricScaleBar(ax)
-    ax.add_artist(sb)
-    plt.show()
