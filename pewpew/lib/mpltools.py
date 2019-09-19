@@ -5,6 +5,7 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.backend_bases import RendererBase
 from matplotlib.image import AxesImage
 from matplotlib.transforms import Bbox, BboxTransform
+from matplotlib.patheffects import Stroke, Normal
 
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
@@ -47,6 +48,10 @@ class MetricSizeBar(AnchoredSizeBar):
         )
         self.bar_height = bar_height_fraction
         self.unit = axes_unit
+        # Give a black outline to the bar and text
+        rect = self.size_bar.get_children()[0]
+        rect.set_edgecolor("black")
+        self.txt_label._text.set_path_effects([Stroke(linewidth=1.5, foreground="black"), Normal()])
 
     def get_bar_height(self) -> float:
         return abs(self.axes.get_ylim()[1] - self.axes.get_ylim()[0]) * self.bar_height
@@ -59,18 +64,20 @@ class MetricSizeBar(AnchoredSizeBar):
         factors = list(self.units.values())
         idx = np.searchsorted(factors, base) - 1
 
-        new = base / factors[idx]
+        new = self.allowed_lengths[
+            np.searchsorted(self.allowed_lengths, base / factors[idx]) - 1
+        ]
         new_unit = units[idx]
 
-        new = self.allowed_lengths[np.searchsorted(self.allowed_lengths, new)]
-        return new, new_unit
+        return new * factors[idx] / self.units[self.unit], new_unit
 
     def draw(self, renderer: RendererBase, *args, **kwargs) -> None:
         width, unit = self.get_bar_width_and_unit()
         rect = self.size_bar.get_children()[0]
         rect.set_width(width)
         rect.set_height(self.get_bar_height())
-        self.txt_label.set_text(f"{width} {unit}")
+        factor = self.units[unit] / self.units[self.unit]
+        self.txt_label.set_text(f"{width / factor:.0f} {unit}")
         super().draw(renderer, *args, **kwargs)
 
 
@@ -82,3 +89,25 @@ def image_extent_to_data(image: AxesImage) -> BboxTransform:
     return BboxTransform(
         boxin=Bbox([[x0, y0], [x1, y1]]), boxout=Bbox([[0, 0], [nx, ny]])
     )
+
+
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(3)
+
+    ax[0].set_xlim(0, 8)
+    ax[0].set_facecolor("black")
+    ax[1].set_xlim(0, 1000)
+    ax[1].set_facecolor("black")
+    ax[2].set_xlim(0, 6000)
+    ax[2].set_facecolor("black")
+
+    sb = MetricSizeBar(ax[0])
+    ax[0].add_artist(sb)
+    sb2 = MetricSizeBar(ax[1])
+    ax[1].add_artist(sb2)
+    sb3 = MetricSizeBar(ax[2])
+    ax[2].add_artist(sb3)
+
+    plt.show()
