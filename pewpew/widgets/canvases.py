@@ -11,13 +11,12 @@ from matplotlib.offsetbox import AnchoredText
 from matplotlib.ticker import MaxNLocator
 from matplotlib.widgets import AxesWidget, RectangleSelector
 
-from matplotlib_scalebar.scalebar import ScaleBar
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from laserlib.laser import Laser
 from laserlib.krisskross import KrissKrossConfig
 
-from pewpew.lib.mpltools import image_extent_to_data
+from pewpew.lib.mpltools import MetricSizeBar, image_extent_to_data
 from pewpew.lib.mplwidgets import (
     _ImageSelectionWidget,
     RectangleImageSelectionWidget,
@@ -34,7 +33,7 @@ class BasicCanvas(FigureCanvasQTAgg):
         figsize: Tuple[float, float] = (5.0, 5.0),
         parent: QtWidgets.QWidget = None,
     ):
-        fig = Figure(frameon=False, tight_layout=True, figsize=figsize, dpi=100)
+        fig = Figure(frameon=False, tight_layout=True, figsize=figsize)
         super().__init__(fig)
 
         self.setParent(parent)
@@ -269,13 +268,11 @@ class LaserCanvas(BasicCanvas):
             self.ax.add_artist(text)
 
         if self.viewoptions.canvas.scalebar:
-            scalebar = ScaleBar(
-                1.0,
-                "um",
-                location="upper right",
-                frameon=False,
+            scalebar = MetricSizeBar(
+                self.ax,
+                loc="upper right",
                 color=self.viewoptions.font.color,
-                font_properties={"size": self.viewoptions.font.size},
+                font_properties=self.viewoptions.font.mpl_props(),
             )
             self.ax.add_artist(scalebar)
 
