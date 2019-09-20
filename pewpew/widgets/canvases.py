@@ -6,7 +6,7 @@ from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from matplotlib.image import AxesImage
-from matplotlib.patheffects import Normal, SimpleLineShadow
+from matplotlib.patheffects import Normal, withStroke, SimpleLineShadow
 from matplotlib.offsetbox import AnchoredText
 from matplotlib.ticker import MaxNLocator
 from matplotlib.widgets import AxesWidget, RectangleSelector
@@ -260,10 +260,14 @@ class LaserCanvas(BasicCanvas):
             text = AnchoredText(
                 name,
                 "upper left",
-                pad=0.2,
-                borderpad=0.1,
+                pad=0.5,
+                borderpad=0,
                 frameon=False,
-                prop=self.viewoptions.font.props(),
+                prop=dict(
+                    color=self.viewoptions.font.color,
+                    fontproperties=self.viewoptions.font.mpl_props(),
+                    path_effects=[withStroke(linewidth=1.5, foreground="black")],
+                ),
             )
             self.ax.add_artist(text)
 
