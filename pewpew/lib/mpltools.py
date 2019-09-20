@@ -5,7 +5,7 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.backend_bases import RendererBase
 from matplotlib.image import AxesImage
 from matplotlib.transforms import Bbox, BboxTransform
-from matplotlib.patheffects import Stroke, Normal
+from matplotlib.patheffects import withStroke
 
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
@@ -31,8 +31,11 @@ class MetricSizeBar(AnchoredSizeBar):
         loc: str = "upper right",
         bar_height_fraction: float = 0.01,
         color: str = "white",
+        edgecolor: str = "black",
         font_properties: FontProperties = None,
     ):
+        self.min_length = list(self.units.values())[0] * self.allowed_lengths[0]
+        self.max_length = list(self.units.values())[-1] * self.allowed_lengths[-1]
         super().__init__(
             axes.transData,
             0,
@@ -49,9 +52,13 @@ class MetricSizeBar(AnchoredSizeBar):
         self.bar_height = bar_height_fraction
         self.unit = axes_unit
         # Give a black outline to the bar and text
-        rect = self.size_bar.get_children()[0]
-        rect.set_edgecolor("black")
-        self.txt_label._text.set_path_effects([Stroke(linewidth=1.5, foreground="black"), Normal()])
+        if edgecolor is not None:
+            rect = self.size_bar.get_children()[0]
+            rect.set_edgecolor(None)
+            rect.set_path_effects([withStroke(linewidth=1.5, foreground=edgecolor)])
+            self.txt_label._text.set_path_effects(
+                [withStroke(linewidth=1.5, foreground=edgecolor)]
+            )
 
     def get_bar_height(self) -> float:
         return abs(self.axes.get_ylim()[1] - self.axes.get_ylim()[0]) * self.bar_height
@@ -62,7 +69,7 @@ class MetricSizeBar(AnchoredSizeBar):
 
         units = list(self.units.keys())
         factors = list(self.units.values())
-        idx = np.searchsorted(factors, base) - 1
+        idx = np.max(np.searchsorted(factors, base) - 1, 0)
 
         new = self.allowed_lengths[
             np.searchsorted(self.allowed_lengths, base / factors[idx]) - 1
@@ -74,10 +81,15 @@ class MetricSizeBar(AnchoredSizeBar):
     def draw(self, renderer: RendererBase, *args, **kwargs) -> None:
         width, unit = self.get_bar_width_and_unit()
         rect = self.size_bar.get_children()[0]
-        rect.set_width(width)
-        rect.set_height(self.get_bar_height())
-        factor = self.units[unit] / self.units[self.unit]
-        self.txt_label.set_text(f"{width / factor:.0f} {unit}")
+        if width < self.min_length or width > self.max_length:
+            rect.set_width(0)
+            rect.set_height(0)
+            self.txt_label.set_text(f"No Scale")
+        else:
+            rect.set_width(width)
+            rect.set_height(self.get_bar_height())
+            factor = self.units[unit] / self.units[self.unit]
+            self.txt_label.set_text(f"{width / factor:.0f} {unit}")
         super().draw(renderer, *args, **kwargs)
 
 
@@ -96,11 +108,11 @@ if __name__ == "__main__":
 
     fig, ax = plt.subplots(3)
 
-    ax[0].set_xlim(0, 8)
-    ax[0].set_facecolor("black")
+    ax[0].set_xlim(0, 2e-12)
+    ax[0].set_facecolor("white")
     ax[1].set_xlim(0, 1000)
-    ax[1].set_facecolor("black")
-    ax[2].set_xlim(0, 6000)
+    ax[1].set_facecolor("red")
+    ax[2].set_xlim(0, 6e100)
     ax[2].set_facecolor("black")
 
     sb = MetricSizeBar(ax[0])
