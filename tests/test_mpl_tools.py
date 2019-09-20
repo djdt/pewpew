@@ -30,4 +30,4 @@ def test_metric_size_bar():
     assert sizebars[3].txt_label.get_text() == "50 cm"
     assert sizebars[4].txt_label.get_text() == "No Scale"
 
-    plt.close()
+    plt.close(fig)
