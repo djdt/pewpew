@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib.colors import Colormap
-from matplotlib.cm import get_cmap
+from matplotlib.font_manager import FontProperties
 
 from pewpew.lib.mplcolors import ppSpectral, googleTurbo
 
@@ -111,3 +111,6 @@ class FontOptions(object):
 
     def props(self) -> dict:
         return {"size": self.size, "color": self.color}
+
+    def mpl_props(self) -> FontProperties:
+        return FontProperties(size=self.size)
