@@ -29,3 +29,5 @@ def test_metric_size_bar():
     assert sizebars[2].txt_label.get_text() == "500 μm"
     assert sizebars[3].txt_label.get_text() == "50 cm"
     assert sizebars[4].txt_label.get_text() == "No Scale"
+
+    plt.close()
