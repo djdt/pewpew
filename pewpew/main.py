@@ -5,7 +5,7 @@ from PySide2 import QtWidgets
 
 from pewpew import __version__
 
-from pewpew.widgets.actions import qAction, qActionGroup
+from pewpew.actions import qAction, qActionGroup
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.prompts import DetailedError
