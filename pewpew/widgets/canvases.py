@@ -14,7 +14,7 @@ from matplotlib.widgets import AxesWidget, RectangleSelector
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from laserlib.laser import Laser
-from laserlib.krisskross import KrissKrossConfig
+from laserlib.krisskross import KrissKross
 
 from pewpew.lib.mpltools import MetricSizeBar, image_extent_to_data
 from pewpew.lib.mplwidgets import (
@@ -234,12 +234,10 @@ class LaserCanvas(BasicCanvas):
         )
 
         # Get extent
-        extent = (
-            laser.config.data_extent(data, layer)
-            if isinstance(laser.config, KrissKrossConfig)
-            else laser.config.data_extent(data)
-        )
-
+        if layer is not None:
+            extent = laser.config.data_extent(data.shape, layer)
+        else:
+            extent = laser.config.data_extent(data.shape)
         # Only change the view if new or the laser extent has changed (i.e. conf edit)
         if self.extent != extent:
             self.view_limits = extent
@@ -326,11 +324,17 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
     def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
         super().drawLaser(laser, name, layer)
         # Save some variables for the status bar
-        self.px, self.py = (
-            (laser.config.get_pixel_width(layer), laser.config.get_pixel_height(layer))
-            if isinstance(laser.config, KrissKrossConfig)
-            else (laser.config.get_pixel_width(), laser.config.get_pixel_height())
-        )
+        if layer is not None:
+            self.px, self.py = (
+                laser.config.get_pixel_width(layer),
+                laser.config.get_pixel_height(layer),
+            )
+        else:
+            self.px, self.py = (
+                laser.config.get_pixel_width(),
+                laser.config.get_pixel_height(),
+            )
+
         self.ps = laser.config.speed
 
     def endSelection(self) -> None:
