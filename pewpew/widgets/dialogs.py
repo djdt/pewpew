@@ -338,21 +338,25 @@ class ConfigDialog(ApplyDialog):
 
         # Line edits
         self.lineedit_spotsize = QtWidgets.QLineEdit()
-        self.lineedit_spotsize.setPlaceholderText(str(self.config.spotsize))
-        self.lineedit_spotsize.setValidator(DecimalValidator(0, 1e3, 0))
+        self.lineedit_spotsize.setText(str(self.config.spotsize))
+        self.lineedit_spotsize.setValidator(DecimalValidator(0, 1e5, 1))
+        self.lineedit_spotsize.textChanged.connect(self.completeChanged)
         self.lineedit_speed = QtWidgets.QLineEdit()
-        self.lineedit_speed.setPlaceholderText(str(self.config.speed))
-        self.lineedit_speed.setValidator(DecimalValidator(0, 1e3, 0))
+        self.lineedit_speed.setText(str(self.config.speed))
+        self.lineedit_speed.setValidator(DecimalValidator(0, 1e5, 1))
+        self.lineedit_speed.textChanged.connect(self.completeChanged)
         self.lineedit_scantime = QtWidgets.QLineEdit()
-        self.lineedit_scantime.setPlaceholderText(str(self.config.scantime))
-        self.lineedit_scantime.setValidator(DecimalValidator(0, 1e3, 4))
+        self.lineedit_scantime.setText(str(self.config.scantime))
+        self.lineedit_scantime.setValidator(DecimalValidator(0, 1e5, 4))
+        self.lineedit_scantime.textChanged.connect(self.completeChanged)
 
         if isinstance(config, KrissKrossConfig):
             self.lineedit_warmup = QtWidgets.QLineEdit()
-            self.lineedit_warmup.setPlaceholderText(
+            self.lineedit_warmup.setText(
                 str(self.config.warmup)  # type: ignore
             )
-            self.lineedit_warmup.setValidator(DecimalValidator(0, 100, 1))
+            self.lineedit_warmup.setValidator(DecimalValidator(0, 1e3, 1))
+            self.lineedit_warmup.textChanged.connect(self.completeChanged)
             self.spinbox_offsets = QtWidgets.QSpinBox()
             self.spinbox_offsets.setRange(2, 10)
             self.spinbox_offsets.setValue(self.config._subpixel_size)  # type: ignore
@@ -372,20 +376,28 @@ class ConfigDialog(ApplyDialog):
         self.layout_main.addWidget(self.check_all)
 
     def updateConfig(self) -> None:
-        if self.lineedit_spotsize.text() != "":
-            self.config.spotsize = float(self.lineedit_spotsize.text())
-        if self.lineedit_speed.text() != "":
-            self.config.speed = float(self.lineedit_speed.text())
-        if self.lineedit_scantime.text() != "":
-            self.config.scantime = float(self.lineedit_scantime.text())
+        self.config.spotsize = float(self.lineedit_spotsize.text())
+        self.config.speed = float(self.lineedit_speed.text())
+        self.config.scantime = float(self.lineedit_scantime.text())
         if isinstance(self.config, KrissKrossConfig):
-            if self.lineedit_warmup.text() != "":
-                self.config.warmup = float(self.lineedit_warmup.text())
+            self.config.warmup = float(self.lineedit_warmup.text())
             self.config.set_equal_subpixel_offsets(self.spinbox_offsets.value())
 
     def apply(self) -> None:
         self.updateConfig()
         self.configSelected.emit(self.config, self.check_all.isChecked())
+
+    def isComplete(self) -> bool:
+        if not self.lineedit_spotsize.hasAcceptableInput():
+            return False
+        if not self.lineedit_speed.hasAcceptableInput():
+            return False
+        if not self.lineedit_scantime.hasAcceptableInput():
+            return False
+        if isinstance(self.config, KrissKrossConfig):
+            if not self.lineedit_warmup.hasAcceptableInput():
+                return False
+        return True
 
 
 class MultipleDirDialog(QtWidgets.QFileDialog):
