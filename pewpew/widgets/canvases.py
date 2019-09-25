@@ -228,9 +228,7 @@ class LaserCanvas(BasicCanvas):
         kwargs = {"calibrate": self.viewoptions.calibrate, "layer": layer, "flat": True}
 
         data = laser.get(name, **kwargs)
-        unit = (
-            str(laser.data[name].calibration.unit) if self.viewoptions.calibrate else ""
-        )
+        unit = str(laser.calibration[name].unit) if self.viewoptions.calibrate else ""
 
         # Get extent
         extent = laser.config.data_extent(data.shape, layer=layer)

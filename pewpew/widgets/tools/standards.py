@@ -40,9 +40,7 @@ class StandardsTool(Tool):
         self.viewoptions.canvas.scalebar = False
         self.viewoptions.image.cmap = widget.canvas.viewoptions.image.cmap
 
-        self.calibrations = {
-            k: copy.copy(v.calibration) for k, v in self.widget.laser.data.items()
-        }
+        self.calibrations = copy.deepcopy(widget.laser.calibration)
         self.previous_isotope = ""
         current_isotope = self.widget.combo_isotopes.currentText()
 
@@ -140,7 +138,7 @@ class StandardsTool(Tool):
 
     def draw(self) -> None:
         isotope = self.combo_isotope.currentText()
-        if isotope in self.widget.laser.data:
+        if isotope in self.widget.laser.isotopes:
             self.canvas.drawLaser(self.widget.laser, isotope)
             self.canvas.drawLevels(
                 StandardsTable.ROW_LABELS, self.spinbox_levels.value()
@@ -245,9 +243,7 @@ class StandardsTool(Tool):
         self.draw()
 
     def widgetChanged(self) -> None:
-        self.calibrations = {
-            k: copy.copy(v.calibration) for k, v in self.widget.laser.data.items()
-        }
+        self.calibrations = copy.deepcopy(self.widget.laser.calibration)
         # Prevent currentIndexChanged being emmited
         self.combo_isotope.blockSignals(True)
         self.combo_isotope.clear()

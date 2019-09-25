@@ -29,7 +29,7 @@ def test_tool(qtbot: QtBot):
 
 
 def test_standards_tool(qtbot: QtBot):
-    laser = Laser.from_structured(
+    laser = Laser(
         np.array(np.arange(100).reshape((10, 10)), dtype=[("A1", float), ("B2", float)])
     )
     viewoptions = ViewOptions()
@@ -89,9 +89,7 @@ def test_standards_tool(qtbot: QtBot):
 
 
 def test_calculations_tool(qtbot: QtBot):
-    laser = Laser.from_structured(
-        np.array(np.random.random((10, 10)), dtype=[("A1", float)])
-    )
+    laser = Laser(np.array(np.random.random((10, 10)), dtype=[("A1", float)]))
     viewoptions = ViewOptions()
     tool = CalculationsTool(LaserWidget(laser, viewoptions, None))
     qtbot.addWidget(tool)
@@ -122,4 +120,4 @@ def test_calculations_tool(qtbot: QtBot):
     assert tool.isComplete()
 
     tool.apply()
-    assert np.all(laser.data["A2"].data == laser.data["A1"].data + 1.0)
+    assert np.all(laser.data["A2"] == laser.data["A1"] + 1.0)

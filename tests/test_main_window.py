@@ -65,9 +65,7 @@ def test_main_window_actions_widget(qtbot: QtBot):
     window = MainWindow()
     qtbot.addWidget(window)
     window.viewspace.views[0].addLaser(
-        Laser.from_structured(
-            np.array(np.random.random((10, 10)), dtype=[("A1", float)])
-        )
+        Laser(np.array(np.random.random((10, 10)), dtype=[("A1", float)]))
     )
     window.viewspace.refresh()
 
@@ -89,9 +87,7 @@ def test_main_window_apply_dialogs(qtbot: QtBot):
     window = MainWindow()
     qtbot.addWidget(window)
     window.viewspace.views[0].addLaser(
-        Laser.from_structured(
-            np.array(np.random.random((10, 10)), dtype=[("A1", float)])
-        )
+        Laser(np.array(np.random.random((10, 10)), dtype=[("A1", float)]))
     )
     window.viewspace.refresh()
 

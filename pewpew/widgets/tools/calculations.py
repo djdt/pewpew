@@ -188,9 +188,9 @@ class CalculationsTool(Tool):
             return
         if np.isscalar(self.result):
             self.output.setText(f"{self.result:.10g}")
-        else:
+        elif isinstance(self.result, np.ndarray):
             self.output.clear()
-            extent = self.widget.laser.config.data_extent(self.result)
+            extent = self.widget.laser.config.data_extent(self.result.shape)
             self.canvas.drawData(self.result, extent)
             self.canvas.draw()
 
@@ -201,7 +201,8 @@ class CalculationsTool(Tool):
 
         self.lineedit_name.badnames = self.widget.laser.isotopes
 
-        self.reducer.variables = {k: v.data for k, v in self.widget.laser.data.items()}
+        data = self.widget.laser.data
+        self.reducer.variables = {name: data[name] for name in data.dtype.names}
         self.formula.parser.variables = self.widget.laser.isotopes
         self.formula.valid = True
         self.formula.setText(self.widget.combo_isotopes.currentText())

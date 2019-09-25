@@ -187,7 +187,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.open()
         return dlg
 
-    def actionFontsize(self) -> None:
+    def actionFontsize(self) -> QtWidgets.QDialog:
         dlg = QtWidgets.QInputDialog(self)
         dlg.setWindowTitle("Fontsize")
         dlg.setLabelText("Fontisze:")

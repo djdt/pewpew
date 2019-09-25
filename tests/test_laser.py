@@ -7,20 +7,17 @@ from pew.laser import Laser
 from pew.config import Config
 from pew.calibration import Calibration
 
-from pewpew.lib.viewoptions import ViewOptions
-
-from pewpew.widgets.laser import LaserWidget, LaserViewSpace
+from pewpew.widgets.laser import LaserViewSpace
 
 from typing import List
 
 
-def rand_laser(names: List[str]) -> Laser:
+def rand_data(names: List[str]) -> np.ndarray:
     dtype = [(name, float) for name in names]
-    return Laser.from_structured(
-        np.array(np.random.random((10, 10)), dtype=dtype),
-        name="laser",
-        filepath="/home/laser.npz",
-    )
+    data = np.empty((10, 10), dtype=dtype)
+    for name in names:
+        data[name] = np.random.random((10, 10))
+    return data
 
 
 def test_laser_view_space(qtbot: QtBot):
@@ -30,10 +27,10 @@ def test_laser_view_space(qtbot: QtBot):
 
     viewspace.splitActiveHorizontal()
 
-    viewspace.views[0].addLaser(rand_laser(["A1", "B2"]))
-    viewspace.views[0].addLaser(rand_laser(["A1", "C3"]))
-    viewspace.views[1].addLaser(rand_laser(["A1", "C3"]))
-    viewspace.views[1].addLaser(rand_laser(["B2", "D4"]))
+    viewspace.views[0].addLaser(Laser(rand_data(["A1", "B2"])))
+    viewspace.views[0].addLaser(Laser(rand_data(["A1", "C3"])))
+    viewspace.views[1].addLaser(Laser(rand_data(["A1", "C3"])))
+    viewspace.views[1].addLaser(Laser(rand_data(["B2", "D4"])))
 
     assert viewspace.uniqueIsotopes() == ["A1", "B2", "C3", "D4"]
     # Apply config
@@ -51,14 +48,14 @@ def test_laser_view_space(qtbot: QtBot):
     for view in viewspace.views:
         for widget in view.widgets():
             if "A1" in widget.laser.isotopes:
-                assert widget.laser.data["A1"].calibration.intercept == 1.0
-                assert widget.laser.data["A1"].calibration.gradient == 1.0
+                assert widget.laser.calibration["A1"].intercept == 1.0
+                assert widget.laser.calibration["A1"].gradient == 1.0
             if "B2" in widget.laser.isotopes:
-                assert widget.laser.data["B2"].calibration.intercept == 2.0
-                assert widget.laser.data["B2"].calibration.gradient == 2.0
+                assert widget.laser.calibration["B2"].intercept == 2.0
+                assert widget.laser.calibration["B2"].gradient == 2.0
             if "C3" in widget.laser.isotopes:
-                assert widget.laser.data["C3"].calibration.intercept == 0.0
-                assert widget.laser.data["C3"].calibration.gradient == 1.0
+                assert widget.laser.calibration["C3"].intercept == 0.0
+                assert widget.laser.calibration["C3"].gradient == 1.0
 
     # Check isotope changed if avilable
     assert viewspace.views[0].activeWidget().combo_isotopes.currentText() == "A1"
@@ -75,8 +72,9 @@ def test_laser_view_space(qtbot: QtBot):
 def test_laser_view(qtbot: QtBot):
     viewspace = LaserViewSpace()
     qtbot.addWidget(viewspace)
+    viewspace.show()
     view = viewspace.activeView()
-    view.addLaser(rand_laser(["A1", "B2", "C3"]))
+    view.addLaser(Laser(rand_data(["A1", "B2", "C3"])))
 
     view.tabs.setTabText(0, "newname")
     assert view.stack.widget(0).laser.name == "newname"
@@ -92,21 +90,24 @@ def test_laser_view(qtbot: QtBot):
 def test_laser_widget(qtbot: QtBot):
     viewspace = LaserViewSpace()
     qtbot.addWidget(viewspace)
+    viewspace.show()
     view = viewspace.activeView()
-    view.addLaser(rand_laser(["A1", "B2", "C3"]))
+    view.addLaser(Laser(rand_data(["A1", "B2", "C3"])))
     widget = view.activeWidget()
-    widget.show()
 
     widget.applyConfig(Config(1.0, 1.0, 1.0))
     assert widget.laser.config.spotsize == 1.0
     widget.applyCalibration({"B2": Calibration(2.0, 2.0)})
-    assert widget.laser.data["B2"].calibration.intercept == 2.0
+    assert widget.laser.calibration["B2"].intercept == 2.0
 
 
 def test_laser_widget_actions(qtbot: QtBot):
-    widget = LaserWidget(rand_laser(["A1"]), ViewOptions(), None)
-    qtbot.addWidget(widget)
-    widget.show()
+    viewspace = LaserViewSpace()
+    qtbot.addWidget(viewspace)
+    viewspace.show()
+    view = viewspace.activeView()
+    view.addLaser(Laser(rand_data(["A1"])))
+    widget = view.activeWidget()
 
     dlg = widget.actionCalibration()
     dlg.close()

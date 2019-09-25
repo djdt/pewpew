@@ -97,9 +97,9 @@ def test_laser_config_dialog(qtbot: QtBot):
     assert not hasattr(dialog, "lineedit_warmup")
     assert not hasattr(dialog, "spinbox_offsets")
     # Check the texts are correct
-    assert dialog.lineedit_spotsize.placeholderText() == str(config.spotsize)
-    assert dialog.lineedit_speed.placeholderText() == str(config.speed)
-    assert dialog.lineedit_scantime.placeholderText() == str(config.scantime)
+    assert dialog.lineedit_spotsize.text() == str(config.spotsize)
+    assert dialog.lineedit_speed.text() == str(config.speed)
+    assert dialog.lineedit_scantime.text() == str(config.scantime)
     dialog.lineedit_spotsize.setText("1")
     dialog.lineedit_speed.setText("2.")
     dialog.lineedit_scantime.setText("3.0000")

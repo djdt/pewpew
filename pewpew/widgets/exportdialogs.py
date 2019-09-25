@@ -152,9 +152,9 @@ class ExportDialog(QtWidgets.QDialog):
         self.viewoptions = viewoptions
 
         path = os.path.join(
-            os.path.dirname(self.laser.filepath), self.laser.name + ".npz"
+            os.path.dirname(self.laser.path), self.laser.name + ".npz"
         )
-        # path = laser.filepath
+        # path = laser.path
         directory = os.path.dirname(path)
         filename = os.path.basename(path)
 
@@ -380,7 +380,7 @@ class ExportAllDialog(ExportDialog):
         self.lineedit_prefix = QtWidgets.QLineEdit("")
         self.lineedit_prefix.textChanged.connect(self.updatePreview)
         super().__init__(
-            Laser(name="<NAME>", filepath=lasers[0].filepath),
+            Laser(data=lasers[0].data, name="<NAME>", path=lasers[0].path),
             "",
             (0, 1, 0, 1),
             viewoptions,
