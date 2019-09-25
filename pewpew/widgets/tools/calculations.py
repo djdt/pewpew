@@ -11,7 +11,7 @@ from pewpew.widgets.canvases import LaserCanvas
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import Tool
 
-from typing import List
+from typing import List, Union
 
 additional_parser_functions = {
     "mean": UnaryFunction("mean"),
@@ -127,7 +127,7 @@ class CalculationsTool(Tool):
         self.combo_functions.activated.connect(self.insertFunction)
 
         self.reducer = Reducer({})
-        self.result = None
+        self.result: Union[float, np.ndarray] = None
         self.formula = FormulaLineEdit("", variables=[])
         self.formula.textChanged.connect(self.updateCanvas)
         self.formula.textChanged.connect(self.completeChanged)

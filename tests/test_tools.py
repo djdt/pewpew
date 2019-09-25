@@ -2,7 +2,7 @@ import numpy as np
 from PySide2 import QtCore, QtWidgets
 from pytestqt.qtbot import QtBot
 
-from laserlib.laser import Laser
+from pew.laser import Laser
 
 from pewpew.lib.viewoptions import ViewOptions
 

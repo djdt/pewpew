@@ -1,7 +1,7 @@
 import numpy as np
 import re
 
-from typing import List, Union
+from typing import Dict, List, Union
 
 
 class ParserException(Exception):
@@ -28,12 +28,12 @@ class Expr(object):
 class Null(object):
     rbp = -1
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> dict:
+    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         raise ParserException("Invalid token.")
 
 
 class Parens(Null):
-    def nud(self, parser: "Parser", tokens: List[str]) -> dict:
+    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         expr = parser.parseExpr(tokens)
         if len(tokens) == 0 or tokens.pop(0) != ")":
             raise ParserException("Mismatched parenthesis.")
@@ -44,12 +44,12 @@ class Value(Null):
     def __init__(self, value: str):
         self.value = value
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> dict:
+    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         return Expr(self.value)
 
 
 class NaN(Null):
-    def nud(self, parser: "Parser", tokens: List[str]) -> dict:
+    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         return Expr("nan")
 
 
@@ -58,7 +58,7 @@ class Unary(Null):
         self.value = value
         self.rbp = rbp
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> dict:
+    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         expr = parser.parseExpr(tokens, self.rbp)
         return Expr(self.value, children=[expr])
 
@@ -68,7 +68,7 @@ class Binary(Null):
         self.value = value
         self.div = div
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> dict:
+    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         expr = parser.parseExpr(tokens)
         if len(tokens) == 0 or tokens.pop(0) != self.div:
             raise ParserException(f"Missing '{self.div}' statement.")
@@ -82,7 +82,7 @@ class Ternary(Null):
         self.div = div
         self.div2 = div2
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> dict:
+    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         lexpr = parser.parseExpr(tokens)
         if len(tokens) == 0 or tokens.pop(0) != self.div:
             raise ParserException(f"Missing '{self.div}' statement.")
@@ -97,7 +97,7 @@ class UnaryFunction(Unary):
     def __init__(self, value: str):
         super().__init__(value, 0)
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> dict:
+    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         if len(tokens) == 0 or tokens.pop(0) != "(":
             raise ParserException("Missing opening parenthesis.")
         result = super().nud(parser, tokens)
@@ -110,7 +110,7 @@ class BinaryFunction(Binary):
     def __init__(self, value: str):
         super().__init__(value, ",")
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> dict:
+    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         if len(tokens) == 0 or tokens.pop(0) != "(":
             raise ParserException("Missing opening parenthesis.")
         result = super().nud(parser, tokens)
@@ -123,7 +123,7 @@ class TernaryFunction(Ternary):
     def __init__(self, value: str):
         super().__init__(value, ",", ",")
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> dict:
+    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         if len(tokens) == 0 or tokens.pop(0) != "(":
             raise ParserException("Missing opening parenthesis.")
         result = super().nud(parser, tokens)
@@ -136,7 +136,7 @@ class TernaryFunction(Ternary):
 class Left(object):
     lbp = -1
 
-    def led(self, parser: "Parser", tokens: List[str], expr: dict) -> dict:
+    def led(self, parser: "Parser", tokens: List[str], expr: Expr) -> Expr:
         raise ParserException("Invalid token.")
 
 
@@ -150,7 +150,7 @@ class LeftBinary(Left):
     def rbp(self):
         return self.lbp + (0 if self.right else 1)
 
-    def led(self, parser: "Parser", tokens: List[str], expr: dict) -> dict:
+    def led(self, parser: "Parser", tokens: List[str], expr: Expr) -> Expr:
         rexpr = parser.parseExpr(tokens, self.rbp)
         return Expr(self.value, children=[expr, rexpr])
 
@@ -165,7 +165,7 @@ class LeftTernary(Left):
     def rbp(self):
         return self.lbp + 1
 
-    def led(self, parser: "Parser", tokens: List[str], lexpr: dict) -> dict:
+    def led(self, parser: "Parser", tokens: List[str], lexpr: Expr) -> Expr:
         expr = parser.parseExpr(tokens)
         if len(tokens) == 0 or tokens.pop(0) != self.div:
             raise ParserException(f"Missing '{self.div}' statement.")
@@ -184,7 +184,7 @@ class Parser(object):
             f"\\s*([\\(\\)\\,]|{variable_token}|{number_token}|{operator_token})\\s*"
         )
 
-        self.variables = []
+        self.variables: List[str] = []
         if variables is not None:
             self.variables.extend(variables)
 
@@ -246,7 +246,7 @@ class Parser(object):
 
 class Reducer(object):
     def __init__(self, variables: dict = None):
-        self.variables = {}
+        self.variables: Dict[str, Union[float, np.ndarray]] = {}
         if variables is not None:
             self.variables.update(variables)
 

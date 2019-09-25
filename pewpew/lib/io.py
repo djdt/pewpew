@@ -1,13 +1,13 @@
 import os.path
 
-from laserlib import io
-from laserlib import Laser, LaserConfig
+from pew import io
+from pew import Laser, Config
 
 from typing import List
 
 
-def import_any(paths: List[str], config: LaserConfig) -> List[Laser]:
-    lasers = []
+def import_any(paths: List[str], config: Config) -> List[Laser]:
+    lasers: List[Laser] = []
     for path in paths:
         base, ext = os.path.splitext(path)
         name = os.path.basename(base)
@@ -18,17 +18,13 @@ def import_any(paths: List[str], config: LaserConfig) -> List[Laser]:
             if ext == ".csv":
                 try:
                     data = io.thermo.load(path)
-                except io.error.LaserLibException:
+                except io.error.PewException:
                     data = io.csv.load(path)
             elif ext in [".txt", ".text"]:
                 data = io.csv.load(path)
             elif ext == ".b":
                 data = io.agilent.load(path)
             else:
-                raise io.error.LaserLibException(f"Unknown extention '{ext}'.")
-            lasers.append(
-                Laser.from_structured(
-                    data=data, config=config, name=name, filepath=path
-                )
-            )
+                raise io.error.PewException(f"Unknown extention '{ext}'.")
+            lasers.append(Laser(data=data, config=config, name=name, path=path))
     return lasers

@@ -7,7 +7,7 @@ from matplotlib.lines import Line2D
 from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from laserlib import LaserCalibration
+from pew import Calibration
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 from pewpew.lib.viewoptions import ViewOptions
@@ -99,7 +99,7 @@ class StandardsTool(Tool):
     def apply(self) -> None:
         self.calibrationSelected.emit(self.calibrations)
 
-    def isComplete(self):
+    def isComplete(self) -> bool:
         return self.table.isComplete()
 
     def layoutWidgets(self) -> None:
@@ -372,7 +372,7 @@ class StandardsResultsBox(QtWidgets.QGroupBox):
             le.setText("")
         self.button.setEnabled(False)
 
-    def update(self, calibration: LaserCalibration) -> None:
+    def update(self, calibration: Calibration) -> None:
         for v, le in zip(
             [calibration.rsq, calibration.gradient, calibration.intercept],
             self.lineedits,
@@ -382,7 +382,7 @@ class StandardsResultsBox(QtWidgets.QGroupBox):
 
 
 class CalibrationPointsTableModel(NumpyArrayTableModel):
-    def __init__(self, calibration: LaserCalibration, parent: QtCore.QObject = None):
+    def __init__(self, calibration: Calibration, parent: QtCore.QObject = None):
         self.calibration = calibration
         if self.calibration.points is None:
             points = np.array([[np.nan, np.nan]], dtype=np.float64)
@@ -398,7 +398,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         self.rowsRemoved.connect(self.updateCalibration)
         self.modelReset.connect(self.updateCalibration)
 
-    def setCalibration(self, calibration: LaserCalibration) -> None:
+    def setCalibration(self, calibration: Calibration) -> None:
         self.beginResetModel()
         self.calibration = calibration
         new_array = np.full_like(self.array, np.nan)

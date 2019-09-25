@@ -13,7 +13,7 @@ from matplotlib.widgets import AxesWidget, RectangleSelector
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from laserlib.laser import Laser
+from pew.laser import Laser
 
 from pewpew.lib.mpltools import MetricSizeBar, image_extent_to_data
 from pewpew.lib.mplwidgets import (

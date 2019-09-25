@@ -2,8 +2,8 @@ import os.path
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from laserlib import io
-from laserlib.laser import Laser
+from pew import io
+from pew.laser import Laser
 
 from pewpew.lib.viewoptions import ViewOptions
 
@@ -49,7 +49,7 @@ class PngOptionsBox(OptionsBox):
         return all(le.hasAcceptableInput() for le in self.linedits)
 
     def imagesize(self) -> Tuple[int, int]:
-        return tuple(int(le.text()) for le in self.linedits)
+        return int(self.linedits[0].text()), int(self.linedits[1].text())
 
 
 class VtiOptionsBox(OptionsBox):
@@ -79,7 +79,7 @@ class VtiOptionsBox(OptionsBox):
         return all(le.hasAcceptableInput() for le in self.linedits)
 
     def spacing(self) -> Tuple[float, float, float]:
-        return tuple(float(le.text()) for le in self.linedits)
+        return tuple(float(le.text()) for le in self.linedits)  # type: ignore
 
 
 class ExportOptions(QtWidgets.QStackedWidget):
@@ -316,7 +316,7 @@ class ExportDialog(QtWidgets.QDialog):
 
     def export(
         self,
-        paths: List[str],
+        paths: List[Tuple[str, str]],
         laser: Laser,
         viewlimits: Tuple[float, float, float, float] = None,
     ) -> bool:
@@ -350,7 +350,7 @@ class ExportDialog(QtWidgets.QDialog):
 
             else:  # npz
                 io.npz.save(paths[0][0], [laser])
-        except io.error.LaserLibException as e:
+        except io.error.PewException as e:
             QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
             return False
 
@@ -418,25 +418,25 @@ class ExportAllDialog(ExportDialog):
             base += "_<ISOTOPE>"
         self.lineedit_preview.setText(prefix + base + ext)
 
-    def getPath(self, name: str) -> str:
+    def getPathForName(self, name: str) -> str:
         _, ext = os.path.splitext(self.lineedit_filename.text())
         prefix = self.lineedit_prefix.text()
         if prefix != "":
             prefix += "_"
-        return os.path.join(
-            self.lineedit_directory.text(), f"{prefix}{name}{ext}"
-        )
+        return os.path.join(self.lineedit_directory.text(), f"{prefix}{name}{ext}")
 
-    def getPathForIsotope(self, isotope: str, name: str) -> str:
-        base, ext = os.path.splitext(self.getPath(name))
+    def getPathForIsotopeName(self, isotope: str, name: str) -> str:
+        base, ext = os.path.splitext(self.getPathForName(name))
         isotope = isotope.replace(os.path.sep, "_")
         return f"{base}_{isotope}{ext}"
 
     def generatePaths(self, laser: Laser) -> List[Tuple[str, str]]:
         if self.isExportAll():
-            paths = [(self.getPathForIsotope(i, laser.name), i) for i in laser.isotopes]
+            paths = [
+                (self.getPathForIsotopeName(i, laser.name), i) for i in laser.isotopes
+            ]
         else:
-            paths = [(self.getPath(laser.name), self.isotope)]
+            paths = [(self.getPathForName(laser.name), self.isotope)]
 
         return [(p, i) for p, i in paths if p != ""]
 
@@ -451,8 +451,8 @@ class ExportAllDialog(ExportDialog):
         if any(len(p) == 0 for p in paths):
             return
 
-        for paths, laser in zip(paths, self.lasers):
-            if not self.export(paths, laser, None):
+        for laser_paths, laser in zip(paths, self.lasers):
+            if not self.export(laser_paths, laser, None):
                 return
 
         QtWidgets.QDialog.accept(self)

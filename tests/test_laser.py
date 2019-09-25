@@ -3,9 +3,9 @@ import numpy as np
 from pytestqt.qtbot import QtBot
 from PySide2 import QtCore, QtGui
 
-from laserlib.laser import Laser
-from laserlib.config import LaserConfig
-from laserlib.calibration import LaserCalibration
+from pew.laser import Laser
+from pew.config import Config
+from pew.calibration import Calibration
 
 from pewpew.lib.viewoptions import ViewOptions
 
@@ -37,7 +37,7 @@ def test_laser_view_space(qtbot: QtBot):
 
     assert viewspace.uniqueIsotopes() == ["A1", "B2", "C3", "D4"]
     # Apply config
-    viewspace.applyConfig(LaserConfig(10, 10, 10))
+    viewspace.applyConfig(Config(10, 10, 10))
     for view in viewspace.views:
         for widget in view.widgets():
             assert widget.laser.config.spotsize == 10
@@ -45,7 +45,7 @@ def test_laser_view_space(qtbot: QtBot):
             assert widget.laser.config.scantime == 10
     # Try to apply calibraiton
     viewspace.applyCalibration(
-        {"A1": LaserCalibration(1.0, 1.0), "B2": LaserCalibration(2.0, 2.0)}
+        {"A1": Calibration(1.0, 1.0), "B2": Calibration(2.0, 2.0)}
     )
     qtbot.waitForWindowShown(viewspace)
     for view in viewspace.views:
@@ -97,9 +97,9 @@ def test_laser_widget(qtbot: QtBot):
     widget = view.activeWidget()
     widget.show()
 
-    widget.applyConfig(LaserConfig(1.0, 1.0, 1.0))
+    widget.applyConfig(Config(1.0, 1.0, 1.0))
     assert widget.laser.config.spotsize == 1.0
-    widget.applyCalibration({"B2": LaserCalibration(2.0, 2.0)})
+    widget.applyCalibration({"B2": Calibration(2.0, 2.0)})
     assert widget.laser.data["B2"].calibration.intercept == 2.0
 
 

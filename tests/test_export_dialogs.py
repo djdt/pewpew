@@ -4,7 +4,7 @@ import tempfile
 
 from pytestqt.qtbot import QtBot
 
-from laserlib.laser import Laser
+from pew.laser import Laser
 
 from pewpew.lib.viewoptions import ViewOptions
 

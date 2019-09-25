@@ -1,6 +1,6 @@
 import os.path
 
-from laserlib.config import LaserConfig
+from pew.config import Config
 
 from pewpew.lib.io import import_any
 
@@ -12,5 +12,5 @@ def test_import_any():
         for f in ["agilent.b", "csv.csv", "npz.npz", "thermo.csv"]
     ]
 
-    lasers = import_any(paths, LaserConfig())
+    lasers = import_any(paths, Config())
     assert len(lasers) == 4

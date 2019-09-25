@@ -2,7 +2,7 @@ import numpy as np
 
 from pytestqt.qtbot import QtBot
 
-from laserlib.laser import Laser
+from pew.laser import Laser
 
 from pewpew.main import MainWindow
 

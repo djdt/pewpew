@@ -5,8 +5,8 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 from matplotlib.text import Text
 
-from laserlib import LaserCalibration, LaserConfig
-from laserlib.krisskross import KrissKrossConfig
+from pew import Calibration, Config
+from pew.srr import SRRConfig
 
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets.canvases import BasicCanvas
@@ -69,11 +69,12 @@ class ApplyDialog(QtWidgets.QDialog):
 
 
 class CalibrationDialog(ApplyDialog):
-    calibrationSelected = QtCore.Signal(dict, bool)
+    calibrationSelected = QtCore.Signal(dict)
+    calibrationApplyAll = QtCore.Signal(dict)
 
     def __init__(
         self,
-        calibrations: Dict[str, LaserCalibration],
+        calibrations: Dict[str, Calibration],
         current_isotope: str,
         parent: QtWidgets.QWidget = None,
     ):
@@ -172,11 +173,14 @@ class CalibrationDialog(ApplyDialog):
 
     def apply(self) -> None:
         self.updateCalibration(self.combo_isotopes.currentText())
-        self.calibrationSelected.emit(self.calibrations, self.check_all.isChecked())
+        if self.check_all.isChecked():
+            self.calibrationApplyAll.emit(self.calibrations)
+        else:
+            self.calibrationSelected.emit(self.calibrations)
 
 
 class CalibrationCurveDialog(QtWidgets.QDialog):
-    def __init__(self, calibration: LaserCalibration, parent: QtWidgets.QWidget = None):
+    def __init__(self, calibration: Calibration, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Calibration Curve")
         self.canvas = BasicCanvas(parent=self)
@@ -329,9 +333,10 @@ class ColorRangeDialog(ApplyDialog):
 
 
 class ConfigDialog(ApplyDialog):
-    configSelected = QtCore.Signal(dict, bool)
+    configSelected = QtCore.Signal(Config)
+    configApplyAll = QtCore.Signal(Config)
 
-    def __init__(self, config: LaserConfig, parent: QtWidgets.QWidget = None):
+    def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Configuration")
         self.config = copy.copy(config)
@@ -350,16 +355,14 @@ class ConfigDialog(ApplyDialog):
         self.lineedit_scantime.setValidator(DecimalValidator(0, 1e5, 4))
         self.lineedit_scantime.textChanged.connect(self.completeChanged)
 
-        if isinstance(config, KrissKrossConfig):
+        if isinstance(config, SRRConfig):
             self.lineedit_warmup = QtWidgets.QLineEdit()
-            self.lineedit_warmup.setText(
-                str(self.config.warmup)  # type: ignore
-            )
+            self.lineedit_warmup.setText(str(self.config.warmup))
             self.lineedit_warmup.setValidator(DecimalValidator(0, 1e3, 1))
             self.lineedit_warmup.textChanged.connect(self.completeChanged)
             self.spinbox_offsets = QtWidgets.QSpinBox()
             self.spinbox_offsets.setRange(2, 10)
-            self.spinbox_offsets.setValue(self.config._subpixel_size)  # type: ignore
+            self.spinbox_offsets.setValue(self.config._subpixel_size)
 
         self.check_all = QtWidgets.QCheckBox("Apply config to all images.")
 
@@ -368,7 +371,7 @@ class ConfigDialog(ApplyDialog):
         layout_form.addRow("Spotsize (μm):", self.lineedit_spotsize)
         layout_form.addRow("Speed (μm):", self.lineedit_speed)
         layout_form.addRow("Scantime (s):", self.lineedit_scantime)
-        if isinstance(config, KrissKrossConfig):
+        if isinstance(config, SRRConfig):
             layout_form.addRow("Warmup (s):", self.lineedit_warmup)
             layout_form.addRow("Subpixel width:", self.spinbox_offsets)
 
@@ -379,13 +382,16 @@ class ConfigDialog(ApplyDialog):
         self.config.spotsize = float(self.lineedit_spotsize.text())
         self.config.speed = float(self.lineedit_speed.text())
         self.config.scantime = float(self.lineedit_scantime.text())
-        if isinstance(self.config, KrissKrossConfig):
+        if isinstance(self.config, SRRConfig):
             self.config.warmup = float(self.lineedit_warmup.text())
             self.config.set_equal_subpixel_offsets(self.spinbox_offsets.value())
 
     def apply(self) -> None:
         self.updateConfig()
-        self.configSelected.emit(self.config, self.check_all.isChecked())
+        if self.check_all.isChecked():
+            self.configApplyAll(self.config)
+        else:
+            self.configSelected.emit(self.config)
 
     def isComplete(self) -> bool:
         if not self.lineedit_spotsize.hasAcceptableInput():
@@ -394,7 +400,7 @@ class ConfigDialog(ApplyDialog):
             return False
         if not self.lineedit_scantime.hasAcceptableInput():
             return False
-        if isinstance(self.config, KrissKrossConfig):
+        if isinstance(self.config, SRRConfig):
             if not self.lineedit_warmup.hasAcceptableInput():
                 return False
         return True

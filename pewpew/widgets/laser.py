@@ -3,11 +3,11 @@ import copy
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from laserlib import io
-from laserlib.laser import Laser
-from laserlib.krisskross import KrissKross, KrissKrossConfig
-from laserlib.config import LaserConfig
-from laserlib.io.error import LaserLibException
+from pew import io
+from pew.laser import Laser
+from pew.srr import SRRLaser, SRRConfig
+from pew.config import Config
+from pew.io.error import PewException
 
 from pewpew.lib.io import import_any
 from pewpew.lib.viewoptions import ViewOptions
@@ -17,17 +17,17 @@ from pewpew.widgets.canvases import InteractiveLaserCanvas
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.views import View, ViewSpace
 
-from typing import List
+from typing import List, Set
 
 
 class LaserViewSpace(ViewSpace):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.config = LaserConfig()
+        self.config = Config()
         self.options = ViewOptions()
 
     def uniqueIsotopes(self) -> List[str]:
-        isotopes = set()
+        isotopes: Set[str] = set()
         for view in self.views:
             for widget in view.widgets():
                 isotopes.update(widget.laser.isotopes)
@@ -44,7 +44,7 @@ class LaserViewSpace(ViewSpace):
         for view in self.views:
             view.setCurrentIsotope(isotope)
 
-    def applyConfig(self, config: LaserConfig) -> None:
+    def applyConfig(self, config: Config) -> None:
         self.config = copy.copy(config)
         for view in self.views:
             view.applyConfig(self.config)
@@ -125,16 +125,16 @@ class LaserView(View):
             for laser in lasers:
                 self.addLaser(laser)
             event.acceptProposedAction()
-        except io.error.LaserLibException:
+        except io.error.PewException:
             event.ignore()
 
     # Callbacks
-    def openDocument(self, paths: str) -> None:
+    def openDocument(self, paths: List[str]) -> None:
         try:
             for laser in import_any(paths, self.viewspace.config):
                 self.addLaser(laser)
 
-        except LaserLibException as e:
+        except PewException as e:
             QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
 
     # def saveDocument(self, path: str) -> bool:
@@ -143,9 +143,9 @@ class LaserView(View):
     #     widget.laser.filepath = path
     #     self.setTabModified(self.stack.indexOf(widget), False)
 
-    def applyConfig(self, config: LaserConfig) -> None:
+    def applyConfig(self, config: Config) -> None:
         for index, widget in enumerate(self.widgets()):
-            if not isinstance(config, KrissKrossConfig) or widget.is_srr:
+            if not isinstance(config, SRRConfig) or widget.is_srr:
                 widget.laser.config = copy.copy(config)
             else:  # Manually fill in the 3
                 widget.laser.config.spotsize = config.spotsize
@@ -194,7 +194,7 @@ class LaserWidget(QtWidgets.QWidget):
         super().__init__(parent)
         self.view = view
         self.laser = laser
-        self.is_srr = isinstance(laser, KrissKross)
+        self.is_srr = isinstance(laser, SRRLaser)
 
         self.canvas = InteractiveLaserCanvas(viewoptions, parent=self)
 
@@ -215,11 +215,26 @@ class LaserWidget(QtWidgets.QWidget):
         self.selection_button.setAutoRaise(True)
         self.selection_button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
         self.selection_button.setIcon(QtGui.QIcon.fromTheme("select"))
-        self.action_select_none = qAction("transform-move", "End Selection", "End selection tool.", self.canvas.endSelection)
+        self.action_select_none = qAction(
+            "transform-move",
+            "End Selection",
+            "End selection tool.",
+            self.canvas.endSelection,
+        )
         self.selection_button.addAction(self.action_select_none)
-        self.action_select_rect = qAction("draw-rectangle", "Rectangle Selector", "Start the rectangle selector tool.", self.canvas.startRectangleSelection)
+        self.action_select_rect = qAction(
+            "draw-rectangle",
+            "Rectangle Selector",
+            "Start the rectangle selector tool.",
+            self.canvas.startRectangleSelection,
+        )
         self.selection_button.addAction(self.action_select_rect)
-        self.action_select_lasso = qAction("draw-freehand", "Lasso Selector", "Start the lasso selector tool.", self.canvas.startLassoSelection)
+        self.action_select_lasso = qAction(
+            "draw-freehand",
+            "Lasso Selector",
+            "Start the lasso selector tool.",
+            self.canvas.startLassoSelection,
+        )
         self.selection_button.addAction(self.action_select_lasso)
         self.selection_button.installEventFilter(self)
 
@@ -227,9 +242,19 @@ class LaserWidget(QtWidgets.QWidget):
         self.view_button.setAutoRaise(True)
         self.view_button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
         self.view_button.setIcon(QtGui.QIcon.fromTheme("zoom-in"))
-        self.action_zoom_in = qAction("zoom-in", "Zoom to Area", "Start zoom area selection.", self.canvas.startZoom)
+        self.action_zoom_in = qAction(
+            "zoom-in",
+            "Zoom to Area",
+            "Start zoom area selection.",
+            self.canvas.startZoom,
+        )
         self.view_button.addAction(self.action_zoom_in)
-        self.action_zoom_out = qAction("zoom-original", "Reset Zoom", "Reset zoom to full imgae extent.", self.canvas.unzoom)
+        self.action_zoom_out = qAction(
+            "zoom-original",
+            "Reset Zoom",
+            "Reset zoom to full imgae extent.",
+            self.canvas.unzoom,
+        )
         self.view_button.addAction(self.action_zoom_out)
         self.view_button.installEventFilter(self)
 
@@ -284,8 +309,8 @@ class LaserWidget(QtWidgets.QWidget):
         )
 
     # Callbacks
-    def applyConfig(self, config: LaserConfig) -> None:
-        if not isinstance(config, KrissKrossConfig) or self.is_srr:
+    def applyConfig(self, config: Config) -> None:
+        if not isinstance(config, SRRConfig) or self.is_srr:
             self.laser.config = copy.copy(config)
         else:  # Manually fill in the 3
             self.laser.config.spotsize = config.spotsize
@@ -295,13 +320,11 @@ class LaserWidget(QtWidgets.QWidget):
         self.refresh()
 
     def applyCalibration(self, calibrations: dict) -> None:
-        for iso in self.laser.isotopes:
-            if iso in calibrations:
-                self.laser.data[iso].calibration = copy.copy(calibrations[iso])
+        self.laser.calibration.update(copy.deepcopy(calibrations))
         self.view.setTabModified(self.view.stack.indexOf(self))
         self.refresh()
 
-    def saveDocument(self, path: str) -> bool:
+    def saveDocument(self, path: str) -> None:
         io.npz.save(path, [self.laser])
         self.laser.filepath = path
         self.view.setTabModified(self.view.stack.indexOf(self), False)
@@ -347,21 +370,14 @@ class LaserWidget(QtWidgets.QWidget):
         dlg = dialogs.CalibrationDialog(
             calibrations, self.combo_isotopes.currentText(), parent=self
         )
-        dlg.calibrationSelected.connect(
-            lambda c, b: self.view.viewspace.applyCalibration(c)
-            if b
-            else self.applyCalibration(c)
-        )
+        dlg.calibrationSelected.connect(self.applyCalibration)
+        dlg.calibrationApplyAll.connect(self.view.viewspace.applyCalibration)
         dlg.open()
         return dlg
 
     def actionConfig(self) -> QtWidgets.QDialog:
         dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
-        dlg.configSelected.connect(
-            lambda c, b: self.view.viewspace.applyConfig(c)
-            if b
-            else self.applyConfig(c)
-        )
+        dlg.configSelected.connect(self.applyConfig)
         dlg.open()
         return dlg
 

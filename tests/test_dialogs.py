@@ -4,9 +4,9 @@ from pytestqt.qtbot import QtBot
 
 from PySide2 import QtCore, QtGui
 
-from laserlib.config import LaserConfig
-from laserlib.calibration import LaserCalibration
-from laserlib.krisskross.config import KrissKrossConfig
+from pew.config import Config
+from pew.calibration import Calibration
+from pew.srr.config import SRRConfig
 
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets.dialogs import (
@@ -31,8 +31,8 @@ def test_apply_dialog(qtbot: QtBot):
 
 def test_calibration_dialog(qtbot: QtBot):
     cals = {
-        "A": LaserCalibration.from_points([[0, 1], [1, 2]]),
-        "B": LaserCalibration(),
+        "A": Calibration.from_points([[0, 1], [1, 2]]),
+        "B": Calibration(),
     }
     dialog = CalibrationDialog(cals, "B")
     qtbot.addWidget(dialog)
@@ -60,7 +60,7 @@ def test_calibration_dialog(qtbot: QtBot):
 
 def test_calibration_curve_dialog(qtbot: QtBot):
     dialog = CalibrationCurveDialog(
-        LaserCalibration.from_points([[0, 1], [1, 2], [2, 3], [4, 4]])
+        Calibration.from_points([[0, 1], [1, 2], [2, 3], [4, 4]])
     )
     qtbot.addWidget(dialog)
     dialog.open()
@@ -89,7 +89,7 @@ def test_colorrange_dialog(qtbot: QtBot):
 
 
 def test_laser_config_dialog(qtbot: QtBot):
-    config = LaserConfig()
+    config = Config()
     dialog = ConfigDialog(config)
     qtbot.addWidget(dialog)
     dialog.open()
@@ -113,7 +113,7 @@ def test_laser_config_dialog(qtbot: QtBot):
 
 
 def test_config_dialog_krisskross(qtbot: QtBot):
-    dialog = ConfigDialog(KrissKrossConfig())
+    dialog = ConfigDialog(SRRConfig())
     qtbot.addWidget(dialog)
     dialog.open()
 

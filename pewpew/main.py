@@ -10,7 +10,7 @@ from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.prompts import DetailedError
 from pewpew.widgets.tools import CalculationsTool, StandardsTool
-from pewpew.widgets.wizards import KrissKrossWizard
+from pewpew.widgets.wizards import SRRLaserWizard
 from pewpew.widgets.laser import LaserViewSpace
 
 from types import TracebackType
@@ -42,7 +42,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.updateActionAvailablity()
 
-    def createActions(self):
+    def createActions(self) -> None:
         self.action_about = qAction(
             "help-about", "&About", "About pew².", self.actionAbout
         )
@@ -73,14 +73,14 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_group_colormap = qActionGroup(
             self,
-            self.viewspace.options.image.COLORMAPS.keys(),
+            list(self.viewspace.options.image.COLORMAPS.keys()),
             self.actionGroupColormap,
             checked=self.viewspace.options.image.get_cmap_name(),
             statuses=list(self.viewspace.options.image.COLORMAP_DESCRIPTIONS.values()),
         )
         self.action_group_interp = qActionGroup(
             self,
-            self.viewspace.options.image.INTERPOLATIONS.keys(),
+            list(self.viewspace.options.image.INTERPOLATIONS.keys()),
             self.actionGroupInterp,
             checked=self.viewspace.options.image.get_interpolation_name(),
         )
@@ -226,7 +226,7 @@ class MainWindow(QtWidgets.QMainWindow):
         return dlg
 
     def actionImportSRR(self) -> QtWidgets.QWizard:
-        wiz = KrissKrossWizard(config=self.viewspace.config, parent=self)
+        wiz = SRRLaserWizard(config=self.viewspace.config, parent=self)
         wiz.laserImported.connect(self.viewspace.activeView().addLaser)
         wiz.open()
         return wiz

@@ -49,7 +49,7 @@ class ColorOptions(object):
             vmin = np.nanpercentile(data, float(vmin.rstrip("%")))
         if isinstance(vmax, str):
             vmax = np.nanpercentile(data, float(vmax.rstrip("%")))
-        return vmin, vmax
+        return vmin, vmax  # type: ignore
 
 
 class ImageOptions(object):

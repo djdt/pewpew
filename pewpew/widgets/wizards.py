@@ -2,9 +2,9 @@ import os
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from laserlib import io
-from laserlib.config import LaserConfig
-from laserlib.krisskross import KrissKross, KrissKrossConfig
+from pew import io
+from pew.config import Config
+from pew.srr import SRRLaser, SRRConfig
 
 from pewpew.validators import DecimalValidator, DecimalValidatorNoZero
 from pewpew.widgets.dialogs import MultipleDirDialog
@@ -12,19 +12,19 @@ from pewpew.widgets.dialogs import MultipleDirDialog
 from typing import List
 
 
-class KrissKrossWizard(QtWidgets.QWizard):
-    laserImported = QtCore.Signal(KrissKross)
+class SRRLaserWizard(QtWidgets.QWizard):
+    laserImported = QtCore.Signal(SRRLaser)
 
-    def __init__(self, config: LaserConfig, parent: QtWidgets.QWidget = None):
+    def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        self.config = KrissKrossConfig(config.spotsize, config.speed, config.scantime)
+        self.config = SRRConfig(config.spotsize, config.speed, config.scantime)
 
         self.laser = None
 
-        self.addPage(KrissKrossStartPage())
-        self.addPage(KrissKrossImportPage())
-        self.addPage(KrissKrossConfigPage(self.config))
+        self.addPage(SRRLaserStartPage())
+        self.addPage(SRRLaserImportPage())
+        self.addPage(SRRConfigPage(self.config))
 
         self.setWindowTitle("Kriss Kross Import Wizard")
 
@@ -65,7 +65,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
                 layers.append(io.thermo.load(path))
 
         self.laserImported.emit(
-            KrissKross.from_structured(
+            SRRLaser.from_structured(
                 layers,
                 config=self.config,
                 name=os.path.splitext(os.path.basename(paths[0]))[0],
@@ -75,7 +75,7 @@ class KrissKrossWizard(QtWidgets.QWizard):
         super().accept()
 
 
-class KrissKrossStartPage(QtWidgets.QWizardPage):
+class SRRLaserStartPage(QtWidgets.QWizardPage):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
@@ -83,7 +83,7 @@ class KrissKrossStartPage(QtWidgets.QWizardPage):
         label = QtWidgets.QLabel(
             "This wizard will import SRR-LA-ICP-MS data. To begin, select "
             "the type of data to import. You may then import, reorder and "
-            "configure the imported data. Once imported KrissKross image "
+            "configure the imported data. Once imported SRRLaser image "
             "configurations cannot be changed."
         )
         label.setWordWrap(True)
@@ -111,7 +111,7 @@ class KrissKrossStartPage(QtWidgets.QWizardPage):
         self.setLayout(main_layout)
 
 
-class KrissKrossImportList(QtWidgets.QListWidget):
+class SRRLaserImportList(QtWidgets.QListWidget):
     def __init__(
         self, allowed_exts: List[str] = None, parent: QtWidgets.QWidget = None
     ):
@@ -148,14 +148,14 @@ class KrissKrossImportList(QtWidgets.QListWidget):
     paths = QtCore.Property("QStringList", getPaths)
 
 
-class KrissKrossImportPage(QtWidgets.QWizardPage):
+class SRRLaserImportPage(QtWidgets.QWizardPage):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         self.setTitle("Files and Directories")
         # List and box
 
-        self.list = KrissKrossImportList()
+        self.list = SRRLaserImportList()
         self.list.model().rowsInserted.connect(self.completeChanged)
         self.list.model().rowsRemoved.connect(self.completeChanged)
 
@@ -235,8 +235,8 @@ class KrissKrossImportPage(QtWidgets.QWizardPage):
         return self.list.count() >= 2
 
 
-class KrissKrossConfigPage(QtWidgets.QWizardPage):
-    def __init__(self, config: KrissKrossConfig, parent: QtWidgets.QWidget = None):
+class SRRConfigPage(QtWidgets.QWizardPage):
+    def __init__(self, config: SRRConfig, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         self.lineedit_spotsize = QtWidgets.QLineEdit()
@@ -280,7 +280,7 @@ class KrissKrossConfigPage(QtWidgets.QWizardPage):
         params_layout.addRow("Warmup (s):", self.lineedit_warmup)
         params_layout.addRow("Subpixel width:", self.spinbox_offsets)
 
-        params_gbox = QtWidgets.QGroupBox("KrissKross Parameters", self)
+        params_gbox = QtWidgets.QGroupBox("SRRLaser Parameters", self)
         params_gbox.setLayout(params_layout)
 
         layout = QtWidgets.QVBoxLayout()
