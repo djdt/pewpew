@@ -18,6 +18,18 @@ def otsu(x: np.ndarray):
     return bin_centers[i]
 
 
+def greyscale_to_single_color(x: np.ndarray, c: np.ndarray) -> np.ndarray:
+    x = np.clip(x, 0.0, 1.0)
+    return x[..., None] * np.array(c, dtype=float)
+
+
+def normalise(x: np.ndarray, vmin: float = 0.0, vmax: float = 1.0) -> None:
+    x = (x - x.min()) / x.max()
+    x *= vmax - vmin
+    x += vmin
+    return x
+
+
 # def rolling_mean_filter(
 #     x: np.ndarray, window: Tuple[int, int], threshold: int = 3
 # ) -> np.ndarray:

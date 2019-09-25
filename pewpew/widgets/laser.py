@@ -12,7 +12,7 @@ from laserlib.io.error import LaserLibException
 from pewpew.lib.io import import_any
 from pewpew.lib.viewoptions import ViewOptions
 
-from pewpew.widgets.actions import qAction
+from pewpew.actions import qAction
 from pewpew.widgets.canvases import InteractiveLaserCanvas
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.views import View, ViewSpace

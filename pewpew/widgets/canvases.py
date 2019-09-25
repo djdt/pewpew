@@ -14,7 +14,6 @@ from matplotlib.widgets import AxesWidget, RectangleSelector
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from laserlib.laser import Laser
-from laserlib.krisskross import KrissKross
 
 from pewpew.lib.mpltools import MetricSizeBar, image_extent_to_data
 from pewpew.lib.mplwidgets import (
@@ -321,7 +320,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
     def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
         super().drawLaser(laser, name, layer)
         # Save some variables for the status bar
-        if isinstance(laser, KrissKross):
+        if layer is not None:
             self.px, self.py = (
                 laser.config.get_pixel_width(layer),
                 laser.config.get_pixel_height(layer),
@@ -381,10 +380,11 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
 
     def getMaskedData(self) -> np.ndarray:
         x0, x1, y0, y1 = self.view_limits
-        (x0, y0), (x1, y1) = (
-            image_extent_to_data(self.image).transform(((x0, y1), (x1, y0))).astype(int)
+        (x0, y0), (x1, y1) = image_extent_to_data(self.image).transform(
+            ((x0, y1), (x1, y0))
         )
-        data = self.image.get_array()[y0:y1, x0:x1]  # type: ignore
+        x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
+        data = self.image.get_array()[y0:y1, x0:x1]
         mask = self.getSelection()
         if mask is not None and not np.all(mask == 0):
             mask = mask[y0:y1, x0:x1]
