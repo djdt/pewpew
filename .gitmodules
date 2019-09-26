@@ -1,0 +1,3 @@
+[submodule "pew"]
+	path = pew
+	url = git@github.com:djdt/pew.git
