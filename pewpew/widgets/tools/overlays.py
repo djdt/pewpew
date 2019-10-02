@@ -4,15 +4,13 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 from matplotlib.image import AxesImage
 
-from pew.laser import Laser
-
 from pewpew.actions import qAction
 from pewpew.validators import PercentOrDecimalValidator
 
 from pewpew.lib.calc import greyscale_to_rgb, normalise
-from pewpew.lib.viewoptions import ViewOptions
 
-from pewpew.widgets.canvases import BasicCanvas
+from pewpew.widgets.canvases import BasicCanvas, LaserCanvas
+from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import Tool
 
 from typing import List, Tuple, Union
@@ -30,13 +28,9 @@ class OverlayCanvas(BasicCanvas):
         self.image: AxesImage = None
 
     def drawData(
-        self,
-        data: np.ndarray,
-        extent: Tuple[float, float, float, float],
-        facecolor: str = "black",
+        self, data: np.ndarray, extent: Tuple[float, float, float, float]
     ) -> None:
         self.ax.clear()
-        self.ax.patch.set_facecolor(facecolor)
         self.image = self.ax.imshow(
             data, interpolation="none", extent=extent, aspect="equal", origin="upper"
         )
@@ -234,15 +228,13 @@ class OverlayRows(QtWidgets.QScrollArea):
 class OverlayTool(Tool):
     model_type = {"any": "additive", "cmyk": "subtractive", "rgb": "additive"}
 
-    def __init__(
-        self, laser: Laser, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
-    ):
+    def __init__(self, widget: LaserWidget, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Image Overlay Tool")
         self.button_box.button(QtWidgets.QDialogButtonBox.Apply).setVisible(False)
 
-        self.laser = laser
-        self.viewoptions = viewoptions
+        self.widget = widget
+        self.viewoptions = widget.canvas.viewoptions
 
         self.canvas = OverlayCanvas()
 
@@ -260,7 +252,7 @@ class OverlayTool(Tool):
 
         self.combo_add = QtWidgets.QComboBox()
         self.combo_add.addItem("Add Isotope")
-        self.combo_add.addItems(laser.isotopes)
+        self.combo_add.addItems(widget.laser.isotopes)
         self.combo_add.activated[int].connect(self.comboAdd)
 
         self.rows = OverlayRows(self)
@@ -312,7 +304,7 @@ class OverlayTool(Tool):
         self.updateCanvas()
 
     def processRow(self, row: OverlayItemRow) -> np.ndarray:
-        img = self.laser.get(row.label_name.text(), flat=True)
+        img = self.widget.laser.get(row.label_name.text(), calibrate=True, flat=True)
         vmin, vmax = row.getVmin(img), row.getVmax(img)
 
         r, g, b, _a = row.getColor().getRgbF()
@@ -326,7 +318,7 @@ class OverlayTool(Tool):
     def updateCanvas(self) -> None:
         datas = [self.processRow(row) for row in self.rows.rows if not row.hidden]
         if len(datas) == 0:
-            img = np.zeros((*self.laser.shape[:2], 3), float)
+            img = np.zeros((*self.widget.laser.shape[:2], 3), float)
         else:
             img = np.sum(datas, axis=0)
 
@@ -338,4 +330,28 @@ class OverlayTool(Tool):
         else:
             img = np.clip(img, 0.0, 1.0)
 
-        self.canvas.drawData(img, self.laser.config.data_extent(img.shape))
+        self.canvas.drawData(img, self.widget.laser.config.data_extent(img.shape))
+
+    def widgetChanged(self) -> None:
+        self.updateCanvas()
+
+    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+        if event.type() == QtCore.QEvent.MouseButtonDblClick and isinstance(
+            obj, LaserCanvas
+        ):
+            self.widget = obj.parent()
+            self.widgetChanged()
+            self.endMouseSelect()
+        return False
+
+    def contextMenuEvent(self, event: QtCore.QEvent) -> None:
+        if self.canvas.underMouse():
+            action_copy_image = QtWidgets.QAction(
+                QtGui.QIcon.fromTheme("insert-image"), "Copy Image", self
+            )
+            action_copy_image.setStatusTip("Copy image to clipboard.")
+            action_copy_image.triggered.connect(self.canvas.copyToClipboard)
+
+            menu = QtWidgets.QMenu(self)
+            menu.addAction(action_copy_image)
+            menu.popup(event.globalPos())

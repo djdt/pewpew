@@ -9,7 +9,7 @@ from pewpew.actions import qAction, qActionGroup
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.prompts import DetailedError
-from pewpew.widgets.tools import CalculationsTool, StandardsTool
+from pewpew.widgets.tools import CalculationsTool, StandardsTool, OverlayTool
 from pewpew.widgets.wizards import SRRLaserWizard
 from pewpew.widgets.laser import LaserViewSpace
 
@@ -133,6 +133,12 @@ class MainWindow(QtWidgets.QMainWindow):
             "Calculations Tool",
             "Open the calculations tool.",
             self.actionToolCalculations,
+        )
+        self.action_tool_overlay = qAction(
+            "document-properties",
+            "Image Overlay Tool",
+            "Open the overlay tool.",
+            self.actionToolOverlay,
         )
         self.action_refresh = qAction(
             "view-refresh", "Refresh", "Redraw documents.", self.refresh
@@ -273,6 +279,14 @@ class MainWindow(QtWidgets.QMainWindow):
         tool.mouseSelectEnded.connect(self.viewspace.mouseSelectEnd)
         tool.show()
         return tool
+    
+    def actionToolOverlay(self) -> QtWidgets.QDialog:
+        widget = self.viewspace.activeWidget()
+        tool = OverlayTool(widget, parent=self)
+        tool.mouseSelectStarted.connect(self.viewspace.mouseSelectStart)
+        tool.mouseSelectEnded.connect(self.viewspace.mouseSelectEnd)
+        tool.show()
+        return tool
 
     def createMenus(self) -> None:
         # File
@@ -298,6 +312,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu_edit.addAction(self.action_tool_calculations)
         menu_edit.addAction(self.action_tool_standards)
+        menu_edit.addAction(self.action_tool_overlay)
 
         # View
         menu_view = self.menuBar().addMenu("&View")
@@ -341,6 +356,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_export_all.setEnabled(enabled)
         self.action_tool_calculations.setEnabled(enabled)
         self.action_tool_standards.setEnabled(enabled)
+        self.action_tool_overlay.setEnabled(enabled)
 
     def exceptHook(self, type: type, value: BaseException, tb: TracebackType) -> None:
         if type == KeyboardInterrupt:
