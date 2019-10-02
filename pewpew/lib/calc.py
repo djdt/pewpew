@@ -1,10 +1,38 @@
 import numpy as np
 
-# from typing import Tuple
+
+def greyscale_to_rgb(array: np.ndarray, rgb: np.ndarray) -> np.ndarray:
+    """Convert a gret scale image to a single color rgb image.
+
+    The image is clipped to 0.0 to 1.0.
+
+    Args:
+        array: Image
+        rgb: 3 or 4 color array (rgb / rgba)
+"""
+    array = np.clip(array, 0.0, 1.0)
+    return array[..., None] * np.array(rgb, dtype=float)
+
+
+def normalise(x: np.ndarray, vmin: float = 0.0, vmax: float = 1.0) -> np.ndarray:
+    """Normalise an array.
+
+    Args:
+        x: Array
+        vmin: New minimum
+        vmax: New maxmimum
+"""
+    x = (x - x.min()) / x.max()
+    x *= vmax - vmin
+    x += vmin
+    return x
 
 
 def otsu(x: np.ndarray):
-    # from scikit-learn
+    """Calculates the otsu threshold of the input array.
+
+    Implementation from scikit-learn
+"""
     hist, bin_edges = np.histogram(x, bins=256)
     bin_centers = (bin_edges[1:] + bin_edges[:-1]) / 2
 
@@ -16,18 +44,6 @@ def otsu(x: np.ndarray):
 
     i = np.argmax(w1[:-1] * w2[1:] * (u1[:-1] - u2[1:]) ** 2)
     return bin_centers[i]
-
-
-def greyscale_to_single_color(x: np.ndarray, c: np.ndarray) -> np.ndarray:
-    x = np.clip(x, 0.0, 1.0)
-    return x[..., None] * np.array(c, dtype=float)
-
-
-def normalise(x: np.ndarray, vmin: float = 0.0, vmax: float = 1.0) -> None:
-    x = (x - x.min()) / x.max()
-    x *= vmax - vmin
-    x += vmin
-    return x
 
 
 # def rolling_mean_filter(
