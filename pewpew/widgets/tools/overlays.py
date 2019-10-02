@@ -178,7 +178,7 @@ class OverlayRows(QtWidgets.QScrollArea):
     def addRow(
         self, label: str, vmin: Union[str, float], vmax: Union[str, float]
     ) -> None:
-        if self.rowCount() > self.max_rows:
+        if self.rowCount() >= self.max_rows:
             return
 
         pickable = self.color_model == "any"
