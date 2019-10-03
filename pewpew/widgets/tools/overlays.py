@@ -2,7 +2,7 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from matplotlib.image import AxesImage
+from matplotlib.image import AxesImage, imsave
 
 from pewpew.actions import qAction
 from pewpew.validators import PercentOrDecimalValidator
@@ -231,6 +231,7 @@ class OverlayTool(Tool):
     def __init__(self, widget: LaserWidget, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Image Overlay Tool")
+        self.button_box.addButton(QtWidgets.QDialogButtonBox.Save)
         self.button_box.button(QtWidgets.QDialogButtonBox.Apply).setVisible(False)
 
         self.widget = widget
@@ -257,6 +258,7 @@ class OverlayTool(Tool):
 
         self.rows = OverlayRows(self)
         self.rows.rowsChanged.connect(self.rowsChanged)
+        self.rows.rowsChanged.connect(self.completeChanged)
         self.rows.itemChanged.connect(self.updateCanvas)
 
         layout_top = QtWidgets.QHBoxLayout()
@@ -270,7 +272,36 @@ class OverlayTool(Tool):
         self.layout_main.addWidget(self.rows, 0)
         self.layout_main.addWidget(self.check_normalise, 0)
         # Draw blank
+        self.completeChanged()
         self.updateCanvas()
+
+    def buttonClicked(self, button: QtWidgets.QAbstractButton) -> None:
+        sb = self.button_box.standardButton(button)
+
+        if sb == QtWidgets.QDialogButtonBox.Save:
+            self.openSaveDialog()
+        else:
+            super().buttonClicked(button)
+
+    def isComplete(self) -> bool:
+        return self.rows.rowCount() > 0
+
+    @QtCore.Slot()
+    def completeChanged(self) -> None:
+        enabled = self.isComplete()
+        self.button_box.button(QtWidgets.QDialogButtonBox.Save).setEnabled(enabled)
+
+    def openSaveDialog(self) -> QtWidgets.QDialog:
+        dlg = QtWidgets.QFileDialog(
+            self,
+            "Save File",
+            self.widget.laser.path,
+            "JPEG images(*.jpg *.jpeg);;PNG images(*.png);;All files(*)",
+        )
+        dlg.selectNameFilter("PNG images(*.png)")
+        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        dlg.fileSelected.connect(self.saveCanvas)
+        dlg.open()
 
     def comboAdd(self, index: int) -> None:
         if index == 0:
@@ -331,6 +362,9 @@ class OverlayTool(Tool):
             img = np.clip(img, 0.0, 1.0)
 
         self.canvas.drawData(img, self.widget.laser.config.data_extent(img.shape))
+
+    def saveCanvas(self, path: str) -> None:
+        imsave(path, self.canvas.image.get_array())
 
     def widgetChanged(self) -> None:
         self.updateCanvas()
