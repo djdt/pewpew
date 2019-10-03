@@ -5,7 +5,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from matplotlib.image import AxesImage
+from matplotlib.image import AxesImage, imsave
 from matplotlib.patheffects import Normal, withStroke, SimpleLineShadow
 from matplotlib.offsetbox import AnchoredText
 from matplotlib.ticker import MaxNLocator
@@ -271,6 +271,19 @@ class LaserCanvas(BasicCanvas):
                 font_properties=self.viewoptions.font.mpl_props(),
             )
             self.ax.add_artist(scalebar)
+
+    def saveRawImage(self, path: str, pixel_size: int = 1) -> None:
+        vmin, vmax = self.image.get_clim()
+
+        imsave(
+            path,
+            self.image.get_array(),
+            vmin=vmin,
+            vmax=vmax,
+            cmap=self.image.cmap,
+            origin=self.image.origin,
+            dpi=100,
+        )
 
 
 class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):

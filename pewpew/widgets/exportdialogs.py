@@ -27,29 +27,15 @@ class OptionsBox(QtWidgets.QGroupBox):
 
 
 class PngOptionsBox(OptionsBox):
-    def __init__(self, imagesize: Tuple[int, int], parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__("PNG Images", ".png", parent)
-        self.linedits = [QtWidgets.QLineEdit(str(dim)) for dim in imagesize]
-        for le in self.linedits:
-            le.setValidator(QtGui.QIntValidator(0, 9999))
-            le.textEdited.connect(self.inputChanged)
-
-        layout_edits = QtWidgets.QHBoxLayout()
-        layout_edits.addWidget(QtWidgets.QLabel("Size:"), 0)
-        layout_edits.addWidget(self.linedits[0], 0)  # X
-        layout_edits.addWidget(QtWidgets.QLabel("x"), 0, QtCore.Qt.AlignCenter)
-        layout_edits.addWidget(self.linedits[1], 0)  # Y
-        layout_edits.addStretch(1)
-
+        self.check_raw = QtWidgets.QCheckBox("Save raw image data.")
         layout = QtWidgets.QVBoxLayout()
-        layout.addLayout(layout_edits)
+        layout.addWidget(self.check_raw)
         self.setLayout(layout)
 
-    def isComplete(self) -> bool:
-        return all(le.hasAcceptableInput() for le in self.linedits)
-
-    def imagesize(self) -> Tuple[int, int]:
-        return int(self.linedits[0].text()), int(self.linedits[1].text())
+    def raw(self) -> bool:
+        return self.check_raw.isChecked()
 
 
 class VtiOptionsBox(OptionsBox):
@@ -99,9 +85,7 @@ class ExportOptions(QtWidgets.QStackedWidget):
 
         self.npz = self.addWidget(OptionsBox("Numpy Archives", ".npz"))
         self.csv = self.addWidget(OptionsBox("CSV Documents", ".csv"))
-        self.png = self.addWidget(
-            PngOptionsBox(self.bestImageSize(view_limits, (1280, 800)))
-        )
+        self.png = self.addWidget(PngOptionsBox())
         self.vti = self.addWidget(VtiOptionsBox(spacing))
 
         for i in range(0, self.count()):
@@ -113,16 +97,16 @@ class ExportOptions(QtWidgets.QStackedWidget):
             max(s.width() for s in sizes), max(s.height() for s in sizes)
         )
 
-    def bestImageSize(
-        self, extents: Tuple[float, float, float, float], size: Tuple[int, int]
-    ) -> Tuple[int, int]:
-        x = extents[1] - extents[0]
-        y = extents[3] - extents[2]
-        return (
-            (size[0], int(size[0] * x / y))
-            if x > y
-            else (int(size[1] * y / x), size[1])
-        )
+    # def bestImageSize(
+    #     self, extents: Tuple[float, float, float, float], size: Tuple[int, int]
+    # ) -> Tuple[int, int]:
+    #     x = extents[1] - extents[0]
+    #     y = extents[3] - extents[2]
+    #     return (
+    #         (int(size[1] * x / y), size[1])
+    #         if x > y
+    #         else (size[0], int(size[0] * y / x))
+    #     )
 
     def isComplete(self, current_only: bool = True) -> bool:
         indicies = [self.currentIndex()] if current_only else range(0, self.count())
@@ -151,9 +135,7 @@ class ExportDialog(QtWidgets.QDialog):
         self.viewlimits = viewlimits
         self.viewoptions = viewoptions
 
-        path = os.path.join(
-            os.path.dirname(self.laser.path), self.laser.name + ".npz"
-        )
+        path = os.path.join(os.path.dirname(self.laser.path), self.laser.name + ".npz")
         # path = laser.path
         directory = os.path.dirname(path)
         filename = os.path.basename(path)
@@ -180,6 +162,7 @@ class ExportDialog(QtWidgets.QDialog):
             laser.config.get_pixel_height(),
             laser.config.spotsize / 2.0,
         )
+
         self.options = ExportOptions(viewlimits, spacing)
         self.options.inputChanged.connect(self.validate)
 
@@ -330,17 +313,18 @@ class ExportDialog(QtWidgets.QDialog):
                         io.csv.save(path, data)
 
             elif index == self.options.png:
-                x, y = self.options.widget(index).imagesize()
                 canvas = LaserCanvas(self.viewoptions, self)
-                dpi = canvas.figure.get_dpi()
-                canvas.figure.set_size_inches(x / dpi, y / dpi)
                 for path, isotope in paths:
                     if isotope in laser.isotopes:
                         canvas.drawLaser(laser, isotope)
-                        if viewlimits is not None:
-                            canvas.view_limits = viewlimits
-                        canvas.figure.savefig(path, transparent=True, facecolor=None)
-
+                        if self.options.widget(index).raw():
+                            canvas.saveRawImage(path)
+                        else:
+                            if viewlimits is not None:
+                                canvas.view_limits = viewlimits
+                            canvas.figure.savefig(
+                                path, transparent=True, facecolor=None
+                            )
                 canvas.close()
 
             elif index == self.options.vti:
