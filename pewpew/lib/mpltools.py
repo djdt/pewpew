@@ -13,6 +13,7 @@ from typing import Tuple
 
 
 class MetricSizeBar(AnchoredSizeBar):
+    allowed_lengths = [1, 2, 5, 10, 20, 50, 100, 200, 500]
     units = {
         "pm": 1e-12,
         "nm": 1e-9,
@@ -22,7 +23,6 @@ class MetricSizeBar(AnchoredSizeBar):
         "m": 1.0,
         "km": 1e3,
     }
-    allowed_lengths = [1, 2, 5, 10, 20, 50, 100, 200, 500]
 
     def __init__(
         self,
