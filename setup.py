@@ -8,7 +8,7 @@ setup(
     author="djdt",
     version=__version__,
     packages=find_packages(include=["pewpew", "pewpew.*"]),
-    install_requires=["numpy", "matplotlib>=3.0.0"],
+    install_requires=["pew>=0.2.1", "numpy", "matplotlib>=3.0.0"],
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "pytest-qt"],
 )
