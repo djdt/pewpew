@@ -62,7 +62,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_exit.setShortcut("Ctrl+Shift+Q")
         self.action_export_all = qAction(
-            "document-save-as",
+            "document-save-all",
             "E&xport All",
             "Export all open documents.",
             self.actionExportAll,
@@ -279,7 +279,7 @@ class MainWindow(QtWidgets.QMainWindow):
         tool.mouseSelectEnded.connect(self.viewspace.mouseSelectEnd)
         tool.show()
         return tool
-    
+
     def actionToolOverlay(self) -> QtWidgets.QDialog:
         widget = self.viewspace.activeWidget()
         tool = OverlayTool(widget, parent=self)
