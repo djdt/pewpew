@@ -31,13 +31,30 @@ class ViewSpace(QtWidgets.QSplitter):
 
         self.addWidget(self.createView())
 
-    def createView(self) -> "View":
-        view = View(self)
-        view.numTabsChanged.connect(self.numTabsChanged)
-        self.views.append(view)
-        self.numViewsChanged.emit()
-        self.setActiveView(view)
-        return view
+    def activeView(self) -> "View":
+        if self.active_view is None:
+            view = self.views[0]
+            self.active_view = view
+
+        return self.active_view
+
+    def activeWidget(self) -> QtWidgets.QWidget:
+        widget = self.activeView().activeWidget()
+        if widget is None:
+            for view in self.views:
+                widget = view.activeWidget()
+                if widget is not None:
+                    break
+        return widget
+
+    def setActiveView(self, view: "View") -> None:
+        if self.active_view == view:
+            return
+        if self.active_view is not None:
+            self.active_view.setActive(False)
+        if view is not None:
+            view.setActive(True)
+        self.active_view = view
 
     def countViewTabs(self) -> int:
         widgets = 0
@@ -88,6 +105,14 @@ class ViewSpace(QtWidgets.QSplitter):
             child_splitter.setParent(None)
             splitter.setSizes(sizes)
 
+    def createView(self) -> "View":
+        view = View(self)
+        view.numTabsChanged.connect(self.numTabsChanged)
+        self.views.append(view)
+        self.numViewsChanged.emit()
+        self.setActiveView(view)
+        return view
+
     def splitActiveHorizontal(self) -> None:
         self.splitView()
 
@@ -128,41 +153,32 @@ class ViewSpace(QtWidgets.QSplitter):
             new_size = (sum(new_splitter.sizes()) - new_splitter.handleWidth()) / 2.0
             new_splitter.setSizes([new_size, new_size])
 
-    def activeView(self) -> "View":
-        if self.active_view is None:
-            view = self.views[0]
-            self.active_view = view
-
-        return self.active_view
-
-    def setActiveView(self, view: "View") -> None:
-        if self.active_view == view:
-            return
-        if self.active_view is not None:
-            self.active_view.setActive(False)
-        if view is not None:
-            view.setActive(True)
-        self.active_view = view
-
-    def activeWidget(self) -> QtWidgets.QWidget:
-        widget = self.activeView().activeWidget()
-        if widget is None:
-            for view in self.views:
-                widget = view.activeWidget()
-                if widget is not None:
-                    break
-        return widget
-
-    def refresh(self) -> None:
+    def refresh(self, visible: bool = False) -> None:
+        """Resfresh all views"""
         for view in self.views:
-            view.refresh()
+            view.refresh(visible)
+
+    # Events
+    @QtCore.Slot("QWidget*")
+    def mouseSelectStart(self, callback_widget: QtWidgets.QWidget) -> None:
+        for view in self.views:
+            for widget in view.widgets():
+                widget.mouseSelectStart(callback_widget)
+
+    @QtCore.Slot("QWidget*")
+    def mouseSelectEnd(self, callback_widget: QtWidgets.QWidget) -> None:
+        for view in self.views:
+            for widget in view.widgets():
+                widget.mouseSelectEnd(callback_widget)
 
 
 class View(QtWidgets.QWidget):
     numTabsChanged = QtCore.Signal()
 
-    def __init__(self, viewspace: ViewSpace, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
+    icon_modified = QtGui.QIcon.fromTheme("document-save")
+
+    def __init__(self, viewspace: ViewSpace):
+        super().__init__(viewspace)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setAcceptDrops(True)
         self.setFocusPolicy(QtCore.Qt.ClickFocus)
@@ -170,14 +186,17 @@ class View(QtWidgets.QWidget):
         self.active = False
         self.viewspace = viewspace
 
+        self.scroll_area = QtWidgets.QScrollArea(self)
+        self.scroll_area.setWidgetResizable(True)
         self.stack = QtWidgets.QStackedWidget()
-        self.stack.setFrameStyle(QtWidgets.QFrame.StyledPanel | QtWidgets.QFrame.Sunken)
+        self.scroll_area.setWidget(self.stack)
 
         self.tabs = ViewTabBar(self)
         self.tabs.setDrawBase(False)
         self.tabs.currentChanged.connect(self.stack.setCurrentIndex)
-        self.tabs.tabMoved.connect(self.moveStackWidget)
+        self.tabs.tabMoved.connect(self.moveWidget)
         self.tabs.tabCloseRequested.connect(self.removeTab)
+        self.tabs.tabTextChanged.connect(self.renameWidget)
         self.tabs.installEventFilter(self)
 
         self.titlebar = ViewTitleBar(self.tabs, self)
@@ -186,24 +205,32 @@ class View(QtWidgets.QWidget):
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.titlebar, 0)
-        layout.addWidget(self.stack, 1)
+        layout.addWidget(self.scroll_area, 1)
         self.setLayout(layout)
 
-    def widgets(self) -> List[QtWidgets.QWidget]:
-        return [self.stack.widget(i) for i in range(self.stack.count())]
-
-    def activeWidget(self) -> QtWidgets.QWidget:
+    # Stack
+    def activeWidget(self) -> "_ViewWidget":
         if self.stack.count() == 0:
             return None
         return self.stack.widget(self.stack.currentIndex())
 
-    def addTab(self, text: str, widget: QtWidgets.QWidget) -> int:
+    def moveWidget(self, ifrom: int, ito: int) -> None:
+        self.stack.insertWidget(ito, self.stack.widget(ifrom))
+
+    def renameWidget(self, index: int, text: str) -> None:
+        self.stack.widget(index).rename(text)
+
+    def widgets(self) -> List["_ViewWidget"]:
+        return [self.stack.widget(i) for i in range(self.stack.count())]
+
+    # Tabs
+    def addTab(self, text: str, widget: "_ViewWidget") -> int:
         index = self.tabs.addTab(text)
         self.stack.insertWidget(index, widget)
         self.numTabsChanged.emit()
         return index
 
-    def insertTab(self, index: int, text: str, widget: QtWidgets.QWidget) -> int:
+    def insertTab(self, index: int, text: str, widget: "_ViewWidget") -> int:
         index = self.tabs.insertTab(index, text)
         self.stack.insertWidget(index, widget)
         self.numTabsChanged.emit()
@@ -214,30 +241,23 @@ class View(QtWidgets.QWidget):
         self.stack.removeWidget(self.stack.widget(index))
         self.numTabsChanged.emit()
 
-    def moveStackWidget(self, ifrom: int, ito: int) -> None:
-        self.stack.insertWidget(ito, self.stack.widget(ifrom))
+    def setTabModified(self, index: int, modified: bool = True) -> None:
+        icon = self.icon_modified if modified else QtGui.QIcon()
+        self.tabs.setTabIcon(index, icon)
 
-    def focusInEvent(self, event: QtGui.QFocusEvent) -> None:
-        self.viewspace.setActiveView(self)
+    def refresh(self, visible: bool = False) -> None:
+        if visible:
+            widget = self.activeWidget()
+            if widget is not None:
+                widget.refresh()
+        else:
+            for widget in self.widgets():
+                widget.refresh()
 
     def setActive(self, active: bool) -> None:
         self.active = active
-        if active:
-            color = self.palette().color(QtGui.QPalette.Highlight).name()
-        else:
-            color = self.palette().color(QtGui.QPalette.Shadow).name()
-        self.stack.setStyleSheet(
-            (
-                "View > QStackedWidget,"
-                f"View > QStackedWidget > QWidget {{ color: {color} }}"
-            )
-        )
 
-    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        if obj and event.type() == QtCore.QEvent.MouseButtonPress:
-            self.viewspace.setActiveView(self)
-        return False
-
+    # Events
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasFormat("application/x-pewpewtabbar"):
             event.acceptProposedAction()
@@ -246,12 +266,17 @@ class View(QtWidgets.QWidget):
         if event.mimeData().hasFormat("application/x-pewpewtabbar"):
             self.tabs.dropEvent(event)
 
-    def refresh(self) -> None:
-        pass
+    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+        if obj and event.type() == QtCore.QEvent.MouseButtonPress:
+            self.viewspace.setActiveView(self)
+        return False
+
+    def focusInEvent(self, event: QtGui.QFocusEvent) -> None:
+        self.viewspace.setActiveView(self)
 
 
 class ViewTabBar(QtWidgets.QTabBar):
-    tabTextChanged = QtCore.Signal(int)
+    tabTextChanged = QtCore.Signal(int, str)
 
     def __init__(self, view: View, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
@@ -271,10 +296,10 @@ class ViewTabBar(QtWidgets.QTabBar):
     def setTabText(self, index: int, text: str) -> None:
         if text != "" and text != self.tabText(index):
             super().setTabText(index, text)
-            self.tabTextChanged.emit(index)
+            self.tabTextChanged.emit(index, text)
 
     def tabRenameDialog(self, index: int) -> QtWidgets.QDialog:
-        if index == -1:
+        if index == -1 or not self.view.stack.widget(index).editable:
             return
         dlg = QtWidgets.QInputDialog(self)
         dlg.setWindowTitle("Rename")
@@ -361,3 +386,33 @@ class ViewTitleBar(QtWidgets.QWidget):
         layout.addWidget(tabs, 1)
         layout.addWidget(self.split_button)
         self.setLayout(layout)
+
+
+class _ViewWidget(QtWidgets.QWidget):
+    def __init__(self, view: View, editable: bool = True):
+        super().__init__(view)
+        self.view = view
+        self.viewspace = view.viewspace
+
+        self.editable = editable
+
+    @property
+    def index(self) -> int:
+        return self.view.stack.indexOf(self)
+
+    def refresh(self) -> None:
+        raise NotImplementedError
+
+    def rename(self, text: str) -> None:
+        raise NotImplementedError
+
+    def setModified(self, modified: bool) -> None:
+        self.view.setTabModified(self.index, modified)
+
+    @QtCore.Slot("QWidget*")
+    def mouseSelectStart(self, callback_widget: QtWidgets.QWidget) -> None:
+        raise NotImplementedError
+
+    @QtCore.Slot("QWidget*")
+    def mouseSelectEnd(self, callback_widget: QtWidgets.QWidget) -> None:
+        raise NotImplementedError
