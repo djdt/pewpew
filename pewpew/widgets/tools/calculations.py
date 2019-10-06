@@ -9,7 +9,8 @@ from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets.canvases import LaserCanvas
 from pewpew.widgets.laser import LaserWidget
-from pewpew.widgets.tools import Tool
+from pewpew.widgets.tools import ToolWidget
+from pewpew.widgets.views import View
 
 from typing import List, Union
 
@@ -94,9 +95,9 @@ class FormulaLineEdit(ValidColorLineEdit):
         self.revalidate()
 
 
-class CalculationsTool(Tool):
-    def __init__(self, widget: LaserWidget, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
+class CalculationsTool(ToolWidget):
+    def __init__(self, widget: LaserWidget, view: View):
+        super().__init__(view)
         self.setWindowTitle("Calculator")
         self.widget = widget
 

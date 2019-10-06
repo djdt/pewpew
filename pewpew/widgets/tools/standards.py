@@ -16,21 +16,22 @@ from pewpew.widgets.canvases import LaserCanvas
 from pewpew.widgets.dialogs import CalibrationCurveDialog
 from pewpew.widgets.modelviews import BasicTableView
 from pewpew.widgets.laser import LaserWidget
+from pewpew.widgets.views import View
 
-from .tool import Tool
+from .tool import ToolWidget
 
 from typing import Any, List
 
 
-class StandardsTool(Tool):
+class StandardsTool(ToolWidget):
     calibrationSelected = QtCore.Signal(dict)
 
     def __init__(
         self,
         widget: LaserWidget,
-        parent: QtWidgets.QWidget = None,
+        view: View,
     ):
-        super().__init__(parent)
+        super().__init__(view)
         self.setWindowTitle("Calibration Standards")
         self.widget = widget
 

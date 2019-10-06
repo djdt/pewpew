@@ -263,14 +263,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.viewspace.options.canvas.scalebar = checked
         self.refresh()
 
-    def actionToolStandards(self) -> QtWidgets.QDialog:
+    def actionToolStandards(self) -> None:
         widget = self.viewspace.activeWidget()
-        tool = StandardsTool(widget, parent=self)
-        tool.calibrationSelected.connect(self.viewspace.applyCalibration)
-        tool.mouseSelectStarted.connect(self.viewspace.mouseSelectStart)
-        tool.mouseSelectEnded.connect(self.viewspace.mouseSelectEnd)
-        tool.show()
-        return tool
+        tool = StandardsTool(widget, widget.view)
+        widget.view.addTab("Standards Tool", tool)
+        # tool.calibrationSelected.connect(self.viewspace.applyCalibration)
+        # tool.mouseSelectStarted.connect(self.viewspace.mouseSelectStart)
+        # tool.mouseSelectEnded.connect(self.viewspace.mouseSelectEnd)
+        # tool.show()
+        # return tool
 
     def actionToolCalculations(self) -> QtWidgets.QDialog:
         widget = self.viewspace.activeWidget()

@@ -1,20 +1,18 @@
 from PySide2 import QtCore, QtWidgets
 
-from pewpew.widgets.views import _ViewWidget
+from pewpew.widgets.views import View, _ViewWidget
 
 
 class ToolWidget(_ViewWidget):
     mouseSelectStarted = QtCore.Signal("QWidget*")
     mouseSelectEnded = QtCore.Signal("QWidget*")
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy.MinimumExpanding,
-            QtWidgets.QSizePolicy.MinimumExpanding,
-        )
-        widget = QtWidgets.QWidget()
-
+    def __init__(self, view: View):
+        super().__init__(view)
+        # self.setSizePolicy(
+        #     QtWidgets.QSizePolicy.MinimumExpanding,
+        #     QtWidgets.QSizePolicy.MinimumExpanding,
+        # )
         self.button_select = QtWidgets.QPushButton("Select &Image")
         self.button_select.pressed.connect(self.startMouseSelect)
 
@@ -34,9 +32,6 @@ class ToolWidget(_ViewWidget):
         layout.addLayout(self.layout_main)
         layout.addLayout(self.layout_buttons)
         self.setLayout(layout)
-
-        widget.setLayout(layout)
-        self.setWidget(widget)
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(800, 600)
@@ -90,108 +85,108 @@ class ToolWidget(_ViewWidget):
     @QtCore.Slot()
     def completeChanged(self) -> None:
         enabled = self.isComplete()
-        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(enabled)
-        self.button_box.button(QtWidgets.QDialogButtonBox.Apply).setEnabled(enabled)
+        # self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(enabled)
+        # self.button_box.button(QtWidgets.QDialogButtonBox.Apply).setEnabled(enabled)
 
 
-class ToolWidget(QtWidgets.QScrollArea):
-    mouseSelectStarted = QtCore.Signal("QWidget*")
-    mouseSelectEnded = QtCore.Signal("QWidget*")
+# class ToolWidget(QtWidgets.QScrollArea):
+#     mouseSelectStarted = QtCore.Signal("QWidget*")
+#     mouseSelectEnded = QtCore.Signal("QWidget*")
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy.MinimumExpanding,
-            QtWidgets.QSizePolicy.MinimumExpanding,
-        )
+#     def __init__(self, parent: QtWidgets.QWidget = None):
+#         super().__init__(parent)
+#         self.setSizePolicy(
+#             QtWidgets.QSizePolicy.MinimumExpanding,
+#             QtWidgets.QSizePolicy.MinimumExpanding,
+#         )
 
-        self.button_select = QtWidgets.QPushButton("Select &Image")
-        self.button_select.pressed.connect(self.startMouseSelect)
+#         self.button_select = QtWidgets.QPushButton("Select &Image")
+#         self.button_select.pressed.connect(self.startMouseSelect)
 
-        widget = QtWidgets.QWidget()
+#         widget = QtWidgets.QWidget()
 
-        self.layout_top = QtWidgets.QHBoxLayout()
-        self.layout_top.addWidget(self.button_select, 0, QtCore.Qt.AlignRight)
+#         self.layout_top = QtWidgets.QHBoxLayout()
+#         self.layout_top.addWidget(self.button_select, 0, QtCore.Qt.AlignRight)
 
-        widget.setLayout(self.layout_top)
-        self.setWidget(widget)
-        # self.layout().insertLayout(0, self.layout_top)
+#         widget.setLayout(self.layout_top)
+#         self.setWidget(widget)
+#         # self.layout().insertLayout(0, self.layout_top)
 
-    def sizeHint(self) -> QtCore.QSize:
-        return QtCore.QSize(800, 600)
+#     def sizeHint(self) -> QtCore.QSize:
+#         return QtCore.QSize(800, 600)
 
-    def startMouseSelect(self) -> None:
-        self.hide()
-        self.mouseSelectStarted.emit(self)
+#     def startMouseSelect(self) -> None:
+#         self.hide()
+#         self.mouseSelectStarted.emit(self)
 
-    def endMouseSelect(self) -> None:
-        self.mouseSelectEnded.emit(self)
-        self.activateWindow()
-        self.setFocus(QtCore.Qt.OtherFocusReason)
-        self.show()
+#     def endMouseSelect(self) -> None:
+#         self.mouseSelectEnded.emit(self)
+#         self.activateWindow()
+#         self.setFocus(QtCore.Qt.OtherFocusReason)
+#         self.show()
 
-    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        raise NotImplementedError
+#     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+#         raise NotImplementedError
 
-    def refresh(self) -> None:
-        pass
+#     def refresh(self) -> None:
+#         pass
 
-    def keyPressEvent(self, event: QtCore.QEvent) -> None:
-        if event.key() in [
-            QtCore.Qt.Key_Escape,
-            QtCore.Qt.Key_Enter,
-            QtCore.Qt.Key_Return,
-        ]:
-            return
-        if event.key() == QtCore.Qt.Key_F5:
-            self.refresh()
-        super().keyPressEvent(event)
+#     def keyPressEvent(self, event: QtCore.QEvent) -> None:
+#         if event.key() in [
+#             QtCore.Qt.Key_Escape,
+#             QtCore.Qt.Key_Enter,
+#             QtCore.Qt.Key_Return,
+#         ]:
+#             return
+#         if event.key() == QtCore.Qt.Key_F5:
+#             self.refresh()
+#         super().keyPressEvent(event)
 
 
-class Tool(ApplyDialog):
-    mouseSelectStarted = QtCore.Signal("QWidget*")
-    mouseSelectEnded = QtCore.Signal("QWidget*")
+# class Tool(ApplyDialog):
+#     mouseSelectStarted = QtCore.Signal("QWidget*")
+#     mouseSelectEnded = QtCore.Signal("QWidget*")
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy.MinimumExpanding,
-            QtWidgets.QSizePolicy.MinimumExpanding,
-        )
+#     def __init__(self, parent: QtWidgets.QWidget = None):
+#         super().__init__(parent)
+#         self.setSizePolicy(
+#             QtWidgets.QSizePolicy.MinimumExpanding,
+#             QtWidgets.QSizePolicy.MinimumExpanding,
+#         )
 
-        self.button_select = QtWidgets.QPushButton("Select &Image")
-        self.button_select.pressed.connect(self.startMouseSelect)
+#         self.button_select = QtWidgets.QPushButton("Select &Image")
+#         self.button_select.pressed.connect(self.startMouseSelect)
 
-        self.layout_top = QtWidgets.QHBoxLayout()
-        self.layout_top.addWidget(self.button_select, 0, QtCore.Qt.AlignRight)
-        self.layout().insertLayout(0, self.layout_top)
+#         self.layout_top = QtWidgets.QHBoxLayout()
+#         self.layout_top.addWidget(self.button_select, 0, QtCore.Qt.AlignRight)
+#         self.layout().insertLayout(0, self.layout_top)
 
-    def sizeHint(self) -> QtCore.QSize:
-        return QtCore.QSize(800, 600)
+#     def sizeHint(self) -> QtCore.QSize:
+#         return QtCore.QSize(800, 600)
 
-    def startMouseSelect(self) -> None:
-        self.hide()
-        self.mouseSelectStarted.emit(self)
+#     def startMouseSelect(self) -> None:
+#         self.hide()
+#         self.mouseSelectStarted.emit(self)
 
-    def endMouseSelect(self) -> None:
-        self.mouseSelectEnded.emit(self)
-        self.activateWindow()
-        self.setFocus(QtCore.Qt.OtherFocusReason)
-        self.show()
+#     def endMouseSelect(self) -> None:
+#         self.mouseSelectEnded.emit(self)
+#         self.activateWindow()
+#         self.setFocus(QtCore.Qt.OtherFocusReason)
+#         self.show()
 
-    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        raise NotImplementedError
+#     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+#         raise NotImplementedError
 
-    def refresh(self) -> None:
-        pass
+#     def refresh(self) -> None:
+#         pass
 
-    def keyPressEvent(self, event: QtCore.QEvent) -> None:
-        if event.key() in [
-            QtCore.Qt.Key_Escape,
-            QtCore.Qt.Key_Enter,
-            QtCore.Qt.Key_Return,
-        ]:
-            return
-        if event.key() == QtCore.Qt.Key_F5:
-            self.refresh()
-        super().keyPressEvent(event)
+#     def keyPressEvent(self, event: QtCore.QEvent) -> None:
+#         if event.key() in [
+#             QtCore.Qt.Key_Escape,
+#             QtCore.Qt.Key_Enter,
+#             QtCore.Qt.Key_Return,
+#         ]:
+#             return
+#         if event.key() == QtCore.Qt.Key_F5:
+#             self.refresh()
+#         super().keyPressEvent(event)

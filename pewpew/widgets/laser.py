@@ -109,11 +109,13 @@ class LaserView(View):
 
     def applyCalibration(self, calibration: dict) -> None:
         for widget in self.widgets():
-            widget.applyCalibration(calibration)
+            if isinstance(LaserWidget, widget):
+                widget.applyCalibration(calibration)
 
     def applyConfig(self, config: Config) -> None:
         for widget in self.widgets():
-            widget.applyConfig(config)
+            if isinstance(LaserWidget, widget):
+                widget.applyConfig(config)
 
     # Actions
     def actionOpen(self) -> QtWidgets.QDialog:
