@@ -2,7 +2,16 @@ from pytestqt.qtbot import QtBot
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewpew.widgets.views import ViewSpace, View
+from pewpew.widgets.views import ViewSpace, View, _ViewWidget
+
+
+class _TestViewWidget(_ViewWidget):
+    def __init__(self, idx: int, view: View, editable: bool = False):
+        self.idx = idx
+        super().__init__(view, editable)
+
+    def rename(self, text: str) -> None:
+        pass
 
 
 def test_view_space_active(qtbot: QtBot):
@@ -71,6 +80,14 @@ def test_view_space_add_remove(qtbot: QtBot):
     assert isinstance(viewspace.widget(1).widget(0), View)
     assert isinstance(viewspace.widget(1).widget(1), View)
 
+    # Active widget should be first in latest view
+    for view in viewspace.views:
+        view.addTab("", _ViewWidget(view))
+
+    assert viewspace.activeWidget() == viewspace.views[2].widgets()[0]
+    assert viewspace.countViewTabs() == 3
+
+    # Close them all
     with qtbot.waitSignal(viewspace.numViewsChanged):
         viewspace.closeActiveView()
     assert len(viewspace.views) == 2
@@ -81,6 +98,8 @@ def test_view_space_add_remove(qtbot: QtBot):
         viewspace.closeActiveView()
     assert len(viewspace.views) == 1
 
+    assert viewspace.countViewTabs() == 1
+
 
 def test_view_tabs(qtbot: QtBot):
     viewspace = ViewSpace()
@@ -89,25 +108,29 @@ def test_view_tabs(qtbot: QtBot):
     view = viewspace.activeView()
     # Creating tabs
     with qtbot.waitSignal(view.numTabsChanged):
-        view.addTab("1", QtWidgets.QLabel("1"))
+        view.addTab("1", _TestViewWidget(1, view))
     with qtbot.waitSignal(viewspace.numTabsChanged):
-        view.addTab("3", QtWidgets.QLabel("3"))
+        view.addTab("3", _TestViewWidget(3, view))
     with qtbot.waitSignal(view.numTabsChanged):
-        view.insertTab(1, "2", QtWidgets.QLabel("2"))
+        view.insertTab(1, "2", _TestViewWidget(2, view))
     assert view.tabs.count() == 3
     assert [view.tabs.tabText(i) for i in range(3)] == ["1", "2", "3"]
-    assert [view.stack.widget(i).text() for i in range(3)] == ["1", "2", "3"]
+    assert [view.stack.widget(i).idx for i in range(3)] == [1, 2, 3]
     # Moving tabs
     with qtbot.assertNotEmitted(view.numTabsChanged, wait=100):
         view.tabs.moveTab(2, 0)
     assert [view.tabs.tabText(i) for i in range(3)] == ["3", "1", "2"]
-    assert [view.stack.widget(i).text() for i in range(3)] == ["3", "1", "2"]
+    assert [view.stack.widget(i).idx for i in range(3)] == [3, 1, 2]
     # Removing tabs
     with qtbot.waitSignal(viewspace.numTabsChanged):
         view.removeTab(1)
     assert view.tabs.count() == 2
     assert [view.tabs.tabText(i) for i in range(2)] == ["3", "2"]
-    assert [view.stack.widget(i).text() for i in range(2)] == ["3", "2"]
+    assert [view.stack.widget(i).idx for i in range(2)] == [3, 2]
+
+    # view.setTabModified(0, True)
+    # assert view.tabs.tabIcon(0).name() == "document-save"
+    # assert view.tabs.tabIcon(1).name() == ""
 
     view.removeTab(0)
     assert len(view.widgets()) == 1
@@ -120,17 +143,20 @@ def test_view_tab_bar(qtbot: QtBot):
     qtbot.addWidget(viewspace)
     viewspace.show()
     viewspace.splitActiveHorizontal()
-    tabs = viewspace.views[0].tabs
-    # tabs2 = viewspace.views[1].tabs
+    view = viewspace.views[0]
+    tabs = view.tabs
 
-    tabs.view.addTab("1", QtWidgets.QLabel("1"))
-    tabs.view.addTab("2", QtWidgets.QLabel("2"))
+    tabs.view.addTab("1", _TestViewWidget(1, view, editable=True))
+    tabs.view.addTab("2", _TestViewWidget(2, view))
     # Test double click rename
     dlg = tabs.tabRenameDialog(0)
     assert dlg.textValue() == "1"
     dlg.textValueSelected.emit("3")
     dlg.close()
     assert tabs.tabText(0) == "3"
+    # Rename on non editable will not open dialog
+    assert tabs.tabRenameDialog(1) is None
+
     # Test drag and drop same bar
     with qtbot.assertNotEmitted(tabs.view.numTabsChanged, wait=100):
         qtbot.mousePress(tabs, QtCore.Qt.LeftButton, pos=tabs.tabRect(0).center())
