@@ -9,7 +9,12 @@ from pewpew.actions import qAction, qActionGroup
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.prompts import DetailedError
-from pewpew.widgets.tools import CalculationsTool, StandardsTool, OverlayTool
+from pewpew.widgets.tools import (
+    ToolWidget,
+    CalculationsTool,
+    StandardsTool,
+    OverlayTool,
+)
 from pewpew.widgets.wizards import SRRLaserWizard
 from pewpew.widgets.laser import LaserViewSpace
 
@@ -265,18 +270,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionToolStandards(self) -> None:
         widget = self.viewspace.activeWidget()
+        if isinstance(widget, ToolWidget):
+            widget = widget.widget
         tool = StandardsTool(widget)
         widget.view.addTab("Standards Tool", tool)
         tool.setActive()
 
     def actionToolCalculations(self) -> None:
         widget = self.viewspace.activeWidget()
+        if isinstance(widget, ToolWidget):
+            widget = widget.widget
         tool = CalculationsTool(widget)
         widget.view.addTab("Calulations Tool", tool)
         tool.setActive()
 
     def actionToolOverlay(self) -> None:
         widget = self.viewspace.activeWidget()
+        if isinstance(widget, ToolWidget):
+            widget = widget.widget
         tool = OverlayTool(widget)
         widget.view.addTab("Overlay Tool", tool)
         tool.setActive()
