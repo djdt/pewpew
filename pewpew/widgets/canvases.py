@@ -33,7 +33,7 @@ class BasicCanvas(FigureCanvasQTAgg):
         figsize: Tuple[float, float] = (5.0, 5.0),
         parent: QtWidgets.QWidget = None,
     ):
-        fig = Figure(frameon=False, tight_layout=True, figsize=figsize)
+        fig = Figure(dpi=100, frameon=False, tight_layout=True, figsize=figsize)
         super().__init__(fig)
         self.ax: Axes = None
 
@@ -220,7 +220,6 @@ class LaserCanvas(BasicCanvas):
         if vmin > vmax:
             vmin, vmax = vmax, vmin
 
-        # Cmap bad to red
         # Plot the image
         self.image = self.ax.imshow(
             data,
@@ -233,6 +232,8 @@ class LaserCanvas(BasicCanvas):
             aspect="equal",
             origin="upper",
         )
+        # Rescale to full image
+        self.view_limits = extent
 
     def drawLabel(self, text: str) -> None:
         if self.label is not None:
