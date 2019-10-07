@@ -5,10 +5,7 @@ from pytestqt.qtbot import QtBot
 
 from pew.laser import Laser
 
-from pewpew.lib.viewoptions import ViewOptions
-
 from pewpew.widgets.exportdialogs import ExportDialog, ExportAllDialog
-from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.laser import LaserViewSpace
 
 from testing import rand_data
@@ -23,7 +20,6 @@ def test_export_dialog(qtbot: QtBot):
         Laser(rand_data("A1"), name="laser", path="/home/user/laser.npz")
     )
     dlg = ExportDialog(widget)
-    qtbot.addWidget(dlg)
     dlg.open()
 
     assert dlg.lineedit_directory.text() == "/home/user"
@@ -57,7 +53,7 @@ def test_export_dialog(qtbot: QtBot):
         dlg.lineedit_filename.setText("temp.npz")
         paths = dlg.generatePaths(dlg.widget)
         assert paths == [(os.path.join(tempdir, "temp.npz"), "A1")]
-        dlg.export(paths, dlg.widget)
+        dlg.export(paths[0][0], paths[0][1], dlg.widget)
         assert os.path.exists(os.path.join(tempdir, "temp.npz"))
         # Test export all isotopes and png
 
@@ -84,7 +80,6 @@ def test_export_all_dialog(qtbot: QtBot):
     widgets = [view.addLaser(laser) for laser in lasers]
 
     dlg = ExportAllDialog(widgets)
-    qtbot.addWidget(dlg)
     dlg.open()
 
     assert dlg.lineedit_directory.text() == "/home/user"
