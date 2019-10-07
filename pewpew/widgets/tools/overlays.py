@@ -243,7 +243,11 @@ class OverlayCanvas(BasicCanvas):
     ) -> None:
         self.ax.clear()
         self.image = self.ax.imshow(
-            data, interpolation="none", extent=extent, aspect="equal", origin="upper"
+            data,
+            interpolation=self.viewoptions.image.interpolation,
+            extent=extent,
+            aspect="equal",
+            origin="upper",
         )
         self.draw_idle()
 
