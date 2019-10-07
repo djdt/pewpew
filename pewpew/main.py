@@ -16,7 +16,7 @@ from pewpew.widgets.tools import (
     OverlayTool,
 )
 from pewpew.widgets.wizards import SRRLaserWizard
-from pewpew.widgets.laser import LaserViewSpace
+from pewpew.widgets.laser import LaserWidget, LaserViewSpace
 
 from types import TracebackType
 
@@ -191,10 +191,13 @@ class MainWindow(QtWidgets.QMainWindow):
         return dlg
 
     def actionExportAll(self) -> QtWidgets.QDialog:
-        lasers = [w.laser for v in self.viewspace.views for w in v.widgets()]
-        dlg = ExportAllDialog(
-            lasers, self.viewspace.uniqueIsotopes(), self.viewspace.options, self
-        )
+        widgets = [
+            w
+            for v in self.viewspace.views
+            for w in v.widgets()
+            if isinstance(w, LaserWidget)
+        ]
+        dlg = ExportAllDialog(widgets, self)
         dlg.open()
         return dlg
 

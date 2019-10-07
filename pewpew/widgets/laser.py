@@ -61,10 +61,11 @@ class LaserView(View):
             "document-open", "&Open", "Open new document(s).", self.actionOpen
         )
 
-    def addLaser(self, laser: Laser) -> int:
+    def addLaser(self, laser: Laser) -> "LaserWidget":
         widget = LaserWidget(laser, self.viewspace.options, self)
         name = laser.name if laser.name != "" else os.path.basename(laser.path)
-        return self.addTab(name, widget)
+        self.addTab(name, widget)
+        return widget
 
     def setCurrentIsotope(self, isotope: str) -> None:
         for widget in self.widgets():
@@ -329,13 +330,7 @@ class LaserWidget(_ViewWidget):
         self.canvas.copyToClipboard()
 
     def actionExport(self) -> QtWidgets.QDialog:
-        dlg = exportdialogs.ExportDialog(
-            self.laser,
-            self.combo_isotopes.currentText(),
-            self.canvas.view_limits,
-            self.canvas.viewoptions,
-            self,
-        )
+        dlg = exportdialogs.ExportDialog(self, parent=self)
         dlg.open()
         return dlg
 

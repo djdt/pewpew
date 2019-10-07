@@ -8,17 +8,21 @@ from pew.laser import Laser
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets.exportdialogs import ExportDialog, ExportAllDialog
+from pewpew.widgets.laser import LaserWidget
+from pewpew.widgets.laser import LaserViewSpace
 
 from testing import rand_data
 
 
 def test_export_dialog(qtbot: QtBot):
-    dlg = ExportDialog(
-        Laser(rand_data("A1"), name="laser", path="/home/user/laser.npz"),
-        "A1",
-        (0, 100, 0, 100),
-        ViewOptions(),
+    viewspace = LaserViewSpace()
+    qtbot.addWidget(viewspace)
+    view = viewspace.activeView()
+
+    widget = view.addLaser(
+        Laser(rand_data("A1"), name="laser", path="/home/user/laser.npz")
     )
+    dlg = ExportDialog(widget)
     qtbot.addWidget(dlg)
     dlg.open()
 
@@ -51,9 +55,9 @@ def test_export_dialog(qtbot: QtBot):
         # Test export
         dlg.lineedit_directory.setText(tempdir)
         dlg.lineedit_filename.setText("temp.npz")
-        paths = dlg.generatePaths(dlg.laser)
+        paths = dlg.generatePaths(dlg.widget)
         assert paths == [(os.path.join(tempdir, "temp.npz"), "A1")]
-        dlg.export(paths, dlg.laser, dlg.viewlimits)
+        dlg.export(paths, dlg.widget)
         assert os.path.exists(os.path.join(tempdir, "temp.npz"))
         # Test export all isotopes and png
 
@@ -67,16 +71,19 @@ def test_export_dialog(qtbot: QtBot):
 
 
 def test_export_all_dialog(qtbot: QtBot):
-    dlg = ExportAllDialog(
-        [
-            Laser(rand_data("A1"), name="laser1", path="/home/user/laser1.npz"),
-            Laser(rand_data("B2"), name="laser2", path="/home/user/laser2.npz"),
-            Laser(rand_data("C3"), name="laser3", path="/home/user/laser3.npz"),
-            Laser(rand_data(["B2", "C3"]), name="laser4", path="/home/user/laser4.npz"),
-        ],
-        ["A1", "B2", "C3"],
-        ViewOptions(),
-    )
+    viewspace = LaserViewSpace()
+    qtbot.addWidget(viewspace)
+    view = viewspace.activeView()
+
+    lasers = [
+        Laser(rand_data("A1"), name="laser1", path="/home/user/laser1.npz"),
+        Laser(rand_data("B2"), name="laser2", path="/home/user/laser2.npz"),
+        Laser(rand_data("C3"), name="laser3", path="/home/user/laser3.npz"),
+        Laser(rand_data(["B2", "C3"]), name="laser4", path="/home/user/laser4.npz"),
+    ]
+    widgets = [view.addLaser(laser) for laser in lasers]
+
+    dlg = ExportAllDialog(widgets)
     qtbot.addWidget(dlg)
     dlg.open()
 

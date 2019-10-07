@@ -110,7 +110,9 @@ class ExportDialog(QtWidgets.QDialog):
         self.setWindowTitle("Export")
         self.widget = widget
 
-        path = os.path.join(os.path.dirname(self.laser.path), self.laser.name + ".npz")
+        path = os.path.join(
+            os.path.dirname(self.widget.laser.path), self.widget.laser.name + ".npz"
+        )
         # path = laser.path
         directory = os.path.dirname(path)
         filename = os.path.basename(path)
@@ -268,7 +270,7 @@ class ExportDialog(QtWidgets.QDialog):
         if self.isExportAll():
             paths = [(self.getPathForIsotope(i), i) for i in laser.isotopes]
         else:
-            paths = [(self.getPath(), self.isotope)]
+            paths = [(self.getPath(), self.widget.combo_isotopes.currentText())]
 
         return [(p, i) for p, i in paths if p != ""]
 
@@ -292,7 +294,7 @@ class ExportDialog(QtWidgets.QDialog):
                         else:
                             canvas.view_limits = widget.canvas.view_limits
                             canvas.figure.set_size_inches(
-                                widget.canvas.get_size_inches()
+                                widget.canvas.figure.get_size_inches()
                             )
                             canvas.figure.savefig(
                                 path,
@@ -320,6 +322,7 @@ class ExportDialog(QtWidgets.QDialog):
         paths = self.generatePaths(self.widget.laser)
         prompt = OverwriteFilePrompt()
         paths = [p for p in paths if prompt.promptOverwrite(p[0])]
+
         if len(paths) == 0:
             return
         if self.export(paths, self.widget):
@@ -328,20 +331,22 @@ class ExportDialog(QtWidgets.QDialog):
 
 class ExportAllDialog(ExportDialog):
     def __init__(self, widgets: List[LaserWidget], parent: QtWidgets.QWidget = None):
-        super().__init__(widgets[0], parent)
-        self.setWindowTitle("Export All")
-
-        self.widgets = widgets
         unique: Set[str] = set()
         for widget in widgets:
             unique.update(widget.laser.isotopes)
         isotopes = sorted(unique)
+
         self.combo_isotopes = QtWidgets.QComboBox()
         self.combo_isotopes.addItems(isotopes)
         self.lineedit_prefix = QtWidgets.QLineEdit("")
         self.lineedit_prefix.textChanged.connect(self.updatePreview)
 
+        super().__init__(widgets[0], parent)
+        self.setWindowTitle("Export All")
+        self.widgets = widgets
+
         # Adjust widgets for all
+        self.lineedit_filename.setText("<NAME>.npz")
         label = self.layout_form.labelForField(self.lineedit_filename)
         label.setText("Prefix:")
         self.layout_form.replaceWidget(self.lineedit_filename, self.lineedit_prefix)
@@ -390,23 +395,25 @@ class ExportAllDialog(ExportDialog):
                 (self.getPathForIsotopeName(i, laser.name), i) for i in laser.isotopes
             ]
         else:
-            paths = [(self.getPathForName(laser.name), self.isotope)]
+            paths = [
+                (self.getPathForName(laser.name), self.combo_isotopes.currentText())
+            ]
 
         return [(p, i) for p, i in paths if p != ""]
 
     def accept(self) -> None:
-        paths = []
+        all_paths = []
         prompt = OverwriteFilePrompt()
-        self.isotope = self.combo_isotopes.currentText()
-        for laser in self.lasers:
-            laserpaths = self.generatePaths(laser)
-            paths.append([p for p in laserpaths if prompt.promptOverwrite(p[0])])
 
-        if any(len(p) == 0 for p in paths):
+        for widget in self.widgets:
+            paths = self.generatePaths(widget.laser)
+            all_paths.append([p for p in paths if prompt.promptOverwrite(p[0])])
+
+        if any(len(paths) == 0 for paths in all_paths):
             return
 
-        for laser_paths, laser in zip(paths, self.lasers):
-            if not self.export(laser_paths, laser, None, self.figsize):
+        for paths, widget in zip(all_paths, self.widgets):
+            if not self.export(paths, widget):
                 return
 
         QtWidgets.QDialog.accept(self)
