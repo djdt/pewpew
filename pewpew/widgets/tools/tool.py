@@ -10,15 +10,9 @@ class ToolWidget(_ViewWidget):
     def __init__(self, widget: _ViewWidget):
         super().__init__(widget.view, editable=False)
         self.widget = widget
-        # self.setSizePolicy(
-        #     QtWidgets.QSizePolicy.MinimumExpanding,
-        #     QtWidgets.QSizePolicy.MinimumExpanding,
-        # )
+
         self.button_select = QtWidgets.QPushButton("Select &Image")
         self.button_select.pressed.connect(self.startMouseSelect)
-
-        self.button_box = QtWidgets.QDialogButtonBox(self)
-        self.button_box.clicked.connect(self.buttonClicked)
 
         self.layout_top = QtWidgets.QHBoxLayout()
         self.layout_top.addWidget(self.button_select, 0, QtCore.Qt.AlignRight)
@@ -26,7 +20,6 @@ class ToolWidget(_ViewWidget):
         self.layout_main = QtWidgets.QVBoxLayout()
 
         self.layout_buttons = QtWidgets.QHBoxLayout()
-        self.layout_buttons.addWidget(self.button_box)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addLayout(self.layout_top)
@@ -62,19 +55,6 @@ class ToolWidget(_ViewWidget):
     #         self.refresh()
     #     super().keyPressEvent(event)
 
-    def buttonClicked(self, button: QtWidgets.QAbstractButton) -> None:
-        sb = self.button_box.standardButton(button)
-
-        if sb == QtWidgets.QDialogButtonBox.Save:
-            self.apply()
-            self.applyPressed.emit(self)
-        elif sb == QtWidgets.QDialogButtonBox.SaveAll:
-            self.apply()
-            self.applyPressed.emit(self)
-            self.accept()
-        else:
-            self.reject()
-
     def apply(self) -> None:
         pass
 
@@ -83,7 +63,7 @@ class ToolWidget(_ViewWidget):
 
     @QtCore.Slot()
     def completeChanged(self) -> None:
-        enabled = self.isComplete()
+        pass
         # self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(enabled)
         # self.button_box.button(QtWidgets.QDialogButtonBox.Apply).setEnabled(enabled)
 
