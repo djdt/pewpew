@@ -281,12 +281,6 @@ class StandardsCanvas(BasicCanvas):
         super().__init__(parent=parent)
         self.viewoptions = viewoptions
 
-        div = make_axes_locatable(self.ax)
-        self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
-        self.bax.set_facecolor("black")
-        self.bax.get_xaxis().set_visible(False)
-        self.bax.get_yaxis().set_visible(False)
-
         self.image: AxesImage = None
 
         self.redrawFigure()
@@ -296,6 +290,12 @@ class StandardsCanvas(BasicCanvas):
         self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=False)
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
+
+        div = make_axes_locatable(self.ax)
+        self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
+        self.bax.set_facecolor("black")
+        self.bax.get_xaxis().set_visible(False)
+        self.bax.get_yaxis().set_visible(False)
 
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float]
