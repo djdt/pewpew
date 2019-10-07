@@ -1,55 +1,64 @@
 import numpy as np
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtWidgets
 from pytestqt.qtbot import QtBot
 
 from pew.laser import Laser
 
-from pewpew.lib.viewoptions import ViewOptions
+from pewpew.widgets.laser import LaserViewSpace
+from pewpew.widgets.tools import (
+    ToolWidget,
+    StandardsTool,
+    CalculationsTool,
+    OverlayTool,
+)
 
-from pewpew.widgets.laser import LaserWidget
-from pewpew.widgets.tools import Tool, StandardsTool, CalculationsTool, OverlayTool
+from testing import linear_data, rand_data
 
 
-def test_tool(qtbot: QtBot):
-    tool = Tool()
-    qtbot.addWidget(tool)
-    tool.show()
+def test_tool_widget(qtbot: QtBot):
+    viewspace = LaserViewSpace()
+    qtbot.addWidget(viewspace)
+    viewspace.show()
+    view = viewspace.activeView()
+    view.addLaser(Laser(rand_data("A1")))
+    tool = ToolWidget(view.activeWidget())
+    view.addTab("Tool", tool)
 
-    with qtbot.waitSignal(tool.mouseSelectStarted):
-        tool.startMouseSelect()
-        assert not tool.isVisible()
-
-    with qtbot.waitSignal(tool.mouseSelectEnded):
-        tool.endMouseSelect()
-        assert tool.isVisible()
-
-    qtbot.keyPress(tool, QtCore.Qt.Key_Escape)
-    assert tool.isVisible()
-    tool.close()
+    tool.startMouseSelect()
+    assert view.activeWidget() != tool
+    tool.endMouseSelect()
+    assert view.activeWidget() == tool
 
 
 def test_standards_tool(qtbot: QtBot):
-    laser = Laser(
-        np.array(np.arange(100).reshape((10, 10)), dtype=[("A1", float), ("B2", float)])
-    )
-    viewoptions = ViewOptions()
-    tool = StandardsTool(LaserWidget(laser, viewoptions, None))
-    qtbot.addWidget(tool)
-    tool.show()
+    viewspace = LaserViewSpace()
+    qtbot.addWidget(viewspace)
+    viewspace.show()
+    view = viewspace.activeView()
+    view.addLaser(Laser(linear_data(["A1", "B2"])))
+    tool = StandardsTool(view.activeWidget())
+    view.addTab("Tool", tool)
 
+    # Units
     tool.lineedit_units.setText("unit")
     tool.lineedit_units.editingFinished.emit()
     tool.combo_weighting.setCurrentIndex(1)
-
-    tool.combo_trim.setCurrentIndex(0)
-    tool.lineedit_left.setText("2")
+    # Trim
+    tool.combo_trim.setCurrentText("s")
+    tool.lineedit_left.setText(str(tool.widget.laser.config.scantime * 2))
     tool.lineedit_left.editingFinished.emit()
-    assert tool.canvas.view_limits == (70.0, 350.0, 0.0, 350.0)
+    assert tool.trim_left == 2
 
-    tool.lineedit_right.setText("2")
+    tool.combo_trim.setCurrentText("μm")
+    tool.lineedit_right.setText(str(tool.widget.laser.config.get_pixel_width() * 2))
     tool.lineedit_right.editingFinished.emit()
-    assert tool.canvas.view_limits == (70.0, 280.0, 0.0, 350.0)
+    assert tool.trim_left == 0
+    assert tool.trim_right == 2
 
+    tool.combo_trim.setCurrentText("row")
+    assert tool.trim_left == 0
+    assert tool.trim_right == 0
+    # Table
     tool.spinbox_levels.setValue(5)
 
     assert not tool.isComplete()
@@ -81,7 +90,7 @@ def test_standards_tool(qtbot: QtBot):
     tool.results_box.copy()
     assert (
         QtWidgets.QApplication.clipboard().text()
-        == "RSQ\t1.0000\nGradient\t20.0000\nIntercept\t9.5000"
+        == "RSQ\t1.0000\nGradient\t2.0000\nIntercept\t0.5000"
     )
 
     dlg = tool.showCurve()
@@ -89,11 +98,13 @@ def test_standards_tool(qtbot: QtBot):
 
 
 def test_calculations_tool(qtbot: QtBot):
-    laser = Laser(np.array(np.random.random((10, 10)), dtype=[("A1", float)]))
-    viewoptions = ViewOptions()
-    tool = CalculationsTool(LaserWidget(laser, viewoptions, None))
-    qtbot.addWidget(tool)
-    tool.show()
+    viewspace = LaserViewSpace()
+    qtbot.addWidget(viewspace)
+    viewspace.show()
+    view = viewspace.activeView()
+    view.addLaser(Laser(rand_data("A1")))
+    tool = CalculationsTool(view.activeWidget())
+    view.addTab("Tool", tool)
 
     assert not tool.isComplete()
 
@@ -120,7 +131,7 @@ def test_calculations_tool(qtbot: QtBot):
     assert tool.isComplete()
 
     tool.apply()
-    assert np.all(laser.data["A2"] == laser.data["A1"] + 1.0)
+    assert np.all(tool.widget.laser.data["A2"] == tool.widget.laser.data["A1"] + 1.0)
 
 
 def test_overlay_tool(qtbot: QtBot):
@@ -128,11 +139,14 @@ def test_overlay_tool(qtbot: QtBot):
     data["r"][:, :] = 1.0
     data["g"][:20, :] = 1.0
     data["b"][:, :20] = 1.0
-    laser = Laser(data)
-    viewoptions = ViewOptions()
-    tool = OverlayTool(LaserWidget(laser, viewoptions, None))
-    qtbot.addWidget(tool)
-    tool.show()
+
+    viewspace = LaserViewSpace()
+    qtbot.addWidget(viewspace)
+    viewspace.show()
+    view = viewspace.activeView()
+    view.addLaser(Laser(data))
+    tool = OverlayTool(view.activeWidget())
+    view.addTab("Tool", tool)
 
     # Test rgb mode
     assert tool.rows.color_model == "rgb"

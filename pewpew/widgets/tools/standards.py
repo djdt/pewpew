@@ -57,17 +57,17 @@ class StandardsTool(ToolWidget):
         # Right side
         self.canvas = StandardsCanvas(self.viewspace.options, parent=self)
 
-        self.lineedit_left = QtWidgets.QLineEdit()
+        self.lineedit_left = QtWidgets.QLineEdit("0")
         self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
         self.lineedit_left.editingFinished.connect(self.lineEditTrim)
-        self.lineedit_right = QtWidgets.QLineEdit()
+        self.lineedit_right = QtWidgets.QLineEdit("0")
         self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
         self.lineedit_right.editingFinished.connect(self.lineEditTrim)
 
         self.combo_trim = QtWidgets.QComboBox()
-        self.combo_trim.addItems(["rows", "s", "μm"])
+        self.combo_trim.addItems(["row", "s", "μm"])
         self.combo_trim.setCurrentIndex(1)
-        self.combo_trim.currentIndexChanged.connect(self.comboTrim)
+        self.combo_trim.currentTextChanged.connect(self.comboTrim)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.addItems(sorted(self.widget.laser.isotopes))
@@ -182,8 +182,8 @@ class StandardsTool(ToolWidget):
         self.combo_isotope.setCurrentText(self.widget.combo_isotopes.currentText())
         self.combo_isotope.blockSignals(False)
 
-        self.lineedit_left.setText("")
-        self.lineedit_right.setText("")
+        self.lineedit_left.setText("0")
+        self.lineedit_right.setText("0")
 
         isotope = self.combo_isotope.currentText()
         self.combo_weighting.setCurrentText(self.calibration[isotope].weighting)
@@ -204,14 +204,14 @@ class StandardsTool(ToolWidget):
 
     # Widget callbacks
     def comboTrim(self, text: str) -> None:
-        if self.combo_trim.currentText() == "rows":
+        if text == "row":
             self.lineedit_left.setValidator(QtGui.QIntValidator(0, 1e9))
             self.lineedit_right.setValidator(QtGui.QIntValidator(0, 1e9))
         else:
             self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
             self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
-        self.lineedit_left.setText("")
-        self.lineedit_right.setText("")
+        self.lineedit_left.setText("0")
+        self.lineedit_right.setText("0")
         self.trim_left = 0
         self.trim_right = 0
 
