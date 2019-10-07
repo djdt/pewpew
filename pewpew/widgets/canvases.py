@@ -145,6 +145,8 @@ class LaserCanvas(BasicCanvas):
 
         self.redrawFigure()
         self.image: AxesImage = None
+        self.label: AnchoredText = None
+        self.scalebar: MetricSizeBar = None
 
     @property
     def extent(self) -> Tuple[float, float, float, float]:
@@ -201,7 +203,8 @@ class LaserCanvas(BasicCanvas):
         extent: Tuple[float, float, float, float],
         isotope: str = None,
     ) -> None:
-        self.ax.clear()
+        if self.image is not None:
+            self.image.remove()
 
         # Calculate the range
         vmin, vmax = self.viewoptions.colors.get_range_as_float(isotope, data)
@@ -222,6 +225,36 @@ class LaserCanvas(BasicCanvas):
             aspect="equal",
             origin="upper",
         )
+
+    def drawLabel(self, text: str) -> None:
+        if self.label is not None:
+            self.label.remove()
+
+        self.label = AnchoredText(
+            text,
+            "upper left",
+            pad=0.5,
+            borderpad=0,
+            frameon=False,
+            prop=dict(
+                color=self.viewoptions.font.color,
+                fontproperties=self.viewoptions.font.mpl_props(),
+                path_effects=[withStroke(linewidth=1.5, foreground="black")],
+            ),
+        )
+        self.ax.add_artist(self.label)
+
+    def drawScalebar(self) -> None:
+        if self.scalebar is not None:
+            self.scalebar.remove()
+
+        self.scalebar = MetricSizeBar(
+            self.ax,
+            loc="upper right",
+            color=self.viewoptions.font.color,
+            font_properties=self.viewoptions.font.mpl_props(),
+        )
+        self.ax.add_artist(self.scalebar)
 
     def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
         # Get the trimmed and calibrated data
@@ -249,28 +282,16 @@ class LaserCanvas(BasicCanvas):
             self.drawColorbar(unit)
 
         if self.viewoptions.canvas.label:
-            text = AnchoredText(
-                name,
-                "upper left",
-                pad=0.5,
-                borderpad=0,
-                frameon=False,
-                prop=dict(
-                    color=self.viewoptions.font.color,
-                    fontproperties=self.viewoptions.font.mpl_props(),
-                    path_effects=[withStroke(linewidth=1.5, foreground="black")],
-                ),
-            )
-            self.ax.add_artist(text)
+            self.drawLabel(name)
+        elif self.label is not None:
+            self.label.remove()
+            self.label = None
 
         if self.viewoptions.canvas.scalebar:
-            scalebar = MetricSizeBar(
-                self.ax,
-                loc="upper right",
-                color=self.viewoptions.font.color,
-                font_properties=self.viewoptions.font.mpl_props(),
-            )
-            self.ax.add_artist(scalebar)
+            self.drawScalebar()
+        elif self.scalebar is not None:
+            self.scalebar.remove()
+            self.scalebar = None
 
     def saveRawImage(self, path: str, pixel_size: int = 1) -> None:
         vmin, vmax = self.image.get_clim()

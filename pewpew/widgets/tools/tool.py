@@ -1,14 +1,15 @@
 from PySide2 import QtCore, QtWidgets
 
-from pewpew.widgets.views import View, _ViewWidget
+from pewpew.widgets.views import _ViewWidget
 
 
 class ToolWidget(_ViewWidget):
     mouseSelectStarted = QtCore.Signal("QWidget*")
     mouseSelectEnded = QtCore.Signal("QWidget*")
 
-    def __init__(self, view: View):
-        super().__init__(view)
+    def __init__(self, widget: _ViewWidget):
+        super().__init__(widget.view, editable=False)
+        self.widget = widget
         # self.setSizePolicy(
         #     QtWidgets.QSizePolicy.MinimumExpanding,
         #     QtWidgets.QSizePolicy.MinimumExpanding,
@@ -37,14 +38,12 @@ class ToolWidget(_ViewWidget):
         return QtCore.QSize(800, 600)
 
     def startMouseSelect(self) -> None:
-        self.hide()
-        self.mouseSelectStarted.emit(self)
+        self.viewspace.mouseSelectStart(self)
+        self.widget.setActive()
 
     def endMouseSelect(self) -> None:
-        self.mouseSelectEnded.emit(self)
-        self.activateWindow()
-        self.setFocus(QtCore.Qt.OtherFocusReason)
-        self.show()
+        self.viewspace.mouseSelectEnd(self)
+        self.setActive()
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
         raise NotImplementedError

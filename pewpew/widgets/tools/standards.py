@@ -16,7 +16,6 @@ from pewpew.widgets.canvases import LaserCanvas
 from pewpew.widgets.dialogs import CalibrationCurveDialog
 from pewpew.widgets.modelviews import BasicTableView
 from pewpew.widgets.laser import LaserWidget
-from pewpew.widgets.views import View
 
 from .tool import ToolWidget
 
@@ -26,14 +25,9 @@ from typing import Any, List
 class StandardsTool(ToolWidget):
     calibrationSelected = QtCore.Signal(dict)
 
-    def __init__(
-        self,
-        widget: LaserWidget,
-        view: View,
-    ):
-        super().__init__(view)
+    def __init__(self, widget: LaserWidget):
+        super().__init__(widget)
         self.setWindowTitle("Calibration Standards")
-        self.widget = widget
 
         self.viewoptions = ViewOptions()
         self.viewoptions.canvas.colorbar = False

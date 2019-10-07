@@ -265,29 +265,21 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionToolStandards(self) -> None:
         widget = self.viewspace.activeWidget()
-        tool = StandardsTool(widget, widget.view)
+        tool = StandardsTool(widget)
         widget.view.addTab("Standards Tool", tool)
-        # tool.calibrationSelected.connect(self.viewspace.applyCalibration)
-        # tool.mouseSelectStarted.connect(self.viewspace.mouseSelectStart)
-        # tool.mouseSelectEnded.connect(self.viewspace.mouseSelectEnd)
-        # tool.show()
-        # return tool
+        tool.setActive()
 
-    def actionToolCalculations(self) -> QtWidgets.QDialog:
+    def actionToolCalculations(self) -> None:
         widget = self.viewspace.activeWidget()
-        tool = CalculationsTool(widget, parent=self)
-        tool.mouseSelectStarted.connect(self.viewspace.mouseSelectStart)
-        tool.mouseSelectEnded.connect(self.viewspace.mouseSelectEnd)
-        tool.show()
-        return tool
+        tool = CalculationsTool(widget)
+        widget.view.addTab("Calulations Tool", tool)
+        tool.setActive()
 
-    def actionToolOverlay(self) -> QtWidgets.QDialog:
+    def actionToolOverlay(self) -> None:
         widget = self.viewspace.activeWidget()
-        tool = OverlayTool(widget, parent=self)
-        tool.mouseSelectStarted.connect(self.viewspace.mouseSelectStart)
-        tool.mouseSelectEnded.connect(self.viewspace.mouseSelectEnd)
-        tool.show()
-        return tool
+        tool = OverlayTool(widget)
+        widget.view.addTab("Overlay Tool", tool)
+        tool.setActive()
 
     def createMenus(self) -> None:
         # File

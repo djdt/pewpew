@@ -5,12 +5,10 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from pewpew.lib.calc import otsu
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction
-from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets.canvases import LaserCanvas
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import ToolWidget
-from pewpew.widgets.views import View
 
 from typing import List, Union
 
@@ -96,19 +94,16 @@ class FormulaLineEdit(ValidColorLineEdit):
 
 
 class CalculationsTool(ToolWidget):
-    def __init__(self, widget: LaserWidget, view: View):
-        super().__init__(view)
-        self.setWindowTitle("Calculator")
-        self.widget = widget
+    def __init__(self, widget: LaserWidget):
+        super().__init__(widget)
+        self.setWindowTitle("Calculator Tool")
 
-        # Custom viewoptions
-        self.viewoptions = ViewOptions()
-        self.viewoptions.canvas.colorbar = False
-        self.viewoptions.canvas.label = False
-        self.viewoptions.canvas.scalebar = False
-        self.viewoptions.image.cmap = widget.canvas.viewoptions.image.cmap
+        self.button_apply = QtWidgets.QPushButton("Apply")
+        self.button_apply.pressed.connect(self.apply)
+        # self.button_apply_all = QtWidgets.QPushButton("Apply To All")
+        # self.button_apply_all.pressed.connect(self.applyAll)
 
-        self.canvas = LaserCanvas(self.viewoptions)
+        self.canvas = LaserCanvas(self.viewspace.options)
         self.output = QtWidgets.QLineEdit("Result")
         self.output.setEnabled(False)
         self.output.setSizePolicy(
@@ -118,6 +113,7 @@ class CalculationsTool(ToolWidget):
         self.lineedit_name = NameLineEdit("", badnames=[])
         self.lineedit_name.revalidate()
         self.lineedit_name.textChanged.connect(self.completeChanged)
+        self.lineedit_name.editingFinished.connect(self.refresh)
 
         self.combo_isotopes = QtWidgets.QComboBox()
         self.combo_isotopes.activated.connect(self.insertVariable)
@@ -130,7 +126,7 @@ class CalculationsTool(ToolWidget):
         self.reducer = Reducer({})
         self.result: Union[float, np.ndarray] = None
         self.formula = FormulaLineEdit("", variables=[])
-        self.formula.textChanged.connect(self.updateCanvas)
+        self.formula.textChanged.connect(self.refresh)
         self.formula.textChanged.connect(self.completeChanged)
 
         self.reducer.operations.update(additional_reducer_functions)
@@ -148,6 +144,9 @@ class CalculationsTool(ToolWidget):
 
         self.layout_main.addWidget(self.canvas)
         self.layout_main.addLayout(layout_form)
+
+        self.layout_buttons.addWidget(self.button_apply, 0, QtCore.Qt.AlignRight)
+        # self.layout_buttons.addWidget(self.button_apply_all, 0, QtCore.Qt.AlignRight)
 
         self.widgetChanged()
 
@@ -180,7 +179,7 @@ class CalculationsTool(ToolWidget):
             return False
         return True
 
-    def updateCanvas(self) -> None:
+    def refresh(self) -> None:
         try:
             self.result = self.reducer.reduce(self.formula.expr)
         except ReducerException:
@@ -192,7 +191,25 @@ class CalculationsTool(ToolWidget):
         elif isinstance(self.result, np.ndarray):
             self.output.clear()
             extent = self.widget.laser.config.data_extent(self.result.shape)
+
+            self.canvas.ax.clear()
+
             self.canvas.drawData(self.result, extent)
+            if self.canvas.viewoptions.canvas.colorbar:
+                self.canvas.drawColorbar("")
+
+            if self.canvas.viewoptions.canvas.label:
+                self.canvas.drawLabel(self.lineedit_name.text())
+            elif self.canvas.label is not None:
+                self.canvas.label.remove()
+                self.canvas.label = None
+
+            if self.canvas.viewoptions.canvas.scalebar:
+                self.canvas.drawScalebar()
+            elif self.canvas.scalebar is not None:
+                self.canvas.scalebar.remove()
+                self.canvas.scalebar = None
+
             self.canvas.draw()
 
     def widgetChanged(self) -> None:
@@ -208,11 +225,11 @@ class CalculationsTool(ToolWidget):
         self.formula.valid = True
         self.formula.setText(self.widget.combo_isotopes.currentText())
 
-        self.updateCanvas()
+        self.refresh()
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if event.type() == QtCore.QEvent.MouseButtonDblClick and isinstance(
-            obj, LaserCanvas
+            obj.parent(), LaserWidget
         ):
             self.widget = obj.parent()
             self.widgetChanged()

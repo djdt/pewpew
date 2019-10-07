@@ -12,7 +12,6 @@ from pewpew.lib.calc import greyscale_to_rgb, normalise
 from pewpew.widgets.canvases import BasicCanvas, LaserCanvas
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import ToolWidget
-from pewpew.widgets.views import View
 
 from typing import List, Tuple, Union
 
@@ -229,13 +228,12 @@ class OverlayRows(QtWidgets.QScrollArea):
 class OverlayTool(ToolWidget):
     model_type = {"any": "additive", "cmyk": "subtractive", "rgb": "additive"}
 
-    def __init__(self, widget: LaserWidget, view: View):
-        super().__init__(view)
+    def __init__(self, widget: LaserWidget):
+        super().__init__(widget)
         self.setWindowTitle("Image Overlay Tool")
         self.button_box.addButton(QtWidgets.QDialogButtonBox.Save)
         self.button_box.button(QtWidgets.QDialogButtonBox.Apply).setVisible(False)
 
-        self.widget = widget
         self.viewoptions = widget.canvas.viewoptions
 
         self.canvas = OverlayCanvas()

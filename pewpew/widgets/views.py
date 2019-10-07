@@ -404,15 +404,18 @@ class _ViewWidget(QtWidgets.QWidget):
         raise NotImplementedError
 
     def rename(self, text: str) -> None:
-        raise NotImplementedError
+        pass
+
+    def setActive(self) -> None:
+        self.view.tabs.setCurrentIndex(self.index)
 
     def setModified(self, modified: bool) -> None:
         self.view.setTabModified(self.index, modified)
 
     @QtCore.Slot("QWidget*")
     def mouseSelectStart(self, callback_widget: QtWidgets.QWidget) -> None:
-        raise NotImplementedError
+        pass
 
     @QtCore.Slot("QWidget*")
     def mouseSelectEnd(self, callback_widget: QtWidgets.QWidget) -> None:
-        raise NotImplementedError
+        pass
