@@ -3,6 +3,7 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from matplotlib.image import AxesImage
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -12,32 +13,27 @@ from pew import Calibration
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.validators import DoubleSignificantFiguresDelegate
-from pewpew.widgets.canvases import LaserCanvas
+from pewpew.widgets.canvases import BasicCanvas
 from pewpew.widgets.dialogs import CalibrationCurveDialog
 from pewpew.widgets.modelviews import BasicTableView
 from pewpew.widgets.laser import LaserWidget
 
 from .tool import ToolWidget
 
-from typing import Any, List
+from typing import Any, List, Tuple
 
 
 class StandardsTool(ToolWidget):
-    calibrationSelected = QtCore.Signal(dict)
-
     def __init__(self, widget: LaserWidget):
         super().__init__(widget)
-        self.setWindowTitle("Calibration Standards")
+        self.setWindowTitle("Calibration Tool")
 
-        self.viewoptions = ViewOptions()
-        self.viewoptions.canvas.colorbar = False
-        self.viewoptions.canvas.label = False
-        self.viewoptions.canvas.scalebar = False
-        self.viewoptions.image.cmap = widget.canvas.viewoptions.image.cmap
-
-        self.calibrations = copy.deepcopy(widget.laser.calibration)
+        self.calibration = copy.deepcopy(widget.laser.calibration)
         self.previous_isotope = ""
         current_isotope = self.widget.combo_isotopes.currentText()
+
+        self.trim_left = 0
+        self.trim_right = 0
 
         # Left side
         self.spinbox_levels = QtWidgets.QSpinBox()
@@ -48,20 +44,18 @@ class StandardsTool(ToolWidget):
 
         self.lineedit_units = QtWidgets.QLineEdit()
         self.lineedit_units.editingFinished.connect(self.lineeditUnits)
-        self.lineedit_units.setText(self.calibrations[current_isotope].unit)
+        self.lineedit_units.setText(self.calibration[current_isotope].unit)
 
         self.combo_weighting = QtWidgets.QComboBox()
         self.combo_weighting.addItems(["None", "x", "1/x", "1/(x^2)"])
-        self.combo_weighting.setCurrentText(
-            self.calibrations[current_isotope].weighting
-        )
+        self.combo_weighting.setCurrentText(self.calibration[current_isotope].weighting)
         self.combo_weighting.currentIndexChanged.connect(self.comboWeighting)
 
         self.results_box = StandardsResultsBox()
         self.results_box.button.pressed.connect(self.showCurve)
 
         # Right side
-        self.canvas = StandardsCanvas(self.viewoptions, parent=self)
+        self.canvas = StandardsCanvas(self.viewspace.options, parent=self)
 
         self.lineedit_left = QtWidgets.QLineEdit()
         self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
@@ -80,20 +74,18 @@ class StandardsTool(ToolWidget):
         self.combo_isotope.setCurrentText(current_isotope)
         self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
 
-        self.table = StandardsTable(self.calibrations[current_isotope], self)
+        self.table = StandardsTable(self.calibration[current_isotope], self)
         self.table.setRowCount(6)
         self.table.model().dataChanged.connect(self.completeChanged)
         self.table.model().dataChanged.connect(self.updateResults)
 
+        self.button_apply = QtWidgets.QPushButton("Apply")
+        self.button_apply.pressed.connect(self.apply)
+        self.button_apply_all = QtWidgets.QPushButton("Apply to All")
+        self.button_apply_all.pressed.connect(self.applyAll)
+
         self.layoutWidgets()
-        self.draw()
-        self.updateCounts()
-
-    def apply(self) -> None:
-        self.calibrationSelected.emit(self.calibrations)
-
-    def isComplete(self) -> bool:
-        return self.table.isComplete()
+        self.refresh()
 
     def layoutWidgets(self) -> None:
         layout_cal_form = QtWidgets.QFormLayout()
@@ -107,6 +99,7 @@ class StandardsTool(ToolWidget):
         layout_left.addLayout(layout_cal_form)
         layout_left.addWidget(self.table)
         layout_left.addLayout(layout_table_form)
+        layout_left.addStretch(1)
         layout_left.addWidget(self.results_box)
 
         layout_box_trim = QtWidgets.QHBoxLayout()
@@ -120,37 +113,48 @@ class StandardsTool(ToolWidget):
         box_trim.setLayout(layout_box_trim)
 
         layout_canvas_bar = QtWidgets.QHBoxLayout()
-        layout_canvas_bar.addWidget(box_trim)
-        layout_canvas_bar.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignTop)
+        layout_canvas_bar.addWidget(box_trim, 0, QtCore.Qt.AlignLeft)
+        layout_canvas_bar.addWidget(
+            self.combo_isotope, 0, QtCore.Qt.AlignTop | QtCore.Qt.AlignRight
+        )
 
         layout_right = QtWidgets.QVBoxLayout()
-        layout_right.addWidget(self.canvas)
+        layout_right.addWidget(self.canvas, 0, QtCore.Qt.AlignTop)
+        layout_right.addStretch(1)
         layout_right.addLayout(layout_canvas_bar)
 
         self.layout_main.setDirection(QtWidgets.QBoxLayout.LeftToRight)
-        self.layout_main.addLayout(layout_left)
-        self.layout_main.addLayout(layout_right)
+        self.layout_main.addLayout(layout_left, 0)
+        self.layout_main.addLayout(layout_right, 1)
 
-    def draw(self) -> None:
-        isotope = self.combo_isotope.currentText()
-        if isotope in self.widget.laser.isotopes:
-            self.canvas.drawLaser(self.widget.laser, isotope)
-            self.canvas.drawLevels(
-                StandardsTable.ROW_LABELS, self.spinbox_levels.value()
-            )
-            self.canvas.draw()
+        self.layout_buttons.addStretch(1)
+        self.layout_buttons.addWidget(self.button_apply, 0, QtCore.Qt.AlignRight)
+        self.layout_buttons.addWidget(self.button_apply_all, 0, QtCore.Qt.AlignRight)
 
-    def changeCalibration(self) -> None:
-        isotope = self.combo_isotope.currentText()
-        self.table.model().setCalibration(self.calibrations[isotope])
+    def apply(self) -> None:
+        self.widget.applyCalibration(self.calibration)
 
-    def updateCounts(self) -> None:
+    def applyAll(self) -> None:
+        self.viewspace.applyCalibration(self.calibration)
+
+    def isComplete(self) -> bool:
+        return self.table.isComplete()
+
+    def refresh(self) -> None:
         isotope = self.combo_isotope.currentText()
-        data = self.widget.laser.get(
-            isotope, calibrate=False, extent=self.canvas.view_limits
-        )
-        if len(data) == 1:
+        if isotope not in self.widget.laser.isotopes:
             return
+
+        data = self.widget.laser.get(isotope, calibrate=False, flat=True)
+        data = data[:, self.trim_left : data.shape[1] - self.trim_right]
+        if data.size == 0:
+            return
+
+        extent = self.widget.laser.config.data_extent(data.shape)
+        self.canvas.drawData(data, extent)
+        self.canvas.drawLevels(StandardsTable.ROW_LABELS, self.spinbox_levels.value())
+        self.canvas.draw()
+
         buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
         self.table.setCounts([np.nanmean(b) for b in buckets])
 
@@ -161,15 +165,38 @@ class StandardsTool(ToolWidget):
             return
         else:
             isotope = self.combo_isotope.currentText()
-            self.results_box.update(self.calibrations[isotope])
+            self.results_box.update(self.calibration[isotope])
 
-    def showCurve(self) -> QtWidgets.QDialog:
-        dlg = CalibrationCurveDialog(
-            self.calibrations[self.combo_isotope.currentText()], parent=self
-        )
-        dlg.show()
-        return dlg
+    def widgetChanged(self) -> None:
+        self.calibration = copy.deepcopy(self.widget.laser.calibration)
+        # Prevent currentIndexChanged being emmited
+        self.combo_isotope.blockSignals(True)
+        self.combo_isotope.clear()
+        self.combo_isotope.addItems(sorted(self.widget.laser.isotopes))
+        self.combo_isotope.setCurrentText(self.widget.combo_isotopes.currentText())
+        self.combo_isotope.blockSignals(False)
 
+        self.lineedit_left.setText("")
+        self.lineedit_right.setText("")
+
+        isotope = self.combo_isotope.currentText()
+        self.combo_weighting.setCurrentText(self.calibration[isotope].weighting)
+        self.lineedit_units.setText(self.calibration[isotope].unit)
+        self.table.model().setCalibration(self.calibration[isotope])
+
+        self.refresh()
+        self.updateResults()
+
+    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+        if event.type() == QtCore.QEvent.MouseButtonDblClick and isinstance(
+            obj.parent(), LaserWidget
+        ):
+            self.widget = obj.parent()
+            self.widgetChanged()
+            self.endMouseSelect()
+        return False
+
+    # Widget callbacks
     def comboTrim(self, text: str) -> None:
         if self.combo_trim.currentText() == "rows":
             self.lineedit_left.setValidator(QtGui.QIntValidator(0, 1e9))
@@ -182,23 +209,23 @@ class StandardsTool(ToolWidget):
 
     def comboIsotope(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
+        self.table.model().setCalibration(self.calibration[isotope])
 
-        self.changeCalibration()
-        if self.calibrations[isotope].unit != "":
-            self.lineedit_units.setText(self.calibrations[isotope].unit)
+        if self.calibration[isotope].unit != "":
+            self.lineedit_units.setText(self.calibration[isotope].unit)
         else:
-            self.calibrations[isotope].unit = self.lineedit_units.text()
-        if self.calibrations[isotope].weighting is not None:
-            self.combo_weighting.setCurrentText(self.calibrations[isotope].weighting)
+            self.calibration[isotope].unit = self.lineedit_units.text()
+        if self.calibration[isotope].weighting is not None:
+            self.combo_weighting.setCurrentText(self.calibration[isotope].weighting)
         else:
-            self.calibrations[isotope].weighting = self.combo_weighting.currentText()
-        self.draw()
-        self.updateCounts()
+            self.calibration[isotope].weighting = self.combo_weighting.currentText()
+
+        self.refresh()
 
     def comboWeighting(self, index: int) -> None:
         isotope = self.combo_isotope.currentText()
-        self.calibrations[isotope].weighting = self.combo_weighting.currentText()
-        self.calibrations[isotope].update_linreg()
+        self.calibration[isotope].weighting = self.combo_weighting.currentText()
+        self.calibration[isotope].update_linreg()
         self.updateResults()
 
     def lineEditTrim(self) -> None:
@@ -214,67 +241,66 @@ class StandardsTool(ToolWidget):
         # Convert units
         units = self.combo_trim.currentText()
         multiplier = 1.0
-        if units in ["rows", "s"]:
-            multiplier *= self.widget.laser.config.get_pixel_width()
+        if units == "μm":
+            multiplier /= self.widget.laser.config.get_pixel_width()
         if units == "s":
             multiplier /= self.widget.laser.config.scantime
 
-        self.canvas.view_limits = (
-            trim_left * multiplier,
-            self.canvas.image.get_extent()[1] - trim_right * multiplier,
-            0.0,
-            self.canvas.image.get_extent()[3],
-        )
-        self.updateCounts()
+        self.trim_left = int(trim_left * multiplier)
+        self.trim_right = int(trim_right * multiplier)
+
+        self.refresh()
 
     def lineeditUnits(self) -> None:
         isotope = self.combo_isotope.currentText()
         unit = self.lineedit_units.text()
-        self.calibrations[isotope].unit = unit
+        self.calibration[isotope].unit = unit
+
+    def showCurve(self) -> QtWidgets.QDialog:
+        dlg = CalibrationCurveDialog(
+            self.calibration[self.combo_isotope.currentText()], parent=self
+        )
+        dlg.show()
+        return dlg
 
     def spinBoxLevels(self) -> None:
         self.table.setRowCount(self.spinbox_levels.value())
-        self.updateCounts()
-        self.draw()
-
-    def widgetChanged(self) -> None:
-        self.calibrations = copy.deepcopy(self.widget.laser.calibration)
-        # Prevent currentIndexChanged being emmited
-        self.combo_isotope.blockSignals(True)
-        self.combo_isotope.clear()
-        self.combo_isotope.addItems(sorted(self.widget.laser.isotopes))
-        self.combo_isotope.setCurrentText(self.widget.combo_isotopes.currentText())
-        self.combo_isotope.blockSignals(False)
-
-        self.lineedit_left.setText("")
-        self.lineedit_right.setText("")
-
-        isotope = self.combo_isotope.currentText()
-        self.combo_weighting.setCurrentText(self.calibrations[isotope].weighting)
-        self.lineedit_units.setText(self.calibrations[isotope].unit)
-        self.draw()
-        self.changeCalibration()
-        self.updateCounts()
-        self.updateResults()
-
-    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        if event.type() == QtCore.QEvent.MouseButtonDblClick and isinstance(
-            obj, LaserCanvas
-        ):
-            self.widget = obj.parent()
-            self.widgetChanged()
-            self.endMouseSelect()
-        return False
+        self.refresh()
 
 
-class StandardsCanvas(LaserCanvas):
+class StandardsCanvas(BasicCanvas):
     def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):
-        super().__init__(viewoptions, parent=parent)
+        super().__init__(parent=parent)
+        self.viewoptions = viewoptions
+        # Restore view limits
+        self.ax = self.figure.subplots()
+        self.ax.set_facecolor("black")
+        self.ax.get_xaxis().set_visible(False)
+        self.ax.get_yaxis().set_visible(False)
+
         div = make_axes_locatable(self.ax)
         self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
+        self.bax.set_facecolor("black")
         self.bax.get_xaxis().set_visible(False)
         self.bax.get_yaxis().set_visible(False)
-        self.bax.set_facecolor("black")
+
+        self.image: AxesImage = None
+
+    def drawData(
+        self, data: np.ndarray, extent: Tuple[float, float, float, float]
+    ) -> None:
+        if self.image is not None:
+            self.image.remove()
+
+        self.image = self.ax.imshow(
+            data,
+            extent=extent,
+            cmap=self.viewoptions.image.cmap,
+            interpolation=self.viewoptions.image.interpolation,
+            alpha=self.viewoptions.image.alpha,
+            aspect="equal",
+            origin="upper",
+        )
 
     def drawLevels(self, texts: List[str], levels: int) -> None:
         self.bax.clear()
@@ -375,7 +401,7 @@ class StandardsResultsBox(QtWidgets.QGroupBox):
 class CalibrationPointsTableModel(NumpyArrayTableModel):
     def __init__(self, calibration: Calibration, parent: QtCore.QObject = None):
         self.calibration = calibration
-        if self.calibration.points is None:
+        if self.calibration.points is None or self.calibration.points.size == 0:
             points = np.array([[np.nan, np.nan]], dtype=np.float64)
         else:
             points = self.calibration.points
@@ -456,7 +482,7 @@ class StandardsTable(BasicTableView):
     COLUMN_CONC = 0
     COLUMN_COUNT = 1
 
-    def __init__(self, calibration, parent: QtWidgets.QWidget = None):
+    def __init__(self, calibration: Calibration, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.setSizeAdjustPolicy(

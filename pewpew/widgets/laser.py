@@ -109,12 +109,12 @@ class LaserView(View):
 
     def applyCalibration(self, calibration: dict) -> None:
         for widget in self.widgets():
-            if isinstance(LaserWidget, widget):
+            if isinstance(widget, LaserWidget):
                 widget.applyCalibration(calibration)
 
     def applyConfig(self, config: Config) -> None:
         for widget in self.widgets():
-            if isinstance(LaserWidget, widget):
+            if isinstance(widget, LaserWidget):
                 widget.applyConfig(config)
 
     # Actions
