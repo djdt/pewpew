@@ -220,7 +220,6 @@ class LaserCanvas(BasicCanvas):
         if vmin > vmax:
             vmin, vmax = vmax, vmin
 
-        # Cmap bad to red
         # Plot the image
         self.image = self.ax.imshow(
             data,
@@ -233,6 +232,8 @@ class LaserCanvas(BasicCanvas):
             aspect="equal",
             origin="upper",
         )
+        # Rescale to full image
+        self.view_limits = extent
 
     def drawLabel(self, text: str) -> None:
         if self.label is not None:

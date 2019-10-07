@@ -67,9 +67,7 @@ class OverlayTool(ToolWidget):
 
         self.layout_buttons.addWidget(self.button_save, 0, QtCore.Qt.AlignRight)
 
-        # Draw blank
         self.completeChanged()
-        self.refresh()
 
     def isComplete(self) -> bool:
         return self.rows.rowCount() > 0
@@ -150,12 +148,22 @@ class OverlayTool(ToolWidget):
             img = np.clip(img, 0.0, 1.0)
 
         self.canvas.drawData(img, self.widget.laser.config.data_extent(img.shape))
+
         if self.viewspace.options.canvas.label:
             names = [row.label_name.text() for row in self.rows.rows if not row.hidden]
             colors = [row.getColor().name() for row in self.rows.rows if not row.hidden]
             self.canvas.drawLabel(names, colors)
+        elif self.canvas.label is not None:
+            self.canvas.label.remove()
+            self.canvas.label = None
+
         if self.viewspace.options.canvas.scalebar:
             self.canvas.drawScalebar()
+        elif self.canvas.scalebar is not None:
+            self.canvas.scalebar.remove()
+            self.canvas.scalebar = None
+
+        self.canvas.draw_idle()
 
     def saveCanvas(self, path: str, raw: bool = False) -> None:
         if raw:
@@ -201,13 +209,17 @@ class OverlayCanvas(BasicCanvas):
 
     def redrawFigure(self) -> None:
         self.figure.clear()
-        self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=False)
+        self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=True)
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
 
     def drawLabel(self, names: List[str], colors: List[str]) -> None:
         if self.label is not None:
             self.label.remove()
+
+        if len(names) == 0:
+            self.label = None
+            return
 
         texts = [
             TextArea(
@@ -244,7 +256,9 @@ class OverlayCanvas(BasicCanvas):
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float]
     ) -> None:
-        self.ax.clear()
+        if self.image is not None:
+            self.image.remove()
+
         self.image = self.ax.imshow(
             data,
             interpolation=self.viewoptions.image.interpolation,
@@ -252,7 +266,6 @@ class OverlayCanvas(BasicCanvas):
             aspect="equal",
             origin="upper",
         )
-        self.draw_idle()
 
 
 class OverlayItemRow(QtWidgets.QWidget):

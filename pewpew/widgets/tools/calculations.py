@@ -196,8 +196,6 @@ class CalculationsTool(ToolWidget):
             self.output.clear()
             extent = self.widget.laser.config.data_extent(self.result.shape)
 
-            self.canvas.ax.clear()
-
             self.canvas.drawData(self.result, extent)
             if self.canvas.viewoptions.canvas.colorbar:
                 self.canvas.drawColorbar("")
@@ -213,8 +211,6 @@ class CalculationsTool(ToolWidget):
             elif self.canvas.scalebar is not None:
                 self.canvas.scalebar.remove()
                 self.canvas.scalebar = None
-
-            self.canvas.draw()
 
     def widgetChanged(self) -> None:
         self.combo_isotopes.clear()
