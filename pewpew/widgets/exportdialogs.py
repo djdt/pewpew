@@ -274,49 +274,41 @@ class ExportDialog(QtWidgets.QDialog):
 
         return [(p, i) for p, i in paths if p != ""]
 
-    def export(self, paths: List[Tuple[str, str]], widget: LaserWidget) -> bool:
+    def export(self, path: str, isotope: str, widget: LaserWidget) -> None:
         index = self.options.currentIndex()
-        try:
-            if index == self.options.csv:
-                kwargs = {"calibrate": self.isCalibrate(), "flat": True}
-                for path, isotope in paths:
-                    if isotope in widget.laser.isotopes:
-                        data = widget.laser.get(isotope, **kwargs)
-                        io.csv.save(path, data)
+        if index == self.options.csv:
+            kwargs = {"calibrate": self.isCalibrate(), "flat": True}
+            if isotope in widget.laser.isotopes:
+                data = widget.laser.get(isotope, **kwargs)
+                io.csv.save(path, data)
 
-            elif index == self.options.png:
-                canvas = LaserCanvas(widget.canvas.viewoptions, self)
-                for path, isotope in paths:
-                    if isotope in widget.laser.isotopes:
-                        canvas.drawLaser(widget.laser, isotope)
-                        if self.options.widget(index).raw():
-                            canvas.saveRawImage(path)
-                        else:
-                            canvas.view_limits = widget.canvas.view_limits
-                            canvas.figure.set_size_inches(
-                                widget.canvas.figure.get_size_inches()
-                            )
-                            canvas.figure.savefig(
-                                path,
-                                dpi=300,
-                                bbox_inches="tight",
-                                transparent=True,
-                                facecolor=None,
-                            )
-                canvas.close()
+        elif index == self.options.png:
+            canvas = LaserCanvas(widget.canvas.viewoptions, self)
+            if isotope in widget.laser.isotopes:
+                canvas.drawLaser(widget.laser, isotope)
+                if self.options.widget(index).raw():
+                    canvas.saveRawImage(path)
+                else:
+                    canvas.view_limits = widget.canvas.view_limits
+                    canvas.figure.set_size_inches(
+                        widget.canvas.figure.get_size_inches()
+                    )
+                    canvas.figure.savefig(
+                        path,
+                        dpi=300,
+                        bbox_inches="tight",
+                        transparent=True,
+                        facecolor=None,
+                    )
+            canvas.close()
 
-            elif index == self.options.vti:
-                spacing = self.options.widget(index).spacing()
-                data = widget.laser.get(calibrate=self.isCalibrate())
-                io.vtk.save(paths[0][0], data, spacing)
+        elif index == self.options.vti:
+            spacing = self.options.widget(index).spacing()
+            data = widget.laser.get(calibrate=self.isCalibrate())
+            io.vtk.save(path, data, spacing)
 
-            else:  # npz
-                io.npz.save(paths[0][0], [widget.laser])
-        except io.error.PewException as e:
-            QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
-            return False
-
-        return True
+        else:  # npz
+            io.npz.save(path, [widget.laser])
 
     def accept(self) -> None:
         paths = self.generatePaths(self.widget.laser)
@@ -325,8 +317,14 @@ class ExportDialog(QtWidgets.QDialog):
 
         if len(paths) == 0:
             return
-        if self.export(paths, self.widget):
-            super().accept()
+
+        try:
+            for path, isotope in paths:
+                self.export(path, isotope, self.widget)
+        except io.error.PewException as e:
+            QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
+            return
+        super().accept()
 
 
 class ExportAllDialog(ExportDialog):
@@ -409,11 +407,27 @@ class ExportAllDialog(ExportDialog):
             paths = self.generatePaths(widget.laser)
             all_paths.append([p for p in paths if prompt.promptOverwrite(p[0])])
 
-        if any(len(paths) == 0 for paths in all_paths):
+        if all(len(paths) == 0 for paths in all_paths):
             return
 
-        for paths, widget in zip(all_paths, self.widgets):
-            if not self.export(paths, widget):
-                return
+        count = sum([len(p) for p in all_paths])
+        exported = 0
+        dlg = QtWidgets.QProgressDialog("Exporting...", "Abort", 0, count, self)
+        dlg.setWindowTitle("Exporting Data")
+        dlg.open()
 
+        try:
+            for paths, widget in zip(all_paths, self.widgets):
+                for path, isotope in paths:
+                    dlg.setValue(exported)
+                    if dlg.wasCanceled():
+                        break
+                    self.export(path, isotope, widget)
+                    exported += 1
+        except io.error.PewException as e:
+            QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
+            dlg.cancel()
+            return
+
+        dlg.setValue(count)
         QtWidgets.QDialog.accept(self)
