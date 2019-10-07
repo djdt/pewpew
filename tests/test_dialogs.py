@@ -56,6 +56,8 @@ def test_calibration_dialog(qtbot: QtBot):
     dialog.showCurve()
 
     dialog.apply()
+    dialog.check_all.setChecked(True)
+    dialog.apply()
 
 
 def test_calibration_curve_dialog(qtbot: QtBot):
@@ -110,6 +112,8 @@ def test_laser_config_dialog(qtbot: QtBot):
     assert dialog.config.scantime == 3.0
 
     dialog.apply()
+    dialog.check_all.setChecked(True)
+    dialog.apply()
 
 
 def test_config_dialog_krisskross(qtbot: QtBot):
@@ -125,11 +129,12 @@ def test_config_dialog_krisskross(qtbot: QtBot):
     dialog.spinbox_offsets.setValue(3)
     dialog.updateConfig()
 
-    assert dialog.config.warmup == 7.5  # type: ignore
-    assert dialog.config._subpixel_size == 3  # type: ignore
+    assert dialog.config.warmup == 7.5
+    assert dialog.config._subpixel_size == 3
 
     dialog.apply()
-    dialog.close()
+    dialog.check_all.setChecked(True)
+    dialog.apply()
 
 
 def test_multi_dir_dialog(qtbot: QtBot):

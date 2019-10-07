@@ -389,7 +389,7 @@ class ConfigDialog(ApplyDialog):
     def apply(self) -> None:
         self.updateConfig()
         if self.check_all.isChecked():
-            self.configApplyAll(self.config)
+            self.configApplyAll.emit(self.config)
         else:
             self.configSelected.emit(self.config)
 
