@@ -5,12 +5,11 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from pew import io
 from pew.laser import Laser
 
-from pewpew.lib.viewoptions import ViewOptions
-
 from pewpew.widgets.canvases import LaserCanvas
 from pewpew.widgets.prompts import OverwriteFilePrompt
+from pewpew.widgets.laser import LaserWidget
 
-from typing import List, Tuple
+from typing import List, Set, Tuple
 
 
 class OptionsBox(QtWidgets.QGroupBox):
@@ -72,10 +71,7 @@ class ExportOptions(QtWidgets.QStackedWidget):
     inputChanged = QtCore.Signal()
 
     def __init__(
-        self,
-        view_limits: Tuple[float, float, float, float],
-        spacing: Tuple[float, float, float],
-        parent: QtWidgets.QWidget = None,
+        self, spacing: Tuple[float, float, float], parent: QtWidgets.QWidget = None
     ):
         super().__init__(parent)
         self.setSizePolicy(
@@ -97,17 +93,6 @@ class ExportOptions(QtWidgets.QStackedWidget):
             max(s.width() for s in sizes), max(s.height() for s in sizes)
         )
 
-    # def bestImageSize(
-    #     self, extents: Tuple[float, float, float, float], size: Tuple[int, int]
-    # ) -> Tuple[int, int]:
-    #     x = extents[1] - extents[0]
-    #     y = extents[3] - extents[2]
-    #     return (
-    #         (int(size[1] * x / y), size[1])
-    #         if x > y
-    #         else (size[0], int(size[0] * y / x))
-    #     )
-
     def isComplete(self, current_only: bool = True) -> bool:
         indicies = [self.currentIndex()] if current_only else range(0, self.count())
         return all(self.widget(i).isComplete() for i in indicies)
@@ -120,20 +105,10 @@ class ExportOptions(QtWidgets.QStackedWidget):
 
 
 class ExportDialog(QtWidgets.QDialog):
-    def __init__(
-        self,
-        laser: Laser,
-        isotope: str,
-        viewlimits: Tuple[float, float, float, float],
-        viewoptions: ViewOptions,
-        parent: QtWidgets.QWidget = None,
-    ):
+    def __init__(self, widget: LaserWidget, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Export")
-        self.laser = laser
-        self.isotope = isotope
-        self.viewlimits = viewlimits
-        self.viewoptions = viewoptions
+        self.widget = widget
 
         path = os.path.join(os.path.dirname(self.laser.path), self.laser.name + ".npz")
         # path = laser.path
@@ -158,12 +133,12 @@ class ExportDialog(QtWidgets.QDialog):
         self.lineedit_preview.setEnabled(False)
 
         spacing = (
-            laser.config.get_pixel_width(),
-            laser.config.get_pixel_height(),
-            laser.config.spotsize / 2.0,
+            widget.laser.config.get_pixel_width(),
+            widget.laser.config.get_pixel_height(),
+            widget.laser.config.spotsize / 2.0,
         )
 
-        self.options = ExportOptions(viewlimits, spacing)
+        self.options = ExportOptions(spacing)
         self.options.inputChanged.connect(self.validate)
 
         self.combo_type = QtWidgets.QComboBox()
@@ -297,35 +272,32 @@ class ExportDialog(QtWidgets.QDialog):
 
         return [(p, i) for p, i in paths if p != ""]
 
-    def export(
-        self,
-        paths: List[Tuple[str, str]],
-        laser: Laser,
-        viewlimits: Tuple[float, float, float, float] = None,
-    ) -> bool:
+    def export(self, paths: List[Tuple[str, str]], widget: LaserWidget) -> bool:
         index = self.options.currentIndex()
         try:
             if index == self.options.csv:
                 kwargs = {"calibrate": self.isCalibrate(), "flat": True}
                 for path, isotope in paths:
-                    if isotope in laser.isotopes:
-                        data = laser.get(isotope, **kwargs)
+                    if isotope in widget.laser.isotopes:
+                        data = widget.laser.get(isotope, **kwargs)
                         io.csv.save(path, data)
 
             elif index == self.options.png:
-                canvas = LaserCanvas(self.viewoptions, self)
+                canvas = LaserCanvas(widget.canvas.viewoptions, self)
                 for path, isotope in paths:
-                    if isotope in laser.isotopes:
-                        canvas.drawLaser(laser, isotope)
+                    if isotope in widget.laser.isotopes:
+                        canvas.drawLaser(widget.laser, isotope)
                         if self.options.widget(index).raw():
                             canvas.saveRawImage(path)
                         else:
-                            if viewlimits is not None:
-                                canvas.view_limits = viewlimits
+                            canvas.view_limits = widget.canvas.view_limits
+                            canvas.figure.set_size_inches(
+                                widget.canvas.get_size_inches()
+                            )
                             canvas.figure.savefig(
                                 path,
-                                bbox_inches="tight",
                                 dpi=300,
+                                bbox_inches="tight",
                                 transparent=True,
                                 facecolor=None,
                             )
@@ -333,11 +305,11 @@ class ExportDialog(QtWidgets.QDialog):
 
             elif index == self.options.vti:
                 spacing = self.options.widget(index).spacing()
-                data = laser.get_structured(calibrate=self.isCalibrate())
+                data = widget.laser.get(calibrate=self.isCalibrate())
                 io.vtk.save(paths[0][0], data, spacing)
 
             else:  # npz
-                io.npz.save(paths[0][0], [laser])
+                io.npz.save(paths[0][0], [widget.laser])
         except io.error.PewException as e:
             QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
             return False
@@ -345,36 +317,30 @@ class ExportDialog(QtWidgets.QDialog):
         return True
 
     def accept(self) -> None:
-        paths = self.generatePaths(self.laser)
+        paths = self.generatePaths(self.widget.laser)
         prompt = OverwriteFilePrompt()
         paths = [p for p in paths if prompt.promptOverwrite(p[0])]
         if len(paths) == 0:
             return
-        if self.export(paths, self.laser, self.viewlimits):
+        if self.export(paths, self.widget):
             super().accept()
 
 
 class ExportAllDialog(ExportDialog):
-    def __init__(
-        self,
-        lasers: List[Laser],
-        isotopes: List[str],
-        viewoptions: ViewOptions,
-        parent: QtWidgets.QWidget = None,
-    ):
-        self.lasers = lasers
+    def __init__(self, widgets: List[LaserWidget], parent: QtWidgets.QWidget = None):
+        super().__init__(widgets[0], parent)
+        self.setWindowTitle("Export All")
+
+        self.widgets = widgets
+        unique: Set[str] = set()
+        for widget in widgets:
+            unique.update(widget.laser.isotopes)
+        isotopes = sorted(unique)
         self.combo_isotopes = QtWidgets.QComboBox()
         self.combo_isotopes.addItems(isotopes)
         self.lineedit_prefix = QtWidgets.QLineEdit("")
         self.lineedit_prefix.textChanged.connect(self.updatePreview)
-        super().__init__(
-            Laser(data=lasers[0].data, name="<NAME>", path=lasers[0].path),
-            "",
-            (0, 1, 0, 1),
-            viewoptions,
-            parent,
-        )
-        self.setWindowTitle("Export All")
+
         # Adjust widgets for all
         label = self.layout_form.labelForField(self.lineedit_filename)
         label.setText("Prefix:")
@@ -440,7 +406,7 @@ class ExportAllDialog(ExportDialog):
             return
 
         for laser_paths, laser in zip(paths, self.lasers):
-            if not self.export(laser_paths, laser, None):
+            if not self.export(laser_paths, laser, None, self.figsize):
                 return
 
         QtWidgets.QDialog.accept(self)
