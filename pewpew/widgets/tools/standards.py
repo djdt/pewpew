@@ -140,6 +140,12 @@ class StandardsTool(ToolWidget):
     def isComplete(self) -> bool:
         return self.table.isComplete()
 
+    @QtCore.Slot()
+    def completeChanged(self) -> None:
+        enabled = self.isComplete()
+        self.button_apply.setEnabled(enabled)
+        self.button_apply_all.setEnabled(enabled)
+
     def refresh(self) -> None:
         isotope = self.combo_isotope.currentText()
         if isotope not in self.widget.laser.isotopes:
@@ -289,9 +295,7 @@ class StandardsCanvas(BasicCanvas):
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float]
     ) -> None:
-        if self.image is not None:
-            self.image.remove()
-
+        self.ax.clear()
         self.image = self.ax.imshow(
             data,
             extent=extent,
