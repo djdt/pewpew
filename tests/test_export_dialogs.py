@@ -1,4 +1,3 @@
-import numpy as np
 import os.path
 import tempfile
 
@@ -10,20 +9,12 @@ from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets.exportdialogs import ExportDialog, ExportAllDialog
 
-from typing import List
-
-
-def rand_data(names: List[str]) -> np.ndarray:
-    dtype = [(name, float) for name in names]
-    data = np.empty((10, 10), dtype=dtype)
-    for name in names:
-        data[name] = np.random.random((10, 10))
-    return data
+from testing import rand_data
 
 
 def test_export_dialog(qtbot: QtBot):
     dlg = ExportDialog(
-        Laser(rand_data(["A1"]), name="laser", path="/home/user/laser.npz"),
+        Laser(rand_data("A1"), name="laser", path="/home/user/laser.npz"),
         "A1",
         (0, 100, 0, 100),
         ViewOptions(),
@@ -78,9 +69,9 @@ def test_export_dialog(qtbot: QtBot):
 def test_export_all_dialog(qtbot: QtBot):
     dlg = ExportAllDialog(
         [
-            Laser(rand_data(["A1"]), name="laser1", path="/home/user/laser1.npz"),
-            Laser(rand_data(["B2"]), name="laser2", path="/home/user/laser2.npz"),
-            Laser(rand_data(["C3"]), name="laser3", path="/home/user/laser3.npz"),
+            Laser(rand_data("A1"), name="laser1", path="/home/user/laser1.npz"),
+            Laser(rand_data("B2"), name="laser2", path="/home/user/laser2.npz"),
+            Laser(rand_data("C3"), name="laser3", path="/home/user/laser3.npz"),
             Laser(rand_data(["B2", "C3"]), name="laser4", path="/home/user/laser4.npz"),
         ],
         ["A1", "B2", "C3"],

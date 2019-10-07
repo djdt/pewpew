@@ -1,5 +1,3 @@
-import numpy as np
-
 from pytestqt.qtbot import QtBot
 from PySide2 import QtCore, QtGui
 
@@ -9,15 +7,7 @@ from pew.calibration import Calibration
 
 from pewpew.widgets.laser import LaserViewSpace
 
-from typing import List
-
-
-def rand_data(names: List[str]) -> np.ndarray:
-    dtype = [(name, float) for name in names]
-    data = np.empty((10, 10), dtype=dtype)
-    for name in names:
-        data[name] = np.random.random((10, 10))
-    return data
+from testing import rand_data
 
 
 def test_laser_view_space(qtbot: QtBot):
@@ -106,7 +96,7 @@ def test_laser_widget_actions(qtbot: QtBot):
     qtbot.addWidget(viewspace)
     viewspace.show()
     view = viewspace.activeView()
-    view.addLaser(Laser(rand_data(["A1"])))
+    view.addLaser(Laser(rand_data("A1")))
     widget = view.activeWidget()
 
     dlg = widget.actionCalibration()

@@ -1,10 +1,10 @@
-import numpy as np
-
 from pytestqt.qtbot import QtBot
 
 from pew.laser import Laser
 
 from pewpew.main import MainWindow
+
+from testing import rand_data
 
 
 def test_main_window_actions_empty(qtbot: QtBot):
@@ -64,9 +64,7 @@ def test_main_window_actions_empty(qtbot: QtBot):
 def test_main_window_actions_widget(qtbot: QtBot):
     window = MainWindow()
     qtbot.addWidget(window)
-    window.viewspace.views[0].addLaser(
-        Laser(np.array(np.random.random((10, 10)), dtype=[("A1", float)]))
-    )
+    window.viewspace.views[0].addLaser(Laser(rand_data("A1")))
     window.viewspace.refresh()
 
     assert window.action_export_all.isEnabled()
@@ -75,20 +73,15 @@ def test_main_window_actions_widget(qtbot: QtBot):
 
     window.actionToggleColorbar(False)
 
-    dlg = window.actionExportAll()
-    dlg.close()
-    dlg = window.actionToolCalculations()
-    dlg.close()
-    dlg = window.actionToolStandards()
-    dlg.close()
+    window.actionExportAll()
+    window.actionToolCalculations()
+    window.actionToolStandards()
 
 
 def test_main_window_apply_dialogs(qtbot: QtBot):
     window = MainWindow()
     qtbot.addWidget(window)
-    window.viewspace.views[0].addLaser(
-        Laser(np.array(np.random.random((10, 10)), dtype=[("A1", float)]))
-    )
+    window.viewspace.views[0].addLaser(Laser(rand_data("A1")))
     window.viewspace.refresh()
 
     dlg = window.actionConfig()
