@@ -2,6 +2,7 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from matplotlib.axes import Axes
 from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -34,12 +35,16 @@ class BasicCanvas(FigureCanvasQTAgg):
     ):
         fig = Figure(frameon=False, tight_layout=True, figsize=figsize)
         super().__init__(fig)
+        self.ax: Axes = None
 
         self.setParent(parent)
         self.setStyleSheet("background-color:transparent;")
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
         )
+
+    def redrawFigure(self) -> None:
+        pass
 
     def copyToClipboard(self) -> None:
         bbox = (
@@ -169,17 +174,20 @@ class LaserCanvas(BasicCanvas):
 
     def redrawFigure(self) -> None:
         # Restore view limits
+        view_limits = self.view_limits if self.ax is not None else None
+
         self.figure.clear()
-        self.ax = self.figure.subplots()
-        self.ax.set_facecolor("black")
+        self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=False)
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
-        self.ax.autoscale(False)
         if self.viewoptions.canvas.colorbar:
             div = make_axes_locatable(self.ax)
             self.cax = div.append_axes(
                 self.viewoptions.canvas.colorbarpos, size=0.1, pad=0.05
             )
+
+        if view_limits is not None:
+            self.view_limits = view_limits
 
     def drawColorbar(self, label: str) -> None:
         self.cax.clear()

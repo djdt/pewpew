@@ -3,11 +3,15 @@ import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from matplotlib.image import AxesImage, imsave
+from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
+from matplotlib.patheffects import withStroke
 
 from pewpew.actions import qAction
 from pewpew.validators import PercentOrDecimalValidator
 
 from pewpew.lib.calc import greyscale_to_rgb, normalise
+from pewpew.lib.mpltools import MetricSizeBar
+from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets.canvases import BasicCanvas, LaserCanvas
 from pewpew.widgets.laser import LaserWidget
@@ -26,13 +30,11 @@ class OverlayTool(ToolWidget):
         self.button_save = QtWidgets.QPushButton("Save Image")
         self.button_save.pressed.connect(self.openSaveDialog)
 
-        self.viewoptions = widget.canvas.viewoptions
-
-        self.canvas = OverlayCanvas()
+        self.canvas = OverlayCanvas(self.viewspace.options)
 
         self.check_normalise = QtWidgets.QCheckBox("Renormalise")
         self.check_normalise.setEnabled(False)
-        self.check_normalise.clicked.connect(self.updateCanvas)
+        self.check_normalise.clicked.connect(self.refresh)
 
         self.radio_rgb = QtWidgets.QRadioButton("rgb")
         self.radio_rgb.setChecked(True)
@@ -50,7 +52,7 @@ class OverlayTool(ToolWidget):
         self.rows = OverlayRows(self)
         self.rows.rowsChanged.connect(self.rowsChanged)
         self.rows.rowsChanged.connect(self.completeChanged)
-        self.rows.itemChanged.connect(self.updateCanvas)
+        self.rows.itemChanged.connect(self.refresh)
 
         layout_top = QtWidgets.QHBoxLayout()
         layout_top.addWidget(self.combo_add, 1, QtCore.Qt.AlignLeft)
@@ -67,7 +69,7 @@ class OverlayTool(ToolWidget):
 
         # Draw blank
         self.completeChanged()
-        self.updateCanvas()
+        self.refresh()
 
     def isComplete(self) -> bool:
         return self.rows.rowCount() > 0
@@ -97,7 +99,7 @@ class OverlayTool(ToolWidget):
         self.combo_add.setCurrentIndex(0)
 
     def addRow(self, label: str) -> None:
-        vmin, vmax = self.viewoptions.colors.get_range(label)
+        vmin, vmax = self.viewspace.options.colors.get_range(label)
         self.rows.addRow(label, vmin, vmax)
 
     def updateColorModel(self) -> None:
@@ -118,7 +120,7 @@ class OverlayTool(ToolWidget):
         else:
             self.combo_add.setEnabled(True)
             self.check_normalise.setEnabled(True)
-        self.updateCanvas()
+        self.refresh()
 
     def processRow(self, row: "OverlayItemRow") -> np.ndarray:
         img = self.widget.laser.get(row.label_name.text(), calibrate=True, flat=True)
@@ -132,7 +134,7 @@ class OverlayTool(ToolWidget):
             (np.clip(img, vmin, vmax) - vmin) / (vmax - vmin), (r, g, b)
         )
 
-    def updateCanvas(self) -> None:
+    def refresh(self) -> None:
         datas = [self.processRow(row) for row in self.rows.rows if not row.hidden]
         if len(datas) == 0:
             img = np.zeros((*self.widget.laser.shape[:2], 3), float)
@@ -148,12 +150,18 @@ class OverlayTool(ToolWidget):
             img = np.clip(img, 0.0, 1.0)
 
         self.canvas.drawData(img, self.widget.laser.config.data_extent(img.shape))
+        if self.viewspace.options.canvas.label:
+            names = [row.label_name.text() for row in self.rows.rows if not row.hidden]
+            colors = [row.getColor().name() for row in self.rows.rows if not row.hidden]
+            self.canvas.drawLabel(names, colors)
+        if self.viewspace.options.canvas.scalebar:
+            self.canvas.drawScalebar()
 
     def saveCanvas(self, path: str) -> None:
         imsave(path, self.canvas.image.get_array())
 
     def widgetChanged(self) -> None:
-        self.updateCanvas()
+        self.refresh()
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if event.type() == QtCore.QEvent.MouseButtonDblClick and isinstance(
@@ -178,15 +186,57 @@ class OverlayTool(ToolWidget):
 
 
 class OverlayCanvas(BasicCanvas):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):
         super().__init__()
-        self.ax = self.figure.subplots()
-        self.ax.set_facecolor("black")
+        self.viewoptions = viewoptions
+
+        self.label: AnchoredOffsetbox = None
+        self.scalebar: MetricSizeBar = None
+        self.image: AxesImage = None
+
+        self.redrawFigure()
+
+    def redrawFigure(self) -> None:
+        self.figure.clear()
+        self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=False)
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
-        self.ax.autoscale(False)
 
-        self.image: AxesImage = None
+    def drawLabel(self, names: List[str], colors: List[str]) -> None:
+        if self.label is not None:
+            self.label.remove()
+
+        texts = [
+            TextArea(
+                name,
+                textprops=dict(
+                    color=color,
+                    fontproperties=self.viewoptions.font.mpl_props(),
+                    path_effects=[withStroke(linewidth=1.5, foreground="black")],
+                ),
+            )
+            for name, color in zip(names, colors)
+        ]
+
+        packer = VPacker(pad=0, sep=5, children=texts)
+
+        self.label = AnchoredOffsetbox(
+            "upper left", pad=0.5, borderpad=0, frameon=False, child=packer
+        )
+
+        self.ax.add_artist(self.label)
+
+    def drawScalebar(self) -> None:
+        if self.scalebar is not None:
+            self.scalebar.remove()
+
+        self.scalebar = MetricSizeBar(
+            self.ax,
+            loc="upper right",
+            color=self.viewoptions.font.color,
+            font_properties=self.viewoptions.font.mpl_props(),
+        )
+        self.ax.add_artist(self.scalebar)
 
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float]

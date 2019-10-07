@@ -4,6 +4,7 @@ from pytestqt.qtbot import QtBot
 
 from pew.laser import Laser
 
+from pewpew.main import MainWindow
 from pewpew.widgets.laser import LaserViewSpace
 from pewpew.widgets.tools import (
     ToolWidget,
@@ -203,3 +204,26 @@ def test_overlay_tool(qtbot: QtBot):
     assert np.all(tool.canvas.image.get_array()[20:, :20] == (0.0, 0.0, 1.0))
     assert np.all(tool.canvas.image.get_array()[20:, 20:] == (0.0, 1.0, 0.0))
     assert np.all(tool.canvas.image.get_array()[20:, 20:] == (0.0, 0.0, 0.0))
+
+
+def test_tools_main_window(qtbot: QtBot):
+    window = MainWindow()
+    qtbot.addWidget(window)
+    window.show()
+
+    window.viewspace.views[0].addLaser(Laser(rand_data("A1")))
+    window.viewspace.views[0].addTab(
+        "Tool 1", StandardsTool(window.viewspace.activeWidget())
+    )
+    window.viewspace.views[0].addTab(
+        "Tool 2", CalculationsTool(window.viewspace.activeWidget())
+    )
+    window.viewspace.views[0].addTab(
+        "Tool 3", OverlayTool(window.viewspace.activeWidget())
+    )
+    window.viewspace.refresh()
+
+    window.actionToggleCalibrate(False)
+    window.actionToggleColorbar(False)
+    window.actionToggleLabel(False)
+    window.actionToggleScalebar(False)

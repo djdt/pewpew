@@ -280,11 +280,6 @@ class StandardsCanvas(BasicCanvas):
     def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):
         super().__init__(parent=parent)
         self.viewoptions = viewoptions
-        # Restore view limits
-        self.ax = self.figure.subplots()
-        self.ax.set_facecolor("black")
-        self.ax.get_xaxis().set_visible(False)
-        self.ax.get_yaxis().set_visible(False)
 
         div = make_axes_locatable(self.ax)
         self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
@@ -293,6 +288,14 @@ class StandardsCanvas(BasicCanvas):
         self.bax.get_yaxis().set_visible(False)
 
         self.image: AxesImage = None
+
+        self.redrawFigure()
+
+    def redrawFigure(self) -> None:
+        self.figure.clear()
+        self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=False)
+        self.ax.get_xaxis().set_visible(False)
+        self.ax.get_yaxis().set_visible(False)
 
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float]

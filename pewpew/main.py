@@ -255,9 +255,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Hard refresh
         for view in self.viewspace.views:
             for widget in view.widgets():
-                view_limits = widget.canvas.view_limits
                 widget.canvas.redrawFigure()
-                widget.canvas.view_limits = view_limits
                 widget.refresh()
 
     def actionToggleLabel(self, checked: bool) -> None:
