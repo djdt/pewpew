@@ -212,6 +212,8 @@ class StandardsTool(ToolWidget):
             self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
         self.lineedit_left.setText("")
         self.lineedit_right.setText("")
+        self.trim_left = 0
+        self.trim_right = 0
 
     def comboIsotope(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
