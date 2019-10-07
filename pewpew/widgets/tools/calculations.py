@@ -146,7 +146,6 @@ class CalculationsTool(ToolWidget):
         self.layout_main.addLayout(layout_form)
 
         self.layout_buttons.addWidget(self.button_apply, 0, QtCore.Qt.AlignRight)
-        # self.layout_buttons.addWidget(self.button_apply_all, 0, QtCore.Qt.AlignRight)
 
         self.widgetChanged()
 
@@ -178,6 +177,11 @@ class CalculationsTool(ToolWidget):
         if name == "" or " " in name or name in self.widget.laser.isotopes:
             return False
         return True
+
+    @QtCore.Slot()
+    def completeChanged(self) -> None:
+        enabled = self.isComplete()
+        self.button_apply.setEnabled(enabled)
 
     def refresh(self) -> None:
         try:
