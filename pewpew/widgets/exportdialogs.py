@@ -323,7 +323,7 @@ class ExportDialog(QtWidgets.QDialog):
                             if viewlimits is not None:
                                 canvas.view_limits = viewlimits
                             canvas.figure.savefig(
-                                path, transparent=True, facecolor=None
+                                path, dpi=300, transparent=True, facecolor=None
                             )
                 canvas.close()
 

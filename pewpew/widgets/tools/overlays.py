@@ -157,8 +157,11 @@ class OverlayTool(ToolWidget):
         if self.viewspace.options.canvas.scalebar:
             self.canvas.drawScalebar()
 
-    def saveCanvas(self, path: str) -> None:
-        imsave(path, self.canvas.image.get_array())
+    def saveCanvas(self, path: str, raw: bool = False) -> None:
+        if raw:
+            imsave(path, self.canvas.image.get_array())
+        else:
+            self.canvas.figure.savefig(path, dpi=300, transparent=True, facecolor=None)
 
     def widgetChanged(self) -> None:
         self.refresh()
