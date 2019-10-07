@@ -223,8 +223,10 @@ class CalculationsTool(ToolWidget):
 
         self.lineedit_name.badnames = self.widget.laser.isotopes
 
-        data = self.widget.laser.data
-        self.reducer.variables = {name: data[name] for name in data.dtype.names}
+        self.reducer.variables = {
+            name: self.widget.laser.get(name, calibrate=True, flat=True)
+            for name in self.widget.laser.isotopes
+        }
         self.formula.parser.variables = self.widget.laser.isotopes
         self.formula.valid = True
         self.formula.setText(self.widget.combo_isotopes.currentText())
