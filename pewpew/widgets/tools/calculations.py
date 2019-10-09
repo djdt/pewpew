@@ -236,6 +236,5 @@ class CalculationsTool(ToolWidget):
             obj.parent(), LaserWidget
         ):
             self.widget = obj.parent()
-            self.widgetChanged()
             self.endMouseSelect()
         return False

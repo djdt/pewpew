@@ -62,10 +62,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionConfig,
         )
         self.action_config.setShortcut("Ctrl+K")
+
         self.action_exit = qAction(
             "application-exit", "Quit", "Exit the program.", self.close
         )
         self.action_exit.setShortcut("Ctrl+Shift+Q")
+
         self.action_export_all = qAction(
             "document-save-all",
             "E&xport All",
@@ -73,6 +75,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionExportAll,
         )
         self.action_export_all.setShortcut("Ctrl+Shift+X")
+
         self.action_fontsize = qAction(
             "insert-text", "Fontsize", "Set size of fonts.", self.actionFontsize
         )
@@ -145,6 +148,32 @@ class MainWindow(QtWidgets.QMainWindow):
             "Open the overlay tool.",
             self.actionToolOverlay,
         )
+
+        self.action_transform_flip_horizontal = qAction(
+            "object-flip-horizontal",
+            "Flip Horizontal",
+            "Flip the image about vertical axis.",
+            self.actionTransformFlipHorz,
+        )
+        self.action_transform_flip_vertical = qAction(
+            "object-flip-vertical",
+            "Flip Vertical",
+            "Flip the image about horizontal axis.",
+            self.actionTransformFlipVert,
+        )
+        self.action_transform_rotate_left = qAction(
+            "object-rotate-left",
+            "Rotate Left",
+            "Rotate the image 90° counter clockwise.",
+            self.actionTransformRotateLeft,
+        )
+        self.action_transform_rotate_right = qAction(
+            "object-rotate-right",
+            "Rotate Right",
+            "Rotate the image 90° clockwise.",
+            self.actionTransformRotateRight,
+        )
+
         self.action_refresh = qAction(
             "view-refresh", "Refresh", "Redraw documents.", self.refresh
         )
@@ -293,6 +322,30 @@ class MainWindow(QtWidgets.QMainWindow):
         widget.view.addTab("Overlay Tool", tool)
         tool.setActive()
 
+    def actionTransformFlipHorz(self) -> None:
+        widget = self.viewspace.activeWidget()
+        if widget is None:
+            return
+        widget.transform(flip="horizontal")
+
+    def actionTransformFlipVert(self) -> None:
+        widget = self.viewspace.activeWidget()
+        if widget is None:
+            return
+        widget.transform(flip="vertical")
+
+    def actionTransformRotateLeft(self) -> None:
+        widget = self.viewspace.activeWidget()
+        if widget is None:
+            return
+        widget.transform(rotate="left")
+
+    def actionTransformRotateRight(self) -> None:
+        widget = self.viewspace.activeWidget()
+        if widget is None:
+            return
+        widget.transform(rotate="right")
+
     def createMenus(self) -> None:
         # File
         menu_file = self.menuBar().addMenu("&File")
@@ -318,6 +371,13 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_edit.addAction(self.action_tool_calculations)
         menu_edit.addAction(self.action_tool_standards)
         menu_edit.addAction(self.action_tool_overlay)
+
+        # Edit - transform
+        menu_transform = menu_edit.addMenu("&Transform")
+        menu_transform.addAction(self.action_transform_flip_horizontal)
+        menu_transform.addAction(self.action_transform_flip_vertical)
+        menu_transform.addAction(self.action_transform_rotate_left)
+        menu_transform.addAction(self.action_transform_rotate_right)
 
         # View
         menu_view = self.menuBar().addMenu("&View")

@@ -183,7 +183,6 @@ class OverlayTool(ToolWidget):
             obj, LaserCanvas
         ):
             self.widget = obj.parent()
-            self.widgetChanged()
             self.endMouseSelect()
         return False
 

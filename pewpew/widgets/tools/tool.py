@@ -36,7 +36,11 @@ class ToolWidget(_ViewWidget):
 
     def endMouseSelect(self) -> None:
         self.viewspace.mouseSelectEnd(self)
+        self.widgetChanged()
         self.setActive()
+
+    def widgetChanged(self) -> None:
+        pass
 
     def isComplete(self) -> bool:
         return True
@@ -44,3 +48,8 @@ class ToolWidget(_ViewWidget):
     @QtCore.Slot()
     def completeChanged(self) -> None:
         pass
+
+    def transform(self, **kwargs) -> None:
+        if hasattr(self.widget, "transform"):
+            self.widget.transform(**kwargs)
+        self.widgetChanged()
