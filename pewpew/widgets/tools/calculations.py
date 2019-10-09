@@ -213,6 +213,8 @@ class CalculationsTool(ToolWidget):
                 self.canvas.scalebar = None
 
     def widgetChanged(self) -> None:
+        self.label_current.setText(self.widget.laser.name)
+
         self.combo_isotopes.clear()
         self.combo_isotopes.addItem("Isotopes")
         self.combo_isotopes.addItems(self.widget.laser.isotopes)

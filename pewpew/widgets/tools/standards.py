@@ -20,7 +20,7 @@ from pewpew.widgets.laser import LaserWidget
 
 from .tool import ToolWidget
 
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 
 class StandardsTool(ToolWidget):
@@ -28,9 +28,8 @@ class StandardsTool(ToolWidget):
         super().__init__(widget)
         self.setWindowTitle("Calibration Tool")
 
-        self.calibration = copy.deepcopy(widget.laser.calibration)
+        self.calibration: Dict[str, Calibration] = None
         self.previous_isotope = ""
-        current_isotope = self.widget.combo_isotopes.currentText()
 
         self.trim_left = 0
         self.trim_right = 0
@@ -44,11 +43,9 @@ class StandardsTool(ToolWidget):
 
         self.lineedit_units = QtWidgets.QLineEdit()
         self.lineedit_units.editingFinished.connect(self.lineeditUnits)
-        self.lineedit_units.setText(self.calibration[current_isotope].unit)
 
         self.combo_weighting = QtWidgets.QComboBox()
         self.combo_weighting.addItems(["None", "x", "1/x", "1/(x^2)"])
-        self.combo_weighting.setCurrentText(self.calibration[current_isotope].weighting)
         self.combo_weighting.currentIndexChanged.connect(self.comboWeighting)
 
         self.results_box = StandardsResultsBox()
@@ -70,11 +67,9 @@ class StandardsTool(ToolWidget):
         self.combo_trim.currentTextChanged.connect(self.comboTrim)
 
         self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.addItems(sorted(self.widget.laser.isotopes))
-        self.combo_isotope.setCurrentText(current_isotope)
         self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
 
-        self.table = StandardsTable(self.calibration[current_isotope], self)
+        self.table = StandardsTable(Calibration(), self)
         self.table.setRowCount(6)
         self.table.model().dataChanged.connect(self.completeChanged)
         self.table.model().dataChanged.connect(self.updateResults)
@@ -85,7 +80,7 @@ class StandardsTool(ToolWidget):
         self.button_apply_all.pressed.connect(self.applyAll)
 
         self.layoutWidgets()
-        self.refresh()
+        self.widgetChanged()
 
     def layoutWidgets(self) -> None:
         layout_cal_form = QtWidgets.QFormLayout()
@@ -174,6 +169,8 @@ class StandardsTool(ToolWidget):
             self.results_box.update(self.calibration[isotope])
 
     def widgetChanged(self) -> None:
+        self.label_current.setText(self.widget.laser.name)
+
         self.calibration = copy.deepcopy(self.widget.laser.calibration)
         # Prevent currentIndexChanged being emmited
         self.combo_isotope.blockSignals(True)

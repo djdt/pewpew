@@ -67,7 +67,7 @@ class OverlayTool(ToolWidget):
 
         self.layout_buttons.addWidget(self.button_save, 0, QtCore.Qt.AlignRight)
 
-        self.completeChanged()
+        self.widgetChanged()
 
     def isComplete(self) -> bool:
         return self.rows.rowCount() > 0
@@ -174,6 +174,8 @@ class OverlayTool(ToolWidget):
             )
 
     def widgetChanged(self) -> None:
+        self.label_current.setText(self.widget.laser.name)
+        self.completeChanged()
         self.refresh()
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:

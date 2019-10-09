@@ -4,17 +4,17 @@ from pewpew.widgets.views import _ViewWidget
 
 
 class ToolWidget(_ViewWidget):
-    mouseSelectStarted = QtCore.Signal("QWidget*")
-    mouseSelectEnded = QtCore.Signal("QWidget*")
-
     def __init__(self, widget: _ViewWidget):
         super().__init__(widget.view, editable=False)
         self.widget = widget
+
+        self.label_current = QtWidgets.QLabel()
 
         self.button_select = QtWidgets.QPushButton("Select &Image")
         self.button_select.pressed.connect(self.startMouseSelect)
 
         self.layout_top = QtWidgets.QHBoxLayout()
+        self.layout_top.addWidget(self.label_current, 0, QtCore.Qt.AlignRight)
         self.layout_top.addWidget(self.button_select, 0, QtCore.Qt.AlignRight)
 
         self.layout_main = QtWidgets.QVBoxLayout()
