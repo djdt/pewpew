@@ -260,7 +260,7 @@ class LaserWidget(_ViewWidget):
             self.laser.data = np.flip(self.laser.data, axis=axis)
         if rotate is not None:
             k = 1 if rotate == "right" else 3 if rotate == "left" else 2
-            self.laser.data = np.rotate(self.laser.data, k=k, axes=(1, 0))
+            self.laser.data = np.rot90(self.laser.data, k=k, axes=(1, 0))
         self.refresh()
 
     # Callbacks
