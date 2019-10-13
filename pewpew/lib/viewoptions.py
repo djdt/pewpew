@@ -73,7 +73,12 @@ class ImageOptions(object):
         "Turbo": "Google's improved version of rainbow colormap jet.",
         "Viridis": "Perceptually uniform colormap from R.",
     }
-    INTERPOLATIONS = {"None": "none", "Bilinear": "bilinear", "Bicubic": "bicubic", "Gaussian": "gaussian"}
+    INTERPOLATIONS = {
+        "None": "none",
+        "Bilinear": "bilinear",
+        "Bicubic": "bicubic",
+        "Gaussian": "gaussian",
+    }
 
     def __init__(
         self,
