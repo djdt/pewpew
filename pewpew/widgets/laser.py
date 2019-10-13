@@ -1,5 +1,6 @@
-import os
 import copy
+import numpy as np
+import os
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -248,6 +249,19 @@ class LaserWidget(_ViewWidget):
         self.combo_isotopes.clear()
         self.combo_isotopes.addItems(self.laser.isotopes)
         self.combo_isotopes.blockSignals(False)
+
+    # Transformations
+    def transform(self, flip: str = None, rotate: str = None) -> None:
+        if self.is_srr:
+            QtWidgets.QMessageBox.information(self, "Transform", "Unable to transform SRR data.")
+            return
+        if flip is not None:
+            axis = 1 if flip == "horizontal" else 0
+            self.laser.data = np.flip(self.laser.data, axis=axis)
+        if rotate is not None:
+            k = 1 if rotate == "right" else 3 if rotate == "left" else 2
+            self.laser.data = np.rot90(self.laser.data, k=k, axes=(1, 0))
+        self.refresh()
 
     # Callbacks
     def applyCalibration(self, calibrations: dict) -> None:
