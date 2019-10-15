@@ -70,22 +70,31 @@ class VtiOptionsBox(OptionsBox):
 class ExportOptions(QtWidgets.QStackedWidget):
     inputChanged = QtCore.Signal()
 
-    def __init__(
-        self, spacing: Tuple[float, float, float], parent: QtWidgets.QWidget = None
-    ):
+    def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Preferred
         )
         self.currentChanged.connect(self.inputChanged)
 
-        self.npz = self.addWidget(OptionsBox("Numpy Archives", ".npz"))
-        self.csv = self.addWidget(OptionsBox("CSV Documents", ".csv"))
-        self.png = self.addWidget(PngOptionsBox())
-        self.vti = self.addWidget(VtiOptionsBox(spacing))
+    def addOption(self, option: OptionsBox) -> int:
+        index = self.addWidget(option)
+        self.widget(index).inputChanged.connect(self.inputChanged)
+        return index
 
-        for i in range(0, self.count()):
-            self.widget(i).inputChanged.connect(self.inputChanged)
+    def currentExt(self) -> str:
+        return self.currentWidget().ext
+
+    def setCurrentExt(self, ext: str) -> None:
+        index = self.indexForExt(ext)
+        if index != -1:
+            self.setCurrentIndex(index)
+
+    def indexForExt(self, ext: str) -> int:
+        for i in range(self.count()):
+            if self.widget(i).ext == ext:
+                return i
+        return -1
 
     def sizeHint(self) -> QtCore.QSize:
         sizes = [self.widget(i).sizeHint() for i in range(0, self.count())]
@@ -97,12 +106,6 @@ class ExportOptions(QtWidgets.QStackedWidget):
         indicies = [self.currentIndex()] if current_only else range(0, self.count())
         return all(self.widget(i).isComplete() for i in indicies)
 
-    def allowCalibrate(self) -> bool:
-        return self.currentIndex() != self.npz
-
-    def allowExportAll(self) -> bool:
-        return self.currentIndex() not in [self.npz, self.vti]
-
 
 class ExportDialog(QtWidgets.QDialog):
     def __init__(self, widget: LaserWidget, parent: QtWidgets.QWidget = None):
@@ -110,14 +113,7 @@ class ExportDialog(QtWidgets.QDialog):
         self.setWindowTitle("Export")
         self.widget = widget
 
-        path = os.path.join(
-            os.path.dirname(self.widget.laser.path), self.widget.laser.name + ".npz"
-        )
-        # path = laser.path
-        directory = os.path.dirname(path)
-        filename = os.path.basename(path)
-
-        self.lineedit_directory = QtWidgets.QLineEdit(directory)
+        self.lineedit_directory = QtWidgets.QLineEdit()
         self.lineedit_directory.setMinimumWidth(300)
         self.lineedit_directory.setClearButtonEnabled(True)
         self.lineedit_directory.textChanged.connect(self.validate)
@@ -127,7 +123,7 @@ class ExportDialog(QtWidgets.QDialog):
             icon, "Open" if icon.isNull() else ""
         )
         self.button_directory.clicked.connect(self.selectDirectory)
-        self.lineedit_filename = QtWidgets.QLineEdit(filename)
+        self.lineedit_filename = QtWidgets.QLineEdit()
         self.lineedit_filename.textChanged.connect(self.filenameChanged)
         self.lineedit_filename.textChanged.connect(self.validate)
 
@@ -139,8 +135,14 @@ class ExportDialog(QtWidgets.QDialog):
             widget.laser.config.get_pixel_height(),
             widget.laser.config.spotsize / 2.0,
         )
-
-        self.options = ExportOptions(spacing)
+        self.options = ExportOptions()
+        for option in [
+            OptionsBox("Numpy Archives", ".npz"),
+            OptionsBox("CSV Document", ".csv"),
+            PngOptionsBox(),
+            VtiOptionsBox(spacing),
+        ]:
+            self.options.addWidget(option)
         self.options.inputChanged.connect(self.validate)
 
         self.combo_type = QtWidgets.QComboBox()
@@ -149,6 +151,8 @@ class ExportDialog(QtWidgets.QDialog):
             self.combo_type.addItem(item)
         self.combo_type.setCurrentIndex(-1)
         self.combo_type.currentIndexChanged.connect(self.typeChanged)
+        if self.options.count() < 2:
+            self.combo_type.setVisible(False)
 
         self.check_calibrate = QtWidgets.QCheckBox("Calibrate data.")
         self.check_calibrate.setChecked(True)
@@ -185,8 +189,12 @@ class ExportDialog(QtWidgets.QDialog):
         layout.addWidget(self.button_box)
         self.setLayout(layout)
 
-        # Init with correct filename and type
-        self.filenameChanged(filename)
+        # A default path
+        path = os.path.join(
+            os.path.dirname(self.widget.laser.path), self.widget.laser.name + ".npz"
+        )
+        self.lineedit_directory.setText(os.path.dirname(path))
+        self.lineedit_filename.setText(os.path.basename(path))
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(600, 200)
@@ -204,6 +212,12 @@ class ExportDialog(QtWidgets.QDialog):
         ok = self.button_box.button(QtWidgets.QDialogButtonBox.Ok)
         ok.setEnabled(self.isComplete())
 
+    def allowCalibrate(self) -> bool:
+        return self.options.currentExt() != ".npz"
+
+    def allowExportAll(self) -> bool:
+        return self.options.currentExt() not in [".npz", ".vti"]
+
     def isCalibrate(self) -> bool:
         return self.check_calibrate.isChecked() and self.check_calibrate.isEnabled()
 
@@ -218,34 +232,25 @@ class ExportDialog(QtWidgets.QDialog):
 
     def filenameChanged(self, filename: str) -> None:
         _, ext = os.path.splitext(filename.lower())
-        if ext == ".csv":
-            index = self.options.csv
-        elif ext == ".npz":
-            index = self.options.npz
-        elif ext == ".png":
-            index = self.options.png
-        elif ext == ".vti":
-            index = self.options.vti
-        else:
-            index = self.options.currentIndex()
+        index = self.options.indexForExt(ext)
+        if index == -1:
+            return
         self.combo_type.setCurrentIndex(index)
         self.updatePreview()
 
     def typeChanged(self, index: int) -> None:
         self.options.setCurrentIndex(index)
-        # Hide options when not needed
-        self.options.setVisible(
-            self.options.currentIndex() in [self.options.png, self.options.vti]
-        )
-        self.adjustSize()
-        # Enable or disable checks
-        self.check_calibrate.setEnabled(self.options.allowCalibrate())
-        self.check_export_all.setEnabled(self.options.allowExportAll())
         # Update name of file
         base, ext = os.path.splitext(self.lineedit_filename.text())
         if ext != "":
-            ext = self.options.currentWidget().ext
+            ext = self.options.currentExt()
         self.lineedit_filename.setText(base + ext)
+        # Hide options when not needed
+        self.options.setVisible(self.options.currentExt() in [".png", ".vti"])
+        self.adjustSize()
+        # Enable or disable checks
+        self.check_calibrate.setEnabled(self.allowCalibrate())
+        self.check_export_all.setEnabled(self.allowExportAll())
 
     def selectDirectory(self) -> QtWidgets.QDialog:
         dlg = QtWidgets.QFileDialog(self, "Select Directory", "")
@@ -276,13 +281,15 @@ class ExportDialog(QtWidgets.QDialog):
 
     def export(self, path: str, isotope: str, widget: LaserWidget) -> None:
         index = self.options.currentIndex()
-        if index == self.options.csv:
+        ext = self.options.widget(index).ext
+
+        if ext == ".csv":
             kwargs = {"calibrate": self.isCalibrate(), "flat": True}
             if isotope in widget.laser.isotopes:
                 data = widget.laser.get(isotope, **kwargs)
                 io.csv.save(path, data)
 
-        elif index == self.options.png:
+        elif ext == ".png":
             canvas = LaserCanvas(widget.canvas.viewoptions, self)
             if isotope in widget.laser.isotopes:
                 canvas.drawLaser(widget.laser, isotope)
@@ -302,13 +309,16 @@ class ExportDialog(QtWidgets.QDialog):
                     )
             canvas.close()
 
-        elif index == self.options.vti:
+        elif ext == ".vti":
             spacing = self.options.widget(index).spacing()
             data = widget.laser.get(calibrate=self.isCalibrate())
             io.vtk.save(path, data, spacing)
 
-        else:  # npz
+        elif ext == ".npz":  # npz
             io.npz.save(path, [widget.laser])
+
+        else:
+            raise io.error.PewException(f"Unable to export file as '{ext}'.")
 
     def accept(self) -> None:
         paths = self.generatePaths(self.widget.laser)
@@ -324,6 +334,7 @@ class ExportDialog(QtWidgets.QDialog):
         except io.error.PewException as e:
             QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
             return
+
         super().accept()
 
 
@@ -358,9 +369,7 @@ class ExportAllDialog(ExportDialog):
         self.showIsotopes()
 
     def showIsotopes(self) -> None:
-        self.combo_isotopes.setEnabled(
-            self.options.allowExportAll() and not self.isExportAll()
-        )
+        self.combo_isotopes.setEnabled(self.allowExportAll() and not self.isExportAll())
 
     def typeChanged(self, index: int) -> None:
         super().typeChanged(index)
