@@ -1,3 +1,4 @@
+import os.path
 import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -5,6 +6,8 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from matplotlib.image import AxesImage, imsave
 from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
 from matplotlib.patheffects import withStroke
+
+from pew import io
 
 from pewpew.actions import qAction
 from pewpew.validators import PercentOrDecimalValidator
@@ -14,10 +17,12 @@ from pewpew.lib.mpltools import MetricSizeBar
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets.canvases import BasicCanvas, LaserCanvas
+from pewpew.widgets.exportdialogs import ExportDialogBase, PngOptionsBox
 from pewpew.widgets.laser import LaserWidget
+from pewpew.widgets.prompts import OverwriteFilePrompt
 from pewpew.widgets.tools import ToolWidget
 
-from typing import List, Tuple, Union
+from typing import Iterator, Generator, List, Tuple, Union
 
 
 class OverlayTool(ToolWidget):
@@ -27,8 +32,8 @@ class OverlayTool(ToolWidget):
         super().__init__(widget)
         self.setWindowTitle("Image Overlay Tool")
 
-        self.button_save = QtWidgets.QPushButton("Save Image")
-        self.button_save.pressed.connect(self.openSaveDialog)
+        self.button_save = QtWidgets.QPushButton("Export")
+        self.button_save.pressed.connect(self.openExportDialog)
 
         self.canvas = OverlayCanvas(self.viewspace.options)
 
@@ -77,16 +82,8 @@ class OverlayTool(ToolWidget):
         enabled = self.isComplete()
         self.button_save.setEnabled(enabled)
 
-    def openSaveDialog(self) -> QtWidgets.QDialog:
-        dlg = QtWidgets.QFileDialog(
-            self,
-            "Save File",
-            self.widget.laser.path,
-            "JPEG images(*.jpg *.jpeg);;PNG images(*.png);;All files(*)",
-        )
-        dlg.selectNameFilter("PNG images(*.png)")
-        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-        dlg.fileSelected.connect(self.saveCanvas)
+    def openExportDialog(self) -> QtWidgets.QDialog:
+        dlg = OverlayExportDialog(self)
         dlg.open()
 
     def comboAdd(self, index: int) -> None:
@@ -133,7 +130,7 @@ class OverlayTool(ToolWidget):
         )
 
     def refresh(self) -> None:
-        datas = [self.processRow(row) for row in self.rows.rows if not row.hidden]
+        datas = [self.processRow(row) for row in self.rows if not row.hidden]
         if len(datas) == 0:
             img = np.zeros((*self.widget.laser.shape[:2], 3), float)
         else:
@@ -150,8 +147,8 @@ class OverlayTool(ToolWidget):
         self.canvas.drawData(img, self.widget.laser.config.data_extent(img.shape))
 
         if self.viewspace.options.canvas.label:
-            names = [row.label_name.text() for row in self.rows.rows if not row.hidden]
-            colors = [row.getColor().name() for row in self.rows.rows if not row.hidden]
+            names = [row.label_name.text() for row in self.rows if not row.hidden]
+            colors = [row.getColor().name() for row in self.rows if not row.hidden]
             self.canvas.drawLabel(names, colors)
         elif self.canvas.label is not None:
             self.canvas.label.remove()
@@ -175,6 +172,14 @@ class OverlayTool(ToolWidget):
 
     def widgetChanged(self) -> None:
         self.label_current.setText(self.widget.laser.name)
+
+        for row in self.rows:
+            row.close()
+
+        self.combo_add.clear()
+        self.combo_add.addItem("Add Isotope")
+        self.combo_add.addItems(self.widget.laser.isotopes)
+
         self.completeChanged()
         self.refresh()
 
@@ -403,6 +408,12 @@ class OverlayRows(QtWidgets.QScrollArea):
         self.layout.setSpacing(0)
         widget.setLayout(self.layout)
 
+    def __getitem__(self, i: int) -> OverlayItemRow:
+        return self.rows[i]
+
+    def __iter__(self) -> Iterator:
+        return iter(self.rows)
+
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(500, 34 * 3 + 10)
 
@@ -457,3 +468,144 @@ class OverlayRows(QtWidgets.QScrollArea):
             self.max_rows = 99
             for row in self.rows:
                 row.setColorPickable(True)
+
+
+class OverlayExportDialog(ExportDialogBase):
+    def __init__(self, parent: OverlayTool):
+        super().__init__([PngOptionsBox()], parent)
+        self.setWindowTitle("Overlay Export")
+        self.widget = parent
+
+        self.check_individual = QtWidgets.QCheckBox("Export colors individually.")
+        self.check_individual.setToolTip(
+            "Export each color layer as a separte file.\n"
+            "The filename will be appended with the colors name."
+        )
+        self.check_individual.stateChanged.connect(self.updatePreview)
+
+        self.layout.insertWidget(2, self.check_individual)
+
+        path = os.path.join(
+            os.path.dirname(self.widget.widget.laser.path),
+            self.widget.widget.laser.name + ".png",
+        )
+        self.lineedit_directory.setText(os.path.dirname(path))
+        self.lineedit_filename.setText(os.path.basename(path))
+        self.typeChanged(0)
+
+    def isIndividual(self) -> bool:
+        return self.check_individual.isChecked() and self.check_individual.isEnabled()
+
+    def updatePreview(self) -> None:
+        base, ext = os.path.splitext(self.lineedit_filename.text())
+        if self.isIndividual():
+            if self.widget.rows.color_model == "rgb":
+                base += "_<rgb>"
+            elif self.widget.rows.color_model == "cmyk":
+                base += "_<cmy>"
+            else:
+                base += "_<#>"
+        self.lineedit_preview.setText(base + ext)
+
+    def filenameChanged(self, filename: str) -> None:
+        _, ext = os.path.splitext(filename.lower())
+        index = self.options.indexForExt(ext)
+        if index == -1:
+            return
+        self.options.setCurrentIndex(index)
+        self.updatePreview()
+
+    def selectDirectory(self) -> QtWidgets.QDialog:
+        dlg = QtWidgets.QFileDialog(self, "Select Directory", "")
+        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
+        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+        dlg.fileSelected.connect(self.lineedit_directory.setText)
+        dlg.open()
+        return dlg
+
+    def getPath(self) -> str:
+        return os.path.join(
+            self.lineedit_directory.text(), self.lineedit_filename.text()
+        )
+
+    def getPathForRow(self, row: int) -> str:
+        color_model = self.widget.rows.color_model
+        if color_model == "rgb":
+            r, g, b, _a = self.widget.rows[row].getColor().getRgb()
+            suffix = "r" if r > 0 else "g" if g > 0 else "b"
+        elif color_model == "cmyk":
+            c, m, y, _k, _a = self.widget.rows[row].getColor().getCmyk()
+            suffix = "c" if c > 0 else "m" if m > 0 else "y"
+        else:
+            suffix = str(row)
+        base, ext = os.path.splitext(self.getPath())
+        return f"{base}_{suffix}{ext}"
+
+    def generateRowPaths(self) -> Generator[Tuple[str, int], None, None]:
+        for i, row in enumerate(self.widget.rows):
+            if not row.hidden:
+                yield (self.getPathForRow(i), i)
+
+    def export(self, path: str) -> None:
+        option = self.options.currentOption()
+
+        if option.ext == ".png":
+            self.widget.saveCanvas(path, raw=option.raw())
+        else:
+            raise io.error.PewException(f"Unable to export file as '{option.ext}'.")
+
+    def exportIndividual(self, path: str, row: int) -> None:
+        option = self.options.currentOption()
+
+        if option.ext == ".png":
+            data = self.widget.processRow(self.widget.rows[row])
+            if self.widget.model_type[self.widget.rows.color_model] == "subtractive":
+                data = np.ones_like(data) - data
+            if option.raw():
+                imsave(path, data)
+            else:
+                canvas = OverlayCanvas(self.widget.canvas.viewoptions, self)
+                canvas.drawData(
+                    data, self.widget.widget.laser.config.data_extent(data.shape)
+                )
+
+                if canvas.viewoptions.canvas.label:
+                    names = [self.widget.rows[row].label_name.text()]
+                    colors = [self.widget.rows[row].getColor().name()]
+                    canvas.drawLabel(names, colors)
+
+                if canvas.viewoptions.canvas.scalebar:
+                    canvas.drawScalebar()
+
+                canvas.figure.set_size_inches(
+                    self.widget.canvas.figure.get_size_inches()
+                )
+                canvas.figure.savefig(
+                    path, dpi=300, bbox_inches="tight", transparent=True, facecolor=None
+                )
+                canvas.close()
+        else:
+            raise io.error.PewException(f"Unable to export file as '{option.ext}'.")
+
+    def accept(self) -> None:
+        prompt = OverwriteFilePrompt()
+        if self.isIndividual():
+            paths = [p for p in self.generateRowPaths() if prompt.promptOverwrite(p[0])]
+            if len(paths) == 0:
+                return
+        else:
+            if not prompt.promptOverwrite(self.getPath()):
+                return
+
+        try:
+            if self.isIndividual():
+                for path, row in paths:
+                    self.exportIndividual(path, row)
+            else:
+                self.export(self.getPath())
+        except io.error.PewException as e:
+            QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
+            return
+
+        super().accept()
