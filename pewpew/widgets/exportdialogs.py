@@ -122,6 +122,9 @@ class ExportOptions(QtWidgets.QWidget):
         self.combo.insertItem(index, item)
         return index
 
+    def currentOption(self) -> OptionsBox:
+        return self.stack.currentWidget()
+
     def count(self) -> int:
         return self.stack.count()
 
@@ -154,11 +157,10 @@ class ExportOptions(QtWidgets.QWidget):
         return all(self.stack.widget(i).isComplete() for i in indicies)
 
 
-class ExportDialog(QtWidgets.QDialog):
-    def __init__(self, widget: LaserWidget, parent: QtWidgets.QWidget = None):
+class ExportDialogBase(QtWidgets.QDialog):
+    def __init__(self, options: List[OptionsBox], parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Export")
-        self.widget = widget
 
         self.lineedit_directory = QtWidgets.QLineEdit()
         self.lineedit_directory.setMinimumWidth(300)
@@ -177,6 +179,80 @@ class ExportDialog(QtWidgets.QDialog):
         self.lineedit_preview = QtWidgets.QLineEdit()
         self.lineedit_preview.setEnabled(False)
 
+        self.options = ExportOptions(options=options)
+        self.options.inputChanged.connect(self.validate)
+        self.options.currentIndexChanged.connect(self.typeChanged)
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        layout_directory = QtWidgets.QHBoxLayout()
+        layout_directory.addWidget(self.lineedit_directory)
+        layout_directory.addWidget(self.button_directory)
+
+        self.layout = QtWidgets.QVBoxLayout()
+        self.layout_form = QtWidgets.QFormLayout()
+        self.layout_form.addRow("Directory:", layout_directory)
+        self.layout_form.addRow("Filename:", self.lineedit_filename)
+        self.layout_form.addRow("Preview:", self.lineedit_preview)
+
+        self.layout.addLayout(self.layout_form)
+        self.layout.addWidget(self.options, 1, QtCore.Qt.AlignTop)
+        self.layout.addWidget(self.button_box)
+        self.setLayout(self.layout)
+
+    def sizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(600, 200)
+
+    def isComplete(self) -> bool:
+        if not os.path.exists(self.lineedit_directory.text()):
+            return False
+        filename = self.lineedit_filename.text()
+        if filename == "":
+            return False
+        if self.options.indexForExt(os.path.splitext(filename)[1]) == -1:
+            return False
+        if not self.options.isComplete():
+            return False
+        return True
+
+    def validate(self) -> None:
+        ok = self.button_box.button(QtWidgets.QDialogButtonBox.Ok)
+        ok.setEnabled(self.isComplete())
+
+    def updatePreview(self) -> None:
+        self.lineedit_preview.setText(self.lineedit_filename.text())
+
+    def filenameChanged(self, filename: str) -> None:
+        _, ext = os.path.splitext(filename.lower())
+        index = self.options.indexForExt(ext)
+        if index == -1:
+            return
+        self.options.setCurrentIndex(index)
+        self.updatePreview()
+
+    def typeChanged(self, index: int) -> None:
+        # Update name of file
+        base, ext = os.path.splitext(self.lineedit_filename.text())
+        if ext != "":
+            ext = self.options.currentExt()
+        self.lineedit_filename.setText(base + ext)
+
+    def selectDirectory(self) -> QtWidgets.QDialog:
+        dlg = QtWidgets.QFileDialog(self, "Select Directory", "")
+        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
+        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+        dlg.fileSelected.connect(self.lineedit_directory.setText)
+        dlg.open()
+        return dlg
+
+
+class ExportDialog(ExportDialogBase):
+    def __init__(self, widget: LaserWidget, parent: QtWidgets.QWidget = None):
         spacing = (
             widget.laser.config.get_pixel_width(),
             widget.laser.config.get_pixel_height(),
@@ -188,9 +264,8 @@ class ExportDialog(QtWidgets.QDialog):
             PngOptionsBox(),
             VtiOptionsBox(spacing),
         ]
-        self.options = ExportOptions(options=options)
-        self.options.inputChanged.connect(self.validate)
-        self.options.currentIndexChanged.connect(self.typeChanged)
+        super().__init__(options, parent)
+        self.widget = widget
 
         self.check_calibrate = QtWidgets.QCheckBox("Calibrate data.")
         self.check_calibrate.setChecked(True)
@@ -203,28 +278,8 @@ class ExportDialog(QtWidgets.QDialog):
         )
         self.check_export_all.stateChanged.connect(self.updatePreview)
 
-        self.button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
-        )
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-
-        layout_directory = QtWidgets.QHBoxLayout()
-        layout_directory.addWidget(self.lineedit_directory)
-        layout_directory.addWidget(self.button_directory)
-
-        layout = QtWidgets.QVBoxLayout()
-        self.layout_form = QtWidgets.QFormLayout()
-        self.layout_form.addRow("Directory:", layout_directory)
-        self.layout_form.addRow("Filename:", self.lineedit_filename)
-        self.layout_form.addRow("Preview:", self.lineedit_preview)
-
-        layout.addLayout(self.layout_form)
-        layout.addWidget(self.options, 1, QtCore.Qt.AlignTop)
-        layout.addWidget(self.check_calibrate)
-        layout.addWidget(self.check_export_all)
-        layout.addWidget(self.button_box)
-        self.setLayout(layout)
+        self.layout.insertWidget(2, self.check_calibrate)
+        self.layout.insertWidget(3, self.check_calibrate)
 
         # A default path
         path = os.path.join(
@@ -233,22 +288,6 @@ class ExportDialog(QtWidgets.QDialog):
         self.lineedit_directory.setText(os.path.dirname(path))
         self.lineedit_filename.setText(os.path.basename(path))
         self.typeChanged(0)
-
-    def sizeHint(self) -> QtCore.QSize:
-        return QtCore.QSize(600, 200)
-
-    def isComplete(self) -> bool:
-        if not os.path.exists(self.lineedit_directory.text()):
-            return False
-        if self.lineedit_filename.text() == "":
-            return False
-        if not self.options.isComplete():
-            return False
-        return True
-
-    def validate(self) -> None:
-        ok = self.button_box.button(QtWidgets.QDialogButtonBox.Ok)
-        ok.setEnabled(self.isComplete())
 
     def allowCalibrate(self) -> bool:
         return self.options.currentExt() != ".npz"
@@ -268,32 +307,11 @@ class ExportDialog(QtWidgets.QDialog):
             base += "_<ISOTOPE>"
         self.lineedit_preview.setText(base + ext)
 
-    def filenameChanged(self, filename: str) -> None:
-        _, ext = os.path.splitext(filename.lower())
-        index = self.options.indexForExt(ext)
-        if index == -1:
-            return
-        self.options.setCurrentIndex(index)
-        self.updatePreview()
-
     def typeChanged(self, index: int) -> None:
-        # Update name of file
-        base, ext = os.path.splitext(self.lineedit_filename.text())
-        if ext != "":
-            ext = self.options.currentExt()
-        self.lineedit_filename.setText(base + ext)
+        super().typeChanged(index)
         # Enable or disable checks
         self.check_calibrate.setEnabled(self.allowCalibrate())
         self.check_export_all.setEnabled(self.allowExportAll())
-
-    def selectDirectory(self) -> QtWidgets.QDialog:
-        dlg = QtWidgets.QFileDialog(self, "Select Directory", "")
-        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
-        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
-        dlg.fileSelected.connect(self.lineedit_directory.setText)
-        dlg.open()
-        return dlg
 
     def getPath(self) -> str:
         return os.path.join(
@@ -314,20 +332,19 @@ class ExportDialog(QtWidgets.QDialog):
         return [(p, i) for p, i in paths if p != ""]
 
     def export(self, path: str, isotope: str, widget: LaserWidget) -> None:
-        index = self.options.currentIndex()
-        ext = self.options.widget(index).ext
+        option = self.options.currentOption()
 
-        if ext == ".csv":
+        if option.ext == ".csv":
             kwargs = {"calibrate": self.isCalibrate(), "flat": True}
             if isotope in widget.laser.isotopes:
                 data = widget.laser.get(isotope, **kwargs)
                 io.csv.save(path, data)
 
-        elif ext == ".png":
+        elif option.ext == ".png":
             canvas = LaserCanvas(widget.canvas.viewoptions, self)
             if isotope in widget.laser.isotopes:
                 canvas.drawLaser(widget.laser, isotope)
-                if self.options.widget(index).raw():
+                if option.raw():
                     canvas.saveRawImage(path)
                 else:
                     canvas.view_limits = widget.canvas.view_limits
@@ -343,16 +360,16 @@ class ExportDialog(QtWidgets.QDialog):
                     )
             canvas.close()
 
-        elif ext == ".vti":
-            spacing = self.options.widget(index).spacing()
+        elif option.ext == ".vti":
+            spacing = option.spacing()
             data = widget.laser.get(calibrate=self.isCalibrate())
             io.vtk.save(path, data, spacing)
 
-        elif ext == ".npz":  # npz
+        elif option.ext == ".npz":  # npz
             io.npz.save(path, [widget.laser])
 
         else:
-            raise io.error.PewException(f"Unable to export file as '{ext}'.")
+            raise io.error.PewException(f"Unable to export file as '{option.ext}'.")
 
     def accept(self) -> None:
         paths = self.generatePaths(self.widget.laser)
@@ -397,7 +414,7 @@ class ExportAllDialog(ExportDialog):
         layout_isotopes = QtWidgets.QHBoxLayout()
         layout_isotopes.addWidget(QtWidgets.QLabel("Isotope:"))
         layout_isotopes.addWidget(self.combo_isotopes)
-        self.layout().insertLayout(2, layout_isotopes)
+        self.layout.insertLayout(2, layout_isotopes)
 
         self.check_export_all.stateChanged.connect(self.showIsotopes)
         self.showIsotopes()
