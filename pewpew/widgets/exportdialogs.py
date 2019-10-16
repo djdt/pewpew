@@ -15,10 +15,17 @@ from typing import List, Set, Tuple
 class OptionsBox(QtWidgets.QGroupBox):
     inputChanged = QtCore.Signal()
 
-    def __init__(self, filetype: str, ext: str, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self,
+        filetype: str,
+        ext: str,
+        visible: bool = False,
+        parent: QtWidgets.QWidget = None,
+    ):
         super().__init__("Format Options", parent)
         self.filetype = filetype
         self.ext = ext
+        self.visible = visible
 
     # Because you can't hook up signals with different no. of params
     def isComplete(self) -> bool:
@@ -27,7 +34,7 @@ class OptionsBox(QtWidgets.QGroupBox):
 
 class PngOptionsBox(OptionsBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__("PNG Images", ".png", parent)
+        super().__init__("PNG Images", ".png", visible=True, parent=parent)
         self.check_raw = QtWidgets.QCheckBox("Save raw image data.")
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.check_raw)
@@ -41,7 +48,7 @@ class VtiOptionsBox(OptionsBox):
     def __init__(
         self, spacing: Tuple[float, float, float], parent: QtWidgets.QWidget = None
     ):
-        super().__init__("VTK Images", ".vti", parent)
+        super().__init__("VTK Images", ".vti", visible=True, parent=parent)
         self.linedits = [QtWidgets.QLineEdit(str(dim)) for dim in spacing]
         for le in self.linedits:
             le.setValidator(QtGui.QDoubleValidator(-1e9, 1e9, 4))
@@ -67,44 +74,84 @@ class VtiOptionsBox(OptionsBox):
         return tuple(float(le.text()) for le in self.linedits)  # type: ignore
 
 
-class ExportOptions(QtWidgets.QStackedWidget):
-    inputChanged = QtCore.Signal()
-
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Preferred
-        )
-        self.currentChanged.connect(self.inputChanged)
-
-    def addOption(self, option: OptionsBox) -> int:
-        index = self.addWidget(option)
-        self.widget(index).inputChanged.connect(self.inputChanged)
-        return index
-
-    def currentExt(self) -> str:
-        return self.currentWidget().ext
-
-    def setCurrentExt(self, ext: str) -> None:
-        index = self.indexForExt(ext)
-        if index != -1:
-            self.setCurrentIndex(index)
-
-    def indexForExt(self, ext: str) -> int:
-        for i in range(self.count()):
-            if self.widget(i).ext == ext:
-                return i
-        return -1
-
+class _ExportOptionsStack(QtWidgets.QStackedWidget):
     def sizeHint(self) -> QtCore.QSize:
         sizes = [self.widget(i).sizeHint() for i in range(0, self.count())]
         return QtCore.QSize(
             max(s.width() for s in sizes), max(s.height() for s in sizes)
         )
 
+
+class ExportOptions(QtWidgets.QWidget):
+    inputChanged = QtCore.Signal()
+    currentIndexChanged = QtCore.Signal(int)
+
+    def __init__(
+        self, options: List[OptionsBox] = None, parent: QtWidgets.QWidget = None
+    ):
+        super().__init__(parent)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Expanding
+        )
+        self.stack = _ExportOptionsStack()
+        self.stack.currentChanged.connect(self.currentIndexChanged)
+
+        self.combo = QtWidgets.QComboBox()
+        self.combo.currentIndexChanged.connect(self.stack.setCurrentIndex)
+
+        if options is not None:
+            for option in options:
+                self.addOption(option)
+
+        layout_form = QtWidgets.QFormLayout()
+        if self.count() < 2:
+            self.combo.setVisible(False)
+        else:
+            layout_form.addRow("Type:", self.combo)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addLayout(layout_form)
+        layout.addWidget(self.stack)
+        self.setLayout(layout)
+
+    def addOption(self, option: OptionsBox) -> int:
+        index = self.stack.addWidget(option)
+        self.stack.widget(index).inputChanged.connect(self.inputChanged)
+
+        item = f"{option.filetype} ({option.ext})"
+        self.combo.insertItem(index, item)
+        return index
+
+    def count(self) -> int:
+        return self.stack.count()
+
+    def currentExt(self) -> str:
+        return self.stack.currentWidget().ext
+
+    def currentIndex(self) -> int:
+        return self.stack.currentIndex()
+
+    def setCurrentExt(self, ext: str) -> None:
+        index = self.indexForExt(ext)
+        if index != -1:
+            self.setCurrentIndex(index)
+
+    def setCurrentIndex(self, index: int) -> None:
+        self.stack.setCurrentIndex(index)
+        self.combo.setCurrentIndex(index)
+
+        self.stack.setVisible(self.stack.currentWidget().visible)
+        self.adjustSize()
+
+    def indexForExt(self, ext: str) -> int:
+        for i in range(self.stack.count()):
+            if self.stack.widget(i).ext == ext:
+                return i
+        return -1
+
     def isComplete(self, current_only: bool = True) -> bool:
         indicies = [self.currentIndex()] if current_only else range(0, self.count())
-        return all(self.widget(i).isComplete() for i in indicies)
+        return all(self.stack.widget(i).isComplete() for i in indicies)
 
 
 class ExportDialog(QtWidgets.QDialog):
@@ -135,24 +182,15 @@ class ExportDialog(QtWidgets.QDialog):
             widget.laser.config.get_pixel_height(),
             widget.laser.config.spotsize / 2.0,
         )
-        self.options = ExportOptions()
-        for option in [
+        options = [
             OptionsBox("Numpy Archives", ".npz"),
             OptionsBox("CSV Document", ".csv"),
             PngOptionsBox(),
             VtiOptionsBox(spacing),
-        ]:
-            self.options.addWidget(option)
+        ]
+        self.options = ExportOptions(options=options)
         self.options.inputChanged.connect(self.validate)
-
-        self.combo_type = QtWidgets.QComboBox()
-        for i in range(0, self.options.count()):
-            item = f"{self.options.widget(i).filetype} ({self.options.widget(i).ext})"
-            self.combo_type.addItem(item)
-        self.combo_type.setCurrentIndex(-1)
-        self.combo_type.currentIndexChanged.connect(self.typeChanged)
-        if self.options.count() < 2:
-            self.combo_type.setVisible(False)
+        self.options.currentIndexChanged.connect(self.typeChanged)
 
         self.check_calibrate = QtWidgets.QCheckBox("Calibrate data.")
         self.check_calibrate.setChecked(True)
@@ -180,10 +218,9 @@ class ExportDialog(QtWidgets.QDialog):
         self.layout_form.addRow("Directory:", layout_directory)
         self.layout_form.addRow("Filename:", self.lineedit_filename)
         self.layout_form.addRow("Preview:", self.lineedit_preview)
-        self.layout_form.addRow("Type:", self.combo_type)
 
         layout.addLayout(self.layout_form)
-        layout.addWidget(self.options)
+        layout.addWidget(self.options, 1, QtCore.Qt.AlignTop)
         layout.addWidget(self.check_calibrate)
         layout.addWidget(self.check_export_all)
         layout.addWidget(self.button_box)
@@ -195,6 +232,7 @@ class ExportDialog(QtWidgets.QDialog):
         )
         self.lineedit_directory.setText(os.path.dirname(path))
         self.lineedit_filename.setText(os.path.basename(path))
+        self.typeChanged(0)
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(600, 200)
@@ -235,19 +273,15 @@ class ExportDialog(QtWidgets.QDialog):
         index = self.options.indexForExt(ext)
         if index == -1:
             return
-        self.combo_type.setCurrentIndex(index)
+        self.options.setCurrentIndex(index)
         self.updatePreview()
 
     def typeChanged(self, index: int) -> None:
-        self.options.setCurrentIndex(index)
         # Update name of file
         base, ext = os.path.splitext(self.lineedit_filename.text())
         if ext != "":
             ext = self.options.currentExt()
         self.lineedit_filename.setText(base + ext)
-        # Hide options when not needed
-        self.options.setVisible(self.options.currentExt() in [".png", ".vti"])
-        self.adjustSize()
         # Enable or disable checks
         self.check_calibrate.setEnabled(self.allowCalibrate())
         self.check_export_all.setEnabled(self.allowExportAll())
