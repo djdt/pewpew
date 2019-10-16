@@ -25,19 +25,19 @@ def test_export_dialog(qtbot: QtBot):
     assert dlg.lineedit_directory.text() == "/home/user"
     assert dlg.lineedit_filename.text() == "laser.npz"
     assert dlg.lineedit_preview.text() == "laser.npz"
-    assert dlg.options.currentIndex() == dlg.options.npz
+    assert dlg.options.currentExt() == ".npz"
 
     assert not dlg.check_export_all.isEnabled()
     assert not dlg.check_calibrate.isEnabled()
 
     dlg.lineedit_filename.setText("laser.png")
-    assert dlg.options.currentIndex() == dlg.options.png
+    assert dlg.options.currentExt() == ".png"
 
     dlg.check_export_all.setChecked(True)
     assert dlg.lineedit_preview.text() == "laser_<ISOTOPE>.png"
 
     dlg.lineedit_filename.setText("laser.npz")
-    assert dlg.options.currentIndex() == dlg.options.npz
+    assert dlg.options.currentExt() == ".npz"
     assert not dlg.check_export_all.isEnabled()
     assert dlg.lineedit_preview.text() == "laser.npz"
 
@@ -93,7 +93,7 @@ def test_export_all_dialog(qtbot: QtBot):
     assert not dlg.check_calibrate.isEnabled()
     assert not dlg.combo_isotopes.isEnabled()
 
-    dlg.combo_type.setCurrentIndex(dlg.options.csv)
+    dlg.options.setCurrentIndex(dlg.options.indexForExt(".csv"))
     assert dlg.lineedit_preview.text() == "01_<NAME>.csv"
     assert dlg.check_export_all.isEnabled()
     assert dlg.check_calibrate.isEnabled()

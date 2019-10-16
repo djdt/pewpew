@@ -144,7 +144,6 @@ class ExportOptions(QtWidgets.QWidget):
         self.combo.setCurrentIndex(index)
 
         self.stack.setVisible(self.stack.currentWidget().visible)
-        self.adjustSize()
 
     def indexForExt(self, ext: str) -> int:
         for i in range(self.stack.count()):
@@ -241,6 +240,8 @@ class ExportDialogBase(QtWidgets.QDialog):
             ext = self.options.currentExt()
         self.lineedit_filename.setText(base + ext)
 
+        self.adjustSize()
+
     def selectDirectory(self) -> QtWidgets.QDialog:
         dlg = QtWidgets.QFileDialog(self, "Select Directory", "")
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
@@ -279,7 +280,7 @@ class ExportDialog(ExportDialogBase):
         self.check_export_all.stateChanged.connect(self.updatePreview)
 
         self.layout.insertWidget(2, self.check_calibrate)
-        self.layout.insertWidget(3, self.check_calibrate)
+        self.layout.insertWidget(3, self.check_export_all)
 
         # A default path
         path = os.path.join(
@@ -411,10 +412,7 @@ class ExportAllDialog(ExportDialog):
         label.setText("Prefix:")
         self.layout_form.replaceWidget(self.lineedit_filename, self.lineedit_prefix)
 
-        layout_isotopes = QtWidgets.QHBoxLayout()
-        layout_isotopes.addWidget(QtWidgets.QLabel("Isotope:"))
-        layout_isotopes.addWidget(self.combo_isotopes)
-        self.layout.insertLayout(2, layout_isotopes)
+        self.layout_form.addRow("Isotope:", self.combo_isotopes)
 
         self.check_export_all.stateChanged.connect(self.showIsotopes)
         self.showIsotopes()
