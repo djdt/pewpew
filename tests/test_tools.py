@@ -1,4 +1,7 @@
 import numpy as np
+import os.path
+import tempfile
+
 from PySide2 import QtWidgets
 from pytestqt.qtbot import QtBot
 
@@ -39,6 +42,7 @@ def test_standards_tool(qtbot: QtBot):
     view.addLaser(Laser(linear_data(["A1", "B2"])))
     tool = StandardsTool(view.activeWidget())
     view.addTab("Tool", tool)
+    qtbot.waitForWindowShown(tool)
 
     # Units
     tool.lineedit_units.setText("unit")
@@ -95,6 +99,7 @@ def test_standards_tool(qtbot: QtBot):
     )
 
     dlg = tool.showCurve()
+    qtbot.waitForWindowShown(dlg)
     dlg.close()
 
 
@@ -106,6 +111,7 @@ def test_calculations_tool(qtbot: QtBot):
     view.addLaser(Laser(rand_data("A1")))
     tool = CalculationsTool(view.activeWidget())
     view.addTab("Tool", tool)
+    qtbot.waitForWindowShown(tool)
 
     assert not tool.isComplete()
 
@@ -148,6 +154,7 @@ def test_overlay_tool(qtbot: QtBot):
     view.addLaser(Laser(data))
     tool = OverlayTool(view.activeWidget())
     view.addTab("Tool", tool)
+    qtbot.waitForWindowShown(tool)
 
     # Test rgb mode
     assert tool.rows.color_model == "rgb"
@@ -190,6 +197,23 @@ def test_overlay_tool(qtbot: QtBot):
         assert row.button_color.isEnabled()
     tool.addRow("r")
     assert tool.rows.rowCount() == 4
+
+    # Test export
+    dlg = tool.openExportDialog()
+
+    with tempfile.NamedTemporaryFile() as tf:
+        dlg.export(tf)
+        assert os.path.exists(tf.name)
+
+    with tempfile.TemporaryDirectory() as td:
+        dlg.lineedit_directory.setText(td)
+        dlg.lineedit_filename.setText("test.png")
+        dlg.check_individual.setChecked(True)
+        dlg.accept()
+        qtbot.wait(300)
+        assert os.path.exists(os.path.join(td, "test_1.png"))
+        assert os.path.exists(os.path.join(td, "test_2.png"))
+        assert os.path.exists(os.path.join(td, "test_3.png"))
 
     # Test close
     with qtbot.wait_signal(tool.rows.rowsChanged):

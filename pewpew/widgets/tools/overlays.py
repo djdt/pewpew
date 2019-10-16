@@ -85,6 +85,7 @@ class OverlayTool(ToolWidget):
     def openExportDialog(self) -> QtWidgets.QDialog:
         dlg = OverlayExportDialog(self)
         dlg.open()
+        return dlg
 
     def comboAdd(self, index: int) -> None:
         if index == 0:
