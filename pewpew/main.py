@@ -355,9 +355,11 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_import.addAction(self.action_import_agilent)
         menu_import.addAction(self.action_import_thermo)
         menu_import.addAction(self.action_import_srr)
+
         menu_file.addSeparator()
 
         menu_file.addAction(self.action_export_all)
+
         menu_file.addSeparator()
 
         menu_file.addAction(self.action_exit)
@@ -366,18 +368,18 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_edit = self.menuBar().addMenu("&Edit")
         menu_edit.addAction(self.action_config)
         menu_edit.addAction(self.action_toggle_calibrate)
+
         menu_edit.addSeparator()
 
-        menu_edit.addAction(self.action_tool_calculations)
-        menu_edit.addAction(self.action_tool_standards)
-        menu_edit.addAction(self.action_tool_overlay)
+        menu_edit.addAction(self.action_transform_flip_horizontal)
+        menu_edit.addAction(self.action_transform_flip_vertical)
+        menu_edit.addAction(self.action_transform_rotate_left)
+        menu_edit.addAction(self.action_transform_rotate_right)
 
-        # Edit - transform
-        menu_transform = menu_edit.addMenu("&Transform")
-        menu_transform.addAction(self.action_transform_flip_horizontal)
-        menu_transform.addAction(self.action_transform_flip_vertical)
-        menu_transform.addAction(self.action_transform_rotate_left)
-        menu_transform.addAction(self.action_transform_rotate_right)
+        menu_tools = self.menuBar().addMenu("&Tools")
+        menu_tools.addAction(self.action_tool_calculations)
+        menu_tools.addAction(self.action_tool_standards)
+        menu_tools.addAction(self.action_tool_overlay)
 
         # View
         menu_view = self.menuBar().addMenu("&View")
@@ -392,11 +394,13 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_interp.addActions(self.action_group_interp.actions())
 
         menu_view.addAction(self.action_fontsize)
+
         menu_view.addSeparator()
 
         menu_view.addAction(self.action_toggle_colorbar)
         menu_view.addAction(self.action_toggle_label)
         menu_view.addAction(self.action_toggle_scalebar)
+
         menu_view.addSeparator()
 
         menu_view.addAction(self.action_refresh)
