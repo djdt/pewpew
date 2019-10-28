@@ -1,5 +1,7 @@
 import numpy as np
 
+from typing import Tuple
+
 
 def greyscale_to_rgb(array: np.ndarray, rgb: np.ndarray) -> np.ndarray:
     """Convert a gret scale image to a single color rgb image.
@@ -55,8 +57,37 @@ def colocal_pearsonr(x: np.ndarray, y: np.ndarray) -> float:
     )
 
 
-def colocal_costes(x: np.ndarray, y: np.ndarray) -> float:
+def colocal_pearson_probablity(
+    x: np.ndarray, y: np.ndarray, blocksize: int = 3, scrambles: int = 100
+) -> float:
     pass
+
+
+def colocal_costes(x: np.ndarray, y: np.ndarray) -> Tuple[float, float, float, float]:
+    pearson_r = colocal_pearsonr(x, y)
+
+    a, b = np.polynomial.Polynomial.fit(x.ravel(), y.ravel(), 1).convert().coef
+
+    # Find the thresholds
+    threshold_x = x.max()
+    threshold_min = x.min()
+    increment = (threshold_x - threshold_min) / 256.0
+
+    r = pearson_r
+    while r > 0.0 and threshold_x > threshold_min:
+        idx = (x <= threshold_x) | (y <= a * threshold_x + b)
+        if np.all(x[idx] == 0) or np.all(y[idx] == 0):
+            break
+        r = colocal_pearsonr(x[idx], y[idx])
+        threshold_x -= increment
+
+    threshold_y = a * threshold_x + b
+    idx = (x > threshold_x) & (y > threshold_y)
+    manders_x = x[idx].sum() / x.sum()
+    manders_y = y[idx].sum() / y.sum()
+
+    return pearson_r, pearson_prob, manders_x, manders_y
+
 
 # def rolling_mean_filter(
 #     x: np.ndarray, window: Tuple[int, int], threshold: int = 3

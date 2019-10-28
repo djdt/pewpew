@@ -471,6 +471,12 @@ class OverlayRows(QtWidgets.QScrollArea):
                 row.setColorPickable(True)
 
 
+class OverlayColocalisationDialog(QtWidgets.QDialog):
+    def __init__(self, parent: OverlayTool):
+        super().__init__(parent)
+        self.widget = parent
+
+
 class OverlayExportDialog(ExportDialogBase):
     def __init__(self, parent: OverlayTool):
         super().__init__([PngOptionsBox()], parent)
