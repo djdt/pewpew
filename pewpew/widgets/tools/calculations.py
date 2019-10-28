@@ -2,9 +2,9 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewpew.lib.calc import otsu
+from pewpew.lib.calc import normalise, otsu
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
-from pewpew.lib.pratt import BinaryFunction, UnaryFunction
+from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
 from pewpew.widgets.canvases import LaserCanvas
 from pewpew.widgets.laser import LaserWidget
@@ -13,15 +13,37 @@ from pewpew.widgets.tools import ToolWidget
 from typing import List, Union
 
 additional_parser_functions = {
-    "mean": UnaryFunction("mean"),
-    "median": UnaryFunction("median"),
-    "otsu": UnaryFunction("otsu"),
-    "percentile": BinaryFunction("percentile"),
-    "threshold": BinaryFunction("threshold"),
+    "mean": (UnaryFunction("mean"), "(<array>)", "Returns the mean of the array."),
+    "median": (
+        UnaryFunction("median"),
+        "(<array>)",
+        "Returns the median of the array.",
+    ),
+    "normalise": (
+        TernaryFunction("normalise"),
+        "(<arr>, <min>, <max>)",
+        "Normalise the array from from <min> to <max>.",
+    ),
+    "otsu": (
+        UnaryFunction("otsu"),
+        "(<array>)",
+        "Returns Otsu's threshold for the array,",
+    ),
+    "percentile": (
+        BinaryFunction("percentile"),
+        "(<array>, <percent>)",
+        "Returns the <percent> percentile of the array.",
+    ),
+    "threshold": (
+        BinaryFunction("threshold"),
+        "(<array>, <value>)",
+        "Sets data below <value> to NaN.",
+    ),
 }
 additional_reducer_functions = {
     "mean": (np.nanmean, 1),
     "median": (np.nanmedian, 1),
+    "normalise": (normalise, 3),
     "otsu": (otsu, 1),
     "percentile": (np.nanpercentile, 2),
     "threshold": (lambda x, a: np.where(x > a, x, np.nan), 2),
@@ -118,9 +140,13 @@ class CalculationsTool(ToolWidget):
         self.combo_isotopes = QtWidgets.QComboBox()
         self.combo_isotopes.activated.connect(self.insertVariable)
 
+        functions = [k + v[1] for k, v in additional_parser_functions.items()]
+        tooltips = [v[2] for v in additional_parser_functions.values()]
         self.combo_functions = QtWidgets.QComboBox()
         self.combo_functions.addItem("Functions")
-        self.combo_functions.addItems(list(additional_parser_functions.keys()))
+        self.combo_functions.addItems(functions)
+        for i in range(0, len(tooltips)):
+            self.combo_functions.setItemData(i + 1, tooltips[i], QtCore.Qt.ToolTipRole)
         self.combo_functions.activated.connect(self.insertFunction)
 
         self.reducer = Reducer({})
@@ -130,7 +156,9 @@ class CalculationsTool(ToolWidget):
         self.formula.textChanged.connect(self.completeChanged)
 
         self.reducer.operations.update(additional_reducer_functions)
-        self.formula.parser.nulls.update(additional_parser_functions)
+        self.formula.parser.nulls.update(
+            {k: v[0] for k, v in additional_parser_functions.items()}
+        )
 
         layout_combos = QtWidgets.QHBoxLayout()
         layout_combos.addWidget(self.combo_isotopes)
@@ -157,7 +185,9 @@ class CalculationsTool(ToolWidget):
     def insertFunction(self, index: int) -> None:
         if index == 0:
             return
-        self.formula.insert(self.combo_functions.currentText() + "(")
+        function = self.combo_functions.currentText()
+        function = function[: function.find("(") + 1]
+        self.formula.insert(function)
         self.combo_functions.setCurrentIndex(0)
         self.formula.setFocus()
 

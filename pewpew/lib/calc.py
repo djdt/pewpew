@@ -46,6 +46,18 @@ def otsu(x: np.ndarray):
     return bin_centers[i]
 
 
+def colocal_pearsonr(x: np.ndarray, y: np.ndarray) -> float:
+    """Returns Pearson's colocalisation coefficient for the two arrays.
+    This value for colocalisation between -1 and 1 (colocalised).
+"""
+    return (np.nanmean(x * y) - (np.nanmean(x) * np.nanmean(y))) / (
+        np.nanstd(x) * np.nanstd(y)
+    )
+
+
+def colocal_costes(x: np.ndarray, y: np.ndarray) -> float:
+    pass
+
 # def rolling_mean_filter(
 #     x: np.ndarray, window: Tuple[int, int], threshold: int = 3
 # ) -> np.ndarray:
