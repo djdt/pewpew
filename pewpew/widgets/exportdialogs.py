@@ -244,7 +244,7 @@ class ExportDialogBase(QtWidgets.QDialog):
 
     def selectDirectory(self) -> QtWidgets.QDialog:
         dlg = QtWidgets.QFileDialog(self, "Select Directory", "")
-        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
         dlg.setFileMode(QtWidgets.QFileDialog.Directory)
         dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
         dlg.fileSelected.connect(self.lineedit_directory.setText)
