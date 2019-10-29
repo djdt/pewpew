@@ -57,14 +57,23 @@ def colocal_pearsonr(x: np.ndarray, y: np.ndarray) -> float:
     )
 
 
-def colocal_pearson_probablity(
-    x: np.ndarray, y: np.ndarray, blocksize: int = 3, scrambles: int = 100
-) -> float:
-    pass
+def colocal_pearsonr_probablity(
+    x: np.ndarray, y: np.ndarray, blocksize: int = 5, n: int = 1000
+) -> Tuple[float, float]:
+    """Returns Pearson's colocalisation coefficient and the relevant probabilty.
+"""
+    r = colocal_pearsonr(x, y)
+    rs = np.array(
+        [
+            colocal_pearsonr(x, shuffle_tiles(y, (blocksize, blocksize)))
+            for i in range(n)
+        ]
+    )
+    return r, (rs < r).sum() / n
 
 
 def colocal_costes(x: np.ndarray, y: np.ndarray) -> Tuple[float, float, float, float]:
-    pearson_r = colocal_pearsonr(x, y)
+    pearson_r, r_prob = colocal_pearsonr_probablity(x, y, n=200)
 
     a, b = np.polynomial.Polynomial.fit(x.ravel(), y.ravel(), 1).convert().coef
 
@@ -86,7 +95,7 @@ def colocal_costes(x: np.ndarray, y: np.ndarray) -> Tuple[float, float, float, f
     manders_x = x[idx].sum() / x.sum()
     manders_y = y[idx].sum() / y.sum()
 
-    return pearson_r, pearson_prob, manders_x, manders_y
+    return pearson_r, r_prob, manders_x, manders_y
 
 
 # def rolling_mean_filter(
@@ -144,20 +153,53 @@ def colocal_costes(x: np.ndarray, y: np.ndarray) -> Tuple[float, float, float, f
 #     return x
 
 
-# def rolling_window(x: np.ndarray, window: Tuple[int, int]) -> np.ndarray:
-#     """Create non-overlapping views into a array.
+# def blocks_view(x: np.ndarray, blocksize: Tuple[int, int]) -> np.ndarray:
+#     """Create view into a array of blocksize size.
 
 #     Args:
 #         x: The array.
-#         window: The size of the view.
+#         blocksize: The size of the each block.
 
 #     Returns:
 #         An array of views.
 #     """
 #     x = np.ascontiguousarray(x)
-#     shape = tuple(np.array(x.shape) // window) + window
-#     strides = tuple(np.array(x.strides) * window) + x.strides
+#     shape = tuple(np.array(x.shape) // blocksize) + blocksize
+#     strides = tuple(np.array(x.strides) * blocksize) + x.strides
 #     return np.lib.stride_tricks.as_strided(x, shape=shape, strides=strides)
+
+
+def view_as_blocks(x: np.ndarray, block: Tuple[int, int]) -> np.ndarray:
+    """Create non-overlapping views into a array.
+
+    Args:
+        x: The array.
+        window: The size of the view.
+
+    Returns:
+        An array of views.
+    """
+    assert len(block) == x.ndim
+    x = np.ascontiguousarray(x)
+    shape = tuple(np.array(x.shape) // block) + tuple(block)
+    strides = tuple(np.array(x.strides) * block) + x.strides
+    return np.lib.stride_tricks.as_strided(x, shape=shape, strides=strides)
+
+
+def shuffle_tiles(x: np.ndarray, block: Tuple[int, int]) -> np.ndarray:
+    """Shuffle a 2d array as tiles of a certain size."""
+    # Pad the array to fit the blocksize
+    px = block[0] - x.shape[0] % block[0]
+    py = block[1] - x.shape[1] % block[1]
+    blocks = view_as_blocks(np.pad(x, ((0, px), (0, py)), mode="edge"), block)
+    shape = blocks.shape
+
+    # Reshape to (x, blocksize) and then shuffle
+    blocks = blocks.reshape(-1, *block)
+    np.random.shuffle(blocks)
+
+    # Reform the image and then trim off excess
+    return np.hstack(np.hstack(blocks.reshape(shape)))[: x.shape[0], : x.shape[1]]
 
 
 # def rolling_window_step(
