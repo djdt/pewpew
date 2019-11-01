@@ -8,6 +8,7 @@ from matplotlib.text import Text
 from pew import Calibration, Config
 from pew.srr import SRRConfig
 
+from pewpew.lib.calc import colocal_costes, normalise
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets.canvases import BasicCanvas
 from pewpew.validators import (
@@ -332,6 +333,86 @@ class ColorRangeDialog(ApplyDialog):
         self.updateRange(current_isotope if self.combo_isotopes.isEnabled() else None)
 
 
+class ColocalisationDialog(QtWidgets.QDialog):
+    def __init__(self, data: np.ndarray, parent: QtWidgets.QWidget = None):
+        assert data.dtype.names is not None
+        super().__init__(parent)
+        self.setWindowTitle("Colocalisation")
+        self.data = data
+
+        self.canvas = BasicCanvas(figsize=(5, 5))
+        self.canvas.ax = self.canvas.figure.add_subplot()
+
+        self.combo_name1 = QtWidgets.QComboBox()
+        self.combo_name1.addItems(data.dtype.names)
+        self.combo_name1.currentTextChanged.connect(self.refresh)
+
+        self.combo_name2 = QtWidgets.QComboBox()
+        self.combo_name2.addItems(data.dtype.names)
+        self.combo_name2.setCurrentIndex(1)
+        self.combo_name2.currentTextChanged.connect(self.refresh)
+
+        self.label_r = QtWidgets.QLabel()
+        self.label_p = QtWidgets.QLabel()
+        self.label_m1 = QtWidgets.QLabel()
+        self.label_m2 = QtWidgets.QLabel()
+
+        self.button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
+        self.button_box.rejected.connect(self.close)
+
+        layout_combos = QtWidgets.QHBoxLayout()
+        layout_combos.addWidget(QtWidgets.QLabel("1:"))
+        layout_combos.addWidget(self.combo_name1)
+        layout_combos.addWidget(QtWidgets.QLabel("2:"))
+        layout_combos.addWidget(self.combo_name2)
+
+        group_pearson = QtWidgets.QGroupBox("Pearson")
+        layout_pearson = QtWidgets.QFormLayout()
+        layout_pearson.addRow("r:", self.label_r)
+        layout_pearson.addRow("ρ:", self.label_p)
+        group_pearson.setLayout(layout_pearson)
+
+        group_manders = QtWidgets.QGroupBox("Manders")
+        layout_manders = QtWidgets.QFormLayout()
+        layout_manders.addRow("M1:", self.label_m1)
+        layout_manders.addRow("M2:", self.label_m2)
+        group_manders.setLayout(layout_manders)
+
+        layout_vert = QtWidgets.QVBoxLayout()
+        layout_vert.addStretch(1)
+        layout_vert.addWidget(group_pearson)
+        layout_vert.addWidget(group_manders)
+        layout_vert.addLayout(layout_combos)
+
+        layout_horz = QtWidgets.QHBoxLayout()
+        layout_horz.addLayout(layout_vert)
+        layout_horz.addWidget(self.canvas)
+
+        layout_main = QtWidgets.QVBoxLayout()
+        layout_main.addLayout(layout_horz)
+        layout_main.addWidget(self.button_box)
+        self.setLayout(layout_main)
+
+    def refresh(self) -> None:
+        data1 = normalise(self.data[self.combo_name1.currentText()])
+        data2 = normalise(self.data[self.combo_name2.currentText()])
+        r, p, m1, m2 = colocal_costes(data1, data2)
+        self.label_r.setText(f"{r:.4g}")
+        self.label_p.setText(f"{p:.2f}")
+        self.label_m1.setText(f"{m1:.4g}")
+        self.label_m2.setText(f"{m2:.4g}")
+
+        self.plot(data1, data2, m1, m2)
+
+    def plot(self, data1: np.ndarray, data2: np.ndarray, m1: float, m2: float) -> None:
+        self.canvas.ax.clear()
+
+        self.canvas.ax.scatter(data1.ravel(), data2.ravel())
+        self.canvas.ax.plot([0, 1.0])
+
+        self.canvas.draw_idle()
+
+
 class ConfigDialog(ApplyDialog):
     configSelected = QtCore.Signal(Config)
     configApplyAll = QtCore.Signal(Config)
@@ -441,7 +522,7 @@ class StatsDialog(QtWidgets.QDialog):
         self.setWindowTitle("Statistics")
 
         self.canvas = BasicCanvas(figsize=(6, 2))
-        self.canvas.ax = self.canvas.figure.add_subplot(111)
+        self.canvas.ax = self.canvas.figure.add_subplot()
 
         self.button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
         self.button_box.rejected.connect(self.close)

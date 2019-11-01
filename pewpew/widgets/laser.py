@@ -253,7 +253,9 @@ class LaserWidget(_ViewWidget):
     # Transformations
     def transform(self, flip: str = None, rotate: str = None) -> None:
         if self.is_srr:
-            QtWidgets.QMessageBox.information(self, "Transform", "Unable to transform SRR data.")
+            QtWidgets.QMessageBox.information(
+                self, "Transform", "Unable to transform SRR data."
+            )
             return
         if flip is not None:
             axis = 1 if flip == "horizontal" else 0
@@ -324,6 +326,12 @@ class LaserWidget(_ViewWidget):
             "Open statisitics dialog for selected data.",
             self.actionStatistics,
         )
+        self.action_colocalisation = qAction(
+            "dialog-information",
+            "Colocalisation",
+            "Open the colocalisation dialog.",
+            self.actionColocal,
+        )
 
     def actionCalibration(self) -> QtWidgets.QDialog:
         dlg = dialogs.CalibrationDialog(
@@ -372,6 +380,11 @@ class LaserWidget(_ViewWidget):
         dlg.open()
         return dlg
 
+    def actionColocal(self) -> QtWidgets.QDialog:
+        dlg = dialogs.ColocalisationDialog(self.laser.data, parent=self)
+        dlg.open()
+        return dlg
+
     # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
         menu = QtWidgets.QMenu(self)
@@ -384,6 +397,7 @@ class LaserWidget(_ViewWidget):
         menu.addAction(self.action_config)
         menu.addAction(self.action_calibration)
         menu.addAction(self.action_statistics)
+        menu.addAction(self.action_colocalisation)
         menu.popup(event.globalPos())
 
     def showEvent(self, event: QtGui.QShowEvent) -> None:

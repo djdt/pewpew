@@ -84,14 +84,13 @@ def colocal_costes(x: np.ndarray, y: np.ndarray) -> Tuple[float, float, float, f
 
     idx = np.logical_or(x <= threshold, y <= (a * threshold + b))
     r = colocal_pearsonr(x[idx], y[idx])
-    r = pearson_r
+
     while r > 0.0 and threshold > threshold_min:
         threshold -= increment
         idx = np.logical_or(x <= threshold, y <= (a * threshold + b))
-        if np.all(x[idx] == 0) or np.all(y[idx] == 0):
-            break
+        # if np.all(x[idx] == 0) or np.all(y[idx] == 0):
+        #     break
         r = colocal_pearsonr(x[idx], y[idx])
-        print(r)
 
     manders_x = np.sum(x, where=x > threshold) / x.sum()
     manders_y = np.sum(y, where=y > (a * threshold + b)) / y.sum()
