@@ -78,22 +78,23 @@ def colocal_costes(x: np.ndarray, y: np.ndarray) -> Tuple[float, float, float, f
     a, b = np.polynomial.Polynomial.fit(x.ravel(), y.ravel(), 1).convert().coef
 
     # Find the thresholds
-    threshold_x = x.max()
+    threshold = x.max()
     threshold_min = x.min()
-    increment = (threshold_x - threshold_min) / 256.0
+    increment = (threshold - threshold_min) / 256.0
 
+    idx = np.logical_or(x <= threshold, y <= (a * threshold + b))
+    r = colocal_pearsonr(x[idx], y[idx])
     r = pearson_r
-    while r > 0.0 and threshold_x > threshold_min:
-        idx = (x <= threshold_x) | (y <= a * threshold_x + b)
+    while r > 0.0 and threshold > threshold_min:
+        threshold -= increment
+        idx = np.logical_or(x <= threshold, y <= (a * threshold + b))
         if np.all(x[idx] == 0) or np.all(y[idx] == 0):
             break
         r = colocal_pearsonr(x[idx], y[idx])
-        threshold_x -= increment
+        print(r)
 
-    threshold_y = a * threshold_x + b
-    idx = (x > threshold_x) & (y > threshold_y)
-    manders_x = x[idx].sum() / x.sum()
-    manders_y = y[idx].sum() / y.sum()
+    manders_x = np.sum(x, where=x > threshold) / x.sum()
+    manders_y = np.sum(y, where=y > (a * threshold + b)) / y.sum()
 
     return pearson_r, r_prob, manders_x, manders_y
 
