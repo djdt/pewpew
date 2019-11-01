@@ -8,7 +8,9 @@ from matplotlib.text import Text
 from pew import Calibration, Config
 from pew.srr import SRRConfig
 
-from pewpew.lib.calc import colocal_costes, normalise
+from pewpew.lib import colocal
+from pewpew.lib.calc import normalise
+from pewpew.lib.mplcolors import redgreen
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets.canvases import BasicCanvas
 from pewpew.validators import (
@@ -341,7 +343,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.data = data
 
         self.canvas = BasicCanvas(figsize=(5, 5))
-        self.canvas.ax = self.canvas.figure.add_subplot()
+        self.canvas.ax = self.canvas.figure.add_subplot(facecolor="black")
 
         self.combo_name1 = QtWidgets.QComboBox()
         self.combo_name1.addItems(data.dtype.names)
@@ -396,19 +398,32 @@ class ColocalisationDialog(QtWidgets.QDialog):
     def refresh(self) -> None:
         data1 = normalise(self.data[self.combo_name1.currentText()])
         data2 = normalise(self.data[self.combo_name2.currentText()])
-        r, p, m1, m2 = colocal_costes(data1, data2)
-        self.label_r.setText(f"{r:.4g}")
+        r, p = colocal.pearsonr_probablity(data1, data2)
+        t, a, b = colocal.costes_threshold(data1, data2)
+        m1, m2 = colocal.manders(data2, data1, t, a * t + b)
+
+        self.label_r.setText(f"{r:.2f}")
         self.label_p.setText(f"{p:.2f}")
-        self.label_m1.setText(f"{m1:.4g}")
-        self.label_m2.setText(f"{m2:.4g}")
+        self.label_m1.setText(f"{m1:.2f}")
+        self.label_m2.setText(f"{m2:.2f}")
 
-        self.plot(data1, data2, m1, m2)
+        self.plot(data1, data2, t, a, b)
 
-    def plot(self, data1: np.ndarray, data2: np.ndarray, m1: float, m2: float) -> None:
+    def plot(
+        self, data1: np.ndarray, data2: np.ndarray, t: float, a: float, b: float
+    ) -> None:
         self.canvas.ax.clear()
 
-        self.canvas.ax.scatter(data1.ravel(), data2.ravel())
-        self.canvas.ax.plot([0, 1.0])
+        x, y = data1.ravel(), data2.ravel()
+        c = y - x
+
+        self.canvas.ax.scatter(
+            x, y, s=1, marker=",", c=c, vmin=-1, vmax=1, cmap=redgreen
+        )
+        # self.canvas.ax.plot([t2, 1.0], [t1, 1.0])
+        self.canvas.ax.plot([0, 1.0], [b, a + b], c="white", lw=1.0)
+        self.canvas.ax.axhline(t, c="white", ls=":", lw=1.0)
+        self.canvas.ax.axvline(a * t + b, c="white", ls=":", lw=1.0)
 
         self.canvas.draw_idle()
 

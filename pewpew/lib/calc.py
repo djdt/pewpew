@@ -48,56 +48,6 @@ def otsu(x: np.ndarray):
     return bin_centers[i]
 
 
-def colocal_pearsonr(x: np.ndarray, y: np.ndarray) -> float:
-    """Returns Pearson's colocalisation coefficient for the two arrays.
-    This value for colocalisation between -1 and 1 (colocalised).
-"""
-    return (np.nanmean(x * y) - (np.nanmean(x) * np.nanmean(y))) / (
-        np.nanstd(x) * np.nanstd(y)
-    )
-
-
-def colocal_pearsonr_probablity(
-    x: np.ndarray, y: np.ndarray, blocksize: int = 5, n: int = 1000
-) -> Tuple[float, float]:
-    """Returns Pearson's colocalisation coefficient and the relevant probabilty.
-"""
-    r = colocal_pearsonr(x, y)
-    rs = np.array(
-        [
-            colocal_pearsonr(x, shuffle_tiles(y, (blocksize, blocksize)))
-            for i in range(n)
-        ]
-    )
-    return r, (rs < r).sum() / n
-
-
-def colocal_costes(x: np.ndarray, y: np.ndarray) -> Tuple[float, float, float, float]:
-    pearson_r, r_prob = colocal_pearsonr_probablity(x, y, n=200)
-
-    a, b = np.polynomial.Polynomial.fit(x.ravel(), y.ravel(), 1).convert().coef
-
-    # Find the thresholds
-    threshold = x.max()
-    threshold_min = x.min()
-    increment = (threshold - threshold_min) / 256.0
-
-    idx = np.logical_or(x <= threshold, y <= (a * threshold + b))
-    r = colocal_pearsonr(x[idx], y[idx])
-
-    while r > 0.0 and threshold > threshold_min:
-        threshold -= increment
-        idx = np.logical_or(x <= threshold, y <= (a * threshold + b))
-        # if np.all(x[idx] == 0) or np.all(y[idx] == 0):
-        #     break
-        r = colocal_pearsonr(x[idx], y[idx])
-
-    manders_x = np.sum(x, where=x > threshold) / x.sum()
-    manders_y = np.sum(y, where=y > (a * threshold + b)) / y.sum()
-
-    return pearson_r, r_prob, manders_x, manders_y
-
-
 # def rolling_mean_filter(
 #     x: np.ndarray, window: Tuple[int, int], threshold: int = 3
 # ) -> np.ndarray:
