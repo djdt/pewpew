@@ -23,9 +23,9 @@ def pearsonr_probablity(
     """Returns Pearson's colocalisation coefficient and the relevant probabilty.
 """
     r = pearsonr(x, y)
-    rs = np.array(
-        [pearsonr(x, shuffle_tiles(y, (blocksize, blocksize))) for i in range(n)]
-    )
+    rs = np.empty(n, dtype=float)
+    for i in range(n):
+        rs[i] = pearsonr(x, shuffle_tiles(y, (blocksize, blocksize)))
     return r, (rs < r).sum() / n
 
 

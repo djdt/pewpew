@@ -4,13 +4,13 @@ import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from matplotlib.text import Text
+from matplotlib.colors import LinearSegmentedColormap
 
 from pew import Calibration, Config
 from pew.srr import SRRConfig
 
 from pewpew.lib import colocal
 from pewpew.lib.calc import normalise
-from pewpew.lib.mplcolors import redgreen
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets.canvases import BasicCanvas
 from pewpew.validators import (
@@ -340,6 +340,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self,
         data: np.ndarray,
         mask: np.ndarray = None,
+        colors: List[Tuple[float, ...]] = None,
         parent: QtWidgets.QWidget = None,
     ):
         assert data.dtype.names is not None
@@ -347,6 +348,10 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.setWindowTitle("Colocalisation")
         self.data = data
         self.mask = mask
+
+        if colors is None:
+            colors = [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0)]
+        self.cmap = LinearSegmentedColormap.from_list("colocal_cmap", colors)
 
         self.canvas = BasicCanvas(figsize=(5, 5))
         self.canvas.ax = self.canvas.figure.add_subplot(facecolor="black")
@@ -431,7 +436,9 @@ class ColocalisationDialog(QtWidgets.QDialog):
         # Choose a more approriate threshold?
         t1, a, b = colocal.costes_threshold(data1, data2)
         t2 = a * t1 + b
-        m1, m2 = colocal.manders(data1, data2, t1, t2)
+        m1, m2 = colocal.manders(
+            data1, data2, t2, t1
+        )  # Pass thresholds backwards as per Costes
 
         self.label_r.setText(f"{r:.2f}")
         self.label_p.setText("")
@@ -476,7 +483,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         # Line points
         x1, y1 = (1, a + b) if a + b < 1 else ((1 - b) / a, 1)
 
-        self.canvas.ax.scatter(x, y, s=1, marker=",", c=c, cmap=redgreen)
+        self.canvas.ax.scatter(x, y, s=1, marker=",", c=c, cmap=self.cmap)
         self.canvas.ax.plot([0, x1], [b, y1], c="white", lw=1.0)
         self.canvas.ax.axhline(t2, c="white", ls=":", lw=1.0)
         self.canvas.ax.axvline(t1, c="white", ls=":", lw=1.0)
