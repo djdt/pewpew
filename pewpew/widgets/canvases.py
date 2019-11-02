@@ -16,7 +16,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pew.laser import Laser
 
-from pewpew.lib.mpltools import MetricSizeBar, image_extent_to_data
+from pewpew.lib.mpltools import MetricSizeBar
 from pewpew.lib.mplwidgets import (
     _ImageSelectionWidget,
     RectangleImageSelectionWidget,
@@ -42,6 +42,17 @@ class BasicCanvas(FigureCanvasQTAgg):
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
         )
+
+    def contextMenuEvent(self, event: QtCore.QEvent) -> None:
+        action_copy_image = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("insert-image"), "Copy Image", self
+        )
+        action_copy_image.setStatusTip("Copy image to clipboard.")
+        action_copy_image.triggered.connect(self.copyToClipboard)
+
+        context_menu = QtWidgets.QMenu(self.parent())
+        context_menu.addAction(action_copy_image)
+        context_menu.popup(event.globalPos())
 
     def redrawFigure(self) -> None:
         pass
@@ -152,6 +163,8 @@ class LaserCanvas(BasicCanvas):
         self.image: AxesImage = None
         self.label: AnchoredText = None
         self.scalebar: MetricSizeBar = None
+
+        self.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
     @property
     def extent(self) -> Tuple[float, float, float, float]:

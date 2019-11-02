@@ -224,16 +224,6 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
         layout.addWidget(self.canvas)
         self.setLayout(layout)
 
-    def contextMenuEvent(self, event: QtCore.QEvent) -> None:
-        context_menu = QtWidgets.QMenu(self)
-        action_copy = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("insert-image"), "Copy Image", self
-        )
-        action_copy.setStatusTip("Copy image to clipboard.")
-        action_copy.triggered.connect(self.canvas.copyToClipboard)
-        context_menu.addAction(action_copy)
-        context_menu.popup(event.globalPos())
-
 
 class ColorRangeDialog(ApplyDialog):
     def __init__(
@@ -633,17 +623,6 @@ class StatsDialog(QtWidgets.QDialog):
         vmin, vmax = range
         plot_data = data[np.logical_and(data >= vmin, data <= vmax)]
         self.plot(plot_data)
-
-    def contextMenuEvent(self, event: QtCore.QEvent) -> None:
-        action_copy_image = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("insert-image"), "Copy Image", self
-        )
-        action_copy_image.setStatusTip("Copy image to clipboard.")
-        action_copy_image.triggered.connect(self.canvas.copyToClipboard)
-
-        context_menu = QtWidgets.QMenu(self)
-        context_menu.addAction(action_copy_image)
-        context_menu.popup(event.globalPos())
 
     def plot(self, data: np.ndarray) -> None:
         highlight = self.palette().color(QtGui.QPalette.Highlight).name()
