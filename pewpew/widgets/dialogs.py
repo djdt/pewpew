@@ -336,28 +336,38 @@ class ColorRangeDialog(ApplyDialog):
 
 
 class ColocalisationDialog(QtWidgets.QDialog):
-    def __init__(self, data: np.ndarray, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self,
+        data: np.ndarray,
+        mask: np.ndarray = None,
+        parent: QtWidgets.QWidget = None,
+    ):
         assert data.dtype.names is not None
         super().__init__(parent)
         self.setWindowTitle("Colocalisation")
         self.data = data
+        self.mask = mask
 
         self.canvas = BasicCanvas(figsize=(5, 5))
         self.canvas.ax = self.canvas.figure.add_subplot(facecolor="black")
 
         self.combo_name1 = QtWidgets.QComboBox()
         self.combo_name1.addItems(data.dtype.names)
-        self.combo_name1.currentTextChanged.connect(self.refresh)
+        self.combo_name1.currentIndexChanged.connect(self.refresh)
 
         self.combo_name2 = QtWidgets.QComboBox()
         self.combo_name2.addItems(data.dtype.names)
         self.combo_name2.setCurrentIndex(1)
-        self.combo_name2.currentTextChanged.connect(self.refresh)
+        self.combo_name2.currentIndexChanged.connect(self.refresh)
 
         self.label_r = QtWidgets.QLabel()
         self.label_p = QtWidgets.QLabel()
+        self.label_icq = QtWidgets.QLabel()
         self.label_m1 = QtWidgets.QLabel()
         self.label_m2 = QtWidgets.QLabel()
+
+        self.button_p = QtWidgets.QPushButton("Calculate ρ")
+        self.button_p.pressed.connect(self.calculatePearsonsProbablity)
 
         self.button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
         self.button_box.rejected.connect(self.close)
@@ -368,10 +378,16 @@ class ColocalisationDialog(QtWidgets.QDialog):
         layout_combos.addWidget(QtWidgets.QLabel("2:"))
         layout_combos.addWidget(self.combo_name2)
 
+        group_li = QtWidgets.QGroupBox("Li")
+        layout_li = QtWidgets.QFormLayout()
+        layout_li.addRow("ICQ:", self.label_icq)
+        group_li.setLayout(layout_li)
+
         group_pearson = QtWidgets.QGroupBox("Pearson")
         layout_pearson = QtWidgets.QFormLayout()
         layout_pearson.addRow("r:", self.label_r)
         layout_pearson.addRow("ρ:", self.label_p)
+        layout_pearson.addWidget(self.button_p)
         group_pearson.setLayout(layout_pearson)
 
         group_manders = QtWidgets.QGroupBox("Manders")
@@ -384,6 +400,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         layout_vert.addStretch(1)
         layout_vert.addWidget(group_pearson)
         layout_vert.addWidget(group_manders)
+        layout_vert.addWidget(group_li)
         layout_vert.addLayout(layout_combos)
 
         layout_horz = QtWidgets.QHBoxLayout()
@@ -395,35 +412,77 @@ class ColocalisationDialog(QtWidgets.QDialog):
         layout_main.addWidget(self.button_box)
         self.setLayout(layout_main)
 
+        self.refresh()
+
     def refresh(self) -> None:
-        data1 = normalise(self.data[self.combo_name1.currentText()])
-        data2 = normalise(self.data[self.combo_name2.currentText()])
-        r, p = colocal.pearsonr_probablity(data1, data2)
-        t, a, b = colocal.costes_threshold(data1, data2)
-        m1, m2 = colocal.manders(data2, data1, t, a * t + b)
+        data1 = self.data[self.combo_name1.currentText()]
+        data2 = self.data[self.combo_name2.currentText()]
+        if self.mask is not None:
+            data1, data2 = data1[self.mask], data2[self.mask]
+
+        data1, data2 = normalise(data1), normalise(data2)
+
+        # Pearson
+        r = colocal.pearsonr(data1, data2)
+
+        # Li
+        icq = colocal.li_icq(data1, data2)
+
+        # Choose a more approriate threshold?
+        t1, a, b = colocal.costes_threshold(data1, data2)
+        t2 = a * t1 + b
+        m1, m2 = colocal.manders(data1, data2, t1, t2)
 
         self.label_r.setText(f"{r:.2f}")
-        self.label_p.setText(f"{p:.2f}")
+        self.label_p.setText("")
+        self.label_icq.setText(f"{icq:.2f}")
         self.label_m1.setText(f"{m1:.2f}")
         self.label_m2.setText(f"{m2:.2f}")
 
-        self.plot(data1, data2, t, a, b)
+        self.button_p.setEnabled(True)
+
+        self.plot(data1, data2, t1, t2, a, b)
+
+    def calculatePearsonsProbablity(self) -> None:
+        d1 = self.data[self.combo_name1.currentText()]
+        d2 = self.data[self.combo_name2.currentText()]
+
+        if self.mask is not None:
+            d1 = np.where(self.mask, self.data[self.combo_name1.currentText()], np.nan)
+            d2 = np.where(self.mask, self.data[self.combo_name2.currentText()], np.nan)
+
+            d1 = d1[np.ix_(np.any(self.mask, axis=1), np.any(self.mask, axis=0))]
+            d2 = d2[np.ix_(np.any(self.mask, axis=1), np.any(self.mask, axis=0))]
+
+        _r, p = colocal.pearsonr_probablity(d1, d2, n=500)
+        self.label_p.setText(f"{p:.2f}")
+
+        self.button_p.setEnabled(False)
 
     def plot(
-        self, data1: np.ndarray, data2: np.ndarray, t: float, a: float, b: float
+        self,
+        data1: np.ndarray,
+        data2: np.ndarray,
+        t1: float,
+        t2: float,
+        a: float,
+        b: float,
     ) -> None:
         self.canvas.ax.clear()
 
         x, y = data1.ravel(), data2.ravel()
-        c = y - x
+        c = y - x  # Colors for points
 
-        self.canvas.ax.scatter(
-            x, y, s=1, marker=",", c=c, vmin=-1, vmax=1, cmap=redgreen
-        )
-        # self.canvas.ax.plot([t2, 1.0], [t1, 1.0])
-        self.canvas.ax.plot([0, 1.0], [b, a + b], c="white", lw=1.0)
-        self.canvas.ax.axhline(t, c="white", ls=":", lw=1.0)
-        self.canvas.ax.axvline(a * t + b, c="white", ls=":", lw=1.0)
+        # Line points
+        x1, y1 = (1, a + b) if a + b < 1 else ((1 - b) / a, 1)
+
+        self.canvas.ax.scatter(x, y, s=1, marker=",", c=c, cmap=redgreen)
+        self.canvas.ax.plot([0, x1], [b, y1], c="white", lw=1.0)
+        self.canvas.ax.axhline(t2, c="white", ls=":", lw=1.0)
+        self.canvas.ax.axvline(t1, c="white", ls=":", lw=1.0)
+
+        self.canvas.ax.set_xlabel(self.combo_name1.currentText())
+        self.canvas.ax.set_ylabel(self.combo_name2.currentText())
 
         self.canvas.draw_idle()
 

@@ -381,7 +381,8 @@ class LaserWidget(_ViewWidget):
         return dlg
 
     def actionColocal(self) -> QtWidgets.QDialog:
-        dlg = dialogs.ColocalisationDialog(self.laser.data, parent=self)
+        mask = self.canvas.getSelection()
+        dlg = dialogs.ColocalisationDialog(self.laser.data, mask, parent=self)
         dlg.open()
         return dlg
 

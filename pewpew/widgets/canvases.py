@@ -420,19 +420,17 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             return None
 
     def getMaskedData(self) -> np.ndarray:
-        x0, x1, y0, y1 = self.view_limits
-        (x0, y0), (x1, y1) = image_extent_to_data(self.image).transform(
-            ((x0, y1), (x1, y0))
-        )
-        x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
-        data = self.image.get_array()[y0:y1, x0:x1]
+        # x0, x1, y0, y1 = self.view_limits
+        # (x0, y0), (x1, y1) = image_extent_to_data(self.image).transform(
+        #     ((x0, y1), (x1, y0))
+        # )
+        # x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
+        data = self.image.get_array()
         mask = self.getSelection()
         if mask is not None and not np.all(mask == 0):
-            mask = mask[y0:y1, x0:x1]
-            # Trim out nan rows and columns
+            # mask = mask[y0:y1, x0:x1]
             data = np.where(mask, data, np.nan)
-            data = data[:, ~np.isnan(data).all(axis=0)]
-            data = data[~np.isnan(data).all(axis=1)]
+            data = data[np.ix_(np.any(mask, axis=1), np.any(mask, axis=0))]
         return data
 
     def ignore_event(self, event: LocationEvent) -> bool:

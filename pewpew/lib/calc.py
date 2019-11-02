@@ -30,7 +30,7 @@ def normalise(x: np.ndarray, vmin: float = 0.0, vmax: float = 1.0) -> np.ndarray
     return x
 
 
-def otsu(x: np.ndarray):
+def otsu(x: np.ndarray) -> float:
     """Calculates the otsu threshold of the input array.
 
     Implementation from scikit-learn
@@ -46,6 +46,16 @@ def otsu(x: np.ndarray):
 
     i = np.argmax(w1[:-1] * w2[1:] * (u1[:-1] - u2[1:]) ** 2)
     return bin_centers[i]
+
+
+def multi_otsu(x: np.ndarray, n: int = 2) -> float:
+    assert n > 1
+
+    t = otsu(x)
+    for _i in range(n - 1):
+        t = otsu(x[x < t])
+
+    return t
 
 
 # def rolling_mean_filter(
