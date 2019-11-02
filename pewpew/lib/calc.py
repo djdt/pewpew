@@ -146,7 +146,29 @@ def view_as_blocks(x: np.ndarray, block: Tuple[int, int]) -> np.ndarray:
     return np.lib.stride_tricks.as_strided(x, shape=shape, strides=strides)
 
 
-def shuffle_tiles(x: np.ndarray, block: Tuple[int, int]) -> np.ndarray:
+def shuffle_masked_tiles(
+    x: np.ndarray, block: Tuple[int, int], mask: np.ndarray
+) -> np.ndarray:
+    """Shuffle a 2d array as tiles of a certain size.
+    Only shuffles non-nan blocks.
+"""
+    # Pad the array to fit the blocksize
+    px = block[0] - x.shape[0] % block[0]
+    py = block[1] - x.shape[1] % block[1]
+    blocks = view_as_blocks(np.pad(x, ((0, px), (0, py)), mode="edge"), block)
+    shape = blocks.shape
+
+    blocks = blocks.reshape(-1, *block)
+    non_nan_blocks = np.all(~np.isnan(blocks), axis=(1, 2))
+    blocks[non_nan_blocks] = np.random.permutation(blocks[non_nan_blocks])
+
+    # Reform the image and then trim off excess
+    return np.hstack(np.hstack(blocks.reshape(shape)))[: x.shape[0], : x.shape[1]]
+
+
+def shuffle_tiles(
+    x: np.ndarray, block: Tuple[int, int], mask: np.ndarray = None
+) -> np.ndarray:
     """Shuffle a 2d array as tiles of a certain size."""
     # Pad the array to fit the blocksize
     px = block[0] - x.shape[0] % block[0]
@@ -156,7 +178,13 @@ def shuffle_tiles(x: np.ndarray, block: Tuple[int, int]) -> np.ndarray:
 
     # Reshape to (x, blocksize) and then shuffle
     blocks = blocks.reshape(-1, *block)
-    np.random.shuffle(blocks)
+    if mask is not None:
+        mask = view_as_blocks(np.pad(mask, ((0, px), (0, py)), mode="edge"), block)
+        mask = mask.reshape(-1, *block)
+        mask = np.all(mask, axis=(1, 2))
+        blocks[mask] = np.random.permutation(blocks[mask])
+    else:
+        np.random.shuffle(blocks)
 
     # Reform the image and then trim off excess
     return np.hstack(np.hstack(blocks.reshape(shape)))[: x.shape[0], : x.shape[1]]
