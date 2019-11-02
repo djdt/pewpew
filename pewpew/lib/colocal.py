@@ -5,13 +5,16 @@ from .calc import normalise, shuffle_tiles
 from typing import Tuple
 
 
+def li_icq(x: np.ndarray, y: np.ndarray) -> float:
+    ux, uy = np.mean(x), np.mean(y)
+    return np.sum((x - ux) * (y - uy) >= 0.0) / x.size - 0.5
+
+
 def pearsonr(x: np.ndarray, y: np.ndarray) -> float:
     """Returns Pearson's colocalisation coefficient for the two arrays.
     This value for colocalisation between -1 and 1 (colocalised).
 """
-    return (np.nanmean(x * y) - (np.nanmean(x) * np.nanmean(y))) / (
-        np.nanstd(x) * np.nanstd(y)
-    )
+    return (np.mean(x * y) - (np.mean(x) * np.mean(y))) / (np.std(x) * np.std(y))
 
 
 def pearsonr_probablity(
@@ -36,10 +39,12 @@ def manders(
     if ty is None:
         ty = tx
 
-    return np.sum(x, where=x > tx) / x.sum(), np.sum(y, where=y > ty) / y.sum()
+    return np.sum(x, where=y > ty) / x.sum(), np.sum(y, where=x > tx) / y.sum()
 
 
-def costes_threshold(x: np.ndarray, y: np.ndarray) -> Tuple[float, float, float]:
+def costes_threshold(
+    x: np.ndarray, y: np.ndarray, target_r: float = 0.0
+) -> Tuple[float, float, float]:
     """Calculates the thresholds Tx and Ty for the given arrays.
     Arrays should be normalised before calling this function.
 
@@ -53,13 +58,13 @@ def costes_threshold(x: np.ndarray, y: np.ndarray) -> Tuple[float, float, float]
     threshold_min = x.min()
     increment = (threshold - threshold_min) / 256.0
 
-    idx = np.logical_or(x <= threshold, y <= (a * threshold + b))
+    idx = np.logical_and(x <= threshold, y <= (a * threshold + b))
     r = pearsonr(x[idx], y[idx])
 
-    while r > 0.0 and threshold > threshold_min:
+    while r > target_r and threshold > threshold_min:
         threshold -= increment
         idx = np.logical_or(x <= threshold, y <= (a * threshold + b))
-        if np.all(x[idx] == 0) or np.all(y[idx] == 0):
+        if np.all(x[idx] == 0) and np.all(y[idx] == 0):
             threshold = threshold_min
             break
         r = pearsonr(x[idx], y[idx])
@@ -67,10 +72,12 @@ def costes_threshold(x: np.ndarray, y: np.ndarray) -> Tuple[float, float, float]
     return threshold, a, b
 
 
-def costes(x: np.ndarray, y: np.ndarray) -> Tuple[float, float, float, float]:
+def costes(
+    x: np.ndarray, y: np.ndarray, n_scrambles: int = 200
+) -> Tuple[float, float, float, float]:
     x, y = normalise(x), normalise(y)
-    pearson_r, r_prob = pearsonr_probablity(x, y, n=200)
-    T, a, b = costes_threshold(x, y)
-    m1, m2 = manders(x, y, T, a * T + b)
+    pearson_r, r_prob = pearsonr_probablity(x, y, n=n_scrambles)
+    t, a, b = costes_threshold(x, y)
+    m1, m2 = manders(x, y, t, a * t + b)
 
     return pearson_r, r_prob, m1, m2
