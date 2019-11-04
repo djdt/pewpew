@@ -9,6 +9,7 @@ from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pew import Calibration
+from pew.calc import get_weights
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 from pewpew.lib.viewoptions import ViewOptions
@@ -24,12 +25,15 @@ from typing import Any, Dict, List, Tuple
 
 
 class StandardsTool(ToolWidget):
+    WEIGHTINGS = ["None", "1/σ²", "x", "1/x", "1/x²"]
+
     def __init__(self, widget: LaserWidget):
         super().__init__(widget)
         self.setWindowTitle("Calibration Tool")
 
         self.calibration: Dict[str, Calibration] = None
         self.previous_isotope = ""
+        self.standard_deviations: np.ndarray = None
 
         self.trim_left = 0
         self.trim_right = 0
@@ -45,7 +49,7 @@ class StandardsTool(ToolWidget):
         self.lineedit_units.editingFinished.connect(self.lineeditUnits)
 
         self.combo_weighting = QtWidgets.QComboBox()
-        self.combo_weighting.addItems(["None", "x", "1/x", "1/(x^2)"])
+        self.combo_weighting.addItems(self.WEIGHTINGS)
         self.combo_weighting.currentIndexChanged.connect(self.comboWeighting)
 
         self.results_box = StandardsResultsBox()
@@ -158,6 +162,7 @@ class StandardsTool(ToolWidget):
 
         buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
         self.table.setCounts([np.nanmean(b) for b in buckets])
+        self.standard_deviations = [np.nanstd(b) for b in buckets]
 
     def updateResults(self) -> None:
         # Clear results if not complete
@@ -226,9 +231,21 @@ class StandardsTool(ToolWidget):
 
         self.refresh()
 
+    def getWeights(self, weighting: str) -> np.ndarray:
+        isotope = self.combo_isotope.currentText()
+        if weighting == "None":
+            return None
+        elif weighting == "1/σ²":
+            return 1 / np.power(self.standard_deviations, 2)
+        else:
+            return get_weights(self.calibration[isotope].concentrations(), weighting)
+
     def comboWeighting(self, index: int) -> None:
         isotope = self.combo_isotope.currentText()
-        self.calibration[isotope].weighting = self.combo_weighting.currentText()
+        weighting = self.combo_weighting.currentText()
+        self.calibration[isotope].weighting = weighting
+        self.calibration[isotope].weights = self.getWeights(weighting)
+        print(self.calibration[isotope].weighting, self.calibration[isotope].weights)
         self.calibration[isotope].update_linreg()
         self.updateResults()
 
@@ -407,10 +424,12 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
     def __init__(self, calibration: Calibration, parent: QtCore.QObject = None):
         self.calibration = calibration
         if self.calibration.points is None or self.calibration.points.size == 0:
-            points = np.array([[np.nan, np.nan]], dtype=np.float64)
+            array = np.array([[np.nan, np.nan, np.nan]], dtype=np.float64)
         else:
             points = self.calibration.points
-        super().__init__(points, parent)
+            weights = self.calibration.weights
+            array = np.vstack((points, weights))
+        super().__init__(array, parent)
 
         self.alphabet_rows = True
         self.fill_value = np.nan
@@ -486,6 +505,7 @@ class StandardsTable(BasicTableView):
     ROW_LABELS = [c for c in "ABCDEFGHIJKLMNOPQRST"]
     COLUMN_CONC = 0
     COLUMN_COUNT = 1
+    COLUMN_WEIGHTS = 2
 
     def __init__(self, calibration: Calibration, parent: QtWidgets.QWidget = None):
         super().__init__(parent)

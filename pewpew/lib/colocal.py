@@ -61,7 +61,7 @@ def costes_threshold(
         a -> slope
         b -> interept
 """
-    b, a = np.polynomial.Polynomial.fit(x.ravel(), y.ravel(), 1).convert().coef
+    b, a = np.polynomial.polynomial.polyfit(x.ravel(), y.ravel(), 1)
     threshold = x.max()
     threshold_min = x.min()
     increment = (threshold - threshold_min) / 256.0
