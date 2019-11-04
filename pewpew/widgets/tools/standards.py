@@ -162,7 +162,9 @@ class StandardsTool(ToolWidget):
 
         buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
         self.table.setCounts([np.nanmean(b) for b in buckets])
-        self.standard_deviations = [np.nanstd(b) for b in buckets]
+
+        if self.combo_weighting.currentText() == "1/σ²":
+            self.table.setWeights = [np.nanstd(b) for b in buckets]
 
     def updateResults(self) -> None:
         # Clear results if not complete
@@ -233,9 +235,7 @@ class StandardsTool(ToolWidget):
 
     def getWeights(self, weighting: str) -> np.ndarray:
         isotope = self.combo_isotope.currentText()
-        if weighting == "None":
-            return None
-        elif weighting == "1/σ²":
+        if weighting == "1/σ²":
             return 1 / np.power(self.standard_deviations, 2)
         else:
             return get_weights(self.calibration[isotope].concentrations(), weighting)
@@ -445,7 +445,8 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         new_array = np.full_like(self.array, np.nan)
         if self.calibration.points is not None and self.calibration.points.size > 0:
             min_row = np.min((new_array.shape[0], self.calibration.points.shape[0]))
-            new_array[:min_row] = self.calibration.points[:min_row]
+            new_array[:min_row, :2] = self.calibration.points[:min_row]
+            new_array[:min_row, 2] = self.calibration.weights[:min_row]
         self.array = new_array
         self.endResetModel()
 
@@ -476,7 +477,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
             return None
 
         if orientation == QtCore.Qt.Horizontal:
-            return ("Concentration", "Counts")[section]
+            return ("Concentration", "Counts", "Weights")[section]
         else:
             if self.alphabet_rows:
                 return "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[section]
@@ -495,8 +496,10 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
     def updateCalibration(self, *args) -> None:
         if np.count_nonzero(np.nan_to_num(self.array[:, 0])) < 2:
             self.calibration._points = None
+            self.weights = None
         else:
-            self.calibration.points = self.array
+            self.calibration.points = self.array[:, :2]
+            self.calibration.weights = self.array[2]
 
         self.calibration.update_linreg()
 
@@ -537,6 +540,17 @@ class StandardsTable(BasicTableView):
         for i in range(0, self.model().rowCount()):
             self.model().setData(
                 self.model().index(i, StandardsTable.COLUMN_COUNT), counts[i]
+            )
+        self.model().blockSignals(False)
+        self.model().dataChanged.emit(
+            QtCore.QModelIndex(), QtCore.QModelIndex(), [QtCore.Qt.EditRole]
+        )
+
+    def setWeights(self, weights: np.ndarray) -> None:
+        self.model().blockSignals(True)
+        for i in range(0, self.model().rowCount()):
+            self.model().setData(
+                self.model().index(i, StandardsTable.COLUMN_WEIGHTS), weights[i]
             )
         self.model().blockSignals(False)
         self.model().dataChanged.emit(
