@@ -482,6 +482,8 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.canvas.ax.axhline(t2, c="white", ls=":", lw=1.0)
         self.canvas.ax.axvline(t1, c="white", ls=":", lw=1.0)
 
+        self.canvas.ax.set_xlim(-0.05, 1.05)
+        self.canvas.ax.set_ylim(-0.05, 1.05)
         self.canvas.ax.set_xlabel(self.combo_name1.currentText())
         self.canvas.ax.set_ylabel(self.combo_name2.currentText())
 
