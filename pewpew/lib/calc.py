@@ -32,8 +32,7 @@ def normalise(x: np.ndarray, vmin: float = 0.0, vmax: float = 1.0) -> np.ndarray
 
 def otsu(x: np.ndarray) -> float:
     """Calculates the otsu threshold of the input array.
-
-    Implementation from scikit-learn
+    https://github.com/scikit-image/scikit-image/blob/master/skimage/filters/thresholding.py
 """
     hist, bin_edges = np.histogram(x, bins=256)
     bin_centers = (bin_edges[1:] + bin_edges[:-1]) / 2
@@ -46,16 +45,6 @@ def otsu(x: np.ndarray) -> float:
 
     i = np.argmax(w1[:-1] * w2[1:] * (u1[:-1] - u2[1:]) ** 2)
     return bin_centers[i]
-
-
-def multi_otsu(x: np.ndarray, n: int = 2) -> float:
-    assert n > 1
-
-    t = otsu(x)
-    for _i in range(n - 1):
-        t = otsu(x[x < t])
-
-    return t
 
 
 # def rolling_mean_filter(
@@ -131,6 +120,7 @@ def multi_otsu(x: np.ndarray, n: int = 2) -> float:
 
 def view_as_blocks(x: np.ndarray, block: Tuple[int, int]) -> np.ndarray:
     """Create non-overlapping views into a array.
+    https://github.com/scikit-image/scikit-image/blob/master/skimage/util/shape.py
 
     Args:
         x: The array.
@@ -146,44 +136,38 @@ def view_as_blocks(x: np.ndarray, block: Tuple[int, int]) -> np.ndarray:
     return np.lib.stride_tricks.as_strided(x, shape=shape, strides=strides)
 
 
-def shuffle_masked_tiles(
-    x: np.ndarray, block: Tuple[int, int], mask: np.ndarray
+def shuffle_blocks(
+    x: np.ndarray,
+    block: Tuple[int, int],
+    mask: np.ndarray = None,
+    mask_all: bool = True,
 ) -> np.ndarray:
     """Shuffle a 2d array as tiles of a certain size.
-    Only shuffles non-nan blocks.
+    If a mask is passed then only the region within the mask is shuffled.
+    If mask_all is True then only entirely masked blocks are shuffled otherwise
+    even partially masked blocks will be shuffled.
+
+    Args:
+        x: Input array.
+        block: Size of the tiles.
+        mask: Optional mask data.
+        mask_all: Only shuffle entirely masked blocks.
 """
     # Pad the array to fit the blocksize
-    px = block[0] - x.shape[0] % block[0]
-    py = block[1] - x.shape[1] % block[1]
+    px, py = block[0] - x.shape[0] % block[0], block[1] - x.shape[1] % block[1]
     blocks = view_as_blocks(np.pad(x, ((0, px), (0, py)), mode="edge"), block)
     shape = blocks.shape
-
     blocks = blocks.reshape(-1, *block)
-    non_nan_blocks = np.all(~np.isnan(blocks), axis=(1, 2))
-    blocks[non_nan_blocks] = np.random.permutation(blocks[non_nan_blocks])
 
-    # Reform the image and then trim off excess
-    return np.hstack(np.hstack(blocks.reshape(shape)))[: x.shape[0], : x.shape[1]]
-
-
-def shuffle_tiles(
-    x: np.ndarray, block: Tuple[int, int], mask: np.ndarray = None
-) -> np.ndarray:
-    """Shuffle a 2d array as tiles of a certain size."""
-    # Pad the array to fit the blocksize
-    px = block[0] - x.shape[0] % block[0]
-    py = block[1] - x.shape[1] % block[1]
-    blocks = view_as_blocks(np.pad(x, ((0, px), (0, py)), mode="edge"), block)
-    shape = blocks.shape
-
-    # Reshape to (x, blocksize) and then shuffle
-    blocks = blocks.reshape(-1, *block)
     if mask is not None:
-        mask = view_as_blocks(np.pad(mask, ((0, px), (0, py)), mode="edge"), block)
-        mask = mask.reshape(-1, *block)
-        mask = np.all(mask, axis=(1, 2))
+        mask = view_as_blocks(
+            np.pad(mask, ((0, px), (0, py)), mode="edge"), block
+        ).reshape(-1, *block)
+        # Shuffle blocks with all or some masked pixels
+        mask = np.all(mask, axis=(1, 2)) if mask_all else np.any(mask, axis=(1, 2))
+
         blocks[mask] = np.random.permutation(blocks[mask])
-    else:
+    else:  # Just shuffle inplace
         np.random.shuffle(blocks)
 
     # Reform the image and then trim off excess
