@@ -454,14 +454,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         d1 = self.data[self.combo_name1.currentText()]
         d2 = self.data[self.combo_name2.currentText()]
 
-        if self.mask is not None:
-            d1 = np.where(self.mask, self.data[self.combo_name1.currentText()], np.nan)
-            d2 = np.where(self.mask, self.data[self.combo_name2.currentText()], np.nan)
-
-            d1 = d1[np.ix_(np.any(self.mask, axis=1), np.any(self.mask, axis=0))]
-            d2 = d2[np.ix_(np.any(self.mask, axis=1), np.any(self.mask, axis=0))]
-
-        _r, p = colocal.pearsonr_probablity(d1, d2, n=500)
+        _r, p = colocal.pearsonr_probablity(d1, d2, mask=self.mask, n=500)
         self.label_p.setText(f"{p:.2f}")
 
         self.button_p.setEnabled(False)
@@ -478,12 +471,13 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.canvas.ax.clear()
 
         x, y = data1.ravel(), data2.ravel()
-        c = y - x  # Colors for points
 
         # Line points
         x1, y1 = (1, a + b) if a + b < 1 else ((1 - b) / a, 1)
 
-        self.canvas.ax.scatter(x, y, s=1, marker=",", c=c, cmap=self.cmap)
+        self.canvas.ax.scatter(
+            x, y, s=1, marker=",", c=x - y, vmin=-0.5, vmax=0.5, cmap="RdYlGn"
+        )
         self.canvas.ax.plot([0, x1], [b, y1], c="white", lw=1.0)
         self.canvas.ax.axhline(t2, c="white", ls=":", lw=1.0)
         self.canvas.ax.axvline(t1, c="white", ls=":", lw=1.0)
