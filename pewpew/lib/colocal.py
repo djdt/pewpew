@@ -1,6 +1,6 @@
 import numpy as np
 
-from .calc import normalise, shuffle_tiles
+from .calc import normalise, shuffle_blocks
 
 from typing import Tuple
 
@@ -18,14 +18,22 @@ def pearsonr(x: np.ndarray, y: np.ndarray) -> float:
 
 
 def pearsonr_probablity(
-    x: np.ndarray, y: np.ndarray, blocksize: int = 5, n: int = 1000
+    x: np.ndarray, y: np.ndarray, block: int = 3, mask: np.ndarray = None, n: int = 500
 ) -> Tuple[float, float]:
     """Returns Pearson's colocalisation coefficient and the relevant probabilty.
+    If a mask is passsed then masked shuffle_blocks is used.
 """
-    r = pearsonr(x, y)
-    rs = np.array(
-        [pearsonr(x, shuffle_tiles(y, (blocksize, blocksize))) for i in range(n)]
-    )
+    if mask is None:
+        mask = np.ones(x.shape, dtype=bool)
+    else:
+        assert mask.dtype == bool
+
+    rs = np.empty(n, dtype=float)
+    for i in range(n):
+        shuffled = shuffle_blocks(y, (block, block), mask, mask_all=True)
+        rs[i] = pearsonr(x[mask], shuffled[mask])
+
+    r = pearsonr(x[mask], y[mask])
     return r, (rs < r).sum() / n
 
 
@@ -53,7 +61,7 @@ def costes_threshold(
         a -> slope
         b -> interept
 """
-    b, a = np.polynomial.Polynomial.fit(x.ravel(), y.ravel(), 1).convert().coef
+    b, a = np.polynomial.polynomial.polyfit(x.ravel(), y.ravel(), 1)
     threshold = x.max()
     threshold_min = x.min()
     increment = (threshold - threshold_min) / 256.0

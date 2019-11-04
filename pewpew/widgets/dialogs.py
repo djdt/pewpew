@@ -4,13 +4,13 @@ import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from matplotlib.text import Text
+from matplotlib.colors import LinearSegmentedColormap
 
 from pew import Calibration, Config
 from pew.srr import SRRConfig
 
 from pewpew.lib import colocal
 from pewpew.lib.calc import normalise
-from pewpew.lib.mplcolors import redgreen
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets.canvases import BasicCanvas
 from pewpew.validators import (
@@ -330,6 +330,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self,
         data: np.ndarray,
         mask: np.ndarray = None,
+        colors: List[Tuple[float, ...]] = None,
         parent: QtWidgets.QWidget = None,
     ):
         assert data.dtype.names is not None
@@ -337,6 +338,10 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.setWindowTitle("Colocalisation")
         self.data = data
         self.mask = mask
+
+        if colors is None:
+            colors = [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0)]
+        self.cmap = LinearSegmentedColormap.from_list("colocal_cmap", colors)
 
         self.canvas = BasicCanvas(figsize=(5, 5))
         self.canvas.ax = self.canvas.figure.add_subplot(facecolor="black")
@@ -421,7 +426,9 @@ class ColocalisationDialog(QtWidgets.QDialog):
         # Choose a more approriate threshold?
         t1, a, b = colocal.costes_threshold(data1, data2)
         t2 = a * t1 + b
-        m1, m2 = colocal.manders(data1, data2, t1, t2)
+        m1, m2 = colocal.manders(
+            data1, data2, t2, t1
+        )  # Pass thresholds backwards as per Costes
 
         self.label_r.setText(f"{r:.2f}")
         self.label_p.setText("")
@@ -437,14 +444,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         d1 = self.data[self.combo_name1.currentText()]
         d2 = self.data[self.combo_name2.currentText()]
 
-        if self.mask is not None:
-            d1 = np.where(self.mask, self.data[self.combo_name1.currentText()], np.nan)
-            d2 = np.where(self.mask, self.data[self.combo_name2.currentText()], np.nan)
-
-            d1 = d1[np.ix_(np.any(self.mask, axis=1), np.any(self.mask, axis=0))]
-            d2 = d2[np.ix_(np.any(self.mask, axis=1), np.any(self.mask, axis=0))]
-
-        _r, p = colocal.pearsonr_probablity(d1, d2, n=500)
+        _r, p = colocal.pearsonr_probablity(d1, d2, mask=self.mask, n=500)
         self.label_p.setText(f"{p:.2f}")
 
         self.button_p.setEnabled(False)
@@ -461,16 +461,19 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.canvas.ax.clear()
 
         x, y = data1.ravel(), data2.ravel()
-        c = y - x  # Colors for points
 
         # Line points
         x1, y1 = (1, a + b) if a + b < 1 else ((1 - b) / a, 1)
 
-        self.canvas.ax.scatter(x, y, s=1, marker=",", c=c, cmap=redgreen)
+        self.canvas.ax.scatter(
+            x, y, s=1, marker=",", c=x - y, vmin=-0.5, vmax=0.5, cmap="RdYlGn"
+        )
         self.canvas.ax.plot([0, x1], [b, y1], c="white", lw=1.0)
         self.canvas.ax.axhline(t2, c="white", ls=":", lw=1.0)
         self.canvas.ax.axvline(t1, c="white", ls=":", lw=1.0)
 
+        self.canvas.ax.set_xlim(-0.05, 1.05)
+        self.canvas.ax.set_ylim(-0.05, 1.05)
         self.canvas.ax.set_xlabel(self.combo_name1.currentText())
         self.canvas.ax.set_ylabel(self.combo_name2.currentText())
 

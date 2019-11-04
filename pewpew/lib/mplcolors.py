@@ -287,7 +287,3 @@ googleTurbo = ListedColormap(
 maskAlphaMap = LinearSegmentedColormap.from_list(
     "maskAlphaMap", [(0.0, 0.0, 0.0, 1.0), (0.0, 0.0, 0.0, 0.0)]
 )
-
-redgreen = LinearSegmentedColormap.from_list(
-    "redgreen", [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0)]
-)
