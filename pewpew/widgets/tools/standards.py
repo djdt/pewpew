@@ -9,6 +9,7 @@ from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pew import Calibration
+from pew.calc import get_weights
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 from pewpew.lib.viewoptions import ViewOptions
@@ -45,7 +46,7 @@ class StandardsTool(ToolWidget):
         self.lineedit_units.editingFinished.connect(self.lineeditUnits)
 
         self.combo_weighting = QtWidgets.QComboBox()
-        self.combo_weighting.addItems(["None", "x", "1/x", "1/(x^2)"])
+        self.combo_weighting.addItems(["None", "x", "1/x", "1/x²", "1/σ²"])
         self.combo_weighting.currentIndexChanged.connect(self.comboWeighting)
 
         self.results_box = StandardsResultsBox()
@@ -159,13 +160,33 @@ class StandardsTool(ToolWidget):
         buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
         self.table.setCounts([np.nanmean(b) for b in buckets])
 
+    def updateWeights(self) -> None:
+        isotope = self.combo_isotope.currentText()
+        weighting = self.combo_weighting.currentText()
+        if weighting == "1/σ²":
+            data = self.widget.laser.get(isotope, calibrate=False, flat=True)
+            data = data[:, self.trim_left : data.shape[1] - self.trim_right]
+            buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
+            weights = 1 / np.square(np.array([np.nanstd(b) for b in buckets]))
+        else:
+            weights = get_weights(self.calibration[isotope].concentrations(), weighting)
+
+        print(weights)
+
+        self.calibration[isotope].weights = weights
+        print(self.calibration[isotope])
+
     def updateResults(self) -> None:
+        # Make sure weights are up to date
+        self.updateWeights()
         # Clear results if not complete
         if not self.isComplete():
             self.results_box.clear()
             return
         else:
             isotope = self.combo_isotope.currentText()
+            self.calibration[isotope].update_linreg()
+            print(self.calibration[isotope].rsq)
             self.results_box.update(self.calibration[isotope])
 
     def widgetChanged(self) -> None:
@@ -229,7 +250,6 @@ class StandardsTool(ToolWidget):
     def comboWeighting(self, index: int) -> None:
         isotope = self.combo_isotope.currentText()
         self.calibration[isotope].weighting = self.combo_weighting.currentText()
-        self.calibration[isotope].update_linreg()
         self.updateResults()
 
     def lineEditTrim(self) -> None:
@@ -479,7 +499,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         else:
             self.calibration.points = self.array
 
-        self.calibration.update_linreg()
+        # self.calibration.update_linreg()
 
 
 class StandardsTable(BasicTableView):
