@@ -471,12 +471,23 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.canvas.ax.clear()
 
         x, y = data1.ravel(), data2.ravel()
+        if x.size > 10000:
+            n = np.random.choice(x.size, 10000)
+            x, y = x[n], y[n]
 
         # Line points
         x1, y1 = (1, a + b) if a + b < 1 else ((1 - b) / a, 1)
 
         self.canvas.ax.scatter(
-            x, y, s=1, marker=",", c=x - y, vmin=-0.5, vmax=0.5, cmap="RdYlGn"
+            x,
+            y,
+            s=1,
+            marker=",",
+            c=y - x,
+            vmin=-0.5,
+            vmax=0.5,
+            cmap="RdYlGn",
+            alpha=0.2,
         )
         self.canvas.ax.plot([0, x1], [b, y1], c="white", lw=1.0)
         self.canvas.ax.axhline(t2, c="white", ls=":", lw=1.0)
