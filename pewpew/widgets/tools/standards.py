@@ -171,10 +171,7 @@ class StandardsTool(ToolWidget):
         else:
             weights = get_weights(self.calibration[isotope].concentrations(), weighting)
 
-        print(weights)
-
         self.calibration[isotope].weights = weights
-        print(self.calibration[isotope])
 
     def updateResults(self) -> None:
         # Make sure weights are up to date
@@ -186,7 +183,6 @@ class StandardsTool(ToolWidget):
         else:
             isotope = self.combo_isotope.currentText()
             self.calibration[isotope].update_linreg()
-            print(self.calibration[isotope].rsq)
             self.results_box.update(self.calibration[isotope])
 
     def widgetChanged(self) -> None:
