@@ -9,7 +9,6 @@ from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pew import Calibration
-from pew.calc import get_weights
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 from pewpew.lib.viewoptions import ViewOptions
@@ -168,10 +167,9 @@ class StandardsTool(ToolWidget):
             data = data[:, self.trim_left : data.shape[1] - self.trim_right]
             buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
             weights = 1 / np.square(np.array([np.nanstd(b) for b in buckets]))
+            self.calibration[isotope].weights = weights
         else:
-            weights = get_weights(self.calibration[isotope].concentrations(), weighting)
-
-        self.calibration[isotope].weights = weights
+            self.calibration[isotope].weights = weighting
 
     def updateResults(self) -> None:
         # Make sure weights are up to date
