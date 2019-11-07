@@ -163,16 +163,28 @@ class StandardsTool(ToolWidget):
         buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
         self.table.setCounts([np.nanmean(b) for b in buckets])
 
-        if self.combo_weighting.currentText() == "1/σ²":
-            self.table.setWeights = [np.nanstd(b) for b in buckets]
+    def updateWeights(self) -> None:
+        isotope = self.combo_isotope.currentText()
+        weighting = self.combo_weighting.currentText()
+        if weighting == "1/σ²":
+            data = self.widget.laser.get(isotope, calibrate=False, flat=True)
+            data = data[:, self.trim_left : data.shape[1] - self.trim_right]
+            buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
+            weights = 1 / np.square(np.array([np.nanstd(b) for b in buckets]))
+            self.calibration[isotope].weights = weights
+        else:
+            self.calibration[isotope].weights = weighting
 
     def updateResults(self) -> None:
+        # Make sure weights are up to date
+        self.updateWeights()
         # Clear results if not complete
         if not self.isComplete():
             self.results_box.clear()
             return
         else:
             isotope = self.combo_isotope.currentText()
+            self.calibration[isotope].update_linreg()
             self.results_box.update(self.calibration[isotope])
 
     def widgetChanged(self) -> None:
@@ -242,11 +254,7 @@ class StandardsTool(ToolWidget):
 
     def comboWeighting(self, index: int) -> None:
         isotope = self.combo_isotope.currentText()
-        weighting = self.combo_weighting.currentText()
-        self.calibration[isotope].weighting = weighting
-        self.calibration[isotope].weights = self.getWeights(weighting)
-        print(self.calibration[isotope].weighting, self.calibration[isotope].weights)
-        self.calibration[isotope].update_linreg()
+        self.calibration[isotope].weighting = self.combo_weighting.currentText()
         self.updateResults()
 
     def lineEditTrim(self) -> None:
@@ -501,7 +509,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
             self.calibration.points = self.array[:, :2]
             self.calibration.weights = self.array[2]
 
-        self.calibration.update_linreg()
+        # self.calibration.update_linreg()
 
 
 class StandardsTable(BasicTableView):
