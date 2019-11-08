@@ -39,12 +39,8 @@ class ViewSpace(QtWidgets.QSplitter):
         return self.active_view
 
     def activeWidget(self) -> QtWidgets.QWidget:
-        widget = self.activeView().activeWidget()
-        if widget is None:
-            for view in self.views:
-                widget = view.activeWidget()
-                if widget is not None:
-                    break
+        view = self.activeView()
+        widget = view.activeWidget()
         return widget
 
     def setActiveView(self, view: "View") -> None:
@@ -52,8 +48,8 @@ class ViewSpace(QtWidgets.QSplitter):
             return
         if self.active_view is not None:
             self.active_view.setActive(False)
-        if view is not None:
-            view.setActive(True)
+        # if view is not None:
+        #     view.setActive(True)
         self.active_view = view
 
     def countViewTabs(self) -> int:
@@ -255,6 +251,9 @@ class View(QtWidgets.QWidget):
                 widget.refresh()
 
     def setActive(self, active: bool) -> None:
+        if active:
+            self.viewspace.setActiveView(self)
+            print(active)
         self.active = active
 
     # Events
@@ -268,11 +267,11 @@ class View(QtWidgets.QWidget):
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if obj and event.type() == QtCore.QEvent.MouseButtonPress:
-            self.viewspace.setActiveView(self)
+            self.setActive(True)
         return False
 
-    def focusInEvent(self, event: QtGui.QFocusEvent) -> None:
-        self.viewspace.setActiveView(self)
+#     def focusInEvent(self, event: QtGui.QFocusEvent) -> None:
+#         self.setActive(True)
 
 
 class ViewTabBar(QtWidgets.QTabBar):
@@ -419,3 +418,8 @@ class _ViewWidget(QtWidgets.QWidget):
     @QtCore.Slot("QWidget*")
     def mouseSelectEnd(self, callback_widget: QtWidgets.QWidget) -> None:
         pass
+
+    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+        if obj and event.type() == QtCore.QEvent.MouseButtonPress:
+            self.view.setActive(True)
+        return False

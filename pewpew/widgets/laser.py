@@ -142,6 +142,7 @@ class LaserWidget(_ViewWidget):
         self.is_srr = isinstance(laser, SRRLaser)
 
         self.canvas = InteractiveLaserCanvas(viewoptions, parent=self)
+        self.canvas.installEventFilter(self)
 
         self.combo_layers = QtWidgets.QComboBox()
         self.combo_layers.addItem("*")
