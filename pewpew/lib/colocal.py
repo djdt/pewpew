@@ -66,13 +66,13 @@ def costes_threshold(
     threshold_min = x.min()
     increment = (threshold - threshold_min) / 256.0
 
-    idx = np.logical_and(x <= threshold, y <= (a * threshold + b))
+    idx = np.logical_or(x <= threshold, y <= (a * threshold + b))
     r = pearsonr(x[idx], y[idx])
 
     while r > target_r and threshold > threshold_min:
         threshold -= increment
         idx = np.logical_or(x <= threshold, y <= (a * threshold + b))
-        if np.all(x[idx] == 0) and np.all(y[idx] == 0):
+        if np.unique(x[idx]).size == 1 or np.unique(y[idx]).size == 1:
             threshold = threshold_min
             break
         r = pearsonr(x[idx], y[idx])

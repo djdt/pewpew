@@ -9,6 +9,7 @@ from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pew import Calibration
+from pew.calc import get_weights
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 from pewpew.lib.viewoptions import ViewOptions
@@ -24,12 +25,15 @@ from typing import Any, Dict, List, Tuple
 
 
 class StandardsTool(ToolWidget):
+    WEIGHTINGS = ["None", "1/σ²", "x", "1/x", "1/x²"]
+
     def __init__(self, widget: LaserWidget):
         super().__init__(widget)
         self.setWindowTitle("Calibration Tool")
 
         self.calibration: Dict[str, Calibration] = None
         self.previous_isotope = ""
+        self.standard_deviations: np.ndarray = None
 
         self.trim_left = 0
         self.trim_right = 0
@@ -45,7 +49,7 @@ class StandardsTool(ToolWidget):
         self.lineedit_units.editingFinished.connect(self.lineeditUnits)
 
         self.combo_weighting = QtWidgets.QComboBox()
-        self.combo_weighting.addItems(["None", "x", "1/x", "1/x²", "1/σ²"])
+        self.combo_weighting.addItems(self.WEIGHTINGS)
         self.combo_weighting.currentIndexChanged.connect(self.comboWeighting)
 
         self.results_box = StandardsResultsBox()
@@ -241,6 +245,13 @@ class StandardsTool(ToolWidget):
 
         self.refresh()
 
+    def getWeights(self, weighting: str) -> np.ndarray:
+        isotope = self.combo_isotope.currentText()
+        if weighting == "1/σ²":
+            return 1 / np.power(self.standard_deviations, 2)
+        else:
+            return get_weights(self.calibration[isotope].concentrations(), weighting)
+
     def comboWeighting(self, index: int) -> None:
         isotope = self.combo_isotope.currentText()
         self.calibration[isotope].weighting = self.combo_weighting.currentText()
@@ -421,10 +432,12 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
     def __init__(self, calibration: Calibration, parent: QtCore.QObject = None):
         self.calibration = calibration
         if self.calibration.points is None or self.calibration.points.size == 0:
-            points = np.array([[np.nan, np.nan]], dtype=np.float64)
+            array = np.array([[np.nan, np.nan, np.nan]], dtype=np.float64)
         else:
             points = self.calibration.points
-        super().__init__(points, parent)
+            weights = self.calibration.weights
+            array = np.vstack((points, weights))
+        super().__init__(array, parent)
 
         self.alphabet_rows = True
         self.fill_value = np.nan
@@ -440,7 +453,8 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         new_array = np.full_like(self.array, np.nan)
         if self.calibration.points is not None and self.calibration.points.size > 0:
             min_row = np.min((new_array.shape[0], self.calibration.points.shape[0]))
-            new_array[:min_row] = self.calibration.points[:min_row]
+            new_array[:min_row, :2] = self.calibration.points[:min_row]
+            new_array[:min_row, 2] = self.calibration.weights[:min_row]
         self.array = new_array
         self.endResetModel()
 
@@ -471,7 +485,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
             return None
 
         if orientation == QtCore.Qt.Horizontal:
-            return ("Concentration", "Counts")[section]
+            return ("Concentration", "Counts", "Weights")[section]
         else:
             if self.alphabet_rows:
                 return "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[section]
@@ -490,8 +504,10 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
     def updateCalibration(self, *args) -> None:
         if np.count_nonzero(np.nan_to_num(self.array[:, 0])) < 2:
             self.calibration._points = None
+            self.weights = None
         else:
-            self.calibration.points = self.array
+            self.calibration.points = self.array[:, :2]
+            self.calibration.weights = self.array[2]
 
         # self.calibration.update_linreg()
 
@@ -500,6 +516,7 @@ class StandardsTable(BasicTableView):
     ROW_LABELS = [c for c in "ABCDEFGHIJKLMNOPQRST"]
     COLUMN_CONC = 0
     COLUMN_COUNT = 1
+    COLUMN_WEIGHTS = 2
 
     def __init__(self, calibration: Calibration, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
@@ -531,6 +548,17 @@ class StandardsTable(BasicTableView):
         for i in range(0, self.model().rowCount()):
             self.model().setData(
                 self.model().index(i, StandardsTable.COLUMN_COUNT), counts[i]
+            )
+        self.model().blockSignals(False)
+        self.model().dataChanged.emit(
+            QtCore.QModelIndex(), QtCore.QModelIndex(), [QtCore.Qt.EditRole]
+        )
+
+    def setWeights(self, weights: np.ndarray) -> None:
+        self.model().blockSignals(True)
+        for i in range(0, self.model().rowCount()):
+            self.model().setData(
+                self.model().index(i, StandardsTable.COLUMN_WEIGHTS), weights[i]
             )
         self.model().blockSignals(False)
         self.model().dataChanged.emit(

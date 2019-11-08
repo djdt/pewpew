@@ -192,18 +192,6 @@ class OverlayTool(ToolWidget):
             self.endMouseSelect()
         return False
 
-    def contextMenuEvent(self, event: QtCore.QEvent) -> None:
-        if self.canvas.underMouse():
-            action_copy_image = QtWidgets.QAction(
-                QtGui.QIcon.fromTheme("insert-image"), "Copy Image", self
-            )
-            action_copy_image.setStatusTip("Copy image to clipboard.")
-            action_copy_image.triggered.connect(self.canvas.copyToClipboard)
-
-            menu = QtWidgets.QMenu(self)
-            menu.addAction(action_copy_image)
-            menu.popup(event.globalPos())
-
 
 class OverlayCanvas(BasicCanvas):
     def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):
