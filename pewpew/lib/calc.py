@@ -102,22 +102,6 @@ def otsu(x: np.ndarray) -> float:
 #     return x
 
 
-# def blocks_view(x: np.ndarray, blocksize: Tuple[int, int]) -> np.ndarray:
-#     """Create view into a array of blocksize size.
-
-#     Args:
-#         x: The array.
-#         blocksize: The size of the each block.
-
-#     Returns:
-#         An array of views.
-#     """
-#     x = np.ascontiguousarray(x)
-#     shape = tuple(np.array(x.shape) // blocksize) + blocksize
-#     strides = tuple(np.array(x.strides) * blocksize) + x.strides
-#     return np.lib.stride_tricks.as_strided(x, shape=shape, strides=strides)
-
-
 def view_as_blocks(x: np.ndarray, block: Tuple[int, int]) -> np.ndarray:
     """Create non-overlapping views into a array.
     https://github.com/scikit-image/scikit-image/blob/master/skimage/util/shape.py
