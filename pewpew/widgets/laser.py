@@ -142,7 +142,6 @@ class LaserWidget(_ViewWidget):
         self.is_srr = isinstance(laser, SRRLaser)
 
         self.canvas = InteractiveLaserCanvas(viewoptions, parent=self)
-        self.canvas.installEventFilter(self)
 
         self.combo_layers = QtWidgets.QComboBox()
         self.combo_layers.addItem("*")
@@ -182,7 +181,6 @@ class LaserWidget(_ViewWidget):
             self.canvas.startLassoSelection,
         )
         self.selection_button.addAction(self.action_select_lasso)
-        self.selection_button.installEventFilter(self)
 
         self.view_button = QtWidgets.QToolButton()
         self.view_button.setAutoRaise(True)
@@ -202,6 +200,10 @@ class LaserWidget(_ViewWidget):
             self.canvas.unzoom,
         )
         self.view_button.addAction(self.action_zoom_out)
+
+        self.canvas.installEventFilter(self)
+        self.combo_isotopes.installEventFilter(self)
+        self.selection_button.installEventFilter(self)
         self.view_button.installEventFilter(self)
 
         layout_bar = QtWidgets.QHBoxLayout()

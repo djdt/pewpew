@@ -193,6 +193,8 @@ class View(QtWidgets.QWidget):
         self.tabs.tabMoved.connect(self.moveWidget)
         self.tabs.tabCloseRequested.connect(self.removeTab)
         self.tabs.tabTextChanged.connect(self.renameWidget)
+
+        self.stack.installEventFilter(self)
         self.tabs.installEventFilter(self)
 
         self.titlebar = ViewTitleBar(self.tabs, self)
@@ -253,7 +255,6 @@ class View(QtWidgets.QWidget):
     def setActive(self, active: bool) -> None:
         if active:
             self.viewspace.setActiveView(self)
-            print(active)
         self.active = active
 
     # Events
@@ -269,9 +270,6 @@ class View(QtWidgets.QWidget):
         if obj and event.type() == QtCore.QEvent.MouseButtonPress:
             self.setActive(True)
         return False
-
-#     def focusInEvent(self, event: QtGui.QFocusEvent) -> None:
-#         self.setActive(True)
 
 
 class ViewTabBar(QtWidgets.QTabBar):
@@ -377,6 +375,7 @@ class ViewTitleBar(QtWidgets.QWidget):
         self.split_button.addAction(self.view.viewspace.action_split_horz)
         self.split_button.addAction(self.view.viewspace.action_split_vert)
         self.split_button.addAction(self.view.viewspace.action_close_view)
+
         self.split_button.installEventFilter(self.view)
 
         # Layout the widgets
