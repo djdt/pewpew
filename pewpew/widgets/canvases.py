@@ -336,6 +336,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         super().__init__(viewoptions=viewoptions, parent=parent)
 
         self.state = set(["move"])
+        self.selection: np.ndarray = None
         self.button = 1
 
         shadow = self.palette().color(QtGui.QPalette.Shadow)
@@ -373,6 +374,10 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
 
     def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
         super().drawLaser(laser, name, layer)
+        # Why do we have to call update twice here? Possible bug in _SelectorWidget?
+        if self.widget is not None:
+            self.widget.update()
+            self.widget.update()
         # Save some variables for the status bar
         if layer is not None:
             self.px, self.py = (
@@ -402,6 +407,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             lineprops=self.lineprops,
         )
         self.widget.set_active(True)
+        self.selection = "widget"
         self.setFocus(QtCore.Qt.NoFocusReason)
 
     def startRectangleSelection(self) -> None:
@@ -415,6 +421,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             lineprops=self.lineprops,
         )
         self.widget.set_active(True)
+        self.selection = "widget"
         self.setFocus(QtCore.Qt.NoFocusReason)
 
     def clearSelection(self) -> None:
@@ -424,20 +431,24 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.widget.update()
             self.draw_idle()
         self.state.discard("selection")
+        self.selection = None
         self.widget = None
 
+    def setSelection(self, mask: np.ndarray) -> None:
+        self.selection = mask
+
     def getSelection(self) -> np.ndarray:
-        if self.widget is not None and isinstance(self.widget, _ImageSelectionWidget):
-            return self.widget.mask
+        if self.selection == "widget":
+            if self.widget is not None and isinstance(
+                self.widget, _ImageSelectionWidget
+            ):
+                return self.widget.mask
+            else:
+                return None
         else:
-            return None
+            return self.selection
 
     def getMaskedData(self) -> np.ndarray:
-        # x0, x1, y0, y1 = self.view_limits
-        # (x0, y0), (x1, y1) = image_extent_to_data(self.image).transform(
-        #     ((x0, y1), (x1, y0))
-        # )
-        # x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
         data = self.image.get_array()
         mask = self.getSelection()
         if mask is not None and not np.all(mask == 0):

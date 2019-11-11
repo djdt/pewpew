@@ -588,6 +588,17 @@ class MultipleDirDialog(QtWidgets.QFileDialog):
             return []
 
 
+class SelectionDialog(QtWidgets.QDialog):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        self.setWindowTitle("Selection")
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Close
+        )
+        self.button_box.rejected.connect(self.maskSelected)
+        self.button_box.rejected.connect(self.close)
+
+
 class StatsDialog(QtWidgets.QDialog):
     def __init__(
         self,
