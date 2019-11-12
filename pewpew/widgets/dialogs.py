@@ -10,7 +10,7 @@ from pew import Calibration, Config
 from pew.srr import SRRConfig
 
 from pewpew.lib import colocal
-from pewpew.lib.calc import normalise
+from pewpew.lib.calc import normalise, otsu
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets.canvases import BasicCanvas
 from pewpew.validators import (
@@ -589,14 +589,71 @@ class MultipleDirDialog(QtWidgets.QFileDialog):
 
 
 class SelectionDialog(QtWidgets.QDialog):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    maskSelected = QtCore.Signal(np.ndarray)
+
+    METHODS = {"Manual": None, "Mean": np.nanmean, "Median": np.nanmedian, "Otsu": otsu}
+    COMPARISION = {">": np.greater, "<": np.less, "=": np.equal}
+
+    def __init__(self, data: np.ndarray, current: str, parent: QtWidgets.QWidget = None):
         self.setWindowTitle("Selection")
+
+        self.data = data
+        self.threshold: float = 0.0
+
+        self.combo_isotopes = QtWidgets.QComboBox()
+        self.combo_isotopes.addItems(self.data.dtype.names)
+        self.combo_isotopes.setCurrentText(current)
+        self.combo_isotopes.currentIndexChanged.connect(self.refresh)
+
+        self.combo_method = QtWidgets.QComboBox()
+        self.combo_method.addItems(list(self.METHODS.keys()))
+        self.combo_method.currentIndexChanged.connect(self.refresh)
+
+        self.combo_comparison = QtWidgets.QComboBox()
+        self.combo_comparison.addItems(list(self.COMPARISION.keys()))
+        self.combo_comparison.currentIndexChanged.connect(self.refresh)
+
+        self.lineedit_manual = QtWidgets.QLineEdit()
+        self.lineedit_manual.setValidator(DecimalValidator(-1e99, 1e99, 4))
+        self.lineedit_manual.setEnabled(False)
+        self.lineedit_manual.editingFinished.connect(self.refresh)
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Close
         )
-        self.button_box.rejected.connect(self.maskSelected)
+        self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.close)
+
+        layout_form = QtWidgets.QFormLayout()
+        layout_form.addRow("Isotope", self.combo_isotopes)
+        layout_form.addRow("Comparison", self.combo_comparison)
+        layout_form.addRow("Method", self.combo_isotopes)
+        layout_form.addRow("Value", self.lineedit_manual)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addLayout(layout_form)
+        layout.addWidget(self.button_box)
+        self.setLayout(layout)
+
+    def refresh(self) -> None:
+        # Enable lineedit if manual mode
+        self.lineedit_manual.setEnabled(self.combo_method.currentText() == "Manual")
+
+        isotope = self.combo_isotopes.currentText()
+        method = self.METHODS[self.combo_method.currentText()]
+
+        # Compute new threshold
+        if method is not None:
+            self.threshold = method(self.data[isotope])
+        else:
+            self.threshold = float(self.lineedit_manual.text())
+
+    def accept(self) -> None:
+        isotope = self.combo_isotopes.currentText()
+        comparison = self.COMPARISION[self.combo_comparison.currentText()]
+        mask = comparison(self.data[isotope], self.threshold)
+        self.maskSelected.emit(mask)
+        super().accept()
 
 
 class StatsDialog(QtWidgets.QDialog):

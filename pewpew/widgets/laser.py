@@ -348,6 +348,7 @@ class LaserWidget(_ViewWidget):
     def actionConfig(self) -> QtWidgets.QDialog:
         dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
         dlg.configSelected.connect(self.applyConfig)
+        dlg.configApplyAll.connect(self.viewspace.applyConfig)
         dlg.open()
         return dlg
 
@@ -385,7 +386,7 @@ class LaserWidget(_ViewWidget):
 
     def actionColocal(self) -> QtWidgets.QDialog:
         mask = self.canvas.getSelection()
-        dlg = dialogs.ColocalisationDialog(self.laser.data, mask, parent=self)
+        dlg = dialogs.ColocalisationDialog(self.laser.get(flat=True), mask, parent=self)
         dlg.open()
         return dlg
 
