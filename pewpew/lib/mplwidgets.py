@@ -21,8 +21,7 @@ class _ImageSelectionWidget(_SelectorWidget):
         button: int = None,
     ):
         self.image = image
-        # assert len(mask_rgba) == 4
-        # self.rgba = mask_rgba
+        self.callback = callback
 
         super().__init__(
             image.axes,
@@ -32,26 +31,6 @@ class _ImageSelectionWidget(_SelectorWidget):
             state_modifier_keys=self.STATE_MODIFIER_KEYS,
         )
         self.verts: np.ndarray = None
-
-        # if mask is None:
-
-        self.callback = callback
-        # else:
-        #     self.mask = mask
-
-        # self.mask_image = AxesImage(
-        #     image.axes,
-        #     extent=image.get_extent(),
-        #     transform=image.get_transform(),
-        #     interpolation="none",
-        #     origin=image.origin,
-        #     visible=False,
-        #     animated=useblit,
-        # )
-        # self.mask_image.set_data(np.zeros((*self.mask.shape, 4), dtype=np.uint8))
-
-        # self.ax.add_image(self.mask_image)
-        # self.artists = [self.mask_image]
 
     def _press(self, event: MouseEvent) -> None:
         self.verts = [self._get_data(event)]
@@ -70,8 +49,6 @@ class _ImageSelectionWidget(_SelectorWidget):
     def _on_key_release(self, event: KeyEvent) -> None:
         if event.key == self.state_modifier_keys["clear"]:
             self.callback(np.zeros_like(self.mask), None)
-    #         self.mask = np.zeros_like(self.mask)
-    #         # self._update_mask_image()
 
     def update_mask(self, vertices: np.ndarray) -> None:
         shape = self.image.get_array().shape
@@ -110,28 +87,6 @@ class _ImageSelectionWidget(_SelectorWidget):
         # Send via callback
         mask[vy[0] : vy[1], vx[0] : vx[1]].flat[ind] = True
         self.callback(mask, self.state)
-
-#         # Refresh the mask
-#         self.mask = np.zeros(shape[:2], dtype=bool)
-        # if not any(state in self.state for state in ["add", "subtract"]):
-        # # Update the mask
-        #     False if "subtract" in self.state else True
-        # )
-
-
-#         self._update_mask_image()
-
-#     def _update_mask_image(self) -> None:
-#         assert self.mask.dtype == np.bool
-
-#         image = np.zeros((*self.mask.shape[:2], 4), dtype=np.uint8)
-#         image[self.mask] = self.rgba
-#         self.mask_image.set_data(image)
-
-#         if np.all(self.mask == 0):
-#             self.mask_image.set_visible(False)
-#         else:
-#             self.mask_image.set_visible(True)
 
 
 class LassoImageSelectionWidget(_ImageSelectionWidget):
