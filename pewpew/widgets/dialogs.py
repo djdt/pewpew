@@ -594,7 +594,9 @@ class SelectionDialog(QtWidgets.QDialog):
     METHODS = {"Manual": None, "Mean": np.nanmean, "Median": np.nanmedian, "Otsu": otsu}
     COMPARISION = {">": np.greater, "<": np.less, "=": np.equal}
 
-    def __init__(self, data: np.ndarray, current: str, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self, data: np.ndarray, current: str, parent: QtWidgets.QWidget = None
+    ):
         super().__init__(parent)
         self.setWindowTitle("Selection")
 
@@ -646,7 +648,7 @@ class SelectionDialog(QtWidgets.QDialog):
         # Compute new threshold
         if method is not None:
             self.threshold = method(self.data[isotope])
-            self.lineedit_manual.setText(str(self.threshold))
+            self.lineedit_manual.setText(f"{self.threshold:.4g}")
         else:
             self.threshold = float(self.lineedit_manual.text())
 
