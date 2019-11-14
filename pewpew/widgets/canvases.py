@@ -336,7 +336,6 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         super().__init__(viewoptions=viewoptions, parent=parent)
 
         self.state = set(["move"])
-        self.selection: np.ndarray = None
         self.button = 1
 
         shadow = self.palette().color(QtGui.QPalette.Shadow)
@@ -357,7 +356,10 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             "linewidth": 1.1,
             "path_effects": [lineshadow, Normal()],
         }
-        self.mask_rgba = np.array(
+
+        self.selection: np.ndarray = None
+        self.selection_image: AxesImage = None
+        self.selection_rgba = np.array(
             [highlight.red(), highlight.green(), highlight.blue(), 255 * 0.5],
             dtype=np.uint8,
         )
@@ -372,12 +374,29 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         if self.widget is not None:
             self.widget.ax = self.ax
 
+    def drawSelection(self) -> None:
+        if self.selection_image is not None:
+            self.selection_image.remove()
+            self.selection_image = None
+
+        if self.selection is None or np.all(self.selection == 0):
+            return
+
+        assert self.selection.dtype == np.bool
+
+        image = np.zeros((*self.selection.shape[:2], 4), dtype=np.uint8)
+        image[self.selection] = self.selection_rgba
+        self.selection_image = self.ax.imshow(
+            image,
+            extent=self.image.get_extent(),
+            transform=self.image.get_transform(),
+            interpolation="none",
+            origin=self.image.origin,
+        )
+
     def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
         super().drawLaser(laser, name, layer)
-        # Why do we have to call update twice here? Possible bug in _SelectorWidget?
-        if self.widget is not None:
-            self.widget.update()
-            self.widget.update()
+        self.drawSelection()
         # Save some variables for the status bar
         if layer is not None:
             self.px, self.py = (
@@ -396,32 +415,41 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         if self.widget is not None:
             self.widget.set_active(False)
 
+    def updateSelectionFromWidget(self, mask: np.ndarray, state: set = None) -> None:
+        if "add" in state and self.selection is not None:
+            self.selection = np.logical_or(self.selection, mask)
+        elif "subtract" in state and self.selection is not None:
+            self.selection = np.logical_and(self.selection, ~mask)
+        else:
+            self.selection = mask
+
+        self.drawSelection()
+        self.draw_idle()
+
     def startLassoSelection(self) -> None:
-        self.clearSelection()
+        # self.clearSelection()
         self.state.add("selection")
         self.widget = LassoImageSelectionWidget(
             self.image,
-            self.mask_rgba,
+            self.updateSelectionFromWidget,
             useblit=True,
             button=self.button,
             lineprops=self.lineprops,
         )
         self.widget.set_active(True)
-        self.selection = "widget"
         self.setFocus(QtCore.Qt.NoFocusReason)
 
     def startRectangleSelection(self) -> None:
-        self.clearSelection()
+        # self.clearSelection()
         self.state.add("selection")
         self.widget = RectangleImageSelectionWidget(
             self.image,
-            self.mask_rgba,
+            self.updateSelectionFromWidget,
             useblit=True,
             button=self.button,
             lineprops=self.lineprops,
         )
         self.widget.set_active(True)
-        self.selection = "widget"
         self.setFocus(QtCore.Qt.NoFocusReason)
 
     def clearSelection(self) -> None:
@@ -433,6 +461,8 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         self.state.discard("selection")
         self.selection = None
         self.widget = None
+        self.drawSelection()
+        self.draw_idle()
 
     def setSelection(self, mask: np.ndarray) -> None:
         self.selection = mask

@@ -595,6 +595,7 @@ class SelectionDialog(QtWidgets.QDialog):
     COMPARISION = {">": np.greater, "<": np.less, "=": np.equal}
 
     def __init__(self, data: np.ndarray, current: str, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
         self.setWindowTitle("Selection")
 
         self.data = data
@@ -613,7 +614,7 @@ class SelectionDialog(QtWidgets.QDialog):
         self.combo_comparison.addItems(list(self.COMPARISION.keys()))
         self.combo_comparison.currentIndexChanged.connect(self.refresh)
 
-        self.lineedit_manual = QtWidgets.QLineEdit()
+        self.lineedit_manual = QtWidgets.QLineEdit("0.0")
         self.lineedit_manual.setValidator(DecimalValidator(-1e99, 1e99, 4))
         self.lineedit_manual.setEnabled(False)
         self.lineedit_manual.editingFinished.connect(self.refresh)
@@ -627,7 +628,7 @@ class SelectionDialog(QtWidgets.QDialog):
         layout_form = QtWidgets.QFormLayout()
         layout_form.addRow("Isotope", self.combo_isotopes)
         layout_form.addRow("Comparison", self.combo_comparison)
-        layout_form.addRow("Method", self.combo_isotopes)
+        layout_form.addRow("Method", self.combo_method)
         layout_form.addRow("Value", self.lineedit_manual)
 
         layout = QtWidgets.QVBoxLayout()
@@ -645,6 +646,7 @@ class SelectionDialog(QtWidgets.QDialog):
         # Compute new threshold
         if method is not None:
             self.threshold = method(self.data[isotope])
+            self.lineedit_manual.setText(str(self.threshold))
         else:
             self.threshold = float(self.lineedit_manual.text())
 

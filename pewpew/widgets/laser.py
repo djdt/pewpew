@@ -162,9 +162,9 @@ class LaserWidget(_ViewWidget):
         self.selection_button.setIcon(QtGui.QIcon.fromTheme("select"))
         self.action_select_none = qAction(
             "transform-move",
-            "End Selection",
-            "End selection tool.",
-            self.canvas.endSelection,
+            "Clear Selection",
+            "Clear any selections.",
+            self.canvas.clearSelection,
         )
         self.selection_button.addAction(self.action_select_none)
         self.action_select_rect = qAction(
@@ -181,6 +181,13 @@ class LaserWidget(_ViewWidget):
             self.canvas.startLassoSelection,
         )
         self.selection_button.addAction(self.action_select_lasso)
+        self.action_select_dialog = qAction(
+            "dialog-information",
+            "Selection Dialog",
+            "Start the selection dialog.",
+            self.actionSelectDialog,
+        )
+        self.selection_button.addAction(self.action_select_dialog)
 
         self.view_button = QtWidgets.QToolButton()
         self.view_button.setAutoRaise(True)
@@ -227,6 +234,7 @@ class LaserWidget(_ViewWidget):
         else:
             layer = int(self.combo_layers.currentText())
 
+        self.canvas.endSelection()
         self.canvas.drawLaser(
             self.laser, self.combo_isotopes.currentText(), layer=layer
         )
@@ -372,6 +380,14 @@ class LaserWidget(_ViewWidget):
         )
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
         dlg.fileSelected.connect(self.saveDocument)
+        dlg.open()
+        return dlg
+
+    def actionSelectDialog(self) -> QtWidgets.QDialog:
+        dlg = dialogs.SelectionDialog(
+            self.laser.get(flat=True), self.combo_isotopes.currentText(), parent=self
+        )
+        dlg.maskSelected.connect(self.canvas.setSelection)
         dlg.open()
         return dlg
 
