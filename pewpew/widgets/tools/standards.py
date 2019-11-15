@@ -432,11 +432,9 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
     def __init__(self, calibration: Calibration, parent: QtCore.QObject = None):
         self.calibration = calibration
         if self.calibration.points is None or self.calibration.points.size == 0:
-            array = np.array([[np.nan, np.nan, np.nan]], dtype=np.float64)
+            array = np.array([[np.nan, np.nan]], dtype=np.float64)
         else:
-            points = self.calibration.points
-            weights = self.calibration.weights
-            array = np.vstack((points, weights))
+            array = self.calibration.points
         super().__init__(array, parent)
 
         self.alphabet_rows = True
@@ -454,7 +452,6 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         if self.calibration.points is not None and self.calibration.points.size > 0:
             min_row = np.min((new_array.shape[0], self.calibration.points.shape[0]))
             new_array[:min_row, :2] = self.calibration.points[:min_row]
-            new_array[:min_row, 2] = self.calibration.weights[:min_row]
         self.array = new_array
         self.endResetModel()
 
@@ -485,7 +482,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
             return None
 
         if orientation == QtCore.Qt.Horizontal:
-            return ("Concentration", "Counts", "Weights")[section]
+            return ("Concentration", "Counts")[section]
         else:
             if self.alphabet_rows:
                 return "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[section]
@@ -504,12 +501,8 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
     def updateCalibration(self, *args) -> None:
         if np.count_nonzero(np.nan_to_num(self.array[:, 0])) < 2:
             self.calibration._points = None
-            self.weights = None
         else:
             self.calibration.points = self.array[:, :2]
-            self.calibration.weights = self.array[2]
-
-        # self.calibration.update_linreg()
 
 
 class StandardsTable(BasicTableView):
@@ -526,7 +519,6 @@ class StandardsTable(BasicTableView):
         )
         model = CalibrationPointsTableModel(calibration, self)
         self.setModel(model)
-        # self.setHorizontalHeader(["Concentration", "Counts"])
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         self.setItemDelegate(DoubleSignificantFiguresDelegate(4))
@@ -548,17 +540,6 @@ class StandardsTable(BasicTableView):
         for i in range(0, self.model().rowCount()):
             self.model().setData(
                 self.model().index(i, StandardsTable.COLUMN_COUNT), counts[i]
-            )
-        self.model().blockSignals(False)
-        self.model().dataChanged.emit(
-            QtCore.QModelIndex(), QtCore.QModelIndex(), [QtCore.Qt.EditRole]
-        )
-
-    def setWeights(self, weights: np.ndarray) -> None:
-        self.model().blockSignals(True)
-        for i in range(0, self.model().rowCount()):
-            self.model().setData(
-                self.model().index(i, StandardsTable.COLUMN_WEIGHTS), weights[i]
             )
         self.model().blockSignals(False)
         self.model().dataChanged.emit(
