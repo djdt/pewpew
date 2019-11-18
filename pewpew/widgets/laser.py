@@ -162,9 +162,9 @@ class LaserWidget(_ViewWidget):
         self.selection_button.setIcon(QtGui.QIcon.fromTheme("select"))
         self.action_select_none = qAction(
             "transform-move",
-            "End Selection",
-            "End selection tool.",
-            self.canvas.endSelection,
+            "Clear Selection",
+            "Clear any selections.",
+            self.canvas.clearSelection,
         )
         self.selection_button.addAction(self.action_select_none)
         self.action_select_rect = qAction(
@@ -181,6 +181,13 @@ class LaserWidget(_ViewWidget):
             self.canvas.startLassoSelection,
         )
         self.selection_button.addAction(self.action_select_lasso)
+        self.action_select_dialog = qAction(
+            "dialog-information",
+            "Selection Dialog",
+            "Start the selection dialog.",
+            self.actionSelectDialog,
+        )
+        self.selection_button.addAction(self.action_select_dialog)
 
         self.view_button = QtWidgets.QToolButton()
         self.view_button.setAutoRaise(True)
@@ -227,6 +234,7 @@ class LaserWidget(_ViewWidget):
         else:
             layer = int(self.combo_layers.currentText())
 
+        self.canvas.endSelection()
         self.canvas.drawLaser(
             self.laser, self.combo_isotopes.currentText(), layer=layer
         )
@@ -348,6 +356,7 @@ class LaserWidget(_ViewWidget):
     def actionConfig(self) -> QtWidgets.QDialog:
         dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
         dlg.configSelected.connect(self.applyConfig)
+        dlg.configApplyAll.connect(self.viewspace.applyConfig)
         dlg.open()
         return dlg
 
@@ -374,6 +383,14 @@ class LaserWidget(_ViewWidget):
         dlg.open()
         return dlg
 
+    def actionSelectDialog(self) -> QtWidgets.QDialog:
+        dlg = dialogs.SelectionDialog(
+            self.laser.get(flat=True), self.combo_isotopes.currentText(), parent=self
+        )
+        dlg.maskSelected.connect(self.canvas.setSelection)
+        dlg.open()
+        return dlg
+
     def actionStatistics(self) -> QtWidgets.QDialog:
         data = self.canvas.getMaskedData()
         area = (
@@ -385,7 +402,7 @@ class LaserWidget(_ViewWidget):
 
     def actionColocal(self) -> QtWidgets.QDialog:
         mask = self.canvas.getSelection()
-        dlg = dialogs.ColocalisationDialog(self.laser.data, mask, parent=self)
+        dlg = dialogs.ColocalisationDialog(self.laser.get(flat=True), mask, parent=self)
         dlg.open()
         return dlg
 

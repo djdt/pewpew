@@ -18,7 +18,6 @@ from pew.laser import Laser
 
 from pewpew.lib.mpltools import MetricSizeBar
 from pewpew.lib.mplwidgets import (
-    _ImageSelectionWidget,
     RectangleImageSelectionWidget,
     LassoImageSelectionWidget,
 )
@@ -356,7 +355,10 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             "linewidth": 1.1,
             "path_effects": [lineshadow, Normal()],
         }
-        self.mask_rgba = np.array(
+
+        self.selection: np.ndarray = None
+        self.selection_image: AxesImage = None
+        self.selection_rgba = np.array(
             [highlight.red(), highlight.green(), highlight.blue(), 255 * 0.5],
             dtype=np.uint8,
         )
@@ -371,8 +373,29 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         if self.widget is not None:
             self.widget.ax = self.ax
 
+    def drawSelection(self) -> None:
+        if self.selection_image is not None:
+            self.selection_image.remove()
+            self.selection_image = None
+
+        if self.selection is None or np.all(self.selection == 0):
+            return
+
+        assert self.selection.dtype == np.bool
+
+        image = np.zeros((*self.selection.shape[:2], 4), dtype=np.uint8)
+        image[self.selection] = self.selection_rgba
+        self.selection_image = self.ax.imshow(
+            image,
+            extent=self.image.get_extent(),
+            transform=self.image.get_transform(),
+            interpolation="none",
+            origin=self.image.origin,
+        )
+
     def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
         super().drawLaser(laser, name, layer)
+        self.drawSelection()
         # Save some variables for the status bar
         if layer is not None:
             self.px, self.py = (
@@ -389,14 +412,25 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
 
     def endSelection(self) -> None:
         if self.widget is not None:
-            self.widget.set_active(False)
+            self.widget = None
+
+    def updateSelectionFromWidget(self, mask: np.ndarray, state: set = None) -> None:
+        if "add" in state and self.selection is not None:
+            self.selection = np.logical_or(self.selection, mask)
+        elif "subtract" in state and self.selection is not None:
+            self.selection = np.logical_and(self.selection, ~mask)
+        else:
+            self.selection = mask
+
+        self.drawSelection()
+        self.draw_idle()
 
     def startLassoSelection(self) -> None:
-        self.clearSelection()
+        self.endSelection()
         self.state.add("selection")
         self.widget = LassoImageSelectionWidget(
             self.image,
-            self.mask_rgba,
+            self.updateSelectionFromWidget,
             useblit=True,
             button=self.button,
             lineprops=self.lineprops,
@@ -405,11 +439,11 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         self.setFocus(QtCore.Qt.NoFocusReason)
 
     def startRectangleSelection(self) -> None:
-        self.clearSelection()
+        self.endSelection()
         self.state.add("selection")
         self.widget = RectangleImageSelectionWidget(
             self.image,
-            self.mask_rgba,
+            self.updateSelectionFromWidget,
             useblit=True,
             button=self.button,
             lineprops=self.lineprops,
@@ -424,20 +458,20 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.widget.update()
             self.draw_idle()
         self.state.discard("selection")
+        self.selection = None
         self.widget = None
+        self.drawSelection()
+        self.draw_idle()
+
+    def setSelection(self, mask: np.ndarray) -> None:
+        self.selection = mask
+        self.drawSelection()
+        self.draw_idle()
 
     def getSelection(self) -> np.ndarray:
-        if self.widget is not None and isinstance(self.widget, _ImageSelectionWidget):
-            return self.widget.mask
-        else:
-            return None
+        return self.selection
 
     def getMaskedData(self) -> np.ndarray:
-        # x0, x1, y0, y1 = self.view_limits
-        # (x0, y0), (x1, y1) = image_extent_to_data(self.image).transform(
-        #     ((x0, y1), (x1, y0))
-        # )
-        # x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
         data = self.image.get_array()
         mask = self.getSelection()
         if mask is not None and not np.all(mask == 0):
@@ -515,7 +549,6 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             pass
 
     def startZoom(self) -> None:
-        self.clearSelection()
         self.widget = RectangleSelector(
             self.ax,
             self.zoom,
@@ -527,7 +560,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         self.widget.set_active(True)
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
-        self.clearSelection()
+        self.widget = None
         self.view_limits = (press.xdata, release.xdata, press.ydata, release.ydata)
         self.state.add("zoom")
 

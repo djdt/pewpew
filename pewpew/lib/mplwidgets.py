@@ -7,16 +7,21 @@ from matplotlib.image import AxesImage
 
 from pewpew.lib.mpltools import image_extent_to_data
 
+from typing import Callable
+
 
 class _ImageSelectionWidget(_SelectorWidget):
     STATE_MODIFIER_KEYS = dict(move="", clear="escape", add="shift", subtract="control")
 
     def __init__(
-        self, image: AxesImage, mask_rgba: np.ndarray, useblit=True, button: int = None
+        self,
+        image: AxesImage,
+        callback: Callable[[np.ndarray, set], None],
+        useblit=True,
+        button: int = None,
     ):
         self.image = image
-        assert len(mask_rgba) == 4
-        self.rgba = mask_rgba
+        self.callback = callback
 
         super().__init__(
             image.axes,
@@ -26,24 +31,6 @@ class _ImageSelectionWidget(_SelectorWidget):
             state_modifier_keys=self.STATE_MODIFIER_KEYS,
         )
         self.verts: np.ndarray = None
-
-        self.mask: np.ndarray = np.zeros(
-            self.image.get_array().shape[:2], dtype=np.bool
-        )
-
-        self.mask_image = AxesImage(
-            image.axes,
-            extent=image.get_extent(),
-            transform=image.get_transform(),
-            interpolation="none",
-            origin=image.origin,
-            visible=False,
-            animated=useblit,
-        )
-        self.mask_image.set_data(np.zeros((*self.mask.shape, 4), dtype=np.uint8))
-
-        self.ax.add_image(self.mask_image)
-        self.artists = [self.mask_image]
 
     def _press(self, event: MouseEvent) -> None:
         self.verts = [self._get_data(event)]
@@ -61,12 +48,12 @@ class _ImageSelectionWidget(_SelectorWidget):
 
     def _on_key_release(self, event: KeyEvent) -> None:
         if event.key == self.state_modifier_keys["clear"]:
-            self.mask = np.zeros_like(self.mask)
-            self._update_mask_image()
+            self.callback(np.zeros_like(self.mask), None)
 
     def update_mask(self, vertices: np.ndarray) -> None:
-        data = self.image.get_array()
+        shape = self.image.get_array().shape
         x0, x1, y0, y1 = self.image.get_extent()
+        mask = np.zeros(shape[:2], dtype=np.bool)
 
         # Transform verticies into image data coords
         transform = self.ax.transData + self.image.get_transform().inverted()
@@ -80,9 +67,9 @@ class _ImageSelectionWidget(_SelectorWidget):
 
         # Bound to array size
         vx[0] = max(0, vx[0])
-        vx[1] = min(data.shape[1], vx[1])
+        vx[1] = min(shape[1], vx[1])
         vy[0] = max(0, vy[0])
-        vy[1] = min(data.shape[0], vy[1])
+        vy[1] = min(shape[0], vy[1])
 
         # If somehow the data is malformed then return
         if vx[1] - vx[0] < 1 or vy[1] - vy[0] < 1:
@@ -97,39 +84,21 @@ class _ImageSelectionWidget(_SelectorWidget):
         path = Path(vertices)
         ind = path.contains_points(pix)
 
-        # Refresh the mask if not adding / subtracting to it
-        if not any(state in self.state for state in ["add", "subtract"]):
-            self.mask = np.zeros(data.shape[:2], dtype=bool)
-        # Update the mask
-        self.mask[vy[0] : vy[1], vx[0] : vx[1]].flat[ind] = (
-            False if "subtract" in self.state else True
-        )
-
-        self._update_mask_image()
-
-    def _update_mask_image(self) -> None:
-        assert self.mask.dtype == np.bool
-
-        image = np.zeros((*self.mask.shape[:2], 4), dtype=np.uint8)
-        image[self.mask] = self.rgba
-        self.mask_image.set_data(image)
-
-        if np.all(self.mask == 0):
-            self.mask_image.set_visible(False)
-        else:
-            self.mask_image.set_visible(True)
+        # Send via callback
+        mask[vy[0] : vy[1], vx[0] : vx[1]].flat[ind] = True
+        self.callback(mask, self.state)
 
 
 class LassoImageSelectionWidget(_ImageSelectionWidget):
     def __init__(
         self,
         image: AxesImage,
-        mask_rgba: np.ndarray = (255, 255, 255, 128),
+        callback: Callable[[np.ndarray, set], None],
         useblit: bool = True,
         button: int = 1,
         lineprops: dict = None,
     ):
-        super().__init__(image, mask_rgba, useblit=useblit, button=button)
+        super().__init__(image, callback, useblit=useblit, button=button)
 
         if lineprops is None:
             lineprops = dict()
@@ -153,12 +122,12 @@ class RectangleImageSelectionWidget(_ImageSelectionWidget):
     def __init__(
         self,
         image: AxesImage,
-        mask_rgba: np.ndarray = (255, 255, 255, 128),
+        callback: Callable[[np.ndarray, set], None],
         useblit: bool = True,
         button: int = 1,
         lineprops: dict = None,
     ):
-        super().__init__(image, mask_rgba, useblit=useblit, button=button)
+        super().__init__(image, callback, useblit=useblit, button=button)
 
         if lineprops is None:
             lineprops = dict()
