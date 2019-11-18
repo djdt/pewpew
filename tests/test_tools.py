@@ -47,7 +47,7 @@ def test_standards_tool(qtbot: QtBot):
     # Units
     tool.lineedit_units.setText("unit")
     tool.lineedit_units.editingFinished.emit()
-    tool.combo_weighting.setCurrentIndex(1)
+    tool.combo_weighting.setCurrentIndex(2)
     # Trim
     tool.combo_trim.setCurrentText("s")
     tool.lineedit_left.setText(str(tool.widget.laser.config.scantime * 2))
@@ -81,7 +81,7 @@ def test_standards_tool(qtbot: QtBot):
     # Change isotope, check if weighting and unit have remained
     tool.combo_isotope.setCurrentIndex(1)
     assert not tool.isComplete()
-    assert tool.combo_weighting.currentIndex() == 1
+    assert tool.combo_weighting.currentIndex() == 0
     assert tool.lineedit_units.text() == "unit"
     tool.lineedit_units.setText("none")
     tool.combo_weighting.setCurrentIndex(2)
@@ -90,7 +90,7 @@ def test_standards_tool(qtbot: QtBot):
     tool.combo_isotope.setCurrentIndex(0)
     assert tool.isComplete()
     assert tool.lineedit_units.text() == "unit"
-    assert tool.combo_weighting.currentIndex() == 1
+    assert tool.combo_weighting.currentIndex() == 2
 
     tool.results_box.copy()
     assert (
