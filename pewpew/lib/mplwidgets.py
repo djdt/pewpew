@@ -48,7 +48,7 @@ class _ImageSelectionWidget(_SelectorWidget):
 
     def _on_key_release(self, event: KeyEvent) -> None:
         if event.key == self.state_modifier_keys["clear"]:
-            self.callback(np.zeros_like(self.mask), None)
+            self.callback(np.zeros(self.image.get_array().shape, dtype=bool), set())
 
     def update_mask(self, vertices: np.ndarray) -> None:
         shape = self.image.get_array().shape
