@@ -1,17 +1,14 @@
 import numpy as np
-import pytest
 
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
-from matplotlib.backend_bases import KeyEvent, MouseEvent
 
 from pewpew.lib.mplwidgets import (
-    _ImageSelectionWidget,
     LassoImageSelectionWidget,
     RectangleImageSelectionWidget,
 )
 
-from typing import Tuple
+from typing import Set
 
 
 class FakeEvent(object):
@@ -29,15 +26,30 @@ class FakeEvent(object):
         self.name = "none"
 
 
+mask = np.zeros((50, 50), dtype=bool)
+
+
+def update_mask(m: np.ndarray, s: Set) -> None:
+    global mask
+    if "add" in s:
+        mask = np.logical_or(mask, m)
+    elif "subtract" in s:
+        mask = np.logical_and(mask, ~m)
+    else:
+        mask = m
+
+
 def test_lasso_image_selection_widget():
+    global mask
+
     fig, ax = plt.subplots()
     img = ax.imshow(np.random.random((50, 50)), extent=(0, 100, 0, 100))
     ax.figure.canvas.draw()
 
-    tool = LassoImageSelectionWidget(img)
+    tool = LassoImageSelectionWidget(img, update_mask)
     tool.set_active(True)
 
-    assert not np.any(tool.mask)
+    assert not np.any(mask)
 
     tool.press(FakeEvent(tool.ax, 50, 50))
     tool.onmove(FakeEvent(tool.ax, 50, 75))
@@ -45,9 +57,9 @@ def test_lasso_image_selection_widget():
     tool.onmove(FakeEvent(tool.ax, 75, 50))
     tool.release(FakeEvent(tool.ax, 75, 50))
 
-    assert not np.any(tool.mask[:12, :25])
-    assert np.all(tool.mask[12:25, 25:37])
-    assert not np.any(tool.mask[25:, 37:])
+    assert not np.any(mask[:12, :25])
+    assert np.all(mask[12:25, 25:37])
+    assert not np.any(mask[25:, 37:])
 
     tool.press(FakeEvent(tool.ax, 0, 0))
     tool.onmove(FakeEvent(tool.ax, 0, 50))
@@ -55,8 +67,8 @@ def test_lasso_image_selection_widget():
     tool.onmove(FakeEvent(tool.ax, 100, 0))
     tool.release(FakeEvent(tool.ax, 100, 0))
 
-    assert np.all(tool.mask[25:, :25])
-    assert not np.any(tool.mask[:25, 25:])
+    assert np.all(mask[25:, :25])
+    assert not np.any(mask[:25, 25:])
 
     # Test add on shift
     tool.on_key_press(FakeEvent(tool.ax, 0, 0, key="shift"))
@@ -67,7 +79,7 @@ def test_lasso_image_selection_widget():
     tool.release(FakeEvent(tool.ax, 0, 50))
     tool.on_key_release(FakeEvent(tool.ax, 0, 50, key="shift"))
 
-    assert np.all(tool.mask)
+    assert np.all(mask)
 
     # Test subtract on control
     tool.on_key_press(FakeEvent(tool.ax, 0, 0, key="control"))
@@ -78,40 +90,43 @@ def test_lasso_image_selection_widget():
     tool.release(FakeEvent(tool.ax, 25, 75))
     tool.on_key_release(FakeEvent(tool.ax, 25, 75, key="control"))
 
-    assert np.all(tool.mask[:12, :12])
-    assert not np.any(tool.mask[12:37, 12:37])
-    assert np.all(tool.mask[37:, 37:])
+    assert np.all(mask[:12, :12])
+    assert not np.any(mask[12:37, 12:37])
+    assert np.all(mask[37:, 37:])
 
     # Test clear on escape
     tool.on_key_press(FakeEvent(tool.ax, 0, 0, key="escape"))
     tool.on_key_release(FakeEvent(tool.ax, 0, 0, key="escape"))
-    assert not np.any(tool.mask)
+    assert not np.any(mask)
 
 
 def test_rectangle_image_selection_widget():
+    global mask
+    mask[:] = False
+
     fig, ax = plt.subplots()
     img = ax.imshow(np.random.random((50, 50)), extent=(0, 100, 0, 100))
     ax.figure.canvas.draw()
 
-    tool = RectangleImageSelectionWidget(img)
+    tool = RectangleImageSelectionWidget(img, update_mask)
     tool.set_active(True)
 
-    assert not np.any(tool.mask)
+    assert not np.any(mask)
 
     tool.press(FakeEvent(tool.ax, 50, 50))
     tool.onmove(FakeEvent(tool.ax, 75, 75))
     tool.release(FakeEvent(tool.ax, 75, 75))
 
-    assert not np.any(tool.mask[:12, :25])
-    assert np.all(tool.mask[12:25, 25:37])
-    assert not np.any(tool.mask[25:, 37:])
+    assert not np.any(mask[:12, :25])
+    assert np.all(mask[12:25, 25:37])
+    assert not np.any(mask[25:, 37:])
 
     tool.press(FakeEvent(tool.ax, 0, 0))
     tool.onmove(FakeEvent(tool.ax, 100, 50))
     tool.release(FakeEvent(tool.ax, 100, 50))
 
-    assert np.all(tool.mask[25:, :25])
-    assert not np.any(tool.mask[:25, 25:])
+    assert np.all(mask[25:, :25])
+    assert not np.any(mask[:25, 25:])
 
     # Test add on shift
     tool.on_key_press(FakeEvent(tool.ax, 0, 0, key="shift"))
@@ -120,7 +135,7 @@ def test_rectangle_image_selection_widget():
     tool.release(FakeEvent(tool.ax, 0, 100))
     tool.on_key_release(FakeEvent(tool.ax, 0, 100, key="shift"))
 
-    assert np.all(tool.mask)
+    assert np.all(mask)
 
     # Test subtract on control
     tool.on_key_press(FakeEvent(tool.ax, 0, 0, key="control"))
@@ -129,11 +144,11 @@ def test_rectangle_image_selection_widget():
     tool.release(FakeEvent(tool.ax, 75, 75))
     tool.on_key_release(FakeEvent(tool.ax, 75, 75, key="control"))
 
-    assert np.all(tool.mask[:12, :12])
-    assert not np.any(tool.mask[12:37, 12:37])
-    assert np.all(tool.mask[37:, 37:])
+    assert np.all(mask[:12, :12])
+    assert not np.any(mask[12:37, 12:37])
+    assert np.all(mask[37:, 37:])
 
     # Test clear on escape
     tool.on_key_press(FakeEvent(tool.ax, 0, 0, key="escape"))
     tool.on_key_release(FakeEvent(tool.ax, 0, 0, key="escape"))
-    assert not np.any(tool.mask)
+    assert not np.any(mask)
