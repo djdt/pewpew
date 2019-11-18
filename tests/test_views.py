@@ -1,6 +1,6 @@
 from pytestqt.qtbot import QtBot
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtWidgets
 
 from pewpew.widgets.views import ViewSpace, View, _ViewWidget
 
@@ -23,9 +23,8 @@ def test_view_space_active(qtbot: QtBot):
     # Focus new widget
     viewspace.splitActiveHorizontal()
     assert viewspace.activeView() == viewspace.views[1]
-    # Test focus changes active
-    viewspace.views[0].setFocus()
-    qtbot.waitUntil(lambda: viewspace.views[0].hasFocus())
+    # Test stack changes active
+    qtbot.mouseClick(viewspace.views[0].stack, QtCore.Qt.LeftButton)
     assert viewspace.activeView() == viewspace.views[0]
     # Test focus on tab changes active
     qtbot.mouseClick(viewspace.views[1].tabs, QtCore.Qt.LeftButton)
