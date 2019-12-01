@@ -14,7 +14,7 @@ from pew.calc import get_weights
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.validators import DoubleSignificantFiguresDelegate
-from pewpew.widgets.canvases import BasicCanvas
+from pewpew.widgets.canvases import InteractiveCanvas
 from pewpew.widgets.dialogs import CalibrationCurveDialog
 from pewpew.widgets.modelviews import BasicTableView
 from pewpew.widgets.laser import LaserWidget
@@ -297,7 +297,7 @@ class StandardsTool(ToolWidget):
         self.refresh()
 
 
-class StandardsCanvas(BasicCanvas):
+class StandardsCanvas(InteractiveCanvas):
     def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):
         super().__init__(parent=parent)
         self.viewoptions = viewoptions
@@ -305,6 +305,41 @@ class StandardsCanvas(BasicCanvas):
         self.image: AxesImage = None
 
         self.redrawFigure()
+
+        self.h_guides = []
+        self.v_guides = []
+
+    def ignore_event(self, event: LocationEvent) -> bool:
+        if event.name not in [
+            "pick_event",
+            "button_release_event",
+            "motion_notify_event",
+        ]:
+            return True
+        elif (
+            event.name in ["button_press_event", "button_release_event"]
+            and event.button != self.button
+        ):
+            return True
+
+        if event.inaxes != self.ax:
+            return True
+
+        return super().ignore_event(event)
+
+    def pick(self, event: PickEvent) -> None:
+        pass
+
+    def move(self, event: MouseEvent) -> None:
+        if self.picked_artist is None:
+            return
+
+        if self.picked_artist in self.h_guides:
+            self.picked_artist.set_xdata([event.xdata, event.xdata])
+
+    def release(self, event: MouseEvent) -> None:
+        if self.picked_artist is None:
+            return
 
     def redrawFigure(self) -> None:
         self.figure.clear()

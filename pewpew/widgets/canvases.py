@@ -2,8 +2,9 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from matplotlib.artist import Artist
 from matplotlib.axes import Axes
-from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent
+from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent, PickEvent
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from matplotlib.image import AxesImage, imsave
@@ -84,10 +85,11 @@ class InteractiveCanvas(BasicCanvas):
         self.default_events = {
             "axis_enter_event": self._axis_enter,
             "axis_leave_event": self._axis_leave,
-            "key_press_event": self._keypress,
             "button_press_event": self._press,
             "button_release_event": self._release,
+            "key_press_event": self._keypress,
             "motion_notify_event": self._move,
+            "pick_event": self._pick,
             "scroll_event": self._scroll,
         }
 
@@ -95,6 +97,7 @@ class InteractiveCanvas(BasicCanvas):
             self.connect_event(event, callback)
 
         self.widget: AxesWidget = None
+        self.picked_artist: Artist = None
 
     def close(self) -> None:
         self.disconnect_events()
@@ -123,11 +126,6 @@ class InteractiveCanvas(BasicCanvas):
             return
         self.axis_leave(event)
 
-    def _keypress(self, event: KeyEvent) -> None:
-        if self.ignore_event(event):
-            return
-        self.keypress(event)
-
     def _press(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
             return
@@ -140,10 +138,21 @@ class InteractiveCanvas(BasicCanvas):
         self.eventrelease = event
         self.release(event)
 
+    def _keypress(self, event: KeyEvent) -> None:
+        if self.ignore_event(event):
+            return
+        self.keypress(event)
+
     def _move(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
             return
         self.move(event)
+
+    def _pick(self, event: PickEvent) -> None:
+        if self.ignore_event(event):
+            return
+        self.picked_artist = event.artist
+        self.pick(event)
 
     def _scroll(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
