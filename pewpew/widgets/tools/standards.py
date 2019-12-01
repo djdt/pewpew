@@ -6,6 +6,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from matplotlib.image import AxesImage
 from matplotlib.lines import Line2D
 from matplotlib.text import Text
+from matplotlib.backend_bases import LocationEvent, PickEvent, MouseEvent
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pew import Calibration
@@ -306,8 +307,8 @@ class StandardsCanvas(InteractiveCanvas):
 
         self.redrawFigure()
 
-        self.h_guides = []
-        self.v_guides = []
+        self.v_guides: List[Line2D] = []
+        # self.v_guides = []
 
     def ignore_event(self, event: LocationEvent) -> bool:
         if event.name not in [
@@ -334,12 +335,13 @@ class StandardsCanvas(InteractiveCanvas):
         if self.picked_artist is None:
             return
 
-        if self.picked_artist in self.h_guides:
+        if self.picked_artist in self.v_guides:
             self.picked_artist.set_xdata([event.xdata, event.xdata])
 
     def release(self, event: MouseEvent) -> None:
         if self.picked_artist is None:
             return
+        self.picked_artist = None
 
     def redrawFigure(self) -> None:
         self.figure.clear()
@@ -352,6 +354,11 @@ class StandardsCanvas(InteractiveCanvas):
         self.bax.set_facecolor("black")
         self.bax.get_xaxis().set_visible(False)
         self.bax.get_yaxis().set_visible(False)
+
+        # Draw in the guides
+        self.v_guides.clear()
+        self.v_guides.append(self.ax.axvline(10, picker=20))
+        self.v_guides.append(self.ax.axvline(10, picker=20))
 
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float]
