@@ -3,10 +3,11 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from matplotlib.backend_bases import LocationEvent, PickEvent, MouseEvent
 from matplotlib.image import AxesImage
 from matplotlib.lines import Line2D
+from matplotlib.patheffects import withStroke
 from matplotlib.text import Text
-from matplotlib.backend_bases import LocationEvent, PickEvent, MouseEvent
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pew import Calibration
@@ -302,17 +303,18 @@ class StandardsCanvas(InteractiveCanvas):
     def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):
         super().__init__(parent=parent)
         self.viewoptions = viewoptions
+        self.button = 1
 
         self.image: AxesImage = None
+        self.h_guides: List[Line2D] = []
+        self.v_guides: List[Line2D] = []
 
         self.redrawFigure()
-
-        self.v_guides: List[Line2D] = []
-        # self.v_guides = []
 
     def ignore_event(self, event: LocationEvent) -> bool:
         if event.name not in [
             "pick_event",
+            "button_press_event",
             "button_release_event",
             "motion_notify_event",
         ]:
@@ -328,7 +330,7 @@ class StandardsCanvas(InteractiveCanvas):
 
         return super().ignore_event(event)
 
-    def pick(self, event: PickEvent) -> None:
+    def onpick(self, event: PickEvent) -> None:
         pass
 
     def move(self, event: MouseEvent) -> None:
@@ -336,16 +338,22 @@ class StandardsCanvas(InteractiveCanvas):
             return
 
         if self.picked_artist in self.v_guides:
-            self.picked_artist.set_xdata([event.xdata, event.xdata])
+            x, y = self.ax.transAxes.inverted().transform([event.x, event.y])
+            self.picked_artist.set_xdata([x, x])
+            self.draw_idle()
+
+    def press(self, event: MouseEvent) -> None:
+        pass
 
     def release(self, event: MouseEvent) -> None:
-        if self.picked_artist is None:
-            return
+        if self.picked_artist in self.v_guides:
+            # Snap guide
+            pass
         self.picked_artist = None
 
     def redrawFigure(self) -> None:
         self.figure.clear()
-        self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=False)
+        self.ax = self.figure.add_subplot(facecolor="black")
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
 
@@ -356,14 +364,13 @@ class StandardsCanvas(InteractiveCanvas):
         self.bax.get_yaxis().set_visible(False)
 
         # Draw in the guides
-        self.v_guides.clear()
-        self.v_guides.append(self.ax.axvline(10, picker=20))
-        self.v_guides.append(self.ax.axvline(10, picker=20))
+        self.drawVerticalGuides()
 
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float]
     ) -> None:
-        self.ax.clear()
+        if self.image is not None:
+            self.image.remove()
         self.image = self.ax.imshow(
             data,
             extent=extent,
@@ -374,21 +381,10 @@ class StandardsCanvas(InteractiveCanvas):
             origin="upper",
         )
 
+    # def drawHorizontalGuides(self, )
     def drawLevels(self, texts: List[str], levels: int) -> None:
         self.bax.clear()
         ax_fraction = 1.0 / levels
-        # Draw lines
-        for frac in np.linspace(1.0 - ax_fraction, ax_fraction, levels - 1):
-            line = Line2D(
-                (0.0, 1.0),
-                (frac, frac),
-                transform=self.ax.transAxes,
-                color="black",
-                linestyle="--",
-                linewidth=2.0,
-            )
-            self.ax.add_artist(line)
-
         for i, frac in enumerate(np.linspace(1.0, ax_fraction, levels)):
             text = Text(
                 x=0.5,
@@ -401,6 +397,43 @@ class StandardsCanvas(InteractiveCanvas):
                 verticalalignment="center",
             )
             self.bax.add_artist(text)
+
+        # Draw lines
+        for line in self.h_guides:
+            line.remove()
+        self.h_guides = []
+
+        for frac in np.linspace(1.0 - ax_fraction, ax_fraction, levels - 1):
+            line = Line2D(
+                (0.0, 1.0),
+                (frac, frac),
+                transform=self.ax.transAxes,
+                color="white",
+                linestyle="--",
+                path_effects=[withStroke(linewidth=2.0, foreground="black")],
+                linewidth=1.0,
+            )
+            self.h_guides.append(line)
+            self.ax.add_artist(line)
+
+    def drawVerticalGuides(self, ax_pos: Tuple[float, float] = (0.1, 0.9)) -> None:
+        for line in self.v_guides:
+            line.remove()
+        self.v_guides = []
+
+        for pos in ax_pos:
+            line = Line2D(
+                (pos, pos),
+                (0.0, 1.0),
+                transform=self.ax.transAxes,
+                color="white",
+                linestyle="-",
+                path_effects=[withStroke(linewidth=2.0, foreground="black")],
+                linewidth=1.0,
+                picker=20,
+            )
+            self.ax.add_artist(line)
+            self.v_guides.append(line)
 
 
 class StandardsResultsBox(QtWidgets.QGroupBox):
