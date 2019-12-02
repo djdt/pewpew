@@ -28,6 +28,10 @@ class ViewSpace(QtWidgets.QSplitter):
             QtGui.QIcon.fromTheme("view-close"), "Close View"
         )
         self.action_close_view.triggered.connect(self.closeActiveView)
+        # self.action_close_others = QtWidgets.QAction(
+        #     QtGui.QIcon.fromTheme("view-right-close"), "Close Other Views"
+        # )
+        # self.action_close_view.triggered.connect(self.closeOtherViews)
 
         self.addWidget(self.createView())
 
@@ -61,6 +65,12 @@ class ViewSpace(QtWidgets.QSplitter):
     def closeActiveView(self) -> None:
         self.closeView(self.activeView())
         self.active_view = None
+
+    # def closeOtherViews(self) -> None:
+    #     active_view = self.activeView()
+    #     for view in self.views:
+    #         if view != active_view:
+    #             self.closeView(view)
 
     def closeView(self, view: "View") -> None:
         if view is None:
@@ -375,6 +385,7 @@ class ViewTitleBar(QtWidgets.QWidget):
         self.split_button.addAction(self.view.viewspace.action_split_horz)
         self.split_button.addAction(self.view.viewspace.action_split_vert)
         self.split_button.addAction(self.view.viewspace.action_close_view)
+        # self.split_button.addAction(self.view.viewspace.action_close_others)
 
         self.split_button.installEventFilter(self.view)
 

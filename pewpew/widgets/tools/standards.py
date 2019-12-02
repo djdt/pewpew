@@ -404,7 +404,7 @@ class StandardsCanvas(InteractiveCanvas):
 
 
 class StandardsResultsBox(QtWidgets.QGroupBox):
-    LABELS = ["RSQ", "Gradient", "Intercept"]
+    LABELS = ["RSQ", "Gradient", "Intercept", "Y-error"]
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__("Results", parent)
@@ -463,10 +463,15 @@ class StandardsResultsBox(QtWidgets.QGroupBox):
 
     def update(self, calibration: Calibration) -> None:
         for v, le in zip(
-            [calibration.rsq, calibration.gradient, calibration.intercept],
+            [
+                calibration.rsq,
+                calibration.gradient,
+                calibration.intercept,
+                calibration.yerr,
+            ],
             self.lineedits,
         ):
-            le.setText(f"{v:.4f}")
+            le.setText(f"{v:.4f}" if v is not None else "")
         self.button.setEnabled(True)
 
 

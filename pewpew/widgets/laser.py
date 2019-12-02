@@ -8,7 +8,6 @@ from pew import io
 from pew.laser import Laser
 from pew.srr import SRRLaser, SRRConfig
 from pew.config import Config
-from pew.io.error import PewException
 
 from pewpew.lib.io import import_any
 from pewpew.lib.viewoptions import ViewOptions
@@ -97,8 +96,9 @@ class LaserView(View):
             for laser in lasers:
                 self.addLaser(laser)
             event.acceptProposedAction()
-        except io.error.PewException:
+        except io.error.PewException as e:
             event.ignore()
+            QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
 
     # Callbacks
     def openDocument(self, paths: List[str]) -> None:
@@ -106,7 +106,7 @@ class LaserView(View):
             for laser in import_any(paths, self.viewspace.config):
                 self.addLaser(laser)
 
-        except PewException as e:
+        except io.error.PewException as e:
             QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
 
     def applyCalibration(self, calibration: dict) -> None:
