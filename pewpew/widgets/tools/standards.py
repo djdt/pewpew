@@ -163,6 +163,8 @@ class StandardsTool(ToolWidget):
             self.canvas.drawVerticalGuides()
         self.canvas.drawLevels(StandardsTable.ROW_LABELS, self.spinbox_levels.value())
         self.canvas.draw()
+        self.canvas.update_background(None)
+        self.canvas.blitGuides()
 
         buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
         self.table.setCounts([np.nanmean(b) for b in buckets])
@@ -307,6 +309,11 @@ class StandardsCanvas(InteractiveCanvas):
         self.viewoptions = viewoptions
         self.button = 1
 
+        self.connect_event("draw_event", self.update_background)
+        self.connect_event("resize_event", self._resize)
+
+        self.guides_need_draw = True
+
         self.image: AxesImage = None
         self.background = None
         self.h_guides: List[Line2D] = []
@@ -333,9 +340,16 @@ class StandardsCanvas(InteractiveCanvas):
 
         return super().ignore_event(event)
 
+    def _resize(self, event) -> None:
+        self.guides_need_draw = True
+
+    def update_background(self, event) -> None:
+        self.background = self.copy_from_bbox(self.ax.bbox)
+        if self.guides_need_draw:
+            self.blitGuides()
+
     def onpick(self, event: PickEvent) -> None:
-        if self.background is None:
-            self.background = self.copy_from_bbox(self.ax.bbox)
+        pass
 
     def move(self, event: MouseEvent) -> None:
         if self.picked_artist is None:
@@ -344,7 +358,7 @@ class StandardsCanvas(InteractiveCanvas):
         if self.picked_artist in self.v_guides:
             x, y = self.ax.transAxes.inverted().transform([event.x, event.y])
             self.picked_artist.set_xdata([x, x])
-            self.blit_guides()
+            self.blitGuides()
 
     def press(self, event: MouseEvent) -> None:
         pass
@@ -357,7 +371,7 @@ class StandardsCanvas(InteractiveCanvas):
             # Snap guide
             x = x - (x % px)
             self.picked_artist.set_xdata([x, x])
-            self.blit_guides()
+            self.blitGuides()
         self.picked_artist = None
 
     def redrawFigure(self) -> None:
@@ -440,18 +454,15 @@ class StandardsCanvas(InteractiveCanvas):
             self.v_guides.append(line)
             self.ax.add_artist(line)
 
-    def draw_idle(self) -> None:
-        super().draw_idle()
-        self.background = self.copy_from_bbox(self.ax.bbox)
-
-    def blit_guides(self) -> None:
+    def blitGuides(self) -> None:
         if self.background is not None:
             self.restore_region(self.background)
 
         for line in self.v_guides:
             self.ax.draw_artist(line)
 
-        self.blit(self.ax.bbox)
+        self.update()
+        self.guides_need_draw = False
 
 
 class StandardsResultsBox(QtWidgets.QGroupBox):
