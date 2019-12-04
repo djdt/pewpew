@@ -159,6 +159,8 @@ class StandardsTool(ToolWidget):
 
         extent = self.widget.laser.config.data_extent(data.shape)
         self.canvas.drawData(data, extent)
+        if len(self.canvas.v_guides) == 0:
+            self.canvas.drawVerticalGuides()
         self.canvas.drawLevels(StandardsTable.ROW_LABELS, self.spinbox_levels.value())
         self.canvas.draw()
 
@@ -306,6 +308,7 @@ class StandardsCanvas(InteractiveCanvas):
         self.button = 1
 
         self.image: AxesImage = None
+        self.background = None
         self.h_guides: List[Line2D] = []
         self.v_guides: List[Line2D] = []
 
@@ -331,7 +334,8 @@ class StandardsCanvas(InteractiveCanvas):
         return super().ignore_event(event)
 
     def onpick(self, event: PickEvent) -> None:
-        pass
+        if self.background is None:
+            self.background = self.copy_from_bbox(self.ax.bbox)
 
     def move(self, event: MouseEvent) -> None:
         if self.picked_artist is None:
@@ -340,18 +344,24 @@ class StandardsCanvas(InteractiveCanvas):
         if self.picked_artist in self.v_guides:
             x, y = self.ax.transAxes.inverted().transform([event.x, event.y])
             self.picked_artist.set_xdata([x, x])
-            self.draw_idle()
+            self.blit_guides()
 
     def press(self, event: MouseEvent) -> None:
         pass
 
     def release(self, event: MouseEvent) -> None:
         if self.picked_artist in self.v_guides:
+            x, _x = self.picked_artist.get_xdata()
+            shape = self.image.get_array().shape
+            px = 1.0 / shape[1]  # Axes coords
             # Snap guide
-            pass
+            x = x - (x % px)
+            self.picked_artist.set_xdata([x, x])
+            self.blit_guides()
         self.picked_artist = None
 
     def redrawFigure(self) -> None:
+        self.background = None
         self.figure.clear()
         self.ax = self.figure.add_subplot(facecolor="black")
         self.ax.get_xaxis().set_visible(False)
@@ -362,9 +372,6 @@ class StandardsCanvas(InteractiveCanvas):
         self.bax.set_facecolor("black")
         self.bax.get_xaxis().set_visible(False)
         self.bax.get_yaxis().set_visible(False)
-
-        # Draw in the guides
-        self.drawVerticalGuides()
 
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float]
@@ -381,7 +388,6 @@ class StandardsCanvas(InteractiveCanvas):
             origin="upper",
         )
 
-    # def drawHorizontalGuides(self, )
     def drawLevels(self, texts: List[str], levels: int) -> None:
         self.bax.clear()
         ax_fraction = 1.0 / levels
@@ -417,8 +423,6 @@ class StandardsCanvas(InteractiveCanvas):
             self.ax.add_artist(line)
 
     def drawVerticalGuides(self, ax_pos: Tuple[float, float] = (0.1, 0.9)) -> None:
-        for line in self.v_guides:
-            line.remove()
         self.v_guides = []
 
         for pos in ax_pos:
@@ -431,9 +435,23 @@ class StandardsCanvas(InteractiveCanvas):
                 path_effects=[withStroke(linewidth=2.0, foreground="black")],
                 linewidth=1.0,
                 picker=20,
+                animated=True,
             )
-            self.ax.add_artist(line)
             self.v_guides.append(line)
+            self.ax.add_artist(line)
+
+    def draw_idle(self) -> None:
+        super().draw_idle()
+        self.background = self.copy_from_bbox(self.ax.bbox)
+
+    def blit_guides(self) -> None:
+        if self.background is not None:
+            self.restore_region(self.background)
+
+        for line in self.v_guides:
+            self.ax.draw_artist(line)
+
+        self.blit(self.ax.bbox)
 
 
 class StandardsResultsBox(QtWidgets.QGroupBox):

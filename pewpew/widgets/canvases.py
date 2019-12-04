@@ -149,10 +149,10 @@ class InteractiveCanvas(BasicCanvas):
         self.move(event)
 
     def _pick(self, event: PickEvent) -> None:
-        if self.ignore_event(event):
+        if self.ignore_event(event.mouseevent):
             return
         self.picked_artist = event.artist
-        self.pick(event)
+        self.onpick(event)
 
     def _scroll(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
