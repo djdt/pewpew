@@ -1,30 +1,15 @@
 import numpy as np
 
 import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
 
 from pewpew.lib.mplwidgets import (
     LassoImageSelectionWidget,
     RectangleImageSelectionWidget,
 )
 
+from testing import FakeEvent
+
 from typing import Set
-
-
-class FakeEvent(object):
-    def __init__(
-        self, ax: Axes, xdata: float, ydata: float, key: str = None, button: int = 1
-    ):
-        self.inaxes = ax
-        self.canvas = ax.figure.canvas
-        self.xdata, self.ydata = xdata, ydata
-        self.x, self.y = ax.transData.transform((xdata, ydata))
-        self.key = key
-        self.button = button
-
-        self.guiEvent = None
-        self.name = "none"
-
 
 mask = np.zeros((50, 50), dtype=bool)
 

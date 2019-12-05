@@ -16,7 +16,7 @@ from pewpew.widgets.tools import (
     OverlayTool,
 )
 
-from testing import linear_data, rand_data
+from testing import linear_data, rand_data, FakeEvent
 
 
 def test_tool_widget(qtbot: QtBot):
@@ -48,21 +48,23 @@ def test_standards_tool(qtbot: QtBot):
     tool.lineedit_units.setText("unit")
     tool.lineedit_units.editingFinished.emit()
     tool.combo_weighting.setCurrentIndex(2)
+
     # Trim
-    tool.combo_trim.setCurrentText("s")
-    tool.lineedit_left.setText(str(tool.widget.laser.config.scantime * 2))
-    tool.lineedit_left.editingFinished.emit()
-    assert tool.trim_left == 2
+    assert tool.canvas.getCurrentTrim() == (1, 9)
 
-    tool.combo_trim.setCurrentText("μm")
-    tool.lineedit_right.setText(str(tool.widget.laser.config.get_pixel_width() * 2))
-    tool.lineedit_right.editingFinished.emit()
-    assert tool.trim_left == 0
-    assert tool.trim_right == 2
+    tool.canvas.picked_artist = tool.canvas.v_guides[0]
+    tool.canvas.move(FakeEvent(tool.canvas.ax, 90, 30))
+    tool.canvas.release(FakeEvent(tool.canvas.ax, 90, 30))
 
-    tool.combo_trim.setCurrentText("row")
-    assert tool.trim_left == 0
-    assert tool.trim_right == 0
+    assert tool.canvas.getCurrentTrim() == (3, 9)
+
+    # Test snap
+    tool.canvas.picked_artist = tool.canvas.v_guides[0]
+    tool.canvas.move(FakeEvent(tool.canvas.ax, 34, 30))
+    tool.canvas.release(FakeEvent(tool.canvas.ax, 34, 30))
+
+    assert tool.canvas.getCurrentTrim() == (1, 9)
+
     # Table
     tool.spinbox_levels.setValue(5)
 
@@ -95,7 +97,7 @@ def test_standards_tool(qtbot: QtBot):
     tool.results_box.copy()
     assert (
         QtWidgets.QApplication.clipboard().text()
-        == "RSQ\t1.0000\nGradient\t2.0000\nIntercept\t0.5000"
+        == "RSQ\t1.0000\nGradient\t2.0000\nIntercept\t0.5000\nY-error\t0.0000"
     )
 
     dlg = tool.showCurve()

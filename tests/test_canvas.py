@@ -62,7 +62,7 @@ def test_canvas_interactive(qtbot: QtBot):
     qtbot.addWidget(canvas)
     canvas.show()
     # Can only really check cids
-    assert len(canvas.cids) == 7
+    assert len(canvas.cids) == 8
     canvas.disconnect_events()
     assert len(canvas.cids) == 0
 
