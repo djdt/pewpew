@@ -37,9 +37,6 @@ class StandardsTool(ToolWidget):
         self.previous_isotope = ""
         self.standard_deviations: np.ndarray = None
 
-        self.trim_left = 0
-        self.trim_right = 0
-
         # Left side
         self.spinbox_levels = QtWidgets.QSpinBox()
         self.spinbox_levels.setMinimum(1)
@@ -59,18 +56,7 @@ class StandardsTool(ToolWidget):
 
         # Right side
         self.canvas = StandardsCanvas(self.viewspace.options, parent=self)
-
-        self.lineedit_left = QtWidgets.QLineEdit("0")
-        self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
-        self.lineedit_left.editingFinished.connect(self.lineEditTrim)
-        self.lineedit_right = QtWidgets.QLineEdit("0")
-        self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
-        self.lineedit_right.editingFinished.connect(self.lineEditTrim)
-
-        self.combo_trim = QtWidgets.QComboBox()
-        self.combo_trim.addItems(["row", "s", "μm"])
-        self.combo_trim.setCurrentIndex(1)
-        self.combo_trim.currentTextChanged.connect(self.comboTrim)
+        self.canvas.guidesChanged.connect(self.updateCounts)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
@@ -103,18 +89,7 @@ class StandardsTool(ToolWidget):
         layout_left.addStretch(1)
         layout_left.addWidget(self.results_box)
 
-        layout_box_trim = QtWidgets.QHBoxLayout()
-        layout_box_trim.addWidget(QtWidgets.QLabel("Left:"))
-        layout_box_trim.addWidget(self.lineedit_left)
-        layout_box_trim.addWidget(QtWidgets.QLabel("Right:"))
-        layout_box_trim.addWidget(self.lineedit_right)
-        layout_box_trim.addWidget(self.combo_trim)
-
-        box_trim = QtWidgets.QGroupBox("Trim")
-        box_trim.setLayout(layout_box_trim)
-
         layout_canvas_bar = QtWidgets.QHBoxLayout()
-        layout_canvas_bar.addWidget(box_trim, 0, QtCore.Qt.AlignLeft)
         layout_canvas_bar.addWidget(
             self.combo_isotope, 0, QtCore.Qt.AlignTop | QtCore.Qt.AlignRight
         )
@@ -153,10 +128,6 @@ class StandardsTool(ToolWidget):
             return
 
         data = self.widget.laser.get(isotope, calibrate=False, flat=True)
-        data = data[:, self.trim_left : data.shape[1] - self.trim_right]
-        if data.size == 0:
-            return
-
         extent = self.widget.laser.config.data_extent(data.shape)
         self.canvas.drawData(data, extent)
         if len(self.canvas.v_guides) == 0:
@@ -166,20 +137,30 @@ class StandardsTool(ToolWidget):
         self.canvas.update_background(None)
         self.canvas.blitGuides()
 
-        buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
-        self.table.setCounts([np.nanmean(b) for b in buckets])
+        self.updateCounts()
 
     def updateWeights(self) -> None:
         isotope = self.combo_isotope.currentText()
         weighting = self.combo_weighting.currentText()
         if weighting == "1/σ²":
-            data = self.widget.laser.get(isotope, calibrate=False, flat=True)
-            data = data[:, self.trim_left : data.shape[1] - self.trim_right]
+            data = self.canvas.image.get_array()
+            trim_left, trim_right = self.canvas.getCurrentTrim()
+            data = data[:, trim_left:trim_right]
             buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
             weights = 1 / np.square(np.array([np.nanstd(b) for b in buckets]))
             self.calibration[isotope].weights = weights
         else:
             self.calibration[isotope].weights = weighting
+
+    def updateCounts(self) -> None:
+        data = self.canvas.image.get_array()
+        trim_left, trim_right = self.canvas.getCurrentTrim()
+        data = data[:, trim_left:trim_right]
+        if data.size == 0:
+            return
+
+        buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
+        self.table.setCounts([np.nanmean(b) for b in buckets])
 
     def updateResults(self) -> None:
         # Make sure weights are up to date
@@ -204,9 +185,6 @@ class StandardsTool(ToolWidget):
         self.combo_isotope.setCurrentText(self.widget.combo_isotopes.currentText())
         self.combo_isotope.blockSignals(False)
 
-        self.lineedit_left.setText("0")
-        self.lineedit_right.setText("0")
-
         isotope = self.combo_isotope.currentText()
         self.combo_weighting.setCurrentText(self.calibration[isotope].weighting)
         self.lineedit_units.setText(self.calibration[isotope].unit)
@@ -224,18 +202,6 @@ class StandardsTool(ToolWidget):
         return False
 
     # Widget callbacks
-    def comboTrim(self, text: str) -> None:
-        if text == "row":
-            self.lineedit_left.setValidator(QtGui.QIntValidator(0, 1e9))
-            self.lineedit_right.setValidator(QtGui.QIntValidator(0, 1e9))
-        else:
-            self.lineedit_left.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
-            self.lineedit_right.setValidator(QtGui.QDoubleValidator(0, 1e9, 2))
-        self.lineedit_left.setText("0")
-        self.lineedit_right.setText("0")
-        self.trim_left = 0
-        self.trim_right = 0
-
     def comboIsotope(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
         self.table.model().setCalibration(self.calibration[isotope])
@@ -263,29 +229,6 @@ class StandardsTool(ToolWidget):
         self.calibration[isotope].weighting = self.combo_weighting.currentText()
         self.updateResults()
 
-    def lineEditTrim(self) -> None:
-        if self.lineedit_left.text() == "":
-            trim_left = 0.0
-        else:
-            trim_left = float(self.lineedit_left.text())
-        if self.lineedit_right.text() == "":
-            trim_right = 0.0
-        else:
-            trim_right = float(self.lineedit_right.text())
-
-        # Convert units
-        units = self.combo_trim.currentText()
-        multiplier = 1.0
-        if units == "μm":
-            multiplier /= self.widget.laser.config.get_pixel_width()
-        if units == "s":
-            multiplier /= self.widget.laser.config.scantime
-
-        self.trim_left = int(trim_left * multiplier)
-        self.trim_right = int(trim_right * multiplier)
-
-        self.refresh()
-
     def lineeditUnits(self) -> None:
         isotope = self.combo_isotope.currentText()
         unit = self.lineedit_units.text()
@@ -304,6 +247,8 @@ class StandardsTool(ToolWidget):
 
 
 class StandardsCanvas(InteractiveCanvas):
+    guidesChanged = QtCore.Signal()
+
     def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):
         super().__init__(parent=parent)
         self.viewoptions = viewoptions
@@ -369,9 +314,10 @@ class StandardsCanvas(InteractiveCanvas):
             shape = self.image.get_array().shape
             px = 1.0 / shape[1]  # Axes coords
             # Snap guide
-            x = x - (x % px)
+            x = px * np.round(x / px)
             self.picked_artist.set_xdata([x, x])
             self.blitGuides()
+            self.guidesChanged.emit()
         self.picked_artist = None
 
     def redrawFigure(self) -> None:
@@ -458,11 +404,19 @@ class StandardsCanvas(InteractiveCanvas):
         if self.background is not None:
             self.restore_region(self.background)
 
-        for line in self.v_guides:
-            self.ax.draw_artist(line)
+        for a in self.v_guides:
+            self.ax.draw_artist(a)
 
         self.update()
         self.guides_need_draw = False
+
+    def getCurrentTrim(self) -> Tuple[int, int]:
+        px = 1.0 / self.image.get_array().shape[1]  # Axes coords
+        trim = np.array(
+            [guide.get_xdata()[0] / px for guide in self.v_guides], dtype=int
+        )
+
+        return np.min(trim), np.max(trim)
 
 
 class StandardsResultsBox(QtWidgets.QGroupBox):
