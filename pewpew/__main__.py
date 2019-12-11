@@ -5,10 +5,9 @@ from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QApplication
 from pewpew.main import MainWindow
 from pewpew.resources import app_icon  # noqa: F401
+from pewpew.resources import icons  # noqa: F401
 
-if sys.platform in ['win32', 'darwin']:
-    from pewpew.resources import breath_icons  # noqa: F401
-    QIcon.setThemeName("breath")
+QIcon.setThemeName("breath")
 
 if __name__ == "__main__":
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
