@@ -198,8 +198,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionColormapRange(self) -> QtWidgets.QDialog:
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
-            for isotope, range in dialog.ranges.items():
-                self.viewspace.options.colors.set_range(range, isotope)
+            self.viewspace.colors._ranges = dialog.ranges
             self.viewspace.options.colors.default_range = dialog.default_range
             self.refresh()
 
@@ -215,7 +214,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg = dialogs.ConfigDialog(self.viewspace.config, parent=self)
         dlg.check_all.setChecked(True)
         dlg.check_all.setEnabled(False)
-        dlg.configSelected.connect(self.viewspace.applyConfig)
+        dlg.configApplyAll.connect(self.viewspace.applyConfig)
         dlg.open()
         return dlg
 

@@ -284,15 +284,15 @@ class ColorRangeDialog(ApplyDialog):
 
         # If the combobox is disabled then shown default range as true text
         if self.combo_isotopes.isEnabled():
-            tmin, tmax = "", ""
+            # tmin, tmax = "", ""
+            # If there is a current isotope then update text to it's value, if exists
+            current_isotope = self.combo_isotopes.currentText()
+            if current_isotope in self.ranges:
+                range = self.ranges[current_isotope]
+                tmin, tmax = str(range[0]), str(range[1])
+
         else:
             tmin, tmax = str(self.default_range[0]), str(self.default_range[1])
-
-        # If there is a current isotope then update text to it's value, if exists
-        current_isotope = self.combo_isotopes.currentText()
-        if current_isotope in self.ranges:
-            range = self.ranges[current_isotope]
-            tmin, tmax = str(range[0]), str(range[1])
 
         self.lineedit_min.setText(tmin)
         self.lineedit_max.setText(tmax)
@@ -318,6 +318,7 @@ class ColorRangeDialog(ApplyDialog):
         if isotope is not None:
             self.ranges[isotope] = (vmin, vmax)
         else:
+            self.ranges = {}
             self.default_range = (vmin, vmax)
 
     def apply(self) -> None:

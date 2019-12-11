@@ -288,14 +288,11 @@ class LaserWidget(_ViewWidget):
             self.refresh()
 
     def applyConfig(self, config: Config) -> None:
-        if not isinstance(config, SRRConfig) or self.is_srr:
+        # Only apply if the type of config is correct
+        if not (isinstance(config, SRRConfig) ^ self.is_srr):
             self.laser.config = copy.copy(config)
-        else:  # Manually fill in the 3
-            self.laser.config.spotsize = config.spotsize
-            self.laser.config.speed = config.speed
-            self.laser.config.scantime = config.scantime
-        self.setModified(True)
-        self.refresh()
+            self.setModified(True)
+            self.refresh()
 
     def saveDocument(self, path: str) -> None:
         io.npz.save(path, [self.laser])
