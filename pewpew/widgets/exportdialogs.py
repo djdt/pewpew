@@ -277,10 +277,20 @@ class ExportDialog(ExportDialogBase):
             "Export all isotopes for the current image.\n"
             "The filename will be appended with the isotopes name."
         )
-        self.check_export_all.stateChanged.connect(self.updatePreview)
+        self.check_export_all.clicked.connect(self.updatePreview)
+
+        self.check_export_layers = QtWidgets.QCheckBox("Export all layers.")
+        self.check_export_layers.setToolTip(
+            "Export layers individually.\n"
+            "The filename will be appended with the layer number."
+        )
+        self.check_export_layers.clicked.connect(self.updatePreview)
+        self.check_export_layers.setEnabled(widget.is_srr)
+        self.check_export_layers.setVisible(widget.is_srr)
 
         self.layout.insertWidget(2, self.check_calibrate)
         self.layout.insertWidget(3, self.check_export_all)
+        self.layout.insertWidget(4, self.check_export_layers)
 
         # A default path
         path = os.path.join(
@@ -296,16 +306,27 @@ class ExportDialog(ExportDialogBase):
     def allowExportAll(self) -> bool:
         return self.options.currentExt() not in [".npz", ".vti"]
 
+    def allowExportLayers(self) -> bool:
+        return self.options.currentExt() not in [".npz", ".png", ".vti"]
+
     def isCalibrate(self) -> bool:
         return self.check_calibrate.isChecked() and self.check_calibrate.isEnabled()
 
     def isExportAll(self) -> bool:
         return self.check_export_all.isChecked() and self.check_export_all.isEnabled()
 
+    def isExportLayers(self) -> bool:
+        return (
+            self.check_export_layers.isChecked()
+            and self.check_export_layers.isEnabled()
+        )
+
     def updatePreview(self) -> None:
         base, ext = os.path.splitext(self.lineedit_filename.text())
         if self.isExportAll():
             base += "_<ISOTOPE>"
+        if self.isExportLayers():
+            base += "_layer<#>"
         self.lineedit_preview.setText(base + ext)
 
     def typeChanged(self, index: int) -> None:
@@ -313,32 +334,49 @@ class ExportDialog(ExportDialogBase):
         # Enable or disable checks
         self.check_calibrate.setEnabled(self.allowCalibrate())
         self.check_export_all.setEnabled(self.allowExportAll())
+        self.check_export_layers.setEnabled(self.allowExportLayers())
+        self.updatePreview()
 
     def getPath(self) -> str:
         return os.path.join(
             self.lineedit_directory.text(), self.lineedit_filename.text()
         )
 
-    def getPathForIsotope(self, isotope: str) -> str:
-        base, ext = os.path.splitext(self.getPath())
+    def getPathForIsotope(self, path: str, isotope: str) -> str:
+        base, ext = os.path.splitext(path)
         isotope = isotope.replace(os.path.sep, "_")
         return f"{base}_{isotope}{ext}"
 
-    def generatePaths(self, laser: Laser) -> List[Tuple[str, str]]:
+    def getPathForLayer(self, path: str, layer: int) -> str:
+        base, ext = os.path.splitext(path)
+        return f"{base}_layer{layer}{ext}"
+
+    def generatePaths(self, laser: Laser) -> List[Tuple[str, str, int]]:
+        paths: List[Tuple[str, str, int]] = [
+            (self.getPath(), self.widget.combo_isotopes.currentText(), None)
+        ]
         if self.isExportAll():
-            paths = [(self.getPathForIsotope(i), i) for i in laser.isotopes]
-        else:
-            paths = [(self.getPath(), self.widget.combo_isotopes.currentText())]
+            paths = [
+                (self.getPathForIsotope(p, i), i, None)
+                for i in laser.isotopes
+                for (p, _, _) in paths
+            ]
+        if self.isExportLayers():
+            paths = [
+                (self.getPathForLayer(p, j), i, j)
+                for j in range(0, laser.layers)
+                for (p, i, _) in paths
+            ]
 
-        return [(p, i) for p, i in paths if p != ""]
+        return [p for p in paths if p[0] != ""]
 
-    def export(self, path: str, isotope: str, widget: LaserWidget) -> None:
+    def export(self, path: str, isotope: str, layer: int, widget: LaserWidget) -> None:
         option = self.options.currentOption()
 
         if option.ext == ".csv":
             kwargs = {"calibrate": self.isCalibrate(), "flat": True}
             if isotope in widget.laser.isotopes:
-                data = widget.laser.get(isotope, **kwargs)
+                data = widget.laser.get(isotope, layer=layer, **kwargs)
                 io.csv.save(path, data)
 
         elif option.ext == ".png":
@@ -381,8 +419,8 @@ class ExportDialog(ExportDialogBase):
             return
 
         try:
-            for path, isotope in paths:
-                self.export(path, isotope, self.widget)
+            for path, isotope, layer in paths:
+                self.export(path, isotope, layer, self.widget)
         except io.error.PewException as e:
             QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
             return
