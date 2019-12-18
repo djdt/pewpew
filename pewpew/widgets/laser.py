@@ -17,7 +17,7 @@ from pewpew.widgets.canvases import InteractiveLaserCanvas
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.views import View, ViewSpace, _ViewWidget
 
-from typing import List, Set
+from typing import List, Set, Tuple
 
 
 class LaserViewSpace(ViewSpace):
@@ -262,6 +262,28 @@ class LaserWidget(_ViewWidget):
         self.combo_isotopes.blockSignals(False)
 
     # Transformations
+    def crop(self, new_extent: Tuple[float, float, float, float] = None) -> None:
+        if self.is_srr:
+            QtWidgets.QMessageBox.information(
+                self, "Transform", "Unable to transform SRR data."
+            )
+            return
+        if new_extent is None:
+            # Default is to crop to current view limits.
+            new_extent = self.canvas.view_limits
+        if new_extent == self.canvas.extent:
+            # Extent is same
+            return
+        extent = self.canvas.extent
+        w, h = extent[1] - extent[0], extent[3] - extent[2]
+        sy, sx = self.laser.data.shape
+        self.laser.data = self.laser.data[
+            sy - int(new_extent[3] / h * sy) : sy - int(new_extent[2] / h * sy),
+            int(new_extent[0] / w * sx) : int(new_extent[1] / w * sx),
+        ]
+        self.canvas.view_limits = new_extent
+        self.refresh()
+
     def transform(self, flip: str = None, rotate: str = None) -> None:
         if self.is_srr:
             QtWidgets.QMessageBox.information(
@@ -316,6 +338,12 @@ class LaserWidget(_ViewWidget):
             "Copy image to clipboard.",
             self.actionCopyImage,
         )
+        self.action_duplicate = qAction(
+            "edit-copy",
+            "Duplicate image",
+            "Open a copy of the image.",
+            self.actionDuplicate,
+        )
         self.action_export = qAction(
             "document-save-as", "E&xport", "Export documents.", self.actionExport
         )
@@ -359,6 +387,9 @@ class LaserWidget(_ViewWidget):
 
     def actionCopyImage(self) -> None:
         self.canvas.copyToClipboard()
+
+    def actionDuplicate(self) -> None:
+        self.view.addLaser(copy.deepcopy(self.laser))
 
     def actionExport(self) -> QtWidgets.QDialog:
         dlg = exportdialogs.ExportDialog(self, parent=self)
@@ -406,6 +437,7 @@ class LaserWidget(_ViewWidget):
     # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
         menu = QtWidgets.QMenu(self)
+        menu.addAction(self.action_duplicate)
         menu.addAction(self.action_copy_image)
         menu.addSeparator()
         menu.addAction(self.view.action_open)
