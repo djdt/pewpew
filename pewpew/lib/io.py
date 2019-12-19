@@ -23,7 +23,8 @@ def import_any(paths: List[str], config: Config) -> List[Laser]:
             elif ext in [".txt", ".text"]:
                 data = io.csv.load(path)
             elif ext == ".b":
-                data = io.agilent.load(path)
+                data, params = io.agilent.load(path, full=True)
+                config.scantime = params['scantime']
             else:
                 raise io.error.PewException(f"Unknown extention '{ext}'.")
             lasers.append(Laser(data=data, config=config, name=name, path=path))

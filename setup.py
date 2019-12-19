@@ -8,7 +8,12 @@ setup(
     author="djdt",
     version=__version__,
     packages=find_packages(include=["pewpew", "pewpew.*"]),
-    install_requires=["pew>=0.2.5", "PySide2>=5.13.0", "numpy", "matplotlib>=3.0.0"],
+    install_requires=[
+        "numpy",
+        "matplotlib>=3.0.0",
+        "pew>=0.2.7 @ git+https//github.com/djdt/pew@master",
+        "PySide2>=5.13.0",
+    ],
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "pytest-qt"],
 )
