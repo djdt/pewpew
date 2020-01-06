@@ -17,7 +17,8 @@ def import_any(paths: List[str], config: Config) -> List[Laser]:
         else:
             if ext == ".csv":
                 try:
-                    data = io.thermo.load(path)
+                    data, params = io.thermo.load(path, full=True)
+                    config.scantime = params['scantime']
                 except io.error.PewException:
                     data = io.csv.load(path)
             elif ext in [".txt", ".text"]:

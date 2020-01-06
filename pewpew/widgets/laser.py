@@ -282,6 +282,7 @@ class LaserWidget(_ViewWidget):
             int(new_extent[0] / w * sx) : int(new_extent[1] / w * sx),
         ]
         self.canvas.view_limits = new_extent
+        self.setModified(True)
         self.refresh()
 
     def transform(self, flip: str = None, rotate: str = None) -> None:
@@ -296,6 +297,7 @@ class LaserWidget(_ViewWidget):
         if rotate is not None:
             k = 1 if rotate == "right" else 3 if rotate == "left" else 2
             self.laser.data = np.rot90(self.laser.data, k=k, axes=(1, 0))
+        self.setModified(True)
         self.refresh()
 
     # Callbacks
