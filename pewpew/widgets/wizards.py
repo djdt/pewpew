@@ -31,8 +31,6 @@ class SRRLaserWizard(QtWidgets.QWizard):
         self.resize(540, 480)
 
     def accept(self) -> None:
-
-        print("set config le")
         self.config.spotsize = float(self.field("spotsize"))
         self.config.speed = float(self.field("speed"))
         self.config.scantime = float(self.field("scantime"))
@@ -46,7 +44,6 @@ class SRRLaserWizard(QtWidgets.QWizard):
 
         if self.field("radio_numpy"):
             for path in paths:
-                print("load path", path)
                 lds = io.npz.load(path)
                 if len(lds) > 1:
                     QtWidgets.QMessageBox.warning(
@@ -56,7 +53,7 @@ class SRRLaserWizard(QtWidgets.QWizard):
                         "contains more than one image.",
                     )
                     return
-                layers.append(lds[0].get_structured())
+                layers.append(lds[0].get())
         elif self.field("radio_agilent"):
             for path in paths:
                 layers.append(io.agilent.load(path))
@@ -65,11 +62,11 @@ class SRRLaserWizard(QtWidgets.QWizard):
                 layers.append(io.thermo.load(path))
 
         self.laserImported.emit(
-            SRRLaser.from_structured(
+            SRRLaser(
                 layers,
                 config=self.config,
                 name=os.path.splitext(os.path.basename(paths[0]))[0],
-                filepath=paths[0],
+                path=paths[0],
             )
         )
         super().accept()
