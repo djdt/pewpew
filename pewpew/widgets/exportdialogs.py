@@ -471,29 +471,31 @@ class ExportAllDialog(ExportDialog):
             base += "_<ISOTOPE>"
         self.lineedit_preview.setText(prefix + base + ext)
 
-    def getPathForName(self, name: str) -> str:
+    def getPath(self, name: str = None) -> str:
         _, ext = os.path.splitext(self.lineedit_filename.text())
         prefix = self.lineedit_prefix.text()
         if prefix != "":
             prefix += "_"
         return os.path.join(self.lineedit_directory.text(), f"{prefix}{name}{ext}")
 
-    def getPathForIsotopeName(self, isotope: str, name: str) -> str:
-        base, ext = os.path.splitext(self.getPathForName(name))
-        isotope = isotope.replace(os.path.sep, "_")
-        return f"{base}_{isotope}{ext}"
-
-    def generatePaths(self, laser: Laser) -> List[Tuple[str, str]]:
+    def generatePaths(self, laser: Laser) -> List[Tuple[str, str, int]]:
+        paths: List[Tuple[str, str, int]] = [
+            (self.getPath(laser.name), self.widget.combo_isotopes.currentText(), None)
+        ]
         if self.isExportAll():
             paths = [
-                (self.getPathForIsotopeName(i, laser.name), i) for i in laser.isotopes
+                (self.getPathForIsotope(p, i), i, None)
+                for i in laser.isotopes
+                for (p, _, _) in paths
             ]
-        else:
+        if self.isExportLayers():
             paths = [
-                (self.getPathForName(laser.name), self.combo_isotopes.currentText())
+                (self.getPathForLayer(p, j), i, j)
+                for j in range(0, laser.layers)
+                for (p, i, _) in paths
             ]
 
-        return [(p, i) for p, i in paths if p != ""]
+        return [p for p in paths if p[0] != ""]
 
     def accept(self) -> None:
         all_paths = []
@@ -514,11 +516,12 @@ class ExportAllDialog(ExportDialog):
 
         try:
             for paths, widget in zip(all_paths, self.widgets):
-                for path, isotope in paths:
+                widget.setActive()
+                for path, isotope, layer in paths:
                     dlg.setValue(exported)
                     if dlg.wasCanceled():
                         break
-                    self.export(path, isotope, widget)
+                    self.export(path, isotope, layer, widget)
                     exported += 1
         except io.error.PewException as e:
             QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
