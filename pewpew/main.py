@@ -204,7 +204,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionColormapRange(self) -> QtWidgets.QDialog:
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
-            self.viewspace.colors._ranges = dialog.ranges
+            self.viewspace.options.colors._ranges = dialog.ranges
             self.viewspace.options.colors.default_range = dialog.default_range
             self.refresh()
 
