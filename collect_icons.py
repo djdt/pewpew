@@ -2,6 +2,8 @@
 import os
 import re
 
+import argparse
+
 from typing import Generator, List, Set, Tuple
 
 
@@ -39,7 +41,7 @@ def collect_icons(path: str) -> Set[str]:
     return icons
 
 
-def write_qrc(qrc_path: str, icons_path: str, icons: List[str]):
+def write_qrc(qrc_path: str, icons_path: str, icons_root: str, icons: List[str]):
     with open(qrc_path, "w") as fp:
         fp.write('<!DOCTYPE RCC><RCC version="1.0">\n')
 
@@ -52,7 +54,9 @@ def write_qrc(qrc_path: str, icons_path: str, icons: List[str]):
             ]
             if len(files) == 0:
                 continue
-            fp.write(f'<qresource prefix="{root}">\n')
+            fp.write(
+                f'<qresource prefix="{os.path.sep + os.path.relpath(root, icons_root)}">\n'
+            )
             for f in files:
                 fp.write(f'<file alias="{f}">{os.path.join(root, f)}</file>\n')
             fp.write("</qresource>\n")
@@ -63,4 +67,4 @@ def write_qrc(qrc_path: str, icons_path: str, icons: List[str]):
 script_path = os.path.dirname(os.path.realpath(__file__))
 icons = list(collect_icons(script_path))
 
-write_qrc("icons.qrc", "/usr/share/icons/breath/", icons)
+write_qrc("icons.qrc", "/usr/share/icons/breath/", "/usr/share", icons)
