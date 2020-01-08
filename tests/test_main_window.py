@@ -4,8 +4,6 @@ from pew.laser import Laser
 
 from pewpew.main import MainWindow
 
-from pewpew.widgets.tools import ToolWidget
-
 from testing import rand_data
 
 

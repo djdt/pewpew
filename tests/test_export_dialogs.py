@@ -33,7 +33,7 @@ def test_export_dialog(qtbot: QtBot):
     dlg.lineedit_filename.setText("laser.png")
     assert dlg.options.currentExt() == ".png"
 
-    dlg.check_export_all.setChecked(True)
+    dlg.check_export_all.click()
     assert dlg.lineedit_preview.text() == "laser_<ISOTOPE>.png"
 
     dlg.lineedit_filename.setText("laser.npz")
@@ -52,8 +52,8 @@ def test_export_dialog(qtbot: QtBot):
         dlg.lineedit_directory.setText(tempdir)
         dlg.lineedit_filename.setText("temp.npz")
         paths = dlg.generatePaths(dlg.widget)
-        assert paths == [(os.path.join(tempdir, "temp.npz"), "A1")]
-        dlg.export(paths[0][0], paths[0][1], dlg.widget)
+        assert paths == [(os.path.join(tempdir, "temp.npz"), "A1", None)]
+        dlg.export(paths[0][0], paths[0][1], None, dlg.widget)
         assert os.path.exists(os.path.join(tempdir, "temp.npz"))
         # Test export all isotopes and png
 
@@ -99,7 +99,7 @@ def test_export_all_dialog(qtbot: QtBot):
     assert dlg.check_calibrate.isEnabled()
     assert dlg.combo_isotopes.isEnabled()
 
-    dlg.check_export_all.setChecked(True)
+    dlg.check_export_all.click()
     assert dlg.lineedit_preview.text() == "01_<NAME>_<ISOTOPE>.csv"
     assert not dlg.combo_isotopes.isEnabled()
 
