@@ -44,7 +44,7 @@ def write_qrc(qrc_path: str, icons_path: str, icons: List[str]):
         fp.write('<!DOCTYPE RCC><RCC version="1.0">\n')
 
         for root, _, files in sorted_walk(icons_path):
-            root = os.path.relpath(root)
+            root = os.path.abspath(root)
             files = [
                 f
                 for f in files
