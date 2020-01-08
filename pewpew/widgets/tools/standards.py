@@ -190,6 +190,7 @@ class StandardsTool(ToolWidget):
         self.lineedit_units.setText(self.calibration[isotope].unit)
         self.table.model().setCalibration(self.calibration[isotope])
 
+        self.canvas.v_guides = []  # Clear so that they get redrawn
         self.refresh()
         self.updateResults()
 
