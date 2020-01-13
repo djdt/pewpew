@@ -490,7 +490,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         return data
 
     def ignore_event(self, event: LocationEvent) -> bool:
-        if event.name in ["scroll_event", "key_press_event"]:
+        if event.name in ["key_press_event"]:
             return True
         elif (
             event.name in ["button_press_event", "button_release_event"]
@@ -546,6 +546,36 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
                 status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
         except AttributeError:
             pass
+
+    def scroll(self, event: MouseEvent) -> None:
+        zoom_factor = 0.1 * event.step
+
+        x1, x2, y1, y2 = self.view_limits
+
+        x1 = x1 + (event.xdata - x1) * zoom_factor
+        x2 = x2 - (x2 - event.xdata) * zoom_factor
+        y1 = y1 + (event.ydata - y1) * zoom_factor
+        y2 = y2 - (y2 - event.ydata) * zoom_factor
+
+        if x1 > x2 or y1 > y2:
+            return
+
+        xmin, xmax, ymin, ymax = self.extent
+
+        # If (un)zoom overlaps an edge attempt to shift it
+        if x1 < xmin:
+            x1, x2 = xmin, min(xmax, x2 + (xmin - x1))
+        if x2 > xmax:
+            x1, x2 = max(xmin, x1 - (x2 - xmax)), xmax
+
+        if y1 < ymin:
+            y1, y2 = ymin, min(ymax, y2 + (ymin - y1))
+        if y2 > ymax:
+            y1, y2 = max(ymin, y1 - (y2 - ymax)), ymax
+
+        if (x1, x2, y1, y2) != self.extent:
+            self.state.add("zoom")
+        self.view_limits = x1, x2, y1, y2
 
     def axis_enter(self, event: LocationEvent) -> None:
         pass
