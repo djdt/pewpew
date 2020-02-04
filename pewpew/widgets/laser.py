@@ -192,7 +192,7 @@ class LaserWidget(_ViewWidget):
         self.widgets_button = QtWidgets.QToolButton()
         self.widgets_button.setAutoRaise(True)
         self.widgets_button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
-        # self.widgets_button.setIcon(QtGui.QIcon.fromTheme("tool"))
+        self.widgets_button.setIcon(QtGui.QIcon.fromTheme("tool-measure"))
 
         self.action_ruler = qAction(
             "tool-measure",
