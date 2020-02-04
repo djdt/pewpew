@@ -1,9 +1,11 @@
 import numpy as np
-from matplotlib.widgets import _SelectorWidget
-from matplotlib.lines import Line2D
+from matplotlib.axes import Axes
 from matplotlib.backend_bases import KeyEvent, MouseEvent
-from matplotlib.path import Path
 from matplotlib.image import AxesImage
+from matplotlib.lines import Line2D
+from matplotlib.path import Path
+from matplotlib.text import Text
+from matplotlib.widgets import _SelectorWidget
 
 from pewpew.lib.mpltools import image_extent_to_data
 
@@ -30,21 +32,6 @@ class _ImageSelectionWidget(_SelectorWidget):
             button=button,
             state_modifier_keys=self.STATE_MODIFIER_KEYS,
         )
-        self.verts: np.ndarray = None
-
-    def _press(self, event: MouseEvent) -> None:
-        self.verts = [self._get_data(event)]
-        self.line.set_visible(True)
-
-    def _release(self, event: MouseEvent) -> None:
-        if self.verts is not None:
-            self.verts.append(self._get_data(event))
-            self.update_mask(self.verts)
-
-        self.line.set_data([[], []])
-        self.line.set_visible(False)
-        self.verts = None
-        self.update()
 
     def _on_key_release(self, event: KeyEvent) -> None:
         if event.key == self.state_modifier_keys["clear"]:
@@ -110,11 +97,27 @@ class LassoImageSelectionWidget(_ImageSelectionWidget):
         self.ax.add_line(self.line)
         self.artists.append(self.line)
 
+        self.verts: np.ndarray = None
+
     def _onmove(self, event: MouseEvent) -> None:
         if self.verts is None:
             return
         self.verts.append(self._get_data(event))
         self.line.set_data(list(zip(*self.verts)))
+        self.update()
+
+    def _press(self, event: MouseEvent) -> None:
+        self.verts = [self._get_data(event)]
+        self.line.set_visible(True)
+
+    def _release(self, event: MouseEvent) -> None:
+        if self.verts is not None:
+            self.verts.append(self._get_data(event))
+            self.update_mask(self.verts)
+
+        self.line.set_data([[], []])
+        self.line.set_visible(False)
+        self.verts = None
         self.update()
 
 
@@ -155,4 +158,68 @@ class RectangleImageSelectionWidget(_ImageSelectionWidget):
 
         self.line.set_data([[], []])
         self.line.set_visible(False)
+        self.update()
+
+
+class RulerWidget(_SelectorWidget):
+    def __init__(
+        self,
+        ax: Axes,
+        callback: Callable[[float], None],
+        useblit: bool = True,
+        button: int = 1,
+        lineprops: dict = None,
+        drawtext: bool = False,
+        fontcolor: str = None,
+        fontproperties: dict = None,
+    ):
+        super().__init__(
+            ax, None, useblit=useblit, button=button, state_modifier_keys=dict(),
+        )
+
+        self.callback = callback
+        self.drawtext = drawtext
+
+        if lineprops is None:
+            lineprops = dict()
+        if useblit:
+            lineprops["animated"] = True
+
+        self.line = Line2D([], [], **lineprops)
+        self.line.set_visible(False)
+        self.ax.add_line(self.line)
+        self.artists.append(self.line)
+
+        self.text = Text(
+            0, 0, "", animated=useblit, color=fontcolor, fontproperties=fontproperties
+        )
+        self.text.set_visible(False)
+        self.ax.add_artist(self.text)
+        self.artists.append(self.text)
+
+    def _onmove(self, event: MouseEvent) -> None:
+        if self.eventpress is None:
+            return
+        x0, y0 = self._get_data(self.eventpress)
+        x1, y1 = self._get_data(event)
+        self.line.set_data([[x0, x1], [y0, y1]])
+        if self.drawtext:
+            self.text.set_position([x1, y1])
+            self.text.set_text(f"{np.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2):.2f}")
+        self.update()
+
+    def _press(self, event: MouseEvent) -> None:
+        self.line.set_visible(True)
+        if self.drawtext:
+            self.text.set_visible(True)
+
+    def _release(self, event: MouseEvent) -> None:
+        if self.eventpress is not None:
+            x0, y0 = self._get_data(self.eventpress)
+            x1, y1 = self._get_data(event)
+            self.callback(np.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2))
+
+        self.line.set_data([[], []])
+        self.line.set_visible(False)
+        self.text.set_visible(False)
         self.update()

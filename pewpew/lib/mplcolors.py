@@ -1,6 +1,5 @@
 from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 
-# from matplotlib.cm import register_cmap
 
 ppSpectral = LinearSegmentedColormap.from_list(
     "ppSpectral",
@@ -281,8 +280,6 @@ googleTurbo = ListedColormap(
     ],
     "Turbo",
 )
-
-# register_cmap("ppSpectral", cmap=ppSpectral)
 
 maskAlphaMap = LinearSegmentedColormap.from_list(
     "maskAlphaMap", [(0.0, 0.0, 0.0, 1.0), (0.0, 0.0, 0.0, 0.0)]

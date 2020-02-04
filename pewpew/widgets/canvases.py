@@ -21,6 +21,7 @@ from pewpew.lib.mpltools import MetricSizeBar
 from pewpew.lib.mplwidgets import (
     RectangleImageSelectionWidget,
     LassoImageSelectionWidget,
+    RulerWidget,
 )
 from pewpew.lib.viewoptions import ViewOptions
 
@@ -488,6 +489,22 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             data = np.where(mask, data, np.nan)
             data = data[np.ix_(np.any(mask, axis=1), np.any(mask, axis=0))]
         return data
+
+    def startRuler(self) -> None:
+        self.clearSelection()
+        self.state.add("selection")
+        self.widget = RulerWidget(
+            self.ax,
+            lambda x: None,
+            useblit=True,
+            button=self.button,
+            lineprops=self.lineprops,
+            drawtext=True,
+            fontcolor=self.viewoptions.font.color,
+            fontproperties=self.viewoptions.font.mpl_props()
+        )
+        self.widget.set_active(True)
+        self.setFocus(QtCore.Qt.NoFocusReason)
 
     def ignore_event(self, event: LocationEvent) -> bool:
         if event.name in ["key_press_event"]:

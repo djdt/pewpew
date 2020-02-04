@@ -11,7 +11,7 @@ setup(
     install_requires=[
         "numpy",
         "matplotlib>=3.0.0",
-        "pew>=0.2.7 @ git+https//github.com/djdt/pew@master",
+        "pew @ git+https://github.com/djdt/pew@master#egg=pew",
         "PySide2>=5.13.0",
     ],
     setup_requires=["pytest-runner"],

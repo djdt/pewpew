@@ -189,10 +189,23 @@ class LaserWidget(_ViewWidget):
         )
         self.selection_button.addAction(self.action_select_dialog)
 
+        self.widgets_button = QtWidgets.QToolButton()
+        self.widgets_button.setAutoRaise(True)
+        self.widgets_button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+        # self.widgets_button.setIcon(QtGui.QIcon.fromTheme("tool"))
+
+        self.action_ruler = qAction(
+            "tool-measure",
+            "Measure",
+            "Use a ruler to measure distance.",
+            self.canvas.startRuler,
+        )
+        self.widgets_button.addAction(self.action_ruler)
+
         self.view_button = QtWidgets.QToolButton()
         self.view_button.setAutoRaise(True)
         self.view_button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
-        self.view_button.setIcon(QtGui.QIcon.fromTheme("zoom-in"))
+        self.view_button.setIcon(QtGui.QIcon.fromTheme("zoom"))
         self.action_zoom_in = qAction(
             "zoom-in",
             "Zoom to Area",
@@ -215,6 +228,7 @@ class LaserWidget(_ViewWidget):
 
         layout_bar = QtWidgets.QHBoxLayout()
         layout_bar.addWidget(self.selection_button, 0, QtCore.Qt.AlignLeft)
+        layout_bar.addWidget(self.widgets_button, 0, QtCore.Qt.AlignLeft)
         layout_bar.addWidget(self.view_button, 0, QtCore.Qt.AlignLeft)
         layout_bar.addStretch(1)
         layout_bar.addWidget(self.combo_layers, 0, QtCore.Qt.AlignRight)
