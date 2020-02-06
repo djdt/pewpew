@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib.colors import Colormap
+from matplotlib.patheffects import withStroke
 from matplotlib.font_manager import FontProperties
 
 from pewpew.lib.mplcolors import ppSpectral, googleTurbo
@@ -110,12 +111,17 @@ class FontOptions(object):
     def __init__(self, size: int = 12, color: str = "white"):
         self.size = size
         self.color = color
+        self.path_effects = [withStroke(linewidth=1.5, foreground="black")]
 
     def set_size(self, size: int) -> None:
         self.size = size
 
     def props(self) -> dict:
-        return {"size": self.size, "color": self.color}
+        return {
+            "size": self.size,
+            "color": self.color,
+            "path_effects": self.path_effects,
+        }
 
     def mpl_props(self) -> FontProperties:
         return FontProperties(size=self.size)

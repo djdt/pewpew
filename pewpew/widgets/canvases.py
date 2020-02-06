@@ -267,11 +267,7 @@ class LaserCanvas(BasicCanvas):
             pad=0.5,
             borderpad=0,
             frameon=False,
-            prop=dict(
-                color=self.viewoptions.font.color,
-                fontproperties=self.viewoptions.font.mpl_props(),
-                path_effects=[withStroke(linewidth=1.5, foreground="black")],
-            ),
+            prop=self.viewoptions.font.props(),
         )
         self.ax.add_artist(self.label)
 
@@ -283,6 +279,8 @@ class LaserCanvas(BasicCanvas):
             self.ax,
             loc="upper right",
             color=self.viewoptions.font.color,
+            edgecolor="black",
+            edgewidth=1.5,
             font_properties=self.viewoptions.font.mpl_props(),
         )
         self.ax.add_artist(self.scalebar)
@@ -501,7 +499,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             lineprops=self.lineprops,
             drawtext=True,
             fontcolor=self.viewoptions.font.color,
-            fontproperties=self.viewoptions.font.mpl_props()
+            fontproperties=self.viewoptions.font.mpl_props(),
         )
         self.widget.set_active(True)
         self.setFocus(QtCore.Qt.NoFocusReason)

@@ -111,14 +111,14 @@ class LassoImageSelectionWidget(_ImageSelectionWidget):
         self.line.set_visible(True)
 
     def _release(self, event: MouseEvent) -> None:
+        self.line.set_data([[], []])
+        self.line.set_visible(False)
+        self.update()
+
         if self.verts is not None:
             self.verts.append(self._get_data(event))
             self.update_mask(self.verts)
-
-        self.line.set_data([[], []])
-        self.line.set_visible(False)
         self.verts = None
-        self.update()
 
 
 class RectangleImageSelectionWidget(_ImageSelectionWidget):
@@ -147,18 +147,19 @@ class RectangleImageSelectionWidget(_ImageSelectionWidget):
             return
         x0, y0 = self._get_data(self.eventpress)
         x1, y1 = self._get_data(event)
+        self.line.set_visible(True)
         self.line.set_data([[x0, x0, x1, x1, x0], [y0, y1, y1, y0, y0]])
         self.update()
 
     def _release(self, event: MouseEvent) -> None:
+        self.line.set_data([[], []])
+        self.line.set_visible(False)
+        self.update()
+
         if self.eventpress is not None:
             x0, y0 = self._get_data(self.eventpress)
             x1, y1 = self._get_data(event)
             self.update_mask([[x0, y0], [x0, y1], [x1, y1], [x1, y0]])
-
-        self.line.set_data([[], []])
-        self.line.set_visible(False)
-        self.update()
 
 
 class RulerWidget(_SelectorWidget):
@@ -178,6 +179,8 @@ class RulerWidget(_SelectorWidget):
         )
 
         self.callback = callback
+        self.distance = 0.0
+
         self.drawtext = drawtext
 
         if lineprops is None:
@@ -214,12 +217,13 @@ class RulerWidget(_SelectorWidget):
             self.text.set_visible(True)
 
     def _release(self, event: MouseEvent) -> None:
-        if self.eventpress is not None:
-            x0, y0 = self._get_data(self.eventpress)
-            x1, y1 = self._get_data(event)
-            self.callback(np.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2))
-
         self.line.set_data([[], []])
         self.line.set_visible(False)
         self.text.set_visible(False)
         self.update()
+
+        if self.eventpress is not None:
+            x0, y0 = self._get_data(self.eventpress)
+            x1, y1 = self._get_data(event)
+            self.distance = np.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2)
+            self.callback(self.distance)
