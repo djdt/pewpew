@@ -32,6 +32,7 @@ class MetricSizeBar(AnchoredSizeBar):
         bar_height_fraction: float = 0.01,
         color: str = "white",
         edgecolor: str = "black",
+        edgewidth: float = 1.5,
         font_properties: FontProperties = None,
     ):
         self.min_length = list(self.units.values())[0] * self.allowed_lengths[0]
@@ -55,9 +56,11 @@ class MetricSizeBar(AnchoredSizeBar):
         if edgecolor is not None:
             rect = self.size_bar.get_children()[0]
             rect.set_edgecolor(None)
-            rect.set_path_effects([withStroke(linewidth=1.5, foreground=edgecolor)])
+            rect.set_path_effects(
+                [withStroke(linewidth=edgewidth, foreground=edgecolor)]
+            )
             self.txt_label._text.set_path_effects(
-                [withStroke(linewidth=1.5, foreground=edgecolor)]
+                [withStroke(linewidth=edgewidth, foreground=edgecolor)]
             )
 
     def get_bar_height(self) -> float:
