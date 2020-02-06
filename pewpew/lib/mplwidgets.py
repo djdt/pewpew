@@ -171,8 +171,7 @@ class RulerWidget(_SelectorWidget):
         button: int = 1,
         lineprops: dict = None,
         drawtext: bool = False,
-        fontcolor: str = None,
-        fontproperties: dict = None,
+        textprops: dict = None,
     ):
         super().__init__(
             ax, None, useblit=useblit, button=button, state_modifier_keys=dict(),
@@ -180,8 +179,6 @@ class RulerWidget(_SelectorWidget):
 
         self.callback = callback
         self.distance = 0.0
-
-        self.drawtext = drawtext
 
         if lineprops is None:
             lineprops = dict()
@@ -193,12 +190,16 @@ class RulerWidget(_SelectorWidget):
         self.ax.add_line(self.line)
         self.artists.append(self.line)
 
-        self.text = Text(
-            0, 0, "", animated=useblit, color=fontcolor, fontproperties=fontproperties
-        )
-        self.text.set_visible(False)
-        self.ax.add_artist(self.text)
-        self.artists.append(self.text)
+        props = dict(animated=useblit, color="white", fontproperties=None)
+        if textprops is not None:
+            props.update(textprops)
+
+        self.text: Text = None
+        if drawtext:
+            self.text = Text(0, 0, "", **props)
+            self.text.set_visible(False)
+            self.ax.add_artist(self.text)
+            self.artists.append(self.text)
 
     def _onmove(self, event: MouseEvent) -> None:
         if self.eventpress is None:
@@ -206,14 +207,14 @@ class RulerWidget(_SelectorWidget):
         x0, y0 = self._get_data(self.eventpress)
         x1, y1 = self._get_data(event)
         self.line.set_data([[x0, x1], [y0, y1]])
-        if self.drawtext:
+        if self.text is not None:
             self.text.set_position([x1, y1])
             self.text.set_text(f"{np.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2):.2f}")
         self.update()
 
     def _press(self, event: MouseEvent) -> None:
         self.line.set_visible(True)
-        if self.drawtext:
+        if self.text is not None:
             self.text.set_visible(True)
 
     def _release(self, event: MouseEvent) -> None:

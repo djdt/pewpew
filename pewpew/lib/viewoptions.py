@@ -121,6 +121,7 @@ class FontOptions(object):
             "size": self.size,
             "color": self.color,
             "path_effects": self.path_effects,
+            "font_properties": self.mpl_props()
         }
 
     def mpl_props(self) -> FontProperties:
