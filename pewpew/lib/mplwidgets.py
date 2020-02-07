@@ -220,7 +220,8 @@ class RulerWidget(_SelectorWidget):
     def _release(self, event: MouseEvent) -> None:
         self.line.set_data([[], []])
         self.line.set_visible(False)
-        self.text.set_visible(False)
+        if self.text is not None:
+            self.text.set_visible(False)
         self.update()
 
         if self.eventpress is not None:
