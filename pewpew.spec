@@ -1,4 +1,4 @@
-# vim: set ft=python
+# vim: set ft=python:
 
 import os.path
 import sys
