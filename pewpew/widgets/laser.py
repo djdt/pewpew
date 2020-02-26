@@ -436,11 +436,21 @@ class LaserWidget(_ViewWidget):
         return dlg
 
     def actionStatistics(self) -> QtWidgets.QDialog:
-        data = self.canvas.getMaskedData()
-        area = (
-            self.laser.config.get_pixel_width() * self.laser.config.get_pixel_height()
+        mask = self.canvas.getSelection()
+        if mask is None:
+            mask = np.full(self.laser.shape, True, dtype=bool)
+
+        dlg = dialogs.StatsDialog(
+            self.laser.get(),
+            mask,
+            self.combo_isotopes.currentText(),
+            pixel_size=(
+                self.laser.config.get_pixel_width(),
+                self.laser.config.get_pixel_height(),
+            ),
+            coloroptions=self.viewspace.options.colors,
+            parent=self,
         )
-        dlg = dialogs.StatsDialog(data, area, self.canvas.image.get_clim(), parent=self)
         dlg.open()
         return dlg
 
