@@ -144,10 +144,11 @@ def test_multi_dir_dialog(qtbot: QtBot):
 
 
 def test_stats_dialog(qtbot: QtBot):
-    x = np.random.random([10, 10])
+    x = np.array(np.random.random([10, 10]), dtype=[('a', float)])
     x[0, 0] = np.nan
+    m = np.full(x.shape, True, dtype=bool)
 
-    dialog = StatsDialog(x, 10, (0, 1))
+    dialog = StatsDialog(x, m, 'a', (0, 1))
     qtbot.addWidget(dialog)
     dialog.open()
 
