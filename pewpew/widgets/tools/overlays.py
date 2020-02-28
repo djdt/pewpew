@@ -17,7 +17,7 @@ from pewpew.lib.mpltools import MetricSizeBar
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets.canvases import BasicCanvas, LaserCanvas
-from pewpew.widgets.exportdialogs import ExportDialogBase, PngOptionsBox
+from pewpew.widgets.exportdialogs import _ExportDialogBase, PngOptionsBox
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.prompts import OverwriteFilePrompt
 from pewpew.widgets.tools import ToolWidget
@@ -465,7 +465,7 @@ class OverlayColocalisationDialog(QtWidgets.QDialog):
         self.widget = parent
 
 
-class OverlayExportDialog(ExportDialogBase):
+class OverlayExportDialog(_ExportDialogBase):
     def __init__(self, parent: OverlayTool):
         super().__init__([PngOptionsBox()], parent)
         self.setWindowTitle("Overlay Export")

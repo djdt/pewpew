@@ -156,7 +156,7 @@ class ExportOptions(QtWidgets.QWidget):
         return all(self.stack.widget(i).isComplete() for i in indicies)
 
 
-class ExportDialogBase(QtWidgets.QDialog):
+class _ExportDialogBase(QtWidgets.QDialog):
     def __init__(self, options: List[OptionsBox], parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Export")
@@ -252,7 +252,7 @@ class ExportDialogBase(QtWidgets.QDialog):
         return dlg
 
 
-class ExportDialog(ExportDialogBase):
+class ExportDialog(_ExportDialogBase):
     def __init__(self, widget: LaserWidget, parent: QtWidgets.QWidget = None):
         spacing = (
             widget.laser.config.get_pixel_width(),

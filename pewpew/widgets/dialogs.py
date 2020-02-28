@@ -761,16 +761,12 @@ class StatsDialog(QtWidgets.QDialog):
         self.canvas.draw()
 
     def prepareData(self, structured: np.ndarray, mask: np.ndarray) -> np.ndarray:
-        print(mask, np.nonzero(mask))
         ix, iy = np.nonzero(mask)
-        x0, x1, y0, y1 = np.min(ix), np.max(ix), np.min(iy), np.max(iy)
+        x0, x1, y0, y1 = np.min(ix), np.max(ix) + 1, np.min(iy), np.max(iy) + 1
 
-        data = np.empty((x1 - x0 + 1, y1 - y0 + 1), dtype=structured.dtype)
+        data = np.empty((x1 - x0, y1 - y0), dtype=structured.dtype)
         for name in structured.dtype.names:
             data[name] = np.where(
-                mask[x0 : x1 + 1, y0 : y1 + 1],
-                structured[name][x0 : x1 + 1, y0 : y1 + 1],
-                np.nan,
+                mask[x0:x1, y0:y1], structured[name][x0:x1, y0:y1], np.nan,
             )
-        print(data)
         return data
