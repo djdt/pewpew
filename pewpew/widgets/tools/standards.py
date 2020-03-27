@@ -11,7 +11,7 @@ from matplotlib.text import Text
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pew import Calibration
-from pew.calc import get_weights
+from pew.calc import weighting
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 from pewpew.lib.viewoptions import ViewOptions
@@ -218,12 +218,12 @@ class StandardsTool(ToolWidget):
 
         self.refresh()
 
-    def getWeights(self, weighting: str) -> np.ndarray:
+    def getWeights(self, _weighting: str) -> np.ndarray:
         isotope = self.combo_isotope.currentText()
-        if weighting == "1/σ²":
+        if _weighting == "1/σ²":
             return 1 / np.power(self.standard_deviations, 2)
         else:
-            return get_weights(self.calibration[isotope].concentrations(), weighting)
+            return weighting(self.calibration[isotope].concentrations(), _weighting)
 
     def comboWeighting(self, index: int) -> None:
         isotope = self.combo_isotope.currentText()
