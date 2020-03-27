@@ -11,7 +11,7 @@ from pew.srr import SRRConfig
 
 from pewpew.lib import colocal
 from pewpew.lib.calc import normalise, otsu
-from pewpew.lib.viewoptions import ViewOptions
+from pewpew.lib.viewoptions import ViewOptions, ColorOptions
 from pewpew.widgets.canvases import BasicCanvas
 from pewpew.validators import (
     DecimalValidator,
@@ -19,7 +19,7 @@ from pewpew.validators import (
     PercentOrDecimalValidator,
 )
 
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple
 
 
 class ApplyDialog(QtWidgets.QDialog):
@@ -662,15 +662,23 @@ class SelectionDialog(QtWidgets.QDialog):
 
 
 class StatsDialog(QtWidgets.QDialog):
+    isotope_changed = QtCore.Signal(str)
+
     def __init__(
         self,
         data: np.ndarray,
-        pixel_area: float,
-        range: Tuple[Union[str, float], Union[str, float]],
+        mask: np.ndarray,
+        isotope: str,
+        pixel_size: Tuple[float, float] = None,
+        coloroptions: ColorOptions = None,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Statistics")
+
+        self.data = self.prepareData(data, mask)
+        self.pixel_size = pixel_size
+        self.coloroptions = coloroptions or ColorOptions()
 
         self.canvas = BasicCanvas(figsize=(6, 2))
         self.canvas.ax = self.canvas.figure.add_subplot()
@@ -678,21 +686,33 @@ class StatsDialog(QtWidgets.QDialog):
         self.button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
         self.button_box.rejected.connect(self.close)
 
-        stats_left = QtWidgets.QFormLayout()
-        stats_left.addRow("Shape:", QtWidgets.QLabel(str(data.shape)))
-        stats_left.addRow("Size:", QtWidgets.QLabel(str(data.size)))
-        stats_left.addRow(
-            "Area:", QtWidgets.QLabel(f"{data.size * pixel_area:.4g} μm²")
-        )
+        self.combo_isotopes = QtWidgets.QComboBox()
+        self.combo_isotopes.addItems(self.data.dtype.names or [isotope])
+        self.combo_isotopes.setCurrentText(isotope)
+        self.combo_isotopes.currentIndexChanged.connect(self.updateStats)
+        self.combo_isotopes.currentTextChanged.connect(self.isotope_changed)
 
-        # Discard shape and ensure no nans
-        data = data[~np.isnan(data)].ravel()
+        self.label_shape = QtWidgets.QLabel()
+        self.label_size = QtWidgets.QLabel()
+        self.label_area = QtWidgets.QLabel()
+
+        self.label_min = QtWidgets.QLabel()
+        self.label_max = QtWidgets.QLabel()
+        self.label_mean = QtWidgets.QLabel()
+        self.label_median = QtWidgets.QLabel()
+        self.label_stddev = QtWidgets.QLabel()
+
+        stats_left = QtWidgets.QFormLayout()
+        stats_left.addRow("Shape:", self.label_shape)
+        stats_left.addRow("Size:", self.label_size)
+        stats_left.addRow("Area:", self.label_area)
 
         stats_right = QtWidgets.QFormLayout()
-        stats_right.addRow("Min:", QtWidgets.QLabel(f"{np.min(data):.4g}"))
-        stats_right.addRow("Max:", QtWidgets.QLabel(f"{np.max(data):.4g}"))
-        stats_right.addRow("Mean:", QtWidgets.QLabel(f"{np.mean(data):.4g}"))
-        stats_right.addRow("Median:", QtWidgets.QLabel(f"{np.ma.median(data):.4g}"))
+        stats_right.addRow("Min:", self.label_min)
+        stats_right.addRow("Max:", self.label_max)
+        stats_right.addRow("Mean:", self.label_mean)
+        stats_right.addRow("Median:", self.label_median)
+        stats_right.addRow("Std Dev:", self.label_stddev)
 
         stats_box = QtWidgets.QGroupBox()
         stats_layout = QtWidgets.QHBoxLayout()
@@ -703,15 +723,50 @@ class StatsDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.canvas)
         layout.addWidget(stats_box)
+        layout.addWidget(self.combo_isotopes, 0, QtCore.Qt.AlignRight)
         layout.addWidget(self.button_box)
         self.setLayout(layout)
 
         # Calculate the range
-        vmin, vmax = range
-        plot_data = data[np.logical_and(data >= vmin, data <= vmax)]
-        self.plot(plot_data)
+        self.updateStats()
+
+    def updateStats(self) -> None:
+        isotope = self.combo_isotopes.currentText()
+        data = self.data[isotope]
+
+        self.label_shape.setText(str(data.shape))
+        self.label_size.setText(str(data.size))
+        if self.pixel_size is not None:
+            self.label_area.setText(
+                f"{data.size * self.pixel_size[0] * self.pixel_size[1]:.0f} μm²"
+            )
+        # Discard nans and shape
+        data = data[~np.isnan(data)].ravel()
+
+        self.label_min.setText(f"{np.min(data):.4g}")
+        self.label_max.setText(f"{np.max(data):.4g}")
+        self.label_mean.setText(f"{np.mean(data):.4g}")
+        self.label_median.setText(f"{np.median(data):.4g}")
+
+        vmin, vmax = self.coloroptions.get_range_as_float(isotope, data)
+        self.plot(data[np.logical_and(data >= vmin, data <= vmax)])
+
+    def isCalibrate(self) -> bool:
+        return False
 
     def plot(self, data: np.ndarray) -> None:
         highlight = self.palette().color(QtGui.QPalette.Highlight).name()
+        self.canvas.ax.clear()
         self.canvas.ax.hist(data.ravel(), bins="auto", color=highlight)
         self.canvas.draw()
+
+    def prepareData(self, structured: np.ndarray, mask: np.ndarray) -> np.ndarray:
+        ix, iy = np.nonzero(mask)
+        x0, x1, y0, y1 = np.min(ix), np.max(ix) + 1, np.min(iy), np.max(iy) + 1
+
+        data = np.empty((x1 - x0, y1 - y0), dtype=structured.dtype)
+        for name in structured.dtype.names:
+            data[name] = np.where(
+                mask[x0:x1, y0:y1], structured[name][x0:x1, y0:y1], np.nan,
+            )
+        return data

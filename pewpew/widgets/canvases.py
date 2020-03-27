@@ -8,7 +8,7 @@ from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent, PickEv
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from matplotlib.image import AxesImage, imsave
-from matplotlib.patheffects import Normal, withStroke, SimpleLineShadow
+from matplotlib.patheffects import Normal, SimpleLineShadow
 from matplotlib.offsetbox import AnchoredText
 from matplotlib.ticker import MaxNLocator
 from matplotlib.widgets import AxesWidget, RectangleSelector
@@ -482,6 +482,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
     def getMaskedData(self) -> np.ndarray:
         data = self.image.get_array()
         mask = self.getSelection()
+        # TODO: check this doesnt trim when two sep selections
         if mask is not None and not np.all(mask == 0):
             # mask = mask[y0:y1, x0:x1]
             data = np.where(mask, data, np.nan)
@@ -498,8 +499,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             button=self.button,
             lineprops=self.lineprops,
             drawtext=True,
-            fontcolor=self.viewoptions.font.color,
-            fontproperties=self.viewoptions.font.mpl_props(),
+            textprops=self.viewoptions.font.props(),
         )
         self.widget.set_active(True)
         self.setFocus(QtCore.Qt.NoFocusReason)
