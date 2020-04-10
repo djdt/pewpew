@@ -1,3 +1,4 @@
+import sys
 import os.path
 
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -244,11 +245,13 @@ class _ExportDialogBase(QtWidgets.QDialog):
 
     def selectDirectory(self) -> QtWidgets.QDialog:
         dlg = QtWidgets.QFileDialog(
-            self.widget, "Select Directory", self.lineedit_directory.text()
+            self, "Select Directory", self.lineedit_directory.text()
         )
+        if sys.platform != "win32":  # TODO wait for fix
+            dlg.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
         dlg.setFileMode(QtWidgets.QFileDialog.Directory)
-        # dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)  # TODO wait for fix
+        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
         dlg.fileSelected.connect(self.lineedit_directory.setText)
         dlg.open()
         return dlg
