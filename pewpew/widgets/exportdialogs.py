@@ -248,7 +248,7 @@ class _ExportDialogBase(QtWidgets.QDialog):
         )
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
         dlg.setFileMode(QtWidgets.QFileDialog.Directory)
-        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+        # dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)  # TODO wait for fix
         dlg.fileSelected.connect(self.lineedit_directory.setText)
         dlg.open()
         return dlg
