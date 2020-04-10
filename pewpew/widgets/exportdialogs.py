@@ -243,7 +243,9 @@ class _ExportDialogBase(QtWidgets.QDialog):
         self.adjustSize()
 
     def selectDirectory(self) -> QtWidgets.QDialog:
-        dlg = QtWidgets.QFileDialog(self, "Select Directory", "")
+        dlg = QtWidgets.QFileDialog(
+            self.widget, "Select Directory", self.lineedit_directory.text()
+        )
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
         dlg.setFileMode(QtWidgets.QFileDialog.Directory)
         dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
