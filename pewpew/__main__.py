@@ -14,7 +14,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     window = MainWindow()
-    sys.excepthook = window.exceptHook  # type: ignore
+    sys.excepthook = window.exceptHook
     window.show()
     window.setWindowIcon(QIcon(":/app.ico"))
 
