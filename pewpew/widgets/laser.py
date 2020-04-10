@@ -291,13 +291,23 @@ class LaserWidget(_ViewWidget):
         extent = self.canvas.extent
         w, h = extent[1] - extent[0], extent[3] - extent[2]
         sy, sx = self.laser.data.shape
-        self.laser.data = self.laser.data[
+        data = self.laser.data[
             sy - int(new_extent[3] / h * sy) : sy - int(new_extent[2] / h * sy),
             int(new_extent[0] / w * sx) : int(new_extent[1] / w * sx),
         ]
-        self.canvas.view_limits = new_extent
-        self.setModified(True)
-        self.refresh()
+
+        new_widget = self.view.addLaser(
+            Laser(
+                data,
+                calibration=self.laser.calibration,
+                config=self.laser.config,
+                name=self.laser.name + "_cropped",
+            )
+        )
+        new_widget.setActive()
+        # self.canvas.view_limits = new_extent
+        # # self.setModified(True)
+        # # self.refresh()
 
     def transform(self, flip: str = None, rotate: str = None) -> None:
         if self.is_srr:
