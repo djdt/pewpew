@@ -1,26 +1,5 @@
-import sys
+from pewpew import main
 
-from PySide2.QtCore import QTimer, Qt
-from PySide2.QtGui import QIcon
-from PySide2.QtWidgets import QApplication
-from pewpew.main import MainWindow
-from pewpew.resources import app_icon  # noqa: F401
-from pewpew.resources import icons  # noqa: F401
-
-QIcon.setThemeName("breath")
 
 if __name__ == "__main__":
-    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-    app = QApplication(sys.argv)
-
-    window = MainWindow()
-    sys.excepthook = window.exceptHook
-    window.show()
-    window.setWindowIcon(QIcon(":/app.ico"))
-
-    # Keep event loop active with timer
-    timer = QTimer()
-    timer.timeout.connect(lambda: None)
-    timer.start(100)
-
-    app.exec_()
+    main()
