@@ -15,7 +15,7 @@ from pewpew.widgets.tools import (
     StandardsTool,
     OverlayTool,
 )
-from pewpew.widgets.wizards import SRRLaserWizard
+from pewpew.widgets.wizards import SpotImportWizard, SRRImportWizard
 from pewpew.widgets.laser import LaserWidget, LaserViewSpace
 
 from types import TracebackType
@@ -98,11 +98,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_import_thermo = qAction(
             "", "Import Thermo", "Import Thermo iCap CSVs.", self.actionImportThermo
         )
-        self.action_import_srr = qAction(
+        self.action_wizard_spot = qAction(
             "",
-            "Import Kriss Kross",
-            "Open the Kriss-Kross import wizard.",
-            self.actionImportSRR,
+            "Spotwise Wizard",
+            "Start the import wizard for data collect in a spotwise manner.",
+            self.actionWizardSpot,
+        )
+        self.action_wizard_srr = qAction(
+            "",
+            "Kriss Kross Wizard",
+            "Start the Super-Resolution-Reconstruction impoirt wizard.",
+            self.actionWizardSRR,
         )
         self.action_open = qAction(
             "document-open", "&Open", "Open new document(s).", self.actionOpen
@@ -273,8 +279,14 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.open()
         return dlg
 
-    def actionImportSRR(self) -> QtWidgets.QWizard:
-        wiz = SRRLaserWizard(config=self.viewspace.config, parent=self)
+    def actionWizardSpot(self) -> QtWidgets.QWizard:
+        wiz = SpotImportWizard(config=self.viewspace.config, parent=self)
+        wiz.laserImported.connect(self.viewspace.activeView().addLaser)
+        wiz.open()
+        return wiz
+
+    def actionWizardSRR(self) -> QtWidgets.QWizard:
+        wiz = SRRImportWizard(config=self.viewspace.config, parent=self)
         wiz.laserImported.connect(self.viewspace.activeView().addLaser)
         wiz.open()
         return wiz
@@ -365,7 +377,8 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_import = menu_file.addMenu("&Import")
         menu_import.addAction(self.action_import_agilent)
         menu_import.addAction(self.action_import_thermo)
-        menu_import.addAction(self.action_import_srr)
+        menu_import.addAction(self.action_wizard_spot)
+        menu_import.addAction(self.action_wizard_srr)
 
         menu_file.addSeparator()
 
