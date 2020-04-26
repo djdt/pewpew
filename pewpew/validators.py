@@ -5,7 +5,7 @@ from typing import Tuple
 
 class DecimalValidator(QtGui.QDoubleValidator):
     def __init__(
-        self, bottom: float, top: float, decimals: int, parent: QtWidgets.QWidget = None
+        self, bottom: float, top: float, decimals: int = 4, parent: QtWidgets.QWidget = None
     ):
         super().__init__(bottom, top, decimals, parent)
         self.setNotation(QtGui.QDoubleValidator.StandardNotation)
