@@ -21,7 +21,7 @@ additional_parser_functions = {
     ),
     "normalise": (
         TernaryFunction("normalise"),
-        "(<arr>, <min>, <max>)",
+        "(<array>, <min>, <max>)",
         "Normalise the array from from <min> to <max>.",
     ),
     "otsu": (
@@ -58,8 +58,11 @@ class ValidColorLineEdit(QtWidgets.QLineEdit):
         self.color_bad = QtGui.QColor.fromRgb(255, 172, 172)
 
     def revalidate(self) -> None:
+        self.setValid(self.hasAcceptableInput())
+
+    def setValid(self, valid: bool) -> None:
         palette = self.palette()
-        if self.hasAcceptableInput():
+        if valid:
             color = self.color_good
         else:
             color = self.color_bad
@@ -128,9 +131,9 @@ class CalculationsTool(ToolWidget):
         self.canvas = LaserCanvas(self.viewspace.options)
         self.output = QtWidgets.QLineEdit("Result")
         self.output.setEnabled(False)
-        self.output.setSizePolicy(
-            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding
-        )
+        # self.output.setSizePolicy(
+        #     QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Minimum
+        # )
 
         self.lineedit_name = NameLineEdit("", badnames=[])
         self.lineedit_name.revalidate()
@@ -214,33 +217,39 @@ class CalculationsTool(ToolWidget):
         self.button_apply.setEnabled(enabled)
 
     def refresh(self) -> None:
-        try:
-            self.result = self.reducer.reduce(self.formula.expr)
-        except ReducerException:
+        if self.formula.expr == "":
             self.result = None
             self.output.clear()
-            return
-        if np.isscalar(self.result):
-            self.output.setText(f"{self.result:.10g}")
-        elif isinstance(self.result, np.ndarray):
-            self.output.clear()
-            extent = self.widget.laser.config.data_extent(self.result.shape)
+        else:
+            try:
+                self.result = self.reducer.reduce(self.formula.expr)
+            except (ReducerException, ValueError) as e:
+                self.result = None
+                self.output.setText(str(e))
+                self.formula.setValid(False)
+                return
 
-            self.canvas.drawData(self.result, extent)
-            if self.canvas.viewoptions.canvas.colorbar:
-                self.canvas.drawColorbar("")
+            if np.isscalar(self.result):
+                self.output.setText(f"{self.result:.10g}")
+            elif isinstance(self.result, np.ndarray):
+                self.output.clear()
+                extent = self.widget.laser.config.data_extent(self.result.shape)
 
-            if self.canvas.viewoptions.canvas.label:
-                self.canvas.drawLabel(self.lineedit_name.text())
-            elif self.canvas.label is not None:
-                self.canvas.label.remove()
-                self.canvas.label = None
+                self.canvas.drawData(self.result, extent)
+                if self.canvas.viewoptions.canvas.colorbar:
+                    self.canvas.drawColorbar("")
 
-            if self.canvas.viewoptions.canvas.scalebar:
-                self.canvas.drawScalebar()
-            elif self.canvas.scalebar is not None:
-                self.canvas.scalebar.remove()
-                self.canvas.scalebar = None
+                if self.canvas.viewoptions.canvas.label:
+                    self.canvas.drawLabel(self.lineedit_name.text())
+                elif self.canvas.label is not None:
+                    self.canvas.label.remove()
+                    self.canvas.label = None
+
+                if self.canvas.viewoptions.canvas.scalebar:
+                    self.canvas.drawScalebar()
+                elif self.canvas.scalebar is not None:
+                    self.canvas.scalebar.remove()
+                    self.canvas.scalebar = None
 
     def widgetChanged(self) -> None:
         self.label_current.setText(self.widget.laser.name)
