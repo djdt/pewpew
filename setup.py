@@ -11,7 +11,6 @@ setup(
     install_requires=[
         "numpy",
         "matplotlib>=3.0.0",
-        "pew @ git+https://github.com/djdt/pew@master#egg=pew",
         # "PySide2>=5.13.0",
     ],
     entry_points={
