@@ -247,8 +247,6 @@ class _ExportDialogBase(QtWidgets.QDialog):
         dlg = QtWidgets.QFileDialog(
             self, "Select Directory", self.lineedit_directory.text()
         )
-        if sys.platform != "win32":  # TODO wait for fix
-            dlg.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
         dlg.setFileMode(QtWidgets.QFileDialog.Directory)
         dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)

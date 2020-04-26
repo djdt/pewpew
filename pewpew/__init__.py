@@ -10,6 +10,8 @@ from pewpew.resources import icons  # noqa: F401
 
 def main() -> None:
     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
+    if sys.platform != "win32":
+        QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_DontUseNativeDialogs)
     QtGui.QIcon.setThemeName("breath")
 
     app = QtWidgets.QApplication(sys.argv)
