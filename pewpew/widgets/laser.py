@@ -40,6 +40,9 @@ class LaserViewSpace(ViewSpace):
         self.numViewsChanged.emit()
         return view
 
+    def currentIsotope(self) -> str:
+        return self.activeWidget().combo_isotopes.currentText()
+
     def setCurrentIsotope(self, isotope: str) -> None:
         for view in self.views:
             view.setCurrentIsotope(isotope)

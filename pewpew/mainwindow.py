@@ -215,7 +215,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.refresh()
 
         dlg = dialogs.ColorRangeDialog(
-            self.viewspace.options, self.viewspace.uniqueIsotopes(), parent=self
+            self.viewspace.options,
+            self.viewspace.uniqueIsotopes(),
+            current_isotope=self.viewspace.currentIsotope(),
+            parent=self,
         )
         dlg.combo_isotopes.currentTextChanged.connect(self.viewspace.setCurrentIsotope)
         dlg.applyPressed.connect(applyDialog)
