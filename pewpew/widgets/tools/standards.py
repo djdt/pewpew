@@ -52,7 +52,7 @@ class StandardsTool(ToolWidget):
         self.combo_weighting.currentIndexChanged.connect(self.comboWeighting)
 
         self.results_box = StandardsResultsBox()
-        self.results_box.button.pressed.connect(self.showCurve)
+        self.results_box.button_plot.pressed.connect(self.showCurve)
 
         # Right side
         self.canvas = StandardsCanvas(self.viewspace.options, parent=self)
@@ -421,13 +421,17 @@ class StandardsCanvas(InteractiveCanvas):
 
 
 class StandardsResultsBox(QtWidgets.QGroupBox):
-    LABELS = ["RSQ", "Gradient", "Intercept", "Y-error"]
+    LABELS = ["RSQ", "Gradient", "Intercept", "Y-error", "LOD (3σ)"]
 
+    # TODO rearange this into 2 rows
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__("Results", parent)
         self.lineedits: List[QtWidgets.QLineEdit] = []
-        self.button = QtWidgets.QPushButton("Plot")
-        self.button.setEnabled(False)
+        self.button_copy = QtWidgets.QPushButton("Copy")
+        self.button_copy.pressed.connect(self.copy)
+        self.button_copy.setEnabled(False)
+        self.button_plot = QtWidgets.QPushButton("Plot")
+        self.button_plot.setEnabled(False)
 
         layout = QtWidgets.QFormLayout()
 
@@ -439,20 +443,21 @@ class StandardsResultsBox(QtWidgets.QGroupBox):
             self.lineedits.append(le)
 
         button_layout = QtWidgets.QHBoxLayout()
-        button_layout.addWidget(self.button, 0, QtCore.Qt.AlignRight)
+        button_layout.addWidget(self.button_copy, 0, QtCore.Qt.AlignLeft)
+        button_layout.addWidget(self.button_plot, 0, QtCore.Qt.AlignRight)
         layout.addRow(button_layout)
         self.setLayout(layout)
 
-    def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
-        menu = QtWidgets.QMenu(self)
-        copy_action = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("edit-copy"), "Copy All", self
-        )
-        copy_action.triggered.connect(self.copy)
+    # def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+    #     menu = QtWidgets.QMenu(self)
+    #     copy_action = QtWidgets.QAction(
+    #         QtGui.QIcon.fromTheme("edit-copy"), "Copy All", self
+    #     )
+    #     copy_action.triggered.connect(self.copy)
 
-        menu.addAction(copy_action)
+    #     menu.addAction(copy_action)
 
-        menu.popup(event.globalPos())
+    #     menu.popup(event.globalPos())
 
     def copy(self) -> None:
         data = (
@@ -476,7 +481,8 @@ class StandardsResultsBox(QtWidgets.QGroupBox):
     def clear(self) -> None:
         for le in self.lineedits:
             le.setText("")
-        self.button.setEnabled(False)
+        self.button_copy.setEnabled(False)
+        self.button_plot.setEnabled(False)
 
     def update(self, calibration: Calibration) -> None:
         for v, le in zip(
@@ -485,11 +491,13 @@ class StandardsResultsBox(QtWidgets.QGroupBox):
                 calibration.gradient,
                 calibration.intercept,
                 calibration.yerr,
+                (3.0 * calibration.yerr / calibration.gradient),
             ],
             self.lineedits,
         ):
             le.setText(f"{v:.4f}" if v is not None else "")
-        self.button.setEnabled(True)
+        self.button_copy.setEnabled(True)
+        self.button_plot.setEnabled(True)
 
 
 class CalibrationPointsTableModel(NumpyArrayTableModel):
