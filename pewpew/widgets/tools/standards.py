@@ -181,7 +181,7 @@ class StandardsTool(ToolWidget):
         # Prevent currentIndexChanged being emmited
         self.combo_isotope.blockSignals(True)
         self.combo_isotope.clear()
-        self.combo_isotope.addItems(sorted(self.widget.laser.isotopes))
+        self.combo_isotope.addItems(self.widget.laser.isotopes)
         self.combo_isotope.setCurrentText(self.widget.combo_isotopes.currentText())
         self.combo_isotope.blockSignals(False)
 
