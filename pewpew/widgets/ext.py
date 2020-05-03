@@ -44,3 +44,23 @@ class ValidColorLineEdit(QtWidgets.QLineEdit):
             color = self.color_bad
         palette.setColor(QtGui.QPalette.Base, color)
         self.setPalette(palette)
+
+
+class ValidColorTextEdit(QtWidgets.QTextEdit):
+    def __init__(self, text: str, parent: QtWidgets.QWidget = None):
+        super().__init__(text, parent)
+        self.textChanged.connect(self.revalidate)
+        self.color_good = self.palette().color(QtGui.QPalette.Base)
+        self.color_bad = QtGui.QColor.fromRgb(255, 172, 172)
+
+    def revalidate(self) -> None:
+        self.setValid(self.hasAcceptableInput())
+
+    def setValid(self, valid: bool) -> None:
+        palette = self.palette()
+        if valid:
+            color = self.color_good
+        else:
+            color = self.color_bad
+        palette.setColor(QtGui.QPalette.Base, color)
+        self.setPalette(palette)

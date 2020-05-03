@@ -24,7 +24,7 @@ from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
 from pewpew.widgets.canvases import LaserCanvas
-from pewpew.widgets.ext import ValidColorLineEdit
+from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import ToolWidget
 
@@ -62,7 +62,7 @@ class EditTool(ToolWidget):
         self.method_stack.addWidget(MethodStackWidget(self))
         self.method_stack.addWidget(self.transform_method)
         # Make sure to add the stack widgets in right order!
-        self.combo_method.currentIndexChanged.connect(self.method_stack.setCurrentIndex)
+        self.combo_method.currentIndexChanged.connect(self.setCurrentMethod)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.currentIndexChanged.connect(self.refresh)
@@ -102,7 +102,7 @@ class EditTool(ToolWidget):
             return
         isotope = self.combo_isotope.currentText()
         if stack.full_data:
-            data = stack.previewData(self.previewData())[isotope]
+            data = stack.previewData(self.previewData())
         else:
             data = stack.previewData(self.previewData(isotope))
         if data is None:
@@ -124,6 +124,11 @@ class EditTool(ToolWidget):
         elif self.canvas.scalebar is not None:
             self.canvas.scalebar.remove()
             self.canvas.scalebar = None
+
+    def setCurrentMethod(self, method: int) -> None:
+        self.method_stack.setCurrentIndex(method)
+        self.combo_isotope.setEnabled(not self.method_stack.currentWidget().full_data)
+        self.refresh()
 
     def widgetChanged(self) -> None:
         self.label_current.setText(self.widget.laser.name)
@@ -234,11 +239,28 @@ class CalculatorMethod(MethodStackWidget):
         layout_combos.addWidget(self.combo_isotope)
         layout_combos.addWidget(self.combo_function)
 
-        layout_form = QtWidgets.QFormLayout()
-        layout_form.addRow("Name:", self.lineedit_name)
-        layout_form.addRow("Insert:", layout_combos)
-        layout_form.addRow("Formula:", self.formula)
-        layout_form.addRow("Result:", self.output)
+        # layout_form = QtWidgets.QFormLayout()
+        layout_grid = QtWidgets.QGridLayout()
+        layout_grid.addWidget(QtWidgets.QLabel("Name:"), 0, 0)
+        layout_grid.addWidget(self.lineedit_name, 0, 1)
+        layout_grid.addWidget(QtWidgets.QLabel("Insert:"), 1, 0)
+        layout_grid.addLayout(layout_combos, 1, 1)
+        layout_grid.addWidget(QtWidgets.QLabel("Formula:"), 2, 0)
+        layout_grid.addWidget(self.formula, 2, 1, 1, 1)
+        layout_grid.addWidget(QtWidgets.QLabel("Result:"), 3, 0)
+        layout_grid.addWidget(self.output, 3, 1)
+
+        # layout_grid.setRowStretch(2, 3)
+        # layout_form.addRow("Name:", self.lineedit_name, 1)
+        # layout_form.addRow("Insert:", layout_combos, 1)
+        # layout_form.addRow("Formula:", self.formula, 3)
+        # layout_form.addRow("Result:", self.output, 1)
+
+        layout_main = QtWidgets.QVBoxLayout()
+        layout_main.addLayout(layout_combos)
+        layout_main.addLayout(layout_grid)
+        layout_main.addStretch(1)
+        self.setLayout(layout_main)
 
     def initialise(self) -> None:
         isotopes = self.edit.widget.laser.isotopes
@@ -282,11 +304,11 @@ class CalculatorMethod(MethodStackWidget):
         return True
 
     def previewData(self, data: np.ndarray) -> np.ndarray:
-        self.reducer.variables = {name: data for name in data.dtype.names}
+        self.reducer.variables = {name: data[name] for name in data.dtype.names}
         try:
             data = self.reducer.reduce(self.formula.expr)
             if np.isscalar(data):
-                self.output.setText(f"{self.result:.10g}")
+                self.output.setText(f"{data:.10g}")
                 return None
             elif isinstance(data, np.ndarray):
                 return data
@@ -305,7 +327,6 @@ class CalculatorName(ValidColorLineEdit):
     ):
         super().__init__(text, parent)
 
-        self.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Minimum)
         self.badchars = " +-=*/\\^<>!()[]"
         self.badnames = badnames
         self._badnames = ["nan", "if", "then", "else"]
@@ -323,12 +344,12 @@ class CalculatorName(ValidColorLineEdit):
         return True
 
 
-class CalculatorFormula(ValidColorLineEdit):
+class CalculatorFormula(ValidColorTextEdit):
     def __init__(
         self, text: str, variables: List[str], parent: QtWidgets.QWidget = None
     ):
         super().__init__(text, parent)
-        self.setClearButtonEnabled(True)
+        # self.setClearButtonEnabled(True)
         self.textChanged.disconnect(self.revalidate)
         self.textChanged.connect(self.calculate)
         self.parser = Parser(variables)
@@ -342,7 +363,7 @@ class CalculatorFormula(ValidColorLineEdit):
 
     def calculate(self) -> None:
         try:
-            self.expr = self.parser.parse(self.text())
+            self.expr = self.parser.parse(self.toPlainText())
         except ParserException:
             self.expr = ""
         self.revalidate()
