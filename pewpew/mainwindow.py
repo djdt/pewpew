@@ -7,7 +7,9 @@ from pewpew import __version__
 
 from pewpew.actions import qAction, qActionGroup
 from pewpew.widgets import dialogs
+from pewpew.widgets.ext import MultipleDirDialog
 from pewpew.widgets.exportdialogs import ExportAllDialog
+from pewpew.widgets.laser import LaserWidget, LaserViewSpace
 from pewpew.widgets.prompts import DetailedError
 from pewpew.widgets.tools import (
     ToolWidget,
@@ -16,7 +18,6 @@ from pewpew.widgets.tools import (
     OverlayTool,
 )
 from pewpew.widgets.wizards import SpotImportWizard, SRRImportWizard
-from pewpew.widgets.laser import LaserWidget, LaserViewSpace
 
 from types import TracebackType
 
@@ -268,7 +269,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh()
 
     def actionImportAgilent(self) -> QtWidgets.QDialog:
-        dlg = dialogs.MultipleDirDialog(self, "Batch Directories", "")
+        dlg = MultipleDirDialog(self, "Batch Directories", "")
         dlg.filesSelected.connect(self.viewspace.activeView().openDocument)
         dlg.open()
         return dlg

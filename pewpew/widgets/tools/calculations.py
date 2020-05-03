@@ -3,6 +3,7 @@ import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew.lib.calc import normalise, otsu
+from pewpew.widgets.ext import ValidColorLineEdit
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
@@ -48,26 +49,6 @@ additional_reducer_functions = {
     "percentile": (np.nanpercentile, 2),
     "threshold": (lambda x, a: np.where(x > a, x, np.nan), 2),
 }
-
-
-class ValidColorLineEdit(QtWidgets.QLineEdit):
-    def __init__(self, text: str, parent: QtWidgets.QWidget = None):
-        super().__init__(text, parent)
-        self.textChanged.connect(self.revalidate)
-        self.color_good = self.palette().color(QtGui.QPalette.Base)
-        self.color_bad = QtGui.QColor.fromRgb(255, 172, 172)
-
-    def revalidate(self) -> None:
-        self.setValid(self.hasAcceptableInput())
-
-    def setValid(self, valid: bool) -> None:
-        palette = self.palette()
-        if valid:
-            color = self.color_good
-        else:
-            color = self.color_bad
-        palette.setColor(QtGui.QPalette.Base, color)
-        self.setPalette(palette)
 
 
 class NameLineEdit(ValidColorLineEdit):

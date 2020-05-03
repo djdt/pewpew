@@ -568,29 +568,6 @@ class ConfigDialog(ApplyDialog):
         return True
 
 
-class MultipleDirDialog(QtWidgets.QFileDialog):
-    def __init__(self, parent: QtWidgets.QWidget, title: str, directory: str):
-        super().__init__(parent, title, directory)
-        self.setFileMode(QtWidgets.QFileDialog.Directory)
-        self.setOption(QtWidgets.QFileDialog.DontUseNativeDialog, True)
-        self.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
-        children = self.findChildren(QtWidgets.QListView)
-        children.extend(self.findChildren(QtWidgets.QTreeView))
-        for view in children:
-            if isinstance(view.model(), QtWidgets.QFileSystemModel):
-                view.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-
-    @staticmethod
-    def getExistingDirectories(
-        parent: QtWidgets.QWidget, title: str, directory: str
-    ) -> List[str]:
-        dlg = MultipleDirDialog(parent, title, directory)
-        if dlg.exec():
-            return list(dlg.selectedFiles())
-        else:
-            return []
-
-
 class SelectionDialog(QtWidgets.QDialog):
     maskSelected = QtCore.Signal(np.ndarray)
 

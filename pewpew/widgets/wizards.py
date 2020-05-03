@@ -11,7 +11,7 @@ from pew.srr import SRRLaser, SRRConfig
 
 from pewpew.validators import DecimalValidator, DecimalValidatorNoZero
 from pewpew.widgets.canvases import BasicCanvas
-from pewpew.widgets.dialogs import MultipleDirDialog
+from pewpew.widgets.ext import MultipleDirDialog
 
 from typing import List, Tuple
 
