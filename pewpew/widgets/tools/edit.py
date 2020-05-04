@@ -20,10 +20,11 @@ import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew.lib.calc import normalise, otsu
+from pewpew.lib.convolve import gaussian_kernel
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
-from pewpew.widgets.canvases import LaserCanvas
+from pewpew.widgets.canvases import BasicCanvas, LaserCanvas
 from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import ToolWidget
@@ -32,7 +33,7 @@ from typing import List, Tuple, Union
 
 
 class EditTool(ToolWidget):
-    METHODS = ["Calculator", "Convole", "Deconvolve", "Filter", "Transform"]
+    METHODS = ["Calculator", "Convolve", "Deconvolve", "Filter", "Transform"]
 
     def __init__(self, widget: LaserWidget):
         super().__init__(widget)
@@ -52,12 +53,15 @@ class EditTool(ToolWidget):
         self.calculator_method = CalculatorMethod(self)
         self.calculator_method.inputChanged.connect(self.refresh)
 
+        self.convolve_method = ConvolveMethod(self)
+        self.convolve_method.inputChanged.connect(self.refresh)
+
         self.transform_method = TransformMethod(self)
         self.transform_method.inputChanged.connect(self.refresh)
 
         self.method_stack = QtWidgets.QStackedWidget()
         self.method_stack.addWidget(self.calculator_method)
-        self.method_stack.addWidget(MethodStackWidget(self))
+        self.method_stack.addWidget(self.convolve_method)
         self.method_stack.addWidget(MethodStackWidget(self))
         self.method_stack.addWidget(MethodStackWidget(self))
         self.method_stack.addWidget(self.transform_method)
@@ -210,7 +214,7 @@ class CalculatorMethod(MethodStackWidget):
             "", badnames=[], badparser=list(CalculatorMethod.parser_functions.keys()),
         )
         self.lineedit_name.revalidate()
-        self.lineedit_name.textChanged.connect(self.inputChanged)
+        self.lineedit_name.textEdited.connect(self.inputChanged)
         # self.lineedit_name.editingFinished.connect(self.refresh)
 
         self.combo_isotope = QtWidgets.QComboBox()
@@ -369,18 +373,129 @@ class CalculatorFormula(ValidColorTextEdit):
         self.revalidate()
 
 
+class ConvolveKernelCanvas(BasicCanvas):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__((1.0, 1.0), parent=parent)
+
+    def redrawFigure(self) -> None:
+        self.figure.clear()
+        self.ax = self.figure.add_subplot()
+        # self.ax.get_xaxis().set_visible(False)
+        self.ax.get_yaxis().set_visible(False)
+
+    def drawKernel(self, kernel: np.ndarray):
+        self.ax.clear()
+        self.ax.plot(kernel, color="red")
+        self.draw_idle()
+
+
+class ConvolveMethod(MethodStackWidget):
+    kernels = {"Gaussian": {"σ": 1.0, "μ": 0.0}, "Log-normal": {"b": 0.1}}
+
+    def __init__(self, parent: EditTool):
+        super().__init__(parent)
+
+        self.combo_horizontal = QtWidgets.QComboBox()
+        self.combo_horizontal.addItems(["No", "Left to Right", "Right to Left"])
+        self.combo_horizontal.activated.connect(self.inputChanged)
+        self.combo_vertical = QtWidgets.QComboBox()
+        self.combo_vertical.addItems(["No", "Top to Bottom", "Bottom to Top"])
+        self.combo_vertical.activated.connect(self.inputChanged)
+
+        # kernel type --- gaussian, etc
+        self.combo_kernel = QtWidgets.QComboBox()
+        self.combo_kernel.addItems(ConvolveMethod.kernels.keys())
+        self.combo_kernel.setCurrentText("Gaussian")
+        self.combo_kernel.activated.connect(self.kernelChanged)
+        self.combo_kernel.activated.connect(self.inputChanged)
+        # kernel size
+        self.lineedit_ksize = ValidColorLineEdit()
+        self.lineedit_ksize.setValidator(QtGui.QIntValidator(0, 99))
+        self.lineedit_ksize.textEdited.connect(self.inputChanged)
+        # kernel param
+        self.label_kparams = [QtWidgets.QLabel(), QtWidgets.QLabel()]
+        self.lineedit_kparams = [QtWidgets.QLineEdit(), QtWidgets.QLineEdit()]
+        for le in self.lineedit_kparams:
+            le.textEdited.connect(self.inputChanged)
+
+        # kernel preview
+        self.canvas_kernel = ConvolveKernelCanvas(self)
+        self.canvas_kernel.redrawFigure()
+
+        layout_combo = QtWidgets.QFormLayout()
+        layout_combo.addRow("Horizontal:", self.combo_horizontal)
+        layout_combo.addRow("Vertical:", self.combo_vertical)
+
+        layout_kernel = QtWidgets.QFormLayout()
+        layout_kernel.addWidget(self.combo_kernel)
+        layout_kernel.addRow("Size:", self.lineedit_ksize)
+        for i in range(len(self.label_kparams)):
+            layout_kernel.addRow(self.label_kparams[i], self.lineedit_kparams[i])
+
+        box_kernel = QtWidgets.QGroupBox("Kernel")
+        box_kernel.setLayout(layout_kernel)
+
+        layout_main = QtWidgets.QVBoxLayout()
+        layout_main.addLayout(layout_combo)
+        layout_main.addWidget(box_kernel)
+        layout_main.addWidget(self.canvas_kernel)
+        self.setLayout(layout_main)
+
+    @property
+    def kernel_size(self) -> int:
+        return int(self.lineedit_ksize.text())
+
+    @property
+    def kernel_params(self) -> List[float]:
+        return [float(le.text()) for le in self.lineedit_kparams]
+
+    def initialise(self) -> None:
+        size = int(self.edit.widget.laser.config.get_pixel_width() * 4.0)
+        self.lineedit_ksize.setText(str(size))
+
+        # Clear the params
+        self.kernelChanged()
+
+    def kernelChanged(self) -> None:
+        params = ConvolveMethod.kernels[self.combo_kernel.currentText()]
+        for i in range(len(self.label_kparams)):
+            self.label_kparams[i].setVisible(False)
+            self.lineedit_kparams[i].setText("")
+            self.lineedit_kparams[i].setVisible(False)
+        for i, (k, v) in enumerate(params.items()):
+            self.label_kparams[i].setText(f"{k}:")
+            self.label_kparams[i].setVisible(True)
+            self.lineedit_kparams[i].setText(str(v))
+            self.lineedit_kparams[i].setVisible(True)
+
+    def isComplete(self) -> bool:
+        if not self.lineedit_ksize.hasAcceptableInput():
+            return False
+        if not all(le.hasAcceptableInput() for le in self.lineedit_kparams):
+            return False
+        return True
+
+    def previewData(self, data: np.ndarray) -> np.ndarray:
+        self.previewKernel()
+        return data
+
+    def previewKernel(self) -> None:
+        kernel = gaussian_kernel(self.kernel_size, self.kernel_params[0], self.kernel_params[1])
+        self.canvas_kernel.drawKernel(kernel)
+
+
 class TransformMethod(MethodStackWidget):
     def __init__(self, parent: EditTool):
         super().__init__(parent)
 
         self.lineedit_scale = ValidColorLineEdit("1")
         self.lineedit_scale.setValidator(QtGui.QIntValidator(1, 10))
-        self.lineedit_scale.textChanged.connect(self.inputChanged)
+        self.lineedit_scale.textEdited.connect(self.inputChanged)
 
         self.lineedit_trims = [ValidColorLineEdit("0") for i in range(4)]
         for le in self.lineedit_trims:
             le.setValidator(QtGui.QIntValidator(0, 9999))
-            le.textChanged.connect(self.inputChanged)
+            le.textEdited.connect(self.inputChanged)
 
         layout_trim_x = QtWidgets.QHBoxLayout()
         layout_trim_x.addWidget(self.lineedit_trims[0])
