@@ -27,7 +27,7 @@ class MultipleDirDialog(QtWidgets.QFileDialog):
 
 
 class ValidColorLineEdit(QtWidgets.QLineEdit):
-    def __init__(self, text: str, parent: QtWidgets.QWidget = None):
+    def __init__(self, text: str = "", parent: QtWidgets.QWidget = None):
         super().__init__(text, parent)
         self.textChanged.connect(self.revalidate)
         self.color_good = self.palette().color(QtGui.QPalette.Base)
@@ -47,7 +47,7 @@ class ValidColorLineEdit(QtWidgets.QLineEdit):
 
 
 class ValidColorTextEdit(QtWidgets.QTextEdit):
-    def __init__(self, text: str, parent: QtWidgets.QWidget = None):
+    def __init__(self, text: str = "", parent: QtWidgets.QWidget = None):
         super().__init__(text, parent)
         self.textChanged.connect(self.revalidate)
         self.color_good = self.palette().color(QtGui.QPalette.Base)
