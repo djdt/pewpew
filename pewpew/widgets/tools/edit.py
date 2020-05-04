@@ -257,7 +257,7 @@ class CalculatorMethod(MethodStackWidget):
         # layout_form.addRow("Result:", self.output, 1)
 
         layout_main = QtWidgets.QVBoxLayout()
-        layout_main.addLayout(layout_combos)
+        # layout_main.addLayout(layout_combos)
         layout_main.addLayout(layout_grid)
         layout_main.addStretch(1)
         self.setLayout(layout_main)
@@ -373,32 +373,23 @@ class TransformMethod(MethodStackWidget):
     def __init__(self, parent: EditTool):
         super().__init__(parent)
 
-        self.lineedit_scale = QtWidgets.QLineEdit("1")
+        self.lineedit_scale = ValidColorLineEdit("1")
         self.lineedit_scale.setValidator(QtGui.QIntValidator(1, 10))
         self.lineedit_scale.textChanged.connect(self.inputChanged)
 
-        self.lineedit_trim_x1 = QtWidgets.QLineEdit("0")
-        self.lineedit_trim_x1.setValidator(QtGui.QIntValidator(0, 9999))
-        self.lineedit_trim_x1.textChanged.connect(self.inputChanged)
-        self.lineedit_trim_x2 = QtWidgets.QLineEdit("0")
-        self.lineedit_trim_x2.setValidator(QtGui.QIntValidator(0, 9999))
-        self.lineedit_trim_x2.textChanged.connect(self.inputChanged)
-
-        self.lineedit_trim_y1 = QtWidgets.QLineEdit("0")
-        self.lineedit_trim_y1.setValidator(QtGui.QIntValidator(0, 9999))
-        self.lineedit_trim_y1.textChanged.connect(self.inputChanged)
-        self.lineedit_trim_y2 = QtWidgets.QLineEdit("0")
-        self.lineedit_trim_y2.setValidator(QtGui.QIntValidator(0, 9999))
-        self.lineedit_trim_y2.textChanged.connect(self.inputChanged)
+        self.lineedit_trims = [ValidColorLineEdit("0") for i in range(4)]
+        for le in self.lineedit_trims:
+            le.setValidator(QtGui.QIntValidator(0, 9999))
+            le.textChanged.connect(self.inputChanged)
 
         layout_trim_x = QtWidgets.QHBoxLayout()
-        layout_trim_x.addWidget(self.lineedit_trim_x1)
+        layout_trim_x.addWidget(self.lineedit_trims[0])
         layout_trim_x.addWidget(QtWidgets.QLabel("x"))
-        layout_trim_x.addWidget(self.lineedit_trim_x2)
+        layout_trim_x.addWidget(self.lineedit_trims[1])
         layout_trim_y = QtWidgets.QHBoxLayout()
-        layout_trim_y.addWidget(self.lineedit_trim_y1)
+        layout_trim_y.addWidget(self.lineedit_trims[2])
         layout_trim_y.addWidget(QtWidgets.QLabel("x"))
-        layout_trim_y.addWidget(self.lineedit_trim_y2)
+        layout_trim_y.addWidget(self.lineedit_trims[3])
 
         layout = QtWidgets.QFormLayout()
         layout.addRow("Scale", self.lineedit_scale)
@@ -413,38 +404,34 @@ class TransformMethod(MethodStackWidget):
 
     @property
     def trim(self) -> Tuple[int, int, int, int]:
-        return (
-            int(self.lineedit_trim_x1.text()),
-            int(self.lineedit_trim_x2.text()),
-            int(self.lineedit_trim_y1.text()),
-            int(self.lineedit_trim_y2.text()),
-        )
+        return tuple(int(le.text()) for le in self.lineedit_trims)  # type: ignore
 
     def initialise(self) -> None:
         self.lineedit_scale.setText("1")
-        self.lineedit_trim_x1.setText("0")
-        self.lineedit_trim_x2.setText("0")
-        self.lineedit_trim_y1.setText("0")
-        self.lineedit_trim_y2.setText("0")
+        for le in self.lineedit_trims:
+            le.setText("0")
 
     def isComplete(self) -> bool:
-        trim = self.trim
         if not self.lineedit_scale.hasAcceptableInput():
             return False
-        if not all(
-            le.hasAcceptableInput()
-            for le in [
-                self.lineedit_trim_x1,
-                self.lineedit_trim_x2,
-                self.lineedit_trim_y1,
-                self.lineedit_trim_y2,
-            ]
-        ):
+        if not all(le.hasAcceptableInput() for le in self.lineedit_trims):
             return False
-        if trim[2] + trim[3] > self.edit.widget.laser.shape[0] * self.scale:
+        trim = self.trim
+        if trim[0] + trim[1] > self.edit.widget.laser.shape[1] * self.scale - 1:
+            self.lineedit_trims[0].setValid(False)
+            self.lineedit_trims[1].setValid(False)
             return False
-        if trim[0] + trim[1] > self.edit.widget.laser.shape[1] * self.scale:
+        else:
+            self.lineedit_trims[0].setValid(True)
+            self.lineedit_trims[1].setValid(True)
+
+        if trim[2] + trim[3] > self.edit.widget.laser.shape[0] * self.scale - 1:
+            self.lineedit_trims[2].setValid(False)
+            self.lineedit_trims[3].setValid(False)
             return False
+        else:
+            self.lineedit_trims[2].setValid(True)
+            self.lineedit_trims[3].setValid(True)
         return True
 
     def previewData(self, data: np.ndarray) -> None:
