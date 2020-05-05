@@ -20,7 +20,7 @@ import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew.lib.calc import normalise, otsu
-from pewpew.lib.convolve import gaussian_kernel
+from pewpew.lib.convolve import gaussian_psf, log_normal_psf, deconvolve
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
@@ -29,7 +29,9 @@ from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import ToolWidget
 
-from typing import List, Tuple, Union
+from pewpew.validators import DecimalValidator
+
+from typing import Callable, Dict, List, Tuple, Union
 
 
 class EditTool(ToolWidget):
@@ -56,13 +58,16 @@ class EditTool(ToolWidget):
         self.convolve_method = ConvolveMethod(self)
         self.convolve_method.inputChanged.connect(self.refresh)
 
+        self.deconvolve_method = DeconvolveMethod(self)
+        self.deconvolve_method.inputChanged.connect(self.refresh)
+
         self.transform_method = TransformMethod(self)
         self.transform_method.inputChanged.connect(self.refresh)
 
         self.method_stack = QtWidgets.QStackedWidget()
         self.method_stack.addWidget(self.calculator_method)
         self.method_stack.addWidget(self.convolve_method)
-        self.method_stack.addWidget(MethodStackWidget(self))
+        self.method_stack.addWidget(self.deconvolve_method)
         self.method_stack.addWidget(MethodStackWidget(self))
         self.method_stack.addWidget(self.transform_method)
         # Make sure to add the stack widgets in right order!
@@ -375,7 +380,7 @@ class CalculatorFormula(ValidColorTextEdit):
 
 class ConvolveKernelCanvas(BasicCanvas):
     def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__((1.0, 1.0), parent=parent)
+        super().__init__((0.5, 0.5), parent=parent)
 
     def redrawFigure(self) -> None:
         self.figure.clear()
@@ -390,7 +395,14 @@ class ConvolveKernelCanvas(BasicCanvas):
 
 
 class ConvolveMethod(MethodStackWidget):
-    kernels = {"Gaussian": {"σ": 1.0, "μ": 0.0}, "Log-normal": {"b": 0.1}}
+    kernels = {
+        "Gaussian": gaussian_psf,
+        "Log-normal": log_normal_psf,
+    }
+    kernel_params = {
+        "Gaussian": [("σ", 1.0, (0.01, 1e9))],
+        "Log-normal": [("σ", 1.0, (0.01, 1e9))],
+    }
 
     def __init__(self, parent: EditTool):
         super().__init__(parent)
@@ -410,13 +422,14 @@ class ConvolveMethod(MethodStackWidget):
         self.combo_kernel.activated.connect(self.inputChanged)
         # kernel size
         self.lineedit_ksize = ValidColorLineEdit()
-        self.lineedit_ksize.setValidator(QtGui.QIntValidator(0, 99))
+        self.lineedit_ksize.setValidator(QtGui.QIntValidator(2, 999))
         self.lineedit_ksize.textEdited.connect(self.inputChanged)
         # kernel param
         self.label_kparams = [QtWidgets.QLabel(), QtWidgets.QLabel()]
-        self.lineedit_kparams = [QtWidgets.QLineEdit(), QtWidgets.QLineEdit()]
+        self.lineedit_kparams = [ValidColorLineEdit(), ValidColorLineEdit()]
         for le in self.lineedit_kparams:
             le.textEdited.connect(self.inputChanged)
+            le.setValidator(DecimalValidator(0.0, 0.0, 2))
 
         # kernel preview
         self.canvas_kernel = ConvolveKernelCanvas(self)
@@ -442,46 +455,103 @@ class ConvolveMethod(MethodStackWidget):
         self.setLayout(layout_main)
 
     @property
-    def kernel_size(self) -> int:
+    def ksize(self) -> int:
         return int(self.lineedit_ksize.text())
 
     @property
-    def kernel_params(self) -> List[float]:
-        return [float(le.text()) for le in self.lineedit_kparams]
+    def kparams(self) -> List[float]:
+        return [float(le.text()) for le in self.lineedit_kparams if le.isVisible()]
 
     def initialise(self) -> None:
-        size = int(self.edit.widget.laser.config.get_pixel_width() * 4.0)
-        self.lineedit_ksize.setText(str(size))
+        self.lineedit_ksize.setText("4")
 
-        # Clear the params
         self.kernelChanged()
 
     def kernelChanged(self) -> None:
-        params = ConvolveMethod.kernels[self.combo_kernel.currentText()]
-        for i in range(len(self.label_kparams)):
-            self.label_kparams[i].setVisible(False)
-            self.lineedit_kparams[i].setText("")
-            self.lineedit_kparams[i].setVisible(False)
-        for i, (k, v) in enumerate(params.items()):
-            self.label_kparams[i].setText(f"{k}:")
+        params = ConvolveMethod.kernel_params[self.combo_kernel.currentText()]
+        # Clear all the current params
+        for le in self.label_kparams:
+            le.setVisible(False)
+        for le in self.lineedit_kparams:
+            le.setVisible(False)
+
+        for i, (symbol, default, range) in enumerate(params):
+            self.label_kparams[i].setText(f"{symbol}:")
             self.label_kparams[i].setVisible(True)
-            self.lineedit_kparams[i].setText(str(v))
+            self.lineedit_kparams[i].setText(str(default))
+            self.lineedit_kparams[i].validator().setRange(range[0], range[1], 2)
             self.lineedit_kparams[i].setVisible(True)
+            self.lineedit_kparams[i].revalidate()
+
+    def updateKernel(self) -> None:
+        psf = ConvolveMethod.kernels[self.combo_kernel.currentText()]
+        self.kernel = psf(self.ksize, *self.kparams)
 
     def isComplete(self) -> bool:
         if not self.lineedit_ksize.hasAcceptableInput():
             return False
-        if not all(le.hasAcceptableInput() for le in self.lineedit_kparams):
+        if not all(
+            le.hasAcceptableInput() for le in self.lineedit_kparams if le.isVisible()
+        ):
+            return False
+
+        # It seems dumb to update this here but it works so why not.
+        psf = ConvolveMethod.kernels[self.combo_kernel.currentText()]
+        self.kernel = psf(self.ksize, *self.kparams)
+        if self.kernel.sum() == 0:
             return False
         return True
 
     def previewData(self, data: np.ndarray) -> np.ndarray:
-        self.previewKernel()
-        return data
+        # Preview the kernel too
+        psf = ConvolveMethod.kernels[self.combo_kernel.currentText()]
+        kernel = psf(self.ksize, *self.kparams)
+        self.canvas_kernel.drawKernel(kernel)
+
+        if kernel.sum() == 0:
+            return None  # Invalid kernel
+
+        hmode = self.combo_horizontal.currentText()
+        hslice = slice(None, None, -1 if hmode == "Right to Left" else 1)
+        vmode = self.combo_vertical.currentText()
+        vslice = slice(None, None, -1 if hmode == "Bottom to Top" else 1)
+
+        data = data[vslice, hslice]
+
+        if hmode != "No":
+            data = np.apply_along_axis(np.convolve, 1, data, kernel, mode="same")
+        if vmode != "No":
+            data = np.apply_along_axis(np.convolve, 0, data, kernel, mode="same")
+
+        return data[vslice, hslice]
 
     def previewKernel(self) -> None:
-        kernel = gaussian_kernel(self.kernel_size, self.kernel_params[0], self.kernel_params[1])
+        self.canvas_kernel.drawKernel(self.kernel)
+
+
+class DeconvolveMethod(ConvolveMethod):
+    def previewData(self, data: np.ndarray) -> np.ndarray:
+        # Preview the kernel too
+        psf = ConvolveMethod.kernels[self.combo_kernel.currentText()]
+        kernel = psf(self.ksize, *self.kparams)
         self.canvas_kernel.drawKernel(kernel)
+
+        if kernel.sum() == 0:
+            return None  # Invalid kernel
+
+        hmode = self.combo_horizontal.currentText()
+        hslice = slice(None, None, -1 if hmode == "Right to Left" else 1)
+        vmode = self.combo_vertical.currentText()
+        vslice = slice(None, None, -1 if vmode == "Bottom to Top" else 1)
+
+        data = data[vslice, hslice]
+
+        if hmode != "No":
+            data = np.apply_along_axis(deconvolve, 1, data, kernel, mode="same")
+        if vmode != "No":
+            data = np.apply_along_axis(deconvolve, 0, data, kernel, mode="same")
+
+        return data[vslice, hslice]
 
 
 class TransformMethod(MethodStackWidget):
