@@ -427,6 +427,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         icq = colocal.li_icq(data1, data2)
 
         # Choose a more approriate threshold?
+        # TODO this is really slow, python loops?
         t1, a, b = colocal.costes_threshold(data1, data2)
         t2 = a * t1 + b
         m1, m2 = colocal.manders(
