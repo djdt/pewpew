@@ -109,7 +109,7 @@ class CalculationsTool(ToolWidget):
         # self.button_apply_all = QtWidgets.QPushButton("Apply To All")
         # self.button_apply_all.pressed.connect(self.applyAll)
 
-        self.canvas = LaserCanvas(self.viewspace.options)
+        self.canvas = LaserCanvas(self.viewspace.options, parent=self)
         self.output = QtWidgets.QLineEdit("Result")
         self.output.setEnabled(False)
         # self.output.setSizePolicy(
