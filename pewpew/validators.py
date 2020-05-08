@@ -29,6 +29,26 @@ class DecimalValidatorNoZero(DecimalValidator):
         return result
 
 
+class LimitValidator(QtGui.QDoubleValidator):
+    def __init__(
+        self, bottom: float, top: float, decimals: int = 4, parent: QtWidgets.QWidget = None
+    ):
+        super().__init__(bottom, top, decimals, parent)
+
+    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
+        result, _, _ = super().validate(input, pos)
+        if result == QtGui.QValidator.Acceptable:
+            try:
+                v = float(input)
+                if v == self.bottom():
+                    return (QtGui.QValidator.Intermediate, input, pos)
+                elif v == self.top():
+                    return (QtGui.QValidator.Intermediate, input, pos)
+            except ValueError:
+                pass
+        return (result, input, pos)
+
+
 class PercentOrDecimalValidator(DecimalValidator):
     def __init__(
         self,
