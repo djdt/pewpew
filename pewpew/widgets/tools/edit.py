@@ -20,7 +20,7 @@ import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew.lib.calc import normalise, otsu
-from pewpew.lib.convolve import gaussian_psf, log_normal_psf, deconvolve
+from pewpew.lib.convolve import deconvolve, gaussian_psf, loglaplace_psf, lognormal_psf
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
@@ -397,11 +397,13 @@ class ConvolveKernelCanvas(BasicCanvas):
 class ConvolveMethod(MethodStackWidget):
     kernels = {
         "Gaussian": gaussian_psf,
-        "Log-normal": log_normal_psf,
+        "Log-laplace": loglaplace_psf,
+        "Log-normal": lognormal_psf,
     }
     kernel_params = {
-        "Gaussian": [("σ", 1.0, (0.01, 1e9))],
-        "Log-normal": [("σ", 1.0, (0.01, 1e9))],
+        "Log-laplace": [("b", 1.0, (0.001, 1e9))],  # Negative is just mirrored kernel
+        "Gaussian": [("σ", 1.0, (0.001, 1e9))],
+        "Log-normal": [("σ", 1.0, (0.001, 1e9))],
     }
 
     def __init__(self, parent: EditTool):
@@ -429,7 +431,7 @@ class ConvolveMethod(MethodStackWidget):
         self.lineedit_kparams = [ValidColorLineEdit(), ValidColorLineEdit()]
         for le in self.lineedit_kparams:
             le.textEdited.connect(self.inputChanged)
-            le.setValidator(DecimalValidator(0.0, 0.0, 2))
+            le.setValidator(DecimalValidator(0.0, 0.0, 3))
 
         # kernel preview
         self.canvas_kernel = ConvolveKernelCanvas(self)
@@ -479,7 +481,7 @@ class ConvolveMethod(MethodStackWidget):
             self.label_kparams[i].setText(f"{symbol}:")
             self.label_kparams[i].setVisible(True)
             self.lineedit_kparams[i].setText(str(default))
-            self.lineedit_kparams[i].validator().setRange(range[0], range[1], 2)
+            self.lineedit_kparams[i].validator().setRange(range[0], range[1], 3)
             self.lineedit_kparams[i].setVisible(True)
             self.lineedit_kparams[i].revalidate()
 
