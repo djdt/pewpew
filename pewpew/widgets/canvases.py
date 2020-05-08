@@ -173,8 +173,6 @@ class LaserCanvas(BasicCanvas):
         self.label: AnchoredText = None
         self.scalebar: MetricSizeBar = None
 
-        self.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
-
     @property
     def extent(self) -> Tuple[float, float, float, float]:
         if self.image is None:
