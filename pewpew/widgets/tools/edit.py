@@ -455,7 +455,7 @@ class ConvolveMethod(MethodStackWidget):
         # kernel type --- gaussian, etc
         self.combo_kernel = QtWidgets.QComboBox()
         self.combo_kernel.addItems(ConvolveMethod.kernels.keys())
-        self.combo_kernel.setCurrentText("Normal")
+        self.combo_kernel.setCurrentText("Gaussian")
         self.combo_kernel.activated.connect(self.kernelChanged)
         self.combo_kernel.activated.connect(self.inputChanged)
         # kernel size
@@ -574,22 +574,26 @@ class ConvolveMethod(MethodStackWidget):
 
 
 class DeconvolveMethod(ConvolveMethod):
-    # TODO UPDATE ME
     def previewData(self, data: np.ndarray) -> np.ndarray:
         # Preview the kernel too
         psf = ConvolveMethod.kernels[self.combo_kernel.currentText()]["psf"]
-        kernel = psf(self.ksize, *self.kparams)
-        self.canvas_kernel.drawKernel(kernel)
+        kernel = psf(self.ksize, *self.kparams, scale=self.kscale)
 
         if kernel.sum() == 0:
+            self.canvas_kernel.ax.clear()
+            self.canvas_kernel.draw_idle()
             return None  # Invalid kernel
+        else:
+            self.canvas_kernel.drawKernel(kernel)
 
         hmode = self.combo_horizontal.currentText()
         hslice = slice(None, None, -1 if hmode == "Right to Left" else 1)
         vmode = self.combo_vertical.currentText()
-        vslice = slice(None, None, -1 if vmode == "Bottom to Top" else 1)
+        vslice = slice(None, None, -1 if hmode == "Bottom to Top" else 1)
 
         data = data[vslice, hslice]
+
+        kernel = kernel[:, 1]
 
         if hmode != "No":
             data = np.apply_along_axis(
