@@ -3,6 +3,7 @@ import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew.lib import convolve
+from pewpew.lib import filters as fltrs
 from pewpew.lib.calc import normalise, otsu
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
@@ -12,13 +13,14 @@ from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import ToolWidget
 
-from pewpew.validators import DecimalValidator, LimitValidator
+from pewpew.validators import DecimalValidator, LimitValidator, OddIntValidator
 
 from typing import List, Tuple, Union
 
 
 # TODO
 # Add some kind of indicator for if all data or just current isotope changed
+
 
 class EditTool(ToolWidget):
     METHODS = ["Calculator", "Convolve", "Deconvolve", "Filter", "Transform"]
@@ -33,7 +35,7 @@ class EditTool(ToolWidget):
         # self.button_apply_all = QtWidgets.QPushButton("Apply To All")
         # self.button_apply_all.pressed.connect(self.applyAll)
 
-        self.canvas = LaserCanvas(self.viewspace.options)
+        self.canvas = LaserCanvas(self.viewspace.options, parent=self)
 
         self.combo_method = QtWidgets.QComboBox()
         self.combo_method.addItems(EditTool.METHODS)
@@ -57,7 +59,7 @@ class EditTool(ToolWidget):
         self.method_stack.addWidget(self.calculator_method)
         self.method_stack.addWidget(self.convolve_method)
         self.method_stack.addWidget(self.deconvolve_method)
-        self.method_stack.addWidget(MethodStackWidget(self))
+        self.method_stack.addWidget(self.filter_method)
         self.method_stack.addWidget(self.transform_method)
         # Make sure to add the stack widgets in right order!
         self.combo_method.currentIndexChanged.connect(self.setCurrentMethod)
@@ -150,6 +152,14 @@ class EditTool(ToolWidget):
             self.method_stack.widget(i).initialise()
 
         self.refresh()
+
+    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+        if event.type() == QtCore.QEvent.MouseButtonDblClick and isinstance(
+            obj.parent(), LaserWidget
+        ):
+            self.widget = obj.parent()
+            self.endMouseSelect()
+        return False
 
 
 class MethodStackWidget(QtWidgets.QGroupBox):
@@ -616,11 +626,96 @@ class DeconvolveMethod(ConvolveMethod):
 
 
 class FilterMethod(MethodStackWidget):
+    filters: dict = {
+        "Mean": {
+            "filter": fltrs.mean_filter,
+            "params": [("σ", 3.0, (0.0, np.inf))],
+            "desc": ["Filter if > σ stddevs from mean."],
+        },
+        "Median": {
+            "filter": fltrs.median_filter,
+            "params": [("M", 3.0, (0.0, np.inf))],
+            "desc": ["Filter if > M medians from median."],
+        },
+    }
+
     def __init__(self, parent: EditTool):
         super().__init__(parent)
 
+        self.combo_filter = QtWidgets.QComboBox()
+        self.combo_filter.addItems(FilterMethod.filters.keys())
+        self.combo_filter.setCurrentText("Median")
+        self.combo_filter.activated.connect(self.filterChanged)
+        self.combo_filter.activated.connect(self.inputChanged)
+
+        self.lineedit_fsize = ValidColorLineEdit()
+        self.lineedit_fsize.setValidator(OddIntValidator(3, 21))
+        self.lineedit_fsize.textEdited.connect(self.inputChanged)
+
+        nparams = np.amax([len(f["params"]) for f in FilterMethod.filters.values()])
+        self.label_fparams = [QtWidgets.QLabel() for i in range(nparams)]
+        self.lineedit_fparams = [ValidColorLineEdit() for i in range(nparams)]
+        for le in self.lineedit_fparams:
+            le.textEdited.connect(self.inputChanged)
+            le.setValidator(LimitValidator(0.0, 0.0, 4))
+
+        layout_filter = QtWidgets.QFormLayout()
+        layout_filter.addWidget(self.combo_filter)
+        layout_filter.addRow("Size:", self.lineedit_fsize)
+        for i in range(len(self.label_fparams)):
+            layout_filter.addRow(self.label_fparams[i], self.lineedit_fparams[i])
+
+        layout_main = QtWidgets.QVBoxLayout()
+        layout_main.addLayout(layout_filter)
+
+        self.setLayout(layout_main)
+
+    @property
+    def fsize(self) -> int:
+        return int(self.lineedit_fsize.text())
+
+    @property
+    def fparams(self) -> List[float]:
+        return [float(le.text()) for le in self.lineedit_fparams if le.isVisible()]
+
+    def initialise(self) -> None:
+        self.lineedit_fsize.setText("5")
+
+        self.filterChanged()
+
+    def filterChanged(self) -> None:
+        filter_ = FilterMethod.filters[self.combo_filter.currentText()]
+        # Clear all the current params
+        for le in self.label_fparams:
+            le.setVisible(False)
+        for le in self.lineedit_fparams:
+            le.setVisible(False)
+
+        params: List[Tuple[str, float, Tuple]] = filter_["params"]
+
+        for i, (symbol, default, range) in enumerate(params):
+            self.label_fparams[i].setText(f"{symbol}:")
+            self.label_fparams[i].setVisible(True)
+            self.lineedit_fparams[i].validator().setRange(range[0], range[1], 4)
+            self.lineedit_fparams[i].setVisible(True)
+            self.lineedit_fparams[i].setToolTip(filter_["desc"][i])
+            # keep input that's still valid
+            if not self.lineedit_fparams[i].hasAcceptableInput():
+                self.lineedit_fparams[i].setText(str(default))
+                self.lineedit_fparams[i].revalidate()
+
+    def isComplete(self) -> bool:
+        if not self.lineedit_fsize.hasAcceptableInput():
+            return False
+        if not all(
+            le.hasAcceptableInput() for le in self.lineedit_fparams if le.isVisible()
+        ):
+            return False
+        return True
+
     def previewData(self, data: np.ndarray) -> np.ndarray:
-        return data
+        filter_ = FilterMethod.filters[self.combo_filter.currentText()]["filter"]
+        return filter_(data, (self.fsize, self.fsize), *self.fparams)
 
 
 class TransformMethod(MethodStackWidget):
