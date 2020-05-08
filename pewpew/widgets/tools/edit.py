@@ -414,10 +414,10 @@ class ConvolveMethod(MethodStackWidget):
             "psf": convolve.beta,
             "params": [("α", 2.0, (0.0, np.inf)), ("β", 5.0, (0.0, np.inf))],
         },
-        "Cauchy": {
-            "psf": convolve.cauchy,
-            "params": [("γ", 1.0, (0.0, np.inf)), ("x₀", 0.0, (-np.inf, np.inf))],
-        },
+        # "Cauchy": {
+        #     "psf": convolve.cauchy,
+        #     "params": [("γ", 1.0, (0.0, np.inf)), ("x₀", 0.0, (-np.inf, np.inf))],
+        # },
         "Exponential": {
             "psf": convolve.exponential,
             "params": [("λ", 1.0, (0.0, np.inf))],
@@ -430,10 +430,10 @@ class ConvolveMethod(MethodStackWidget):
             "psf": convolve.laplace,
             "params": [("b", 0.5, (0.0, np.inf)), ("μ", 0.0, (-np.inf, np.inf))],
         },
-        "Log-Cauchy": {
-            "psf": convolve.logcauchy,
-            "params": [("σ", 1.0, (0, np.inf)), ("μ", 0.0, (-np.inf, np.inf))],
-        },
+        # "Log-Cauchy": {
+        #     "psf": convolve.logcauchy,
+        #     "params": [("σ", 1.0, (0, np.inf)), ("μ", 0.0, (-np.inf, np.inf))],
+        # },
         "Log-Laplace": {
             "psf": convolve.loglaplace,
             "params": [("b", 0.5, (0.0, np.inf)), ("μ", 0.0, (-np.inf, np.inf))],
@@ -452,6 +452,13 @@ class ConvolveMethod(MethodStackWidget):
                 ("σ", 1.0, (0.0, np.inf)),
                 ("μ", 0.0, (-np.inf, np.inf)),
                 ("P", 2.0, (-np.inf, np.inf)),
+            ],
+        },
+        "Triangular": {
+            "psf": convolve.triangular,
+            "params": [
+                ("a", -2.0, (-np.inf, 0.0)),
+                ("b", 2.0, (0.0, np.inf)),
             ],
         },
     }

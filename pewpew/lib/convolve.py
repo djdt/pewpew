@@ -76,7 +76,7 @@ def cauchy_pdf(x: np.ndarray, gamma: float, x0: float) -> np.ndarray:
 def cauchy(
     size: int, gamma: float, x0: float, scale: float = 1.0, shift: float = 0.0
 ) -> np.ndarray:
-    x = np.linspace(-size * scale + shift, size * scale + shift, size,)
+    x = np.linspace(-size * 0.5 * scale + shift, size * 0.5 * scale + shift, size,)
     y = cauchy_pdf(x, gamma, x0)
     return np.stack((x, y / y.sum()), axis=1)
 
@@ -88,7 +88,7 @@ def exponential_pdf(x: np.ndarray, _lambda: float) -> np.ndarray:
 def exponential(
     size: int, _lambda: float, scale: float = 1.0, shift: float = 1e-6
 ) -> np.ndarray:
-    x = np.linspace(0 + shift, size * scale + shift, size)
+    x = np.linspace(shift, size * scale + shift, size)
     y = exponential_pdf(x, _lambda)
     return np.stack((x, y / y.sum()), axis=1)
 
@@ -116,7 +116,7 @@ def laplace_pdf(x: np.ndarray, b: float, mu: float) -> np.ndarray:
 def laplace(
     size: int, b: float, mu: float, scale: float = 1.0, shift: float = 0.0
 ) -> np.ndarray:
-    x = np.linspace(-size * scale + shift, size * scale + shift, size)
+    x = np.linspace(-size * 0.5 * scale + shift, size * 0.5 * scale + shift, size)
     y = laplace_pdf(x, b, mu)
     return np.stack((x, y / y.sum()), axis=1)
 
@@ -167,7 +167,7 @@ def normal_pdf(x: np.ndarray, sigma: float, mu: float) -> np.ndarray:
 def normal(
     size: int, sigma: float, mu: float, scale: float = 1.0, shift: float = 0.0
 ) -> np.ndarray:
-    x = np.linspace(-size * scale + shift, size * scale + shift, size)
+    x = np.linspace(-size * 0.5 * scale + shift, size * 0.5 * scale + shift, size)
     y = normal_pdf(x, sigma, mu)
     return np.stack((x, y / y.sum()), axis=1)
 
@@ -190,6 +190,21 @@ def super_gaussian(
     scale: float = 1.0,
     shift: float = 0.0,
 ) -> np.ndarray:
-    x = np.linspace(-size * scale + shift, size * scale + shift, size)
+    x = np.linspace(-size * 0.5 * scale + shift, size * 0.5 * scale + shift, size)
     y = super_gaussian_pdf(x, sigma, mu, power)
+    return np.stack((x, y / y.sum()), axis=1)
+
+
+def triangular_pdf(x: np.ndarray, a: float, b: float) -> np.ndarray:
+    y = np.where(x < 0.0, (2.0 * (x - a)) / (a * (a - b)), (2.0 * (b - x)) / (b * (b - a)))
+    y[x == 0.0] = 2.0 / (b - a)
+    y[np.logical_or(x < a, x > b)] = 0.0
+    return y
+
+
+def triangular(
+    size: int, a: float, b: float, scale: float = 1.0, shift: float = 0.0
+) -> np.ndarray:
+    x = np.linspace(-size * 0.5 * scale + shift, size * 0.5 * scale + shift, size)
+    y = triangular_pdf(x, a, b)
     return np.stack((x, y / y.sum()), axis=1)
