@@ -19,8 +19,8 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from pewpew.lib import convolve
 from pewpew.lib.calc import normalise, otsu
-from pewpew.lib.convolve import deconvolve, gaussian_psf, loglaplace_psf, lognormal_psf
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
@@ -29,9 +29,9 @@ from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import ToolWidget
 
-from pewpew.validators import DecimalValidator
+from pewpew.validators import DecimalValidator, LimitValidator
 
-from typing import Callable, Dict, List, Tuple, Union
+from typing import List, Tuple, Union
 
 
 class EditTool(ToolWidget):
@@ -390,20 +390,56 @@ class ConvolveKernelCanvas(BasicCanvas):
 
     def drawKernel(self, kernel: np.ndarray):
         self.ax.clear()
-        self.ax.plot(kernel, color="red")
+        self.ax.plot(kernel[:, 0], kernel[:, 1], color="red")
         self.draw_idle()
 
 
 class ConvolveMethod(MethodStackWidget):
-    kernels = {
-        "Gaussian": gaussian_psf,
-        "Log-laplace": loglaplace_psf,
-        "Log-normal": lognormal_psf,
-    }
-    kernel_params = {
-        "Log-laplace": [("b", 1.0, (0.001, 1e9))],  # Negative is just mirrored kernel
-        "Gaussian": [("σ", 1.0, (0.001, 1e9))],
-        "Log-normal": [("σ", 1.0, (0.001, 1e9))],
+    kernels: dict = {
+        "Beta": {
+            "psf": convolve.beta,
+            "params": [("α", 2.0, (0.0, np.inf)), ("β", 5.0, (0.0, np.inf))],
+        },
+        "Cauchy": {
+            "psf": convolve.cauchy,
+            "params": [("γ", 1.0, (0.0, np.inf)), ("x₀", 0.0, (-np.inf, np.inf))],
+        },
+        "Exponential": {
+            "psf": convolve.exponential,
+            "params": [("λ", 1.0, (0.0, np.inf))],
+        },
+        "Inverse-gamma": {
+            "psf": convolve.inversegamma,
+            "params": [("α", 1.0, (0.0, np.inf)), ("β", 1.0, (0.0, np.inf))],
+        },
+        "Laplace": {
+            "psf": convolve.laplace,
+            "params": [("b", 0.5, (0.0, np.inf)), ("μ", 0.0, (-np.inf, np.inf))],
+        },
+        "Log-Cauchy": {
+            "psf": convolve.logcauchy,
+            "params": [("σ", 1.0, (0, np.inf)), ("μ", 0.0, (-np.inf, np.inf))],
+        },
+        "Log-Laplace": {
+            "psf": convolve.loglaplace,
+            "params": [("b", 0.5, (0.0, np.inf)), ("μ", 0.0, (-np.inf, np.inf))],
+        },
+        "Log-normal": {
+            "psf": convolve.lognormal,
+            "params": [("σ", 1.0, (0.0, np.inf)), ("μ", 0.0, (-np.inf, np.inf))],
+        },
+        "Gaussian": {
+            "psf": convolve.normal,
+            "params": [("σ", 1.0, (0.0, np.inf)), ("μ", 0.0, (-np.inf, np.inf))],
+        },
+        "Super-Gaussian": {
+            "psf": convolve.super_gaussian,
+            "params": [
+                ("σ", 1.0, (0.0, np.inf)),
+                ("μ", 0.0, (-np.inf, np.inf)),
+                ("P", 2.0, (-np.inf, np.inf)),
+            ],
+        },
     }
 
     def __init__(self, parent: EditTool):
@@ -419,19 +455,23 @@ class ConvolveMethod(MethodStackWidget):
         # kernel type --- gaussian, etc
         self.combo_kernel = QtWidgets.QComboBox()
         self.combo_kernel.addItems(ConvolveMethod.kernels.keys())
-        self.combo_kernel.setCurrentText("Gaussian")
+        self.combo_kernel.setCurrentText("Normal")
         self.combo_kernel.activated.connect(self.kernelChanged)
         self.combo_kernel.activated.connect(self.inputChanged)
         # kernel size
         self.lineedit_ksize = ValidColorLineEdit()
         self.lineedit_ksize.setValidator(QtGui.QIntValidator(2, 999))
         self.lineedit_ksize.textEdited.connect(self.inputChanged)
+        self.lineedit_kscale = ValidColorLineEdit()
+        self.lineedit_kscale.setValidator(DecimalValidator(1e-9, 1e9, 4))
+        self.lineedit_kscale.textEdited.connect(self.inputChanged)
         # kernel param
-        self.label_kparams = [QtWidgets.QLabel(), QtWidgets.QLabel()]
-        self.lineedit_kparams = [ValidColorLineEdit(), ValidColorLineEdit()]
+        nparams = np.amax([len(k["params"]) for k in ConvolveMethod.kernels.values()])
+        self.label_kparams = [QtWidgets.QLabel() for i in range(nparams)]
+        self.lineedit_kparams = [ValidColorLineEdit() for i in range(nparams)]
         for le in self.lineedit_kparams:
             le.textEdited.connect(self.inputChanged)
-            le.setValidator(DecimalValidator(0.0, 0.0, 3))
+            le.setValidator(LimitValidator(0.0, 0.0, 4))
 
         # kernel preview
         self.canvas_kernel = ConvolveKernelCanvas(self)
@@ -444,6 +484,7 @@ class ConvolveMethod(MethodStackWidget):
         layout_kernel = QtWidgets.QFormLayout()
         layout_kernel.addWidget(self.combo_kernel)
         layout_kernel.addRow("Size:", self.lineedit_ksize)
+        layout_kernel.addRow("Scale:", self.lineedit_kscale)
         for i in range(len(self.label_kparams)):
             layout_kernel.addRow(self.label_kparams[i], self.lineedit_kparams[i])
 
@@ -457,6 +498,10 @@ class ConvolveMethod(MethodStackWidget):
         self.setLayout(layout_main)
 
     @property
+    def kscale(self) -> float:
+        return 1.0 / float(self.lineedit_kscale.text())
+
+    @property
     def ksize(self) -> int:
         return int(self.lineedit_ksize.text())
 
@@ -466,52 +511,50 @@ class ConvolveMethod(MethodStackWidget):
 
     def initialise(self) -> None:
         self.lineedit_ksize.setText("4")
+        self.lineedit_kscale.setText("1.0")
 
         self.kernelChanged()
 
     def kernelChanged(self) -> None:
-        params = ConvolveMethod.kernel_params[self.combo_kernel.currentText()]
+        kernel = ConvolveMethod.kernels[self.combo_kernel.currentText()]
         # Clear all the current params
         for le in self.label_kparams:
             le.setVisible(False)
         for le in self.lineedit_kparams:
             le.setVisible(False)
 
+        params: List[Tuple[str, float, Tuple]] = kernel["params"]
+
         for i, (symbol, default, range) in enumerate(params):
             self.label_kparams[i].setText(f"{symbol}:")
             self.label_kparams[i].setVisible(True)
             self.lineedit_kparams[i].setText(str(default))
-            self.lineedit_kparams[i].validator().setRange(range[0], range[1], 3)
+            self.lineedit_kparams[i].validator().setRange(range[0], range[1], 4)
             self.lineedit_kparams[i].setVisible(True)
             self.lineedit_kparams[i].revalidate()
 
-    def updateKernel(self) -> None:
-        psf = ConvolveMethod.kernels[self.combo_kernel.currentText()]
-        self.kernel = psf(self.ksize, *self.kparams)
-
     def isComplete(self) -> bool:
         if not self.lineedit_ksize.hasAcceptableInput():
+            return False
+        if not self.lineedit_kscale.hasAcceptableInput():
             return False
         if not all(
             le.hasAcceptableInput() for le in self.lineedit_kparams if le.isVisible()
         ):
             return False
-
-        # It seems dumb to update this here but it works so why not.
-        psf = ConvolveMethod.kernels[self.combo_kernel.currentText()]
-        self.kernel = psf(self.ksize, *self.kparams)
-        if self.kernel.sum() == 0:
-            return False
         return True
 
     def previewData(self, data: np.ndarray) -> np.ndarray:
         # Preview the kernel too
-        psf = ConvolveMethod.kernels[self.combo_kernel.currentText()]
-        kernel = psf(self.ksize, *self.kparams)
-        self.canvas_kernel.drawKernel(kernel)
+        psf = ConvolveMethod.kernels[self.combo_kernel.currentText()]["psf"]
+        kernel = psf(self.ksize, *self.kparams, scale=self.kscale)
 
         if kernel.sum() == 0:
+            self.canvas_kernel.ax.clear()
+            self.canvas_kernel.draw_idle()
             return None  # Invalid kernel
+        else:
+            self.canvas_kernel.drawKernel(kernel)
 
         hmode = self.combo_horizontal.currentText()
         hslice = slice(None, None, -1 if hmode == "Right to Left" else 1)
@@ -520,6 +563,8 @@ class ConvolveMethod(MethodStackWidget):
 
         data = data[vslice, hslice]
 
+        kernel = kernel[:, 1]
+
         if hmode != "No":
             data = np.apply_along_axis(np.convolve, 1, data, kernel, mode="same")
         if vmode != "No":
@@ -527,14 +572,12 @@ class ConvolveMethod(MethodStackWidget):
 
         return data[vslice, hslice]
 
-    def previewKernel(self) -> None:
-        self.canvas_kernel.drawKernel(self.kernel)
-
 
 class DeconvolveMethod(ConvolveMethod):
+    # TODO UPDATE ME
     def previewData(self, data: np.ndarray) -> np.ndarray:
         # Preview the kernel too
-        psf = ConvolveMethod.kernels[self.combo_kernel.currentText()]
+        psf = ConvolveMethod.kernels[self.combo_kernel.currentText()]["psf"]
         kernel = psf(self.ksize, *self.kparams)
         self.canvas_kernel.drawKernel(kernel)
 
@@ -549,9 +592,13 @@ class DeconvolveMethod(ConvolveMethod):
         data = data[vslice, hslice]
 
         if hmode != "No":
-            data = np.apply_along_axis(deconvolve, 1, data, kernel, mode="same")
+            data = np.apply_along_axis(
+                convolve.deconvolve, 1, data, kernel, mode="same"
+            )
         if vmode != "No":
-            data = np.apply_along_axis(deconvolve, 0, data, kernel, mode="same")
+            data = np.apply_along_axis(
+                convolve.deconvolve, 0, data, kernel, mode="same"
+            )
 
         return data[vslice, hslice]
 
