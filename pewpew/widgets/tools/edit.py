@@ -95,11 +95,14 @@ class EditTool(ToolWidget):
         self.layout_main.addLayout(layout_methods, 0)
         self.layout_main.addLayout(layout_canvas, 1)
 
+        self.layout_buttons.addWidget(self.button_apply, 0, QtCore.Qt.AlignRight)
+
         self.widgetChanged()
 
     def apply(self) -> None:
-        # self.widget.laser.add(self.lineedit_name.text(), np.array(self.result))
-        # self.widget.populateIsotopes()
+        stack = self.method_stack.currentWidget()
+        if stack.isComplete():
+            stack.apply()
         self.widgetChanged()
 
     def previewData(self, isotope: str = None) -> np.ndarray:
@@ -108,14 +111,18 @@ class EditTool(ToolWidget):
     def refresh(self) -> None:
         stack: MethodStackWidget = self.method_stack.currentWidget()
         if not stack.isComplete():  # Not ready for update to preview
+            self.button_apply.setEnabled(False)
             return
+
         isotope = self.combo_isotope.currentText()
         if stack.full_data:
             data = stack.previewData(self.previewData())
         else:
             data = stack.previewData(self.previewData(isotope))
         if data is None:
+            self.button_apply.setEnabled(False)
             return
+
         self.canvas.drawData(
             data, self.widget.laser.config.data_extent(data.shape), isotope=isotope,
         )
@@ -133,6 +140,8 @@ class EditTool(ToolWidget):
         elif self.canvas.scalebar is not None:
             self.canvas.scalebar.remove()
             self.canvas.scalebar = None
+
+        self.button_apply.setEnabled(True)
 
     def setCurrentMethod(self, method: int) -> None:
         self.method_stack.setCurrentIndex(method)
@@ -161,6 +170,14 @@ class MethodStackWidget(QtWidgets.QGroupBox):
         super().__init__("Options", parent)
         self.edit = parent
         self.full_data = full_data
+
+    def apply(self) -> None:
+        if self.edit.widget.is_srr:
+            QtWidgets.QMessageBox.warning("Not yet implemented for SRR data.")
+            return
+        isotope = self.edit.combo_isotope.currentText()
+        data = self.edit.widget.laser.data[isotope]
+        self.edit.widget.laser.data[isotope] = self.previewData(data)
 
     def initialise(self) -> None:
         pass
@@ -248,7 +265,6 @@ class CalculatorMethod(MethodStackWidget):
         layout_combos.addWidget(self.combo_isotope)
         layout_combos.addWidget(self.combo_function)
 
-        # layout_form = QtWidgets.QFormLayout()
         layout_grid = QtWidgets.QGridLayout()
         layout_grid.addWidget(QtWidgets.QLabel("Name:"), 0, 0)
         layout_grid.addWidget(self.lineedit_name, 0, 1)
@@ -259,17 +275,13 @@ class CalculatorMethod(MethodStackWidget):
         layout_grid.addWidget(QtWidgets.QLabel("Result:"), 3, 0)
         layout_grid.addWidget(self.output, 3, 1)
 
-        # layout_grid.setRowStretch(2, 3)
-        # layout_form.addRow("Name:", self.lineedit_name, 1)
-        # layout_form.addRow("Insert:", layout_combos, 1)
-        # layout_form.addRow("Formula:", self.formula, 3)
-        # layout_form.addRow("Result:", self.output, 1)
-
         layout_main = QtWidgets.QVBoxLayout()
-        # layout_main.addLayout(layout_combos)
         layout_main.addLayout(layout_grid)
-        layout_main.addStretch(1)
+        layout_main.addStretch(0)
         self.setLayout(layout_main)
+
+    def apply(self) -> None:
+        self.widget.laser.add(self.lineedit_name.text(), np.array(self.result))
 
     def initialise(self) -> None:
         isotopes = self.edit.widget.laser.isotopes
@@ -380,7 +392,7 @@ class CalculatorFormula(ValidColorTextEdit):
 
 class ConvolveKernelCanvas(BasicCanvas):
     def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__((0.5, 0.5), parent=parent)
+        super().__init__((1.0, 1.0), parent=parent)
 
     def redrawFigure(self) -> None:
         self.figure.clear()
@@ -392,6 +404,9 @@ class ConvolveKernelCanvas(BasicCanvas):
         self.ax.clear()
         self.ax.plot(kernel[:, 0], kernel[:, 1], color="red")
         self.draw_idle()
+
+    def minimumSizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(150, 150)
 
 
 class ConvolveMethod(MethodStackWidget):
@@ -488,7 +503,7 @@ class ConvolveMethod(MethodStackWidget):
         for i in range(len(self.label_kparams)):
             layout_kernel.addRow(self.label_kparams[i], self.lineedit_kparams[i])
 
-        box_kernel = QtWidgets.QGroupBox("Kernel")
+        box_kernel = QtWidgets.QGroupBox()
         box_kernel.setLayout(layout_kernel)
 
         layout_main = QtWidgets.QVBoxLayout()
@@ -510,8 +525,10 @@ class ConvolveMethod(MethodStackWidget):
         return [float(le.text()) for le in self.lineedit_kparams if le.isVisible()]
 
     def initialise(self) -> None:
-        self.lineedit_ksize.setText("4")
-        self.lineedit_kscale.setText("1.0")
+        if self.lineedit_ksize.text() == "":
+            self.lineedit_ksize.setText("8")
+        if self.lineedit_kscale.text() == "":
+            self.lineedit_kscale.setText("1.0")
 
         self.kernelChanged()
 
@@ -528,10 +545,12 @@ class ConvolveMethod(MethodStackWidget):
         for i, (symbol, default, range) in enumerate(params):
             self.label_kparams[i].setText(f"{symbol}:")
             self.label_kparams[i].setVisible(True)
-            self.lineedit_kparams[i].setText(str(default))
             self.lineedit_kparams[i].validator().setRange(range[0], range[1], 4)
             self.lineedit_kparams[i].setVisible(True)
-            self.lineedit_kparams[i].revalidate()
+            # Keep input that's still valid
+            if not self.lineedit_kparams[i].hasAcceptableInput():
+                self.lineedit_kparams[i].setText(str(default))
+                self.lineedit_kparams[i].revalidate()
 
     def isComplete(self) -> bool:
         if not self.lineedit_ksize.hasAcceptableInput():
@@ -644,6 +663,21 @@ class TransformMethod(MethodStackWidget):
     def trim(self) -> Tuple[int, int, int, int]:
         return tuple(int(le.text()) for le in self.lineedit_trims)  # type: ignore
 
+    def apply(self) -> None:
+        if self.edit.widget.is_srr:
+            QtWidgets.QMessageBox.warning("Not yet implemented for SRR data.")
+            return
+        data = self.edit.widget.laser.data
+        trim = self.trim
+        shape = (
+            data.shape[0] * self.scale - (trim[2] + trim[3]),
+            data.shape[1] * self.scale - (trim[0] + trim[1]),
+        )
+        new_data = np.empty(shape, dtype=data.dtype)
+        for name in new_data.dtype.names:
+            new_data[name] = self.previewData(data[name])
+        self.edit.widget.laser.data = new_data
+
     def initialise(self) -> None:
         self.lineedit_scale.setText("1")
         for le in self.lineedit_trims:
@@ -672,7 +706,7 @@ class TransformMethod(MethodStackWidget):
             self.lineedit_trims[3].setValid(True)
         return True
 
-    def previewData(self, data: np.ndarray) -> None:
+    def previewData(self, data: np.ndarray) -> np.ndarray:
         data = np.repeat(np.repeat(data, self.scale, axis=0), self.scale, axis=1)
         trim = self.trim
         return data[
