@@ -17,7 +17,7 @@ from pewpew.validators import DecimalValidator, LimitValidator
 from typing import List, Tuple, Union
 
 
-# TODO Filtering option
+# TODO
 # Add some kind of indicator for if all data or just current isotope changed
 
 class EditTool(ToolWidget):
@@ -46,6 +46,9 @@ class EditTool(ToolWidget):
 
         self.deconvolve_method = DeconvolveMethod(self)
         self.deconvolve_method.inputChanged.connect(self.refresh)
+
+        self.filter_method = FilterMethod(self)
+        self.filter_method.inputChanged.connect(self.refresh)
 
         self.transform_method = TransformMethod(self)
         self.transform_method.inputChanged.connect(self.refresh)
@@ -610,6 +613,14 @@ class DeconvolveMethod(ConvolveMethod):
             )
 
         return data[vslice, hslice]
+
+
+class FilterMethod(MethodStackWidget):
+    def __init__(self, parent: EditTool):
+        super().__init__(parent)
+
+    def previewData(self, data: np.ndarray) -> np.ndarray:
+        return data
 
 
 class TransformMethod(MethodStackWidget):

@@ -114,9 +114,9 @@ def laplace_pdf(x: np.ndarray, b: float, mu: float) -> np.ndarray:
 
 
 def laplace(
-    size: int, b: float, mu: float, scale: float = 1.0, shift: float = 1e-6
+    size: int, b: float, mu: float, scale: float = 1.0, shift: float = 0.0
 ) -> np.ndarray:
-    x = np.linspace(shift, size * scale + shift, size)
+    x = np.linspace(-size * scale + shift, size * scale + shift, size)
     y = laplace_pdf(x, b, mu)
     return np.stack((x, y / y.sum()), axis=1)
 
