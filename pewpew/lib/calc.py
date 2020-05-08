@@ -47,21 +47,24 @@ def otsu(x: np.ndarray) -> float:
     return bin_centers[i]
 
 
-def view_as_blocks(x: np.ndarray, block: Tuple[int, int]) -> np.ndarray:
-    """Create non-overlapping views into a array.
+def view_as_blocks(x: np.ndarray, block: Tuple[int, int], step: Tuple[int, int] = None) -> np.ndarray:
+    """Create block sized views into a array, offset by step amount.
     https://github.com/scikit-image/scikit-image/blob/master/skimage/util/shape.py
 
     Args:
         x: The array.
-        window: The size of the view.
+        block: The size of the view.
+        step: Size of step, defaults to block.
 
     Returns:
         An array of views.
     """
     assert len(block) == x.ndim
+    if step is None:
+        step = block
     x = np.ascontiguousarray(x)
-    shape = tuple(np.array(x.shape) // block) + tuple(block)
-    strides = tuple(np.array(x.strides) * block) + x.strides
+    shape = tuple((np.array(x.shape) - block) // np.array(step) + 1) + block
+    strides = tuple(x.strides * np.array(step)) + x.strides
     return np.lib.stride_tricks.as_strided(x, shape=shape, strides=strides)
 
 
