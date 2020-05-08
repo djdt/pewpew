@@ -1,20 +1,3 @@
-# This tool will replace the calibration tool and the edit / transform options that currently exist.
-# Design:
-# --------------------|
-# |Method  |----------|
-# |Options |          |
-# | |~~~~~ |          |
-# | ~~~~~~ |----------|
-# |        |Trans. Ctr|
-# |-------------------|
-
-# Methods : Calculator, Blur (Convolve), Deconvolve, Resize / transform
-
-# Options : Calculator - Will require Name, Isotope / Function select, Result, Input
-# Blur - Kernel selection, size,
-# Deconv: maybe combine with blur?? as conv
-# FIltering
-
 import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -33,6 +16,9 @@ from pewpew.validators import DecimalValidator, LimitValidator
 
 from typing import List, Tuple, Union
 
+
+# TODO Filtering option
+# Add some kind of indicator for if all data or just current isotope changed
 
 class EditTool(ToolWidget):
     METHODS = ["Calculator", "Convolve", "Deconvolve", "Filter", "Transform"]
