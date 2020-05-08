@@ -49,6 +49,22 @@ class LimitValidator(QtGui.QDoubleValidator):
         return (result, input, pos)
 
 
+class OddIntValidator(QtGui.QIntValidator):
+    def __init__(self, bottom: int, top: int, parent: QtWidgets.QWidget = None):
+        super().__init__(bottom, top, parent)
+
+    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
+        result, _, _ = super().validate(input, pos)
+        if result == QtGui.QValidator.Acceptable:
+            try:
+                v = float(input)
+                if v % 2 == 0:
+                    return (QtGui.QValidator.Intermediate, input, pos)
+            except ValueError:
+                pass
+        return (result, input, pos)
+
+
 class PercentOrDecimalValidator(DecimalValidator):
     def __init__(
         self,
