@@ -188,6 +188,58 @@ class MethodStackWidget(QtWidgets.QGroupBox):
         raise NotImplementedError
 
 
+class CalculatorName(ValidColorLineEdit):
+    def __init__(
+        self,
+        text: str,
+        badnames: List[str],
+        badparser: List[str],
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(text, parent)
+
+        self.badchars = " +-=*/\\^<>!()[]"
+        self.badnames = badnames
+        self._badnames = ["nan", "if", "then", "else"]
+        self._badnames.extend(badparser)
+
+    def hasAcceptableInput(self) -> bool:
+        if self.text() == "":
+            return False
+        if any(c in self.text() for c in self.badchars):
+            return False
+        if self.text() in self._badnames:
+            return False
+        if self.text() in self.badnames:
+            return False
+        return True
+
+
+class CalculatorFormula(ValidColorTextEdit):
+    def __init__(
+        self, text: str, variables: List[str], parent: QtWidgets.QWidget = None
+    ):
+        super().__init__(text, parent)
+        # self.setClearButtonEnabled(True)
+        self.textChanged.disconnect(self.revalidate)
+        self.textChanged.connect(self.calculate)
+        self.parser = Parser(variables)
+        self.expr = ""
+
+        self.cgood = self.palette().color(QtGui.QPalette.Base)
+        self.cbad = QtGui.QColor.fromRgb(255, 172, 172)
+
+    def hasAcceptableInput(self) -> bool:
+        return self.expr != ""
+
+    def calculate(self) -> None:
+        try:
+            self.expr = self.parser.parse(self.toPlainText())
+        except ParserException:
+            self.expr = ""
+        self.revalidate()
+
+
 class CalculatorMethod(MethodStackWidget):
     parser_functions = {
         "mean": (UnaryFunction("mean"), "(<array>)", "Returns the mean of the array."),
@@ -303,14 +355,14 @@ class CalculatorMethod(MethodStackWidget):
             return
         function = self.combo_function.currentText()
         function = function[: function.find("(") + 1]
-        self.formula.insert(function)
+        self.formula.insertPlainText(function)
         self.combo_function.setCurrentIndex(0)
         self.formula.setFocus()
 
     def insertVariable(self, index: int) -> None:
         if index == 0:
             return
-        self.formula.insert(self.combo_isotope.currentText())
+        self.formula.insertPlainText(self.combo_isotope.currentText())
         self.combo_isotope.setCurrentIndex(0)
         self.formula.setFocus()
 
@@ -319,7 +371,7 @@ class CalculatorMethod(MethodStackWidget):
             return False
         if np.isscalar(self.result):
             return False
-        if self.lineedit_name.hasAcceptableInput():
+        if not self.lineedit_name.hasAcceptableInput():
             return False
         return True
 
@@ -335,58 +387,6 @@ class CalculatorMethod(MethodStackWidget):
         except (ReducerException, ValueError) as e:
             self.output.setText(str(e))
             return None
-
-
-class CalculatorName(ValidColorLineEdit):
-    def __init__(
-        self,
-        text: str,
-        badnames: List[str],
-        badparser: List[str],
-        parent: QtWidgets.QWidget = None,
-    ):
-        super().__init__(text, parent)
-
-        self.badchars = " +-=*/\\^<>!()[]"
-        self.badnames = badnames
-        self._badnames = ["nan", "if", "then", "else"]
-        self._badnames.extend(badparser)
-
-    def hasAcceptableInput(self) -> bool:
-        if self.text() == "":
-            return False
-        if any(c in self.text() for c in self.badchars):
-            return False
-        if self.text() in self._badnames:
-            return False
-        if self.text() in self.badnames:
-            return False
-        return True
-
-
-class CalculatorFormula(ValidColorTextEdit):
-    def __init__(
-        self, text: str, variables: List[str], parent: QtWidgets.QWidget = None
-    ):
-        super().__init__(text, parent)
-        # self.setClearButtonEnabled(True)
-        self.textChanged.disconnect(self.revalidate)
-        self.textChanged.connect(self.calculate)
-        self.parser = Parser(variables)
-        self.expr = ""
-
-        self.cgood = self.palette().color(QtGui.QPalette.Base)
-        self.cbad = QtGui.QColor.fromRgb(255, 172, 172)
-
-    def hasAcceptableInput(self) -> bool:
-        return self.expr != ""
-
-    def calculate(self) -> None:
-        try:
-            self.expr = self.parser.parse(self.toPlainText())
-        except ParserException:
-            self.expr = ""
-        self.revalidate()
 
 
 class ConvolveKernelCanvas(BasicCanvas):
