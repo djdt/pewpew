@@ -549,7 +549,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             v = self.image.get_cursor_data(event)
             unit = self.viewoptions.units
             if unit == "row":
-                x, y = int(x / self.px), int(y / self.py)
+                y, x = int(x / self.px), int(y / self.py)
             elif unit == "second":
                 x = event.xdata / self.ps
                 y = 0
