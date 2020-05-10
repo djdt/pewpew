@@ -242,34 +242,36 @@ class CalculatorFormula(ValidColorTextEdit):
 
 class CalculatorMethod(MethodStackWidget):
     parser_functions = {
-        "mean": (UnaryFunction("mean"), "(<array>)", "Returns the mean of the array."),
+        "abs": (UnaryFunction("abs"), "(<x>)", "The absolute value of <x>."),
+        "mean": (UnaryFunction("mean"), "(<x>)", "Returns the mean of <x>."),
         "median": (
             UnaryFunction("median"),
-            "(<array>)",
-            "Returns the median of the array.",
+            "(<x>)",
+            "Returns the median of <x>.",
         ),
         "normalise": (
             TernaryFunction("normalise"),
-            "(<array>, <min>, <max>)",
-            "Normalise the array from from <min> to <max>.",
+            "(<x>, <min>, <max>)",
+            "Normalise <x> from from <min> to <max>.",
         ),
         "otsu": (
             UnaryFunction("otsu"),
-            "(<array>)",
-            "Returns Otsu's threshold for the array,",
+            "(<x>)",
+            "Returns Otsu's threshold for <x>,",
         ),
         "percentile": (
             BinaryFunction("percentile"),
-            "(<array>, <percent>)",
-            "Returns the <percent> percentile of the array.",
+            "(<x>, <percent>)",
+            "Returns the <percent> percentile of <x>.",
         ),
         "threshold": (
             BinaryFunction("threshold"),
-            "(<array>, <value>)",
-            "Sets data below <value> to NaN.",
+            "(<x>, <value>)",
+            "Sets <x> below <value> to NaN.",
         ),
     }
     reducer_functions = {
+        "abs": (np.abs, 1),
         "mean": (np.nanmean, 1),
         "median": (np.nanmedian, 1),
         "normalise": (normalise, 3),
@@ -303,7 +305,6 @@ class CalculatorMethod(MethodStackWidget):
         self.combo_function.activated.connect(self.insertFunction)
 
         self.reducer = Reducer({})
-        self.result: Union[float, np.ndarray] = None
         self.formula = CalculatorFormula("", variables=[])
         self.formula.textChanged.connect(self.inputChanged)
 
@@ -332,7 +333,8 @@ class CalculatorMethod(MethodStackWidget):
         self.setLayout(layout_main)
 
     def apply(self) -> None:
-        self.widget.laser.add(self.lineedit_name.text(), np.array(self.result))
+        data = self.reducer.reduce(self.formula.expr)
+        self.edit.widget.laser.add(self.lineedit_name.text(), data)
 
     def initialise(self) -> None:
         isotopes = self.edit.widget.laser.isotopes
@@ -340,6 +342,12 @@ class CalculatorMethod(MethodStackWidget):
         self.combo_isotope.addItem("Isotopes")
         self.combo_isotope.addItems(isotopes)
 
+        name = "calc0"
+        i = 1
+        while name in isotopes:
+            name = f"calc{i}"
+            i += 1
+        self.lineedit_name.setText(name)
         self.lineedit_name.badnames = isotopes
 
         # self.reducer.variables = {
@@ -368,8 +376,6 @@ class CalculatorMethod(MethodStackWidget):
 
     def isComplete(self) -> bool:
         if not self.formula.hasAcceptableInput():
-            return False
-        if np.isscalar(self.result):
             return False
         if not self.lineedit_name.hasAcceptableInput():
             return False
@@ -456,10 +462,7 @@ class ConvolveMethod(MethodStackWidget):
         },
         "Triangular": {
             "psf": convolve.triangular,
-            "params": [
-                ("a", -2.0, (-np.inf, 0.0)),
-                ("b", 2.0, (0.0, np.inf)),
-            ],
+            "params": [("a", -2.0, (-np.inf, 0.0)), ("b", 2.0, (0.0, np.inf)),],
         },
     }
 
@@ -634,6 +637,11 @@ class DeconvolveMethod(ConvolveMethod):
 
 class FilterMethod(MethodStackWidget):
     filters: dict = {
+        "Low-pass": {
+            "filter": fltrs.low_pass_filter,
+            "params": [("d", 0.5, (0.0, 1.0))],
+            "desc": ["Filter if low pass changes value d amount."],
+        },
         "Mean": {
             "filter": fltrs.mean_filter,
             "params": [("σ", 3.0, (0.0, np.inf))],

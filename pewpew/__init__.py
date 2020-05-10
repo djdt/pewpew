@@ -21,6 +21,9 @@ def main() -> None:
     window.show()
     window.setWindowIcon(QtGui.QIcon(":/app.ico"))
 
+    window.viewspace.activeView().openDocument(["/home/tom/Downloads/her 00003.npz"])
+    window.actionToolEdit()
+
     # Keep event loop active with timer
     timer = QtCore.QTimer()
     timer.timeout.connect(lambda: None)
