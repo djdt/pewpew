@@ -325,8 +325,12 @@ class CalculatorMethod(MethodStackWidget):
         self.setLayout(layout_main)
 
     def apply(self) -> None:
+        name = self.lineedit_name.text()
         data = self.reducer.reduce(self.formula.expr)
-        self.edit.widget.laser.add(self.lineedit_name.text(), data)
+        if name in self.edit.widget.laser.isotopes:
+            self.edit.widget.laser.data[name] = data
+        else:
+            self.edit.widget.laser.add(self.lineedit_name.text(), data)
 
     def initialise(self) -> None:
         isotopes = self.edit.widget.laser.isotopes
@@ -340,12 +344,6 @@ class CalculatorMethod(MethodStackWidget):
             name = f"calc{i}"
             i += 1
         self.lineedit_name.setText(name)
-        self.lineedit_name.badnames = isotopes
-
-        # self.reducer.variables = {
-        #     name: self.widget.laser.get(name, calibrate=True, flat=True)
-        #     for name in self.widget.laser.isotopes
-        # }
         self.formula.parser.variables = isotopes
         self.formula.valid = True
         self.formula.setText(self.edit.combo_isotope.currentText())
