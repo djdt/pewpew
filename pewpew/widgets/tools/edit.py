@@ -15,7 +15,7 @@ from pewpew.widgets.tools import ToolWidget
 
 from pewpew.validators import DecimalValidator, LimitValidator, OddIntValidator
 
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 
 # TODO
@@ -244,21 +244,13 @@ class CalculatorMethod(MethodStackWidget):
     parser_functions = {
         "abs": (UnaryFunction("abs"), "(<x>)", "The absolute value of <x>."),
         "mean": (UnaryFunction("mean"), "(<x>)", "Returns the mean of <x>."),
-        "median": (
-            UnaryFunction("median"),
-            "(<x>)",
-            "Returns the median of <x>.",
-        ),
+        "median": (UnaryFunction("median"), "(<x>)", "Returns the median of <x>.",),
         "normalise": (
             TernaryFunction("normalise"),
             "(<x>, <min>, <max>)",
             "Normalise <x> from from <min> to <max>.",
         ),
-        "otsu": (
-            UnaryFunction("otsu"),
-            "(<x>)",
-            "Returns Otsu's threshold for <x>,",
-        ),
+        "otsu": (UnaryFunction("otsu"), "(<x>)", "Returns Otsu's threshold for <x>,",),
         "percentile": (
             BinaryFunction("percentile"),
             "(<x>, <percent>)",
@@ -462,7 +454,7 @@ class ConvolveMethod(MethodStackWidget):
         },
         "Triangular": {
             "psf": convolve.triangular,
-            "params": [("a", -2.0, (-np.inf, 0.0)), ("b", 2.0, (0.0, np.inf)),],
+            "params": [("a", -2.0, (-np.inf, 0.0)), ("b", 2.0, (0.0, np.inf))],
         },
     }
 
@@ -637,11 +629,11 @@ class DeconvolveMethod(ConvolveMethod):
 
 class FilterMethod(MethodStackWidget):
     filters: dict = {
-        "Low-pass": {
-            "filter": fltrs.low_pass_filter,
-            "params": [("d", 0.5, (0.0, 1.0))],
-            "desc": ["Filter if low pass changes value d amount."],
-        },
+        # "Low-pass": {
+        #     "filter": fltrs.low_pass_filter,
+        #     "params": [("d", 0.5, (0.0, 1.0))],
+        #     "desc": ["Filter if low pass changes value d amount."],
+        # },
         "Mean": {
             "filter": fltrs.mean_filter,
             "params": [("σ", 3.0, (0.0, np.inf))],

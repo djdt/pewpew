@@ -6,20 +6,20 @@ from pewpew.lib.calc import view_as_blocks
 from typing import Tuple
 
 
-def low_pass_filter(
-    x: np.ndarray, block: Tuple[int, int], threshold: float = 0.5
-) -> np.ndarray:
-    kernel = convolve.normal(block[0], block[0] / 2.0, 0.0)[:, 1]
-    kernel /= kernel.sum()
-    y = np.apply_along_axis(np.convolve, 0, x, kernel, mode="same")
-    y = np.apply_along_axis(np.convolve, 1, y, kernel, mode="same")
+# def low_pass_filter(
+#     x: np.ndarray, block: Tuple[int, int], threshold: float = 0.5
+# ) -> np.ndarray:
+#     kernel = convolve.normal(block[0], block[0] / 2.0, 0.0)[:, 1]
+#     kernel /= kernel.sum()
+#     y = np.apply_along_axis(np.convolve, 0, x, kernel, mode="same")
+#     y = np.apply_along_axis(np.convolve, 1, y, kernel, mode="same")
 
- # NO NO NO NO
-    diff = np.divide(np.abs(x - y), np.abs(x), where=x != 0)
-    diff[x == 0] = 0.0
-    diff /= diff.max()
+#  # NO NO NO NO
+#     diff = np.divide(np.abs(x - y), np.abs(x), where=x != 0)
+#     diff[x == 0] = 0.0
+#     diff /= diff.max()
 
-    return np.where(diff > threshold, y, x)
+#     return np.where(diff > threshold, y, x)
 
 
 def mean_filter(
