@@ -20,9 +20,9 @@ def import_any(paths: List[str], config: Config) -> List[Laser]:
                     data, params = io.thermo.load(path, full=True)
                     config.scantime = params['scantime']
                 except io.error.PewException:
-                    data = io.csv.load(path)
+                    data = io.csv.load(path, isotope="_")
             elif ext in [".txt", ".text"]:
-                data = io.csv.load(path)
+                data = io.csv.load(path, isotope="_")
             elif ext == ".b":
                 data, params = io.agilent.load(path, full=True)
                 config.scantime = params['scantime']
