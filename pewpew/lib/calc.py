@@ -1,5 +1,7 @@
 import numpy as np
 
+import _multiotsu
+
 from typing import Tuple
 
 
@@ -14,6 +16,45 @@ def greyscale_to_rgb(array: np.ndarray, rgb: np.ndarray) -> np.ndarray:
 """
     array = np.clip(array, 0.0, 1.0)
     return array[..., None] * np.array(rgb, dtype=float)
+
+
+def kmeans(x: np.ndarray, k: int, max_iterations: int = 1000) -> np.ndarray:
+    """K-means clustering. Returns an array the same shape x mapping values
+     to their k clusters.
+     Raises a ValueError if the loop exceeds max_iterations.
+"""
+    centroids = np.linspace(x.min(), x.max(), k)
+
+    while max_iterations > 0:
+        max_iterations -= 1
+
+        distances = (centroids[:, None, None] - x) ** 2
+        closest = np.argmin(distances, axis=0)
+
+        new_centroids = centroids.copy()
+        for i in np.unique(closest):
+            new_centroids[i] = np.mean(x[closest == i])
+
+        if np.allclose(centroids, new_centroids):
+            return closest
+        centroids = new_centroids
+
+    raise ValueError("No convergance in allowed iterations.")
+
+
+def kmeans_threshold(x: np.ndarray, k: int) -> np.ndarray:
+    """Uses k-means clustering to group array into k clusters and produces k - 1
+     thresholds using the minimum value of each cluster.
+"""
+    assert k > 1
+
+    clusters = kmeans(x, k, max_iterations=k * 100)
+    return np.array([np.amin(x[clusters == i]) for i in range(1, k)])
+
+
+def multiotsu(x: np.ndarray, levels: int, nbins: int = 256) -> np.ndarray:
+    assert levels == 2 or levels == 3
+    return _multiotsu.multiotsu(x, levels, nbins)
 
 
 def normalise(x: np.ndarray, vmin: float = 0.0, vmax: float = 1.0) -> np.ndarray:
@@ -36,7 +77,7 @@ def otsu(x: np.ndarray) -> float:
     https://github.com/scikit-image/scikit-image/blob/master/skimage/filters/thresholding.py
 """
     hist, bin_edges = np.histogram(x, bins=256)
-    bin_centers = (bin_edges[1:] + bin_edges[:-1]) / 2
+    bin_centers = (bin_edges[1:] + bin_edges[:-1]) / 2.0
 
     w1 = np.cumsum(hist)
     w2 = np.cumsum(hist[::-1])[::-1]
@@ -48,7 +89,9 @@ def otsu(x: np.ndarray) -> float:
     return bin_centers[i]
 
 
-def view_as_blocks(x: np.ndarray, block: Tuple[int, int], step: Tuple[int, int] = None) -> np.ndarray:
+def view_as_blocks(
+    x: np.ndarray, block: Tuple[int, int], step: Tuple[int, int] = None
+) -> np.ndarray:
     """Create block sized views into a array, offset by step amount.
     https://github.com/scikit-image/scikit-image/blob/master/skimage/util/shape.py
 
