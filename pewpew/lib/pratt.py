@@ -301,7 +301,10 @@ class Reducer(object):
             return self.variables[token]
         else:
             try:
-                return float(token)
+                if any(t in token for t in [".", "e", "E", "n"]):
+                    return float(token)
+                else:
+                    return int(token)
             except ValueError:
                 raise ReducerException(f"Unexpected input '{token}'.")
 
