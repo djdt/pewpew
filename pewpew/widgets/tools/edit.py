@@ -4,7 +4,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew.lib import convolve
 from pewpew.lib import filters as fltrs
-from pewpew.lib.calc import normalise, otsu
+from pewpew.lib.calc import kmeans_threshold, normalise, otsu
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
@@ -66,6 +66,7 @@ class EditTool(ToolWidget):
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.currentIndexChanged.connect(self.refresh)
+        self.combo_isotope.setEnabled(False)
 
         layout_methods = QtWidgets.QVBoxLayout()
         layout_methods.addWidget(self.method_stack)
@@ -243,6 +244,7 @@ class CalculatorFormula(ValidColorTextEdit):
 class CalculatorMethod(MethodStackWidget):
     parser_functions = {
         "abs": (UnaryFunction("abs"), "(<x>)", "The absolute value of <x>."),
+        # "kmeans": (BinaryFunction("kthreshold"), "(<x>, <k>)", "Return <k>-1 lower bounds of <k> kmeans clusters."),
         "mean": (UnaryFunction("mean"), "(<x>)", "Returns the mean of <x>."),
         "median": (UnaryFunction("median"), "(<x>)", "Returns the median of <x>.",),
         "normalise": (
@@ -250,7 +252,8 @@ class CalculatorMethod(MethodStackWidget):
             "(<x>, <min>, <max>)",
             "Normalise <x> from from <min> to <max>.",
         ),
-        "otsu": (UnaryFunction("otsu"), "(<x>)", "Returns Otsu's threshold for <x>,",),
+        "otsu": (UnaryFunction("otsu"), "(<x>)", "Returns Otsu's threshold for <x>.",),
+        # "multiotsu": (BinaryFunction("multiotsu"), "(<x>, <t>)", "Returns <t> thresholds for <x>.",),
         "percentile": (
             BinaryFunction("percentile"),
             "(<x>, <percent>)",
@@ -264,10 +267,12 @@ class CalculatorMethod(MethodStackWidget):
     }
     reducer_functions = {
         "abs": (np.abs, 1),
+        # "kmeans": (kmeans_threshold, 2),
         "mean": (np.nanmean, 1),
         "median": (np.nanmedian, 1),
         "normalise": (normalise, 3),
         "otsu": (otsu, 1),
+        # "multiotsu": (multiotsu, 2),
         "percentile": (np.nanpercentile, 2),
         "threshold": (lambda x, a: np.where(x > a, x, np.nan), 2),
     }
@@ -282,7 +287,6 @@ class CalculatorMethod(MethodStackWidget):
         )
         self.lineedit_name.revalidate()
         self.lineedit_name.textEdited.connect(self.inputChanged)
-        # self.lineedit_name.editingFinished.connect(self.refresh)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.activated.connect(self.insertVariable)
