@@ -1,6 +1,6 @@
 import numpy as np
 
-import _multiotsu
+# from pewpew.lib import _multiotsu
 
 from typing import Tuple
 
@@ -52,9 +52,9 @@ def kmeans_threshold(x: np.ndarray, k: int) -> np.ndarray:
     return np.array([np.amin(x[clusters == i]) for i in range(1, k)])
 
 
-def multiotsu(x: np.ndarray, levels: int, nbins: int = 256) -> np.ndarray:
-    assert levels == 2 or levels == 3
-    return _multiotsu.multiotsu(x, levels, nbins)
+# def multiotsu(x: np.ndarray, levels: int, nbins: int = 256) -> np.ndarray:
+#     assert levels == 2 or levels == 3
+#     return _multiotsu.multiotsu(x, levels, nbins)
 
 
 def normalise(x: np.ndarray, vmin: float = 0.0, vmax: float = 1.0) -> np.ndarray:

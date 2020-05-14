@@ -1,6 +1,6 @@
 import numpy as np
 
-from pewpew.lib import convolve
+# from pewpew.lib import convolve
 from pewpew.lib.calc import view_as_blocks
 
 from typing import Tuple
