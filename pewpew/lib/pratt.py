@@ -64,23 +64,25 @@ class Unary(Null):
 
 
 class Binary(Null):
-    def __init__(self, value: str, div: str):
+    def __init__(self, value: str, div: str, rbp: int):
         self.value = value
         self.div = div
+        self.rbp = rbp
 
     def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         expr = parser.parseExpr(tokens)
         if len(tokens) == 0 or tokens.pop(0) != self.div:
             raise ParserException(f"Missing '{self.div}' statement.")
-        rexpr = parser.parseExpr(tokens)
+        rexpr = parser.parseExpr(tokens, self.rbp)
         return Expr(self.value, children=[expr, rexpr])
 
 
 class Ternary(Null):
-    def __init__(self, value: str, div: str, div2: str):
+    def __init__(self, value: str, div: str, div2: str, rbp: int):
         self.value = value
         self.div = div
         self.div2 = div2
+        self.rbp = rbp
 
     def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         lexpr = parser.parseExpr(tokens)
@@ -89,7 +91,7 @@ class Ternary(Null):
         expr = parser.parseExpr(tokens)
         if len(tokens) == 0 or tokens.pop(0) != self.div2:
             raise ParserException(f"Missing '{self.div2}' statement.")
-        rexpr = parser.parseExpr(tokens)
+        rexpr = parser.parseExpr(tokens, self.rbp)
         return Expr(self.value, children=[lexpr, expr, rexpr])
 
 
@@ -108,7 +110,7 @@ class UnaryFunction(Unary):
 
 class BinaryFunction(Binary):
     def __init__(self, value: str):
-        super().__init__(value, ",")
+        super().__init__(value, ",", 0)
 
     def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         if len(tokens) == 0 or tokens.pop(0) != "(":
@@ -121,7 +123,7 @@ class BinaryFunction(Binary):
 
 class TernaryFunction(Ternary):
     def __init__(self, value: str):
-        super().__init__(value, ",", ",")
+        super().__init__(value, ",", ",", 0)
 
     def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         if len(tokens) == 0 or tokens.pop(0) != "(":
@@ -135,6 +137,10 @@ class TernaryFunction(Ternary):
 # Left Commands
 class Left(object):
     lbp = -1
+
+    @property
+    def rbp(self):
+        return self.lbp + 1
 
     def led(self, parser: "Parser", tokens: List[str], expr: Expr) -> Expr:
         raise ParserException("Invalid token.")
@@ -161,16 +167,24 @@ class LeftTernary(Left):
         self.div = div
         self.lbp = lbp
 
-    @property
-    def rbp(self):
-        return self.lbp + 1
-
     def led(self, parser: "Parser", tokens: List[str], lexpr: Expr) -> Expr:
         expr = parser.parseExpr(tokens)
         if len(tokens) == 0 or tokens.pop(0) != self.div:
             raise ParserException(f"Missing '{self.div}' statement.")
         rexpr = parser.parseExpr(tokens, self.rbp)
         return Expr(value=self.value, children=[lexpr, expr, rexpr])
+
+
+class LeftIndex(Left):
+    def __init__(self, value: str, lbp: int):
+        self.value = value
+        self.lbp = lbp
+
+    def led(self, parser: "Parser", tokens: List[str], expr: Expr) -> Expr:
+        rexpr = parser.parseExpr(tokens, self.rbp)
+        if len(tokens) == 0 or tokens.pop(0) != "]":
+            raise ParserException("Mismatched bracket ']'.")
+        return Expr(self.value, children=[expr, rexpr])
 
 
 class Parser(object):
@@ -181,20 +195,20 @@ class Parser(object):
 
         self.regexp_number = re.compile(number_token)
         self.regexp_tokenise = re.compile(
-            f"\\s*([\\(\\)\\,]|{variable_token}|{number_token}|{operator_token})\\s*"
+            f"\\s*([\\[\\]\\(\\)\\,]|{variable_token}|{number_token}|{operator_token})\\s*"
         )
 
         self.variables: List[str] = []
         if variables is not None:
             self.variables.extend(variables)
 
-        self.nulls = {
+        self.nulls: Dict[str, Null] = {
             "(": Parens(),
-            "if": Ternary("?", "then", "else"),
+            "if": Ternary("?", "then", "else", 11),
             "nan": NaN(),
             "-": Unary("u-", 30),
         }
-        self.lefts = {
+        self.lefts: Dict[str, Left] = {
             "?": LeftTernary("?", ":", 10),
             "<": LeftBinary("<", 10),
             "<=": LeftBinary("<=", 10),
@@ -207,6 +221,7 @@ class Parser(object):
             "*": LeftBinary("*", 40),
             "/": LeftBinary("/", 40),
             "^": LeftBinary("^", 50, right=True),
+            "[": LeftIndex("[", 80),
         }
 
     def getNull(self, token: str) -> Null:
@@ -264,13 +279,21 @@ class Reducer(object):
             "=": (np.equal, 2),
             "!=": (np.not_equal, 2),
             "?": (np.where, 3),
+            "[": (None, 2),
         }
 
     def reduceExpr(self, tokens: List[str]) -> Union[float, np.ndarray]:
         if len(tokens) == 0:
             raise ReducerException("Unexpected end of input.")
         token = tokens.pop(0)
-        if token in self.operations:
+        if token == "[":
+            try:
+                n = np.array(self.reduceExpr(tokens))
+                i = self.reduceExpr(tokens)
+                return n[int(i)]
+            except (IndexError, TypeError, ValueError):
+                raise ReducerException(f"Invalid indexing of '{n}' using '{i}'.")
+        elif token in self.operations:
             op, nargs = self.operations[token]
             args = [self.reduceExpr(tokens) for i in range(nargs)]
             return op(*args)
@@ -288,3 +311,19 @@ class Reducer(object):
         if len(tokens) != 0:
             raise ReducerException(f"Unexpected input '{tokens[0]}'.")
         return result
+
+
+if __name__ == "__main__":
+    a = np.arange(9).reshape(3, 3)
+    p = Parser(["a"])
+    r = Reducer({"a": a})
+
+    e = p.parse("if 1 > 2 then 3 else 2 ^ 3 > 2")
+    print(e, ":", r.reduce(e))
+    e = p.parse("if 1 > 2 then 3 else 2 ^ 3 < 2")
+    print(e, ":", r.reduce(e))
+
+    e = p.parse("1 > 2 ? 3 : 2 ^ 3 > 2")
+    print(e, ":", r.reduce(e))
+    e = p.parse("1 > 2 ? 3 : 2 ^ 3 < 2")
+    print(e, ":", r.reduce(e))
