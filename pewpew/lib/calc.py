@@ -23,7 +23,7 @@ def kmeans(x: np.ndarray, k: int, max_iterations: int = 1000) -> np.ndarray:
      to their k clusters.
      Raises a ValueError if the loop exceeds max_iterations.
 """
-    centroids = np.linspace(x.min(), x.max(), k)
+    centroids = np.sort(np.random.choice(x.flat, k))
 
     while max_iterations > 0:
         max_iterations -= 1
