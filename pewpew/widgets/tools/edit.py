@@ -247,7 +247,7 @@ class CalculatorMethod(MethodStackWidget):
         "kmeans": (
             BinaryFunction("kmeans"),
             "(<x>, <k>)",
-            "Return <k>-1 lower bounds of <k> kmeans clusters.",
+            "Returns lower bounds of 1 to <k> kmeans clusters.",
         ),
         "mean": (UnaryFunction("mean"), "(<x>)", "Returns the mean of <x>."),
         "median": (UnaryFunction("median"), "(<x>)", "Returns the median of <x>.",),
@@ -387,7 +387,7 @@ class CalculatorMethod(MethodStackWidget):
                 self.output.setText(f"{data:.10g}")
                 return None
             elif isinstance(data, np.ndarray) and data.ndim == 1:
-                self.output.setText(f"{list(map('{:.10g}'.format, data))}")
+                self.output.setText(f"{list(map('{:.4g}'.format, data))}")
                 return None
             elif isinstance(data, np.ndarray):
                 self.output.setText("")
