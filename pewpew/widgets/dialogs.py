@@ -10,7 +10,7 @@ from pew import Calibration, Config
 from pew.srr import SRRConfig
 
 from pewpew.lib import colocal
-from pewpew.lib.calc import normalise, otsu
+from pewpew.lib.calc import kmeans_threshold, normalise, otsu
 from pewpew.lib.viewoptions import ViewOptions, ColorOptions
 from pewpew.widgets.canvases import BasicCanvas
 from pewpew.validators import (
@@ -572,7 +572,13 @@ class ConfigDialog(ApplyDialog):
 class SelectionDialog(QtWidgets.QDialog):
     maskSelected = QtCore.Signal(np.ndarray)
 
-    METHODS = {"Manual": None, "Mean": np.nanmean, "Median": np.nanmedian, "Otsu": otsu}
+    METHODS = {
+        "Manual": (None, None),
+        "Mean": (np.nanmean, None),
+        "Median": (np.nanmedian, None),
+        "Otsu": (otsu, None),
+        "K-means": (kmeans_threshold, ("k: ", 3, (2, 9))),
+    }
     COMPARISION = {">": np.greater, "<": np.less, "=": np.equal}
 
     def __init__(
@@ -587,20 +593,29 @@ class SelectionDialog(QtWidgets.QDialog):
         self.combo_isotopes = QtWidgets.QComboBox()
         self.combo_isotopes.addItems(self.data.dtype.names)
         self.combo_isotopes.setCurrentText(current)
-        self.combo_isotopes.currentIndexChanged.connect(self.refresh)
+        self.combo_isotopes.activated.connect(self.refresh)
 
         self.combo_method = QtWidgets.QComboBox()
         self.combo_method.addItems(list(self.METHODS.keys()))
-        self.combo_method.currentIndexChanged.connect(self.refresh)
+        self.combo_method.activated.connect(self.refresh)
+
+        self.spinbox_method = QtWidgets.QSpinBox()
+        self.spinbox_method.setEnabled(False)
+        self.spinbox_method.valueChanged.connect(self.refresh)
 
         self.combo_comparison = QtWidgets.QComboBox()
         self.combo_comparison.addItems(list(self.COMPARISION.keys()))
-        self.combo_comparison.currentIndexChanged.connect(self.refresh)
+        self.combo_comparison.activated.connect(self.refresh)
+
+        self.spinbox_comparison = QtWidgets.QSpinBox()
+        self.spinbox_comparison.setEnabled(False)
+        self.spinbox_comparison.setPrefix("t: ")
+        self.spinbox_comparison.valueChanged.connect(self.refresh)
 
         self.lineedit_manual = QtWidgets.QLineEdit("0.0")
         self.lineedit_manual.setValidator(DecimalValidator(-1e99, 1e99, 4))
-        self.lineedit_manual.setEnabled(False)
-        self.lineedit_manual.editingFinished.connect(self.refresh)
+        self.lineedit_manual.setEnabled(True)
+        self.lineedit_manual.textEdited.connect(self.refresh)
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Close
@@ -608,10 +623,18 @@ class SelectionDialog(QtWidgets.QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.close)
 
+        layout_method = QtWidgets.QHBoxLayout()
+        layout_method.addWidget(self.combo_method)
+        layout_method.addWidget(self.spinbox_method)
+
+        layout_comparison = QtWidgets.QHBoxLayout()
+        layout_comparison.addWidget(self.combo_comparison)
+        layout_comparison.addWidget(self.spinbox_comparison)
+
         layout_form = QtWidgets.QFormLayout()
         layout_form.addRow("Isotope", self.combo_isotopes)
-        layout_form.addRow("Comparison", self.combo_comparison)
-        layout_form.addRow("Method", self.combo_method)
+        layout_form.addRow("Method", layout_method)
+        layout_form.addRow("Comparison", layout_comparison)
         layout_form.addRow("Value", self.lineedit_manual)
 
         layout = QtWidgets.QVBoxLayout()
@@ -620,18 +643,37 @@ class SelectionDialog(QtWidgets.QDialog):
         self.setLayout(layout)
 
     def refresh(self) -> None:
-        # Enable lineedit if manual mode
-        self.lineedit_manual.setEnabled(self.combo_method.currentText() == "Manual")
-
         isotope = self.combo_isotopes.currentText()
-        method = self.METHODS[self.combo_method.currentText()]
+        method = self.combo_method.currentText()
+        # Enable lineedit if manual mode
+        self.lineedit_manual.setEnabled(method == "Manual")
+
+        op, var = SelectionDialog.METHODS[method]
 
         # Compute new threshold
-        if method is not None:
-            self.threshold = method(self.data[isotope])
-            self.lineedit_manual.setText(f"{self.threshold:.4g}")
-        else:
+        if method == "Manual":
+            self.lineedit_manual.setEnabled(True)
+            self.spinbox_method.setEnabled(False)
+            self.spinbox_comparison.setEnabled(False)
             self.threshold = float(self.lineedit_manual.text())
+        else:
+            self.lineedit_manual.setEnabled(False)
+            if var is not None:
+                self.spinbox_method.setEnabled(True)
+                self.spinbox_method.setPrefix(var[0])
+                self.spinbox_method.setRange(*var[2])
+                self.spinbox_comparison.setEnabled(True)
+                self.spinbox_comparison.setRange(1, self.spinbox_method.value() - 1)
+
+                self.threshold = op(self.data[isotope], self.spinbox_method.value())[
+                    self.spinbox_comparison.value() - 1
+                ]
+            else:
+                self.spinbox_method.setEnabled(False)
+                self.spinbox_comparison.setEnabled(False)
+
+                self.threshold = op(self.data[isotope])
+            self.lineedit_manual.setText(f"{self.threshold:.4g}")
 
     def accept(self) -> None:
         isotope = self.combo_isotopes.currentText()
