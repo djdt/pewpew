@@ -244,7 +244,11 @@ class CalculatorFormula(ValidColorTextEdit):
 class CalculatorMethod(MethodStackWidget):
     parser_functions = {
         "abs": (UnaryFunction("abs"), "(<x>)", "The absolute value of <x>."),
-        # "kmeans": (BinaryFunction("kthreshold"), "(<x>, <k>)", "Return <k>-1 lower bounds of <k> kmeans clusters."),
+        "kmeans": (
+            BinaryFunction("kmeans"),
+            "(<x>, <k>)",
+            "Return <k>-1 lower bounds of <k> kmeans clusters.",
+        ),
         "mean": (UnaryFunction("mean"), "(<x>)", "Returns the mean of <x>."),
         "median": (UnaryFunction("median"), "(<x>)", "Returns the median of <x>.",),
         "normalise": (
@@ -267,7 +271,7 @@ class CalculatorMethod(MethodStackWidget):
     }
     reducer_functions = {
         "abs": (np.abs, 1),
-        # "kmeans": (kmeans_threshold, 2),
+        "kmeans": (kmeans_threshold, 2),
         "mean": (np.nanmean, 1),
         "median": (np.nanmedian, 1),
         "normalise": (normalise, 3),
@@ -382,7 +386,11 @@ class CalculatorMethod(MethodStackWidget):
             if np.isscalar(data):
                 self.output.setText(f"{data:.10g}")
                 return None
+            elif isinstance(data, np.ndarray) and data.ndim == 1:
+                self.output.setText(f"{list(map('{:.10g}'.format, data))}")
+                return None
             elif isinstance(data, np.ndarray):
+                self.output.setText("")
                 return data
         except (ReducerException, ValueError) as e:
             self.output.setText(str(e))
