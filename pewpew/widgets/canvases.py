@@ -365,7 +365,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         self.selection: np.ndarray = None
         self.selection_image: AxesImage = None
         self.selection_rgba = np.array(
-            [highlight.red(), highlight.green(), highlight.blue(), 255 * 0.5],
+            [highlight.red(), highlight.green(), highlight.blue(), 255 * 0.8],
             dtype=np.uint8,
         )
 
