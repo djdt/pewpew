@@ -18,28 +18,57 @@ def greyscale_to_rgb(array: np.ndarray, rgb: np.ndarray) -> np.ndarray:
     return array[..., None] * np.array(rgb, dtype=float)
 
 
-def kmeans(x: np.ndarray, k: int, max_iterations: int = 1000) -> np.ndarray:
+def kmeans(
+    x: np.ndarray, k: int, init: str = "kmeans++", max_iterations: int = 1000
+) -> np.ndarray:
     """K-means clustering. Returns an array the same shape x mapping values
-     to their k clusters.
+     to their k clusters. Centroids are initialised using 'init' method,
+     (kmeans++, linspace, random) and sorted.
      Raises a ValueError if the loop exceeds max_iterations.
 """
-    centroids = np.sort(np.random.choice(x.flat, k))
+    if init == "kmeans++":
+        centroids = kmeans_plus_plus(x, k)
+    elif init == "linspace":
+        centroids = np.linspace(x.min(), x.max(), k)
+    elif init == "random":
+        centroids = np.random.choice(x.flat, k)
+    else:
+        raise ValueError("'init' must be one of 'kmeans++', 'linspace', 'random'.")
+    centroids = np.sort(centroids)
 
     while max_iterations > 0:
         max_iterations -= 1
 
         distances = (centroids[:, None, None] - x) ** 2
-        closest = np.argmin(distances, axis=0)
+        clusters = np.argmin(distances, axis=0)
 
         new_centroids = centroids.copy()
-        for i in np.unique(closest):
-            new_centroids[i] = np.mean(x[closest == i])
+        for i in np.unique(clusters):
+            new_centroids[i] = np.mean(x[clusters == i])
 
         if np.allclose(centroids, new_centroids):
-            return closest
+            return clusters
         centroids = new_centroids
 
     raise ValueError("No convergance in allowed iterations.")
+
+
+def kmeans_plus_plus(x: np.ndarray, k: int) -> np.ndarray:
+    """Selects inital cluster positions using K-means++ algorithm.
+"""
+
+    centroids = np.empty(k)
+    centroids[0] = np.random.choice(x.flat, 1)
+
+    distances = np.empty((k, *x.shape))
+
+    for i in range(1, k):
+        distances[i - 1] = (centroids[i - 1, None, None] - x) ** 2
+        min_distances = np.amin(distances[:i], axis=0)
+        min_distances /= min_distances.sum()
+        centroids[i] = np.random.choice(x.flat, 1, p=min_distances.flat)
+
+    return centroids
 
 
 def kmeans_threshold(x: np.ndarray, k: int) -> np.ndarray:
