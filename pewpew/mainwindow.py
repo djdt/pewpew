@@ -13,7 +13,7 @@ from pewpew.widgets.laser import LaserWidget, LaserViewSpace
 from pewpew.widgets.prompts import DetailedError
 from pewpew.widgets.tools import (
     ToolWidget,
-    CalculationsTool,
+    # CalculationsTool,
     EditTool,
     StandardsTool,
     OverlayTool,
@@ -106,6 +106,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "Start the import wizard for data collect in a spotwise manner.",
             self.actionWizardSpot,
         )
+        self.action_wizard_spot.setEnabled(False)
         self.action_wizard_srr = qAction(
             "",
             "Kriss Kross Wizard",
@@ -144,16 +145,16 @@ class MainWindow(QtWidgets.QMainWindow):
             "Open the standards calibration tool.",
             self.actionToolStandards,
         )
-        self.action_tool_calculations = qAction(
-            "document-properties",
-            "Calculations Tool",
-            "Open the calculations tool.",
-            self.actionToolCalculations,
-        )
+        # self.action_tool_calculations = qAction(
+        #     "document-properties",
+        #     "Calculations Tool",
+        #     "Open the calculations tool.",
+        #     self.actionToolCalculations,
+        # )
         self.action_tool_edit = qAction(
             "document-properties",
             "Edit Tool",
-            "Open the laser editing tool.",
+            "Open tool for editing and transforming laser data.",
             self.actionToolEdit,
         )
         self.action_tool_overlay = qAction(
@@ -334,13 +335,13 @@ class MainWindow(QtWidgets.QMainWindow):
         widget.view.addTab("Standards Tool", tool)
         tool.setActive()
 
-    def actionToolCalculations(self) -> None:
-        widget = self.viewspace.activeWidget()
-        if isinstance(widget, ToolWidget):
-            widget = widget.widget
-        tool = CalculationsTool(widget)
-        widget.view.addTab("Calulations Tool", tool)
-        tool.setActive()
+    # def actionToolCalculations(self) -> None:
+    #     widget = self.viewspace.activeWidget()
+    #     if isinstance(widget, ToolWidget):
+    #         widget = widget.widget
+    #     tool = CalculationsTool(widget)
+    #     widget.view.addTab("Calulations Tool", tool)
+    #     tool.setActive()
 
     def actionToolEdit(self) -> None:
         widget = self.viewspace.activeWidget()
@@ -421,7 +422,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_edit.addAction(self.action_transform_rotate_right)
 
         menu_tools = self.menuBar().addMenu("&Tools")
-        menu_tools.addAction(self.action_tool_calculations)
+        # menu_tools.addAction(self.action_tool_calculations)
         menu_tools.addAction(self.action_tool_edit)
         menu_tools.addAction(self.action_tool_standards)
         menu_tools.addAction(self.action_tool_overlay)
@@ -468,7 +469,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def updateActionAvailablity(self) -> None:
         enabled = self.viewspace.countViewTabs() > 0
         self.action_export_all.setEnabled(enabled)
-        self.action_tool_calculations.setEnabled(enabled)
+        # self.action_tool_calculations.setEnabled(enabled)
+        self.action_tool_edit.setEnabled(enabled)
         self.action_tool_standards.setEnabled(enabled)
         self.action_tool_overlay.setEnabled(enabled)
 

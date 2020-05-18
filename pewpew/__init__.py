@@ -1,7 +1,7 @@
 import sys
 from PySide2 import QtCore, QtGui, QtWidgets
 
-__version__ = "1.0.3"
+__version__ = "1.0.0"
 
 from pewpew.mainwindow import MainWindow
 from pewpew.resources import app_icon  # noqa: F401
@@ -20,9 +20,6 @@ def main() -> None:
     sys.excepthook = window.exceptHook
     window.show()
     window.setWindowIcon(QtGui.QIcon(":/app.ico"))
-
-    window.viewspace.activeView().openDocument(["/home/tom/Downloads/her 00003.npz"])
-    window.actionToolEdit()
 
     # Keep event loop active with timer
     timer = QtCore.QTimer()
