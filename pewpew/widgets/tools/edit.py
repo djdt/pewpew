@@ -2,6 +2,7 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from pewpew.actions import qAction
 from pewpew.lib import convolve
 from pewpew.lib import filters as fltrs
 from pewpew.lib.calc import kmeans_threshold, normalise, otsu
@@ -30,12 +31,62 @@ class EditTool(ToolWidget):
 
         self.setWindowTitle("Calculator Tool")
 
+        self.rotate = 0
+        self.flip_horizontal = False
+        self.flip_vertical = False
+
+        self.action_transform_flip_horizontal = qAction(
+            "object-flip-horizontal",
+            "Flip Horizontal",
+            "Flip the image about vertical axis.",
+            self.actionTransformFlipHorz,
+        )
+        self.action_transform_flip_vertical = qAction(
+            "object-flip-vertical",
+            "Flip Vertical",
+            "Flip the image about horizontal axis.",
+            self.actionTransformFlipVert,
+        )
+        self.action_transform_rotate_left = qAction(
+            "object-rotate-left",
+            "Rotate Left",
+            "Rotate the image 90° counter clockwise.",
+            self.actionTransformRotateLeft,
+        )
+        self.action_transform_rotate_right = qAction(
+            "object-rotate-right",
+            "Rotate Right",
+            "Rotate the image 90° clockwise.",
+            self.actionTransformRotateRight,
+        )
+
         self.button_apply = QtWidgets.QPushButton("Apply")
         self.button_apply.pressed.connect(self.apply)
         # self.button_apply_all = QtWidgets.QPushButton("Apply To All")
         # self.button_apply_all.pressed.connect(self.applyAll)
 
         self.canvas = LaserCanvas(self.viewspace.options, parent=self)
+
+        self.button_transform_flip_horizontal = QtWidgets.QToolButton()
+        self.button_transform_flip_horizontal.setDefaultAction(
+            self.action_transform_flip_horizontal
+        )
+        self.button_transform_flip_horizontal.setAutoRaise(True)
+        self.button_transform_flip_vertical = QtWidgets.QToolButton()
+        self.button_transform_flip_vertical.setDefaultAction(
+            self.action_transform_flip_vertical
+        )
+        self.button_transform_flip_vertical.setAutoRaise(True)
+        self.button_transform_rotate_left = QtWidgets.QToolButton()
+        self.button_transform_rotate_left.setDefaultAction(
+            self.action_transform_rotate_left
+        )
+        self.button_transform_rotate_left.setAutoRaise(True)
+        self.button_transform_rotate_right = QtWidgets.QToolButton()
+        self.button_transform_rotate_right.setDefaultAction(
+            self.action_transform_rotate_right
+        )
+        self.button_transform_rotate_right.setAutoRaise(True)
 
         self.combo_method = QtWidgets.QComboBox()
         self.combo_method.addItems(EditTool.METHODS)
@@ -78,8 +129,16 @@ class EditTool(ToolWidget):
 
         layout_canvas = QtWidgets.QVBoxLayout()
         layout_canvas.addWidget(canvas_box)
-        # layout_canvas.addLayout(transform_bar_layout)
-        layout_canvas.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+
+        layout_canvas_bar = QtWidgets.QHBoxLayout()
+        layout_canvas_bar.addWidget(self.button_transform_rotate_left)
+        layout_canvas_bar.addWidget(self.button_transform_rotate_right)
+        layout_canvas_bar.addWidget(self.button_transform_flip_horizontal)
+        layout_canvas_bar.addWidget(self.button_transform_flip_vertical)
+        layout_canvas_bar.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+
+        layout_canvas.addLayout(layout_canvas_bar)
+        # layout_canvas.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
 
         self.layout_top.insertWidget(0, self.combo_method, 0, QtCore.Qt.AlignLeft)
 
@@ -91,6 +150,22 @@ class EditTool(ToolWidget):
 
         self.widgetChanged()
 
+    def actionTransformFlipHorz(self) -> None:
+        self.flip_horizontal = not self.flip_horizontal
+        self.refresh()
+
+    def actionTransformFlipVert(self) -> None:
+        self.flip_vertical = not self.flip_vertical
+        self.refresh()
+
+    def actionTransformRotateLeft(self) -> None:
+        self.rotate = (self.rotate + 3) % 4
+        self.refresh()
+
+    def actionTransformRotateRight(self) -> None:
+        self.rotate = (self.rotate + 1) % 4
+        self.refresh()
+
     def apply(self) -> None:
         stack = self.method_stack.currentWidget()
         if stack.isComplete():
@@ -98,7 +173,15 @@ class EditTool(ToolWidget):
         self.widgetChanged()
 
     def previewData(self, isotope: str = None) -> np.ndarray:
-        return self.widget.laser.get(isotope, flat=True, calibrated=False)
+        data = self.widget.laser.get(isotope, flat=True, calibrated=False)
+
+        if self.flip_horizontal:
+            data = np.flip(data, axis=1)
+        if self.flip_vertical:
+            data = np.flip(data, axis=0)
+        if self.rotate != 0:
+            data = np.rot90(data, k=self.rotate, axes=(1, 0))
+        return data
 
     def refresh(self) -> None:
         stack: MethodStackWidget = self.method_stack.currentWidget()
