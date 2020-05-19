@@ -7,7 +7,7 @@ from pytestqt.qtbot import QtBot
 
 from pew.laser import Laser
 
-from pewpew.main import MainWindow
+from pewpew.mainwindow import MainWindow
 from pewpew.widgets.laser import LaserViewSpace
 from pewpew.widgets.tools import (
     ToolWidget,
@@ -69,7 +69,7 @@ def test_standards_tool(qtbot: QtBot):
     tool.spinbox_levels.setValue(5)
 
     assert not tool.isComplete()
-    assert not tool.results_box.button.isEnabled()
+    assert not tool.results_box.button_plot.isEnabled()
     for i in range(0, tool.table.model().rowCount()):
         index = tool.table.model().index(i, 0)
         tool.table.model().setData(index, 0)
@@ -78,7 +78,7 @@ def test_standards_tool(qtbot: QtBot):
         index = tool.table.model().index(i, 0)
         tool.table.model().setData(index, i)
     assert tool.isComplete()
-    assert tool.results_box.button.isEnabled()
+    assert tool.results_box.button_plot.isEnabled()
 
     # Change isotope, check if weighting and unit have remained
     tool.combo_isotope.setCurrentIndex(1)
