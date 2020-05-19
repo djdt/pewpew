@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtWidgets
 
 from matplotlib.backend_bases import LocationEvent, PickEvent, MouseEvent
 from matplotlib.image import AxesImage
@@ -421,7 +421,7 @@ class StandardsCanvas(InteractiveCanvas):
 
 
 class StandardsResultsBox(QtWidgets.QGroupBox):
-    LABELS = ["RSQ", "Gradient", "Intercept", "Y-error", "LOD (3σ)"]
+    LABELS = ["RSQ", "Gradient", "Intercept", "Sxy", "LOD (3σ)"]
 
     # TODO rearange this into 2 rows
     def __init__(self, parent: QtWidgets.QWidget = None):
