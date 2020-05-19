@@ -2,7 +2,7 @@ from pytestqt.qtbot import QtBot
 
 from pew.laser import Laser
 
-from pewpew.main import MainWindow
+from pewpew.mainwindow import MainWindow
 
 from testing import rand_data
 
@@ -12,8 +12,9 @@ def test_main_window_actions_empty(qtbot: QtBot):
     qtbot.addWidget(window)
 
     assert not window.action_export_all.isEnabled()
-    assert not window.action_tool_calculations.isEnabled()
+    assert not window.action_tool_edit.isEnabled()
     assert not window.action_tool_standards.isEnabled()
+    assert not window.action_tool_overlay.isEnabled()
 
     dlg = window.actionOpen()
     dlg.close()
@@ -21,7 +22,7 @@ def test_main_window_actions_empty(qtbot: QtBot):
     dlg.close()
     dlg = window.actionImportThermo()
     dlg.close()
-    dlg = window.actionImportSRR()
+    dlg = window.actionWizardSRR()
     dlg.close()
     dlg = window.actionConfig()
     dlg.close()
@@ -68,14 +69,16 @@ def test_main_window_actions_widget(qtbot: QtBot):
     window.viewspace.refresh()
 
     assert window.action_export_all.isEnabled()
-    assert window.action_tool_calculations.isEnabled()
+    assert window.action_tool_edit.isEnabled()
     assert window.action_tool_standards.isEnabled()
+    assert window.action_tool_overlay.isEnabled()
 
     window.actionToggleColorbar(False)
 
     window.actionExportAll()
-    window.actionToolCalculations()
+    window.actionToolEdit()
     window.actionToolStandards()
+    window.actionToolOverlay()
 
 
 def test_main_window_apply_dialogs(qtbot: QtBot):

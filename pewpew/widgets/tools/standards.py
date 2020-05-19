@@ -490,8 +490,8 @@ class StandardsResultsBox(QtWidgets.QGroupBox):
                 calibration.rsq,
                 calibration.gradient,
                 calibration.intercept,
-                calibration.yerr,
-                (3.0 * calibration.yerr / calibration.gradient),
+                calibration.error,
+                (3.0 * calibration.error / calibration.gradient),
             ],
             self.lineedits,
         ):

@@ -64,7 +64,8 @@ def test_laser_view(qtbot: QtBot):
     qtbot.addWidget(viewspace)
     viewspace.show()
     view = viewspace.activeView()
-    view.addLaser(Laser(rand_data(["A1", "B2", "C3"])))
+    laser = view.addLaser(Laser(rand_data(["A1", "B2", "C3"])))
+    qtbot.waitForWindowShown(laser)
 
     view.tabs.setTabText(0, "newname")
     assert view.stack.widget(0).laser.name == "newname"
@@ -74,6 +75,7 @@ def test_laser_view(qtbot: QtBot):
     )
 
     dlg = view.actionOpen()
+    dlg.show()
     dlg.close()
 
 

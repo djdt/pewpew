@@ -236,9 +236,7 @@ class ColorRangeDialog(ApplyDialog):
         super().__init__(parent)
         self.default_range = viewoptions.colors.default_range
         self.ranges = copy.copy(viewoptions.colors._ranges)
-        self.previous_isotope = (
-            current_isotope if current_isotope is not None else isotopes[0]
-        )
+        self.previous_isotope = current_isotope
         self.setWindowTitle("Colormap Range")
 
         self.lineedit_min = QtWidgets.QLineEdit()

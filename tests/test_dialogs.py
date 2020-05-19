@@ -15,7 +15,6 @@ from pewpew.widgets.dialogs import (
     CalibrationCurveDialog,
     ColorRangeDialog,
     ConfigDialog,
-    MultipleDirDialog,
     StatsDialog,
 )
 
@@ -73,21 +72,43 @@ def test_calibration_curve_dialog(qtbot: QtBot):
 
 
 def test_colorrange_dialog(qtbot: QtBot):
-    dialog = ColorRangeDialog(ViewOptions(), ["A", "B", "C"])
+    viewoptions = ViewOptions()
+    viewoptions.colors.default_range = (0.0, 1.0)
+    viewoptions.colors._ranges = {"A": (1.0, 2.0), "B": ("2%", 3.0)}
+    dialog = ColorRangeDialog(viewoptions, ["A", "B", "C"], "C")
     qtbot.addWidget(dialog)
     dialog.open()
 
+    # Loads C as current, has default range
+    assert dialog.combo_isotopes.currentText() == "C"
+    assert dialog.lineedit_min.text() == ""
+    assert dialog.lineedit_max.text() == ""
+    assert dialog.lineedit_min.placeholderText() == "0.0"
+    assert dialog.lineedit_max.placeholderText() == "1.0"
+    # Not added yet
+    assert "C" not in dialog.ranges
+    # Add and check is there
     dialog.lineedit_min.setText("1%")
-    dialog.lineedit_max.setText("999.9")
-    dialog.combo_isotopes.setCurrentText("B")
-    assert dialog.ranges["A"] == ("1%", 999.9)
-    assert "B" not in dialog.ranges
+    dialog.lineedit_max.setText("2%")
+    dialog.combo_isotopes.setCurrentText("B")  # Update C
+    assert dialog.ranges["C"] == ("1%", "2%")
+
+    assert dialog.lineedit_min.text() == "2%"
+    assert dialog.lineedit_max.text() == "3.0"
+
     dialog.combo_isotopes.setCurrentText("A")
-    assert dialog.lineedit_min.text() == "1%"
-    assert dialog.lineedit_max.text() == "999.9"
-    assert "B" not in dialog.ranges
+    assert dialog.lineedit_min.text() == "1.0"
+    assert dialog.lineedit_max.text() == "2.0"
+
+    dialog.check_all.click()
+    dialog.lineedit_min.setText("1.0")
+    dialog.lineedit_max.setText("2.0")
+    # dialog.combo_isotopes.setCurrentText("C")
 
     dialog.apply()
+
+    assert dialog.default_range == (1.0, 2.0)
+    assert dialog.ranges == {}
 
 
 def test_laser_config_dialog(qtbot: QtBot):
@@ -135,12 +156,6 @@ def test_config_dialog_krisskross(qtbot: QtBot):
     dialog.apply()
     dialog.check_all.setChecked(True)
     dialog.apply()
-
-
-def test_multi_dir_dialog(qtbot: QtBot):
-    dialog = MultipleDirDialog(None, "MDD", "")
-    qtbot.addWidget(dialog)
-    dialog.open()
 
 
 def test_stats_dialog(qtbot: QtBot):
