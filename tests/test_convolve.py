@@ -18,14 +18,16 @@ def test_deconvolve():
 
 
 def test_functions():
+    assert np.allclose(convolve.gamma(0.1), 9.513507698668732)
     assert np.allclose(convolve.gamma(1.0), 1.0)
-    assert np.allclose(convolve.gamma(0.1), 9.5135)
+    assert np.allclose(convolve.gamma(10.0), 362880.0)
 
-    assert np.allclose(convolve.erf(1.0), 0.84270)
+    assert np.allclose(convolve.erf(0.1), 0.1124629160182849, atol=5e-4)
+    assert np.allclose(convolve.erf(1.0), 0.8427007929497148, atol=5e-4)
+    assert np.allclose(convolve.erf(10.0), 1.0, atol=5e-4)
 
-    assert np.allclose(convolve.erfinv(convolve.erf(1.0)), 1.0)
-    assert np.allclose(convolve.erfinv(convolve.erf(2.0)), 2.0)
-    assert np.allclose(convolve.erfinv(convolve.erf(3.0)), 3.0)
+    assert np.allclose(convolve.erfinv(0.1), 0.08885599049425777, atol=6e-3)
+    assert np.allclose(convolve.erfinv(0.01), 0.008862501280950607, atol=6e-3)
 
 
 def test_kernels():
@@ -153,6 +155,3 @@ def test_kernels():
         convolve.triangular(10, -5.0, 5.0)[:, 1],
         [0.0, 0.05, 0.1, 0.15, 0.2, 0.2, 0.15, 0.1, 0.05, 0.0],
     )
-
-
-test_functions()

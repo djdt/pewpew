@@ -28,9 +28,8 @@ def erf(x: float) -> float:
     assert x >= 0.0
     # Maximum error: 2.5e-5
     a = np.array([0.278393, 0.230389, 0.000972, 0.078108])
-    x = np.power(x, [1, 2, 3, 4])
 
-    return 1.0 - 1.0 / (1.0 + np.sum(a * x)) ** 4
+    return 1.0 - 1.0 / (1.0 + np.sum(a * np.power(x, [1, 2, 3, 4]))) ** 4
 
 
 def erfinv(x: float) -> float:
@@ -47,15 +46,25 @@ def erfinv(x: float) -> float:
 
 
 def gamma(x: float) -> float:
-    """Error function. Maximum error is 5e-5.
-    From 'Abramowitz and Stegun'.
-    """
-    assert np.all(x >= 0.0)
-
-    a = np.array([-0.5748646, 0.9512363, -0.6998588, 0.4245549, -0.01010678])
-    x = np.power(x - 1.0, [1, 2, 3, 4, 5])
-
-    return 1.0 + np.sum(a * x)
+    """From 'Abramowitz and Stegun'."""
+    assert x >= 0.0
+    # Use recursion
+    b = np.array(
+        [
+            1.0,
+            -0.577191652,
+            0.988205891,
+            -0.897056937,
+            0.918206857,
+            -0.756704078,
+            0.482199394,
+            -0.193527818,
+            0.035868343,
+        ]
+    )
+    z = x % 1.0
+    n = 1.0 / x if x < 1.0 else np.prod(z + np.arange(1, int(x - z)))
+    return n * np.sum(b * np.power(z, np.arange(9)))
 
 
 def beta_pdf(x: np.ndarray, alpha: float, beta: float) -> np.ndarray:
