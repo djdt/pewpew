@@ -1,6 +1,9 @@
 import os.path
+import warnings
 
 from pew.config import Config
+
+from pew.io.error import PewWarning
 
 from pewpew.lib.io import import_any
 
@@ -13,5 +16,7 @@ def test_import_any():
         for f in ["agilent.b", "csv.csv", "npz.npz", "thermo.csv"]
     ]
 
-    lasers = import_any(paths, Config())
-    assert len(lasers) == 4
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', PewWarning)
+        lasers = import_any(paths, Config())
+        assert len(lasers) == 4
