@@ -27,6 +27,7 @@ def test_tool_widget(qtbot: QtBot):
     view.addLaser(Laser(rand_data("A1")))
     tool = ToolWidget(view.activeWidget())
     view.addTab("Tool", tool)
+    qtbot.waitForWindowShown(tool)
 
     tool.startMouseSelect()
     assert view.activeWidget() != tool
@@ -97,7 +98,7 @@ def test_standards_tool(qtbot: QtBot):
     tool.results_box.copy()
     assert (
         QtWidgets.QApplication.clipboard().text()
-        == "RSQ\t1.0000\nGradient\t2.0000\nIntercept\t0.5000\nY-error\t0.0000"
+        == "RSQ\t1.0000\nGradient\t2.0000\nIntercept\t0.5000\nSxy\t0.0000\nLOD (3σ)\t0.0000"
     )
 
     dlg = tool.showCurve()
