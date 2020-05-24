@@ -30,7 +30,7 @@ def erf(x: float) -> float:
     a = np.array([0.278393, 0.230389, 0.000972, 0.078108])
     x = np.power(x, [1, 2, 3, 4])
 
-    return 1.0 - 1.0 / np.power(1.0 + np.sum(a * x), 4)
+    return 1.0 - 1.0 / (1.0 + np.sum(a * x)) ** 4
 
 
 def erfinv(x: float) -> float:
@@ -60,7 +60,7 @@ def gamma(x: float) -> float:
 
 def beta_pdf(x: np.ndarray, alpha: float, beta: float) -> np.ndarray:
     B = (gamma(alpha) * gamma(beta)) / gamma(alpha + beta)
-    return np.power(x, alpha - 1.0) * np.power((1.0 - x), beta - 1.0) / B
+    return x ** (alpha - 1.0) * (1.0 - x) ** (beta - 1.0) / B
 
 
 def beta(size: int, alpha: float, beta: float, scale=1.0, shift=0.0) -> np.ndarray:
@@ -69,16 +69,16 @@ def beta(size: int, alpha: float, beta: float, scale=1.0, shift=0.0) -> np.ndarr
     return np.stack((x, y / y.sum()), axis=1)
 
 
-def cauchy_pdf(x: np.ndarray, gamma: float, x0: float) -> np.ndarray:
-    return 1.0 / (np.pi * gamma * (1.0 + np.power((x - x0) / gamma, 2)))
+# def cauchy_pdf(x: np.ndarray, gamma: float, x0: float) -> np.ndarray:
+#     return 1.0 / (np.pi * gamma * (1.0 + np.power((x - x0) / gamma, 2)))
 
 
-def cauchy(
-    size: int, gamma: float, x0: float, scale: float = 1.0, shift: float = 0.0
-) -> np.ndarray:
-    x = np.linspace(-size * 0.5 * scale + shift, size * 0.5 * scale + shift, size,)
-    y = cauchy_pdf(x, gamma, x0)
-    return np.stack((x, y / y.sum()), axis=1)
+# def cauchy(
+#     size: int, gamma: float, x0: float, scale: float = 1.0, shift: float = 0.0
+# ) -> np.ndarray:
+#     x = np.linspace(-size * 0.5 * scale + shift, size * 0.5 * scale + shift, size,)
+#     y = cauchy_pdf(x, gamma, x0)
+#     return np.stack((x, y / y.sum()), axis=1)
 
 
 def exponential_pdf(x: np.ndarray, _lambda: float) -> np.ndarray:
@@ -94,11 +94,7 @@ def exponential(
 
 
 def inversegamma_pdf(x: np.ndarray, alpha: float, beta: float) -> np.ndarray:
-    return (
-        (np.power(beta, alpha) / gamma(alpha))
-        * np.power(x, -alpha - 1.0)
-        * np.exp(-beta / x)
-    )
+    return ((beta ** alpha) / gamma(alpha)) * x ** (-alpha - 1.0) * np.exp(-beta / x)
 
 
 def inversegamma(
@@ -121,21 +117,20 @@ def laplace(
     return np.stack((x, y / y.sum()), axis=1)
 
 
-def logcauchy_pdf(x: np.ndarray, sigma: float, mu: float) -> np.ndarray:
-    return (1.0 / (x * np.pi)) * (sigma / (np.power(np.log(x) - mu, 2) + sigma * sigma))
+# def logcauchy_pdf(x: np.ndarray, sigma: float, mu: float) -> np.ndarray:
+#     return (1.0 / (x * np.pi)) * (sigma / (np.power(np.log(x) - mu, 2) + sigma * sigma))
 
 
-def logcauchy(
-    size: int, sigma: float, mu: float, scale: float = 1.0, shift: float = 2e-1
-) -> np.ndarray:
-    x = np.linspace(shift, size * scale + shift, size)
-    y = logcauchy_pdf(x, sigma, mu)
-    return np.stack((x, y / y.sum()), axis=1)
+# def logcauchy(
+#     size: int, sigma: float, mu: float, scale: float = 1.0, shift: float = 2e-1
+# ) -> np.ndarray:
+#     x = np.linspace(shift, size * scale + shift, size)
+#     y = logcauchy_pdf(x, sigma, mu)
+#     return np.stack((x, y / y.sum()), axis=1)
 
 
 def loglaplace_pdf(x: np.ndarray, b: float, mu: float) -> np.ndarray:
-    xu = np.where(np.log(x) < mu, mu - np.log(x), np.log(x) - mu)
-    return 1.0 / (2.0 * b * x) * np.exp(-xu / b)
+    return 1.0 / (2.0 * b * x) * np.exp(-np.abs(np.log(x) - mu) / b)
 
 
 def loglaplace(
@@ -147,9 +142,7 @@ def loglaplace(
 
 
 def lognormal_pdf(x: np.ndarray, sigma: float, mu: float) -> np.ndarray:
-    return (
-        1.0 / (x * sigma * _s2pi) * np.exp(-0.5 * np.power((np.log(x) - mu) / sigma, 2))
-    )
+    return 1.0 / (x * sigma * _s2pi) * np.exp(-0.5 * ((np.log(x) - mu) / sigma) ** 2)
 
 
 def lognormal(
@@ -161,7 +154,7 @@ def lognormal(
 
 
 def normal_pdf(x: np.ndarray, sigma: float, mu: float) -> np.ndarray:
-    return 1.0 / (sigma * _s2pi) * np.exp(-0.5 * np.power((x - mu) / sigma, 2))
+    return 1.0 / (sigma * _s2pi) * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
 
 
 def normal(
@@ -175,11 +168,7 @@ def normal(
 def super_gaussian_pdf(
     x: np.ndarray, sigma: float, mu: float, power: float
 ) -> np.ndarray:
-    return (
-        1.0
-        / (sigma * _s2pi)
-        * np.exp(-np.power(0.5 * np.power((x - mu) / sigma, 2), power))
-    )
+    return 1.0 / (sigma * _s2pi) * np.exp(-0.5 * ((x - mu) / sigma) ** (2 * power))
 
 
 def super_gaussian(
@@ -196,7 +185,9 @@ def super_gaussian(
 
 
 def triangular_pdf(x: np.ndarray, a: float, b: float) -> np.ndarray:
-    y = np.where(x < 0.0, (2.0 * (x - a)) / (a * (a - b)), (2.0 * (b - x)) / (b * (b - a)))
+    y = np.where(
+        x < 0.0, (2.0 * (x - a)) / (a * (a - b)), (2.0 * (b - x)) / (b * (b - a))
+    )
     y[x == 0.0] = 2.0 / (b - a)
     y[np.logical_or(x < a, x > b)] = 0.0
     return y
