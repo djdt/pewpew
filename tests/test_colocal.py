@@ -4,11 +4,17 @@ import pytest
 from pewpew.lib import colocal
 
 
-a = np.tile([[0.0, 1.0], [0.0, 1.0]], 10)
-b = np.tile([[0.0, 1.0], [1.0, 0.0]], 10)
-c = np.tile([[1.0, 0.0], [1.0, 0.0]], 10)
-d = np.tile([[1., 2.], [3., 4.]], 10)
-e = np.tile([[1., 2.], [4., 3.]], 10)
+a = np.tile([[0.0, 1.0], [0.0, 1.0]], (5, 5))
+b = np.tile([[0.0, 1.0], [1.0, 0.0]], (5, 5))
+c = np.tile([[1.0, 0.0], [1.0, 0.0]], (5, 5))
+d = np.tile([[1., 2.], [3., 4.]], (5, 5))
+e = np.tile([[1., 2.], [4., 3.]], (5, 5))
+
+
+def test_li_icq():
+    assert colocal.li_icq(a, a) == 0.5
+    assert colocal.li_icq(a, b) == 0.0
+    assert colocal.li_icq(a, c) == -0.5
 
 
 def test_pearson_r():
@@ -18,13 +24,9 @@ def test_pearson_r():
 
 
 def test_pearson_r_probability():
-    assert colocal.pearsonr_probablity(a, b, block=2, n=100) == (0.0, 1.0)
-
-
-def test_li_icq():
-    assert colocal.li_icq(a, a) == 0.5
-    assert colocal.li_icq(a, b) == 0.0
-    assert colocal.li_icq(a, c) == -0.5
+    r, p = colocal.pearsonr_probablity(a, b, block=4, n=100)
+    assert r == 0
+    assert p > 0.95
 
 
 def test_manders():
@@ -34,4 +36,4 @@ def test_manders():
 
 
 def test_costes_threshold():
-    assert pytest.approx(colocal.costes_threshold(a, b), (1.0, 0.0, 0.5))
+    assert pytest.approx(colocal.costes_threshold(a, a), (1.0, 0.0, 0.5))

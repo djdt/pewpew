@@ -82,7 +82,7 @@ def costes_threshold(
 
 def costes(
     x: np.ndarray, y: np.ndarray, n_scrambles: int = 200
-) -> Tuple[float, float, float, float]:
+) -> Tuple[float, float, float, float]:  # pragma: no cover, covered in other funcs
     x, y = normalise(x), normalise(y)
     pearson_r, r_prob = pearsonr_probablity(x, y, n=n_scrambles)
     t, a, b = costes_threshold(x, y)
