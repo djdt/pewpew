@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from pewpew.lib import convolve
 
@@ -19,14 +18,14 @@ def test_deconvolve():
 
 
 def test_functions():
-    pytest.approx(convolve.gamma(1.0), 1.0)
-    pytest.approx(convolve.gamma(0.1), 9.5135)
+    assert np.allclose(convolve.gamma(1.0), 1.0)
+    assert np.allclose(convolve.gamma(0.1), 9.5135)
 
-    pytest.approx(convolve.erf(1.0), 0.84270)
+    assert np.allclose(convolve.erf(1.0), 0.84270)
 
-    pytest.approx(convolve.erfinv(convolve.erf(1.0)), 1.0)
-    pytest.approx(convolve.erfinv(convolve.erf(2.0)), 2.0)
-    pytest.approx(convolve.erfinv(convolve.erf(3.0)), 3.0)
+    assert np.allclose(convolve.erfinv(convolve.erf(1.0)), 1.0)
+    assert np.allclose(convolve.erfinv(convolve.erf(2.0)), 2.0)
+    assert np.allclose(convolve.erfinv(convolve.erf(3.0)), 3.0)
 
 
 def test_kernels():

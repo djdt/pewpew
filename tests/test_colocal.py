@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from pewpew.lib import colocal
 
@@ -36,4 +35,4 @@ def test_manders():
 
 
 def test_costes_threshold():
-    assert pytest.approx(colocal.costes_threshold(a, a), (1.0, 0.0, 0.5))
+    assert np.allclose(colocal.costes_threshold(a, a), (0.0, 1.0, 0.0))

@@ -1,7 +1,5 @@
 import numpy as np
 
-import pytest
-
 from pewpew.lib import calc
 
 
@@ -48,11 +46,11 @@ def test_normalise():
 
 
 def test_otsu():
-    np.random.seed(48150942)
-    x = np.random.normal(scale=0.2, size=(100, 100))
-    x[:, :50] += np.random.normal(loc=3.0, size=(100, 50))
+    x = np.hstack(
+        (np.random.normal(1.0, 1.0, size=500), np.random.normal(4.0, 2.0, size=500))
+    )
 
-    assert pytest.approx(calc.otsu(x), 1.5928213)
+    assert np.allclose(calc.otsu(x), 3.0, atol=2e-1)
 
 
 def test_shuffle_blocks():
@@ -62,6 +60,6 @@ def test_shuffle_blocks():
 
     y = calc.shuffle_blocks(x, (5, 20), mask=m, mask_all=True)
 
-    assert np.all(y[50:] == x[50:])
-    assert not np.all(y[:50] == x[:50])
-    assert y.sum() == x.sum()
+    assert np.allclose(y[50:], x[50:])
+    assert not np.allclose(y[:50], x[:50])
+    assert np.allclose(y.sum(), x.sum())
