@@ -36,8 +36,18 @@ def test_parser_basic():
     assert str(parser.parse("1 = 2 != 3")) == "!= = 1 2 3"
     # Test if
     assert str(parser.parse("1 > 2 ? 3 : 4")) == "? > 1 2 3 4"
+    assert str(parser.parse("1 > 2 ^ 2 ? 3 + 5 : 4 * 6")) == "? > 1 ^ 2 2 + 3 5 * 4 6"
     assert str(parser.parse("if 1 > 2 then 3 else 4")) == "? > 1 2 3 4"
+    assert (
+        str(parser.parse("if 1 > 2 ^ 2 then 3 + 5 else 4 * 6"))
+        == "? > 1 ^ 2 2 + 3 5 * 4 6"
+    )
     assert str(parser.parse("1 > 2 ? 3 < 4 ? 5 : 6 : 7")) == "? > 1 2 ? < 3 4 5 6 7"
+    # Test array indexing
+    assert str(parser.parse("a1[1]")) == "[ a1 1"
+    assert str(parser.parse("1 + 2 * a1[3 + 4]")) == "+ 1 * 2 [ a1 + 3 4"
+    assert str(parser.parse("a1[1][2][3]")) == "[ [ [ a1 1 2 3"
+    assert str(parser.parse("a1[1 > 2 ? 3 : 4]")) == "[ a1 ? > 1 2 3 4"
 
 
 def test_parser_additional():
@@ -79,6 +89,8 @@ def test_parser_raises():
         parser.parse("1 ? 2 3")
     with pytest.raises(ParserException):
         parser.parse("1 ? 2 else 3")
+    with pytest.raises(ParserException):
+        parser.parse("a[1")
     # Function format
     with pytest.raises(ParserException):
         parser.parse("tf(1 2, 3)")
@@ -111,6 +123,9 @@ def test_reduce_basic():
     # Variable
     assert np.all(reducer.reduce("* a 2") == np.array([[0, 2], [4, 6]]))
     assert np.all(reducer.reduce("? > a 1 a / a 2") == np.array([[0, 0.5], [2, 3]]))
+    # Array IndexErrorxing
+    assert np.all(reducer.reduce("[ a 0") == np.array([0, 1]))
+    assert reducer.reduce("[ [ a 0 0") == 0
 
 
 def test_reduce_additional():
@@ -121,13 +136,17 @@ def test_reduce_additional():
 
 
 def test_reduce_raises():
-    reducer = Reducer()
+    reducer = Reducer({"a": np.arange(4).reshape(2, 2)})
 
     with pytest.raises(ReducerException):
         reducer.reduce("")
     with pytest.raises(ReducerException):
-        reducer.reduce("a")
+        reducer.reduce("b")
     with pytest.raises(ReducerException):
         reducer.reduce("+ 1 2 3")
     with pytest.raises(ReducerException):
         reducer.reduce("? 2 3")
+    with pytest.raises(ReducerException):
+        reducer.reduce("[ a 3.3")
+    with pytest.raises(ReducerException):
+        reducer.reduce("[ 2 3")

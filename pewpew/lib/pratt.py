@@ -181,7 +181,7 @@ class LeftIndex(Left):
         self.lbp = lbp
 
     def led(self, parser: "Parser", tokens: List[str], expr: Expr) -> Expr:
-        rexpr = parser.parseExpr(tokens, self.rbp)
+        rexpr = parser.parseExpr(tokens, 0)
         if len(tokens) == 0 or tokens.pop(0) != "]":
             raise ParserException("Mismatched bracket ']'.")
         return Expr(self.value, children=[expr, rexpr])
@@ -314,19 +314,3 @@ class Reducer(object):
         if len(tokens) != 0:
             raise ReducerException(f"Unexpected input '{tokens[0]}'.")
         return result
-
-
-if __name__ == "__main__":
-    a = np.arange(9).reshape(3, 3)
-    p = Parser(["a"])
-    r = Reducer({"a": a})
-
-    e = p.parse("if 1 > 2 then 3 else 2 ^ 3 > 2")
-    print(e, ":", r.reduce(e))
-    e = p.parse("if 1 > 2 then 3 else 2 ^ 3 < 2")
-    print(e, ":", r.reduce(e))
-
-    e = p.parse("1 > 2 ? 3 : 2 ^ 3 > 2")
-    print(e, ":", r.reduce(e))
-    e = p.parse("1 > 2 ? 3 : 2 ^ 3 < 2")
-    print(e, ":", r.reduce(e))
