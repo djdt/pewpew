@@ -4,6 +4,9 @@ import pytest
 from pewpew.lib import convolve
 
 
+# The majority of these tests are comparing against results from scipy.stats
+
+
 def test_deconvolve():
 
     x = np.random.randint(0, 100, 50)
