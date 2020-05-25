@@ -17,7 +17,7 @@ def deconvolve(x: np.ndarray, psf: np.ndarray, mode: str = "valid"):
         return rec
     elif mode == "same":
         return np.hstack((rec, x[rec.size :]))
-    else:
+    else:  # pragma: no cover
         raise ValueError("Valid modes are 'valid', 'same'.")
 
 

@@ -75,16 +75,16 @@ def test_main_window_actions_widget(qtbot: QtBot):
 
     window.actionToggleColorbar(False)
 
-    window.actionExportAll()
-    window.actionToolEdit()
-    window.actionToolStandards()
-    window.actionToolOverlay()
-
     window.actionTransformFlipHorz()
     window.actionTransformFlipVert()
     window.actionTransformRotateLeft()
     window.actionTransformRotateRight()
     window.actionTransformCrop()
+
+    window.actionExportAll()
+    window.actionToolEdit()
+    window.actionToolStandards()
+    window.actionToolOverlay()
 
 
 def test_main_window_apply_dialogs(qtbot: QtBot):

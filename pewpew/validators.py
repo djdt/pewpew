@@ -5,7 +5,11 @@ from typing import Tuple
 
 class DecimalValidator(QtGui.QDoubleValidator):
     def __init__(
-        self, bottom: float, top: float, decimals: int = 4, parent: QtWidgets.QWidget = None
+        self,
+        bottom: float,
+        top: float,
+        decimals: int = 4,
+        parent: QtWidgets.QWidget = None,
     ):
         super().__init__(bottom, top, decimals, parent)
         self.setNotation(QtGui.QDoubleValidator.StandardNotation)
@@ -31,7 +35,11 @@ class DecimalValidatorNoZero(DecimalValidator):
 
 class LimitValidator(QtGui.QDoubleValidator):
     def __init__(
-        self, bottom: float, top: float, decimals: int = 4, parent: QtWidgets.QWidget = None
+        self,
+        bottom: float,
+        top: float,
+        decimals: int = 4,
+        parent: QtWidgets.QWidget = None,
     ):
         super().__init__(bottom, top, decimals, parent)
 
@@ -44,7 +52,7 @@ class LimitValidator(QtGui.QDoubleValidator):
                     return (QtGui.QValidator.Intermediate, input, pos)
                 elif v == self.top():
                     return (QtGui.QValidator.Intermediate, input, pos)
-            except ValueError:
+            except ValueError:  # pragma: no cover
                 pass
         return (result, input, pos)
 
@@ -60,7 +68,7 @@ class OddIntValidator(QtGui.QIntValidator):
                 v = float(input)
                 if v % 2 == 0:
                     return (QtGui.QValidator.Intermediate, input, pos)
-            except ValueError:
+            except ValueError:  # pragma: no cover
                 pass
         return (result, input, pos)
 
@@ -134,7 +142,7 @@ class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
         parent: QtWidgets.QWidget,
         option: QtWidgets.QStyleOptionViewItem,
         index: int,
-    ) -> QtWidgets.QWidget:
+    ) -> QtWidgets.QWidget:  # pragma: no cover
         lineedit = QtWidgets.QLineEdit(parent)
         lineedit.setValidator(QtGui.QDoubleValidator())
         return lineedit
@@ -157,7 +165,7 @@ class DoubleSignificantFiguresDelegate(QtWidgets.QStyledItemDelegate):
         parent: QtWidgets.QWidget,
         option: QtWidgets.QStyleOptionViewItem,
         index: int,
-    ) -> QtWidgets.QWidget:
+    ) -> QtWidgets.QWidget:  # pragma: no cover
         lineedit = QtWidgets.QLineEdit(parent)
         lineedit.setValidator(QtGui.QDoubleValidator())
         return lineedit

@@ -25,8 +25,6 @@ def pearsonr_probablity(
 """
     if mask is None:
         mask = np.ones(x.shape, dtype=bool)
-    else:
-        assert mask.dtype == bool
 
     rs = np.empty(n, dtype=float)
     for i in range(n):
@@ -75,7 +73,7 @@ def costes_threshold(
         if np.unique(x[idx]).size == 1 or np.unique(y[idx]).size == 1:
             threshold = threshold_min
             break
-        r = pearsonr(x[idx], y[idx])
+        r = pearsonr(x[idx], y[idx])  # pragma: no cover
 
     return threshold, a, b
 

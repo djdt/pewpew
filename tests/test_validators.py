@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui
 
 from pewpew import validators
 
@@ -32,6 +32,21 @@ def test_decimal_validator_no_zero():
     assert validator.validate("-0", 0)[0] == QtGui.QValidator.Intermediate
 
 
+def test_limit_validator():
+    validator = validators.LimitValidator(0.0, 1.0, 3)
+    assert validator.validate("0.1", 0)[0] == QtGui.QValidator.Acceptable
+    assert validator.validate("0.", 0)[0] == QtGui.QValidator.Intermediate
+    assert validator.validate("1.", 0)[0] == QtGui.QValidator.Intermediate
+    assert validator.validate("1.1", 0)[0] == QtGui.QValidator.Intermediate
+
+
+def test_odd_int_validator():
+    validator = validators.OddIntValidator(0, 10)
+    assert validator.validate("2", 0)[0] == QtGui.QValidator.Intermediate
+    assert validator.validate("1", 0)[0] == QtGui.QValidator.Acceptable
+    assert validator.validate("11", 0)[0] == QtGui.QValidator.Intermediate
+
+
 def test_percent_or_decimal_validator():
     validator = validators.PercentOrDecimalValidator(-100.0, 100.0, 3, 2, 10)
     # Accept one percent sign
@@ -43,6 +58,9 @@ def test_percent_or_decimal_validator():
     assert validator.validate("1%", 0)[0] == QtGui.QValidator.Intermediate
     assert validator.validate("2%", 0)[0] == QtGui.QValidator.Acceptable
     assert validator.validate("11%", 0)[0] == QtGui.QValidator.Invalid
+    # Decimal mode
+    assert validator.validate("2.0", 0)[0] == QtGui.QValidator.Acceptable
+    assert validator.validate("111", 0)[0] == QtGui.QValidator.Invalid
 
 
 def test_double_precision_delegate():

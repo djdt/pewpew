@@ -12,6 +12,9 @@ def test_deconvolve():
     k = np.array([0.6, 0.3, 0.1])
 
     c = np.convolve(x, k, mode="full")
+    d = convolve.deconvolve(c, k, mode="same")
+    assert c.size == d.size
+
     d = convolve.deconvolve(c, k, mode="valid")
 
     assert np.allclose(x[:-2], d)

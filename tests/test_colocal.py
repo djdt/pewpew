@@ -29,7 +29,7 @@ def test_pearson_r_probability():
 
 
 def test_manders():
-    assert colocal.manders(a, a, 0, 0) == (1.0, 1.0)
+    assert colocal.manders(a, a, 0) == (1.0, 1.0)
     assert colocal.manders(a, b, 0, 0) == (0.5, 0.5)
     assert colocal.manders(a, c, 0, 0) == (0.0, 0.0)
 
