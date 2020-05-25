@@ -679,9 +679,9 @@ class ConvolveMethod(MethodStackWidget):
         kernel = kernel[:, 1]
 
         if hmode != "No":
-            data = np.apply_along_axis(np.convolve, 1, data, kernel, mode="same")
+            data = np.apply_along_axis(convolve.convolve, 1, data, kernel, mode="pad")
         if vmode != "No":
-            data = np.apply_along_axis(np.convolve, 0, data, kernel, mode="same")
+            data = np.apply_along_axis(convolve.convolve, 0, data, kernel, mode="pad")
 
         return data[vslice, hslice]
 

@@ -131,8 +131,11 @@ def test_canvas_laser(qtbot: QtBot):
 
 
 def test_canvas_interactive_laser(qtbot: QtBot):
+    window = QtWidgets.QMainWindow()
+    window.setStatusBar(QtWidgets.QStatusBar())
+    qtbot.addWidget(window)
     canvas = InteractiveLaserCanvas(ViewOptions())
-    qtbot.addWidget(canvas)
+    window.setCentralWidget(canvas)
     canvas.show()
     qtbot.waitForWindowShown(canvas)
 
@@ -148,8 +151,33 @@ def test_canvas_interactive_laser(qtbot: QtBot):
         assert filecmp.cmp(tf.name, data_path)
 
     # Point under cursor
-    # Zoom
+    assert window.statusBar().currentMessage() == ""
+    canvas._move(FakeEvent(canvas.ax, 30.0, 30.0))
+    assert window.statusBar().currentMessage() == f"30,30 [{laser.data['a'][9, 0]:.4g}]"
+    canvas.viewoptions.units = "row"
+    canvas._move(FakeEvent(canvas.ax, 40.0, 40.0))
+    assert window.statusBar().currentMessage() == f"8,1 [{laser.data['a'][8, 1]:.4g}]"
+    canvas.viewoptions.units = "second"
+    canvas._move(FakeEvent(canvas.ax, 30.0, 30.0))
+    assert window.statusBar().currentMessage() == f"0.2143,0 [{laser.data['a'][9, 0]:.4g}]"
+    canvas.axis_leave(None)
+    assert window.statusBar().currentMessage() == ""
+
+    # Scroll and drag
+    canvas._scroll(FakeEvent(canvas.ax, 0.0, 0.0, step=1))
+    assert canvas.view_limits == (0.0, 315.0, 0.0, 315.0)
+    # Towards edge
+    canvas._press(FakeEvent(canvas.ax, 0.0, 0.0))
+    canvas._move(FakeEvent(canvas.ax, 10.0, 10.0))
+    assert canvas.view_limits == (0.0, 315.0, 0.0, 315.0)
+    # Away from edge
+    canvas._press(FakeEvent(canvas.ax, 20.0, 20.0))
+    canvas._move(FakeEvent(canvas.ax, 10.0, 10.0))
+    assert canvas.view_limits == (10.0, 325.0, 10.0, 325.0)
+    canvas.unzoom()
     assert canvas.view_limits == (0.0, 350.0, 0.0, 350.0)
+
+    # Zoom
     canvas.startZoom()
     canvas.widget.press(FakeEvent(canvas.widget.ax, 100.0, 100.0))
     canvas.widget.onmove(FakeEvent(canvas.widget.ax, 300.0, 300.0))

@@ -557,6 +557,8 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             dx = self.eventpress.xdata - event.xdata
             dy = self.eventpress.ydata - event.ydata
 
+            print(dx, dy)
+
             # Move in opposite direction to drag
             if x1 + dx > xmin and x2 + dx < xmax:
                 x1 += dx
@@ -575,7 +577,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             if unit == "row":
                 y, x = (
                     int(x / self.px),
-                    self.image.get_array().shape[0] - int(y / self.py),
+                    self.image.get_array().shape[0] - int(y / self.py) - 1,
                 )
             elif unit == "second":
                 x = event.xdata / self.ps

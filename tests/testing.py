@@ -27,7 +27,13 @@ def rand_data(names: Union[str, List[str]]) -> np.ndarray:
 
 class FakeEvent(object):
     def __init__(
-        self, ax: Axes, xdata: float, ydata: float, key: str = None, button: int = 1
+        self,
+        ax: Axes,
+        xdata: float,
+        ydata: float,
+        key: str = None,
+        button: int = 1,
+        step: int = 0,
     ):
         self.inaxes = ax
         self.canvas = ax.figure.canvas
@@ -35,6 +41,7 @@ class FakeEvent(object):
         self.x, self.y = ax.transData.transform((xdata, ydata))
         self.key = key
         self.button = button
+        self.step = step
 
         self.guiEvent = None
         self.name = "none"

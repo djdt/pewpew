@@ -4,6 +4,17 @@ _s2 = np.sqrt(2.0)
 _s2pi = np.sqrt(2.0 * np.pi)
 
 
+def convolve(x: np.ndarray, psf: np.ndarray, mode: str = "pad") -> np.ndarray:
+    # Pad array with edge
+    if mode == "pad":
+        x_pad = np.pad(
+            x, (psf.size // 2, psf.size // 2 - 1 + psf.size % 2), mode="edge"
+        )
+        return np.convolve(x_pad, psf, mode="valid")
+    else:
+        return np.convolve(x, psf, mode=mode)
+
+
 def deconvolve(x: np.ndarray, psf: np.ndarray, mode: str = "valid"):
     """From https://rosettacode.org/wiki/Deconvolution/1D"""
 
