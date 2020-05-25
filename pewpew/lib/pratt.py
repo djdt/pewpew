@@ -143,7 +143,7 @@ class Left(object):
         return self.lbp + 1
 
     def led(self, parser: "Parser", tokens: List[str], expr: Expr) -> Expr:
-        raise ParserException("Invalid token.")
+        raise ParserException("Invalid token.")  # pragma: no cover
 
 
 class LeftBinary(Left):

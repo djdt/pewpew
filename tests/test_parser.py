@@ -67,7 +67,13 @@ def test_parser_additional():
 
 def test_parser_raises():
     parser = Parser(["a"])
-    parser.nulls.update({"tf": TernaryFunction("tf")})
+    parser.nulls.update(
+        {
+            "uf": UnaryFunction("uf"),
+            "bf": BinaryFunction("bf"),
+            "tf": TernaryFunction("tf"),
+        }
+    )
 
     # Input
     with pytest.raises(ParserException):
@@ -95,9 +101,21 @@ def test_parser_raises():
     with pytest.raises(ParserException):
         parser.parse("tf(1 2, 3)")
     with pytest.raises(ParserException):
+        parser.parse("tf(1, 2 3)")
+    with pytest.raises(ParserException):
         parser.parse("tf(1, 2, 3,)")
     with pytest.raises(ParserException):
         parser.parse("tf 1, 2, 3")
+    with pytest.raises(ParserException):
+        parser.parse("bf(1 2)")
+    with pytest.raises(ParserException):
+        parser.parse("bf 1, 2)")
+    with pytest.raises(ParserException):
+        parser.parse("bf(1, 2")
+    with pytest.raises(ParserException):
+        parser.parse("uf 1")
+    with pytest.raises(ParserException):
+        parser.parse("uf(1")
 
 
 def test_reduce_basic():
