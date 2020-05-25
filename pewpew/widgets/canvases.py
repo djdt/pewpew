@@ -122,10 +122,16 @@ class InteractiveCanvas(BasicCanvas):
             return
         self.axis_enter(event)
 
+    def axis_enter(self, event: LocationEvent) -> None:
+        raise NotImplementedError
+
     def _axis_leave(self, event: LocationEvent) -> None:
         if self.ignore_event(event):
             return
         self.axis_leave(event)
+
+    def axis_leave(self, event: LocationEvent) -> None:
+        raise NotImplementedError
 
     def _press(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
@@ -133,21 +139,33 @@ class InteractiveCanvas(BasicCanvas):
         self.eventpress = event
         self.press(event)
 
+    def press(self, event: MouseEvent) -> None:
+        raise NotImplementedError
+
     def _release(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
             return
         self.eventrelease = event
         self.release(event)
 
+    def release(self, event: MouseEvent) -> None:
+        raise NotImplementedError
+
     def _keypress(self, event: KeyEvent) -> None:
         if self.ignore_event(event):
             return
         self.keypress(event)
 
+    def keypress(self, event: KeyEvent) -> None:
+        raise NotImplementedError
+
     def _move(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
             return
         self.move(event)
+
+    def move(self, event: MouseEvent) -> None:
+        raise NotImplementedError
 
     def _pick(self, event: PickEvent) -> None:
         if self.ignore_event(event.mouseevent):
@@ -155,10 +173,16 @@ class InteractiveCanvas(BasicCanvas):
         self.picked_artist = event.artist
         self.onpick(event)
 
+    def onpick(self, event: PickEvent) -> None:
+        raise NotImplementedError
+
     def _scroll(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
             return
         self.scroll(event)
+
+    def scroll(self, event: MouseEvent) -> None:
+        raise NotImplementedError
 
 
 class LaserCanvas(BasicCanvas):
@@ -549,7 +573,10 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             v = self.image.get_cursor_data(event)
             unit = self.viewoptions.units
             if unit == "row":
-                y, x = int(x / self.px), self.image.get_array().shape[0] - int(y / self.py)
+                y, x = (
+                    int(x / self.px),
+                    self.image.get_array().shape[0] - int(y / self.py),
+                )
             elif unit == "second":
                 x = event.xdata / self.ps
                 y = 0
