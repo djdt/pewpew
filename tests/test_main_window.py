@@ -80,6 +80,12 @@ def test_main_window_actions_widget(qtbot: QtBot):
     window.actionToolStandards()
     window.actionToolOverlay()
 
+    window.actionTransformFlipHorz()
+    window.actionTransformFlipVert()
+    window.actionTransformRotateLeft()
+    window.actionTransformRotateRight()
+    window.actionTransformCrop()
+
 
 def test_main_window_apply_dialogs(qtbot: QtBot):
     window = MainWindow()

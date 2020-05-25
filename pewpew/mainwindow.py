@@ -474,7 +474,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_tool_standards.setEnabled(enabled)
         self.action_tool_overlay.setEnabled(enabled)
 
-    def exceptHook(self, type: type, value: BaseException, tb: TracebackType) -> None:
+    def exceptHook(
+        self, type: type, value: BaseException, tb: TracebackType
+    ) -> None:  # pragma: no cover
         if type == KeyboardInterrupt:
             print("Keyboard interrupt, exiting.")
             sys.exit(1)
