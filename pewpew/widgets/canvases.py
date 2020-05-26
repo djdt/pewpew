@@ -504,11 +504,10 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
     def getMaskedData(self) -> np.ndarray:
         data = self.image.get_array()
         mask = self.getSelection()
-        # TODO: check this doesnt trim when two sep selections
-        if mask is not None and not np.all(mask == 0):
-            # mask = mask[y0:y1, x0:x1]
-            data = np.where(mask, data, np.nan)
-            data = data[np.ix_(np.any(mask, axis=1), np.any(mask, axis=0))]
+        if mask is not None and not np.all(mask):
+            ix, iy = np.nonzero(mask)
+            x0, x1, y0, y1 = np.min(ix), np.max(ix) + 1, np.min(iy), np.max(iy) + 1
+            data = np.where(mask[x0:x1, y0:y1], data[x0:x1, y0:y1], np.nan)
         return data
 
     def startRuler(self) -> None:
@@ -556,8 +555,6 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             xmin, xmax, ymin, ymax = self.extent
             dx = self.eventpress.xdata - event.xdata
             dy = self.eventpress.ydata - event.ydata
-
-            print(dx, dy)
 
             # Move in opposite direction to drag
             if x1 + dx > xmin and x2 + dx < xmax:
