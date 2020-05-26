@@ -62,7 +62,7 @@ class ApplyDialog(QtWidgets.QDialog):
         pass
 
     def isComplete(self) -> bool:
-        return True
+        return True  # pragma: no cover
 
     @QtCore.Slot()
     def completeChanged(self) -> None:
@@ -142,7 +142,7 @@ class CalibrationDialog(ApplyDialog):
         else:
             self.lineedit_intercept.setText(f"{intercept:.4f}")
         unit = self.calibrations[name].unit
-        if unit is None:
+        if unit == "":
             self.lineedit_unit.clear()
         else:
             self.lineedit_unit.setText(str(unit))
@@ -313,7 +313,7 @@ class ColorRangeDialog(ApplyDialog):
 
         # Unless at least one value is set return
         if tmin == "" and tmax == "":
-            return
+            return  # pragma: no cover
 
         if isotope is not None:
             self.ranges[isotope] = (vmin, vmax)

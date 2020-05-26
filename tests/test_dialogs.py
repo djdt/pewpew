@@ -9,18 +9,11 @@ from pew.calibration import Calibration
 from pew.srr.config import SRRConfig
 
 from pewpew.lib.viewoptions import ViewOptions
-from pewpew.widgets.dialogs import (
-    ApplyDialog,
-    CalibrationDialog,
-    CalibrationCurveDialog,
-    ColorRangeDialog,
-    ConfigDialog,
-    StatsDialog,
-)
+from pewpew.widgets import dialogs
 
 
 def test_apply_dialog(qtbot: QtBot):
-    dialog = ApplyDialog()
+    dialog = dialogs.ApplyDialog()
     qtbot.addWidget(dialog)
     dialog.open()
 
@@ -30,10 +23,11 @@ def test_apply_dialog(qtbot: QtBot):
 
 def test_calibration_dialog(qtbot: QtBot):
     cals = {
-        "A": Calibration.from_points([[0, 1], [1, 2]]),
+        "A": Calibration.from_points([[0, 2], [1, 4]], unit="ppb"),
         "B": Calibration(),
     }
-    dialog = CalibrationDialog(cals, "B")
+
+    dialog = dialogs.CalibrationDialog(cals, "B")
     qtbot.addWidget(dialog)
     dialog.open()
 
@@ -60,7 +54,7 @@ def test_calibration_dialog(qtbot: QtBot):
 
 
 def test_calibration_curve_dialog(qtbot: QtBot):
-    dialog = CalibrationCurveDialog(
+    dialog = dialogs.CalibrationCurveDialog(
         Calibration.from_points([[0, 1], [1, 2], [2, 3], [4, 4]])
     )
     qtbot.addWidget(dialog)
@@ -71,11 +65,46 @@ def test_calibration_curve_dialog(qtbot: QtBot):
     )
 
 
+def test_colocalisation_dialog(qtbot: QtBot):
+    data = np.empty((10, 10), dtype=[("a", float), ("b", float), ("c", float)])
+    data["a"] = np.repeat(np.linspace(0, 1, 10).reshape(1, -1), 10, axis=0)
+    data["b"] = np.repeat(np.linspace(0, 1, 10).reshape(-1, 1), 10, axis=1)
+    data["c"] = np.random.random((10, 10))
+
+    mask = np.ones((10, 10), dtype=bool)
+    mask[:2] = False
+
+    dialog = dialogs.ColocalisationDialog(data, mask)
+    qtbot.addWidget(dialog)
+    dialog.open()
+
+    assert dialog.combo_name1.currentText() == "a"
+    assert dialog.combo_name2.currentText() == "b"
+
+    assert dialog.label_r.text() == "0.00"
+    assert dialog.label_icq.text() == "0.00"
+    assert dialog.label_m1.text() == "0.00"
+    assert dialog.label_m2.text() == "0.50"
+    assert dialog.label_p.text() == ""
+
+    dialog.combo_name2.setCurrentText("a")
+
+    assert dialog.label_r.text() == "1.00"
+    assert dialog.label_icq.text() == "0.50"
+    assert dialog.label_m1.text() == "1.00"
+    assert dialog.label_m2.text() == "1.00"
+    assert dialog.label_p.text() == ""
+
+    dialog.calculatePearsonsProbablity()
+    assert dialog.label_p.text() == "1.00"
+
+
 def test_colorrange_dialog(qtbot: QtBot):
     viewoptions = ViewOptions()
     viewoptions.colors.default_range = (0.0, 1.0)
     viewoptions.colors._ranges = {"A": (1.0, 2.0), "B": ("2%", 3.0)}
-    dialog = ColorRangeDialog(viewoptions, ["A", "B", "C"], "C")
+
+    dialog = dialogs.ColorRangeDialog(viewoptions, ["A", "B", "C"], "C")
     qtbot.addWidget(dialog)
     dialog.open()
 
@@ -113,7 +142,8 @@ def test_colorrange_dialog(qtbot: QtBot):
 
 def test_laser_config_dialog(qtbot: QtBot):
     config = Config()
-    dialog = ConfigDialog(config)
+
+    dialog = dialogs.ConfigDialog(config)
     qtbot.addWidget(dialog)
     dialog.open()
 
@@ -138,7 +168,7 @@ def test_laser_config_dialog(qtbot: QtBot):
 
 
 def test_config_dialog_krisskross(qtbot: QtBot):
-    dialog = ConfigDialog(SRRConfig())
+    dialog = dialogs.ConfigDialog(SRRConfig())
     qtbot.addWidget(dialog)
     dialog.open()
 
@@ -159,11 +189,11 @@ def test_config_dialog_krisskross(qtbot: QtBot):
 
 
 def test_stats_dialog(qtbot: QtBot):
-    x = np.array(np.random.random([10, 10]), dtype=[('a', float)])
+    x = np.array(np.random.random([10, 10]), dtype=[("a", float)])
     x[0, 0] = np.nan
     m = np.full(x.shape, True, dtype=bool)
 
-    dialog = StatsDialog(x, m, 'a', (0, 1))
+    dialog = dialogs.StatsDialog(x, m, "a", (0, 1))
     qtbot.addWidget(dialog)
     dialog.open()
 
