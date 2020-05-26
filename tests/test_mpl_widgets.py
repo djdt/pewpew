@@ -30,7 +30,7 @@ def test_lasso_image_selection_widget():
     testobj = SelectionTestObj()
 
     fig, ax = plt.subplots()
-    img = ax.imshow(np.random.random((50, 50)), extent=(0, 100, 0, 100))
+    img = ax.imshow(np.random.random((40, 40)), extent=(0, 100, 0, 100))
     ax.figure.canvas.draw()
 
     tool = LassoImageSelectionWidget(img, testobj.update_mask)
@@ -44,9 +44,9 @@ def test_lasso_image_selection_widget():
     tool.onmove(FakeEvent(tool.ax, 75, 50))
     tool.release(FakeEvent(tool.ax, 75, 50))
 
-    assert not np.any(testobj.mask[:12, :25])
-    assert np.all(testobj.mask[12:25, 25:37])
-    assert not np.any(testobj.mask[25:, 37:])
+    assert not np.any(testobj.mask[:10, :20])
+    assert np.all(testobj.mask[10:20, 20:30])
+    assert not np.any(testobj.mask[20:, 30:])
 
     tool.press(FakeEvent(tool.ax, 0, 0))
     tool.onmove(FakeEvent(tool.ax, 0, 50))
@@ -54,8 +54,8 @@ def test_lasso_image_selection_widget():
     tool.onmove(FakeEvent(tool.ax, 100, 0))
     tool.release(FakeEvent(tool.ax, 100, 0))
 
-    assert np.all(testobj.mask[25:, :25])
-    assert not np.any(testobj.mask[:25, 25:])
+    assert np.all(testobj.mask[20:, :20])
+    assert not np.any(testobj.mask[:20, 20:])
 
     # Test add on shift
     tool.on_key_press(FakeEvent(tool.ax, 0, 0, key="shift"))
@@ -77,9 +77,9 @@ def test_lasso_image_selection_widget():
     tool.release(FakeEvent(tool.ax, 25, 75))
     tool.on_key_release(FakeEvent(tool.ax, 25, 75, key="control"))
 
-    assert np.all(testobj.mask[:12, :12])
-    assert not np.any(testobj.mask[12:37, 12:37])
-    assert np.all(testobj.mask[37:, 37:])
+    assert np.all(testobj.mask[:10, :10])
+    assert not np.any(testobj.mask[10:30, 10:30])
+    assert np.all(testobj.mask[30:, 30:])
 
     # Test clear on escape
     tool.on_key_press(FakeEvent(tool.ax, 0, 0, key="escape"))
@@ -91,7 +91,7 @@ def test_rectangle_image_selection_widget():
     testobj = SelectionTestObj()
 
     fig, ax = plt.subplots()
-    img = ax.imshow(np.random.random((50, 50)), extent=(0, 100, 0, 100))
+    img = ax.imshow(np.random.random((40, 40)), extent=(0, 100, 0, 100))
     ax.figure.canvas.draw()
 
     tool = RectangleImageSelectionWidget(img, testobj.update_mask)
@@ -103,16 +103,16 @@ def test_rectangle_image_selection_widget():
     tool.onmove(FakeEvent(tool.ax, 75, 75))
     tool.release(FakeEvent(tool.ax, 75, 75))
 
-    assert not np.any(testobj.mask[:12, :25])
-    assert np.all(testobj.mask[12:25, 25:37])
-    assert not np.any(testobj.mask[25:, 37:])
+    assert not np.any(testobj.mask[:10, :20])
+    assert np.all(testobj.mask[10:20, 20:30])
+    assert not np.any(testobj.mask[20:, 30:])
 
     tool.press(FakeEvent(tool.ax, 0, 0))
     tool.onmove(FakeEvent(tool.ax, 100, 50))
     tool.release(FakeEvent(tool.ax, 100, 50))
 
-    assert np.all(testobj.mask[25:, :25])
-    assert not np.any(testobj.mask[:25, 25:])
+    assert np.all(testobj.mask[20:, :20])
+    assert not np.any(testobj.mask[:20, 20:])
 
     # Test add on shift
     tool.on_key_press(FakeEvent(tool.ax, 0, 0, key="shift"))
@@ -130,9 +130,9 @@ def test_rectangle_image_selection_widget():
     tool.release(FakeEvent(tool.ax, 75, 75))
     tool.on_key_release(FakeEvent(tool.ax, 75, 75, key="control"))
 
-    assert np.all(testobj.mask[:12, :12])
-    assert not np.any(testobj.mask[12:37, 12:37])
-    assert np.all(testobj.mask[37:, 37:])
+    assert np.all(testobj.mask[:10, :10])
+    assert not np.any(testobj.mask[10:30, 10:30])
+    assert np.all(testobj.mask[30:, 30:])
 
     # Test clear on escape
     tool.on_key_press(FakeEvent(tool.ax, 0, 0, key="escape"))
