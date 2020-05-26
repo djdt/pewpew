@@ -767,6 +767,7 @@ class StatsDialog(QtWidgets.QDialog):
         self.label_max.setText(f"{np.max(data):.4g}")
         self.label_mean.setText(f"{np.mean(data):.4g}")
         self.label_median.setText(f"{np.median(data):.4g}")
+        self.label_stddev.setText(f"{np.std(data):.4g}")
 
         vmin, vmax = self.coloroptions.get_range_as_float(isotope, data)
         self.plot(data[np.logical_and(data >= vmin, data <= vmax)])
