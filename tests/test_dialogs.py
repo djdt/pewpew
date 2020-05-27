@@ -188,6 +188,41 @@ def test_config_dialog_krisskross(qtbot: QtBot):
     dialog.apply()
 
 
+def test_selection_dialog(qtbot: QtBot):
+    x = np.empty((10, 10), dtype=[("a", float), ("b", float)])
+    x["a"] = 1.0
+    x["b"] = np.random.random((10, 10))
+
+    dialog = dialogs.SelectionDialog(x, "a")
+    qtbot.addWidget(dialog)
+    dialog.open()
+
+    assert dialog.combo_isotopes.currentText() == "a"
+    dialog.combo_isotopes.setCurrentText("b")
+    dialog.refresh()
+
+    assert dialog.lineedit_manual.isEnabled()
+    assert not dialog.spinbox_method.isEnabled()
+    assert not dialog.spinbox_comparison.isEnabled()
+
+    dialog.combo_method.setCurrentText("K-means")
+    dialog.refresh()
+    assert not dialog.lineedit_manual.isEnabled()
+    assert dialog.spinbox_method.isEnabled()
+    assert dialog.spinbox_comparison.isEnabled()
+    assert dialog.spinbox_method.value() == 2
+    assert dialog.spinbox_comparison.value() == 1
+
+    dialog.combo_method.setCurrentText("Mean")
+    dialog.refresh()
+    assert not dialog.spinbox_method.isEnabled()
+    assert not dialog.spinbox_comparison.isEnabled()
+
+    with qtbot.wait_signal(dialog.maskSelected) as emitted:
+        dialog.accept()
+        assert np.all(emitted.args[0] == (x["b"] > np.mean(x["b"])))
+
+
 def test_stats_dialog(qtbot: QtBot):
     x = np.array(np.random.random([10, 10]), dtype=[("a", float)])
     x[0, 0] = np.nan

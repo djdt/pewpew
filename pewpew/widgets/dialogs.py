@@ -773,7 +773,7 @@ class StatsDialog(QtWidgets.QDialog):
         self.plot(data[np.logical_and(data >= vmin, data <= vmax)])
 
     def isCalibrate(self) -> bool:
-        return False
+        return False  # pragma: no cover
 
     def plot(self, data: np.ndarray) -> None:
         highlight = self.palette().color(QtGui.QPalette.Highlight).name()
