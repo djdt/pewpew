@@ -82,7 +82,7 @@ def kmeans_threshold(x: np.ndarray, k: int) -> np.ndarray:
 """
     assert k > 1
 
-    idx = kmeans(x, k, max_iterations=k * 100)
+    idx = kmeans(x.ravel(), k, max_iterations=k * 100).reshape(x.shape)
     return np.array([np.amin(x[idx == i]) for i in range(1, k)])
 
 
