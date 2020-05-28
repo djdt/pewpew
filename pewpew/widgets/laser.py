@@ -96,14 +96,16 @@ class LaserView(View):
             return super().dropEvent(event)
 
         paths = [
-            url.toLocalFile() for url in event.mimeData().urls() if url.isLocalFile()
+            url.toLocalFile()
+            for url in event.mimeData().urls()
+            if url.toLocalFile() != ""
         ]
         try:
             lasers = import_any(paths, self.viewspace.config)
             for laser in lasers:
                 self.addLaser(laser)
             event.acceptProposedAction()
-        except io.error.PewException as e:
+        except io.error.PewException as e:  # pragma: no cover
             event.ignore()
             QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
 
@@ -113,7 +115,7 @@ class LaserView(View):
             for laser in import_any(paths, self.viewspace.config):
                 self.addLaser(laser)
 
-        except io.error.PewException as e:
+        except io.error.PewException as e:  # pragma: no cover
             QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
 
     def applyCalibration(self, calibration: dict) -> None:
@@ -258,9 +260,7 @@ class LaserWidget(_ViewWidget):
             layer = int(self.combo_layers.currentText())
 
         self.canvas.endSelection()
-        self.canvas.drawLaser(
-            self.laser, self.combo_isotope.currentText(), layer=layer
-        )
+        self.canvas.drawLaser(self.laser, self.combo_isotope.currentText(), layer=layer)
 
     def rename(self, text: str) -> None:
         self.laser.name = text
@@ -314,12 +314,9 @@ class LaserWidget(_ViewWidget):
             )
         )
         new_widget.setActive()
-        # self.canvas.view_limits = new_extent
-        # # self.setModified(True)
-        # # self.refresh()
 
     def transform(self, flip: str = None, rotate: str = None) -> None:
-        if self.is_srr:
+        if self.is_srr:  # pragma: no cover
             QtWidgets.QMessageBox.information(
                 self, "Transform", "Unable to transform SRR data."
             )

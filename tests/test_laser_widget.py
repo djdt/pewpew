@@ -1,3 +1,5 @@
+import numpy as np
+import os.path
 from pytestqt.qtbot import QtBot
 from PySide2 import QtCore, QtGui
 
@@ -74,17 +76,44 @@ def test_laser_view(qtbot: QtBot):
         QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
     )
 
+    # Drop event
+    drag_mime = QtCore.QMimeData()
+    path = os.path.join(os.path.dirname(__file__), "data", "io", "npz.npz")
+    drag_mime.setUrls([QtCore.QUrl.fromLocalFile(path)])
+    drag_event = QtGui.QDragEnterEvent(
+        QtCore.QPoint(0, 0),
+        QtCore.Qt.CopyAction,
+        drag_mime,
+        QtCore.Qt.LeftButton,
+        QtCore.Qt.NoModifier,
+    )
+    view.dragEnterEvent(drag_event)
+    assert drag_event.isAccepted()
+    drop_event = QtGui.QDropEvent(
+        QtCore.QPoint(0, 0),
+        QtCore.Qt.CopyAction,
+        drag_mime,
+        QtCore.Qt.LeftButton,
+        QtCore.Qt.NoModifier,
+    )
+    view.dropEvent(drop_event)
+    assert len(view.widgets()) == 2
+
     dlg = view.actionOpen()
     dlg.show()
     dlg.close()
 
 
 def test_laser_widget(qtbot: QtBot):
+    x = rand_data(["A1", "B2"])
+    y = x["A1"].copy()
     viewspace = LaserViewSpace()
     qtbot.addWidget(viewspace)
     viewspace.show()
+
     view = viewspace.activeView()
-    view.addLaser(Laser(rand_data(["A1", "B2", "C3"])))
+    view.addLaser(Laser(x))
+
     widget = view.activeWidget()
 
     widget.applyConfig(Config(1.0, 1.0, 1.0))
@@ -92,13 +121,27 @@ def test_laser_widget(qtbot: QtBot):
     widget.applyCalibration({"B2": Calibration(2.0, 2.0)})
     assert widget.laser.calibration["B2"].intercept == 2.0
 
+    widget.crop((1.5, 9.5, 1.5, 9.5))
+    assert view.activeWidget().laser.data.shape == (8, 8)
+    widget.transform(flip="horizontal")
+    assert np.all(widget.laser.get("A1") == np.flip(y, axis=1))
+    widget.transform(flip="horizontal")
+    widget.transform(flip="vertical")
+    assert np.all(widget.laser.get("A1") == np.flip(y, axis=0))
+    widget.transform(flip="vertical")
+    assert np.all(widget.laser.get("A1") == y)
+    widget.transform(rotate="right")
+    assert np.all(widget.laser.get("A1") == np.rot90(y, k=1, axes=(1, 0)))
+    widget.transform(rotate="left")
+    assert np.all(widget.laser.get("A1") == y)
+
 
 def test_laser_widget_actions(qtbot: QtBot):
     viewspace = LaserViewSpace()
     qtbot.addWidget(viewspace)
     viewspace.show()
     view = viewspace.activeView()
-    view.addLaser(Laser(rand_data("A1")))
+    view.addLaser(Laser(rand_data(["a", "b"])))
     widget = view.activeWidget()
 
     dlg = widget.actionCalibration()
@@ -112,3 +155,11 @@ def test_laser_widget_actions(qtbot: QtBot):
     dlg.close()
     dlg = widget.actionStatistics()
     dlg.close()
+    dlg = widget.actionSelectDialog()
+    dlg.close()
+    dlg = widget.actionColocal()
+    dlg.close()
+
+    widget.contextMenuEvent(
+        QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
+    )
