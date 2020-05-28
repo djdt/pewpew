@@ -356,7 +356,7 @@ class ExportDialog(_ExportDialogBase):
 
     def generatePaths(self, laser: Laser) -> List[Tuple[str, str, int]]:
         paths: List[Tuple[str, str, int]] = [
-            (self.getPath(), self.widget.combo_isotopes.currentText(), None)
+            (self.getPath(), self.widget.combo_isotope.currentText(), None)
         ]
         if self.isExportAll():
             paths = [
@@ -438,8 +438,8 @@ class ExportAllDialog(ExportDialog):
             unique.update(widget.laser.isotopes)
         isotopes = sorted(unique)
 
-        self.combo_isotopes = QtWidgets.QComboBox()
-        self.combo_isotopes.addItems(isotopes)
+        self.combo_isotope = QtWidgets.QComboBox()
+        self.combo_isotope.addItems(isotopes)
         self.lineedit_prefix = QtWidgets.QLineEdit("")
         self.lineedit_prefix.textChanged.connect(self.updatePreview)
 
@@ -453,13 +453,13 @@ class ExportAllDialog(ExportDialog):
         label.setText("Prefix:")
         self.layout_form.replaceWidget(self.lineedit_filename, self.lineedit_prefix)
 
-        self.layout_form.addRow("Isotope:", self.combo_isotopes)
+        self.layout_form.addRow("Isotope:", self.combo_isotope)
 
         self.check_export_all.stateChanged.connect(self.showIsotopes)
         self.showIsotopes()
 
     def showIsotopes(self) -> None:
-        self.combo_isotopes.setEnabled(self.allowExportAll() and not self.isExportAll())
+        self.combo_isotope.setEnabled(self.allowExportAll() and not self.isExportAll())
 
     def typeChanged(self, index: int) -> None:
         super().typeChanged(index)
@@ -483,7 +483,7 @@ class ExportAllDialog(ExportDialog):
 
     def generatePaths(self, laser: Laser) -> List[Tuple[str, str, int]]:
         paths: List[Tuple[str, str, int]] = [
-            (self.getPath(laser.name), self.widget.combo_isotopes.currentText(), None)
+            (self.getPath(laser.name), self.widget.combo_isotope.currentText(), None)
         ]
         if self.isExportAll():
             paths = [

@@ -91,17 +91,17 @@ def test_export_all_dialog(qtbot: QtBot):
     assert dlg.lineedit_preview.text() == "01_<NAME>.npz"
     assert not dlg.check_export_all.isEnabled()
     assert not dlg.check_calibrate.isEnabled()
-    assert not dlg.combo_isotopes.isEnabled()
+    assert not dlg.combo_isotope.isEnabled()
 
     dlg.options.setCurrentIndex(dlg.options.indexForExt(".csv"))
     assert dlg.lineedit_preview.text() == "01_<NAME>.csv"
     assert dlg.check_export_all.isEnabled()
     assert dlg.check_calibrate.isEnabled()
-    assert dlg.combo_isotopes.isEnabled()
+    assert dlg.combo_isotope.isEnabled()
 
     dlg.check_export_all.click()
     assert dlg.lineedit_preview.text() == "01_<NAME>_<ISOTOPE>.csv"
-    assert not dlg.combo_isotopes.isEnabled()
+    assert not dlg.combo_isotope.isEnabled()
 
     with tempfile.TemporaryDirectory() as tempdir:
         dlg.lineedit_directory.setText(tempdir)

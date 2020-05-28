@@ -229,7 +229,7 @@ class MainWindow(QtWidgets.QMainWindow):
             current_isotope=self.viewspace.currentIsotope(),
             parent=self,
         )
-        dlg.combo_isotopes.currentTextChanged.connect(self.viewspace.setCurrentIsotope)
+        dlg.combo_isotope.currentTextChanged.connect(self.viewspace.setCurrentIsotope)
         dlg.applyPressed.connect(applyDialog)
         dlg.open()
         return dlg

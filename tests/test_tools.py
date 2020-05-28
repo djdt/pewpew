@@ -120,10 +120,10 @@ def test_calculations_tool(qtbot: QtBot):
 
     tool.formula.setText("1 +")
     assert tool.formula.expr == ""
-    tool.combo_isotopes.setCurrentIndex(1)
+    tool.combo_isotope.setCurrentIndex(1)
     tool.insertVariable(1)
     assert tool.formula.expr == "+ 1 A1"
-    assert tool.combo_isotopes.currentIndex() == 0
+    assert tool.combo_isotope.currentIndex() == 0
 
     assert not tool.isComplete()
 

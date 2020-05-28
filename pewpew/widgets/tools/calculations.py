@@ -121,8 +121,8 @@ class CalculationsTool(ToolWidget):
         self.lineedit_name.textChanged.connect(self.completeChanged)
         self.lineedit_name.editingFinished.connect(self.refresh)
 
-        self.combo_isotopes = QtWidgets.QComboBox()
-        self.combo_isotopes.activated.connect(self.insertVariable)
+        self.combo_isotope = QtWidgets.QComboBox()
+        self.combo_isotope.activated.connect(self.insertVariable)
 
         functions = [k + v[1] for k, v in additional_parser_functions.items()]
         tooltips = [v[2] for v in additional_parser_functions.values()]
@@ -145,7 +145,7 @@ class CalculationsTool(ToolWidget):
         )
 
         layout_combos = QtWidgets.QHBoxLayout()
-        layout_combos.addWidget(self.combo_isotopes)
+        layout_combos.addWidget(self.combo_isotope)
         layout_combos.addWidget(self.combo_functions)
 
         layout_form = QtWidgets.QFormLayout()
@@ -178,8 +178,8 @@ class CalculationsTool(ToolWidget):
     def insertVariable(self, index: int) -> None:
         if index == 0:
             return
-        self.formula.insert(self.combo_isotopes.currentText())
-        self.combo_isotopes.setCurrentIndex(0)
+        self.formula.insert(self.combo_isotope.currentText())
+        self.combo_isotope.setCurrentIndex(0)
         self.formula.setFocus()
 
     def isComplete(self) -> bool:
@@ -235,9 +235,9 @@ class CalculationsTool(ToolWidget):
     def widgetChanged(self) -> None:
         self.label_current.setText(self.widget.laser.name)
 
-        self.combo_isotopes.clear()
-        self.combo_isotopes.addItem("Isotopes")
-        self.combo_isotopes.addItems(self.widget.laser.isotopes)
+        self.combo_isotope.clear()
+        self.combo_isotope.addItem("Isotopes")
+        self.combo_isotope.addItems(self.widget.laser.isotopes)
 
         self.lineedit_name.badnames = self.widget.laser.isotopes
 
@@ -247,7 +247,7 @@ class CalculationsTool(ToolWidget):
         }
         self.formula.parser.variables = self.widget.laser.isotopes
         self.formula.valid = True
-        self.formula.setText(self.widget.combo_isotopes.currentText())
+        self.formula.setText(self.widget.combo_isotope.currentText())
 
         self.refresh()
 

@@ -31,15 +31,15 @@ def test_calibration_dialog(qtbot: QtBot):
     qtbot.addWidget(dialog)
     dialog.open()
 
-    assert dialog.combo_isotopes.currentText() == "B"
+    assert dialog.combo_isotope.currentText() == "B"
     assert not dialog.button_plot.isEnabled()
 
     dialog.lineedit_gradient.setText("1")
     dialog.lineedit_intercept.setText("2")
     dialog.lineedit_unit.setText("ppm")
 
-    dialog.combo_isotopes.setCurrentIndex(0)
-    assert dialog.combo_isotopes.currentText() == "A"
+    dialog.combo_isotope.setCurrentIndex(0)
+    assert dialog.combo_isotope.currentText() == "A"
     assert dialog.button_plot.isEnabled()
 
     assert dialog.calibrations["B"].gradient == 1.0
@@ -109,7 +109,7 @@ def test_colorrange_dialog(qtbot: QtBot):
     dialog.open()
 
     # Loads C as current, has default range
-    assert dialog.combo_isotopes.currentText() == "C"
+    assert dialog.combo_isotope.currentText() == "C"
     assert dialog.lineedit_min.text() == ""
     assert dialog.lineedit_max.text() == ""
     assert dialog.lineedit_min.placeholderText() == "0.0"
@@ -119,20 +119,20 @@ def test_colorrange_dialog(qtbot: QtBot):
     # Add and check is there
     dialog.lineedit_min.setText("1%")
     dialog.lineedit_max.setText("2%")
-    dialog.combo_isotopes.setCurrentText("B")  # Update C
+    dialog.combo_isotope.setCurrentText("B")  # Update C
     assert dialog.ranges["C"] == ("1%", "2%")
 
     assert dialog.lineedit_min.text() == "2%"
     assert dialog.lineedit_max.text() == "3.0"
 
-    dialog.combo_isotopes.setCurrentText("A")
+    dialog.combo_isotope.setCurrentText("A")
     assert dialog.lineedit_min.text() == "1.0"
     assert dialog.lineedit_max.text() == "2.0"
 
     dialog.check_all.click()
     dialog.lineedit_min.setText("1.0")
     dialog.lineedit_max.setText("2.0")
-    # dialog.combo_isotopes.setCurrentText("C")
+    # dialog.combo_isotope.setCurrentText("C")
 
     dialog.apply()
 
@@ -197,8 +197,8 @@ def test_selection_dialog(qtbot: QtBot):
     qtbot.addWidget(dialog)
     dialog.open()
 
-    assert dialog.combo_isotopes.currentText() == "a"
-    dialog.combo_isotopes.setCurrentText("b")
+    assert dialog.combo_isotope.currentText() == "a"
+    dialog.combo_isotope.setCurrentText("b")
     dialog.refresh()
 
     assert dialog.lineedit_manual.isEnabled()

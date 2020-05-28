@@ -45,7 +45,7 @@ class LaserViewSpace(ViewSpace):
         widget = self.activeWidget()
         if widget is None:
             return None
-        return widget.combo_isotopes.currentText()
+        return widget.combo_isotope.currentText()
 
     def setCurrentIsotope(self, isotope: str) -> None:
         for view in self.views:
@@ -77,7 +77,7 @@ class LaserView(View):
     def setCurrentIsotope(self, isotope: str) -> None:
         for widget in self.widgets():
             if isotope in widget.laser.isotopes:
-                widget.combo_isotopes.setCurrentText(isotope)
+                widget.combo_isotope.setCurrentText(isotope)
 
     # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
@@ -160,9 +160,9 @@ class LaserWidget(_ViewWidget):
             self.combo_layers.setEnabled(False)
             self.combo_layers.setVisible(False)
 
-        self.combo_isotopes = QtWidgets.QComboBox()
-        self.combo_isotopes.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
-        self.combo_isotopes.currentIndexChanged.connect(self.refresh)
+        self.combo_isotope = QtWidgets.QComboBox()
+        self.combo_isotope.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        self.combo_isotope.currentIndexChanged.connect(self.refresh)
         self.populateIsotopes()
 
         self.selection_button = QtWidgets.QToolButton()
@@ -231,7 +231,7 @@ class LaserWidget(_ViewWidget):
         self.view_button.addAction(self.action_zoom_out)
 
         self.canvas.installEventFilter(self)
-        self.combo_isotopes.installEventFilter(self)
+        self.combo_isotope.installEventFilter(self)
         self.selection_button.installEventFilter(self)
         self.view_button.installEventFilter(self)
 
@@ -241,7 +241,7 @@ class LaserWidget(_ViewWidget):
         layout_bar.addWidget(self.view_button, 0, QtCore.Qt.AlignLeft)
         layout_bar.addStretch(1)
         layout_bar.addWidget(self.combo_layers, 0, QtCore.Qt.AlignRight)
-        layout_bar.addWidget(self.combo_isotopes, 0, QtCore.Qt.AlignRight)
+        layout_bar.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.canvas, 1)
@@ -259,7 +259,7 @@ class LaserWidget(_ViewWidget):
 
         self.canvas.endSelection()
         self.canvas.drawLaser(
-            self.laser, self.combo_isotopes.currentText(), layer=layer
+            self.laser, self.combo_isotope.currentText(), layer=layer
         )
 
     def rename(self, text: str) -> None:
@@ -279,10 +279,10 @@ class LaserWidget(_ViewWidget):
         return os.path.join(os.path.dirname(self.laser.path), self.laser.name + ext)
 
     def populateIsotopes(self) -> None:
-        self.combo_isotopes.blockSignals(True)
-        self.combo_isotopes.clear()
-        self.combo_isotopes.addItems(self.laser.isotopes)
-        self.combo_isotopes.blockSignals(False)
+        self.combo_isotope.blockSignals(True)
+        self.combo_isotope.clear()
+        self.combo_isotope.addItems(self.laser.isotopes)
+        self.combo_isotope.blockSignals(False)
 
     # Transformations
     def crop(self, new_extent: Tuple[float, float, float, float] = None) -> None:
@@ -406,7 +406,7 @@ class LaserWidget(_ViewWidget):
 
     def actionCalibration(self) -> QtWidgets.QDialog:
         dlg = dialogs.CalibrationDialog(
-            self.laser.calibration, self.combo_isotopes.currentText(), parent=self
+            self.laser.calibration, self.combo_isotope.currentText(), parent=self
         )
         dlg.calibrationSelected.connect(self.applyCalibration)
         dlg.calibrationApplyAll.connect(self.viewspace.applyCalibration)
@@ -448,7 +448,7 @@ class LaserWidget(_ViewWidget):
 
     def actionSelectDialog(self) -> QtWidgets.QDialog:
         dlg = dialogs.SelectionDialog(
-            self.laser.get(flat=True), self.combo_isotopes.currentText(), parent=self
+            self.laser.get(flat=True), self.combo_isotope.currentText(), parent=self
         )
         dlg.maskSelected.connect(self.canvas.setSelection)
         dlg.open()
@@ -462,7 +462,7 @@ class LaserWidget(_ViewWidget):
         dlg = dialogs.StatsDialog(
             self.laser.get(flat=True),
             mask,
-            self.combo_isotopes.currentText(),
+            self.combo_isotope.currentText(),
             pixel_size=(
                 self.laser.config.get_pixel_width(),
                 self.laser.config.get_pixel_height(),

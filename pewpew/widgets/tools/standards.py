@@ -182,7 +182,7 @@ class StandardsTool(ToolWidget):
         self.combo_isotope.blockSignals(True)
         self.combo_isotope.clear()
         self.combo_isotope.addItems(self.widget.laser.isotopes)
-        self.combo_isotope.setCurrentText(self.widget.combo_isotopes.currentText())
+        self.combo_isotope.setCurrentText(self.widget.combo_isotope.currentText())
         self.combo_isotope.blockSignals(False)
 
         isotope = self.combo_isotope.currentText()

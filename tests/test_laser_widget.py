@@ -48,11 +48,11 @@ def test_laser_view_space(qtbot: QtBot):
                 assert widget.laser.calibration["C3"].gradient == 1.0
 
     # Check isotope changed if avilable
-    assert viewspace.views[0].activeWidget().combo_isotopes.currentText() == "A1"
-    assert viewspace.views[1].activeWidget().combo_isotopes.currentText() == "A1"
+    assert viewspace.views[0].activeWidget().combo_isotope.currentText() == "A1"
+    assert viewspace.views[1].activeWidget().combo_isotope.currentText() == "A1"
     viewspace.setCurrentIsotope("B2")
-    assert viewspace.views[0].activeWidget().combo_isotopes.currentText() == "B2"
-    assert viewspace.views[1].activeWidget().combo_isotopes.currentText() == "A1"
+    assert viewspace.views[0].activeWidget().combo_isotope.currentText() == "B2"
+    assert viewspace.views[1].activeWidget().combo_isotope.currentText() == "A1"
     # Close all
     for view in viewspace.views:
         for widget in view.widgets():
