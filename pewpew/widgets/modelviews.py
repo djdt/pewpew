@@ -23,7 +23,7 @@ class BasicTableView(QtWidgets.QTableView):
 
         menu.popup(event.globalPos())
 
-    def keyPressEvent(self, event: QtCore.QEvent) -> None:
+    def keyPressEvent(self, event: QtCore.QEvent) -> None:  # pragma: no cover
         if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
             self._advance()
         elif event.key() in [QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete]:
@@ -111,7 +111,7 @@ class BasicTable(QtWidgets.QTableWidget):
 
         menu.popup(event.globalPos())
 
-    def keyPressEvent(self, event: QtCore.QEvent) -> None:
+    def keyPressEvent(self, event: QtCore.QEvent) -> None:  # pragma: no cover
         if event.key() in [QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return]:
             self._advance()
         elif event.key() in [QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete]:
