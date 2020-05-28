@@ -30,7 +30,8 @@ class LaserViewSpace(ViewSpace):
         isotopes: Set[str] = set()
         for view in self.views:
             for widget in view.widgets():
-                isotopes.update(widget.laser.isotopes)
+                if isinstance(widget, LaserWidget):
+                    isotopes.update(widget.laser.isotopes)
         return sorted(isotopes)
 
     def createView(self) -> "LaserView":
