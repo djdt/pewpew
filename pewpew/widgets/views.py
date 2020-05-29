@@ -268,11 +268,11 @@ class View(QtWidgets.QWidget):
         self.active = active
 
     # Events
-    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:  # pragma: no cover
         if event.mimeData().hasFormat("application/x-pewpewtabbar"):
             event.acceptProposedAction()
 
-    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+    def dropEvent(self, event: QtGui.QDropEvent) -> None:  # pragma: no cover
         if event.mimeData().hasFormat("application/x-pewpewtabbar"):
             self.tabs.dropEvent(event)
 
@@ -322,7 +322,7 @@ class ViewTabBar(QtWidgets.QTabBar):
             self.drag_start_pos = event.pos()
         super().mousePressEvent(event)
 
-    def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
+    def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:  # pragma: no cover
         if (
             not event.buttons() & QtCore.Qt.LeftButton
             or (event.pos() - self.drag_start_pos).manhattanLength()
@@ -350,11 +350,11 @@ class ViewTabBar(QtWidgets.QTabBar):
         )
         drag.exec_(QtCore.Qt.MoveAction)
 
-    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:  # pragma: no cover
         if event.mimeData().hasFormat("application/x-pewpewtabbar"):
             event.acceptProposedAction()
 
-    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+    def dropEvent(self, event: QtGui.QDropEvent) -> None:  # pragma: no cover
         dest = self.tabAt(event.pos())
         src, ok = event.mimeData().data("application/x-pewpewtabbar").toInt()
         if ok and event.source() == self:
@@ -409,10 +409,10 @@ class _ViewWidget(QtWidgets.QWidget):
     def index(self) -> int:
         return self.view.stack.indexOf(self)
 
-    def refresh(self) -> None:
+    def refresh(self) -> None:  # pragma: no cover
         raise NotImplementedError
 
-    def rename(self, text: str) -> None:
+    def rename(self, text: str) -> None:  # pragma: no cover
         pass
 
     def setActive(self) -> None:
@@ -430,6 +430,6 @@ class _ViewWidget(QtWidgets.QWidget):
         pass
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        if obj and event.type() == QtCore.QEvent.MouseButtonPress:
+        if obj and event.type() == QtCore.QEvent.MouseButtonPress:  # pragma: no cover
             self.view.setActive(True)
         return False

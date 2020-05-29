@@ -5,6 +5,9 @@ from PySide2 import QtCore, QtWidgets
 from pewpew.widgets.views import ViewSpace, View, _ViewWidget
 
 
+# Most of the drag/drop actions are not tested and have no cover.
+
+
 class _TestViewWidget(_ViewWidget):
     def __init__(self, idx: int, view: View, editable: bool = False):
         self.idx = idx
