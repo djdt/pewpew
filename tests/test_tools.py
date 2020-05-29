@@ -2,12 +2,11 @@ import numpy as np
 import os.path
 import tempfile
 
-from PySide2 import QtWidgets
+from PySide2 import QtGui, QtWidgets
 from pytestqt.qtbot import QtBot
 
 from pew.laser import Laser
 
-from pewpew.mainwindow import MainWindow
 from pewpew.widgets.laser import LaserViewSpace
 from pewpew.widgets.tools.tool import ToolWidget
 from pewpew.widgets.tools.edit import EditTool
@@ -227,12 +226,14 @@ def test_overlay_tool(qtbot: QtBot):
 
     # Test rgb mode
     assert tool.rows.color_model == "rgb"
-    tool.addRow("r")
+    tool.comboAdd(1)  # r
     assert np.all(tool.canvas.image.get_array() == (1.0, 0.0, 0.0))
-    tool.addRow("g")
+
+    tool.comboAdd(2)  # g
     assert np.all(tool.canvas.image.get_array()[:10] == (1.0, 1.0, 0.0))
     assert np.all(tool.canvas.image.get_array()[10:] == (1.0, 0.0, 0.0))
-    tool.addRow("b")
+
+    tool.comboAdd(3)  # g
     assert np.all(tool.canvas.image.get_array()[:10, :10] == (1.0, 1.0, 1.0))
     assert np.all(tool.canvas.image.get_array()[10:, :10] == (1.0, 0.0, 1.0))
     assert np.all(tool.canvas.image.get_array()[10:, 10:] == (1.0, 1.0, 0.0))
@@ -264,11 +265,22 @@ def test_overlay_tool(qtbot: QtBot):
     assert tool.combo_add.isEnabled()
     for row in tool.rows.rows:
         assert row.button_color.isEnabled()
-    tool.addRow("r")
+    tool.addRow("g")
+    tool.rows[3].setColor(QtGui.QColor.fromRgbF(0.0, 1.0, 1.0))
     assert tool.rows.rowCount() == 4
+
+    # Test normalise
+    assert np.amin(tool.canvas.image.get_array()) > 0.0
+    tool.check_normalise.setChecked(True)
+    tool.refresh()
+    assert tool.canvas.image.get_array().data.min() == 0.0
+    tool.check_normalise.setChecked(False)
 
     # Test export
     dlg = tool.openExportDialog()
+
+    dlg2 = dlg.selectDirectory()
+    dlg2.close()
 
     with tempfile.NamedTemporaryFile() as tf:
         dlg.export(tf)
@@ -297,6 +309,9 @@ def test_overlay_tool(qtbot: QtBot):
     assert np.all(tool.canvas.image.get_array()[10:, :10] == (0.0, 0.0, 1.0))
     assert np.all(tool.canvas.image.get_array()[10:, 10:] == (0.0, 1.0, 0.0))
     assert np.all(tool.canvas.image.get_array()[10:, 10:] == (0.0, 0.0, 0.0))
+
+    dlg = tool.rows[0].selectColor()
+    dlg.close()
 
 
 # def test_tools_main_window(qtbot: QtBot):

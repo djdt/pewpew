@@ -88,7 +88,7 @@ class OverlayTool(ToolWidget):
         return dlg
 
     def comboAdd(self, index: int) -> None:
-        if index == 0:
+        if index == 0:  # pragma: no cover
             return
         text = self.combo_add.itemText(index)
         self.addRow(text)
@@ -151,13 +151,13 @@ class OverlayTool(ToolWidget):
             names = [row.label_name.text() for row in self.rows if not row.hidden]
             colors = [row.getColor().name() for row in self.rows if not row.hidden]
             self.canvas.drawLabel(names, colors)
-        elif self.canvas.label is not None:
+        elif self.canvas.label is not None:  # pragma: no cover
             self.canvas.label.remove()
             self.canvas.label = None
 
         if self.viewspace.options.canvas.scalebar:
             self.canvas.drawScalebar()
-        elif self.canvas.scalebar is not None:
+        elif self.canvas.scalebar is not None:  # pragma: no cover
             self.canvas.scalebar.remove()
             self.canvas.scalebar = None
 
@@ -333,14 +333,14 @@ class OverlayItemRow(QtWidgets.QWidget):
         vmin = self.ledit_vmin.text()
         try:
             return float(vmin)
-        except ValueError:
+        except ValueError:  # pragma: no cover
             return np.nanpercentile(data, float(vmin.rstrip("%")))
 
     def getVmax(self, data: np.ndarray) -> float:
         vmax = self.ledit_vmax.text()
         try:
             return float(vmax)
-        except ValueError:
+        except ValueError:  # pragma: no cover
             return np.nanpercentile(data, float(vmax.rstrip("%")))
 
     def getColor(self) -> QtGui.QColor:
