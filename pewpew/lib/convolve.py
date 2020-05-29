@@ -11,7 +11,7 @@ def convolve(x: np.ndarray, psf: np.ndarray, mode: str = "pad") -> np.ndarray:
             x, (psf.size // 2, psf.size // 2 - 1 + psf.size % 2), mode="edge"
         )
         return np.convolve(x_pad, psf, mode="valid")
-    else:
+    else:  # pragma: no cover
         return np.convolve(x, psf, mode=mode)
 
 

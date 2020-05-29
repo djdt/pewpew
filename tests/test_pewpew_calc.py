@@ -22,9 +22,11 @@ def test_kmeans():
     y[80:] += 1.0
 
     idx = calc.kmeans(np.stack((x, y), axis=1), 3, init="kmeans++")
-
     _, counts = np.unique(idx, return_counts=True)
     assert np.allclose(np.sort(counts), [20, 30, 50], atol=5)
+    idx = calc.kmeans(np.stack((x, y), axis=1), 3, init="random")
+    _, counts = np.unique(idx, return_counts=True)
+    assert np.allclose(np.sort(counts), [20, 30, 50], atol=10)
 
 
 def test_kmeans_threshold():

@@ -5,9 +5,18 @@ from pewpew.lib import convolve
 
 # The majority of these tests are comparing against results from scipy.stats
 
+def test_convolve():
+    x = np.ones(100, dtype=float)
+    x[20:80] = 0.0
+    k = np.array([0.2, 0.6, 0.2])
+
+    convolve.convolve(x, k, mode="pad")
+    # Check no edge effects
+    assert np.all(x[:10] == 1.0)
+    assert np.all(x[90:] == 1.0)
+
 
 def test_deconvolve():
-
     x = np.random.randint(0, 100, 50)
     k = np.array([0.6, 0.3, 0.1])
 

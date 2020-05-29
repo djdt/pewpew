@@ -38,7 +38,7 @@ def kmeans(
     elif init == "random":
         ix = np.random.choice(np.arange(x.shape[0]), k)
         centers = x[ix].copy()
-    else:
+    else:  # pragma: no cover
         raise ValueError("'init' must be 'kmeans++' or 'random'.")
 
     # Sort centers by the first attribute
@@ -58,7 +58,7 @@ def kmeans(
             return idx
         centers = new_centers
 
-    raise ValueError("No convergance in allowed iterations.")
+    raise ValueError("No convergance in allowed iterations.")  # pragma: no cover
 
 
 def kmeans_plus_plus(x: np.ndarray, k: int) -> np.ndarray:
@@ -100,7 +100,7 @@ def normalise(x: np.ndarray, vmin: float = 0.0, vmax: float = 1.0) -> np.ndarray
         vmax: New maxmimum
 """
     xmax, xmin = np.amax(x), np.amin(x)
-    if xmax == xmin:
+    if xmax == xmin:  # pragma: no cover
         raise ValueError("Cannot normalise array, min == max.")
 
     x = (x - xmin) / (xmax - xmin)
@@ -181,7 +181,7 @@ def shuffle_blocks(
         mask = np.all(mask, axis=(1, 2)) if mask_all else np.any(mask, axis=(1, 2))
 
         blocks[mask] = np.random.permutation(blocks[mask])
-    else:  # Just shuffle inplace
+    else:  # pragma: no cover, simple inplace shuffle
         np.random.shuffle(blocks)
 
     # Reform the image and then trim off excess
