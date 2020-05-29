@@ -133,10 +133,8 @@ def test_edit_tool(qtbot: QtBot):
 
     # Inserters
     assert tool.calculator_method.formula.toPlainText() == "a"
-    tool.calculator_method.combo_function.setCurrentIndex(1)
     tool.calculator_method.insertFunction(1)
     assert tool.calculator_method.formula.toPlainText() == "abs(a"
-    tool.calculator_method.combo_isotope.setCurrentIndex(2)
     tool.calculator_method.insertVariable(2)
     assert tool.calculator_method.formula.toPlainText() == "abs(ba"
 

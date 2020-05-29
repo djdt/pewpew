@@ -442,7 +442,7 @@ class CalculatorMethod(MethodStackWidget):
     def insertFunction(self, index: int) -> None:
         if index == 0:
             return
-        function = self.combo_function.currentText()
+        function = self.combo_function.itemText(index)
         function = function[: function.find("(") + 1]
         self.formula.insertPlainText(function)
         self.combo_function.setCurrentIndex(0)
@@ -451,7 +451,7 @@ class CalculatorMethod(MethodStackWidget):
     def insertVariable(self, index: int) -> None:
         if index == 0:
             return
-        self.formula.insertPlainText(self.combo_isotope.currentText())
+        self.formula.insertPlainText(self.combo_isotope.itemText(index))
         self.combo_isotope.setCurrentIndex(0)
         self.formula.setFocus()
 
