@@ -99,8 +99,11 @@ def normalise(x: np.ndarray, vmin: float = 0.0, vmax: float = 1.0) -> np.ndarray
         vmin: New minimum
         vmax: New maxmimum
 """
-    x = x - x.min()
-    x /= x.max()
+    xmax, xmin = np.amax(x), np.amin(x)
+    if xmax == xmin:
+        raise ValueError("Cannot normalise array, min == max.")
+
+    x = (x - xmin) / (xmax - xmin)
     x *= vmax - vmin
     x += vmin
     return x
