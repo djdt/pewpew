@@ -114,9 +114,6 @@ def test_edit_tool(qtbot: QtBot):
     view.addTab("Tool", tool)
     qtbot.waitForWindowShown(tool)
 
-    assert tool.combo_method.currentText() == "Calculator"
-    assert not tool.combo_isotope.isEnabled()  # Full data tool
-
     # Transform tools
     tool.actionTransformFlipHorz()
     assert tool.flip_horizontal
@@ -129,14 +126,53 @@ def test_edit_tool(qtbot: QtBot):
     tool.actionTransformRotateRight()
     assert tool.rotate == 0
 
+    assert tool.combo_method.currentText() == "Calculator"
+    assert not tool.combo_isotope.isEnabled()  # Full data tool
+
+    tool.calculator_method.apply()
+
+    # Inserters
+    assert tool.calculator_method.formula.toPlainText() == "a"
+    tool.calculator_method.combo_function.setCurrentIndex(1)
+    tool.calculator_method.insertFunction(1)
+    assert tool.calculator_method.formula.toPlainText() == "abs(a"
+    tool.calculator_method.combo_isotope.setCurrentIndex(2)
+    tool.calculator_method.insertVariable(2)
+    assert tool.calculator_method.formula.toPlainText() == "abs(ba"
+
+    # Test output of previewData and output lineedit
+    x = np.array(np.random.random((10, 10)), dtype=[("a", float)])
+
+    tool.calculator_method.formula.setPlainText("mean(a)")
+    assert tool.calculator_method.previewData(x) is None
+    assert tool.calculator_method.output.text() == f"{np.mean(x['a']):.10g}"
+
+    tool.calculator_method.formula.setPlainText("a[0]")
+    assert tool.calculator_method.previewData(x) is None
+    assert (
+        tool.calculator_method.output.text()
+        == f"{list(map('{:.4g}'.format, x['a'][0]))}"
+    )
+
+    tool.calculator_method.formula.setPlainText("a + 1.0")
+    assert np.all(tool.calculator_method.previewData(x) == x["a"] + 1.0)
+
+    tool.calculator_method.formula.setPlainText("fail")
+    assert tool.calculator_method.previewData(x) is None
+
     tool.combo_method.setCurrentText("Convolve")
     assert tool.combo_isotope.isEnabled()
+    tool.convolve_method.apply()
     tool.combo_method.setCurrentText("Deconvolve")
     assert tool.combo_isotope.isEnabled()
+    tool.deconvolve_method.apply()
     tool.combo_method.setCurrentText("Filter")
     assert tool.combo_isotope.isEnabled()
+    tool.filter_method.apply()
     tool.combo_method.setCurrentText("Transform")
     assert tool.combo_isotope.isEnabled()
+    tool.transform_method.apply()
+
 
 # def test_calculations_tool(qtbot: QtBot):
 #     viewspace = LaserViewSpace()
