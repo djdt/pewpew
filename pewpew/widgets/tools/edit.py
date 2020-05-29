@@ -616,7 +616,7 @@ class ConvolveMethod(MethodStackWidget):
 
     @property
     def kparams(self) -> List[float]:
-        return [float(le.text()) for le in self.lineedit_kparams if le.isVisible()]
+        return [float(le.text()) for le in self.lineedit_kparams if le.isEnabled()]
 
     def initialise(self) -> None:
         if self.lineedit_ksize.text() == "":
@@ -631,8 +631,10 @@ class ConvolveMethod(MethodStackWidget):
         # Clear all the current params
         for le in self.label_kparams:
             le.setVisible(False)
+            le.setEnabled(False)
         for le in self.lineedit_kparams:
             le.setVisible(False)
+            le.setEnabled(False)
 
         params: List[Tuple[str, float, Tuple]] = kernel["params"]
 
@@ -641,6 +643,7 @@ class ConvolveMethod(MethodStackWidget):
             self.label_kparams[i].setVisible(True)
             self.lineedit_kparams[i].validator().setRange(range[0], range[1], 4)
             self.lineedit_kparams[i].setVisible(True)
+            self.lineedit_kparams[i].setEnabled(True)
             # Keep input that's still valid
             if not self.lineedit_kparams[i].hasAcceptableInput():
                 self.lineedit_kparams[i].setText(str(default))

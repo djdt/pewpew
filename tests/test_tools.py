@@ -9,12 +9,10 @@ from pew.laser import Laser
 
 from pewpew.mainwindow import MainWindow
 from pewpew.widgets.laser import LaserViewSpace
-from pewpew.widgets.tools import (
-    ToolWidget,
-    StandardsTool,
-    CalculationsTool,
-    OverlayTool,
-)
+from pewpew.widgets.tools.tool import ToolWidget
+from pewpew.widgets.tools.edit import EditTool
+from pewpew.widgets.tools.standards import StandardsTool
+from pewpew.widgets.tools.overlays import OverlayTool
 
 from testing import linear_data, rand_data, FakeEvent
 
@@ -106,49 +104,83 @@ def test_standards_tool(qtbot: QtBot):
     dlg.close()
 
 
-def test_calculations_tool(qtbot: QtBot):
+def test_edit_tool(qtbot: QtBot):
     viewspace = LaserViewSpace()
     qtbot.addWidget(viewspace)
     viewspace.show()
     view = viewspace.activeView()
-    view.addLaser(Laser(rand_data("A1")))
-    tool = CalculationsTool(view.activeWidget())
+    view.addLaser(Laser(rand_data(["a", "b"])))
+    tool = EditTool(view.activeWidget())
     view.addTab("Tool", tool)
     qtbot.waitForWindowShown(tool)
 
-    assert not tool.isComplete()
+    assert tool.combo_method.currentText() == "Calculator"
+    assert not tool.combo_isotope.isEnabled()  # Full data tool
 
-    tool.formula.setText("1 +")
-    assert tool.formula.expr == ""
-    tool.combo_isotope.setCurrentIndex(1)
-    tool.insertVariable(1)
-    assert tool.formula.expr == "+ 1 A1"
-    assert tool.combo_isotope.currentIndex() == 0
+    # Transform tools
+    tool.actionTransformFlipHorz()
+    assert tool.flip_horizontal
+    tool.actionTransformFlipHorz()
+    tool.actionTransformFlipVert()
+    assert tool.flip_vertical
+    tool.actionTransformFlipVert()
+    tool.actionTransformRotateLeft()
+    assert tool.rotate == 3
+    tool.actionTransformRotateRight()
+    assert tool.rotate == 0
 
-    assert not tool.isComplete()
+    tool.combo_method.setCurrentText("Convolve")
+    assert tool.combo_isotope.isEnabled()
+    tool.combo_method.setCurrentText("Deconvolve")
+    assert tool.combo_isotope.isEnabled()
+    tool.combo_method.setCurrentText("Filter")
+    assert tool.combo_isotope.isEnabled()
+    tool.combo_method.setCurrentText("Transform")
+    assert tool.combo_isotope.isEnabled()
 
-    tool.lineedit_name.setText("A1")
-    assert not tool.lineedit_name.hasAcceptableInput()
-    tool.lineedit_name.setText("A2 ")
-    assert not tool.lineedit_name.hasAcceptableInput()
-    tool.lineedit_name.setText("if")
-    assert not tool.lineedit_name.hasAcceptableInput()
-    tool.lineedit_name.setText(" ")
-    assert not tool.lineedit_name.hasAcceptableInput()
-    tool.lineedit_name.setText("A2")
-    assert tool.lineedit_name.hasAcceptableInput()
+# def test_calculations_tool(qtbot: QtBot):
+#     viewspace = LaserViewSpace()
+#     qtbot.addWidget(viewspace)
+#     viewspace.show()
+#     view = viewspace.activeView()
+#     view.addLaser(Laser(rand_data("A1")))
+#     tool = CalculationsTool(view.activeWidget())
+#     view.addTab("Tool", tool)
+#     qtbot.waitForWindowShown(tool)
 
-    assert tool.isComplete()
+#     assert not tool.isComplete()
 
-    tool.apply()
-    assert np.all(tool.widget.laser.data["A2"] == tool.widget.laser.data["A1"] + 1.0)
+#     tool.formula.setText("1 +")
+#     assert tool.formula.expr == ""
+#     tool.combo_isotope.setCurrentIndex(1)
+#     tool.insertVariable(1)
+#     assert tool.formula.expr == "+ 1 A1"
+#     assert tool.combo_isotope.currentIndex() == 0
+
+#     assert not tool.isComplete()
+
+#     tool.lineedit_name.setText("A1")
+#     assert not tool.lineedit_name.hasAcceptableInput()
+#     tool.lineedit_name.setText("A2 ")
+#     assert not tool.lineedit_name.hasAcceptableInput()
+#     tool.lineedit_name.setText("if")
+#     assert not tool.lineedit_name.hasAcceptableInput()
+#     tool.lineedit_name.setText(" ")
+#     assert not tool.lineedit_name.hasAcceptableInput()
+#     tool.lineedit_name.setText("A2")
+#     assert tool.lineedit_name.hasAcceptableInput()
+
+#     assert tool.isComplete()
+
+#     tool.apply()
+#     assert np.all(tool.widget.laser.data["A2"] == tool.widget.laser.data["A1"] + 1.0)
 
 
 def test_overlay_tool(qtbot: QtBot):
-    data = np.zeros((20, 20), dtype=[("r", float), ("g", float), ("b", float)])
+    data = np.zeros((10, 10), dtype=[("r", float), ("g", float), ("b", float)])
     data["r"][:, :] = 1.0
-    data["g"][:20, :] = 1.0
-    data["b"][:, :20] = 1.0
+    data["g"][:10, :] = 1.0
+    data["b"][:, :10] = 1.0
 
     viewspace = LaserViewSpace()
     qtbot.addWidget(viewspace)
@@ -164,21 +196,21 @@ def test_overlay_tool(qtbot: QtBot):
     tool.addRow("r")
     assert np.all(tool.canvas.image.get_array() == (1.0, 0.0, 0.0))
     tool.addRow("g")
-    assert np.all(tool.canvas.image.get_array()[:20] == (1.0, 1.0, 0.0))
-    assert np.all(tool.canvas.image.get_array()[20:] == (1.0, 0.0, 0.0))
+    assert np.all(tool.canvas.image.get_array()[:10] == (1.0, 1.0, 0.0))
+    assert np.all(tool.canvas.image.get_array()[10:] == (1.0, 0.0, 0.0))
     tool.addRow("b")
-    assert np.all(tool.canvas.image.get_array()[:20, :20] == (1.0, 1.0, 1.0))
-    assert np.all(tool.canvas.image.get_array()[20:, :20] == (1.0, 0.0, 1.0))
-    assert np.all(tool.canvas.image.get_array()[20:, 20:] == (1.0, 1.0, 0.0))
-    assert np.all(tool.canvas.image.get_array()[20:, 20:] == (1.0, 0.0, 0.0))
+    assert np.all(tool.canvas.image.get_array()[:10, :10] == (1.0, 1.0, 1.0))
+    assert np.all(tool.canvas.image.get_array()[10:, :10] == (1.0, 0.0, 1.0))
+    assert np.all(tool.canvas.image.get_array()[10:, 10:] == (1.0, 1.0, 0.0))
+    assert np.all(tool.canvas.image.get_array()[10:, 10:] == (1.0, 0.0, 0.0))
 
     # Test cmyk mode
     tool.radio_cmyk.toggle()
     assert tool.rows.color_model == "cmyk"
-    assert np.all(tool.canvas.image.get_array()[:20, :20] == (0.0, 0.0, 0.0))
-    assert np.all(tool.canvas.image.get_array()[20:, :20] == (0.0, 1.0, 0.0))
-    assert np.all(tool.canvas.image.get_array()[20:, 20:] == (0.0, 0.0, 1.0))
-    assert np.all(tool.canvas.image.get_array()[20:, 20:] == (0.0, 1.0, 1.0))
+    assert np.all(tool.canvas.image.get_array()[:10, :10] == (0.0, 0.0, 0.0))
+    assert np.all(tool.canvas.image.get_array()[10:, :10] == (0.0, 1.0, 0.0))
+    assert np.all(tool.canvas.image.get_array()[10:, 10:] == (0.0, 0.0, 1.0))
+    assert np.all(tool.canvas.image.get_array()[10:, 10:] == (0.0, 1.0, 1.0))
 
     # Check that the rows are limited to 3
     assert tool.rows.max_rows == 3
@@ -227,30 +259,30 @@ def test_overlay_tool(qtbot: QtBot):
     tool.radio_rgb.toggle()
     with qtbot.wait_signal(tool.rows.rows[0].itemChanged):
         tool.rows.rows[0].button_hide.click()
-    assert np.all(tool.canvas.image.get_array()[:20, :20] == (0.0, 1.0, 1.0))
-    assert np.all(tool.canvas.image.get_array()[20:, :20] == (0.0, 0.0, 1.0))
-    assert np.all(tool.canvas.image.get_array()[20:, 20:] == (0.0, 1.0, 0.0))
-    assert np.all(tool.canvas.image.get_array()[20:, 20:] == (0.0, 0.0, 0.0))
+    assert np.all(tool.canvas.image.get_array()[:10, :10] == (0.0, 1.0, 1.0))
+    assert np.all(tool.canvas.image.get_array()[10:, :10] == (0.0, 0.0, 1.0))
+    assert np.all(tool.canvas.image.get_array()[10:, 10:] == (0.0, 1.0, 0.0))
+    assert np.all(tool.canvas.image.get_array()[10:, 10:] == (0.0, 0.0, 0.0))
 
 
-def test_tools_main_window(qtbot: QtBot):
-    window = MainWindow()
-    qtbot.addWidget(window)
-    window.show()
+# def test_tools_main_window(qtbot: QtBot):
+#     window = MainWindow()
+#     qtbot.addWidget(window)
+#     window.show()
 
-    window.viewspace.views[0].addLaser(Laser(rand_data("A1")))
-    window.viewspace.views[0].addTab(
-        "Tool 1", StandardsTool(window.viewspace.activeWidget())
-    )
-    window.viewspace.views[0].addTab(
-        "Tool 2", CalculationsTool(window.viewspace.activeWidget())
-    )
-    window.viewspace.views[0].addTab(
-        "Tool 3", OverlayTool(window.viewspace.activeWidget())
-    )
-    window.viewspace.refresh()
+#     window.viewspace.views[0].addLaser(Laser(rand_data("A1")))
+#     window.viewspace.views[0].addTab(
+#         "Tool 1", StandardsTool(window.viewspace.activeWidget())
+#     )
+#     window.viewspace.views[0].addTab(
+#         "Tool 2", EditTool(window.viewspace.activeWidget())
+#     )
+#     window.viewspace.views[0].addTab(
+#         "Tool 3", OverlayTool(window.viewspace.activeWidget())
+#     )
+#     window.viewspace.refresh()
 
-    window.actionToggleCalibrate(False)
-    window.actionToggleColorbar(False)
-    window.actionToggleLabel(False)
-    window.actionToggleScalebar(False)
+#     window.actionToggleCalibrate(False)
+#     window.actionToggleColorbar(False)
+#     window.actionToggleLabel(False)
+#     window.actionToggleScalebar(False)
