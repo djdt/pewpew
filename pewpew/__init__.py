@@ -1,7 +1,7 @@
 import sys
 from PySide2 import QtCore, QtGui, QtWidgets
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 from pewpew.mainwindow import MainWindow
 from pewpew.resources import app_icon  # noqa: F401
