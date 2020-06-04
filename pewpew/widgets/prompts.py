@@ -1,6 +1,6 @@
 import os.path
 
-from PySide2 import QtWidgets
+from PySide2 import QtCore, QtWidgets
 
 from typing import List
 
@@ -53,6 +53,45 @@ class DetailedError(QtWidgets.QMessageBox):
         return DetailedError(
             QtWidgets.QMessageBox.Critical, title, message, detailed_message, parent
         ).exec()
+
+
+class NonModalMessageBox(QtWidgets.QMessageBox):
+    def __init__(
+        self,
+        level: QtWidgets.QMessageBox.Icon,
+        title: str = "Error",
+        message: str = "",
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(level, title, message, QtWidgets.QMessageBox.NoButton, parent)
+        self.setWindowModality(QtCore.Qt.NonModal)
+
+    @staticmethod
+    def info(
+        title: str = "Info", message: str = "", parent: QtWidgets.QWidget = None,
+    ) -> QtWidgets.QMessageBox:
+        dlg = NonModalMessageBox(
+            QtWidgets.QMessageBox.Information, title, message, parent
+        ).open()
+        return dlg
+
+    @staticmethod
+    def warning(
+        title: str = "Warning", message: str = "", parent: QtWidgets.QWidget = None,
+    ) -> QtWidgets.QMessageBox:
+        dlg = NonModalMessageBox(
+            QtWidgets.QMessageBox.Warning, title, message, parent
+        ).open()
+        return dlg
+
+    @staticmethod
+    def critical(
+        title: str = "Critical", message: str = "", parent: QtWidgets.QWidget = None,
+    ) -> QtWidgets.QMessageBox:
+        dlg = NonModalMessageBox(
+            QtWidgets.QMessageBox.Critical, title, message, parent
+        ).open()
+        return dlg
 
 
 class OverwriteFilePrompt(QtWidgets.QMessageBox):

@@ -1,6 +1,7 @@
 import copy
 import numpy as np
 import os
+import warnings
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -16,6 +17,7 @@ from pewpew.actions import qAction
 from pewpew.widgets.canvases import InteractiveLaserCanvas
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.views import View, ViewSpace, _ViewWidget
+from pewpew.widgets.prompts import NonModalMessageBox
 
 from typing import List, Set, Tuple
 
@@ -101,7 +103,11 @@ class LaserView(View):
             if url.toLocalFile() != ""
         ]
         try:
-            lasers = import_any(paths, self.viewspace.config)
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always", io.error.PewWarning)
+                lasers = import_any(paths, self.viewspace.config)
+                if w is not None and len(w) > 0:
+                    NonModalMessageBox.warning(message=str(w[0].message), parent=self)
             for laser in lasers:
                 self.addLaser(laser)
             event.acceptProposedAction()
