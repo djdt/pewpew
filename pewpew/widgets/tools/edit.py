@@ -26,6 +26,71 @@ from typing import List, Tuple
 logger = logging.getLogger(__name__)
 
 
+# class EditCanvas(LaserCanvas, InteractiveCanvas):
+#     def __init__(
+#         self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
+#     ) -> None:
+#         super().__init__(viewoptions=viewoptions, parent=parent)
+
+#         self.brush = {"shape": None, "size": 1, "value": np.nan}
+#         self.button = 1
+
+#     def redrawFigure(self) -> None:
+#         super().redrawFigure()
+
+#     def ignore_event(self, event: LocationEvent) -> bool:
+#         if event.name in ["key_press_event"]:
+#             return True
+#         elif (
+#             event.name in ["button_press_event", "button_release_event"]
+#             and event.button != self.button
+#         ):
+#             return True
+
+#         return super().ignore_event(event)
+
+#     def press(self, event: MouseEvent) -> None:
+#         pass
+
+#     def release(self, event: MouseEvent) -> None:
+#         pass
+
+#     def move(self, event: MouseEvent) -> None:
+#         # Update the status bar
+#         try:
+#             status_bar = self.window().statusBar()
+#             x, y = event.xdata, event.ydata
+#             v = self.image.get_cursor_data(event)
+#             unit = self.viewoptions.units
+#             if unit == "row":
+#                 y, x = (
+#                     int(x / self.px),
+#                     self.image.get_array().shape[0] - int(y / self.py) - 1,
+#                 )
+#             elif unit == "second":
+#                 x = event.xdata / self.ps
+#                 y = 0
+#             if np.isfinite(v):
+#                 status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
+#             else:
+#                 status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
+#         except AttributeError:
+#             pass
+
+#     def scroll(self, event: MouseEvent) -> None:
+#         pass
+
+#     def axis_enter(self, event: LocationEvent) -> None:
+#         pass
+
+#     def axis_leave(self, event: LocationEvent) -> None:
+#         try:
+#             status_bar = self.window().statusBar()
+#             status_bar.clearMessage()
+#         except AttributeError:
+#             pass
+
+
 class EditTool(ToolWidget):
     METHODS = ["Calculator", "Convolve", "Deconvolve", "Filter", "Transform"]
 
