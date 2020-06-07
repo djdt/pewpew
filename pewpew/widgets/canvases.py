@@ -113,6 +113,8 @@ class InteractiveCanvas(BasicCanvas):
         self.cids.clear()
 
     def ignore_event(self, event: MouseEvent) -> bool:
+        if event.inaxes != self.ax:
+            return True
         if self.widget is not None and self.widget.get_active():
             return True
         return False
@@ -533,10 +535,6 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             and event.button != self.button
         ):
             return True
-
-        if event.inaxes != self.ax:
-            return True
-
         return super().ignore_event(event)
 
     def press(self, event: MouseEvent) -> None:
