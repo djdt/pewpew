@@ -1,4 +1,5 @@
 import numpy as np
+import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -21,6 +22,8 @@ from typing import List, Tuple
 
 # TODO
 # Add some kind of indicator for if all data or just current isotope changed
+
+logger = logging.getLogger(__name__)
 
 
 class EditTool(ToolWidget):
@@ -167,7 +170,9 @@ class EditTool(ToolWidget):
         self.refresh()
 
     def apply(self) -> None:
-        stack = self.method_stack.currentWidget()
+        i = self.method_stack.currentIndex()
+        logger.info(f"Applying {EditTool.METHODS[i]} to {self.widget.laser.name}.")
+        stack = self.method_stack.widget(i)
         if stack.isComplete():
             stack.apply()
         self.widgetChanged()
@@ -256,6 +261,7 @@ class MethodStackWidget(QtWidgets.QGroupBox):
 
     def apply(self) -> None:
         if self.edit.widget.is_srr:
+            logger.warn("Method not implemented for SRR data.")
             QtWidgets.QMessageBox.warning("Not yet implemented for SRR data.")
             return
         isotope = self.edit.combo_isotope.currentText()
@@ -304,7 +310,6 @@ class CalculatorFormula(ValidColorTextEdit):
         self, text: str, variables: List[str], parent: QtWidgets.QWidget = None
     ):
         super().__init__(text, parent)
-        # self.setClearButtonEnabled(True)
         self.textChanged.disconnect(self.revalidate)
         self.textChanged.connect(self.calculate)
         self.parser = Parser(variables)
@@ -860,6 +865,7 @@ class TransformMethod(MethodStackWidget):
 
     def apply(self) -> None:
         if self.edit.widget.is_srr:
+            logger.warn("Method not implemented for SRR data.")
             QtWidgets.QMessageBox.warning("Not yet implemented for SRR data.")
             return
         data = self.edit.widget.laser.data

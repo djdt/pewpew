@@ -14,7 +14,7 @@ setup(
         # "PySide2>=5.13.0",
     ],
     entry_points={
-        "console_scripts": ["pewpew=pewpew:main"]
+        "console_scripts": ["pewpew=pewpew.app:main"]
     },
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "pytest-qt"],

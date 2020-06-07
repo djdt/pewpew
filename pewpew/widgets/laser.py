@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 import os
-import warnings
+import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -10,16 +10,18 @@ from pew.laser import Laser
 from pew.srr import SRRLaser, SRRConfig
 from pew.config import Config
 
-from pewpew.lib.io import import_any
+from pewpew.lib.io import import_any, PEW_VALID_EXTS
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.actions import qAction
 from pewpew.widgets.canvases import InteractiveLaserCanvas
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.views import View, ViewSpace, _ViewWidget
-from pewpew.widgets.prompts import NonModalMessageBox
 
 from typing import List, Set, Tuple
+
+
+logger = logging.getLogger(__name__)
 
 
 class LaserViewSpace(ViewSpace):
@@ -100,19 +102,16 @@ class LaserView(View):
         paths = [
             url.toLocalFile()
             for url in event.mimeData().urls()
-            if url.toLocalFile() != ""
+            if any(url.fileName().lower().endswith(ext) for ext in PEW_VALID_EXTS)
         ]
         try:
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter("always", io.error.PewWarning)
-                lasers = import_any(paths, self.viewspace.config)
-                if w is not None and len(w) > 0:
-                    NonModalMessageBox.warning(message=str(w[0].message), parent=self)
+            lasers = import_any(paths, self.viewspace.config)
             for laser in lasers:
                 self.addLaser(laser)
             event.acceptProposedAction()
         except io.error.PewException as e:  # pragma: no cover
             event.ignore()
+            logger.exception(e)
             QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
 
     # Callbacks
@@ -122,6 +121,7 @@ class LaserView(View):
                 self.addLaser(laser)
 
         except io.error.PewException as e:  # pragma: no cover
+            logger.exception(e)
             QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
 
     def applyCalibration(self, calibration: dict) -> None:
@@ -140,8 +140,7 @@ class LaserView(View):
             self,
             "Open File(s).",
             "",
-            "CSV Documents(*.csv *.txt);;Numpy Archives(*.npz);;"
-            "Pew Pew Sessions(*.pew);;All files(*)",
+            "CSV Documents(*.csv *.txt *.text);;Numpy Archives(*.npz);;All files(*)",
         )
         dlg.selectNameFilter("All files(*)")
         dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)

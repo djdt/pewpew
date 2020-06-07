@@ -1,19 +1,19 @@
 import sys
-import traceback
+import logging
 
 from PySide2 import QtWidgets
 
 from pewpew import __version__
 
 from pewpew.actions import qAction, qActionGroup
+from pewpew.log import LoggingDialog
 from pewpew.widgets import dialogs
 from pewpew.widgets.ext import MultipleDirDialog
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.laser import LaserWidget, LaserViewSpace
-from pewpew.widgets.prompts import DetailedError
+
 from pewpew.widgets.tools import (
     ToolWidget,
-    # CalculationsTool,
     EditTool,
     StandardsTool,
     OverlayTool,
@@ -22,12 +22,16 @@ from pewpew.widgets.wizards import SpotImportWizard, SRRImportWizard
 
 from types import TracebackType
 
+logger = logging.getLogger(__name__)
+
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("pew²")
         self.resize(1280, 800)
+
+        self.log = LoggingDialog()
 
         self.viewspace = LaserViewSpace()
         self.viewspace.numTabsChanged.connect(self.updateActionAvailablity)
@@ -110,8 +114,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_wizard_srr = qAction(
             "",
             "Kriss Kross Wizard",
-            "Start the Super-Resolution-Reconstruction impoirt wizard.",
+            "Start the Super-Resolution-Reconstruction import wizard.",
             self.actionWizardSRR,
+        )
+        self.action_log = qAction(
+            "clock", "&Show Log", "Show the pew² event and error log.", self.actionLog
         )
         self.action_open = qAction(
             "document-open", "&Open", "Open new document(s).", self.actionOpen
@@ -303,6 +310,9 @@ class MainWindow(QtWidgets.QMainWindow):
         wiz.open()
         return wiz
 
+    def actionLog(self) -> None:
+        self.log.show()
+
     def actionOpen(self) -> QtWidgets.QDialog:
         view = self.viewspace.activeView()
         return view.actionOpen()
@@ -453,6 +463,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Help
         menu_help = self.menuBar().addMenu("&Help")
+        menu_help.addAction(self.action_log)
         menu_help.addAction(self.action_about)
 
     def buttonStatusUnit(self, toggled: bool) -> None:
@@ -469,20 +480,16 @@ class MainWindow(QtWidgets.QMainWindow):
     def updateActionAvailablity(self) -> None:
         enabled = self.viewspace.countViewTabs() > 0
         self.action_export_all.setEnabled(enabled)
-        # self.action_tool_calculations.setEnabled(enabled)
+
         self.action_tool_edit.setEnabled(enabled)
         self.action_tool_standards.setEnabled(enabled)
         self.action_tool_overlay.setEnabled(enabled)
 
     def exceptHook(
-        self, type: type, value: BaseException, tb: TracebackType
+        self, etype: type, value: BaseException, tb: TracebackType
     ) -> None:  # pragma: no cover
-        if type == KeyboardInterrupt:
-            print("Keyboard interrupt, exiting.")
+        if etype == KeyboardInterrupt:
+            logger.info("Keyboard interrupt, exiting.")
             sys.exit(1)
-        DetailedError.critical(
-            type.__name__,
-            str(value),
-            "".join(traceback.format_exception(type, value, tb)),
-            self,
-        )
+        logger.exception("Uncaught exception", exc_info=(etype, value, tb))
+        QtWidgets.QMessageBox.critical(self, "Uncaught Exception", str(value))
