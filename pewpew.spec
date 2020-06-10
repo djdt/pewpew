@@ -1,25 +1,16 @@
 # vim: set ft=python:
-
 import os.path
-import sys
-
-exec(open(os.path.join("pewpew", "__init__.py")).read())
 
 block_cipher = None
-excludes = []
-if sys.platform not in ["win32", "darwin"]:
-    excludes = "pewpew.resource.breath_icons"
-
 
 a = Analysis(
-    [os.path.join("pewpew", "__main__.py")],
+    ["pewpew"],
     pathex=[os.path.abspath(".")],
-    binaries=[],
-    datas=[],
+    binaries=None,
+    datas=None,
     hiddenimports=[],
-    hookspath=[],
-    runtime_hooks=[],
-    excludes=excludes,
+    hookspath=None,
+    runtime_hooks=None,
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
@@ -29,16 +20,23 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
-    name="pewpew" + "_" + __version__,
+    exclude_binaries=True,
+    name="pewpew",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    runtime_tmpdir=None,
     console=False,
     icon="app.ico",
+)
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=False,
+    upx_exclude=[],
+    name="pewpew",
 )
