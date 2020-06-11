@@ -24,11 +24,11 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name="pewpew",
-    debug=False,
+    debug=True,
     bootloader_ignore_signals=False,
     strip=False,
     upx=False,
-    console=False,
+    console=True,
     icon="app.ico",
 )
 coll = COLLECT(
@@ -37,7 +37,7 @@ coll = COLLECT(
     a.zipfiles,
     a.datas,
     strip=False,
-    upx=True,
+    upx=False,
     upx_exclude=[],
     name="pewpew",
 )
