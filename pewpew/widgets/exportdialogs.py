@@ -1,4 +1,3 @@
-import sys
 import os.path
 
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -8,7 +7,7 @@ from pew.laser import Laser
 
 from pewpew.widgets.canvases import LaserCanvas
 from pewpew.widgets.prompts import OverwriteFilePrompt
-from pewpew.widgets.laser import LaserWidget
+from pewpew.widgets.views import _ViewWidget
 
 from typing import List, Set, Tuple
 
@@ -256,7 +255,7 @@ class _ExportDialogBase(QtWidgets.QDialog):
 
 
 class ExportDialog(_ExportDialogBase):
-    def __init__(self, widget: LaserWidget, parent: QtWidgets.QWidget = None):
+    def __init__(self, widget: _ViewWidget, parent: QtWidgets.QWidget = None):
         spacing = (
             widget.laser.config.get_pixel_width(),
             widget.laser.config.get_pixel_height(),
@@ -373,7 +372,7 @@ class ExportDialog(_ExportDialogBase):
 
         return [p for p in paths if p[0] != ""]
 
-    def export(self, path: str, isotope: str, layer: int, widget: LaserWidget) -> None:
+    def export(self, path: str, isotope: str, layer: int, widget: _ViewWidget) -> None:
         option = self.options.currentOption()
 
         if option.ext == ".csv":
@@ -432,7 +431,7 @@ class ExportDialog(_ExportDialogBase):
 
 
 class ExportAllDialog(ExportDialog):
-    def __init__(self, widgets: List[LaserWidget], parent: QtWidgets.QWidget = None):
+    def __init__(self, widgets: List[_ViewWidget], parent: QtWidgets.QWidget = None):
         unique: Set[str] = set()
         for widget in widgets:
             unique.update(widget.laser.isotopes)

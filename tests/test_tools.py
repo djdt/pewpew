@@ -108,7 +108,7 @@ def test_edit_tool(qtbot: QtBot):
     qtbot.addWidget(viewspace)
     viewspace.show()
     view = viewspace.activeView()
-    view.addLaser(Laser(rand_data(["a", "b"])))
+    widget = view.addLaser(Laser(rand_data(["a", "b"])))
     tool = EditTool(view.activeWidget())
     view.addTab("Tool", tool)
     qtbot.waitForWindowShown(tool)
@@ -128,7 +128,18 @@ def test_edit_tool(qtbot: QtBot):
     assert tool.combo_method.currentText() == "Calculator"
     assert not tool.combo_isotope.isEnabled()  # Full data tool
 
+    assert tool.calculator_method.lineedit_name.text() == "calc0"
     tool.calculator_method.apply()
+    # Applying should add isotope to widget
+    isotopes = [
+        tool.widget.combo_isotope.itemText(i)
+        for i in range(widget.combo_isotope.count())
+    ]
+    assert "calc0" in isotopes
+    isotopes = [
+        widget.combo_isotope.itemText(i) for i in range(widget.combo_isotope.count())
+    ]
+    assert "calc0" in isotopes
 
     # Inserters
     assert tool.calculator_method.formula.toPlainText() == "a"

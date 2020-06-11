@@ -492,6 +492,8 @@ class CalculatorMethod(MethodStackWidget):
             self.edit.widget.laser.data[name] = data
         else:
             self.edit.widget.laser.add(self.lineedit_name.text(), data)
+        # Make sure to repop isotopes
+        self.edit.widget.populateIsotopes()
 
     def initialise(self) -> None:
         isotopes = self.edit.widget.laser.isotopes
