@@ -13,9 +13,7 @@ setup(
         "matplotlib>=3.0.0",
         # "PySide2>=5.13.0",
     ],
-    entry_points={
-        "console_scripts": ["pewpew=pewpew.app:main"]
-    },
+    entry_points={"console_scripts": ["pewpew=pewpew.__main__:main"]},
     setup_requires=["pytest-runner"],
     tests_require=["pytest", "pytest-qt"],
 )
