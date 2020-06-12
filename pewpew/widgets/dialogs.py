@@ -7,10 +7,11 @@ from matplotlib.text import Text
 from matplotlib.colors import LinearSegmentedColormap
 
 from pew import Calibration, Config
+from pew.lib import colocal
+from pew.lib.calc import normalise
+from pew.lib.threshold import kmeans_threshold, otsu
 from pew.srr import SRRConfig
 
-from pewpew.lib import colocal
-from pewpew.lib.calc import kmeans_threshold, normalise, otsu
 from pewpew.lib.viewoptions import ViewOptions, ColorOptions
 from pewpew.widgets.canvases import BasicCanvas
 from pewpew.validators import (

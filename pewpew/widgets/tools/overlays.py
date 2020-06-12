@@ -8,11 +8,11 @@ from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
 from matplotlib.patheffects import withStroke
 
 from pew import io
+from pew.lib.calc import greyscale_to_rgb, normalise
 
 from pewpew.actions import qAction
 from pewpew.validators import PercentOrDecimalValidator
 
-from pewpew.lib.calc import greyscale_to_rgb, normalise
 from pewpew.lib.mpltools import MetricSizeBar
 from pewpew.lib.viewoptions import ViewOptions
 

@@ -45,3 +45,18 @@ class FakeEvent(object):
 
         self.guiEvent = None
         self.name = "none"
+        self.artist = None
+
+
+class FakePick(FakeEvent):
+    def __init__(
+        self,
+        ax: Axes,
+        xdata: float,
+        ydata: float,
+        key: str = None,
+        button: int = 1,
+        step: int = 0,
+    ):
+        super().__init__(ax, xdata, ydata, key, button, step)
+        self.mouseevent = FakeEvent(ax, xdata, ydata, key, button, step)

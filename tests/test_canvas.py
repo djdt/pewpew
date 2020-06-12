@@ -18,7 +18,7 @@ from pewpew.widgets.canvases import (
     InteractiveLaserCanvas,
 )
 
-from testing import FakeEvent
+from testing import FakeEvent, FakePick
 
 
 def test_canvas_basic(qtbot: QtBot):
@@ -56,46 +56,46 @@ def test_canvas_basic(qtbot: QtBot):
 
 def test_canvas_interactive(qtbot: QtBot):
     canvas = InteractiveCanvas()
+    canvas.ax = canvas.figure.subplots()
     qtbot.addWidget(canvas)
     canvas.show()
     qtbot.waitForWindowShown(canvas)
 
-    class FakePick(object):
-        mouseevent = None
-        artist = None
+    event = FakeEvent(canvas.ax, 0.0, 0.0)
+    pick_event = FakePick(canvas.ax, 0.0, 0.0)
 
-    assert not canvas.ignore_event(None)
+    assert not canvas.ignore_event(event)
     with pytest.raises(NotImplementedError):
-        canvas._axis_enter(None)
+        canvas._axis_enter(event)
     with pytest.raises(NotImplementedError):
-        canvas._axis_leave(None)
+        canvas._axis_leave(event)
     with pytest.raises(NotImplementedError):
-        canvas._press(None)
+        canvas._press(event)
     with pytest.raises(NotImplementedError):
-        canvas._release(None)
+        canvas._release(event)
     with pytest.raises(NotImplementedError):
-        canvas._keypress(None)
+        canvas._keypress(event)
     with pytest.raises(NotImplementedError):
-        canvas._move(None)
+        canvas._move(event)
     with pytest.raises(NotImplementedError):
-        canvas._pick(FakePick())
+        canvas._pick(pick_event)
     with pytest.raises(NotImplementedError):
-        canvas._scroll(None)
+        canvas._scroll(event)
 
     class FakeWidget:
         def get_active(self) -> bool:
             return True
 
     canvas.widget = FakeWidget()
-    assert canvas.ignore_event(None)
-    canvas._axis_enter(None)
-    canvas._axis_leave(None)
-    canvas._press(None)
-    canvas._release(None)
-    canvas._keypress(None)
-    canvas._move(None)
-    canvas._pick(FakePick())
-    canvas._scroll(None)
+    assert canvas.ignore_event(event)
+    canvas._axis_enter(event)
+    canvas._axis_leave(event)
+    canvas._press(event)
+    canvas._release(event)
+    canvas._keypress(event)
+    canvas._move(event)
+    canvas._pick(pick_event)
+    canvas._scroll(event)
 
     # Can only really check cids
     assert len(canvas.cids) == 8
