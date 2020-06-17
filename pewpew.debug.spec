@@ -1,17 +1,18 @@
 # vim: set ft=python:
 import os.path
 
+
 block_cipher = None
 
 a = Analysis(
     [os.path.join("pewpew", "__main__.py")],
-    pathex=[os.path.abspath(".")],
+    pathex=[os.path.join(os.path.abspath(".."), "pew")],
     binaries=None,
     datas=None,
     hiddenimports=[],
     hookspath=None,
     runtime_hooks=None,
-    excludes = ["FixTk", "tcl", "tk", "_tkinter", "tkinter", "Tkinter"],
+    excludes=["FixTk", "tcl", "tk", "_tkinter", "tkinter", "Tkinter"],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
