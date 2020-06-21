@@ -86,7 +86,7 @@ class StandardsTool(ToolWidget):
         layout_left.addLayout(layout_cal_form)
         layout_left.addWidget(self.table)
         layout_left.addLayout(layout_table_form)
-        layout_left.addStretch(1)
+        # layout_left.addStretch(1)
         layout_left.addWidget(self.results_box)
 
         layout_canvas_bar = QtWidgets.QHBoxLayout()
@@ -244,6 +244,7 @@ class StandardsTool(ToolWidget):
 
     def spinBoxLevels(self) -> None:
         self.table.setRowCount(self.spinbox_levels.value())
+        self.table.updateGeometry()
         self.refresh()
 
 
@@ -585,14 +586,15 @@ class StandardsTable(BasicTableView):
 
     def __init__(self, calibration: Calibration, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
-        self.setSizeAdjustPolicy(
-            QtWidgets.QAbstractScrollArea.AdjustToContentsOnFirstShow
-        )
+        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         model = CalibrationPointsTableModel(calibration, self)
         self.setModel(model)
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        self.verticalHeader().setSectionResizeMode(
+            QtWidgets.QHeaderView.ResizeToContents
+        )
         self.setItemDelegate(DoubleSignificantFiguresDelegate(4))
 
     def isComplete(self) -> bool:
