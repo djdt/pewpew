@@ -1,15 +1,51 @@
 import numpy as np
 
 from matplotlib.axes import Axes
-from matplotlib.font_manager import FontProperties
 from matplotlib.backend_bases import RendererBase
+from matplotlib.figure import Figure
+from matplotlib.font_manager import FontProperties
 from matplotlib.image import AxesImage
-from matplotlib.transforms import Bbox, BboxTransform
+from matplotlib.lines import Line2D
+from matplotlib.transforms import Affine2D, Bbox, BboxTransform, Transform
+from matplotlib.text import Text
 from matplotlib.patheffects import withStroke
 
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
 from typing import Tuple
+
+
+class LabeledLine2D(Line2D):
+    def __init__(self, *args, label_at: int = 0, label_offset: Tuple[float, float] = (0, 0), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.text = Text(0, 0, self.get_label())
+        self.label_at = label_at
+        self.label_offset = label_offset
+
+    def set_axes(self, axes: Axes) -> None:
+        self.text.set_axes(axes)
+        super().set_axes(axes)
+
+    def set_figure(self, figure: Figure) -> None:
+        self.text.set_figure(figure)
+        super().set_figure(figure)
+
+    def set_transform(self, transform: Transform) -> None:
+        text_transform = transform + Affine2D.translate(*self.label_offset)
+        self.text.set_transform(text_transform)
+        super().set_transform(transform)
+
+    def set_xdata(self, x: np.ndarray):
+        self.text.set_x([x[self.label_at]])
+        super().set_xdata(x)
+
+    def set_ydata(self, y: np.ndarray):
+        self.text.set_y([y[self.label_at]])
+        super().set_ydata(y)
+
+    def draw(self, renderer: RendererBase):
+        super().draw(self, renderer)
+        self.text.draw(renderer)
 
 
 class MetricSizeBar(AnchoredSizeBar):
@@ -87,7 +123,7 @@ class MetricSizeBar(AnchoredSizeBar):
         if width < self.min_length or width > self.max_length:
             rect.set_width(0)
             rect.set_height(0)
-            self.txt_label.set_text(f"No Scale")
+            self.txt_label.set_text("No Scale")
         else:
             rect.set_width(width)
             rect.set_height(self.get_bar_height())
