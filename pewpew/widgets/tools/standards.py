@@ -208,14 +208,12 @@ class StandardsTool(ToolWidget):
         isotope = self.combo_isotope.currentText()
         self.table.model().setCalibration(self.calibration[isotope])
 
-        if self.calibration[isotope].unit != "":
-            self.lineedit_units.setText(self.calibration[isotope].unit)
-        else:
-            self.calibration[isotope].unit = self.lineedit_units.text()
+        self.lineedit_units.setText(self.calibration[isotope].unit)
+
         if self.calibration[isotope].weighting is not None:
             self.combo_weighting.setCurrentText(self.calibration[isotope].weighting)
         else:
-            self.calibration[isotope].weighting = self.combo_weighting.currentText()
+            self.calibration[isotope].weighting = "None"
 
         self.refresh()
 
