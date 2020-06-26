@@ -15,6 +15,7 @@ from pew.calibration import weighting
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 from pewpew.lib.viewoptions import ViewOptions
+from pewpew.lib.mpltools import LabeledLine2D
 from pewpew.validators import DoubleSignificantFiguresDelegate
 from pewpew.widgets.canvases import InteractiveCanvas
 from pewpew.widgets.dialogs import CalibrationCurveDialog
@@ -133,7 +134,7 @@ class StandardsTool(ToolWidget):
         self.canvas.drawLevels(StandardsTable.ROW_LABELS, self.spinbox_levels.value())
         # Draw vert guides after so they get pick priority
         if len(self.canvas.v_guides) == 0:
-            self.canvas.drawVerticalGuides()
+            self.canvas.drawEdgeGuides()
         self.canvas.draw()
         self.canvas.update_background(None)
         self.canvas.blitGuides()
@@ -262,8 +263,8 @@ class StandardsCanvas(InteractiveCanvas):
 
         self.image: AxesImage = None
         self.background = None
-        self.h_guides: List[Line2D] = []
-        self.v_guides: List[Line2D] = []
+        self.level_guides: List[LabeledLine2D] = []
+        self.edge_guides: List[Line2D] = []
 
         self.redrawFigure()
 
@@ -295,47 +296,37 @@ class StandardsCanvas(InteractiveCanvas):
             self.blitGuides()
 
     def onpick(self, event: PickEvent) -> None:
-        # TODO redo guides with custom and allow movement
-        if self.picked_artist in self.h_guides:
-            self.picked_artist = None
         pass
 
     def move(self, event: MouseEvent) -> None:
-        if self.picked_artist is None:
-            return
-        elif self.picked_artist in self.h_guides:
+        if self.picked_artist is not None:
             x, y = self.ax.transAxes.inverted().transform([event.x, event.y])
-            self.picked_artist.set_ydata([y, y])
-            self.blitGuides()
-        elif self.picked_artist in self.v_guides:
-            x, y = self.ax.transAxes.inverted().transform([event.x, event.y])
-            self.picked_artist.set_xdata([x, x])
+            if self.picked_artist in self.level_guides:
+                self.picked_artist.set_ydata([y, y])
+            elif self.picked_artist in self.edge_guides:
+                self.picked_artist.set_xdata([x, x])
             self.blitGuides()
 
     def press(self, event: MouseEvent) -> None:
         pass
 
     def release(self, event: MouseEvent) -> None:
-        if self.picked_artist in self.h_guides:
-            y, _y = self.picked_artist.get_ydata()
+        if self.picked_artist is not None:
+            x = self.picked_artist.get_xdata()[0]
+            y = self.picked_artist.get_ydata()[0]
             shape = self.image.get_array().shape
-            py = 1.0 / shape[0]  # Axes coords
-            # Snap guide
-            y = py * np.round(y / py)
-            self.picked_artist.set_ydata([y, y])
-            self.blitGuides()
-            self.guidesChanged.emit()
-        elif self.picked_artist in self.v_guides:
-            x, _x = self.picked_artist.get_xdata()
-            shape = self.image.get_array().shape
-            px = 1.0 / shape[1]  # Axes coords
-            # Snap guide
-            x = px * np.round(x / px)
-            self.picked_artist.set_xdata([x, x])
-            self.blitGuides()
-            self.guidesChanged.emit()
+            # Snap to pixels
+            pxy = 1.0 / np.array([shape[1], shape[0]])
+            x, y = pxy * np.round([x, y] / pxy)
 
-        self.picked_artist = None
+            if self.picked_artist in self.level_guides:
+                self.picked_artist.set_ydata([y, y])
+            elif self.picked_artist in self.edge_guides:
+                self.picked_artist.set_xdata([x, x])
+
+            self.blitGuides()
+            self.guidesChanged.emit()
+            self.picked_artist = None
 
     def redrawFigure(self) -> None:
         self.background = None
@@ -344,11 +335,11 @@ class StandardsCanvas(InteractiveCanvas):
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
 
-        div = make_axes_locatable(self.ax)
-        self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
-        self.bax.set_facecolor("black")
-        self.bax.get_xaxis().set_visible(False)
-        self.bax.get_yaxis().set_visible(False)
+#         div = make_axes_locatable(self.ax)
+#         self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
+#         self.bax.set_facecolor("black")
+#         self.bax.get_xaxis().set_visible(False)
+#         self.bax.get_yaxis().set_visible(False)
 
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float]
@@ -366,32 +357,32 @@ class StandardsCanvas(InteractiveCanvas):
         )
 
     def drawLevels(self, texts: List[str], levels: int) -> None:
-        self.bax.clear()
+        # self.bax.clear()
         ax_fraction = 1.0 / levels
-        for i, frac in enumerate(np.linspace(1.0, ax_fraction, levels)):
-            text = Text(
-                x=0.5,
-                y=frac - (ax_fraction / 2.0),
-                text=texts[i],
-                transform=self.bax.transAxes,
-                color="white",
-                fontsize=12,
-                horizontalalignment="center",
-                verticalalignment="center",
-            )
-            self.bax.add_artist(text)
+        # for i, frac in enumerate(np.linspace(1.0, ax_fraction, levels)):
+        #     text = Text(
+        #         x=0.5,
+        #         y=frac - (ax_fraction / 2.0),
+        #         text=texts[i],
+        #         transform=self.bax.transAxes,
+        #         color="white",
+        #         fontsize=12,
+        #         horizontalalignment="center",
+        #         verticalalignment="center",
+        #     )
+        #     self.bax.add_artist(text)
 
         # Draw lines
         ax_pos = np.linspace(1.0 - ax_fraction, ax_fraction, levels - 1)
-        self.drawHorizontalGuides(ax_pos)
+        self.drawLevelGuides(ax_pos, texts)
 
-    def drawHorizontalGuides(self, ax_pos: Tuple[float, ...]) -> None:
-        for line in self.h_guides:
+    def drawLevelGuides(self, ax_pos: List[float], texts: List[str]) -> None:
+        for line in self.level_guides:
             line.remove()
-        self.h_guides = []
+        self.level_guides = []
 
-        for pos in ax_pos:
-            line = Line2D(
+        for pos, text in zip(ax_pos, texts):
+            line = LabeledLine2D(
                 (0.0, 1.0),
                 (pos, pos),
                 transform=self.ax.transAxes,
@@ -401,14 +392,16 @@ class StandardsCanvas(InteractiveCanvas):
                 linewidth=1.0,
                 picker=5,
                 animated=True,
+                label=text,
+                label_offset=(10, 10),
             )
-            self.h_guides.append(line)
+            self.level_guides.append(line)
             self.ax.add_artist(line)
 
-    def drawVerticalGuides(self, ax_pos: Tuple[float, float] = (0.1, 0.9)) -> None:
-        for line in self.v_guides:
+    def drawEdgeGuides(self, ax_pos: Tuple[float, float] = (0.1, 0.9)) -> None:
+        for line in self.edge_guides:
             line.remove()
-        self.v_guides = []
+        self.edge_guides = []
 
         for pos in ax_pos:
             line = Line2D(
@@ -422,16 +415,16 @@ class StandardsCanvas(InteractiveCanvas):
                 picker=5,
                 animated=True,
             )
-            self.v_guides.append(line)
+            self.edge_guides.append(line)
             self.ax.add_artist(line)
 
     def blitGuides(self) -> None:
         if self.background is not None:
             self.restore_region(self.background)
 
-        for a in self.h_guides:
+        for a in self.level_guides:
             self.ax.draw_artist(a)
-        for a in self.v_guides:
+        for a in self.edge_guides:
             self.ax.draw_artist(a)
 
         self.update()
@@ -440,7 +433,7 @@ class StandardsCanvas(InteractiveCanvas):
     def getCurrentTrim(self) -> Tuple[int, int]:
         px = 1.0 / self.image.get_array().shape[1]  # Axes coords
         trim = np.array(
-            [guide.get_xdata()[0] / px for guide in self.v_guides], dtype=int
+            [guide.get_xdata()[0] / px for guide in self.edge_guides], dtype=int
         )
 
         return np.min(trim), np.max(trim)

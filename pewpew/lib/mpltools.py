@@ -12,15 +12,16 @@ from matplotlib.patheffects import withStroke
 
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
-from typing import Tuple
+from typing import Dict, List, Tuple
 
 
 class LabeledLine2D(Line2D):
-    def __init__(self, *args, label_at: int = 0, label_offset: Tuple[float, float] = (0, 0), **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
+        self.label_at = kwargs.pop("label_at", 0)
+        self.label_offset = kwargs.pop("label_offset", (0, 0))
+        self.text = Text(0, 0, "")
         super().__init__(*args, **kwargs)
-        self.text = Text(0, 0, self.get_label())
-        self.label_at = label_at
-        self.label_offset = label_offset
+        self.text.set_text(self.get_label())
 
     def set_axes(self, axes: Axes) -> None:
         self.text.set_axes(axes)
@@ -31,20 +32,20 @@ class LabeledLine2D(Line2D):
         super().set_figure(figure)
 
     def set_transform(self, transform: Transform) -> None:
-        text_transform = transform + Affine2D.translate(*self.label_offset)
+        text_transform = transform + Affine2D().translate(*self.label_offset)
         self.text.set_transform(text_transform)
         super().set_transform(transform)
 
-    def set_xdata(self, x: np.ndarray):
-        self.text.set_x([x[self.label_at]])
+    def set_xdata(self, x: np.ndarray) -> None:
+        self.text.set_x(x[self.label_at])
         super().set_xdata(x)
 
-    def set_ydata(self, y: np.ndarray):
-        self.text.set_y([y[self.label_at]])
+    def set_ydata(self, y: np.ndarray) -> None:
+        self.text.set_y(y[self.label_at])
         super().set_ydata(y)
 
-    def draw(self, renderer: RendererBase):
-        super().draw(self, renderer)
+    def draw(self, renderer: RendererBase) -> None:
+        super().draw(renderer)
         self.text.draw(renderer)
 
 
