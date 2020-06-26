@@ -84,8 +84,8 @@ class InteractiveCanvas(BasicCanvas):
 
         self.cids: List[int] = []
         self.default_events = {
-            "axis_enter_event": self._axis_enter,
-            "axis_leave_event": self._axis_leave,
+            "axes_enter_event": self._axes_enter,
+            "axes_leave_event": self._axes_leave,
             "button_press_event": self._press,
             "button_release_event": self._release,
             "key_press_event": self._keypress,
@@ -119,20 +119,20 @@ class InteractiveCanvas(BasicCanvas):
             return True
         return False
 
-    def _axis_enter(self, event: LocationEvent) -> None:
+    def _axes_enter(self, event: LocationEvent) -> None:
         if self.ignore_event(event):
             return
-        self.axis_enter(event)
+        self.axes_enter(event)
 
-    def axis_enter(self, event: LocationEvent) -> None:
+    def axes_enter(self, event: LocationEvent) -> None:
         raise NotImplementedError
 
-    def _axis_leave(self, event: LocationEvent) -> None:
+    def _axes_leave(self, event: LocationEvent) -> None:
         if self.ignore_event(event):
             return
-        self.axis_leave(event)
+        self.axes_leave(event)
 
-    def axis_leave(self, event: LocationEvent) -> None:
+    def axes_leave(self, event: LocationEvent) -> None:
         raise NotImplementedError
 
     def _press(self, event: MouseEvent) -> None:
@@ -361,6 +361,9 @@ class LaserCanvas(BasicCanvas):
 
 
 class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
+    cursorClear = QtCore.Signal()
+    cursorMoved = QtCore.Signal(float, float, float)
+
     def __init__(
         self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
     ) -> None:
@@ -428,19 +431,6 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
     def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
         super().drawLaser(laser, name, layer)
         self.drawSelection()
-        # Save some variables for the status bar
-        if layer is not None:
-            self.px, self.py = (
-                laser.config.get_pixel_width(layer),
-                laser.config.get_pixel_height(layer),
-            )
-        else:
-            self.px, self.py = (
-                laser.config.get_pixel_width(),
-                laser.config.get_pixel_height(),
-            )
-
-        self.ps = laser.config.speed
 
     def endSelection(self) -> None:
         if self.widget is not None:
@@ -564,25 +554,9 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.view_limits = x1, x2, y1, y2
 
         # Update the status bar
-        try:
-            status_bar = self.window().statusBar()
-            x, y = event.xdata, event.ydata
-            v = self.image.get_cursor_data(event)
-            unit = self.viewoptions.units
-            if unit == "row":
-                y, x = (
-                    int(x / self.px),
-                    self.image.get_array().shape[0] - int(y / self.py) - 1,
-                )
-            elif unit == "second":
-                x = event.xdata / self.ps
-                y = 0
-            if np.isfinite(v):
-                status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
-            else:
-                status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
-        except AttributeError:
-            pass
+        x, y = event.xdata, event.ydata
+        v = self.image.get_cursor_data(event)
+        self.cursorMoved.emit(x, y, v)
 
     def scroll(self, event: MouseEvent) -> None:
         zoom_factor = 0.1 * event.step
@@ -612,17 +586,15 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
 
         if (x1, x2, y1, y2) != self.extent:
             self.state.add("zoom")
+        else:
+            self.state.discard("zoom")
         self.view_limits = x1, x2, y1, y2
 
-    def axis_enter(self, event: LocationEvent) -> None:
+    def axes_enter(self, event: LocationEvent) -> None:
         pass
 
-    def axis_leave(self, event: LocationEvent) -> None:
-        try:
-            status_bar = self.window().statusBar()
-            status_bar.clearMessage()
-        except AttributeError:
-            pass
+    def axes_leave(self, event: LocationEvent) -> None:
+        self.cursorClear.emit()
 
     def startZoom(self) -> None:
         self.widget = RectangleSelector(
