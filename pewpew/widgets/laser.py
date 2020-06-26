@@ -156,6 +156,8 @@ class LaserWidget(_ViewWidget):
         self.is_srr = isinstance(laser, SRRLaser)
 
         self.canvas = InteractiveLaserCanvas(viewoptions, parent=self)
+        self.canvas.cursorClear.connect(self.clearCursorStatus)
+        self.canvas.cursorMoved.connect(self.updateCursorStatus)
         # We have our own ConnectionRefusedErrorxt menu so hide the normal one
         self.canvas.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
@@ -259,7 +261,7 @@ class LaserWidget(_ViewWidget):
 
     # Virtual
     def refresh(self) -> None:
-        if self.combo_layers.currentIndex() == 0:
+        if not self.is_srr or self.combo_layers.currentIndex() == 0:
             layer = None
         else:
             layer = int(self.combo_layers.currentText())
@@ -288,6 +290,36 @@ class LaserWidget(_ViewWidget):
         self.combo_isotope.clear()
         self.combo_isotope.addItems(self.laser.isotopes)
         self.combo_isotope.blockSignals(False)
+
+    def clearCursorStatus(self) -> None:
+        status_bar = self.viewspace.window().statusBar()
+        if status_bar is not None:
+            status_bar.clearMessage()
+
+    def updateCursorStatus(self, x: float, y: float, v: float) -> None:
+        status_bar = self.viewspace.window().statusBar()
+        if status_bar is None:
+            return
+        unit = self.canvas.viewoptions.units
+
+        if not self.is_srr or self.combo_layers.currentIndex() == 0:
+            px = self.laser.config.get_pixel_width()
+            py = self.laser.config.get_pixel_height()
+        else:
+            layer = int(self.combo_layers.currentText())
+            px = self.laser.config.get_pixel_width(layer)
+            py = self.laser.config.get_pixel_height(layer)
+
+        if unit == "row":
+            y = int(x / px)
+            x = self.laser.shape[0] - int(y / py) - 1
+        elif unit == "second":
+            x = x / self.laser.config.speed
+            y = 0
+        if np.isfinite(v):
+            status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
+        else:
+            status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
 
     # Transformations
     def crop(self, new_extent: Tuple[float, float, float, float] = None) -> None:
