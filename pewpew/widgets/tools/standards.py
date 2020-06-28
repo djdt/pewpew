@@ -7,8 +7,6 @@ from matplotlib.backend_bases import LocationEvent, PickEvent, MouseEvent
 from matplotlib.image import AxesImage
 from matplotlib.lines import Line2D
 from matplotlib.patheffects import withStroke
-from matplotlib.text import Text
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pew import Calibration
 from pew.calibration import weighting
