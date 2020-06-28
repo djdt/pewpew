@@ -1,10 +1,24 @@
+import copy
 import numpy as np
 from PySide2 import QtCore, QtWidgets
 from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent, PickEvent
+from matplotlib.cm import get_cmap
 
 from pewpew.lib.viewoptions import ViewOptions
 
 from pewpew.widgets.canvases import InteractiveCanvas, LaserCanvas
+
+from typing import List, Tuple
+
+
+class DrawUndoState(object):
+    def __init__(self, pos: Tuple[int, int], data: np.ndarray):
+        self.data = data
+        self.x1, self.y1 = pos
+        self.x2, self.y2 = data.shape + np.array(pos)
+
+    def undo(self, x: np.ndarray) -> None:
+        x[self.x1 : self.x2, self.y1 : self.y2] = self.data
 
 
 class DrawCanvas(LaserCanvas, InteractiveCanvas):
@@ -12,27 +26,89 @@ class DrawCanvas(LaserCanvas, InteractiveCanvas):
         self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
     ) -> None:
         super().__init__(viewoptions=viewoptions, parent=parent)
-
-        self.brush = {"shape": None, "size": 1, "value": np.nan}
+        self.state = set(["move"])
         self.brush_button = 1
         self.move_button = 2
+
+        self.brush = {"shape": None, "size": 1, "value": np.nan}
+
+        self.undo_states: List[DrawUndoState] = []
 
     def redrawFigure(self) -> None:
         super().redrawFigure()
 
+    def drawData(
+        self,
+        data: np.ndarray,
+        extent: Tuple[float, float, float, float],
+        isotope: str = None,
+    ) -> None:
+        if self.image is not None:
+            self.image.remove()
+
+        # Calculate the range
+        vmin, vmax = self.viewoptions.colors.get_range_as_float(isotope, data)
+        # Ensure than vmin is actually lower than vmax
+        if vmin > vmax:
+            vmin, vmax = vmax, vmin
+
+        # Set nan's to be pink
+        if isinstance(self.viewoptions.image.cmap, str):
+            cmap = get_cmap(self.viewoptions.image.cmap)
+        else:
+            cmap = copy.copy(self.viewoptions.image.cmap)
+        cmap.set_bad(color="pink")
+
+        # Plot the image
+        self.image = self.ax.imshow(
+            data,
+            cmap=cmap,
+            interpolation=self.viewoptions.image.interpolation,
+            alpha=self.viewoptions.image.alpha,
+            vmin=vmin,
+            vmax=vmax,
+            extent=extent,
+            aspect="equal",
+            origin="upper",
+        )
+        # Rescale to full image
+        self.view_limits = extent
+
     def ignore_event(self, event: LocationEvent) -> bool:
         if event.name in ["key_press_event"]:
-            return True
-        elif (
-            event.name in ["button_press_event", "button_release_event"]
-            and event.button != self.button
-        ):
             return True
 
         return super().ignore_event(event)
 
     def press(self, event: MouseEvent) -> None:
-        pass
+        if event.button == self.brush_button:
+            x, y = event.xdata, event.ydata
+            shape = self.image.get_array().shape
+            # Snap to pixels
+            pxy = 1.0 / np.array([shape[1], shape[0]])
+            x, y = pxy * np.round([x, y] / pxy)
+            if self.brush["shape"] in ["square", "circle"]:
+                data = self.image.get_array()
+                pass
+            elif self.brush["shape"] == "fill":
+                pass
+
+    def getBrushMask(self, x: int, y: int) -> None:
+        mask = np.zeros(self.image.get_array().shape, dtype=bool)
+        size = self.brush["size"]
+        if self.brush["shape"] == "circle":
+            xx, yy = np.mgrisize[:size, :size]
+            r = size // 2
+            circle = ((xx - r) ** 2 + (yy - r) ** 2) < r ** 2
+            mask[x - r : x + size, y - r, y + size] = circle
+        elif self.brush["shape"] == "square":
+            mask[x - r : x + size, y - r : y + size] = True
+        elif self.brush["shape"] == "bucket":
+            value = self.image.get_array()[x, y]
+            # Get connected that have diff less than size
+
+        return mask
+
 
     def release(self, event: MouseEvent) -> None:
         pass
@@ -94,12 +170,8 @@ class DrawCanvas(LaserCanvas, InteractiveCanvas):
             self.state.discard("zoom")
         self.view_limits = x1, x2, y1, y2
 
-    def axis_enter(self, event: LocationEvent) -> None:
+    def axes_enter(self, event: LocationEvent) -> None:
         pass
 
-    def axis_leave(self, event: LocationEvent) -> None:
-        try:
-            status_bar = self.window().statusBar()
-            status_bar.clearMessage()
-        except AttributeError:
-            pass
+    def axes_leave(self, event: LocationEvent) -> None:
+        self.cursorClear.emit()
