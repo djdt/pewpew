@@ -370,7 +370,8 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         super().__init__(viewoptions=viewoptions, parent=parent)
 
         self.state = set(["move"])
-        self.button = 1
+        self.move_button = 1
+        self.widget_button = 1
 
         shadow = self.palette().color(QtGui.QPalette.Shadow)
         highlight = self.palette().color(QtGui.QPalette.Highlight)
@@ -400,7 +401,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key_Escape:
-            self.clearSelection()
+            self.endSelection()
         super().keyPressEvent(event)
 
     def redrawFigure(self) -> None:
@@ -454,7 +455,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.image,
             self.updateSelectionFromWidget,
             useblit=True,
-            button=self.button,
+            button=self.widget_button,
             lineprops=self.lineprops,
         )
         self.widget.set_active(True)
@@ -467,7 +468,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.image,
             self.updateSelectionFromWidget,
             useblit=True,
-            button=self.button,
+            button=self.widget_button,
             lineprops=self.lineprops,
         )
         self.widget.set_active(True)
@@ -509,7 +510,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.ax,
             lambda x: None,
             useblit=True,
-            button=self.button,
+            button=self.widget_button,
             lineprops=self.lineprops,
             drawtext=True,
             textprops=self.viewoptions.font.props(),
@@ -519,11 +520,6 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
 
     def ignore_event(self, event: LocationEvent) -> bool:
         if event.name in ["key_press_event"]:
-            return True
-        elif (
-            event.name in ["button_press_event", "button_release_event"]
-            and event.button != self.button
-        ):
             return True
         return super().ignore_event(event)
 
@@ -537,7 +533,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         if (
             all(state in self.state for state in ["move", "zoom"])
             # and "selection" not in self.state
-            and event.button == self.button
+            and event.button == self.move_button
         ):
             x1, x2, y1, y2 = self.view_limits
             xmin, xmax, ymin, ymax = self.extent
@@ -602,7 +598,7 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             self.zoom,
             useblit=True,
             drawtype="box",
-            button=self.button,
+            button=self.widget_button,
             rectprops=self.rectprops,
         )
         self.widget.set_active(True)

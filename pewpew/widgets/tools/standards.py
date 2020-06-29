@@ -7,8 +7,6 @@ from matplotlib.backend_bases import LocationEvent, PickEvent, MouseEvent
 from matplotlib.image import AxesImage
 from matplotlib.lines import Line2D
 from matplotlib.patheffects import withStroke
-from matplotlib.text import Text
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pew import Calibration
 from pew.calibration import weighting
@@ -335,12 +333,6 @@ class StandardsCanvas(InteractiveCanvas):
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
 
-    #         div = make_axes_locatable(self.ax)
-    #         self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
-    #         self.bax.set_facecolor("black")
-    #         self.bax.get_xaxis().set_visible(False)
-    #         self.bax.get_yaxis().set_visible(False)
-
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float]
     ) -> None:
@@ -458,17 +450,6 @@ class StandardsResultsBox(QtWidgets.QGroupBox):
         button_layout.addWidget(self.button_plot, 0, QtCore.Qt.AlignRight)
         layout.addRow(button_layout)
         self.setLayout(layout)
-
-    # def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
-    #     menu = QtWidgets.QMenu(self)
-    #     copy_action = QtWidgets.QAction(
-    #         QtGui.QIcon.fromTheme("edit-copy"), "Copy All", self
-    #     )
-    #     copy_action.triggered.connect(self.copy)
-
-    #     menu.addAction(copy_action)
-
-    #     menu.popup(event.globalPos())
 
     def copy(self) -> None:
         data = (
