@@ -94,10 +94,10 @@ class DrawCanvas(LaserCanvas, InteractiveCanvas):
             self.state.discard("zoom")
         self.view_limits = x1, x2, y1, y2
 
-    def axis_enter(self, event: LocationEvent) -> None:
+    def axes_enter(self, event: LocationEvent) -> None:
         pass
 
-    def axis_leave(self, event: LocationEvent) -> None:
+    def axes_leave(self, event: LocationEvent) -> None:
         try:
             status_bar = self.window().statusBar()
             status_bar.clearMessage()
