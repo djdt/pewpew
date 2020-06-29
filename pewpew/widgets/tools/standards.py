@@ -335,11 +335,11 @@ class StandardsCanvas(InteractiveCanvas):
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
 
-#         div = make_axes_locatable(self.ax)
-#         self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
-#         self.bax.set_facecolor("black")
-#         self.bax.get_xaxis().set_visible(False)
-#         self.bax.get_yaxis().set_visible(False)
+    #         div = make_axes_locatable(self.ax)
+    #         self.bax = div.append_axes("left", size=0.2, pad=0, sharey=self.ax)
+    #         self.bax.set_facecolor("black")
+    #         self.bax.get_xaxis().set_visible(False)
+    #         self.bax.get_yaxis().set_visible(False)
 
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float]
@@ -357,22 +357,7 @@ class StandardsCanvas(InteractiveCanvas):
         )
 
     def drawLevels(self, texts: List[str], levels: int) -> None:
-        # self.bax.clear()
         ax_fraction = 1.0 / levels
-        # for i, frac in enumerate(np.linspace(1.0, ax_fraction, levels)):
-        #     text = Text(
-        #         x=0.5,
-        #         y=frac - (ax_fraction / 2.0),
-        #         text=texts[i],
-        #         transform=self.bax.transAxes,
-        #         color="white",
-        #         fontsize=12,
-        #         horizontalalignment="center",
-        #         verticalalignment="center",
-        #     )
-        #     self.bax.add_artist(text)
-
-        # Draw lines
         ax_pos = np.linspace(1.0 - ax_fraction, ax_fraction, levels - 1)
         self.drawLevelGuides(ax_pos, texts)
 
@@ -380,6 +365,12 @@ class StandardsCanvas(InteractiveCanvas):
         for line in self.level_guides:
             line.remove()
         self.level_guides = []
+
+        textprops = dict(
+            color="white",
+            fontsize=12,
+            path_effects=[withStroke(linewidth=1.5, foreground="black")],
+        )
 
         for pos, text in zip(ax_pos, texts):
             line = LabeledLine2D(
@@ -394,6 +385,7 @@ class StandardsCanvas(InteractiveCanvas):
                 animated=True,
                 label=text,
                 label_offset=(10, 10),
+                textprops=textprops,
             )
             self.level_guides.append(line)
             self.ax.add_artist(line)
@@ -604,7 +596,9 @@ class StandardsTable(BasicTableView):
 
     def __init__(self, calibration: Calibration, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding
+        )
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         model = CalibrationPointsTableModel(calibration, self)
         self.setModel(model)

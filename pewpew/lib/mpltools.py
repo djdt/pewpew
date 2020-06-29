@@ -12,14 +12,15 @@ from matplotlib.patheffects import withStroke
 
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
-from typing import Dict, List, Tuple
+from typing import Tuple
 
 
 class LabeledLine2D(Line2D):
     def __init__(self, *args, **kwargs) -> None:
         self.label_at = kwargs.pop("label_at", 0)
         self.label_offset = kwargs.pop("label_offset", (0, 0))
-        self.text = Text(0, 0, "")
+        text_props = kwargs.pop("textprops", {})
+        self.text = Text(0, 0, "", **text_props)
         super().__init__(*args, **kwargs)
         self.text.set_text(self.get_label())
 
