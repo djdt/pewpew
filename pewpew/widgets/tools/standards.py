@@ -129,9 +129,12 @@ class StandardsTool(ToolWidget):
         data = self.widget.laser.get(isotope, calibrate=False, flat=True)
         extent = self.widget.laser.config.data_extent(data.shape)
         self.canvas.drawData(data, extent)
-        self.canvas.drawLevels(StandardsTable.ROW_LABELS, self.spinbox_levels.value())
+        if len(self.canvas.level_guides) != self.spinbox_levels.value():
+            self.canvas.drawLevels(
+                StandardsTable.ROW_LABELS, self.spinbox_levels.value()
+            )
         # Draw vert guides after so they get pick priority
-        if len(self.canvas.v_guides) == 0:
+        if len(self.canvas.edge_guides) == 0:
             self.canvas.drawEdgeGuides()
         self.canvas.draw()
         self.canvas.update_background(None)
@@ -350,8 +353,11 @@ class StandardsCanvas(InteractiveCanvas):
 
     def drawLevels(self, texts: List[str], levels: int) -> None:
         ax_fraction = 1.0 / levels
-        ax_pos = np.linspace(1.0 - ax_fraction, ax_fraction, levels - 1)
+        ax_pos = np.linspace(1.0, ax_fraction, levels)
         self.drawLevelGuides(ax_pos, texts)
+        # First guide is just for label
+        self.level_guides[0].set_picker(None)
+        self.level_guides[0].set_visible(False)
 
     def drawLevelGuides(self, ax_pos: List[float], texts: List[str]) -> None:
         for line in self.level_guides:
@@ -362,6 +368,8 @@ class StandardsCanvas(InteractiveCanvas):
             color="white",
             fontsize=12,
             path_effects=[withStroke(linewidth=1.5, foreground="black")],
+            horizontalalignment="left",
+            verticalalignment="top",
         )
 
         for pos, text in zip(ax_pos, texts):
@@ -376,7 +384,7 @@ class StandardsCanvas(InteractiveCanvas):
                 picker=5,
                 animated=True,
                 label=text,
-                label_offset=(10, 10),
+                label_offset=(5, -5),
                 textprops=textprops,
             )
             self.level_guides.append(line)
