@@ -129,6 +129,7 @@ class StandardsTool(ToolWidget):
         data = self.widget.laser.get(isotope, calibrate=False, flat=True)
         extent = self.widget.laser.config.data_extent(data.shape)
         self.canvas.drawData(data, extent)
+        # Redraw guides if number of levels change
         if len(self.canvas.level_guides) != self.spinbox_levels.value():
             self.canvas.drawLevels(
                 StandardsTable.ROW_LABELS, self.spinbox_levels.value()
