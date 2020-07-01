@@ -149,8 +149,12 @@ class StandardsTool(ToolWidget):
             data = self.canvas.image.get_array()
             trim_left, trim_right = self.canvas.getCurrentTrim()
             data = data[:, trim_left:trim_right]
-            buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
-            weights = 1 / np.square(np.array([np.nanstd(b) for b in buckets]))
+            levels = self.canvas.getCurrentLevels()
+            order = np.argsort(levels)
+            buckets = np.split(data, levels[order], axis=0)
+            weights = 1.0 / np.square(
+                np.array([np.nanstd(buckets[i + 1]) for i in order])
+            )
             self.calibration[isotope].weights = weights
         else:
             self.calibration[isotope].weights = weighting
@@ -162,8 +166,10 @@ class StandardsTool(ToolWidget):
         if data.size == 0:
             return
 
-        buckets = np.array_split(data, self.spinbox_levels.value(), axis=0)
-        self.table.setCounts([np.nanmean(b) for b in buckets])
+        levels = self.canvas.getCurrentLevels()
+        order = np.argsort(levels)
+        buckets = np.split(data, levels[order], axis=0)
+        self.table.setCounts([np.nanmean(buckets[i + 1]) for i in order])
 
     def updateResults(self) -> None:
         # Make sure weights are up to date
@@ -350,6 +356,9 @@ class StandardsCanvas(InteractiveCanvas):
     def drawLevels(self, texts: List[str], levels: int) -> None:
         ax_fraction = 1.0 / levels
         ax_pos = np.linspace(1.0, ax_fraction, levels)
+        # Snap
+        py = 1.0 / self.image.get_array().shape[0]
+        ax_pos = py * np.round(ax_pos / py)
         self.drawLevelGuides(ax_pos, texts)
         # First guide is just for label
         self.level_guides[0].set_picker(None)
@@ -417,6 +426,14 @@ class StandardsCanvas(InteractiveCanvas):
 
         self.update()
         self.guides_need_draw = False
+
+    def getCurrentLevels(self) -> List[int]:
+        shape = self.image.get_array().shape
+        py = 1.0 / shape[0]  # Axes coords
+        levels = shape[0] - np.array(
+            [guide.get_ydata()[0] / py for guide in self.level_guides], dtype=int
+        )
+        return levels
 
     def getCurrentTrim(self) -> Tuple[int, int]:
         px = 1.0 / self.image.get_array().shape[1]  # Axes coords

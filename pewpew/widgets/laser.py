@@ -311,8 +311,7 @@ class LaserWidget(_ViewWidget):
             py = self.laser.config.get_pixel_height(layer)
 
         if unit == "row":
-            y = int(x / px)
-            x = self.laser.shape[0] - int(y / py) - 1
+            x, y = self.laser.shape[0] - int(y / py) - 1, int(x / px)
         elif unit == "second":
             x = x / self.laser.config.speed
             y = 0
