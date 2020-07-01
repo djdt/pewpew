@@ -270,20 +270,10 @@ class StandardsCanvas(InteractiveCanvas):
         self.redrawFigure()
 
     def ignore_event(self, event: LocationEvent) -> bool:
-        if event.name not in [
-            "pick_event",
-            "button_press_event",
-            "button_release_event",
-            "motion_notify_event",
-        ]:
-            return True
-        elif (
+        if (
             event.name in ["button_press_event", "button_release_event"]
             and event.button != self.button
         ):
-            return True
-
-        if event.inaxes != self.ax:
             return True
 
         return super().ignore_event(event)
@@ -295,6 +285,12 @@ class StandardsCanvas(InteractiveCanvas):
         self.background = self.copy_from_bbox(self.ax.bbox)
         if self.guides_need_draw:
             self.blitGuides()
+
+    def axes_enter(self, event: LocationEvent) -> None:
+        pass
+
+    def axes_leave(self, event: LocationEvent) -> None:
+        pass
 
     def onpick(self, event: PickEvent) -> None:
         pass
