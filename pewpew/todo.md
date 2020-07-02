@@ -1,6 +1,12 @@
+Misc
+----
 Standards result box should be in 2 rows.
+
 Colocal is slow (coastes has many python loop).
+
 Edit tool needs indicator for what is getting updated (single / multiple isotopes?)
+
+Edit isotopes on right click.
 
 
 Edit Tool
@@ -10,6 +16,11 @@ _The transform tool is hard to use for trimming, draggable would help here._
 Transform tool:
     * Draggable / sliding trim
     * Shifting data (mirror / edge / reflect) for isotope alignment
+
+
+Draw Tool
+---------
+_Implement a tool for drawing_
 
 
 Tool Rebuild
