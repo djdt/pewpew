@@ -1,4 +1,4 @@
-from PySide2 import QtWidgets, QtGui
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from typing import Callable, List
 
@@ -29,3 +29,23 @@ def qActionGroup(
     group.triggered.connect(func)
 
     return group
+
+
+def qToolButton(
+    icon: str = None,
+    text: str = None,
+    action: QtWidgets.QAction = None,
+    parent: QtWidgets.QWidget = None,
+) -> QtWidgets.QToolButton:
+    button = QtWidgets.QToolButton(parent)
+    button.setAutoRaise(True)
+    button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+    if icon is not None:
+        button.setIcon(QtGui.QIcon.fromTheme(icon))
+    if text is not None:
+        button.setText(text)
+        button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+    if action is not None:
+        button.setDefaultAction(action)
+
+    return button

@@ -13,7 +13,7 @@ from pew.config import Config
 from pewpew.lib.io import import_any, PEW_VALID_EXTS
 from pewpew.lib.viewoptions import ViewOptions
 
-from pewpew.actions import qAction
+from pewpew.actions import qAction, qToolButton
 from pewpew.widgets.canvases import InteractiveLaserCanvas
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.views import View, ViewSpace, _ViewWidget
@@ -174,43 +174,35 @@ class LaserWidget(_ViewWidget):
         self.combo_isotope.currentIndexChanged.connect(self.refresh)
         self.populateIsotopes()
 
-        self.selection_button = QtWidgets.QToolButton()
-        self.selection_button.setAutoRaise(True)
-        self.selection_button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
-        self.selection_button.setIcon(QtGui.QIcon.fromTheme("select"))
         self.action_select_none = qAction(
             "transform-move",
             "Clear Selection",
             "Clear any selections.",
             self.canvas.clearSelection,
         )
-        self.selection_button.addAction(self.action_select_none)
         self.action_select_rect = qAction(
             "draw-rectangle",
             "Rectangle Selector",
             "Start the rectangle selector tool.",
             self.canvas.startRectangleSelection,
         )
-        self.selection_button.addAction(self.action_select_rect)
         self.action_select_lasso = qAction(
             "draw-freehand",
             "Lasso Selector",
             "Start the lasso selector tool.",
             self.canvas.startLassoSelection,
         )
-        self.selection_button.addAction(self.action_select_lasso)
         self.action_select_dialog = qAction(
             "dialog-information",
             "Selection Dialog",
             "Start the selection dialog.",
             self.actionSelectDialog,
         )
+        self.selection_button = qToolButton("select", "Selection")
+        self.selection_button.addAction(self.action_select_none)
+        self.selection_button.addAction(self.action_select_rect)
+        self.selection_button.addAction(self.action_select_lasso)
         self.selection_button.addAction(self.action_select_dialog)
-
-        self.widgets_button = QtWidgets.QToolButton()
-        self.widgets_button.setAutoRaise(True)
-        self.widgets_button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
-        self.widgets_button.setIcon(QtGui.QIcon.fromTheme("tool-measure"))
 
         self.action_ruler = qAction(
             "tool-measure",
@@ -218,25 +210,23 @@ class LaserWidget(_ViewWidget):
             "Use a ruler to measure distance.",
             self.canvas.startRuler,
         )
+        self.widgets_button = qToolButton("tool-measure", "Widgets")
         self.widgets_button.addAction(self.action_ruler)
 
-        self.view_button = QtWidgets.QToolButton()
-        self.view_button.setAutoRaise(True)
-        self.view_button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
-        self.view_button.setIcon(QtGui.QIcon.fromTheme("zoom"))
         self.action_zoom_in = qAction(
             "zoom-in",
             "Zoom to Area",
             "Start zoom area selection.",
             self.canvas.startZoom,
         )
-        self.view_button.addAction(self.action_zoom_in)
         self.action_zoom_out = qAction(
             "zoom-original",
             "Reset Zoom",
             "Reset zoom to full imgae extent.",
             self.canvas.unzoom,
         )
+        self.view_button = qToolButton("zoom", "Zoom")
+        self.view_button.addAction(self.action_zoom_in)
         self.view_button.addAction(self.action_zoom_out)
 
         self.canvas.installEventFilter(self)

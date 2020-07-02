@@ -8,7 +8,7 @@ from pew.lib import filter as fltr
 from pew.lib.calc import normalise
 from pew.lib.threshold import kmeans_threshold, otsu
 
-from pewpew.actions import qAction
+from pewpew.actions import qAction, qToolButton
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
@@ -72,26 +72,18 @@ class EditTool(ToolWidget):
 
         self.canvas = LaserCanvas(self.viewspace.options, parent=self)
 
-        self.button_transform_flip_horizontal = QtWidgets.QToolButton()
-        self.button_transform_flip_horizontal.setDefaultAction(
-            self.action_transform_flip_horizontal
+        self.button_transform_flip_horizontal = qToolButton(
+            action=self.action_transform_flip_horizontal
         )
-        self.button_transform_flip_horizontal.setAutoRaise(True)
-        self.button_transform_flip_vertical = QtWidgets.QToolButton()
-        self.button_transform_flip_vertical.setDefaultAction(
-            self.action_transform_flip_vertical
+        self.button_transform_flip_vertical = qToolButton(
+            action=self.action_transform_flip_vertical
         )
-        self.button_transform_flip_vertical.setAutoRaise(True)
-        self.button_transform_rotate_left = QtWidgets.QToolButton()
-        self.button_transform_rotate_left.setDefaultAction(
-            self.action_transform_rotate_left
+        self.button_transform_rotate_left = qToolButton(
+            action=self.action_transform_rotate_left
         )
-        self.button_transform_rotate_left.setAutoRaise(True)
-        self.button_transform_rotate_right = QtWidgets.QToolButton()
-        self.button_transform_rotate_right.setDefaultAction(
-            self.action_transform_rotate_right
+        self.button_transform_rotate_right = qToolButton(
+            action=self.action_transform_rotate_right
         )
-        self.button_transform_rotate_right.setAutoRaise(True)
 
         self.combo_method = QtWidgets.QComboBox()
         self.combo_method.addItems(EditTool.METHODS)

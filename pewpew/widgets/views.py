@@ -1,5 +1,7 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from pewpew.actions import qToolButton
+
 from typing import List
 
 
@@ -378,10 +380,7 @@ class ViewTitleBar(QtWidgets.QWidget):
         super().__init__(view)
         self.view = view
 
-        self.split_button = QtWidgets.QToolButton()
-        self.split_button.setAutoRaise(True)
-        self.split_button.setPopupMode(QtWidgets.QToolButton.InstantPopup)
-        self.split_button.setIcon(QtGui.QIcon.fromTheme("view-split-left-right"))
+        self.split_button = qToolButton("view-split-left-right")
         self.split_button.addAction(self.view.viewspace.action_split_horz)
         self.split_button.addAction(self.view.viewspace.action_split_vert)
         self.split_button.addAction(self.view.viewspace.action_close_view)

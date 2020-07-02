@@ -10,7 +10,7 @@ from matplotlib.patheffects import withStroke
 from pew import io
 from pew.lib.calc import greyscale_to_rgb, normalise
 
-from pewpew.actions import qAction
+from pewpew.actions import qAction, qToolButton
 from pewpew.validators import PercentOrDecimalValidator
 
 from pewpew.lib.mpltools import MetricSizeBar
@@ -302,16 +302,15 @@ class OverlayItemRow(QtWidgets.QWidget):
         )
         self.action_hide.setCheckable(True)
 
-        self.button_hide = QtWidgets.QToolButton(self)
-        self.button_hide.setDefaultAction(self.action_hide)
-
-        self.button_color = QtWidgets.QToolButton(self)
-        self.button_color.setDefaultAction(self.action_color)
+        self.button_hide = qToolButton(action=self.action_hide)
+        self.button_color = qToolButton(action=self.action_color)
         self.button_color.setEnabled(color_pickable)
-        self.setColor(color)
 
-        self.button_close = QtWidgets.QToolButton(self)
-        self.button_close.setDefaultAction(self.action_close)
+        self.effect_color = QtWidgets.QGraphicsColorizeEffect()
+        self.effect_color.setColor(color)
+        self.button_color.setGraphicsEffect(self.effect_color)
+
+        self.button_close = qToolButton(action=self.action_close)
 
         layout = QtWidgets.QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -344,12 +343,10 @@ class OverlayItemRow(QtWidgets.QWidget):
             return np.nanpercentile(data, float(vmax.rstrip("%")))
 
     def getColor(self) -> QtGui.QColor:
-        return self.button_color.palette().color(QtGui.QPalette.Button)
+        return self.effect_color.color()
 
     def setColor(self, color: QtGui.QColor) -> None:
-        palette = self.button_color.palette()
-        palette.setColor(QtGui.QPalette.Button, color)
-        self.button_color.setPalette(palette)
+        self.effect_color.setColor(color)
         self.itemChanged.emit()
 
     def selectColor(self) -> QtWidgets.QDialog:
