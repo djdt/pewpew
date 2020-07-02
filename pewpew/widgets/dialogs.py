@@ -104,7 +104,7 @@ class CalibrationDialog(ApplyDialog):
         self.combo_isotope.currentIndexChanged.connect(self.comboChanged)
 
         # Check all
-        self.check_all = QtWidgets.QCheckBox("Apply config to all images.")
+        self.check_all = QtWidgets.QCheckBox("Apply calibration to all images.")
 
         # Button to plot
         self.button_plot = QtWidgets.QPushButton("Plot")
