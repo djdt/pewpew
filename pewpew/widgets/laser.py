@@ -208,7 +208,8 @@ class LaserWidget(_ViewWidget):
             "tool-measure",
             "Measure",
             "Use a ruler to measure distance.",
-            self.canvas.startRuler,
+            # self.canvas.startRuler,
+            self.hide
         )
         self.widgets_button = qToolButton("tool-measure", "Widgets")
         self.widgets_button.addAction(self.action_ruler)
@@ -262,14 +263,6 @@ class LaserWidget(_ViewWidget):
     def rename(self, text: str) -> None:
         self.laser.name = text
         self.setModified(True)
-
-    @QtCore.Slot("QWidget*")
-    def mouseSelectStart(self, callback_widget: QtWidgets.QWidget) -> None:
-        self.canvas.installEventFilter(callback_widget)
-
-    @QtCore.Slot("QWidget*")
-    def mouseSelectEnd(self, callback_widget: QtWidgets.QWidget) -> None:
-        self.canvas.removeEventFilter(callback_widget)
 
     # Other
     def laserFilePath(self, ext: str = ".npz") -> str:

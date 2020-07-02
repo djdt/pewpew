@@ -26,11 +26,6 @@ def test_tool_widget(qtbot: QtBot):
     view.addTab("Tool", tool)
     qtbot.waitForWindowShown(tool)
 
-    tool.startMouseSelect()
-    assert view.activeWidget() != tool
-    tool.endMouseSelect()
-    assert view.activeWidget() == tool
-
 
 def test_standards_tool(qtbot: QtBot):
     viewspace = LaserViewSpace()

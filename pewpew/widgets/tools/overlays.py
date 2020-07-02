@@ -184,14 +184,6 @@ class OverlayTool(ToolWidget):
         self.completeChanged()
         self.refresh()
 
-    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        if event.type() == QtCore.QEvent.MouseButtonDblClick and isinstance(
-            obj, LaserCanvas
-        ):
-            self.widget = obj.parent()
-            self.endMouseSelect()
-        return False
-
 
 class OverlayCanvas(BasicCanvas):
     def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):

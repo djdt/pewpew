@@ -22,6 +22,9 @@ class DrawUndoState(object):
 
 
 class DrawCanvas(LaserCanvas, InteractiveCanvas):
+    cursorClear = QtCore.Signal()
+    cursorMoved = QtCore.Signal(float, float, float)
+
     def __init__(
         self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
     ) -> None:
@@ -30,7 +33,7 @@ class DrawCanvas(LaserCanvas, InteractiveCanvas):
         self.brush_button = 1
         self.move_button = 2
 
-        self.brush = {"shape": None, "size": 1, "value": np.nan}
+        self.brush = {"shape": None, "size": 1.0, "value": np.nan}
 
         self.undo_states: List[DrawUndoState] = []
 
@@ -83,32 +86,52 @@ class DrawCanvas(LaserCanvas, InteractiveCanvas):
     def press(self, event: MouseEvent) -> None:
         if event.button == self.brush_button:
             x, y = event.xdata, event.ydata
-            shape = self.image.get_array().shape
+            data = self.image.get_array()
+            extent = np.array(self.extent)
             # Snap to pixels
-            pxy = 1.0 / np.array([shape[1], shape[0]])
-            x, y = pxy * np.round([x, y] / pxy)
-            if self.brush["shape"] in ["square", "circle"]:
-                data = self.image.get_array()
-                pass
-            elif self.brush["shape"] == "fill":
-                pass
+            x = int(np.round(x / (extent[1] - extent[0]) * data.shape[1]))
+            y = int(np.round(y / (extent[3] - extent[2]) * data.shape[0]))
+            y = data.shape[0] - y
+            mask = self.getBrushMask(y, x)  # Opposite coords
 
-    def getBrushMask(self, x: int, y: int) -> None:
+            if np.any(mask):
+                ix, iy = np.nonzero(mask)
+                x0, x1 = np.amin(ix), np.amax(ix) + 1
+                y0, y1 = np.amin(iy), np.amax(iy) + 1
+                self.undo_states.append(DrawUndoState((x0, y0), data[x0:x1, y0:y1]))
+                data[mask] = self.brush["value"]
+                self.draw_idle()
+
+    def getBrushMask(self, x: int, y: int) -> np.ndarray:
         mask = np.zeros(self.image.get_array().shape, dtype=bool)
-        size = self.brush["size"]
+        size = int(self.brush["size"])
         if self.brush["shape"] == "circle":
-            xx, yy = np.mgrisize[:size, :size]
+            size = size - size % 2  # Must be even
+            xx, yy = np.mgrid[:size, :size]
             r = size // 2
             circle = ((xx - r) ** 2 + (yy - r) ** 2) < r ** 2
-            mask[x - r : x + size, y - r, y + size] = circle
+            x0, y0, x1, y1 = x - r, y - r, x + r, y + r
+            x0, y0 = np.amax([[x0, 0], [y0, 0]], axis=1)
+            x1, y1 = np.amin([[x1, mask.shape[0]], [y1, mask.shape[1]]], axis=1)
+            c_off = x0 - (x - r), y0 - (y - r)
+            cx1 = x1 - (x - r)
+            c_size = x1 - x0, y1 - y0
+            mask[x0:x1, y0:y1] = circle[
+                c_off[0] : cx1, c_off[1] : c_off[1] + c_size[1]
+            ]
         elif self.brush["shape"] == "square":
             mask[x - r : x + size, y - r : y + size] = True
-        elif self.brush["shape"] == "bucket":
-            value = self.image.get_array()[x, y]
-            # Get connected that have diff less than size
-
+        # elif self.brush["shape"] == "bucket":
+        #     # Get connected that have diff less than size
+        #     data = self.image.get_array()
+        #     value = data[x, y]
+        #     diff = np.abs(data - value) < size
+        #     # Shrink to area around cursor
+        #     ix, iy = np.nonzero(diff)
+        #     x0, x1 = np.amin(ix[ix < x]), np.amax(ix[ix >= x]) + 1
+        #     y0, y1 = np.amin(iy[iy < y]), np.amax(iy[iy >= y]) + 1
+        #     mask = diff[x0:x1, y0:y1]
         return mask
-
 
     def release(self, event: MouseEvent) -> None:
         pass
@@ -175,3 +198,22 @@ class DrawCanvas(LaserCanvas, InteractiveCanvas):
 
     def axes_leave(self, event: LocationEvent) -> None:
         self.cursorClear.emit()
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication()
+    w = QtWidgets.QMainWindow()
+    w.statusBar().showMessage("a")
+    canvas = DrawCanvas(ViewOptions())
+    w.setCentralWidget(canvas)
+    w.show()
+
+    import pew.io
+
+    laser = pew.io.npz.load("/home/tom/Downloads/her 00003.npz")[0]
+    canvas.drawData(laser.get("31P"), laser.extent)
+
+    canvas.brush["shape"] = "circle"
+    canvas.brush["size"] = 50
+
+    app.exec_()

@@ -236,14 +236,6 @@ class EditTool(ToolWidget):
 
         self.refresh()
 
-    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        if event.type() == QtCore.QEvent.MouseButtonDblClick and isinstance(
-            obj.parent(), LaserWidget
-        ):
-            self.widget = obj.parent()
-            self.endMouseSelect()
-        return False
-
 
 class MethodStackWidget(QtWidgets.QGroupBox):
     inputChanged = QtCore.Signal()

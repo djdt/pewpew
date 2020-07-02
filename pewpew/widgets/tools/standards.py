@@ -204,14 +204,6 @@ class StandardsTool(ToolWidget):
         self.refresh()
         self.updateResults()
 
-    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        if event.type() == QtCore.QEvent.MouseButtonDblClick and isinstance(
-            obj.parent(), LaserWidget
-        ):
-            self.widget = obj.parent()
-            self.endMouseSelect()
-        return False
-
     # Widget callbacks
     def comboIsotope(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
