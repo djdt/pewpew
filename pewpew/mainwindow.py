@@ -339,34 +339,35 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionToolStandards(self) -> None:
         widget = self.viewspace.activeWidget()
+        index = widget.index
         if isinstance(widget, ToolWidget):
             widget = widget.widget
         tool = StandardsTool(widget)
-        widget.view.addTab("Standards Tool", tool)
+        name = f"Standards: {widget.laser.name}"
+        widget.view.removeTab(index)
+        widget.view.insertTab(index, name, tool)
         tool.setActive()
-
-    # def actionToolCalculations(self) -> None:
-    #     widget = self.viewspace.activeWidget()
-    #     if isinstance(widget, ToolWidget):
-    #         widget = widget.widget
-    #     tool = CalculationsTool(widget)
-    #     widget.view.addTab("Calulations Tool", tool)
-    #     tool.setActive()
 
     def actionToolEdit(self) -> None:
         widget = self.viewspace.activeWidget()
+        index = widget.index
         if isinstance(widget, ToolWidget):
             widget = widget.widget
         tool = EditTool(widget)
-        widget.view.addTab("Edit Tool", tool)
+        name = f"Edit: {widget.laser.name}"
+        widget.view.removeTab(index)
+        widget.view.insertTab(index, name, tool)
         tool.setActive()
 
     def actionToolOverlay(self) -> None:
         widget = self.viewspace.activeWidget()
+        index = widget.index
         if isinstance(widget, ToolWidget):
             widget = widget.widget
         tool = OverlayTool(widget)
-        widget.view.addTab("Overlay Tool", tool)
+        name = f"Overlay: {widget.laser.name}"
+        widget.view.removeTab(index)
+        widget.view.insertTab(index, name, tool)
         tool.setActive()
 
     def actionTransformFlipHorz(self) -> None:

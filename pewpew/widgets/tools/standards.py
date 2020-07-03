@@ -29,7 +29,7 @@ class StandardsTool(ToolWidget):
     WEIGHTINGS = ["None", "1/σ²", "x", "1/x", "1/x²"]
 
     def __init__(self, widget: LaserWidget):
-        super().__init__(widget)
+        super().__init__(widget, apply_all=True)
         self.setWindowTitle("Calibration Tool")
 
         self.calibration: Dict[str, Calibration] = None
@@ -65,13 +65,24 @@ class StandardsTool(ToolWidget):
         self.table.model().dataChanged.connect(self.completeChanged)
         self.table.model().dataChanged.connect(self.updateResults)
 
-        self.button_apply = QtWidgets.QPushButton("Apply")
-        self.button_apply.pressed.connect(self.apply)
-        self.button_apply_all = QtWidgets.QPushButton("Apply to All")
-        self.button_apply_all.pressed.connect(self.applyAll)
-
         self.layoutWidgets()
-        self.widgetChanged()
+
+        # Initialise
+        self.calibration = copy.deepcopy(self.widget.laser.calibration)
+        # Prevent currentIndexChanged being emmited
+        self.combo_isotope.blockSignals(True)
+        self.combo_isotope.clear()
+        self.combo_isotope.addItems(self.widget.laser.isotopes)
+        self.combo_isotope.setCurrentText(self.widget.combo_isotope.currentText())
+        self.combo_isotope.blockSignals(False)
+
+        isotope = self.combo_isotope.currentText()
+        self.combo_weighting.setCurrentText(self.calibration[isotope].weighting)
+        self.lineedit_units.setText(self.calibration[isotope].unit)
+        self.table.model().setCalibration(self.calibration[isotope])
+
+        self.refresh()
+        self.updateResults()
 
     def layoutWidgets(self) -> None:
         layout_cal_form = QtWidgets.QFormLayout()
@@ -102,10 +113,6 @@ class StandardsTool(ToolWidget):
         self.layout_main.addLayout(layout_left, 0)
         self.layout_main.addLayout(layout_right, 1)
 
-        self.layout_buttons.addStretch(1)
-        self.layout_buttons.addWidget(self.button_apply, 0, QtCore.Qt.AlignRight)
-        self.layout_buttons.addWidget(self.button_apply_all, 0, QtCore.Qt.AlignRight)
-
     def apply(self) -> None:
         self.widget.applyCalibration(self.calibration)
 
@@ -114,12 +121,6 @@ class StandardsTool(ToolWidget):
 
     def isComplete(self) -> bool:
         return self.table.isComplete()
-
-    @QtCore.Slot()
-    def completeChanged(self) -> None:
-        enabled = self.isComplete()
-        self.button_apply.setEnabled(enabled)
-        self.button_apply_all.setEnabled(enabled)
 
     def refresh(self) -> None:
         isotope = self.combo_isotope.currentText()
@@ -183,26 +184,6 @@ class StandardsTool(ToolWidget):
             isotope = self.combo_isotope.currentText()
             self.calibration[isotope].update_linreg()
             self.results_box.update(self.calibration[isotope])
-
-    def widgetChanged(self) -> None:
-        self.label_current.setText(self.widget.laser.name)
-
-        self.calibration = copy.deepcopy(self.widget.laser.calibration)
-        # Prevent currentIndexChanged being emmited
-        self.combo_isotope.blockSignals(True)
-        self.combo_isotope.clear()
-        self.combo_isotope.addItems(self.widget.laser.isotopes)
-        self.combo_isotope.setCurrentText(self.widget.combo_isotope.currentText())
-        self.combo_isotope.blockSignals(False)
-
-        isotope = self.combo_isotope.currentText()
-        self.combo_weighting.setCurrentText(self.calibration[isotope].weighting)
-        self.lineedit_units.setText(self.calibration[isotope].unit)
-        self.table.model().setCalibration(self.calibration[isotope])
-
-        self.canvas.v_guides = []  # Clear so that they get redrawn
-        self.refresh()
-        self.updateResults()
 
     # Widget callbacks
     def comboIsotope(self, text: str) -> None:

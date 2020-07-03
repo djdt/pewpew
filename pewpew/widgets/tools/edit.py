@@ -65,11 +65,6 @@ class EditTool(ToolWidget):
             self.actionTransformRotateRight,
         )
 
-        self.button_apply = QtWidgets.QPushButton("Apply")
-        self.button_apply.pressed.connect(self.apply)
-        # self.button_apply_all = QtWidgets.QPushButton("Apply To All")
-        # self.button_apply_all.pressed.connect(self.applyAll)
-
         self.canvas = LaserCanvas(self.viewspace.options, parent=self)
 
         self.button_transform_flip_horizontal = qToolButton(
@@ -89,18 +84,23 @@ class EditTool(ToolWidget):
         self.combo_method.addItems(EditTool.METHODS)
 
         self.calculator_method = CalculatorMethod(self)
+        self.calculator_method.inputChanged.connect(self.completeChanged)
         self.calculator_method.inputChanged.connect(self.refresh)
 
         self.convolve_method = ConvolveMethod(self)
+        self.convolve_method.inputChanged.connect(self.completeChanged)
         self.convolve_method.inputChanged.connect(self.refresh)
 
         self.deconvolve_method = DeconvolveMethod(self)
+        self.deconvolve_method.inputChanged.connect(self.completeChanged)
         self.deconvolve_method.inputChanged.connect(self.refresh)
 
         self.filter_method = FilterMethod(self)
+        self.filter_method.inputChanged.connect(self.completeChanged)
         self.filter_method.inputChanged.connect(self.refresh)
 
         self.transform_method = TransformMethod(self)
+        self.transform_method.inputChanged.connect(self.completeChanged)
         self.transform_method.inputChanged.connect(self.refresh)
 
         self.method_stack = QtWidgets.QStackedWidget()
@@ -113,10 +113,12 @@ class EditTool(ToolWidget):
         self.combo_method.currentIndexChanged.connect(self.setCurrentMethod)
 
         self.combo_isotope = QtWidgets.QComboBox()
+        self.combo_isotope.currentIndexChanged.connect(self.completeChanged)
         self.combo_isotope.currentIndexChanged.connect(self.refresh)
         self.combo_isotope.setEnabled(False)
 
         layout_methods = QtWidgets.QVBoxLayout()
+        layout_methods.addWidget(self.combo_method, 0, QtCore.Qt.AlignLeft)
         layout_methods.addWidget(self.method_stack)
 
         canvas_box = QtWidgets.QGroupBox("Preview")
@@ -135,15 +137,10 @@ class EditTool(ToolWidget):
         layout_canvas_bar.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
 
         layout_canvas.addLayout(layout_canvas_bar)
-        # layout_canvas.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
-
-        self.layout_top.insertWidget(0, self.combo_method, 0, QtCore.Qt.AlignLeft)
 
         self.layout_main.setDirection(QtWidgets.QBoxLayout.LeftToRight)
         self.layout_main.addLayout(layout_methods, 0)
         self.layout_main.addLayout(layout_canvas, 1)
-
-        self.layout_buttons.addWidget(self.button_apply, 0, QtCore.Qt.AlignRight)
 
         self.widgetChanged()
 
@@ -171,6 +168,9 @@ class EditTool(ToolWidget):
             stack.apply()
         self.widgetChanged()
 
+    def isComplete(self) -> bool:
+        return self.method_stack.currentWidget().isComplete()
+
     def previewData(self, isotope: str = None) -> np.ndarray:
         data = self.widget.laser.get(isotope, flat=True, calibrated=False)
 
@@ -185,7 +185,6 @@ class EditTool(ToolWidget):
     def refresh(self) -> None:
         stack: MethodStackWidget = self.method_stack.currentWidget()
         if not stack.isComplete():  # Not ready for update to preview
-            self.button_apply.setEnabled(False)
             return
 
         isotope = self.combo_isotope.currentText()
@@ -194,7 +193,6 @@ class EditTool(ToolWidget):
         else:
             data = stack.previewData(self.previewData(isotope))
         if data is None:
-            self.button_apply.setEnabled(False)
             return
 
         self.canvas.drawData(
@@ -215,16 +213,13 @@ class EditTool(ToolWidget):
             self.canvas.scalebar.remove()
             self.canvas.scalebar = None
 
-        self.button_apply.setEnabled(True)
-
     def setCurrentMethod(self, method: int) -> None:
         self.method_stack.setCurrentIndex(method)
         self.combo_isotope.setEnabled(not self.method_stack.currentWidget().full_data)
         self.refresh()
 
     def widgetChanged(self) -> None:
-        self.label_current.setText(self.widget.laser.name)
-        # Prevent currentIndexChanged being emmited
+        # Prevent currentIndexChanged being emitted
         self.combo_isotope.blockSignals(True)
         self.combo_isotope.clear()
         self.combo_isotope.addItems(self.widget.laser.isotopes)
@@ -612,9 +607,9 @@ class ConvolveMethod(MethodStackWidget):
         return [float(le.text()) for le in self.lineedit_kparams if le.isEnabled()]
 
     def initialise(self) -> None:
-        if self.lineedit_ksize.text() == "":
+        if not self.lineedit_ksize.hasAcceptableInput():
             self.lineedit_ksize.setText("8")
-        if self.lineedit_kscale.text() == "":
+        if not self.lineedit_kscale.hasAcceptableInput():
             self.lineedit_kscale.setText("1.0")
 
         self.kernelChanged()
@@ -775,7 +770,8 @@ class FilterMethod(MethodStackWidget):
         return [float(le.text()) for le in self.lineedit_fparams if le.isVisible()]
 
     def initialise(self) -> None:
-        self.lineedit_fsize.setText("5")
+        if not self.lineedit_fsize.hasAcceptableInput():
+            self.lineedit_fsize.setText("5")
 
         self.filterChanged()
 
