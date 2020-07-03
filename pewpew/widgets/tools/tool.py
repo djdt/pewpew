@@ -74,6 +74,7 @@ class ToolWidget(_ViewWidget):
     def restoreWidget(self) -> None:
         self.view.insertTab(self.index, self.widget.laser.name, self.widget)
         self.view.removeTab(self.index)
+        self.widget.setActive()
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(800, 600)
