@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew.widgets.views import _ViewWidget
 
@@ -26,7 +26,7 @@ class ToolWidget(_ViewWidget):
             self.button_apply_all = self.button_box.addButton(
                 "Apply All", QtWidgets.QDialogButtonBox.ApplyRole
             )
-            # self.button_apply_all.setIcon
+            self.button_apply_all.setIcon(QtGui.QIcon.fromTheme("dialog-ok-apply"))
             self.button_apply_all.clicked.connect(self.applyAll)
 
         layout = QtWidgets.QVBoxLayout()

@@ -408,6 +408,10 @@ class _ViewWidget(QtWidgets.QWidget):
     def index(self) -> int:
         return self.view.stack.indexOf(self)
 
+    @property
+    def name(self) -> str:
+        return self.view.tabs.tabText(self.index)
+
     def refresh(self) -> None:  # pragma: no cover
         raise NotImplementedError
 

@@ -16,7 +16,7 @@ from pewpew.validators import PercentOrDecimalValidator
 from pewpew.lib.mpltools import MetricSizeBar
 from pewpew.lib.viewoptions import ViewOptions
 
-from pewpew.widgets.canvases import BasicCanvas, LaserCanvas
+from pewpew.widgets.canvases import BasicCanvas
 from pewpew.widgets.exportdialogs import _ExportDialogBase, PngOptionsBox
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.prompts import OverwriteFilePrompt
@@ -29,10 +29,13 @@ class OverlayTool(ToolWidget):
     model_type = {"any": "additive", "cmyk": "subtractive", "rgb": "additive"}
 
     def __init__(self, widget: LaserWidget):
-        super().__init__(widget)
+        super().__init__(widget, apply_all=False)
         self.setWindowTitle("Image Overlay Tool")
 
+        self.button_box.clear()
+
         self.button_save = QtWidgets.QPushButton("Export")
+        self.button_save.setIcon(QtGui.QIcon.fromTheme("document-export"))
         self.button_save.pressed.connect(self.openExportDialog)
 
         self.canvas = OverlayCanvas(self.viewspace.options)
@@ -70,9 +73,8 @@ class OverlayTool(ToolWidget):
         self.layout_main.addWidget(self.rows, 0)
         self.layout_main.addWidget(self.check_normalise, 0)
 
-        self.layout_buttons.addWidget(self.button_save, 0, QtCore.Qt.AlignRight)
-
-        self.widgetChanged()
+        self.button_box.addButton(self.button_save, QtWidgets.QDialogButtonBox.YesRole)
+        self.button_box.addButton(QtWidgets.QDialogButtonBox.Cancel)
 
     def isComplete(self) -> bool:
         return self.rows.rowCount() > 0
@@ -170,19 +172,6 @@ class OverlayTool(ToolWidget):
             self.canvas.figure.savefig(
                 path, dpi=300, bbox_inches="tight", transparent=True, facecolor=None
             )
-
-    def widgetChanged(self) -> None:
-        self.label_current.setText(self.widget.laser.name)
-
-        for row in self.rows:
-            row.close()
-
-        self.combo_add.clear()
-        self.combo_add.addItem("Add Isotope")
-        self.combo_add.addItems(self.widget.laser.isotopes)
-
-        self.completeChanged()
-        self.refresh()
 
 
 class OverlayCanvas(BasicCanvas):
