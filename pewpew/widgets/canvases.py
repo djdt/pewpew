@@ -74,10 +74,66 @@ class BasicCanvas(FigureCanvasQTAgg):
         return QtCore.QSize(250, 250)
 
 
-class InteractiveCanvas(BasicCanvas):
+class ImageCanvas(BasicCanvas):
     def __init__(
         self,
         figsize: Tuple[float, float] = (5.0, 5.0),
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(figsize, parent)
+        self.image: AxesImage = None
+
+    def redrawFigure(self) -> None:
+        view_limits = self.view_limits if self.ax is not None else None
+
+        self.figure.clear()
+        self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=False)
+        self.ax.get_xaxis().set_visible(False)
+        self.ax.get_yaxis().set_visible(False)
+
+        if view_limits is not None:
+            self.view_limits = view_limits
+
+    @property
+    def extent(self) -> Tuple[float, float, float, float]:
+        if self.image is None:
+            return (0.0, 0.0, 0.0, 0.0)
+        else:
+            return self.image.get_extent()
+
+    @property
+    def view_limits(self) -> Tuple[float, float, float, float]:
+        x0, x1, = self.ax.get_xlim()
+        y0, y1 = self.ax.get_ylim()
+        return x0, x1, y0, y1
+
+    @view_limits.setter
+    def view_limits(self, limits: Tuple[float, float, float, float]) -> None:
+        x0, x1, y0, y1 = limits
+        self.ax.set_xlim(x0, x1)
+        self.ax.set_ylim(y0, y1)
+        self.draw_idle()
+
+    def saveRawImage(self, path: str, pixel_size: int = 1) -> None:
+        vmin, vmax = self.image.get_clim()
+
+        imsave(
+            path,
+            self.image.get_array(),
+            vmin=vmin,
+            vmax=vmax,
+            cmap=self.image.cmap,
+            origin=self.image.origin,
+            dpi=100,
+        )
+
+
+class InteractiveImageCanvas(ImageCanvas):
+    def __init__(
+        self,
+        figsize: Tuple[float, float] = (5.0, 5.0),
+        move_button: int = None,
+        widget_button: int = None,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(figsize, parent)
@@ -96,6 +152,11 @@ class InteractiveCanvas(BasicCanvas):
 
         for event, callback in self.default_events.items():
             self.connect_event(event, callback)
+
+        self.state = set(["move", "scroll"])
+
+        self.move_button = move_button
+        self.widget_button = widget_button
 
         self.widget: AxesWidget = None
         self.picked_artist: Artist = None
@@ -167,7 +228,20 @@ class InteractiveCanvas(BasicCanvas):
         self.move(event)
 
     def move(self, event: MouseEvent) -> None:
-        raise NotImplementedError
+        if "zoom" in self.state and event.button == self.move_button:
+            x1, x2, y1, y2 = self.view_limits
+            xmin, xmax, ymin, ymax = self.extent
+            dx = self.eventpress.xdata - event.xdata
+            dy = self.eventpress.ydata - event.ydata
+
+            # Move in opposite direction to drag
+            if x1 + dx > xmin and x2 + dx < xmax:
+                x1 += dx
+                x2 += dx
+            if y1 + dy > ymin and y2 + dy < ymax:
+                y1 += dy
+                y2 += dy
+            self.view_limits = x1, x2, y1, y2
 
     def _pick(self, event: PickEvent) -> None:
         if self.ignore_event(event.mouseevent):
@@ -184,56 +258,76 @@ class InteractiveCanvas(BasicCanvas):
         self.scroll(event)
 
     def scroll(self, event: MouseEvent) -> None:
-        raise NotImplementedError
+        if "scroll" not in self.state:
+            return
+        zoom_factor = 0.1 * event.step
+
+        x1, x2, y1, y2 = self.view_limits
+
+        x1 = x1 + (event.xdata - x1) * zoom_factor
+        x2 = x2 - (x2 - event.xdata) * zoom_factor
+        y1 = y1 + (event.ydata - y1) * zoom_factor
+        y2 = y2 - (y2 - event.ydata) * zoom_factor
+
+        if x1 > x2 or y1 > y2:
+            return
+
+        xmin, xmax, ymin, ymax = self.extent
+
+        # If (un)zoom overlaps an edge attempt to shift it
+        if x1 < xmin:
+            x1, x2 = xmin, min(xmax, x2 + (xmin - x1))
+        if x2 > xmax:
+            x1, x2 = max(xmin, x1 - (x2 - xmax)), xmax
+
+        if y1 < ymin:
+            y1, y2 = ymin, min(ymax, y2 + (ymin - y1))
+        if y2 > ymax:
+            y1, y2 = max(ymin, y1 - (y2 - ymax)), ymax
+
+        if (x1, x2, y1, y2) != self.extent:
+            self.state.add("zoom")
+        else:
+            self.state.discard("zoom")
+        self.view_limits = x1, x2, y1, y2
 
 
-class LaserCanvas(BasicCanvas):
+class LaserImageCanvas(InteractiveImageCanvas):
+    cursorClear = QtCore.Signal()
+    cursorMoved = QtCore.Signal(float, float, float)
+
     def __init__(
         self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
     ) -> None:
         super().__init__(parent=parent)
         self.viewoptions = viewoptions
 
-        self.redrawFigure()
-        self.image: AxesImage = None
+        self.cax: Axes = None
+
         self.label: AnchoredText = None
         self.scalebar: MetricSizeBar = None
 
-    @property
-    def extent(self) -> Tuple[float, float, float, float]:
-        if self.image is None:
-            return (0, 0, 0, 0)
-        return self.image.get_extent()
-
-    @property
-    def view_limits(self) -> Tuple[float, float, float, float]:
-        x0, x1, = self.ax.get_xlim()
-        y0, y1 = self.ax.get_ylim()
-        return x0, x1, y0, y1
-
-    @view_limits.setter
-    def view_limits(self, limits: Tuple[float, float, float, float]) -> None:
-        x0, x1, y0, y1 = limits
-        self.ax.set_xlim(x0, x1)
-        self.ax.set_ylim(y0, y1)
-        self.draw_idle()
+        self.redrawFigure()
 
     def redrawFigure(self) -> None:
-        # Restore view limits
-        view_limits = self.view_limits if self.ax is not None else None
-
-        self.figure.clear()
-        self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=False)
-        self.ax.get_xaxis().set_visible(False)
-        self.ax.get_yaxis().set_visible(False)
+        super().redrawFigure()
         if self.viewoptions.canvas.colorbar:
             div = make_axes_locatable(self.ax)
             self.cax = div.append_axes(
                 self.viewoptions.canvas.colorbarpos, size=0.1, pad=0.05
             )
 
-        if view_limits is not None:
-            self.view_limits = view_limits
+    def move(self, event: MouseEvent) -> None:
+        super().move(event)
+        if self.image is not None:
+            # Update the status bar
+            x, y = event.xdata, event.ydata
+            v = self.image.get_cursor_data(event)
+            self.cursorMoved.emit(x, y, v)
+
+    def axes_leave(self, event: LocationEvent) -> None:
+        super().axes_leave(event)
+        self.cursorClear.emit()
 
     def drawColorbar(self, label: str) -> None:
         self.cax.clear()
@@ -241,6 +335,7 @@ class LaserCanvas(BasicCanvas):
             orientation = "vertical"
         else:
             orientation = "horizontal"
+
         self.figure.colorbar(
             self.image,
             label=label,
@@ -346,23 +441,8 @@ class LaserCanvas(BasicCanvas):
             self.scalebar.remove()
             self.scalebar = None
 
-    def saveRawImage(self, path: str, pixel_size: int = 1) -> None:
-        vmin, vmax = self.image.get_clim()
-
-        imsave(
-            path,
-            self.image.get_array(),
-            vmin=vmin,
-            vmax=vmax,
-            cmap=self.image.cmap,
-            origin=self.image.origin,
-            dpi=100,
-        )
-
 
 class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
-    cursorClear = QtCore.Signal()
-    cursorMoved = QtCore.Signal(float, float, float)
 
     def __init__(
         self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
