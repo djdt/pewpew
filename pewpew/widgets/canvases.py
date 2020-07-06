@@ -129,6 +129,9 @@ class ImageCanvas(BasicCanvas):
 
 
 class InteractiveImageCanvas(ImageCanvas):
+    cursorClear = QtCore.Signal()
+    cursorMoved = QtCore.Signal(float, float, float)
+
     def __init__(
         self,
         figsize: Tuple[float, float] = (5.0, 5.0),
@@ -161,6 +164,12 @@ class InteractiveImageCanvas(ImageCanvas):
         self.widget: AxesWidget = None
         self.picked_artist: Artist = None
 
+    def redrawFigure(self) -> None:
+        super().redrawFigure()
+        # Update widget ax
+        if self.widget is not None:
+            self.widget.ax = self.ax
+
     def close(self) -> None:
         self.disconnect_events()
         super().close()
@@ -186,7 +195,7 @@ class InteractiveImageCanvas(ImageCanvas):
         self.axes_enter(event)
 
     def axes_enter(self, event: LocationEvent) -> None:
-        raise NotImplementedError
+        pass
 
     def _axes_leave(self, event: LocationEvent) -> None:
         if self.ignore_event(event):
@@ -194,7 +203,7 @@ class InteractiveImageCanvas(ImageCanvas):
         self.axes_leave(event)
 
     def axes_leave(self, event: LocationEvent) -> None:
-        raise NotImplementedError
+        self.cursorClear.emit()
 
     def _press(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
@@ -203,7 +212,7 @@ class InteractiveImageCanvas(ImageCanvas):
         self.press(event)
 
     def press(self, event: MouseEvent) -> None:
-        raise NotImplementedError
+        pass
 
     def _release(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
@@ -212,7 +221,7 @@ class InteractiveImageCanvas(ImageCanvas):
         self.release(event)
 
     def release(self, event: MouseEvent) -> None:
-        raise NotImplementedError
+        pass
 
     def _keypress(self, event: KeyEvent) -> None:
         if self.ignore_event(event):
@@ -220,7 +229,7 @@ class InteractiveImageCanvas(ImageCanvas):
         self.keypress(event)
 
     def keypress(self, event: KeyEvent) -> None:
-        raise NotImplementedError
+        pass
 
     def _move(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
@@ -228,7 +237,10 @@ class InteractiveImageCanvas(ImageCanvas):
         self.move(event)
 
     def move(self, event: MouseEvent) -> None:
-        if "zoom" in self.state and event.button == self.move_button:
+        if (
+            all(state in self.state for state in ["move", "zoom"])
+            and event.button == self.move_button
+        ):
             x1, x2, y1, y2 = self.view_limits
             xmin, xmax, ymin, ymax = self.extent
             dx = self.eventpress.xdata - event.xdata
@@ -243,6 +255,12 @@ class InteractiveImageCanvas(ImageCanvas):
                 y2 += dy
             self.view_limits = x1, x2, y1, y2
 
+        if self.image is not None:
+            # Update the status bar
+            x, y = event.xdata, event.ydata
+            v = self.image.get_cursor_data(event)
+            self.cursorMoved.emit(x, y, v)
+
     def _pick(self, event: PickEvent) -> None:
         if self.ignore_event(event.mouseevent):
             return
@@ -250,7 +268,7 @@ class InteractiveImageCanvas(ImageCanvas):
         self.onpick(event)
 
     def onpick(self, event: PickEvent) -> None:
-        raise NotImplementedError
+        pass
 
     def _scroll(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
@@ -291,23 +309,105 @@ class InteractiveImageCanvas(ImageCanvas):
             self.state.discard("zoom")
         self.view_limits = x1, x2, y1, y2
 
+    def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
+        self.widget = None
+        self.view_limits = (press.xdata, release.xdata, press.ydata, release.ydata)
+        self.state.add("zoom")
 
-class LaserImageCanvas(InteractiveImageCanvas):
-    cursorClear = QtCore.Signal()
-    cursorMoved = QtCore.Signal(float, float, float)
+    def unzoom(self) -> None:
+        self.view_limits = self.extent
+        self.state.discard("zoom")
 
+
+class SelectableImageCanvas(InteractiveImageCanvas):
     def __init__(
-        self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
+        self,
+        move_button: int = None,
+        widget_button: int = None,
+        selection_rgba: Tuple[int, int, int, int] = (255, 0, 0, 255),
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(
+            move_button=move_button, widget_button=widget_button, parent=parent
+        )
+
+        self.selection: np.ndarray = None
+        self.selection_image: AxesImage = None
+        self.selection_rgba = np.array(selection_rgba, dtype=np.uint8)
+
+    def drawSelection(self) -> None:
+        if self.selection_image is not None:
+            self.selection_image.remove()
+            self.selection_image = None
+
+        # Selection is empty
+        if self.selection is None or np.all(self.selection == 0):
+            return
+
+        assert self.selection.dtype == np.bool
+        assert self.image is not None
+
+        image = np.zeros((*self.selection.shape[:2], 4), dtype=np.uint8)
+        image[self.selection] = self.selection_rgba
+        self.selection_image = self.ax.imshow(
+            image,
+            extent=self.image.get_extent(),
+            transform=self.image.get_transform(),
+            interpolation="none",
+            origin=self.image.origin,
+        )
+
+    def updateAndDrawSelection(self, mask: np.ndarray, state: set = None) -> None:
+        if "add" in state and self.selection is not None:
+            self.selection = np.logical_or(self.selection, mask)
+        elif "subtract" in state and self.selection is not None:
+            self.selection = np.logical_and(self.selection, ~mask)
+        else:
+            self.selection = mask
+
+        self.drawSelection()
+        self.draw_idle()
+
+    def clearSelection(self) -> None:
+        # if self.widget is not None:
+        #     self.widget.set_active(False)
+        #     self.widget.set_visible(False)
+        #     self.widget.update()
+        #     self.draw_idle()
+        self.state.discard("selection")
+        self.selection = None
+        self.widget = None
+
+    def getMaskedData(self) -> np.ndarray:
+        data = self.image.get_array()
+        mask = self.selection
+        if mask is not None and not np.all(mask):
+            ix, iy = np.nonzero(mask)
+            x0, x1, y0, y1 = np.min(ix), np.max(ix) + 1, np.min(iy), np.max(iy) + 1
+            data = np.where(mask[x0:x1, y0:y1], data[x0:x1, y0:y1], np.nan)
+        return data
+
+
+class LaserImageCanvas(SelectableImageCanvas):
+    def __init__(
+        self,
+        viewoptions: ViewOptions,
+        move_button: int = 1,
+        widget_button: int = 0,
+        selection_rgba: Tuple[int, int, int, int] = (255, 0, 0, 255),
+        parent: QtWidgets.QWidget = None,
     ) -> None:
-        super().__init__(parent=parent)
+        super().__init__(
+            move_button=move_button,
+            widget_button=widget_button,
+            selection_rgba=selection_rgba,
+            parent=parent,
+        )
         self.viewoptions = viewoptions
 
         self.cax: Axes = None
-
         self.label: AnchoredText = None
         self.scalebar: MetricSizeBar = None
-
-        self.redrawFigure()
 
     def redrawFigure(self) -> None:
         super().redrawFigure()
@@ -316,18 +416,6 @@ class LaserImageCanvas(InteractiveImageCanvas):
             self.cax = div.append_axes(
                 self.viewoptions.canvas.colorbarpos, size=0.1, pad=0.05
             )
-
-    def move(self, event: MouseEvent) -> None:
-        super().move(event)
-        if self.image is not None:
-            # Update the status bar
-            x, y = event.xdata, event.ydata
-            v = self.image.get_cursor_data(event)
-            self.cursorMoved.emit(x, y, v)
-
-    def axes_leave(self, event: LocationEvent) -> None:
-        super().axes_leave(event)
-        self.cursorClear.emit()
 
     def drawColorbar(self, label: str) -> None:
         self.cax.clear()
@@ -441,17 +529,14 @@ class LaserImageCanvas(InteractiveImageCanvas):
             self.scalebar.remove()
             self.scalebar = None
 
+        # Selection drawing all handled in SelectableImageCanvas
+        self.drawSelection()
 
-class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
 
+class LaserWidgetImageCanvas(LaserImageCanvas):
     def __init__(
         self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
     ) -> None:
-        super().__init__(viewoptions=viewoptions, parent=parent)
-
-        self.state = set(["move"])
-        self.move_button = 1
-        self.widget_button = 1
 
         shadow = self.palette().color(QtGui.QPalette.Shadow)
         highlight = self.palette().color(QtGui.QPalette.Highlight)
@@ -471,69 +556,25 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             "linewidth": 1.1,
             "path_effects": [lineshadow, Normal()],
         }
-
-        self.selection: np.ndarray = None
-        self.selection_image: AxesImage = None
-        self.selection_rgba = np.array(
-            [highlight.red(), highlight.green(), highlight.blue(), 255 * 0.8],
-            dtype=np.uint8,
+        rgba = (highlight.red(), highlight.green(), highlight.blue(), 200)
+        super().__init__(
+            viewoptions=viewoptions,
+            move_button=1,
+            widget_button=1,
+            selection_rgba=rgba,
+            parent=parent,
         )
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key_Escape:
-            self.endSelection()
+            self.widget = None  # End any widget
         super().keyPressEvent(event)
 
-    def redrawFigure(self) -> None:
-        super().redrawFigure()
-        if self.widget is not None:
-            self.widget.ax = self.ax
-
-    def drawSelection(self) -> None:
-        if self.selection_image is not None:
-            self.selection_image.remove()
-            self.selection_image = None
-
-        if self.selection is None or np.all(self.selection == 0):
-            return
-
-        assert self.selection.dtype == np.bool
-
-        image = np.zeros((*self.selection.shape[:2], 4), dtype=np.uint8)
-        image[self.selection] = self.selection_rgba
-        self.selection_image = self.ax.imshow(
-            image,
-            extent=self.image.get_extent(),
-            transform=self.image.get_transform(),
-            interpolation="none",
-            origin=self.image.origin,
-        )
-
-    def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
-        super().drawLaser(laser, name, layer)
-        self.drawSelection()
-
-    def endSelection(self) -> None:
-        if self.widget is not None:
-            self.widget = None
-
-    def updateSelectionFromWidget(self, mask: np.ndarray, state: set = None) -> None:
-        if "add" in state and self.selection is not None:
-            self.selection = np.logical_or(self.selection, mask)
-        elif "subtract" in state and self.selection is not None:
-            self.selection = np.logical_and(self.selection, ~mask)
-        else:
-            self.selection = mask
-
-        self.drawSelection()
-        self.draw_idle()
-
     def startLassoSelection(self) -> None:
-        self.endSelection()
         self.state.add("selection")
         self.widget = LassoImageSelectionWidget(
             self.image,
-            self.updateSelectionFromWidget,
+            self.updateAndDrawSelection,
             useblit=True,
             button=self.widget_button,
             lineprops=self.lineprops,
@@ -542,46 +583,16 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         self.setFocus(QtCore.Qt.NoFocusReason)
 
     def startRectangleSelection(self) -> None:
-        self.endSelection()
         self.state.add("selection")
         self.widget = RectangleImageSelectionWidget(
             self.image,
-            self.updateSelectionFromWidget,
+            self.updateAndDrawSelection,
             useblit=True,
             button=self.widget_button,
             lineprops=self.lineprops,
         )
         self.widget.set_active(True)
         self.setFocus(QtCore.Qt.NoFocusReason)
-
-    def clearSelection(self) -> None:
-        if self.widget is not None:
-            self.widget.set_active(False)
-            self.widget.set_visible(False)
-            self.widget.update()
-            self.draw_idle()
-        self.state.discard("selection")
-        self.selection = None
-        self.widget = None
-        self.drawSelection()
-        self.draw_idle()
-
-    def setSelection(self, mask: np.ndarray) -> None:
-        self.selection = mask
-        self.drawSelection()
-        self.draw_idle()
-
-    def getSelection(self) -> np.ndarray:
-        return self.selection
-
-    def getMaskedData(self) -> np.ndarray:
-        data = self.image.get_array()
-        mask = self.getSelection()
-        if mask is not None and not np.all(mask):
-            ix, iy = np.nonzero(mask)
-            x0, x1, y0, y1 = np.min(ix), np.max(ix) + 1, np.min(iy), np.max(iy) + 1
-            data = np.where(mask[x0:x1, y0:y1], data[x0:x1, y0:y1], np.nan)
-        return data
 
     def startRuler(self) -> None:
         self.clearSelection()
@@ -598,80 +609,6 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
         self.widget.set_active(True)
         self.setFocus(QtCore.Qt.NoFocusReason)
 
-    def ignore_event(self, event: LocationEvent) -> bool:
-        if event.name in ["key_press_event"]:
-            return True
-        return super().ignore_event(event)
-
-    def press(self, event: MouseEvent) -> None:
-        pass
-
-    def release(self, event: MouseEvent) -> None:
-        pass
-
-    def move(self, event: MouseEvent) -> None:
-        if (
-            all(state in self.state for state in ["move", "zoom"])
-            # and "selection" not in self.state
-            and event.button == self.move_button
-        ):
-            x1, x2, y1, y2 = self.view_limits
-            xmin, xmax, ymin, ymax = self.extent
-            dx = self.eventpress.xdata - event.xdata
-            dy = self.eventpress.ydata - event.ydata
-
-            # Move in opposite direction to drag
-            if x1 + dx > xmin and x2 + dx < xmax:
-                x1 += dx
-                x2 += dx
-            if y1 + dy > ymin and y2 + dy < ymax:
-                y1 += dy
-                y2 += dy
-            self.view_limits = x1, x2, y1, y2
-
-        # Update the status bar
-        x, y = event.xdata, event.ydata
-        v = self.image.get_cursor_data(event)
-        self.cursorMoved.emit(x, y, v)
-
-    def scroll(self, event: MouseEvent) -> None:
-        zoom_factor = 0.1 * event.step
-
-        x1, x2, y1, y2 = self.view_limits
-
-        x1 = x1 + (event.xdata - x1) * zoom_factor
-        x2 = x2 - (x2 - event.xdata) * zoom_factor
-        y1 = y1 + (event.ydata - y1) * zoom_factor
-        y2 = y2 - (y2 - event.ydata) * zoom_factor
-
-        if x1 > x2 or y1 > y2:
-            return
-
-        xmin, xmax, ymin, ymax = self.extent
-
-        # If (un)zoom overlaps an edge attempt to shift it
-        if x1 < xmin:
-            x1, x2 = xmin, min(xmax, x2 + (xmin - x1))
-        if x2 > xmax:
-            x1, x2 = max(xmin, x1 - (x2 - xmax)), xmax
-
-        if y1 < ymin:
-            y1, y2 = ymin, min(ymax, y2 + (ymin - y1))
-        if y2 > ymax:
-            y1, y2 = max(ymin, y1 - (y2 - ymax)), ymax
-
-        if (x1, x2, y1, y2) != self.extent:
-            self.state.add("zoom")
-        else:
-            self.state.discard("zoom")
-        self.view_limits = x1, x2, y1, y2
-
-    def axes_enter(self, event: LocationEvent) -> None:
-        pass
-
-    def axes_leave(self, event: LocationEvent) -> None:
-        self.cursorClear.emit()
-
     def startZoom(self) -> None:
         self.widget = RectangleSelector(
             self.ax,
@@ -682,12 +619,3 @@ class InteractiveLaserCanvas(LaserCanvas, InteractiveCanvas):
             rectprops=self.rectprops,
         )
         self.widget.set_active(True)
-
-    def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
-        self.widget = None
-        self.view_limits = (press.xdata, release.xdata, press.ydata, release.ydata)
-        self.state.add("zoom")
-
-    def unzoom(self) -> None:
-        self.state.discard("zoom")
-        self.view_limits = self.extent
