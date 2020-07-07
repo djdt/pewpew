@@ -27,10 +27,11 @@ Tool Rebuild
 ------------
 _Currently the tool system opens a new view for the tool, this is really not required since access to the original laser and tool at once should not be needed. Instead, when the tool opens the laser view should close (move to tool) and then back to laser once tool is done._
 Requires:
-    * Remove tool widget selection and button
-    * Add 'OK' button to return to widget.
-    * Implement the move, zoom and status bar updates in tool.
-        * These should be added to InteractiveCanvas (with move/scroll_button as None/0).
+    * ~~Remove tool widget selection and button~~
+    * ~~Add 'OK' button to return to widget.~~
+    * ~~Implement the move, zoom and status bar updates in tool.~~
+        * ~~These should be added to InteractiveCanvas (with move/scroll_button as None/0).~~
+    * Close tab button should revert to original image (as cancel does)
 
 Info Dialog Rebuild
 -------------------
