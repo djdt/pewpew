@@ -5,7 +5,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from pew import io
 from pew.laser import Laser
 
-from pewpew.widgets.canvases import LaserCanvas
+from pewpew.widgets.canvases import LaserImageCanvas
 from pewpew.widgets.prompts import OverwriteFilePrompt
 from pewpew.widgets.views import _ViewWidget
 
@@ -382,7 +382,7 @@ class ExportDialog(_ExportDialogBase):
                 io.csv.save(path, data)
 
         elif option.ext == ".png":
-            canvas = LaserCanvas(widget.canvas.viewoptions, self)
+            canvas = LaserImageCanvas(widget.canvas.viewoptions, parent=self)
             if isotope in widget.laser.isotopes:
                 canvas.drawLaser(widget.laser, isotope)
                 if option.raw():
