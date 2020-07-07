@@ -12,7 +12,7 @@ from pewpew.actions import qAction, qToolButton
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
-from pewpew.widgets.canvases import BasicCanvas, LaserCanvas
+from pewpew.widgets.canvases import BasicCanvas, LaserImageCanvas
 from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import ToolWidget
@@ -65,7 +65,10 @@ class EditTool(ToolWidget):
             self.actionTransformRotateRight,
         )
 
-        self.canvas = LaserCanvas(self.viewspace.options, parent=self)
+        self.canvas = LaserImageCanvas(
+            self.viewspace.options, move_button=2, parent=self
+        )
+        self.canvas.redrawFigure()
 
         self.button_transform_flip_horizontal = qToolButton(
             action=self.action_transform_flip_horizontal

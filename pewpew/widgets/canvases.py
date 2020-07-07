@@ -8,21 +8,15 @@ from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent, PickEv
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from matplotlib.image import AxesImage, imsave
-from matplotlib.patheffects import Normal, SimpleLineShadow
 from matplotlib.offsetbox import AnchoredText
 from matplotlib.ticker import MaxNLocator
-from matplotlib.widgets import AxesWidget, RectangleSelector
+from matplotlib.widgets import AxesWidget
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from pew.laser import Laser
 
 from pewpew.lib.mpltools import MetricSizeBar
-from pewpew.lib.mplwidgets import (
-    RectangleImageSelectionWidget,
-    LassoImageSelectionWidget,
-    RulerWidget,
-)
 from pewpew.lib.viewoptions import ViewOptions
 
 from typing import Callable, List, Tuple
@@ -392,8 +386,8 @@ class LaserImageCanvas(SelectableImageCanvas):
     def __init__(
         self,
         viewoptions: ViewOptions,
-        move_button: int = 1,
-        widget_button: int = 0,
+        move_button: int = None,
+        widget_button: int = None,
         selection_rgba: Tuple[int, int, int, int] = (255, 0, 0, 255),
         parent: QtWidgets.QWidget = None,
     ) -> None:
@@ -531,91 +525,3 @@ class LaserImageCanvas(SelectableImageCanvas):
 
         # Selection drawing all handled in SelectableImageCanvas
         self.drawSelection()
-
-
-class LaserWidgetImageCanvas(LaserImageCanvas):
-    def __init__(
-        self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
-    ) -> None:
-
-        shadow = self.palette().color(QtGui.QPalette.Shadow)
-        highlight = self.palette().color(QtGui.QPalette.Highlight)
-        lineshadow = SimpleLineShadow(
-            offset=(0.5, -0.5), alpha=0.66, shadow_color=shadow.name()
-        )
-        self.rectprops = {
-            "edgecolor": highlight.name(),
-            "facecolor": "none",
-            "linestyle": "-",
-            "linewidth": 1.1,
-            "path_effects": [lineshadow, Normal()],
-        }
-        self.lineprops = {
-            "color": highlight.name(),
-            "linestyle": "--",
-            "linewidth": 1.1,
-            "path_effects": [lineshadow, Normal()],
-        }
-        rgba = (highlight.red(), highlight.green(), highlight.blue(), 200)
-        super().__init__(
-            viewoptions=viewoptions,
-            move_button=1,
-            widget_button=1,
-            selection_rgba=rgba,
-            parent=parent,
-        )
-
-    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
-        if event.key() == QtCore.Qt.Key_Escape:
-            self.widget = None  # End any widget
-        super().keyPressEvent(event)
-
-    def startLassoSelection(self) -> None:
-        self.state.add("selection")
-        self.widget = LassoImageSelectionWidget(
-            self.image,
-            self.updateAndDrawSelection,
-            useblit=True,
-            button=self.widget_button,
-            lineprops=self.lineprops,
-        )
-        self.widget.set_active(True)
-        self.setFocus(QtCore.Qt.NoFocusReason)
-
-    def startRectangleSelection(self) -> None:
-        self.state.add("selection")
-        self.widget = RectangleImageSelectionWidget(
-            self.image,
-            self.updateAndDrawSelection,
-            useblit=True,
-            button=self.widget_button,
-            lineprops=self.lineprops,
-        )
-        self.widget.set_active(True)
-        self.setFocus(QtCore.Qt.NoFocusReason)
-
-    def startRuler(self) -> None:
-        self.clearSelection()
-        self.state.add("selection")
-        self.widget = RulerWidget(
-            self.ax,
-            lambda x: None,
-            useblit=True,
-            button=self.widget_button,
-            lineprops=self.lineprops,
-            drawtext=True,
-            textprops=self.viewoptions.font.props(),
-        )
-        self.widget.set_active(True)
-        self.setFocus(QtCore.Qt.NoFocusReason)
-
-    def startZoom(self) -> None:
-        self.widget = RectangleSelector(
-            self.ax,
-            self.zoom,
-            useblit=True,
-            drawtype="box",
-            button=self.widget_button,
-            rectprops=self.rectprops,
-        )
-        self.widget.set_active(True)

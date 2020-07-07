@@ -15,7 +15,7 @@ from pewpew.lib.numpyqt import NumpyArrayTableModel
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.lib.mpltools import LabeledLine2D
 from pewpew.validators import DoubleSignificantFiguresDelegate
-from pewpew.widgets.canvases import InteractiveCanvas
+from pewpew.widgets.canvases import InteractiveImageCanvas
 from pewpew.widgets.dialogs import CalibrationCurveDialog
 from pewpew.widgets.modelviews import BasicTableView
 from pewpew.widgets.laser import LaserWidget
@@ -229,7 +229,7 @@ class StandardsTool(ToolWidget):
         self.refresh()
 
 
-class StandardsCanvas(InteractiveCanvas):
+class StandardsCanvas(InteractiveImageCanvas):
     guidesChanged = QtCore.Signal()
 
     def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):

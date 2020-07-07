@@ -5,17 +5,25 @@ import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from matplotlib.patheffects import Normal, SimpleLineShadow
+from matplotlib.widgets import RectangleSelector
+
 from pew import io
 from pew.laser import Laser
 from pew.srr import SRRLaser, SRRConfig
 from pew.config import Config
 
-from pewpew.lib.io import import_any, PEW_VALID_EXTS
-from pewpew.lib.viewoptions import ViewOptions
-
 from pewpew.actions import qAction, qToolButton
-from pewpew.widgets.canvases import InteractiveLaserCanvas
+
+from pewpew.lib.io import import_any, PEW_VALID_EXTS
+from pewpew.lib.mplwidgets import (
+    RectangleImageSelectionWidget,
+    LassoImageSelectionWidget,
+    RulerWidget,
+)
+from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets import dialogs, exportdialogs
+from pewpew.widgets.canvases import LaserImageCanvas
 from pewpew.widgets.views import View, ViewSpace, _ViewWidget
 
 from typing import List, Set, Tuple
@@ -149,13 +157,106 @@ class LaserView(View):
         return dlg
 
 
+class LaserWidgetImageCanvas(LaserImageCanvas):
+    def __init__(
+        self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
+    ) -> None:
+        shadow = (
+            QtWidgets.QApplication.instance().palette().color(QtGui.QPalette.Shadow)
+        )
+        highlight = (
+            QtWidgets.QApplication.instance().palette().color(QtGui.QPalette.Highlight)
+        )
+        lineshadow = SimpleLineShadow(
+            offset=(0.5, -0.5), alpha=0.66, shadow_color=shadow.name()
+        )
+        rgba = (highlight.red(), highlight.green(), highlight.blue(), 200)
+        super().__init__(
+            viewoptions=viewoptions,
+            move_button=1,
+            widget_button=1,
+            selection_rgba=rgba,
+            parent=parent,
+        )
+        self.rectprops = {
+            "edgecolor": highlight.name(),
+            "facecolor": "none",
+            "linestyle": "-",
+            "linewidth": 1.1,
+            "path_effects": [lineshadow, Normal()],
+        }
+        self.lineprops = {
+            "color": highlight.name(),
+            "linestyle": "--",
+            "linewidth": 1.1,
+            "path_effects": [lineshadow, Normal()],
+        }
+
+        self.redrawFigure()
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.key() == QtCore.Qt.Key_Escape:
+            self.widget = None  # End any widget
+        super().keyPressEvent(event)
+
+    def startLassoSelection(self) -> None:
+        self.state.add("selection")
+        self.widget = LassoImageSelectionWidget(
+            self.image,
+            self.updateAndDrawSelection,
+            useblit=True,
+            button=self.widget_button,
+            lineprops=self.lineprops,
+        )
+        self.widget.set_active(True)
+        self.setFocus(QtCore.Qt.NoFocusReason)
+
+    def startRectangleSelection(self) -> None:
+        self.state.add("selection")
+        self.widget = RectangleImageSelectionWidget(
+            self.image,
+            self.updateAndDrawSelection,
+            useblit=True,
+            button=self.widget_button,
+            lineprops=self.lineprops,
+        )
+        self.widget.set_active(True)
+        self.setFocus(QtCore.Qt.NoFocusReason)
+
+    def startRuler(self) -> None:
+        self.clearSelection()
+        self.state.add("selection")
+        self.widget = RulerWidget(
+            self.ax,
+            lambda x: None,
+            useblit=True,
+            button=self.widget_button,
+            lineprops=self.lineprops,
+            drawtext=True,
+            textprops=self.viewoptions.font.props(),
+        )
+        self.widget.set_active(True)
+        self.setFocus(QtCore.Qt.NoFocusReason)
+
+    def startZoom(self) -> None:
+        self.widget = RectangleSelector(
+            self.ax,
+            self.zoom,
+            useblit=True,
+            drawtype="box",
+            button=self.widget_button,
+            rectprops=self.rectprops,
+        )
+        self.widget.set_active(True)
+
+
 class LaserWidget(_ViewWidget):
     def __init__(self, laser: Laser, viewoptions: ViewOptions, view: LaserView = None):
         super().__init__(view)
         self.laser = laser
         self.is_srr = isinstance(laser, SRRLaser)
 
-        self.canvas = InteractiveLaserCanvas(viewoptions, parent=self)
+        self.canvas = LaserWidgetImageCanvas(viewoptions, parent=self)
         self.canvas.cursorClear.connect(self.clearCursorStatus)
         self.canvas.cursorMoved.connect(self.updateCursorStatus)
         # We have our own ConnectionRefusedErrorxt menu so hide the normal one
@@ -209,7 +310,7 @@ class LaserWidget(_ViewWidget):
             "Measure",
             "Use a ruler to measure distance.",
             # self.canvas.startRuler,
-            self.hide
+            self.hide,
         )
         self.widgets_button = qToolButton("tool-measure", "Widgets")
         self.widgets_button.addAction(self.action_ruler)
@@ -257,7 +358,7 @@ class LaserWidget(_ViewWidget):
         else:
             layer = int(self.combo_layers.currentText())
 
-        self.canvas.endSelection()
+        self.canvas.widget = None
         self.canvas.drawLaser(self.laser, self.combo_isotope.currentText(), layer=layer)
 
     def rename(self, text: str) -> None:
