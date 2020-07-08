@@ -31,7 +31,7 @@ Requires:
     * ~~Add 'OK' button to return to widget.~~
     * ~~Implement the move, zoom and status bar updates in tool.~~
         * ~~These should be added to InteractiveCanvas (with move/scroll_button as None/0).~~
-    * Close tab button should revert to original image (as cancel does)
+    * ~~Close tab button should revert to original image (as cancel does)~~
 
 Info Dialog Rebuild
 -------------------

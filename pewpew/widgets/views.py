@@ -203,7 +203,7 @@ class View(QtWidgets.QWidget):
         self.tabs.setDrawBase(False)
         self.tabs.currentChanged.connect(self.stack.setCurrentIndex)
         self.tabs.tabMoved.connect(self.moveWidget)
-        self.tabs.tabCloseRequested.connect(self.removeTab)
+        self.tabs.tabCloseRequested.connect(self.requestClose)
         self.tabs.tabTextChanged.connect(self.renameWidget)
 
         self.stack.installEventFilter(self)
@@ -263,6 +263,10 @@ class View(QtWidgets.QWidget):
         else:
             for widget in self.widgets():
                 widget.refresh()
+
+    def requestClose(self, index: int) -> None:
+        if self.stack.widget(index).requestClose():
+            self.removeTab(index)
 
     def setActive(self, active: bool) -> None:
         if active:
@@ -417,6 +421,9 @@ class _ViewWidget(QtWidgets.QWidget):
 
     def rename(self, text: str) -> None:  # pragma: no cover
         pass
+
+    def requestClose(self) -> bool:
+        return True
 
     def setActive(self) -> None:
         self.view.tabs.setCurrentIndex(self.index)

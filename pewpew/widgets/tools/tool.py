@@ -35,6 +35,15 @@ class ToolWidget(_ViewWidget):
 
         self.setLayout(layout)
 
+    def accept(self) -> None:
+        self.restoreWidget()
+
+    def apply(self) -> None:
+        pass
+
+    def applyAll(self) -> None:
+        pass
+
     def buttonClicked(self, button: QtWidgets.QAbstractButton) -> None:
         sb = self.button_box.standardButton(button)
 
@@ -47,15 +56,6 @@ class ToolWidget(_ViewWidget):
             self.accept()
         elif sb == QtWidgets.QDialogButtonBox.Cancel:
             self.reject()
-
-    def accept(self) -> None:
-        self.restoreWidget()
-
-    def apply(self) -> None:
-        pass
-
-    def applyAll(self) -> None:
-        pass
 
     @QtCore.Slot()
     def completeChanged(self) -> None:
@@ -75,6 +75,10 @@ class ToolWidget(_ViewWidget):
         self.view.insertTab(self.index, self.widget.laser.name, self.widget)
         self.view.removeTab(self.index)
         self.widget.setActive()
+
+    def requestClose(self) -> bool:
+        self.reject()
+        return False
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(800, 600)
