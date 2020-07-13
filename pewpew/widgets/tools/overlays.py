@@ -290,7 +290,7 @@ class OverlayItemRow(QtWidgets.QWidget):
             "window-close", "Remove", "Remove this isotope.", self.close
         )
         self.action_hide = qAction(
-            "visibility", "Hide", "Toggle visibility of this isotope.", self.itemChanged
+            "visibility", "Hide", "Toggle visibility of this isotope.", self.hideChanged
         )
         self.action_hide.setCheckable(True)
 
@@ -319,6 +319,13 @@ class OverlayItemRow(QtWidgets.QWidget):
     @property
     def hidden(self) -> None:
         return self.action_hide.isChecked()
+
+    def hideChanged(self) -> None:
+        if self.hidden:
+            self.button_hide.setIcon(QtGui.QIcon.fromTheme("hint"))
+        else:
+            self.button_hide.setIcon(QtGui.QIcon.fromTheme("visibility"))
+        self.itemChanged.emit()
 
     def getVmin(self, data: np.ndarray) -> float:
         vmin = self.ledit_vmin.text()
