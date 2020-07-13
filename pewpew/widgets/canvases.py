@@ -227,6 +227,7 @@ class InteractiveImageCanvas(ImageCanvas):
         if self.ignore_event(event):
             return
         self.move(event)
+        self.moveCursor(event)
 
     def move(self, event: MouseEvent) -> None:
         if (
@@ -247,6 +248,7 @@ class InteractiveImageCanvas(ImageCanvas):
                 y2 += dy
             self.view_limits = x1, x2, y1, y2
 
+    def moveCursor(self, event: MouseEvent) -> None:
         if self.image is not None:
             # Update the status bar
             x, y = event.xdata, event.ydata
