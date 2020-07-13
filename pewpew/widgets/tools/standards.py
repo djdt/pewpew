@@ -3,8 +3,8 @@ import numpy as np
 
 from PySide2 import QtCore, QtWidgets
 
-from matplotlib.backend_bases import LocationEvent, PickEvent, MouseEvent
-from matplotlib.image import AxesImage
+from matplotlib.artist import Artist
+from matplotlib.backend_bases import PickEvent, MouseEvent
 from matplotlib.lines import Line2D
 from matplotlib.patheffects import withStroke
 
@@ -233,47 +233,38 @@ class StandardsCanvas(InteractiveImageCanvas):
     guidesChanged = QtCore.Signal()
 
     def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):
-        super().__init__(parent=parent)
+        super().__init__(widget_button=1, state=(), parent=parent)
         self.viewoptions = viewoptions
-        self.button = 1
 
         self.connect_event("draw_event", self.update_background)
         self.connect_event("resize_event", self._resize)
+        self.connect_event("pick_event", self._pick)
 
         self.guides_need_draw = True
 
-        self.image: AxesImage = None
         self.background = None
         self.level_guides: List[LabeledLine2D] = []
         self.edge_guides: List[Line2D] = []
 
+        self.picked_artist: Artist = None
+
         self.redrawFigure()
-
-    def ignore_event(self, event: LocationEvent) -> bool:
-        if (
-            event.name in ["button_press_event", "button_release_event"]
-            and event.button != self.button
-        ):
-            return True
-
-        return super().ignore_event(event)
 
     def _resize(self, event) -> None:
         self.guides_need_draw = True
+
+    def _pick(self, event: PickEvent) -> None:
+        if self.ignore_event(event.mouseevent):
+            return
+        if event.mouseevent.button == self.widget_button:
+            self.picked_artist = event.artist
+        else:
+            self.picked_artist = None
 
     def update_background(self, event) -> None:
         self.background = self.copy_from_bbox(self.ax.bbox)
         if self.guides_need_draw:
             self.blitGuides()
-
-    def axes_enter(self, event: LocationEvent) -> None:
-        pass
-
-    def axes_leave(self, event: LocationEvent) -> None:
-        pass
-
-    def onpick(self, event: PickEvent) -> None:
-        pass
 
     def move(self, event: MouseEvent) -> None:
         if self.picked_artist is not None:
@@ -283,9 +274,6 @@ class StandardsCanvas(InteractiveImageCanvas):
             elif self.picked_artist in self.edge_guides:
                 self.picked_artist.set_xdata([x, x])
             self.blitGuides()
-
-    def press(self, event: MouseEvent) -> None:
-        pass
 
     def release(self, event: MouseEvent) -> None:
         if self.picked_artist is not None:

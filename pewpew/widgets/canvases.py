@@ -2,9 +2,8 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from matplotlib.artist import Artist
 from matplotlib.axes import Axes
-from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent, PickEvent
+from matplotlib.backend_bases import KeyEvent, MouseEvent, LocationEvent
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from matplotlib.image import AxesImage, imsave
@@ -129,8 +128,9 @@ class InteractiveImageCanvas(ImageCanvas):
     def __init__(
         self,
         figsize: Tuple[float, float] = (5.0, 5.0),
-        move_button: int = None,
-        widget_button: int = None,
+        move_button: int = 0,
+        widget_button: int = 0,
+        state: Tuple[str, ...] = ("move", "scroll"),
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(figsize, parent)
@@ -143,20 +143,18 @@ class InteractiveImageCanvas(ImageCanvas):
             "button_release_event": self._release,
             "key_press_event": self._keypress,
             "motion_notify_event": self._move,
-            "pick_event": self._pick,
             "scroll_event": self._scroll,
         }
 
         for event, callback in self.default_events.items():
             self.connect_event(event, callback)
 
-        self.state = set(["move", "scroll"])
+        self.state = set(state)
 
         self.move_button = move_button
         self.widget_button = widget_button
 
         self.widget: AxesWidget = None
-        self.picked_artist: Artist = None
 
     def redrawFigure(self) -> None:
         super().redrawFigure()
@@ -255,15 +253,6 @@ class InteractiveImageCanvas(ImageCanvas):
             v = self.image.get_cursor_data(event)
             self.cursorMoved.emit(x, y, v)
 
-    def _pick(self, event: PickEvent) -> None:
-        if self.ignore_event(event.mouseevent):
-            return
-        self.picked_artist = event.artist
-        self.onpick(event)
-
-    def onpick(self, event: PickEvent) -> None:
-        pass
-
     def _scroll(self, event: MouseEvent) -> None:
         if self.ignore_event(event):
             return
@@ -316,8 +305,8 @@ class InteractiveImageCanvas(ImageCanvas):
 class SelectableImageCanvas(InteractiveImageCanvas):
     def __init__(
         self,
-        move_button: int = None,
-        widget_button: int = None,
+        move_button: int = 0,
+        widget_button: int = 0,
         selection_rgba: Tuple[int, int, int, int] = (255, 0, 0, 255),
         parent: QtWidgets.QWidget = None,
     ):
@@ -376,8 +365,8 @@ class LaserImageCanvas(SelectableImageCanvas):
     def __init__(
         self,
         viewoptions: ViewOptions,
-        move_button: int = None,
-        widget_button: int = None,
+        move_button: int = 0,
+        widget_button: int = 0,
         selection_rgba: Tuple[int, int, int, int] = (255, 0, 0, 255),
         parent: QtWidgets.QWidget = None,
     ) -> None:
