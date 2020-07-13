@@ -3,7 +3,8 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from matplotlib.image import AxesImage, imsave
+from matplotlib.backend_bases import MouseEvent
+from matplotlib.image import imsave
 from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
 from matplotlib.patheffects import withStroke
 
@@ -16,7 +17,7 @@ from pewpew.validators import PercentOrDecimalValidator
 from pewpew.lib.mpltools import MetricSizeBar
 from pewpew.lib.viewoptions import ViewOptions
 
-from pewpew.widgets.canvases import BasicCanvas
+from pewpew.widgets.canvases import InteractiveImageCanvas
 from pewpew.widgets.exportdialogs import _ExportDialogBase, PngOptionsBox
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.prompts import OverwriteFilePrompt
@@ -39,6 +40,8 @@ class OverlayTool(ToolWidget):
         self.button_save.pressed.connect(self.openExportDialog)
 
         self.canvas = OverlayCanvas(self.viewspace.options)
+        self.canvas.cursorClear.connect(self.widget.clearCursorStatus)
+        self.canvas.cursorMoved.connect(self.updateCursorStatus)
 
         self.check_normalise = QtWidgets.QCheckBox("Renormalise")
         self.check_normalise.setEnabled(False)
@@ -173,23 +176,29 @@ class OverlayTool(ToolWidget):
                 path, dpi=300, bbox_inches="tight", transparent=True, facecolor=None
             )
 
+    def updateCursorStatus(self, v: np.ndarray) -> None:
+        status_bar = self.viewspace.window().statusBar()
+        if status_bar is None:
+            return
+        status_bar.showMessage(f"r: {v[0]:.2f}, g: {v[1]:.2f}, b: {v[2]:.2f}")
 
-class OverlayCanvas(BasicCanvas):
+
+class OverlayCanvas(InteractiveImageCanvas):
+    cursorMoved = QtCore.Signal(np.ndarray)
+
     def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):
-        super().__init__()
+        super().__init__(move_button=1, parent=parent)
         self.viewoptions = viewoptions
 
         self.label: AnchoredOffsetbox = None
         self.scalebar: MetricSizeBar = None
-        self.image: AxesImage = None
 
         self.redrawFigure()
 
-    def redrawFigure(self) -> None:
-        self.figure.clear()
-        self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=True)
-        self.ax.get_xaxis().set_visible(False)
-        self.ax.get_yaxis().set_visible(False)
+    def moveCursor(self, event: MouseEvent) -> None:
+        if self.image is not None:
+            v = self.image.get_cursor_data(event)
+            self.cursorMoved.emit(v)
 
     def drawLabel(self, names: List[str], colors: List[str]) -> None:
         if self.label is not None:
@@ -244,6 +253,8 @@ class OverlayCanvas(BasicCanvas):
             aspect="equal",
             origin="upper",
         )
+
+        self.view_limits = extent
 
 
 class OverlayItemRow(QtWidgets.QWidget):

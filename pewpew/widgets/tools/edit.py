@@ -66,7 +66,7 @@ class EditTool(ToolWidget):
         )
 
         self.canvas = LaserImageCanvas(
-            self.viewspace.options, move_button=2, parent=self
+            self.viewspace.options, move_button=1, parent=self
         )
         self.canvas.redrawFigure()
         self.canvas.cursorClear.connect(self.widget.clearCursorStatus)
