@@ -152,19 +152,19 @@ class EditTool(ToolWidget):
 
     def actionTransformFlipHorz(self) -> None:
         self.flip_horizontal = not self.flip_horizontal
-        self.refresh(False)
+        self.refresh()
 
     def actionTransformFlipVert(self) -> None:
         self.flip_vertical = not self.flip_vertical
-        self.refresh(False)
+        self.refresh()
 
     def actionTransformRotateLeft(self) -> None:
         self.rotate = (self.rotate + 3) % 4
-        self.refresh(False)
+        self.refresh()
 
     def actionTransformRotateRight(self) -> None:
         self.rotate = (self.rotate + 1) % 4
-        self.refresh(False)
+        self.refresh()
 
     def apply(self) -> None:
         i = self.method_stack.currentIndex()
@@ -188,7 +188,7 @@ class EditTool(ToolWidget):
             data = np.rot90(data, k=self.rotate, axes=(1, 0))
         return data
 
-    def refresh(self, preserve_view_limits: bool = True) -> None:
+    def refresh(self) -> None:
         stack: MethodStackWidget = self.method_stack.currentWidget()
         if not stack.isComplete():  # Not ready for update to preview
             return
@@ -201,11 +201,13 @@ class EditTool(ToolWidget):
         if data is None:
             return
 
-        if preserve_view_limits:
-            view_limits = self.canvas.view_limits
+        extent = self.widget.laser.config.data_extent(data.shape)
+        # Only change the view if new or the laser extent has changed (i.e. conf edit)
+        if self.canvas.extent != extent:
+            self.canvas.view_limits = extent
 
         self.canvas.drawData(
-            data, self.widget.laser.config.data_extent(data.shape), isotope=isotope,
+            data, extent, isotope=isotope,
         )
         if self.canvas.viewoptions.canvas.colorbar:
             self.canvas.drawColorbar(self.widget.laser.calibration[isotope].unit)
@@ -222,8 +224,7 @@ class EditTool(ToolWidget):
             self.canvas.scalebar.remove()
             self.canvas.scalebar = None
 
-        if preserve_view_limits:
-            self.canvas.view_limits = view_limits
+        self.canvas.draw_idle()
 
     def setCurrentMethod(self, method: int) -> None:
         self.method_stack.setCurrentIndex(method)
