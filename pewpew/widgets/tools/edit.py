@@ -69,6 +69,8 @@ class EditTool(ToolWidget):
             self.viewspace.options, move_button=2, parent=self
         )
         self.canvas.redrawFigure()
+        self.canvas.cursorClear.connect(self.widget.clearCursorStatus)
+        self.canvas.cursorMoved.connect(self.widget.updateCursorStatus)
 
         self.button_transform_flip_horizontal = qToolButton(
             action=self.action_transform_flip_horizontal
