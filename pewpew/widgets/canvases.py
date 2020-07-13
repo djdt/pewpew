@@ -436,8 +436,6 @@ class LaserImageCanvas(SelectableImageCanvas):
             aspect="equal",
             origin="upper",
         )
-        # Rescale to full image
-        self.view_limits = extent
 
     def drawLabel(self, text: str) -> None:
         if self.label is not None:
@@ -484,10 +482,7 @@ class LaserImageCanvas(SelectableImageCanvas):
         if data is None or data.size == 0:
             data = np.array([[0]], dtype=np.float64)
 
-        # Restor any view limit
-        view_limits = self.view_limits
         self.drawData(data, extent, name)
-        self.view_limits = view_limits
 
         if self.viewoptions.canvas.colorbar:
             self.drawColorbar(unit)
@@ -506,3 +501,4 @@ class LaserImageCanvas(SelectableImageCanvas):
 
         # Selection drawing all handled in SelectableImageCanvas
         self.drawSelection()
+        self.draw_idle()

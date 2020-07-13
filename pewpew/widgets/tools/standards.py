@@ -55,6 +55,8 @@ class StandardsTool(ToolWidget):
 
         # Right side
         self.canvas = StandardsCanvas(self.viewspace.options, parent=self)
+        self.canvas.state.discard("move")  # Prevent moving
+        self.canvas.state.discard("scroll")  # Prevent scroll zoom
         self.canvas.guidesChanged.connect(self.updateCounts)
 
         self.combo_isotope = QtWidgets.QComboBox()

@@ -71,6 +71,7 @@ class EditTool(ToolWidget):
         self.canvas.redrawFigure()
         self.canvas.cursorClear.connect(self.widget.clearCursorStatus)
         self.canvas.cursorMoved.connect(self.widget.updateCursorStatus)
+        self.canvas.view_limits = self.widget.canvas.view_limits
 
         self.button_transform_flip_horizontal = qToolButton(
             action=self.action_transform_flip_horizontal
@@ -151,19 +152,19 @@ class EditTool(ToolWidget):
 
     def actionTransformFlipHorz(self) -> None:
         self.flip_horizontal = not self.flip_horizontal
-        self.refresh()
+        self.refresh(False)
 
     def actionTransformFlipVert(self) -> None:
         self.flip_vertical = not self.flip_vertical
-        self.refresh()
+        self.refresh(False)
 
     def actionTransformRotateLeft(self) -> None:
         self.rotate = (self.rotate + 3) % 4
-        self.refresh()
+        self.refresh(False)
 
     def actionTransformRotateRight(self) -> None:
         self.rotate = (self.rotate + 1) % 4
-        self.refresh()
+        self.refresh(False)
 
     def apply(self) -> None:
         i = self.method_stack.currentIndex()
@@ -187,7 +188,7 @@ class EditTool(ToolWidget):
             data = np.rot90(data, k=self.rotate, axes=(1, 0))
         return data
 
-    def refresh(self) -> None:
+    def refresh(self, preserve_view_limits: bool = True) -> None:
         stack: MethodStackWidget = self.method_stack.currentWidget()
         if not stack.isComplete():  # Not ready for update to preview
             return
@@ -199,6 +200,9 @@ class EditTool(ToolWidget):
             data = stack.previewData(self.previewData(isotope))
         if data is None:
             return
+
+        if preserve_view_limits:
+            view_limits = self.canvas.view_limits
 
         self.canvas.drawData(
             data, self.widget.laser.config.data_extent(data.shape), isotope=isotope,
@@ -217,6 +221,9 @@ class EditTool(ToolWidget):
         elif self.canvas.scalebar is not None:
             self.canvas.scalebar.remove()
             self.canvas.scalebar = None
+
+        if preserve_view_limits:
+            self.canvas.view_limits = view_limits
 
     def setCurrentMethod(self, method: int) -> None:
         self.method_stack.setCurrentIndex(method)

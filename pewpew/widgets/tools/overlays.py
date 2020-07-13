@@ -42,6 +42,7 @@ class OverlayTool(ToolWidget):
         self.canvas = OverlayCanvas(self.viewspace.options)
         self.canvas.cursorClear.connect(self.widget.clearCursorStatus)
         self.canvas.cursorMoved.connect(self.updateCursorStatus)
+        self.canvas.view_limits = self.widget.canvas.view_limits
 
         self.check_normalise = QtWidgets.QCheckBox("Renormalise")
         self.check_normalise.setEnabled(False)
@@ -253,8 +254,6 @@ class OverlayCanvas(InteractiveImageCanvas):
             aspect="equal",
             origin="upper",
         )
-
-        self.view_limits = extent
 
 
 class OverlayItemRow(QtWidgets.QWidget):
