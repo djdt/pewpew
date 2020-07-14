@@ -559,11 +559,11 @@ class OverlayExportDialog(_ExportDialogBase):
                 canvas.drawData(
                     data, self.widget.widget.laser.config.data_extent(data.shape)
                 )
+                canvas.view_limits = self.widget.canvas.view_limits
 
                 if canvas.viewoptions.canvas.label:
                     names = [self.widget.rows[row].label_name.text()]
-                    colors = [self.widget.rows[row].getColor().name()]
-                    canvas.drawLabel(names, colors)
+                    canvas.drawLabel(names, ["white"])
 
                 if canvas.viewoptions.canvas.scalebar:
                     canvas.drawScalebar()
