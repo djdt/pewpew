@@ -23,7 +23,7 @@ Draw Tool
 _Implement a tool for drawing_
 
 
-Tool Rebuild
+~~Tool Rebuild~~
 ------------
 _Currently the tool system opens a new view for the tool, this is really not required since access to the original laser and tool at once should not be needed. Instead, when the tool opens the laser view should close (move to tool) and then back to laser once tool is done._
 Requires:
@@ -50,3 +50,7 @@ View:
         * How is tool selected / current widget stats handled?
     * Update on isotope changed
     * Update on selection changed
+
+Import Wizard
+-------------
+_The current import dialogs should be consolidated into a single wizard, with more options. For example the agilent wizard page could look for and verify batchlogs and acqmethod then let you choose if you want to use them. All wiards could allow you to import specific isotopes / rename or reorder them._
