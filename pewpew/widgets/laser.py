@@ -192,7 +192,7 @@ class LaserWidgetImageCanvas(LaserImageCanvas):
             "path_effects": [lineshadow, Normal()],
         }
 
-        self.redrawFigure()
+        self.drawFigure()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() == QtCore.Qt.Key_Escape:

@@ -68,7 +68,7 @@ class EditTool(ToolWidget):
         self.canvas = LaserImageCanvas(
             self.viewspace.options, move_button=1, parent=self
         )
-        self.canvas.redrawFigure()
+        self.canvas.drawFigure()
         self.canvas.cursorClear.connect(self.widget.clearCursorStatus)
         self.canvas.cursorMoved.connect(self.widget.updateCursorStatus)
         self.canvas.view_limits = self.widget.canvas.view_limits
@@ -485,7 +485,7 @@ class ConvolveKernelCanvas(BasicCanvas):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__((1.0, 1.0), parent=parent)
 
-    def redrawFigure(self) -> None:
+    def drawFigure(self) -> None:
         self.figure.clear()
         self.ax = self.figure.add_subplot()
         # self.ax.get_xaxis().set_visible(False)
@@ -585,7 +585,7 @@ class ConvolveMethod(MethodStackWidget):
 
         # kernel preview
         self.canvas_kernel = ConvolveKernelCanvas(self)
-        self.canvas_kernel.redrawFigure()
+        self.canvas_kernel.drawFigure()
 
         layout_combo = QtWidgets.QFormLayout()
         layout_combo.addRow("Horizontal:", self.combo_horizontal)

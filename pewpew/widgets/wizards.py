@@ -205,9 +205,9 @@ class SpotImportCanvas(BasicCanvas):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(figsize, parent)
-        self.redrawFigure()
+        self.drawFigure()
 
-    def redrawFigure(self) -> None:
+    def drawFigure(self) -> None:
         self.figure.clear()
         self.ax = self.figure.add_subplot()
 

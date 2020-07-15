@@ -383,7 +383,7 @@ class ExportDialog(_ExportDialogBase):
 
         elif option.ext == ".png":
             canvas = LaserImageCanvas(widget.canvas.viewoptions, parent=self)
-            canvas.redrawFigure()
+            canvas.drawFigure()
             if isotope in widget.laser.isotopes:
                 canvas.drawLaser(widget.laser, isotope)
                 if option.raw():

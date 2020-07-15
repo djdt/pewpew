@@ -48,7 +48,7 @@ class BasicCanvas(FigureCanvasQTAgg):
         context_menu.addAction(action_copy_image)
         context_menu.popup(event.globalPos())
 
-    def redrawFigure(self) -> None:
+    def drawFigure(self) -> None:
         pass
 
     def copyToClipboard(self) -> None:
@@ -76,7 +76,7 @@ class ImageCanvas(BasicCanvas):
         super().__init__(figsize, parent)
         self.image: AxesImage = None
 
-    def redrawFigure(self) -> None:
+    def drawFigure(self) -> None:
         view_limits = self.view_limits if self.ax is not None else None
 
         self.figure.clear()
@@ -156,8 +156,8 @@ class InteractiveImageCanvas(ImageCanvas):
 
         self.widget: AxesWidget = None
 
-    def redrawFigure(self) -> None:
-        super().redrawFigure()
+    def drawFigure(self) -> None:
+        super().drawFigure()
         # Update widget ax
         if self.widget is not None:
             self.widget.ax = self.ax
@@ -384,8 +384,8 @@ class LaserImageCanvas(SelectableImageCanvas):
         self.label: AnchoredText = None
         self.scalebar: MetricSizeBar = None
 
-    def redrawFigure(self) -> None:
-        super().redrawFigure()
+    def drawFigure(self) -> None:
+        super().drawFigure()
         if self.viewoptions.canvas.colorbar:
             div = make_axes_locatable(self.ax)
             self.cax = div.append_axes(

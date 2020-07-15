@@ -250,7 +250,7 @@ class StandardsCanvas(InteractiveImageCanvas):
 
         self.picked_artist: Artist = None
 
-        self.redrawFigure()
+        self.drawFigure()
 
     def _resize(self, event) -> None:
         self.guides_need_draw = True
@@ -295,7 +295,7 @@ class StandardsCanvas(InteractiveImageCanvas):
             self.guidesChanged.emit()
             self.picked_artist = None
 
-    def redrawFigure(self) -> None:
+    def drawFigure(self) -> None:
         self.background = None
         self.figure.clear()
         self.ax = self.figure.add_subplot(facecolor="black")

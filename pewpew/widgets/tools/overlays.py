@@ -194,7 +194,7 @@ class OverlayCanvas(InteractiveImageCanvas):
         self.label: AnchoredOffsetbox = None
         self.scalebar: MetricSizeBar = None
 
-        self.redrawFigure()
+        self.drawFigure()
 
     def moveCursor(self, event: MouseEvent) -> None:
         if self.image is not None:

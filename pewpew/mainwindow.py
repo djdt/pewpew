@@ -326,7 +326,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Hard refresh
         for view in self.viewspace.views:
             for widget in view.widgets():
-                widget.canvas.redrawFigure()
+                widget.canvas.drawFigure()
                 widget.refresh()
 
     def actionToggleLabel(self, checked: bool) -> None:

@@ -37,8 +37,8 @@ class DrawCanvas(LaserCanvas, InteractiveCanvas):
 
         self.undo_states: List[DrawUndoState] = []
 
-    def redrawFigure(self) -> None:
-        super().redrawFigure()
+    def drawFigure(self) -> None:
+        super().drawFigure()
 
     def drawData(
         self,
