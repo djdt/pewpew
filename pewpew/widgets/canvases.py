@@ -39,9 +39,9 @@ class BasicCanvas(FigureCanvasQTAgg):
 
     def contextMenuEvent(self, event: QtCore.QEvent) -> None:
         action_copy_image = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("insert-image"), "Copy Image", self
+            QtGui.QIcon.fromTheme("insert-image"), "Copy Image To Clipboard", self
         )
-        action_copy_image.setStatusTip("Copy image to clipboard.")
+        action_copy_image.setStatusTip("Copies the canvas to the clipboard.")
         action_copy_image.triggered.connect(self.copyToClipboard)
 
         context_menu = QtWidgets.QMenu(self.parent())
