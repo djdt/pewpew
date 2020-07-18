@@ -32,7 +32,7 @@ class ImportWizard(QtWidgets.QWizard):
         self.laser: Laser = None
         self.config = config or Config()
 
-        self.setPage(self.page_files, ImportFileAndFormatPage(path, parent=self))
+        self.setPage(self.page_files, ImportFileAndFormatPage(parent=self))
         self.setPage(
             ImportWizard.page_options_agilent, ImportOptionsAgilentPage(parent=self)
         )
@@ -40,9 +40,7 @@ class ImportWizard(QtWidgets.QWizard):
         # self.setPage(ImportWizard.page_options_numpy, ImportOptionsNumpyPage(path))
         # self.setPage(ImportWizard.page_options_thermo, ImportOptionsThermoPage(path))
 
-        self.setStartId(self.page_files)
-        if path != "":
-            self.setStartId(self.nextId())
+        self.setField("path", path)
 
 
 class ImportFileAndFormatPage(QtWidgets.QWizardPage):
@@ -54,11 +52,11 @@ class ImportFileAndFormatPage(QtWidgets.QWizardPage):
         ".txt": "csv",
     }
 
-    def __init__(self, path: str, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setTitle("Select File / Directory")
 
-        self.lineedit_path = QtWidgets.QLineEdit(path)
+        self.lineedit_path = QtWidgets.QLineEdit()
         self.lineedit_path.textChanged.connect(self.completeChanged)
 
         self.button_file = QtWidgets.QPushButton("Open File")
@@ -91,6 +89,22 @@ class ImportFileAndFormatPage(QtWidgets.QWizardPage):
         layout.addWidget(format_box)
         self.setLayout(layout)
 
+    def initializePage(self) -> None:
+        _, ext = os.path.splitext(self.field("path"))
+        file_format = ImportFileAndFormatPage.ext_formats.get(ext, "")
+        if isinstance(file_format, tuple):
+            file_format = file_format[0]
+
+        if file_format == "agilent":
+            self.radio_agilent.setChecked(True)
+        elif file_format == "csv":
+            self.radio_csv.setChecked(True)
+        elif file_format == "numpy":
+            self.radio_numpy.setChecked(True)
+
+    def cleanupPage(self) -> None:
+        self.setField("path", "")
+
     def buttonFilePressed(self) -> QtWidgets.QFileDialog:
         dlg = QtWidgets.QFileDialog(
             self,
@@ -117,19 +131,8 @@ class ImportFileAndFormatPage(QtWidgets.QWizardPage):
         return dlg
 
     def fileSelected(self, path: str) -> None:
-        self.lineedit_path.setText(path)
-
-        _, ext = os.path.splitext(self.lineedit_path.text())
-        file_format = ImportFileAndFormatPage.ext_formats.get(ext, "")
-        if isinstance(file_format, tuple):
-            file_format = file_format[0]
-
-        if file_format == "agilent":
-            self.radio_agilent.setChecked(True)
-        elif file_format == "csv":
-            self.radio_csv.setChecked(True)
-        elif file_format == "numpy":
-            self.radio_numpy.setChecked(True)
+        self.setField("path", path)
+        self.initializePage()
 
     def isComplete(self) -> bool:
         if self.lineedit_path.text() == "":
@@ -159,15 +162,32 @@ class ImportFileAndFormatPage(QtWidgets.QWizardPage):
 
 
 class ImportOptionsAgilentPage(QtWidgets.QWizardPage):
+    dfile_methods = {
+        "AcqMethod.xml": io.agilent.acq_method_path,
+        "BatchLog.csv": io.agilent.batch_csv_path,
+        "BatchLog.xml": io.agilent.batch_xml_path,
+    }
+
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setTitle("Options for Agilent Batches")
 
+        self.combo_dfile_method = QtWidgets.QComboBox()
+        self.combo_dfile_method.activated.connect(self.updateDataFileCount)
+
+        self.lineedit_dfile = QtWidgets.QLineEdit()
+        self.lineedit_dfile.setReadOnly(True)
+
+        layout = QtWidgets.QFormLayout()
+        layout.addRow("Datafile Method:", self.combo_dfile_method)
+        layout.addRow("Datafiles found:", self.lineedit_dfile)
+
+        self.setLayout(layout)
+
+    def initializePage(self) -> None:
         path: str = self.field("path")
 
-        self.combo_dfile_method = QtWidgets.QComboBox()
         self.combo_dfile_method.addItem("Alphabetical Order")
-
         if os.path.exists(os.path.join(path, io.agilent.acq_method_path)):
             self.combo_dfile_method.addItem("AcqMethod.xml")
         if os.path.exists(os.path.join(path, io.agilent.batch_csv_path)):
@@ -175,32 +195,34 @@ class ImportOptionsAgilentPage(QtWidgets.QWizardPage):
         if os.path.exists(os.path.join(path, io.agilent.batch_xml_path)):
             self.combo_dfile_method.addItem("BatchLog.xml")
 
+        self.combo_dfile_method.setCurrentIndex(self.combo_dfile_method.count() - 1)
+
+        self.updateDataFileCount()
+
+    def cleanupPage(self) -> None:
+        self.combo_dfile_method.clear()
+
+    def isComplete(self) -> bool:
+        return self.dataFileCount() > 0
+
     def dataFileCount(self) -> int:
         path = self.field("path")
         method = self.combo_dfile_method.currentText()
 
         if method == "Alphabetical Order":
-            return len(io.agilent.find_datafiles(path))
+            gen = io.agilent.find_datafiles(path)
         elif method == "AcqMethod.xml":
-            return len(
-                io.agilent.acq_method_read_datafiles(
-                    os.path.join(path, io.agilent.acq_method_path)
-                )
-            )
+            gen = io.agilent.acq_method_read_datafiles(path, io.agilent.acq_method_path)
         elif method == "BatchLog.csv":
-            return len(
-                io.agilent.batch_csv_read_datafiles(
-                    os.path.join(path, io.agilent.batch_csv_path)
-                )
-            )
+            gen = io.agilent.batch_csv_read_datafiles(path, io.agilent.batch_csv_path)
         elif method == "BatchLog.xml":
-            return len(
-                io.agilent.batch_xml_read_datafiles(
-                    os.path.join(path, io.agilent.batch_xml_path)
-                )
-            )
+            gen = io.agilent.batch_xml_read_datafiles(path, io.agilent.batch_xml_path)
         else:
             return 0
+        return len(list(gen))
+
+    def updateDataFileCount(self) -> None:
+        self.lineedit_dfile.setText(f"{self.dataFileCount()} files")
 
         # Check for batch log / acq meth
 
@@ -218,6 +240,6 @@ class ImportOptionsAgilentPage(QtWidgets.QWizardPage):
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication()
-    w = ImportWizard()
+    w = ImportWizard("/home/tom/Downloads/20200714_agar_test_spots_3s_2s_28x46.b")
     w.show()
     app.exec_()
