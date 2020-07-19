@@ -23,6 +23,8 @@ class ImportWizard(QtWidgets.QWizard):
     page_options_csv = 2
     page_options_numpy = 3
     page_options_thermo = 4
+    page_lines = 5
+    page_config = 6
 
     def __init__(
         self, path: str = "", config: Config = None, parent: QtWidgets.QWidget = None
@@ -39,6 +41,8 @@ class ImportWizard(QtWidgets.QWizard):
         # self.setPage(ImportWizard.page_options_csv, ImportOptionsCSVPage(path))
         # self.setPage(ImportWizard.page_options_numpy, ImportOptionsNumpyPage(path))
         # self.setPage(ImportWizard.page_options_thermo, ImportOptionsThermoPage(path))
+
+        self.setPage(ImportWizard.page_lines, ImportConfigPage(parent=self))
 
         self.setField("path", path)
 
@@ -172,6 +176,8 @@ class ImportOptionsAgilentPage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.setTitle("Options for Agilent Batches")
 
+        self.label_path = QtWidgets.QLabel()
+
         self.combo_dfile_method = QtWidgets.QComboBox()
         self.combo_dfile_method.activated.connect(self.updateDataFileCount)
 
@@ -182,19 +188,22 @@ class ImportOptionsAgilentPage(QtWidgets.QWizardPage):
             "Read names from Acquistion Method."
         )
 
-        dfile_box = QtWidgets.QGroupBox("Data Files")
+        dfile_box = QtWidgets.QGroupBox("Data File Collection")
         dfile_layout = QtWidgets.QFormLayout()
         dfile_layout.addRow("Method:", self.combo_dfile_method)
         dfile_layout.addRow("Found:", self.lineedit_dfile)
         dfile_box.setLayout(dfile_layout)
 
         layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.label_path)
         layout.addWidget(dfile_box)
         layout.addWidget(self.check_name_acq_xml)
         self.setLayout(layout)
 
     def initializePage(self) -> None:
         path: str = self.field("path")
+
+        self.label_path.setText(f"Importing: {os.path.basename(path)}")
 
         self.combo_dfile_method.addItem("Alphabetical Order")
         if os.path.exists(os.path.join(path, io.agilent.acq_method_xml_path)):
@@ -226,7 +235,7 @@ class ImportOptionsAgilentPage(QtWidgets.QWizardPage):
         if method == "Alphabetical Order":
             data_files = io.agilent.find_datafiles_alphabetical(path)
         elif method == "Acquistion Method":
-            data_files = io.agilent.acq_method_read_datafiles(
+            data_files = io.agilent.acq_method_xml_read_datafiles(
                 path, os.path.join(path, io.agilent.acq_method_xml_path)
             )
         elif method == "Batch Log CSV":
@@ -245,22 +254,17 @@ class ImportOptionsAgilentPage(QtWidgets.QWizardPage):
         expected, actual = self.dataFileCount()
         self.lineedit_dfile.setText(f"{actual} ({expected} expected)")
 
-        # Check for batch log / acq meth
 
-        # Import options files
+class ImportConfigPage(QtWidgets.QWizardPage):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
 
-        # if label is None:
-        #     label = QtWidgets.QLabel()
-        # label.setWordWrap(True)
-
-        # main_layout = QtWidgets.QVBoxLayout()
-        # main_layout.addWidget(label)
-        # main_layout.addWidget(mode_box)
-        # self.setLayout(main_layout)
-
+    # Lines?
+    # Istopes?
+    # Config
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication()
-    w = ImportWizard("/home/tom/Downloads/20200714_agar_test_spots_3s_2s_28x46.b")
+    w = ImportWizard("/home/tom/Downloads/20200630_agar_test_1.b")
     w.show()
     app.exec_()
