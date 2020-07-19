@@ -163,7 +163,7 @@ class ImportFileAndFormatPage(QtWidgets.QWizardPage):
 
 class ImportOptionsAgilentPage(QtWidgets.QWizardPage):
     dfile_methods = {
-        "AcqMethod.xml": io.agilent.acq_method_path,
+        "AcqMethod.xml": io.agilent.acq_method_xml_path,
         "BatchLog.csv": io.agilent.batch_csv_path,
         "BatchLog.xml": io.agilent.batch_xml_path,
     }
@@ -178,22 +178,36 @@ class ImportOptionsAgilentPage(QtWidgets.QWizardPage):
         self.lineedit_dfile = QtWidgets.QLineEdit()
         self.lineedit_dfile.setReadOnly(True)
 
-        layout = QtWidgets.QFormLayout()
-        layout.addRow("Datafile Method:", self.combo_dfile_method)
-        layout.addRow("Datafiles found:", self.lineedit_dfile)
+        self.check_name_acq_xml = QtWidgets.QCheckBox(
+            "Read names from Acquistion Method."
+        )
 
+        dfile_box = QtWidgets.QGroupBox("Data Files")
+        dfile_layout = QtWidgets.QFormLayout()
+        dfile_layout.addRow("Method:", self.combo_dfile_method)
+        dfile_layout.addRow("Found:", self.lineedit_dfile)
+        dfile_box.setLayout(dfile_layout)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(dfile_box)
+        layout.addWidget(self.check_name_acq_xml)
         self.setLayout(layout)
 
     def initializePage(self) -> None:
         path: str = self.field("path")
 
         self.combo_dfile_method.addItem("Alphabetical Order")
-        if os.path.exists(os.path.join(path, io.agilent.acq_method_path)):
-            self.combo_dfile_method.addItem("AcqMethod.xml")
+        if os.path.exists(os.path.join(path, io.agilent.acq_method_xml_path)):
+            self.combo_dfile_method.addItem("Acquistion Method")
+            self.check_name_acq_xml.setChecked(True)
+            self.check_name_acq_xml.setEnabled(True)
+        else:
+            self.check_name_acq_xml.setChecked(False)
+            self.check_name_acq_xml.setEnabled(False)
         if os.path.exists(os.path.join(path, io.agilent.batch_csv_path)):
-            self.combo_dfile_method.addItem("BatchLog.csv")
+            self.combo_dfile_method.addItem("Batch Log CSV")
         if os.path.exists(os.path.join(path, io.agilent.batch_xml_path)):
-            self.combo_dfile_method.addItem("BatchLog.xml")
+            self.combo_dfile_method.addItem("Batch Log XML")
 
         self.combo_dfile_method.setCurrentIndex(self.combo_dfile_method.count() - 1)
 
@@ -203,26 +217,33 @@ class ImportOptionsAgilentPage(QtWidgets.QWizardPage):
         self.combo_dfile_method.clear()
 
     def isComplete(self) -> bool:
-        return self.dataFileCount() > 0
+        return self.dataFileCount()[1] > 0
 
-    def dataFileCount(self) -> int:
+    def dataFileCount(self) -> Tuple[int, int]:
         path = self.field("path")
         method = self.combo_dfile_method.currentText()
 
         if method == "Alphabetical Order":
-            gen = io.agilent.find_datafiles(path)
-        elif method == "AcqMethod.xml":
-            gen = io.agilent.acq_method_read_datafiles(path, io.agilent.acq_method_path)
-        elif method == "BatchLog.csv":
-            gen = io.agilent.batch_csv_read_datafiles(path, io.agilent.batch_csv_path)
-        elif method == "BatchLog.xml":
-            gen = io.agilent.batch_xml_read_datafiles(path, io.agilent.batch_xml_path)
+            data_files = io.agilent.find_datafiles_alphabetical(path)
+        elif method == "Acquistion Method":
+            data_files = io.agilent.acq_method_read_datafiles(
+                path, os.path.join(path, io.agilent.acq_method_xml_path)
+            )
+        elif method == "Batch Log CSV":
+            data_files = io.agilent.batch_csv_read_datafiles(
+                path, os.path.join(path, io.agilent.batch_csv_path)
+            )
+        elif method == "Batch Log XML":
+            data_files = io.agilent.batch_xml_read_datafiles(
+                path, os.path.join(path, io.agilent.batch_xml_path)
+            )
         else:
-            return 0
-        return len(list(gen))
+            return 0, 0
+        return len(data_files), sum([os.path.exists(f) for f in data_files])
 
     def updateDataFileCount(self) -> None:
-        self.lineedit_dfile.setText(f"{self.dataFileCount()} files")
+        expected, actual = self.dataFileCount()
+        self.lineedit_dfile.setText(f"{actual} ({expected} expected)")
 
         # Check for batch log / acq meth
 
