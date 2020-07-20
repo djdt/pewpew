@@ -21,9 +21,8 @@ class ImportWizard(QtWidgets.QWizard):
     page_format = 0
     page_files = 1
     page_agilent = 2
-    page_numpy = 3
-    page_text = 4
-    page_thermo = 5
+    page_text = 3
+    page_thermo = 4
     page_config = 6
 
     def __init__(
@@ -37,8 +36,8 @@ class ImportWizard(QtWidgets.QWizard):
 
         self.setPage(self.page_format, ImportFormatPage(parent=self))
         # self.setPage(self.page_files, ImportFileAndFormatPage(parent=self))
-        self.setPage(ImportWizard.page_agilent, ImportAgilentPage(parent=self))
-        # self.setPage(ImportWizard.page_options_csv, ImportOptionsCSVPage(path))
+        self.setPage(ImportWizard.page_agilent, ImportAgilentPage(path, parent=self))
+        self.setPage(ImportWizard.page_text, ImportTextPage(path, parent=self))
         # self.setPage(ImportWizard.page_options_numpy, ImportOptionsNumpyPage(path))
         # self.setPage(ImportWizard.page_options_thermo, ImportOptionsThermoPage(path))
 
@@ -65,14 +64,12 @@ class ImportFormatPage(QtWidgets.QWizardPage):
         label.setWordWrap(True)
 
         self.radio_agilent = QtWidgets.QRadioButton("&Agilent batch")
-        self.radio_numpy = QtWidgets.QRadioButton("&Numpy archive")
-        self.radio_text = QtWidgets.QRadioButton("&CSV image")
+        self.radio_text = QtWidgets.QRadioButton("&Text and CSV images")
         self.radio_thermo = QtWidgets.QRadioButton("&Thermo iCap CSV")
 
         format_box = QtWidgets.QGroupBox("File Format")
         layout_format = QtWidgets.QVBoxLayout()
         layout_format.addWidget(self.radio_agilent)
-        layout_format.addWidget(self.radio_numpy)
         layout_format.addWidget(self.radio_text)
         layout_format.addWidget(self.radio_thermo)
         format_box.setLayout(layout_format)
@@ -90,8 +87,6 @@ class ImportFormatPage(QtWidgets.QWizardPage):
             return ImportWizard.page_agilent
         elif self.radio_csv.isChecked():
             return ImportWizard.page_text
-        elif self.radio_numpy.isChecked():
-            return ImportWizard.page_numpy
         elif self.radio_thermo.isChecked():
             return ImportWizard.page_thermo
         return 0
@@ -211,7 +206,7 @@ class ImportAgilentPage(QtWidgets.QWizardPage):
 
     def buttonPathPressed(self) -> QtWidgets.QFileDialog:
         dlg = QtWidgets.QFileDialog(
-            self, "Import Batch", os.path.dirname(self.lineedit_path.text())
+            self, "Select Batch", os.path.dirname(self.lineedit_path.text())
         )
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
         dlg.setFileMode(QtWidgets.QFileDialog.Directory)
@@ -239,14 +234,21 @@ class ImportAgilentPage(QtWidgets.QWizardPage):
         return os.path.exists(path) and os.path.isdir(path)
 
 
-class ImportTextPage(QtWidgets.QWizard):
+class ImportFilesWidget(QtWidgets.QWidget):
+    def __init__(self, paths: List[str] = None, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
 
+
+    def buttonPathPressed(self) -> QtWidgets.QFileDialog:
+
+
+class ImportTextPage(QtWidgets.QWizard):
     def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.setTitle("Agilent Batch")
+        self.setTitle("Text Image Import")
 
         self.lineedit_path = QtWidgets.QLineEdit(path)
-        self.lineedit_path.setPlaceholderText("Path to batch directory...")
+        self.lineedit_path.setPlaceholderText("Path to directory...")
         self.lineedit_path.textChanged.connect(self.pathChanged)
 
         self.button_path = QtWidgets.QPushButton("Open Batch")
@@ -348,11 +350,10 @@ class ImportTextPage(QtWidgets.QWizard):
 
     def buttonPathPressed(self) -> QtWidgets.QFileDialog:
         dlg = QtWidgets.QFileDialog(
-            self, "Import Batch", os.path.dirname(self.lineedit_path.text())
+            self, "Select File(s)", os.path.dirname(self.lineedit_path.text())
         )
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
-        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
-        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
         dlg.fileSelected.connect(self.pathSelected)
         dlg.open()
         return dlg
@@ -362,8 +363,8 @@ class ImportTextPage(QtWidgets.QWizard):
         self.updateDataFileCount()
         self.completeChanged.emit()
 
-    def pathSelected(self, path: str) -> None:
-        self.setField("agilent.path", path)
+    def pathSelected(self, paths: List[str]) -> None:
+        self.setField("text.paths", paths)
 
     def updateDataFileCount(self) -> None:
         expected, actual = self.dataFileCount()
