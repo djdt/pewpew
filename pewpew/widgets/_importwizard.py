@@ -32,17 +32,15 @@ class ImportWizard(QtWidgets.QWizard):
         super().__init__(parent)
 
         self.laser: Laser = None
-        self.config = config or Config()
-        self.path = path
+        config = config or Config()
+        # self.path = path
 
         self.setPage(self.page_format, ImportFormatPage(parent=self))
-        # self.setPage(self.page_files, ImportFileAndFormatPage(parent=self))
-        self.setPage(ImportWizard.page_agilent, ImportAgilentPage(path, parent=self))
-        self.setPage(ImportWizard.page_text, ImportTextPage(path, parent=self))
-        # self.setPage(ImportWizard.page_options_numpy, ImportOptionsNumpyPage(path))
-        # self.setPage(ImportWizard.page_options_thermo, ImportOptionsThermoPage(path))
+        self.setPage(self.page_agilent, ImportAgilentPage(path, parent=self))
+        self.setPage(self.page_text, ImportTextPage(path, parent=self))
+        self.setPage(self.page_thermo, ImportThermoPage(path, parent=self))
 
-        # self.setPage(ImportWizard.page_lines, ImportConfigPage(parent=self))
+        self.setPage(self.page_config, ImportConfigPage(config, parent=self))
 
 
 class ImportFormatPage(QtWidgets.QWizardPage):
@@ -80,15 +78,19 @@ class ImportFormatPage(QtWidgets.QWizardPage):
         layout.addWidget(format_box)
         self.setLayout(layout)
 
+        self.registerField("formatAgilent", self.radio_agilent)
+        self.registerField("formatText", self.radio_text)
+        self.registerField("formatThermo", self.radio_thermo)
+
     def initializePage(self) -> None:
         self.radio_agilent.setChecked(True)
 
     def nextId(self) -> int:
-        if self.radio_agilent.isChecked():
+        if self.field("formatAgilent"):
             return ImportWizard.page_agilent
-        elif self.radio_text.isChecked():
+        elif self.field("formatText"):
             return ImportWizard.page_text
-        elif self.radio_thermo.isChecked():
+        elif self.field("formatThermo"):
             return ImportWizard.page_thermo
         return 0
 
@@ -178,6 +180,9 @@ class _ImportOptionsPage(QtWidgets.QWizardPage):
 
     def nameFilter(self) -> str:
         return f"{self.file_type}({' '.join(['*' + ext for ext in self.file_exts])})"
+
+    def nextId(self) -> int:
+        return ImportWizard.page_config
 
     def pathChanged(self, path: str) -> None:
         self.completeChanged.emit()
@@ -314,7 +319,10 @@ class ImportAgilentPage(_ImportOptionsPage):
             self.combo_dfile_method.addItem("Batch Log XML")
 
         # Restore the last method if available
-        self.combo_dfile_method.setCurrentText(current_text)
+        if current_text != "":
+            self.combo_dfile_method.setCurrentText(current_text)
+        else:
+            self.combo_dfile_method.setCurrentIndex(self.combo_dfile_method.count() - 1)
 
     def validPath(self, path: str) -> bool:
         return os.path.exists(path) and os.path.isdir(path)
@@ -341,22 +349,138 @@ class ImportTextPage(_ImportOptionsPage):
             return False
         return True
 
+    def pathSelected(self, path: str) -> None:
+        self.setField("text.path", path)
+
 
 class ImportThermoPage(_ImportOptionsPage):
     def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
         super().__init__("Thermo iCap Data", [".csv"], path, parent)
 
-        self.radio_columns = QtWidgets.QRadioButton("Exported as columns.")
-        self.radio_rows = QtWidgets.QRadioButton("Exported as rows.")
+        self.radio_columns = QtWidgets.QRadioButton("Samples in columns.")
+        self.radio_rows = QtWidgets.QRadioButton("Samples in rows.")
+
+        self.combo_delimiter = QtWidgets.QComboBox()
+        self.combo_delimiter.addItems([",", ";"])
+        self.combo_decimal = QtWidgets.QComboBox()
+        self.combo_decimal.addItems([".", ","])
+
+        self.check_use_analog = QtWidgets.QCheckBox(
+            "Use exported analog readings instead of counts."
+        )
+
+        layout_radio = QtWidgets.QVBoxLayout()
+        layout_radio.addWidget(self.radio_columns)
+        layout_radio.addWidget(self.radio_rows)
+
+        layout = QtWidgets.QFormLayout()
+        layout.addRow("Export format:", layout_radio)
+        layout.addRow("Delimiter:", self.combo_delimiter)
+        layout.addRow("Decimal:", self.combo_decimal)
+        layout.addRow(self.check_use_analog)
+        self.options_box.setLayout(layout)
+
+        self.registerField("thermo.path", self.lineedit_path)
+        self.registerField("thermo.sampleColumns", self.radio_columns)
+        self.registerField("thermo.sampleRows", self.radio_rows)
+        self.registerField("thermo.delimiter", self.combo_delimiter)
+        self.registerField("thermo.decimal", self.combo_decimal)
+        self.registerField("thermo.useAnalog", self.check_use_analog)
+
+    def initializePage(self) -> None:
+        self.radio_rows.setChecked(True)
+        self.combo_decimal.setCurrentText(".")
+        self.updateImportOptions()
+
+    def isComplete(self) -> bool:
+        if not self.validPath(self.field("thermo.path")):
+            return False
+        return True
+
+    def updateImportOptions(self) -> None:
+        path = self.field("thermo.path")
+
+        if self.validPath(path):
+            delimiter, method, has_analog = self.preprocessFile(path)
+            self.combo_delimiter.setCurrentText(delimiter)
+            if method == "rows":
+                self.radio_rows.setChecked(True)
+            elif method == "columns":
+                self.radio_columns.setChecked(True)
+
+            if not has_analog:
+                self.check_use_analog.setChecked(False)
+
+            self.combo_delimiter.setEnabled(True)
+            self.combo_decimal.setEnabled(True)
+            self.check_use_analog.setEnabled(has_analog)
+            self.radio_rows.setEnabled(True)
+            self.radio_columns.setEnabled(True)
+        else:
+            self.combo_delimiter.setEnabled(False)
+            self.combo_decimal.setEnabled(False)
+            self.radio_rows.setEnabled(False)
+            self.radio_columns.setEnabled(False)
+
+    def preprocessFile(self, path: str) -> Tuple[str, str, bool]:
+        method = "unknown"
+        has_analog = False
+        with open(path, "r", encoding="utf-8-sig") as fp:
+            lines = [next(fp) for i in range(3)]
+            delimiter = lines[0][0]
+            if "MainRuns" in lines[0]:
+                method = "rows"
+            elif "MainRuns" in lines[2]:
+                method = "columns"
+            for line in fp:
+                if "Analog" in line:
+                    has_analog = True
+                    break
+            return delimiter, method, has_analog
+
+    def pathChanged(self, path: str) -> None:
+        self.updateImportOptions()
+        super().pathChanged(path)
+
+    def pathSelected(self, path: str) -> None:
+        self.setField("thermo.path", path)
 
 
-# class ImportConfigPage(QtWidgets.QWizardPage):
-#     def __init__(self, parent: QtWidgets.QWidget = None):
-#         super().__init__(parent)
+class ImportConfigPage(QtWidgets.QWizardPage):
+    def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+        self.setTitle("Isotopes and Config")
 
-#     # Lines?
-#     # Istopes?
-#     # Config
+        self.lineedit_spotsize = QtWidgets.QLineEdit()
+        self.lineedit_spotsize.setText(str(config.spotsize))
+        self.lineedit_spotsize.setValidator(DecimalValidator(0, 1e5, 1))
+        self.lineedit_spotsize.textChanged.connect(self.completeChanged)
+        self.lineedit_speed = QtWidgets.QLineEdit()
+        self.lineedit_speed.setText(str(config.speed))
+        self.lineedit_speed.setValidator(DecimalValidator(0, 1e5, 1))
+        self.lineedit_speed.textChanged.connect(self.completeChanged)
+        self.lineedit_scantime = QtWidgets.QLineEdit()
+        self.lineedit_scantime.setText(str(config.scantime))
+        self.lineedit_scantime.setValidator(DecimalValidator(0, 1e5, 4))
+        self.lineedit_scantime.textChanged.connect(self.completeChanged)
+
+        self.lineedit_aspect = QtWidgets.QLineEdit()
+        self.lineedit_aspect.setEnabled(False)
+
+        layout = QtWidgets.QVBoxLayout()
+
+        config_box = QtWidgets.QGroupBox("Config")
+        layout_config = QtWidgets.QFormLayout()
+        layout_config.addRow("Spotsize (μm):", self.lineedit_spotsize)
+        layout_config.addRow("Speed (μm):", self.lineedit_speed)
+        layout_config.addRow("Scantime (s):", self.lineedit_scantime)
+        layout_config.addRow("Aspect:", self.lineedit_aspect)
+        config_box.setLayout(layout_config)
+
+        layout.addWidget(config_box)
+
+        self.setLayout(layout)
+
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication()
