@@ -191,7 +191,7 @@ class Parser(object):
     def __init__(self, variables: List[str] = None):
         number_token = "\\d+\\.?\\d*(?:[eE][+\\-]?\\d+)?"
         operator_token = "[+\\-\\*/^!=<>?:]+"
-        variable_token = "\\d*[a-zA-Z][a-zA-Z0-9_\\-]*"  # also covers if then else
+        variable_token = "\\d*[a-zA-Z][a-zA-Z0-9_\\-\\>]*"  # also covers if then else
 
         self.regexp_number = re.compile(number_token)
         self.regexp_tokenise = re.compile(
