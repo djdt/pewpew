@@ -446,10 +446,45 @@ class ImportThermoPage(_ImportOptionsPage):
         self.setField("thermo.path", path)
 
 
+class EditableList(QtWidgets.QListWidget):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+
+        self.itemDoubleClicked.connect(self.editItem)
+
+
+class IsotopeEditDialog(QtWidgets.QWidget):
+    def __init__(self, isotopes: str, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+        self.list = EditableList()
+        self.list.addItems(isotopes)
+        for i in range(self.list.count()):
+            item = self.list.item(i)
+            item.setFlags(QtCore.Qt.ItemIsEditable | item.flags())
+
+        # self.label = QtWidgets.QLineEdit(name)
+        # self.button = qToolButton(action=self.action_remove)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.list)
+        self.setLayout(layout)
+        # layout.addWidget(self.label, 1)
+        # layout.addWidget(self.button, 0)
+        # # layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
+        # layout.setSpacing(0)
+        # self.label.setContentsMargins(0, 0, 0, 0)
+        # self.button.setContentsMargins(0, 0, 0, 0)
+        # self.setLayout(layout)
+
+        # self.parent().takeItem(self.delete())
+
+
 class ImportConfigPage(QtWidgets.QWizardPage):
     def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setTitle("Isotopes and Config")
+
+        self.table_isotopes = IsotopeEditDialog(["1", "2", "3"])
 
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setText(str(config.spotsize))
@@ -467,8 +502,6 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         self.lineedit_aspect = QtWidgets.QLineEdit()
         self.lineedit_aspect.setEnabled(False)
 
-        layout = QtWidgets.QVBoxLayout()
-
         config_box = QtWidgets.QGroupBox("Config")
         layout_config = QtWidgets.QFormLayout()
         layout_config.addRow("Spotsize (μm):", self.lineedit_spotsize)
@@ -477,6 +510,8 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         layout_config.addRow("Aspect:", self.lineedit_aspect)
         config_box.setLayout(layout_config)
 
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.table_isotopes)
         layout.addWidget(config_box)
 
         self.setLayout(layout)
