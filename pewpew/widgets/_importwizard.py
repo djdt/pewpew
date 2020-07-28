@@ -454,29 +454,41 @@ class EditableList(QtWidgets.QListWidget):
 
 
 class IsotopeEditDialog(QtWidgets.QWidget):
-    def __init__(self, isotopes: str, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
-        self.list = EditableList()
-        self.list.addItems(isotopes)
-        for i in range(self.list.count()):
-            item = self.list.item(i)
-            item.setFlags(QtCore.Qt.ItemIsEditable | item.flags())
+    originalNameRole = QtCore.Qt.UserRole + 1
 
-        # self.label = QtWidgets.QLineEdit(name)
-        # self.button = qToolButton(action=self.action_remove)
+    def __init__(self, isotopes: List[str], parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+        self.list = QtWidgets.QListWidget()
+        self.list.itemDoubleClicked.connect(self.list.editItem)
+
+        self.action_remove = qAction(
+            "window-close",
+            "Remove",
+            "Remove the selected isotope.",
+            self.removeCurrentIsotope,
+        )
+        self.button_remove = qToolButton(action=self.action_remove)
+
+        layout_controls = QtWidgets.QHBoxLayout()
+        layout_controls.addWidget(self.button_remove, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.list)
+        layout.addLayout(layout_controls)
         self.setLayout(layout)
-        # layout.addWidget(self.label, 1)
-        # layout.addWidget(self.button, 0)
-        # # layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
-        # layout.setSpacing(0)
-        # self.label.setContentsMargins(0, 0, 0, 0)
-        # self.button.setContentsMargins(0, 0, 0, 0)
-        # self.setLayout(layout)
 
-        # self.parent().takeItem(self.delete())
+        for name in isotopes:
+            self.addIsotope(name)
+
+    def addIsotope(self, name: str) -> None:
+        item = QtWidgets.QListWidgetItem(name)
+        item.setData(IsotopeEditDialog.originalNameRole, name)
+        item.setFlags(QtCore.Qt.ItemIsEditable | item.flags())
+        self.list.addItem(item)
+
+    def removeCurrentIsotope(self) -> None:
+        item = self.list.takeItem(self.list.currentRow())
+        del item
 
 
 class ImportConfigPage(QtWidgets.QWizardPage):
@@ -484,7 +496,7 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.setTitle("Isotopes and Config")
 
-        self.table_isotopes = IsotopeEditDialog(["1", "2", "3"])
+        self.table_isotopes = IsotopeEditDialog([str(i) for i in range(100)])
 
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setText(str(config.spotsize))
@@ -502,6 +514,13 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         self.lineedit_aspect = QtWidgets.QLineEdit()
         self.lineedit_aspect.setEnabled(False)
 
+        isotope_box = QtWidgets.QGroupBox("Isotopes")
+        layout_isotopes = QtWidgets.QVBoxLayout()
+        layout_isotopes.addWidget(self.table_isotopes)
+        layout_isotopes.setSpacing(0)
+        layout_isotopes.setContentsMargins(0, 0, 0, 0)
+        isotope_box.setLayout(layout_isotopes)
+
         config_box = QtWidgets.QGroupBox("Config")
         layout_config = QtWidgets.QFormLayout()
         layout_config.addRow("Spotsize (μm):", self.lineedit_spotsize)
@@ -511,7 +530,7 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         config_box.setLayout(layout_config)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.table_isotopes)
+        layout.addWidget(isotope_box)
         layout.addWidget(config_box)
 
         self.setLayout(layout)
