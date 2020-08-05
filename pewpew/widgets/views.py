@@ -293,14 +293,17 @@ class ViewTabBar(QtWidgets.QTabBar):
 
     def __init__(self, view: View, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
+
         self.view = view
         self.drag_start_pos = QtCore.QPoint(0, 0)
         self.setSizePolicy(
-            QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
         )
-        self.setElideMode(QtCore.Qt.ElideRight)
+        self.setElideMode(QtCore.Qt.ElideLeft)
+        self.setUsesScrollButtons(True)
         self.setExpanding(False)
         self.setTabsClosable(True)
+
         self.setAcceptDrops(True)
         self.setMouseTracking(True)
 
@@ -322,6 +325,10 @@ class ViewTabBar(QtWidgets.QTabBar):
         dlg.textValueSelected.connect(lambda s: self.setTabText(index, s))
         dlg.open()
         return dlg
+
+    def minimumTabSizeHint(self, index: int) -> QtCore.QSize:
+        size = super().minimumTabSizeHint(index)
+        return QtCore.QSize(160, size.height())
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         if event.button() == QtCore.Qt.LeftButton:
