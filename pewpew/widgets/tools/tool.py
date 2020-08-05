@@ -86,4 +86,4 @@ class ToolWidget(_ViewWidget):
     def transform(self, **kwargs) -> None:
         if hasattr(self.widget, "transform"):
             self.widget.transform(**kwargs)
-        self.widgetChanged()
+        self.refresh()
