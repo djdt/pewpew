@@ -80,7 +80,7 @@ class ImageCanvas(BasicCanvas):
         view_limits = self.view_limits if self.ax is not None else None
 
         self.figure.clear()
-        self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=False)
+        self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=True)
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
 
@@ -93,11 +93,26 @@ class ImageCanvas(BasicCanvas):
             return (0.0, 0.0, 0.0, 0.0)
         else:
             return self.image.get_extent()
+            # x0, x1, y0, y1 = self.image.get_extent()
+            # print("img ext:", x0, x1, y0, y1)
+            # window = self.figure.get_window_extent()
+            # aspect = window.width / window.height
+            # if (x1 - x0) > (y1 - y0):
+            #     h = (x1 - x0) / aspect / 2.0
+            #     extent = x0, x1, y0 - h, y1 + h
+            # else:
+            #     w = (y1 - y0) * aspect / 2.0
+            #     extent = x0 + w, x1 - w, y0, y1
+        # print("new ext:", extent)
+        # return extent
 
     @property
     def view_limits(self) -> Tuple[float, float, float, float]:
         x0, x1, = self.ax.get_xlim()
         y0, y1 = self.ax.get_ylim()
+        print("extent:", *self.extent)
+        print("limits:", x0, x1, y0, y1)
+        print("window:", self.figure.get_window_extent().width)
         return x0, x1, y0, y1
 
     @view_limits.setter
