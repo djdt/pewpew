@@ -248,9 +248,9 @@ class LaserWidgetImageCanvas(LaserImageCanvas):
         self.widget.set_active(True)
 
     def updateAndDrawSelection(self, mask: np.ndarray, state: set = None) -> None:
-        if "add" in state and self.selection is not None:
+        if state is not None and "add" in state and self.selection is not None:
             self.selection = np.logical_or(self.selection, mask)
-        elif "subtract" in state and self.selection is not None:
+        elif state is not None and "subtract" in state and self.selection is not None:
             self.selection = np.logical_and(self.selection, ~mask)
         else:
             self.selection = mask
@@ -575,7 +575,7 @@ class LaserWidget(_ViewWidget):
         dlg = dialogs.SelectionDialog(
             self.laser.get(flat=True), self.combo_isotope.currentText(), parent=self
         )
-        dlg.maskSelected.connect(self.canvas.setSelection)
+        dlg.maskSelected.connect(self.canvas.updateAndDrawSelection)
         dlg.open()
         return dlg
 
