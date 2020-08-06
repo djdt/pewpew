@@ -80,7 +80,7 @@ class ImageCanvas(BasicCanvas):
         view_limits = self.view_limits if self.ax is not None else None
 
         self.figure.clear()
-        self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=True)
+        self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=False, xmargin=0, ymargin=0)
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
 
@@ -117,14 +117,6 @@ class ImageCanvas(BasicCanvas):
     @view_limits.setter
     def view_limits(self, limits: Tuple[float, float, float, float]) -> None:
         x0, x1, y0, y1 = limits
-        # aspect = self.width() / self.height()
-        # width, height = x1 - x0, y1 - y0
-
-        # if width < height:
-        #     x0, x1 = (width - height * aspect) / 2.0, (width + height * aspect) / 2.0
-        # else:
-        #     y0, y1 = (height - width / aspect) / 2.0, (height + width / aspect) / 2.0
-
         self.ax.set_xlim(x0, x1)
         self.ax.set_ylim(y0, y1)
         self.draw_idle()
@@ -145,22 +137,26 @@ class ImageCanvas(BasicCanvas):
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
         super().resizeEvent(event)
 
-        # x0, x1, y0, y1 = self.view_limits
-        # aspect = self.width() / self.height()
-        # width, height = x1 - x0, y1 - y0
+        x0, x1, y0, y1 = self.view_limits
+        xmin, xmax, ymin, ymax = self.extent_for_aspect(self.extent)
+        w, h = (x1 - x0), (y1 - y0)
 
-        # if width < height:
-        #     x0, x1 = (width - height * aspect) / 2.0, (width + height * aspect) / 2.0
-        # else:
-        #     y0, y1 = (height - width / aspect) / 2.0, (height + width / aspect) / 2.0
+        aspect = event.size().width() / event.size().height()
+        old_aspect = event.oldSize().width() / event.oldSize().height()
+
         rw = event.size().width() / event.oldSize().width()
         rh = event.size().height() / event.oldSize().height()
 
-        x0, x1, y0, y1 = self.view_limits
-        w, h = (x1 - x0), (y1 - y0)
+        # x0, x1, y0, y1 = max(xmin, x0), min(xmax, x1), max(ymin, y0), min(ymax, y1)
+        if aspect > old_aspect:
+            print("aspect > old")
+            y0, y1 = y0 + h / 2.0 - (h / 2.0) * rh, y0 + h / 2.0 + (h / 2.0) * rh
+            # y0, y1 = max(ymin, y0), min(ymax, y1)
+        else:
+            x0, x1 = x0 + w / 2.0 - (w / 2.0) * rw, x0 + w / 2.0 + (w / 2.0) * rw
+            # x0, x1 = max(xmin, x0), min(xmax, x1)
 
-        x0, x1 = x0 + w / 2.0 - (w / 2.0) * rw, x0 + w / 2.0 + (w / 2.0) * rw
-        y0, y1 = y0 + h / 2.0 - (h / 2.0) * rh, y0 + h / 2.0 + (h / 2.0) * rh
+        # x0, x1, y0, y1 = self.extent_for_aspect((x0, x1, y0, y1))
 
         self.view_limits = (x0, x1, y0, y1)
 
@@ -481,6 +477,7 @@ class LaserImageCanvas(SelectableImageCanvas):
             origin="upper",
         )
 
+        # self.view_limits = extent
         self.view_limits = self.extent_for_aspect(extent)
 
     def drawLabel(self, text: str) -> None:
