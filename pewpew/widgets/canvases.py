@@ -300,11 +300,14 @@ class InteractiveImageCanvas(ImageCanvas):
             self.view_limits = x1, x2, y1, y2
 
     def moveCursor(self, event: MouseEvent) -> None:
-        if self.image is not None:
+        # contains() returns 2 args, bool and dict
+        if self.image is not None and self.image.contains(event)[0]:
             # Update the status bar
             x, y = event.xdata, event.ydata
             v = self.image.get_cursor_data(event)
             self.cursorMoved.emit(x, y, v)
+        else:
+            self.cursorClear.emit()
 
     def _scroll(self, event: MouseEvent) -> None:
         if self.ignore_event(event):

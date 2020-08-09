@@ -202,9 +202,11 @@ class OverlayCanvas(InteractiveImageCanvas):
         self.drawFigure()
 
     def moveCursor(self, event: MouseEvent) -> None:
-        if self.image is not None:
+        if self.image is not None and self.image.contains(event)[0]:
             v = self.image.get_cursor_data(event)
             self.cursorMoved.emit(v)
+        else:
+            self.cursorClear.emit()
 
     def drawLabel(self, names: List[str], colors: List[str]) -> None:
         if self.label is not None:
