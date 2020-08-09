@@ -1,6 +1,7 @@
 import os
 
 # import numpy as np
+import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -16,6 +17,9 @@ from pewpew.widgets.canvases import BasicCanvas
 from pewpew.widgets.ext import MultipleDirDialog
 
 from typing import Dict, List, Tuple, Union
+
+
+logger = logging.getLogger(__name__)
 
 
 class ImportWizard(QtWidgets.QWizard):
@@ -78,19 +82,19 @@ class ImportFormatPage(QtWidgets.QWizardPage):
         layout.addWidget(format_box)
         self.setLayout(layout)
 
-        self.registerField("formatAgilent", self.radio_agilent)
-        self.registerField("formatText", self.radio_text)
-        self.registerField("formatThermo", self.radio_thermo)
+        self.registerField("agilent", self.radio_agilent)
+        self.registerField("text", self.radio_text)
+        self.registerField("thermo", self.radio_thermo)
 
     def initializePage(self) -> None:
         self.radio_agilent.setChecked(True)
 
     def nextId(self) -> int:
-        if self.field("formatAgilent"):
+        if self.field("agilent"):
             return ImportWizard.page_agilent
-        elif self.field("formatText"):
+        elif self.field("text"):
             return ImportWizard.page_text
-        elif self.field("formatThermo"):
+        elif self.field("thermo"):
             return ImportWizard.page_thermo
         return 0
 
@@ -232,7 +236,7 @@ class ImportAgilentPage(_ImportOptionsPage):
 
         self.registerField("agilent.path", self.lineedit_path)
         self.registerField("agilent.method", self.combo_dfile_method)
-        self.registerField("agilent.names", self.check_name_acq_xml)
+        self.registerField("agilent.use_acq", self.check_acq_xml)
 
     def dataFileCount(self) -> Tuple[int, int]:
         path = self.field("agilent.path")
@@ -496,7 +500,7 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.setTitle("Isotopes and Config")
 
-        self.table_isotopes = IsotopeEditDialog([str(i) for i in range(100)])
+        self.table_isotopes = IsotopeEditDialog([])
 
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setText(str(config.spotsize))
@@ -534,6 +538,49 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         layout.addWidget(config_box)
 
         self.setLayout(layout)
+
+    def readAgilent(self) -> None:
+        agilent_method = self.field("agilent.method")
+        if agilent_method == "Alphabetical Order":
+            method = None
+        elif agilent_method == "Acquistion Method":
+            method = "acq_method_xml"
+        elif agilent_method == "Batch Log CSV":
+            method = "batch_csv"
+        else:
+            method = "batch_xml"
+
+        # use_acq = self.field("agilent.names")
+        data_files = io.agilent.collect_datafiles(self.field("agilent.path"), method)
+
+        # Collect csvs
+        csvs: List[str] = []
+        for d in data_files:
+            csv = os.path.join(d, os.path.splitext(os.path.basename(d))[0] + ".csv")
+            logger.debug(f"Looking for csv '{csv}'.")
+            if not os.path.exists(csv):
+                logger.warning(f"Missing csv '{csv}', line blanked.")
+                csvs.append(None)
+            else:
+                csvs.append(csv)
+
+        names, scan_time, nscans = io.agilent.csv_read_params(
+            next(c for c in csvs if c is not None)
+        )
+        if self.field("agilent.use_acq"):
+            names = io.agilent.acq_method_xml_read_elements(
+                self.field("agilent.path"), io.agilent.acq_method_xml_path
+            )
+
+    def readData(self) -> None:
+        if self.field("agilent"):
+            pass
+        elif self.field("text"):
+            pass
+        elif self.field("thermo"):
+            pass
+        else:
+            raise ValueError("No or unknown format selected for ImportWizard.")
 
 
 if __name__ == "__main__":
