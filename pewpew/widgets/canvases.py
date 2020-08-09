@@ -80,7 +80,9 @@ class ImageCanvas(BasicCanvas):
         view_limits = self.view_limits if self.ax is not None else None
 
         self.figure.clear()
-        self.ax = self.figure.add_subplot(facecolor="black", autoscale_on=False, xmargin=0, ymargin=0)
+        self.ax = self.figure.add_subplot(
+            facecolor="black", autoscale_on=False, xmargin=0, ymargin=0
+        )
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
 
@@ -93,19 +95,22 @@ class ImageCanvas(BasicCanvas):
             return (0.0, 0.0, 0.0, 0.0)
         else:
             return self.image.get_extent()
-            # return self.extent_for_aspect(self.image.get_extent())
+            # return self.extentForAspect(self.image.get_extent())
 
-    def extent_for_aspect(
-        self, extent: Tuple[float, float, float, float]
+    def extentForAspect(
+        self, extent: Tuple[float, float, float, float], aspect: float = None
     ) -> Tuple[float, float, float, float]:
+        # Breaks on higher aspect
+        if aspect is None:
+            aspect = self.width() / self.height()
+
         x0, x1, y0, y1 = extent
-        aspect = self.width() / self.height()
         width, height = x1 - x0, y1 - y0
 
-        if width < height:
-            x0, x1 = (width - height * aspect) / 2.0, (width + height * aspect) / 2.0
-        else:
+        if width > 0.0 and height > 0.0 and width / height >= aspect:
             y0, y1 = (height - width / aspect) / 2.0, (height + width / aspect) / 2.0
+        else:
+            x0, x1 = (width - height * aspect) / 2.0, (width + height * aspect) / 2.0
         return x0, x1, y0, y1
 
     @property
@@ -138,25 +143,26 @@ class ImageCanvas(BasicCanvas):
         super().resizeEvent(event)
 
         x0, x1, y0, y1 = self.view_limits
-        xmin, xmax, ymin, ymax = self.extent_for_aspect(self.extent)
-        w, h = (x1 - x0), (y1 - y0)
-
-        aspect = event.size().width() / event.size().height()
-        old_aspect = event.oldSize().width() / event.oldSize().height()
+        xmin, xmax, ymin, ymax = self.extentForAspect(self.extent)
 
         rw = event.size().width() / event.oldSize().width()
         rh = event.size().height() / event.oldSize().height()
 
-        # x0, x1, y0, y1 = max(xmin, x0), min(xmax, x1), max(ymin, y0), min(ymax, y1)
-        if aspect > old_aspect:
-            print("aspect > old")
-            y0, y1 = y0 + h / 2.0 - (h / 2.0) * rh, y0 + h / 2.0 + (h / 2.0) * rh
-            # y0, y1 = max(ymin, y0), min(ymax, y1)
-        else:
+        # Check if view limits for the full aspect extent of previous size
+        if np.allclose(
+            self.view_limits,
+            self.extentForAspect(
+                self.extent, aspect=event.oldSize().width() / event.oldSize().height()
+            ),
+        ):
+            # Set view limits at new full aspect extent
+            x0, x1, y0, y1 = xmin, xmax, ymin, ymax
+        else:  # Adjust the view limits to fit aspect
+            w, h = (x1 - x0), (y1 - y0)
             x0, x1 = x0 + w / 2.0 - (w / 2.0) * rw, x0 + w / 2.0 + (w / 2.0) * rw
-            # x0, x1 = max(xmin, x0), min(xmax, x1)
-
-        # x0, x1, y0, y1 = self.extent_for_aspect((x0, x1, y0, y1))
+            x0, x1 = max(xmin, x0), min(xmax, x1)
+            y0, y1 = y0 + h / 2.0 - (h / 2.0) * rh, y0 + h / 2.0 + (h / 2.0) * rh
+            y0, y1 = max(ymin, y0), min(ymax, y1)
 
         self.view_limits = (x0, x1, y0, y1)
 
@@ -275,7 +281,7 @@ class InteractiveImageCanvas(ImageCanvas):
             and event.button == self.move_button
         ):
             x1, x2, y1, y2 = self.view_limits
-            xmin, xmax, ymin, ymax = self.extent_for_aspect(self.extent)
+            xmin, xmax, ymin, ymax = self.extentForAspect(self.extent)
             dx = self.eventpress.xdata - event.xdata
             dy = self.eventpress.ydata - event.ydata
 
@@ -315,7 +321,7 @@ class InteractiveImageCanvas(ImageCanvas):
         if x1 > x2 or y1 > y2:
             return
 
-        xmin, xmax, ymin, ymax = self.extent_for_aspect(self.extent)
+        xmin, xmax, ymin, ymax = self.extentForAspect(self.extent)
 
         # If (un)zoom overlaps an edge attempt to shift it
         if x1 < xmin:
@@ -340,7 +346,7 @@ class InteractiveImageCanvas(ImageCanvas):
         self.state.add("zoom")
 
     def unzoom(self) -> None:
-        self.view_limits = self.extent
+        self.view_limits = self.extentForAspect(self.extent)
         self.state.discard("zoom")
 
 
@@ -478,7 +484,7 @@ class LaserImageCanvas(SelectableImageCanvas):
         )
 
         # self.view_limits = extent
-        self.view_limits = self.extent_for_aspect(extent)
+        self.view_limits = self.extentForAspect(extent)
 
     def drawLabel(self, text: str) -> None:
         if self.label is not None:
