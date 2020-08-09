@@ -3,10 +3,12 @@ Bugs
 
 ~~Name gets blanked when edit (any tool) is opened, possible that laser.name is not set?~~
 ~~No collapse of tabs when too many opened.~~
-Can't rotate in overlay
+~~Can't rotate in overlay~~
 
 Misc
 ----
+
+Overlay tool could use a colorbar scale.
 Standards result box should be in 2 rows.
 
 Colocal is slow (coastes has many python loop).
