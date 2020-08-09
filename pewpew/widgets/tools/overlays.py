@@ -154,7 +154,7 @@ class OverlayTool(ToolWidget):
         extent = self.widget.laser.config.data_extent(img.shape)
         # Only change the view if new or the laser extent has changed (i.e. conf edit)
         if self.canvas.extent != extent:
-            self.canvas.view_limits = extent
+            self.canvas.view_limits = self.canvas.extentForAspect(extent)
 
         self.canvas.drawData(img, extent)
 
@@ -565,7 +565,6 @@ class OverlayExportDialog(_ExportDialogBase):
                     data, self.widget.widget.laser.config.data_extent(data.shape)
                 )
                 canvas.view_limits = self.widget.canvas.view_limits
-
 
                 if canvas.viewoptions.canvas.label:
                     names = [self.widget.rows[row].label_name.text()]

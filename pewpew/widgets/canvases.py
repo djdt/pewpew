@@ -108,9 +108,15 @@ class ImageCanvas(BasicCanvas):
         width, height = x1 - x0, y1 - y0
 
         if width > 0.0 and height > 0.0 and width / height >= aspect:
-            y0, y1 = (height - width / aspect) / 2.0, (height + width / aspect) / 2.0
+            y0, y1 = (
+                y0 + (height - width / aspect) / 2.0,
+                y0 + (height + width / aspect) / 2.0,
+            )
         else:
-            x0, x1 = (width - height * aspect) / 2.0, (width + height * aspect) / 2.0
+            x0, x1 = (
+                x0 + (width - height * aspect) / 2.0,
+                x0 + (width + height * aspect) / 2.0,
+            )
         return x0, x1, y0, y1
 
     @property
@@ -342,7 +348,12 @@ class InteractiveImageCanvas(ImageCanvas):
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
         self.widget = None
-        self.view_limits = (press.xdata, release.xdata, press.ydata, release.ydata)
+        x0, x1, y0, y1 = press.xdata, release.xdata, press.ydata, release.ydata
+        xmin, xmax, ymin, ymax = self.extent
+        x0, x1 = max(xmin, x0), min(xmax, x1)
+        y0, y1 = max(ymin, y0), min(ymax, y1)
+
+        self.view_limits = self.extentForAspect((x0, x1, y0, y1))
         self.state.add("zoom")
 
     def unzoom(self) -> None:
@@ -483,9 +494,6 @@ class LaserImageCanvas(SelectableImageCanvas):
             origin="upper",
         )
 
-        # self.view_limits = extent
-        self.view_limits = self.extentForAspect(extent)
-
     def drawLabel(self, text: str) -> None:
         if self.label is not None:
             self.label.remove()
@@ -525,7 +533,7 @@ class LaserImageCanvas(SelectableImageCanvas):
         extent = laser.config.data_extent(data.shape, layer=layer)
         # Only change the view if new or the laser extent has changed (i.e. conf edit)
         if self.extent != extent:
-            self.view_limits = extent
+            self.view_limits = self.extentForAspect(extent)
 
         # If data is empty create a dummy data
         if data is None or data.size == 0:
