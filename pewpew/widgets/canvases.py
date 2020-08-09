@@ -95,7 +95,19 @@ class ImageCanvas(BasicCanvas):
             return (0.0, 0.0, 0.0, 0.0)
         else:
             return self.image.get_extent()
-            # return self.extentForAspect(self.image.get_extent())
+
+    @property
+    def view_limits(self) -> Tuple[float, float, float, float]:
+        x0, x1, = self.ax.get_xlim()
+        y0, y1 = self.ax.get_ylim()
+        return x0, x1, y0, y1
+
+    @view_limits.setter
+    def view_limits(self, limits: Tuple[float, float, float, float]) -> None:
+        x0, x1, y0, y1 = limits
+        self.ax.set_xlim(x0, x1)
+        self.ax.set_ylim(y0, y1)
+        self.draw_idle()
 
     def extentForAspect(
         self, extent: Tuple[float, float, float, float], aspect: float = None
@@ -118,32 +130,6 @@ class ImageCanvas(BasicCanvas):
                 x0 + (width + height * aspect) / 2.0,
             )
         return x0, x1, y0, y1
-
-    @property
-    def view_limits(self) -> Tuple[float, float, float, float]:
-        x0, x1, = self.ax.get_xlim()
-        y0, y1 = self.ax.get_ylim()
-        return x0, x1, y0, y1
-
-    @view_limits.setter
-    def view_limits(self, limits: Tuple[float, float, float, float]) -> None:
-        x0, x1, y0, y1 = limits
-        self.ax.set_xlim(x0, x1)
-        self.ax.set_ylim(y0, y1)
-        self.draw_idle()
-
-    def saveRawImage(self, path: str, pixel_size: int = 1) -> None:
-        vmin, vmax = self.image.get_clim()
-
-        imsave(
-            path,
-            self.image.get_array(),
-            vmin=vmin,
-            vmax=vmax,
-            cmap=self.image.cmap,
-            origin=self.image.origin,
-            dpi=100,
-        )
 
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
         super().resizeEvent(event)
@@ -171,6 +157,19 @@ class ImageCanvas(BasicCanvas):
             y0, y1 = max(ymin, y0), min(ymax, y1)
 
         self.view_limits = (x0, x1, y0, y1)
+
+    def saveRawImage(self, path: str, pixel_size: int = 1) -> None:
+        vmin, vmax = self.image.get_clim()
+
+        imsave(
+            path,
+            self.image.get_array(),
+            vmin=vmin,
+            vmax=vmax,
+            cmap=self.image.cmap,
+            origin=self.image.origin,
+            dpi=100,
+        )
 
 
 class InteractiveImageCanvas(ImageCanvas):
