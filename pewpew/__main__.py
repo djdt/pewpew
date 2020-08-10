@@ -37,7 +37,7 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
     return args
 
 
-def main(argv: List[str] = None) -> None:
+def main(argv: List[str] = None) -> int:
     args = parse_args(argv)
 
     app = QtWidgets.QApplication(args.qtargs)
@@ -60,7 +60,7 @@ def main(argv: List[str] = None) -> None:
     timer.timeout.connect(lambda: None)
     timer.start(100)
 
-    app.exec_()
+    return app.exec_()
 
 
 if __name__ == "__main__":
