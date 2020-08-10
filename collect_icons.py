@@ -28,7 +28,7 @@ def sorted_walk(root: str) -> Generator[Tuple[str, List[str], List[str]], None, 
 
 
 def collect_icons(path: str) -> Set[str]:
-    regex_icon = "(?:fromTheme|qAction)\\(\\s*['\"]([a-z\\-]+)['\"]"
+    regex_icon = "(?:fromTheme|qAction|qToolButton)\\(\\s*['\"]([a-z\\-]+)['\"]"
     icons = set()
 
     for root, _dirs, files in os.walk(path):
