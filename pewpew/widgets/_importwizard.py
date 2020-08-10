@@ -1,20 +1,16 @@
 import os
 
-# import numpy as np
+import numpy as np
 import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from pew import io
-from pew.lib import peakfinding
 from pew.config import Config
 from pew.laser import Laser
-from pew.srr import SRRLaser, SRRConfig
 
 from pewpew.actions import qAction, qToolButton
-from pewpew.validators import DecimalValidator, DecimalValidatorNoZero
-from pewpew.widgets.canvases import BasicCanvas
-from pewpew.widgets.ext import MultipleDirDialog
+from pewpew.validators import DecimalValidator
 
 from typing import Dict, List, Tuple, Union
 
@@ -502,11 +498,16 @@ class IsotopeEditDialog(QtWidgets.QWidget):
 
 
 class ImportConfigPage(QtWidgets.QWizardPage):
+    dataChanged = QtCore.Signal()
+
     def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setTitle("Isotopes and Config")
 
-        self.table_isotopes = IsotopeEditDialog([])
+        self._data: np.ndarray = None
+        self.label_isotopes = QtWidgets.QLabel()
+        self.button_isotopes = QtWidgets.QPushButton("Edit Names")
+        self.button_isotopes.pressed.connect(self.buttonNamesPressed)
 
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setText(str(config.spotsize))
@@ -524,12 +525,10 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         self.lineedit_aspect = QtWidgets.QLineEdit()
         self.lineedit_aspect.setEnabled(False)
 
-        isotope_box = QtWidgets.QGroupBox("Isotopes")
-        layout_isotopes = QtWidgets.QVBoxLayout()
-        layout_isotopes.addWidget(self.table_isotopes)
-        layout_isotopes.setSpacing(0)
-        layout_isotopes.setContentsMargins(0, 0, 0, 0)
-        isotope_box.setLayout(layout_isotopes)
+        layout_isotopes = QtWidgets.QHBoxLayout()
+        layout_isotopes.addWidget(QtWidgets.QLabel("Isotopes:"), 0, QtCore.Qt.AlignLeft)
+        layout_isotopes.addWidget(self.label_isotopes, 1)
+        layout_isotopes.addWidget(self.button_isotopes, 0, QtCore.Qt.AlignRight)
 
         config_box = QtWidgets.QGroupBox("Config")
         layout_config = QtWidgets.QFormLayout()
@@ -540,67 +539,98 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         config_box.setLayout(layout_config)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(isotope_box)
+        layout.addLayout(layout_isotopes)
         layout.addWidget(config_box)
 
         self.setLayout(layout)
 
-        def readAgilent(self) -> None:
-            agilent_method = self.field("agilent.method")
-            if agilent_method == "Alphabetical Order":
-                method = None
-            elif agilent_method == "Acquistion Method":
-                method = "acq_method_xml"
-            elif agilent_method == "Batch Log CSV":
-                method = "batch_csv"
-            else:
-                method = "batch_xml"
+        self.registerField("spotsize", self.lineedit_spotsize)
+        self.registerField("speed", self.lineedit_speed)
+        self.registerField("scantime", self.lineedit_scantime)
 
-            # use_acq = self.field("agilent.names")
-            data_files = io.agilent.collect_datafiles(
-                self.field("agilent.path"), method
-            )
+        self.registerField("data", self, "data")
 
-            # Collect csvs
-            csvs: List[str] = []
-            for d in data_files:
-                csv = os.path.join(d, os.path.splitext(os.path.basename(d))[0] + ".csv")
-                logger.debug(f"Looking for csv '{csv}'.")
-                if not os.path.exists(csv):
-                    logger.warning(f"Missing csv '{csv}', line blanked.")
-                    csvs.append(None)
-                else:
-                    csvs.append(csv)
+    def getData(self) -> np.ndarray:
+        return self._data
 
-            names, scan_time, nscans = io.agilent.csv_read_params(
-                next(c for c in csvs if c is not None)
-            )
-            if self.field("agilent.use_acq"):
-                names = io.agilent.acq_method_xml_read_elements(
-                    self.field("agilent.path"), io.agilent.acq_method_xml_path
-                )
+    def setData(self, data: np.ndarray) -> None:
+        self._data = data
 
-    def readConfigDefaults(self) -> None:
+    def initializePage(self) -> None:
         if self.field("agilent"):
-            names, scantime, _ = io.agilent.csv_read_params(self.field("agilent.path"))
-            if self.field("agilent.acqnames"):
-                names = io.agilent.acq_method_xml_read_elements(
-                    self.field("agilent.path"), io.agilent.acq_method_xml_path
-                )
+            data, params = self.readAgilent()
         elif self.field("text"):
-            pass
+            data, params = self.readText()
         elif self.field("thermo"):
-            if self.field("thermo.sampleColumns"):
-                pass
-        else:
-            raise ValueError("No or unknown format selected for ImportWizard.")
+            data, params = self.readThermo()
 
-        self.table_isotopes.setIsotopes(names)
-        self.lineedit_scantime.setText(f"{scantime:.4g}")
+        if "scantime" in params:
+            self.setField("scantime", f"{params['scantime']:.4g}")
+
+        self.setField("data", data)
+        self.setElidedNames(data.dtype.names)
+
+    def buttonNamesPressed(self) -> None:
+        data = self.field("data")
+        dlg = IsotopeEditDialog(data.dtype.names)
+        dlg.accepted.connect(self.updateNames)
+
+    def readAgilent(self) -> Tuple[np.ndarray, dict]:
+        agilent_method = self.field("agilent.method")
+        if agilent_method == "Alphabetical Order":
+            method = None
+        elif agilent_method == "Acquistion Method":
+            method = ["acq_method_xml"]
+        elif agilent_method == "Batch Log CSV":
+            method = ["batch_csv"]
+        else:
+            method = ["batch_xml"]
+
+        data, params = io.agilent.load(
+            self.field("agilent.path"),
+            collection_methods=method,
+            use_acq_for_names=self.field("agilent.acqNames"),
+            full=True,
+        )
+        return data, params
+
+    def readText(self) -> Tuple[np.ndarray, dict]:
+        data = io.csv.load(self.field("text.path"), isotope=self.field("text.name"))
+        return data, {}
+
+    def readThermo(self) -> Tuple[np.ndarray, dict]:
+        kwargs = dict(
+            delimiter=self.field("thermo.delimiter"),
+            combo_decimal=self.field("thermo.decimal") == ",",
+            use_analog=self.field("thermo.useAnalog"),
+        )
+        if self.field("thermo.sampleRows"):
+            data = io.thermo.icap_csv_rows_read_data(
+                self.field("thermo.path"), **kwargs
+            )
+            params = io.thermo.icap_csv_rows_read_params(
+                self.field("thermo.path"), **kwargs
+            )
+        else:
+            data = io.thermo.icap_csv_columns_read_data(
+                self.field("thermo.path"), **kwargs
+            )
+            params = io.thermo.icap_csv_columns_read_params(
+                self.field("thermo.path"), **kwargs
+            )
+        return data, params
+
+    def setElidedNames(self, names: List[str]) -> None:
+        text = ", ".join(name for name in names)
+        fm = QtGui.QFontMetrics(self.label_isotopes.font())
+        text = fm.elidedText(text, QtCore.Qt.ElideRight, self.label_isotopes.width())
+        self.label_isotopes.setText(text)
+
+    data = QtCore.Property(np.ndarray, getData, setData, notify=dataChanged)
 
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication()
-    w = ImportWizard("/home/tom/Downloads/20200630_agar_test_1.b")
+    w = ImportWizard("/home/tom/Downloads/cellz.b")
     w.show()
     app.exec_()
