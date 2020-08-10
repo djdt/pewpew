@@ -1,4 +1,6 @@
+import argparse
 import sys
+import os.path
 import logging
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -15,8 +17,30 @@ from typing import List
 logger = logging.getLogger()
 
 
-def main(args: List[str] = None) -> None:
-    app = QtWidgets.QApplication(args or [])
+def parse_args(argv: List[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        prog="pew²",
+        description="GUI for visualisation and manipulation of LA-ICP-MS data.",
+    )
+
+    parser.add_argument("--open", "-i", nargs="+", help="Open file(s) on startup.")
+    parser.add_argument(
+        "qtargs", nargs=argparse.REMAINDER, help="Arguments to pass to Qt."
+    )
+    args = parser.parse_args(argv)
+
+    if args.open is not None:
+        for path in args.open:
+            if not os.path.exists(path):
+                raise parser.error(f"[--open, -i]: File '{path}' not found.")
+
+    return args
+
+
+def main(argv: List[str] = None) -> None:
+    args = parse_args(argv)
+
+    app = QtWidgets.QApplication(args.qtargs)
 
     window = MainWindow()
     sys.excepthook = window.exceptHook
@@ -26,6 +50,10 @@ def main(args: List[str] = None) -> None:
 
     window.show()
     window.setWindowIcon(QtGui.QIcon(":/app.ico"))
+
+    # Arguments
+    if args.open is not None:
+        window.viewspace.activeView().openDocument(args.open)
 
     # Keep event loop active with timer
     timer = QtCore.QTimer()
