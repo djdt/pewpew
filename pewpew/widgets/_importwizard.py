@@ -217,6 +217,7 @@ class ImportAgilentPage(_ImportOptionsPage):
             QtWidgets.QComboBox.AdjustToContents
         )
         self.combo_dfile_method.activated.connect(self.updateDataFileCount)
+        self.combo_dfile_method.activated.connect(self.completeChanged)
 
         self.lineedit_dfile = QtWidgets.QLineEdit()
         self.lineedit_dfile.setReadOnly(True)
@@ -236,7 +237,7 @@ class ImportAgilentPage(_ImportOptionsPage):
 
         self.registerField("agilent.path", self.lineedit_path)
         self.registerField("agilent.method", self.combo_dfile_method)
-        self.registerField("agilent.use_acq", self.check_acq_xml)
+        self.registerField("agilent.acqNames", self.check_name_acq_xml)
 
     def dataFileCount(self) -> Tuple[int, int]:
         path = self.field("agilent.path")
@@ -261,7 +262,12 @@ class ImportAgilentPage(_ImportOptionsPage):
             )
         else:
             return 0, -1
-        return len(data_files), sum([os.path.exists(f) for f in data_files])
+
+        csvs = [
+            os.path.join(d, os.path.splitext(os.path.basename(d))[0] + ".csv")
+            for d in data_files
+        ]
+        return len(data_files), sum([os.path.exists(csv) for csv in csvs])
 
     def initializePage(self) -> None:
         self.updateImportOptions()
@@ -539,48 +545,58 @@ class ImportConfigPage(QtWidgets.QWizardPage):
 
         self.setLayout(layout)
 
-    def readAgilent(self) -> None:
-        agilent_method = self.field("agilent.method")
-        if agilent_method == "Alphabetical Order":
-            method = None
-        elif agilent_method == "Acquistion Method":
-            method = "acq_method_xml"
-        elif agilent_method == "Batch Log CSV":
-            method = "batch_csv"
-        else:
-            method = "batch_xml"
-
-        # use_acq = self.field("agilent.names")
-        data_files = io.agilent.collect_datafiles(self.field("agilent.path"), method)
-
-        # Collect csvs
-        csvs: List[str] = []
-        for d in data_files:
-            csv = os.path.join(d, os.path.splitext(os.path.basename(d))[0] + ".csv")
-            logger.debug(f"Looking for csv '{csv}'.")
-            if not os.path.exists(csv):
-                logger.warning(f"Missing csv '{csv}', line blanked.")
-                csvs.append(None)
+        def readAgilent(self) -> None:
+            agilent_method = self.field("agilent.method")
+            if agilent_method == "Alphabetical Order":
+                method = None
+            elif agilent_method == "Acquistion Method":
+                method = "acq_method_xml"
+            elif agilent_method == "Batch Log CSV":
+                method = "batch_csv"
             else:
-                csvs.append(csv)
+                method = "batch_xml"
 
-        names, scan_time, nscans = io.agilent.csv_read_params(
-            next(c for c in csvs if c is not None)
-        )
-        if self.field("agilent.use_acq"):
-            names = io.agilent.acq_method_xml_read_elements(
-                self.field("agilent.path"), io.agilent.acq_method_xml_path
+            # use_acq = self.field("agilent.names")
+            data_files = io.agilent.collect_datafiles(
+                self.field("agilent.path"), method
             )
 
-    def readData(self) -> None:
+            # Collect csvs
+            csvs: List[str] = []
+            for d in data_files:
+                csv = os.path.join(d, os.path.splitext(os.path.basename(d))[0] + ".csv")
+                logger.debug(f"Looking for csv '{csv}'.")
+                if not os.path.exists(csv):
+                    logger.warning(f"Missing csv '{csv}', line blanked.")
+                    csvs.append(None)
+                else:
+                    csvs.append(csv)
+
+            names, scan_time, nscans = io.agilent.csv_read_params(
+                next(c for c in csvs if c is not None)
+            )
+            if self.field("agilent.use_acq"):
+                names = io.agilent.acq_method_xml_read_elements(
+                    self.field("agilent.path"), io.agilent.acq_method_xml_path
+                )
+
+    def readConfigDefaults(self) -> None:
         if self.field("agilent"):
-            pass
+            names, scantime, _ = io.agilent.csv_read_params(self.field("agilent.path"))
+            if self.field("agilent.acqnames"):
+                names = io.agilent.acq_method_xml_read_elements(
+                    self.field("agilent.path"), io.agilent.acq_method_xml_path
+                )
         elif self.field("text"):
             pass
         elif self.field("thermo"):
-            pass
+            if self.field("thermo.sampleColumns"):
+                pass
         else:
             raise ValueError("No or unknown format selected for ImportWizard.")
+
+        self.table_isotopes.setIsotopes(names)
+        self.lineedit_scantime.setText(f"{scantime:.4g}")
 
 
 if __name__ == "__main__":
