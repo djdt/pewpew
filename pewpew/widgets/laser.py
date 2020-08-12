@@ -585,7 +585,7 @@ class LaserWidget(_ViewWidget):
             mask = np.full(self.laser.shape, True, dtype=bool)
 
         dlg = dialogs.StatsDialog(
-            self.laser.get(flat=True),
+            self.laser.get(calibrate=self.viewspace.options.calibrate, flat=True),
             mask,
             self.combo_isotope.currentText(),
             pixel_size=(
