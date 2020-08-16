@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import numpy.lib.recfunctions as rfn
 import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -26,12 +27,13 @@ class ImportWizard(QtWidgets.QWizard):
     page_thermo = 4
     page_config = 6
 
+    laserImported = QtCore.Signal(Laser)
+
     def __init__(
         self, path: str = "", config: Config = None, parent: QtWidgets.QWidget = None
     ):
         super().__init__(parent)
 
-        self.laser: Laser = None
         config = config or Config()
         # self.path = path
 
@@ -41,6 +43,28 @@ class ImportWizard(QtWidgets.QWizard):
         self.setPage(self.page_thermo, ImportThermoPage(path, parent=self))
 
         self.setPage(self.page_config, ImportConfigPage(config, parent=self))
+
+    def accept(self) -> None:
+        if self.field("agilent"):
+            path = self.field("agilent.path")
+        elif self.field("text"):
+            path = self.field("text.path")
+        elif self.field("thermo"):
+            path = self.field("thermo.path")
+        else:
+            raise ValueError("Invalid filetype selection.")
+
+        data = self.field("laserdata")
+        config = Config(
+            spotsize=self.field("spotsize"),
+            scantime=self.field("scantime"),
+            speed=self.field("speed"),
+        )
+        base, ext = os.path.splitext(path)
+        self.laserImported.emit(
+            Laser(data, config=config, path=path, name=os.path.basename(base))
+        )
+        super().accept()
 
 
 class ImportFormatPage(QtWidgets.QWizardPage):
@@ -93,45 +117,6 @@ class ImportFormatPage(QtWidgets.QWizardPage):
         elif self.field("thermo"):
             return ImportWizard.page_thermo
         return 0
-
-
-# class ImportFilesWidgetItem(QtWidgets.QListWidgetItem):
-#     def __init__(self, path: str = "", parent: QtWidgets.QListWidget = None):
-#         super().__init__(path, parent, type=QtWidgets.QListWidgetItem.UserType)
-
-#         # self.id = QtWidgets.QLabel(id)
-#         # self.path = QtWidgets.QLineEdit(path)
-#         self.action_remove = qAction(
-#             "close", "Remove", "Remove this path from the list.", self.remove
-#         )
-#         self.button_remove = qToolButton(action=self.action_remove)
-
-#         # layout = QtWidgets.QHBoxLayout()
-#         # layout.addWidget(self.id, 0)
-#         # layout.addWidget(self.path, 1)
-#         # layout.addWidget(self.button_close, 0, QtCore.Qt.AlignRight)
-#         # self.setLayout(layout)
-
-#     def remove(self) -> None:
-#         pass
-#         # self.parent().removeItemWidget(self)
-
-
-# class ImportFilesWidget(QtWidgets.QWidget):
-#     def __init__(self, paths: List[str] = None, parent: QtWidgets.QWidget = None):
-#         super().__init__(parent)
-
-#         self.list = QtWidgets.QListWidget()
-
-#         self.list.addItem(ImportFilesWidgetItem("/home/tom/0"))
-#         self.list.addItem(ImportFilesWidgetItem("/home/tom/0"))
-#         self.list.addItem(ImportFilesWidgetItem("/home/tom/0"))
-
-#         layout = QtWidgets.QVBoxLayout()
-#         layout.addWidget(self.list)
-#         self.setLayout(layout)
-
-#     # def buttonPathPressed(self) -> QtWidgets.QFileDialog:
 
 
 class _ImportOptionsPage(QtWidgets.QWizardPage):
@@ -459,19 +444,29 @@ class EditableList(QtWidgets.QListWidget):
         self.itemDoubleClicked.connect(self.editItem)
 
 
-class IsotopeEditDialog(QtWidgets.QWidget):
+class NameEditDialog(QtWidgets.QDialog):
     originalNameRole = QtCore.Qt.UserRole + 1
+    namesSelected = QtCore.Signal(list, list)
 
-    def __init__(self, isotopes: List[str], parent: QtWidgets.QWidget = None):
+    def __init__(self, names: List[str], parent: QtWidgets.QWidget = None):
         super().__init__(parent)
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
         self.list = QtWidgets.QListWidget()
         self.list.itemDoubleClicked.connect(self.list.editItem)
+        for name in names:
+            self.addName(name)
 
         self.action_remove = qAction(
             "window-close",
             "Remove",
             "Remove the selected isotope.",
-            self.removeCurrentIsotope,
+            self.removeCurrentName,
         )
         self.button_remove = qToolButton(action=self.action_remove)
 
@@ -481,18 +476,27 @@ class IsotopeEditDialog(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.list)
         layout.addLayout(layout_controls)
+        layout.addWidget(self.button_box)
         self.setLayout(layout)
 
-        for name in isotopes:
-            self.addIsotope(name)
+    def accept(self) -> None:
+        old_names = [
+            self.list.item(i).data(NameEditDialog.originalNameRole)
+            for i in range(self.list.count())
+        ]
+        new_names = [self.list.item(i).text() for i in range(self.list.count())]
+        if not old_names == new_names:
+            self.namesSelected.emit(old_names, new_names)
+        super().accept()
 
-    def addIsotope(self, name: str) -> None:
-        item = QtWidgets.QListWidgetItem(name)
-        item.setData(IsotopeEditDialog.originalNameRole, name)
+    def addName(self, name: str) -> None:
+        item = QtWidgets.QListWidgetItem(self.list)
+        item.setText(name)
+        item.setData(NameEditDialog.originalNameRole, name)
         item.setFlags(QtCore.Qt.ItemIsEditable | item.flags())
         self.list.addItem(item)
 
-    def removeCurrentIsotope(self) -> None:
+    def removeCurrentName(self) -> None:
         item = self.list.takeItem(self.list.currentRow())
         del item
 
@@ -548,13 +552,14 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         self.registerField("speed", self.lineedit_speed)
         self.registerField("scantime", self.lineedit_scantime)
 
-        self.registerField("data", self, "data")
+        self.registerField("laserdata", self, "data_prop")
 
     def getData(self) -> np.ndarray:
         return self._data
 
     def setData(self, data: np.ndarray) -> None:
         self._data = data
+        self.dataChanged.emit()
 
     def initializePage(self) -> None:
         if self.field("agilent"):
@@ -567,13 +572,15 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         if "scantime" in params:
             self.setField("scantime", f"{params['scantime']:.4g}")
 
-        self.setField("data", data)
+        self.setField("laserdata", data)
         self.setElidedNames(data.dtype.names)
 
-    def buttonNamesPressed(self) -> None:
-        data = self.field("data")
-        dlg = IsotopeEditDialog(data.dtype.names)
-        dlg.accepted.connect(self.updateNames)
+    def buttonNamesPressed(self) -> QtWidgets.QDialog:
+        data = self.field("laserdata")
+        dlg = NameEditDialog(data.dtype.names, parent=self)
+        dlg.namesSelected.connect(self.updateNames)
+        dlg.open()
+        return dlg
 
     def readAgilent(self) -> Tuple[np.ndarray, dict]:
         agilent_method = self.field("agilent.method")
@@ -626,11 +633,22 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         text = fm.elidedText(text, QtCore.Qt.ElideRight, self.label_isotopes.width())
         self.label_isotopes.setText(text)
 
-    data = QtCore.Property(np.ndarray, getData, setData, notify=dataChanged)
+    def updateNames(self, old_names: List[str], new_names: List[str]) -> None:
+        data = self.field("laserdata")
+        del_names = [n for n in data.dtype.names if n not in old_names]
+        data = rfn.drop_fields(data, del_names, usemask=False)
+        rename = {o: n for o, n in zip(old_names, new_names)}
+        data = rfn.rename_fields(data, rename)
+
+        self.setField("laserdata", data)
+        self.setElidedNames(new_names)
+
+    data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
 
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication()
-    w = ImportWizard("/home/tom/Downloads/cellz.b")
+    w = ImportWizard("/home/tom/Downloads/stds.b")
+    w.laserImported.connect(lambda x: print(x))
     w.show()
     app.exec_()
