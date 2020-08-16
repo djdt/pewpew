@@ -644,11 +644,3 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         self.setElidedNames(new_names)
 
     data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
-
-
-if __name__ == "__main__":
-    app = QtWidgets.QApplication()
-    w = ImportWizard("/home/tom/Downloads/stds.b")
-    w.laserImported.connect(lambda x: print(x))
-    w.show()
-    app.exec_()
