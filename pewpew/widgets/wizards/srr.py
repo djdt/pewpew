@@ -165,8 +165,6 @@ class SRRImportWizard(QtWidgets.QWizard):
         self.addPage(SRRFilesPage(min_files=2))
         self.addPage(SRRConfigPage(self.config))
 
-        self.setWindowTitle("Kriss Kross Import Wizard")
-
         self.resize(540, 480)
 
     def accept(self) -> None:
