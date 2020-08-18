@@ -8,7 +8,6 @@ from pewpew import __version__
 from pewpew.actions import qAction, qActionGroup
 from pewpew.log import LoggingDialog
 from pewpew.widgets import dialogs
-from pewpew.widgets.ext import MultipleDirDialog
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.laser import LaserWidget, LaserViewSpace
 
@@ -18,7 +17,7 @@ from pewpew.widgets.tools import (
     StandardsTool,
     OverlayTool,
 )
-from pewpew.widgets.wizards import SpotImportWizard, SRRImportWizard
+from pewpew.widgets.wizards import ImportWizard, SpotImportWizard, SRRImportWizard
 
 from types import TracebackType
 
@@ -98,16 +97,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionGroupInterp,
             checked=self.viewspace.options.image.get_interpolation_name(),
         )
-        self.action_import_agilent = qAction(
-            "", "Import Agilent", "Import Agilent batches.", self.actionImportAgilent
-        )
-        self.action_import_thermo = qAction(
-            "", "Import Thermo", "Import Thermo iCap CSVs.", self.actionImportThermo
+        self.action_wizard_import = qAction(
+            "",
+            "Import Wizard",
+            "Start the line-wise import wizard. .",
+            self.actionWizardImport,
         )
         self.action_wizard_spot = qAction(
             "",
             "Spotwise Wizard",
-            "Start the import wizard for data collect in a spotwise manner.",
+            "Start the import wizard for data collected spot-wise.",
             self.actionWizardSpot,
         )
         self.action_wizard_spot.setEnabled(False)
@@ -283,20 +282,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.viewspace.options.image.interpolation = interp
         self.refresh()
 
-    def actionImportAgilent(self) -> QtWidgets.QDialog:
-        dlg = MultipleDirDialog(self, "Batch Directories", "")
-        dlg.filesSelected.connect(self.viewspace.activeView().openDocument)
-        dlg.open()
-        return dlg
-
-    def actionImportThermo(self) -> QtWidgets.QDialog:
-        dlg = QtWidgets.QFileDialog(
-            self, "Import iCAP Data", "", "iCAP CSV Documents(*.csv);;All Files(*)"
-        )
-        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-        dlg.filesSelected.connect(self.viewspace.activeView().openDocument)
-        dlg.open()
-        return dlg
+    def actionWizardImport(self) -> QtWidgets.QWizard:
+        wiz = ImportWizard(config=self.viewspace.config, parent=self)
+        wiz.laserImported.connect(self.viewspace.activeView().addLaser)
+        wiz.open()
+        return wiz
 
     def actionWizardSpot(self) -> QtWidgets.QWizard:
         wiz = SpotImportWizard(config=self.viewspace.config, parent=self)
@@ -406,8 +396,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_file.addAction(self.action_open)
         # File -> Import
         menu_import = menu_file.addMenu("&Import")
-        menu_import.addAction(self.action_import_agilent)
-        menu_import.addAction(self.action_import_thermo)
+        menu_import.addAction(self.action_wizard_import)
         menu_import.addAction(self.action_wizard_spot)
         menu_import.addAction(self.action_wizard_srr)
 

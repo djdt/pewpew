@@ -35,9 +35,26 @@ class ImportWizard(QtWidgets.QWizard):
         super().__init__(parent)
 
         config = config or Config()
-        # self.path = path
 
-        self.setPage(self.page_format, ImportFormatPage(parent=self))
+        overview = (
+            "The wizard will guide you through importing LA-ICP-MS data "
+            "and provides a higher level to control than the standard import. "
+            "To begin select the format of the file(s) being imported."
+        )
+
+        format_page = ImportFormatPage(
+            overview,
+            page_id_dict={
+                "agilent": self.page_agilent,
+                "numpy": 0,
+                "text": self.page_text,
+                "thermo": self.page_thermo,
+            },
+            parent=self,
+        )
+        format_page.radio_numpy.setEnabled(False)
+
+        self.setPage(self.page_format, format_page)
         self.setPage(self.page_agilent, ImportAgilentPage(path, parent=self))
         self.setPage(self.page_text, ImportTextPage(path, parent=self))
         self.setPage(self.page_thermo, ImportThermoPage(path, parent=self))
@@ -56,9 +73,9 @@ class ImportWizard(QtWidgets.QWizard):
 
         data = self.field("laserdata")
         config = Config(
-            spotsize=self.field("spotsize"),
-            scantime=self.field("scantime"),
-            speed=self.field("speed"),
+            spotsize=float(self.field("spotsize")),
+            scantime=float(self.field("scantime")),
+            speed=float(self.field("speed")),
         )
         base, ext = os.path.splitext(path)
         self.laserImported.emit(
@@ -77,22 +94,30 @@ class ImportFormatPage(QtWidgets.QWizardPage):
         ".txt": "csv",
     }
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self,
+        text: str,
+        page_id_dict: Dict[str, int] = None,
+        parent: QtWidgets.QWidget = None,
+    ):
         super().__init__(parent)
         self.setTitle("Import Introduction")
 
-        label = QtWidgets.QLabel(
-            "The wizard will guide you through importing LA-ICP-MS data and provides a higher level to control than the standard import. To begin select the format of the file(s) being imported."
-        )
+        self.page_id_dict = page_id_dict
+
+        label = QtWidgets.QLabel(text)
         label.setWordWrap(True)
 
-        self.radio_agilent = QtWidgets.QRadioButton("&Agilent batch")
-        self.radio_text = QtWidgets.QRadioButton("&Text and CSV images")
+        self.radio_agilent = QtWidgets.QRadioButton("&Agilent Batches")
+        self.radio_agilent.setChecked(True)
+        self.radio_numpy = QtWidgets.QRadioButton("&Numpy Archives")
+        self.radio_text = QtWidgets.QRadioButton("Text and &CSV Images")
         self.radio_thermo = QtWidgets.QRadioButton("&Thermo iCap CSV")
 
         format_box = QtWidgets.QGroupBox("File Format")
         layout_format = QtWidgets.QVBoxLayout()
         layout_format.addWidget(self.radio_agilent)
+        layout_format.addWidget(self.radio_numpy)
         layout_format.addWidget(self.radio_text)
         layout_format.addWidget(self.radio_thermo)
         format_box.setLayout(layout_format)
@@ -103,19 +128,22 @@ class ImportFormatPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
         self.registerField("agilent", self.radio_agilent)
+        self.registerField("numpy", self.radio_numpy)
         self.registerField("text", self.radio_text)
         self.registerField("thermo", self.radio_thermo)
 
-    def initializePage(self) -> None:
-        self.radio_agilent.setChecked(True)
-
     def nextId(self) -> int:
+        if self.page_id_dict is None:
+            return super().nextId()
+
         if self.field("agilent"):
-            return ImportWizard.page_agilent
+            return self.page_id_dict["agilent"]
+        elif self.field("numpy"):
+            return self.page_id_dict["numpy"]
         elif self.field("text"):
-            return ImportWizard.page_text
+            return self.page_id_dict["text"]
         elif self.field("thermo"):
-            return ImportWizard.page_thermo
+            return self.page_id_dict["thermo"]
         return 0
 
 
@@ -530,6 +558,15 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         dlg.namesSelected.connect(self.updateNames)
         dlg.open()
         return dlg
+
+    def isComplete(self) -> bool:
+        if not self.lineedit_spotsize.hasAcceptableInput():
+            return False
+        if not self.lineedit_speed.hasAcceptableInput():
+            return False
+        if not self.lineedit_scantime.hasAcceptableInput():
+            return False
+        return True
 
     def readAgilent(self) -> Tuple[np.ndarray, dict]:
         agilent_method = self.field("agilent.method")
