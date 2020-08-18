@@ -148,6 +148,7 @@ class SRRImportWizard(QtWidgets.QWizard):
 
     def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
+        self.setWindowTitle("SRR Import Wizard")
 
         self.config = SRRConfig(config.spotsize, config.speed, config.scantime)
 
@@ -155,8 +156,8 @@ class SRRImportWizard(QtWidgets.QWizard):
 
         overview = QtWidgets.QLabel(
             "This wizard will import SRR-LA-ICP-MS data. To begin, select "
-            "the type of data to import. You may then import, reorder and "
-            "configure the imported data."
+            "the type of data to import. You may then reorder imported layers "
+            "and edit the laser configuration."
         )
         format_page = ImportFormatPage(overview, parent=self)
         format_page.radio_text.setEnabled(False)

@@ -33,13 +33,14 @@ class ImportWizard(QtWidgets.QWizard):
         self, path: str = "", config: Config = None, parent: QtWidgets.QWidget = None
     ):
         super().__init__(parent)
+        self.setWindowTitle("Import Wizard")
 
         config = config or Config()
 
         overview = (
             "The wizard will guide you through importing LA-ICP-MS data "
             "and provides a higher level to control than the standard import. "
-            "To begin select the format of the file(s) being imported."
+            "To begin select the format of the file being imported."
         )
 
         format_page = ImportFormatPage(
