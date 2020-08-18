@@ -10,7 +10,7 @@ from pew import io
 from pew.config import Config
 from pew.laser import Laser
 
-from pewpew.actions import qAction, qToolButton
+from pewpew.widgets.dialogs import NameEditDialog
 from pewpew.validators import DecimalValidator
 
 from typing import Dict, List, Tuple, Union
@@ -141,7 +141,6 @@ class _ImportOptionsPage(QtWidgets.QWizardPage):
         self.button_path.pressed.connect(self.buttonPathPressed)
 
         layout_path = QtWidgets.QHBoxLayout()
-        # self.layout_path.addWidget(QtWidgets.QLabel("Path:"))
         layout_path.addWidget(self.lineedit_path, 1)
         layout_path.addWidget(self.button_path, 0, QtCore.Qt.AlignRight)
 
@@ -437,70 +436,6 @@ class ImportThermoPage(_ImportOptionsPage):
         self.setField("thermo.path", path)
 
 
-class EditableList(QtWidgets.QListWidget):
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
-
-        self.itemDoubleClicked.connect(self.editItem)
-
-
-class NameEditDialog(QtWidgets.QDialog):
-    originalNameRole = QtCore.Qt.UserRole + 1
-    namesSelected = QtCore.Signal(list, list)
-
-    def __init__(self, names: List[str], parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
-
-        self.button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok
-        )
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-
-        self.list = QtWidgets.QListWidget()
-        self.list.itemDoubleClicked.connect(self.list.editItem)
-        for name in names:
-            self.addName(name)
-
-        self.action_remove = qAction(
-            "window-close",
-            "Remove",
-            "Remove the selected isotope.",
-            self.removeCurrentName,
-        )
-        self.button_remove = qToolButton(action=self.action_remove)
-
-        layout_controls = QtWidgets.QHBoxLayout()
-        layout_controls.addWidget(self.button_remove, 0, QtCore.Qt.AlignRight)
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.list)
-        layout.addLayout(layout_controls)
-        layout.addWidget(self.button_box)
-        self.setLayout(layout)
-
-    def accept(self) -> None:
-        old_names = [
-            self.list.item(i).data(NameEditDialog.originalNameRole)
-            for i in range(self.list.count())
-        ]
-        new_names = [self.list.item(i).text() for i in range(self.list.count())]
-        if not old_names == new_names:
-            self.namesSelected.emit(old_names, new_names)
-        super().accept()
-
-    def addName(self, name: str) -> None:
-        item = QtWidgets.QListWidgetItem(self.list)
-        item.setText(name)
-        item.setData(NameEditDialog.originalNameRole, name)
-        item.setFlags(QtCore.Qt.ItemIsEditable | item.flags())
-        self.list.addItem(item)
-
-    def removeCurrentName(self) -> None:
-        item = self.list.takeItem(self.list.currentRow())
-        del item
-
-
 class ImportConfigPage(QtWidgets.QWizardPage):
     dataChanged = QtCore.Signal()
 
@@ -577,6 +512,17 @@ class ImportConfigPage(QtWidgets.QWizardPage):
 
         self.setField("laserdata", data)
         self.setElidedNames(data.dtype.names)
+
+    def aspectChanged(self) -> None:
+        try:
+            aspect = (
+                float(self.field("speed"))
+                * float(self.field("scantime"))
+                / float(self.field("spotsize"))
+            )
+            self.lineedit_aspect.setText(f"{aspect:.2f}")
+        except ValueError:
+            self.lineedit_aspect.clear()
 
     def buttonNamesPressed(self) -> QtWidgets.QDialog:
         data = self.field("laserdata")

@@ -568,6 +568,51 @@ class ConfigDialog(ApplyDialog):
         return True
 
 
+class NameEditDialog(QtWidgets.QDialog):
+    originalNameRole = QtCore.Qt.UserRole + 1
+    namesSelected = QtCore.Signal(list, list)
+
+    def __init__(self, names: List[str], parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+        self.setWindowTitle("Edit Names")
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        self.list = QtWidgets.QListWidget()
+        self.list.itemDoubleClicked.connect(self.list.editItem)
+        self.addNames(names)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.list)
+        layout.addWidget(self.button_box)
+        self.setLayout(layout)
+
+    def accept(self) -> None:
+        items = [self.list.item(i) for i in range(self.list.count())]
+        items = [item for item in items if item.checkState() == QtCore.Qt.Checked]
+        old_names = [item.data(NameEditDialog.originalNameRole) for item in items]
+        new_names = [item.text() for item in items]
+        if not old_names == new_names:
+            self.namesSelected.emit(old_names, new_names)
+        super().accept()
+
+    def addName(self, name: str) -> None:
+        item = QtWidgets.QListWidgetItem(self.list)
+        item.setText(name)
+        item.setData(NameEditDialog.originalNameRole, name)
+        item.setFlags(QtCore.Qt.ItemIsEditable | item.flags())
+        item.setCheckState(QtCore.Qt.Checked)
+        self.list.addItem(item)
+
+    def addNames(self, names: List[str]) -> None:
+        for name in names:
+            self.addName(name)
+
+
 class SelectionDialog(QtWidgets.QDialog):
     maskSelected = QtCore.Signal(np.ndarray)
 
