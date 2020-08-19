@@ -23,7 +23,7 @@ def test_tool_widget(qtbot: QtBot):
 
     view = viewspace.activeView()
     widget = view.addLaser(Laser(rand_data("A1"), name="Widget"))
-    tool = ToolWidget(widget)
+    tool = ToolWidget(widget, apply_all=True)
     index = widget.index
 
     widget.view.removeTab(index)
@@ -32,6 +32,14 @@ def test_tool_widget(qtbot: QtBot):
 
     tool.requestClose()
     view.tabs.tabText(index) == "Widget"
+
+    with qtbot.wait_signal(tool.applyPressed):
+        button = tool.button_box.button(QtWidgets.QDialogButtonBox.Apply)
+        button.click()
+
+    with qtbot.wait_signal(tool.applyPressed):
+        button = tool.button_box.button(QtWidgets.QDialogButtonBox.Ok)
+        button.click()
 
 
 def test_standards_tool(qtbot: QtBot):
