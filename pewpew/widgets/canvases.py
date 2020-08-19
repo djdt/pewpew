@@ -48,7 +48,7 @@ class BasicCanvas(FigureCanvasQTAgg):
         context_menu.addAction(action_copy_image)
         context_menu.popup(event.globalPos())
 
-    def drawFigure(self) -> None:
+    def drawFigure(self) -> None:  # pragma: no cover
         pass
 
     def copyToClipboard(self) -> None:
@@ -63,7 +63,7 @@ class BasicCanvas(FigureCanvasQTAgg):
             self.grab(QtCore.QRect(x0, ymax - y1, x1 - x0, y1 - y0))
         )
 
-    def minimumSizeHint(self) -> QtCore.QSize:
+    def minimumSizeHint(self) -> QtCore.QSize:  # pragma: no cover
         return QtCore.QSize(250, 250)
 
 
@@ -86,7 +86,7 @@ class ImageCanvas(BasicCanvas):
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)
 
-        if view_limits is not None:
+        if view_limits is not None:  # Restore view limits
             self.view_limits = view_limits
 
     @property
@@ -232,15 +232,15 @@ class InteractiveImageCanvas(ImageCanvas):
             return True
         return False
 
-    def _axes_enter(self, event: LocationEvent) -> None:
+    def _axes_enter(self, event: LocationEvent) -> None:  # pragma: no cover
         if self.ignore_event(event):
             return
         self.axes_enter(event)
 
-    def axes_enter(self, event: LocationEvent) -> None:
+    def axes_enter(self, event: LocationEvent) -> None:  # pragma: no cover
         pass
 
-    def _axes_leave(self, event: LocationEvent) -> None:
+    def _axes_leave(self, event: LocationEvent) -> None:  # pragma: no cover
         if self.ignore_event(event):
             return
         self.axes_leave(event)
@@ -248,33 +248,33 @@ class InteractiveImageCanvas(ImageCanvas):
     def axes_leave(self, event: LocationEvent) -> None:
         self.cursorClear.emit()
 
-    def _press(self, event: MouseEvent) -> None:
+    def _press(self, event: MouseEvent) -> None:  # pragma: no cover
         if self.ignore_event(event):
             return
         self.eventpress = event
         self.press(event)
 
-    def press(self, event: MouseEvent) -> None:
+    def press(self, event: MouseEvent) -> None:  # pragma: no cover
         pass
 
-    def _release(self, event: MouseEvent) -> None:
+    def _release(self, event: MouseEvent) -> None:  # pragma: no cover
         if self.ignore_event(event):
             return
         self.eventrelease = event
         self.release(event)
 
-    def release(self, event: MouseEvent) -> None:
+    def release(self, event: MouseEvent) -> None:  # pragma: no cover
         pass
 
-    def _keypress(self, event: KeyEvent) -> None:
+    def _keypress(self, event: KeyEvent) -> None:  # pragma: no cover
         if self.ignore_event(event):
             return
         self.keypress(event)
 
-    def keypress(self, event: KeyEvent) -> None:
+    def keypress(self, event: KeyEvent) -> None:  # pragma: no cover
         pass
 
-    def _move(self, event: MouseEvent) -> None:
+    def _move(self, event: MouseEvent) -> None:  # pragma: no cover
         if self.ignore_event(event):
             return
         self.move(event)
@@ -309,7 +309,7 @@ class InteractiveImageCanvas(ImageCanvas):
         else:
             self.cursorClear.emit()
 
-    def _scroll(self, event: MouseEvent) -> None:
+    def _scroll(self, event: MouseEvent) -> None:  # pragma: no cover
         if self.ignore_event(event):
             return
         self.scroll(event)
@@ -474,7 +474,7 @@ class LaserImageCanvas(SelectableImageCanvas):
         extent: Tuple[float, float, float, float],
         isotope: str = None,
     ) -> None:
-        if self.image is not None:
+        if self.image is not None:  # pragma: no cover
             self.image.remove()
 
         # Calculate the range
@@ -497,7 +497,7 @@ class LaserImageCanvas(SelectableImageCanvas):
         )
 
     def drawLabel(self, text: str) -> None:
-        if self.label is not None:
+        if self.label is not None:  # pragma: no cover
             self.label.remove()
 
         self.label = AnchoredText(
@@ -511,7 +511,7 @@ class LaserImageCanvas(SelectableImageCanvas):
         self.ax.add_artist(self.label)
 
     def drawScalebar(self) -> None:
-        if self.scalebar is not None:
+        if self.scalebar is not None:  # pragma: no cover
             self.scalebar.remove()
 
         self.scalebar = MetricSizeBar(
@@ -538,7 +538,7 @@ class LaserImageCanvas(SelectableImageCanvas):
             self.view_limits = self.extentForAspect(extent)
 
         # If data is empty create a dummy data
-        if data is None or data.size == 0:
+        if data is None or data.size == 0:  # pragma: no cover
             data = np.array([[0]], dtype=np.float64)
 
         self.drawData(data, extent, name)

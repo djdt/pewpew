@@ -18,9 +18,7 @@ def test_main_window_actions_empty(qtbot: QtBot):
 
     dlg = window.actionOpen()
     dlg.close()
-    dlg = window.actionImportAgilent()
-    dlg.close()
-    dlg = window.actionImportThermo()
+    dlg = window.actionWizardImport()
     dlg.close()
     dlg = window.actionWizardSRR()
     dlg.close()

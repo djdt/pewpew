@@ -13,9 +13,10 @@ from pew import Laser
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets.canvases import (
     BasicCanvas,
-    InteractiveCanvas,
-    LaserCanvas,
-    InteractiveLaserCanvas,
+    ImageCanvas,
+    InteractiveImageCanvas,
+    SelectableImageCanvas,
+    LaserImageCanvas,
 )
 
 from testing import FakeEvent, FakePick
@@ -25,7 +26,6 @@ def test_canvas_basic(qtbot: QtBot):
     canvas = BasicCanvas()
     qtbot.addWidget(canvas)
     canvas.show()
-    canvas.redrawFigure()
 
     ax = canvas.figure.subplots()
     np.random.seed(11636971)
@@ -54,62 +54,150 @@ def test_canvas_basic(qtbot: QtBot):
     canvas.close()
 
 
-def test_canvas_interactive(qtbot: QtBot):
-    canvas = InteractiveCanvas()
-    canvas.ax = canvas.figure.subplots()
+def test_image_canvas(qtbot: QtBot):
+    canvas = ImageCanvas(figsize=(1.0, 1.0))
+    qtbot.addWidget(canvas)
+    canvas.drawFigure()
+    canvas.show()
+
+    np.random.seed(89328634)
+    canvas.image = canvas.ax.imshow(
+        np.random.random((10, 10)),
+        extent=(0, 100, 0, 200),
+        aspect=1,
+        origin="upper",
+        interpolation="none",
+    )
+    canvas.view_limits = canvas.extentForAspect(canvas.extent)
+    qtbot.waitForWindowShown(canvas)
+    canvas.draw()
+
+    # Test aspect fitting
+
+    assert canvas.view_limits == (-50.0, 150.0, 0.0, 200.0)
+    # No change
+    canvas.resize(200, 200)
+    assert canvas.view_limits == (-50.0, 150.0, 0.0, 200.0)
+    # Reduce border
+    canvas.resize(100, 200)
+    assert canvas.view_limits == (0.0, 100.0, 0.0, 200.0)
+    # Reduce border
+    canvas.resize(200, 100)
+    assert canvas.view_limits == (-150.0, 250.0, 0.0, 200.0)
+    # Change when zoomed
+    canvas.view_limits = (10, 30, 10, 20)
+    canvas.resize(100, 100)
+    assert canvas.view_limits == (15, 25, 10, 20)
+    canvas.resize(100, 200)
+    assert canvas.view_limits == (15, 25, 5, 25)
+
+    # Restore view lims on redraw
+    canvas.drawFigure()
+    assert canvas.view_limits == (15, 25, 5, 25)
+
+    # Test image is correct
+    data_path = os.path.join(os.path.dirname(__file__), "data", "image_canvas_raw.png")
+    with tempfile.NamedTemporaryFile(suffix=".png") as tf:
+        canvas.saveRawImage(tf.name)
+        assert filecmp.cmp(tf.name, data_path)
+
+
+def test_canvas_interactive_image(qtbot: QtBot):
+    canvas = InteractiveImageCanvas(move_button=1)
+    canvas.drawFigure()
     qtbot.addWidget(canvas)
     canvas.show()
     qtbot.waitForWindowShown(canvas)
 
-    event = FakeEvent(canvas.ax, 0.0, 0.0)
-    pick_event = FakePick(canvas.ax, 0.0, 0.0)
+    canvas.image = canvas.ax.imshow(
+        np.random.random((10, 10)),
+        extent=(0, 100, 0, 100),
+        aspect=1,
+        origin="upper",
+        interpolation="none",
+    )
+    canvas.view_limits = (0.0, 100.0, 0.0, 100.0)
 
-    assert not canvas.ignore_event(event)
-    with pytest.raises(NotImplementedError):
-        canvas._axis_enter(event)
-    with pytest.raises(NotImplementedError):
-        canvas._axis_leave(event)
-    with pytest.raises(NotImplementedError):
-        canvas._press(event)
-    with pytest.raises(NotImplementedError):
-        canvas._release(event)
-    with pytest.raises(NotImplementedError):
-        canvas._keypress(event)
-    with pytest.raises(NotImplementedError):
-        canvas._move(event)
-    with pytest.raises(NotImplementedError):
-        canvas._pick(pick_event)
-    with pytest.raises(NotImplementedError):
-        canvas._scroll(event)
+    #     assert window.statusBar().currentMessage() == ""
+    #     canvas._move(FakeEvent(canvas.ax, 30.0, 30.0))
+    #     assert window.statusBar().currentMessage() == f"30,30 [{laser.data['a'][9, 0]:.4g}]"
+    #     canvas.viewoptions.units = "row"
+    #     canvas._move(FakeEvent(canvas.ax, 40.0, 40.0))
+    #     assert window.statusBar().currentMessage() == f"8,1 [{laser.data['a'][8, 1]:.4g}]"
+    #     canvas.viewoptions.units = "second"
+    #     canvas._move(FakeEvent(canvas.ax, 30.0, 30.0))
+    #     assert (
+    #         window.statusBar().currentMessage() == f"0.2143,0 [{laser.data['a'][9, 0]:.4g}]"
+    #     )
+    #     canvas.axis_leave(None)
+    #     assert window.statusBar().currentMessage() == ""
+    # Scroll and drag
+    canvas._scroll(FakeEvent(canvas.ax, 0.0, 0.0, step=1))
+    assert canvas.view_limits == (0.0, 90.0, 0.0, 90.0)
+    # Towards edge
+    canvas._press(FakeEvent(canvas.ax, 0.0, 0.0))
+    canvas._move(FakeEvent(canvas.ax, 5.0, 5.0))
+    assert canvas.view_limits == (0.0, 90.0, 0.0, 90.0)
+    # Away from edge
+    canvas._press(FakeEvent(canvas.ax, 10.0, 10.0))
+    canvas._move(FakeEvent(canvas.ax, 5.0, 5.0))
+    assert canvas.view_limits == (5.0, 95.0, 5.0, 95.0)
 
-    class FakeWidget:
-        def get_active(self) -> bool:
-            return True
+    # Zoom
+    canvas.zoom(FakeEvent(canvas.ax, 10.0, 10.0), FakeEvent(canvas.ax, 20.0, 40.0))
+    assert canvas.view_limits == (0.0, 30.0, 10.0, 40.0)  # Fixed aspect
+    canvas.unzoom()
+    assert canvas.view_limits == (0.0, 100.0, 0.0, 100.0)
 
-    canvas.widget = FakeWidget()
-    assert canvas.ignore_event(event)
-    canvas._axis_enter(event)
-    canvas._axis_leave(event)
-    canvas._press(event)
-    canvas._release(event)
-    canvas._keypress(event)
-    canvas._move(event)
-    canvas._pick(pick_event)
-    canvas._scroll(event)
+    # Cursor status
+    class FakeStatus(object):
+        def setValue(self, x: float, y: float, value: float) -> None:
+            self.value = value
 
-    # Can only really check cids
-    assert len(canvas.cids) == 8
-    canvas.disconnect_events()
-    assert len(canvas.cids) == 0
+        def clear(self) -> None:
+            self.value = None
+
+    status = FakeStatus()
+    canvas.cursorMoved.connect(status.setValue)
+    canvas.cursorClear.connect(status.clear)
+
+    canvas._move(FakeEvent(canvas.ax, 5.0, 5.0))
+    assert status.value == canvas.image.get_array()[-1, 0]
+    canvas._axes_leave(FakeEvent(canvas.ax, 0.0, 0.0))
+    assert status.value is None
 
 
-def test_canvas_laser(qtbot: QtBot):
-    canvas = LaserCanvas(ViewOptions())
+def test_canvas_selectable_image(qtbot: QtBot):
+    canvas = SelectableImageCanvas()
+    canvas.drawFigure()
     qtbot.addWidget(canvas)
     canvas.show()
     qtbot.waitForWindowShown(canvas)
 
-    assert canvas.extent == (0, 0, 0, 0)
+    canvas.image = canvas.ax.imshow(
+        np.random.random((10, 10)),
+        extent=(0, 100, 0, 100),
+        aspect=1,
+        origin="upper",
+        interpolation="none",
+    )
+    canvas.view_limits = (0.0, 100.0, 0.0, 100.0)
+
+    canvas.selection = np.zeros((10, 10), dtype=bool)
+    canvas.selection[2:8, 2:8] = True
+    canvas.drawSelection()
+
+    assert np.all(canvas.getMaskedData() == canvas.image.get_array()[2:8, 2:8])
+    canvas.clearSelection()
+    assert canvas.getMaskedData().shape == (10, 10)
+
+
+def test_canvas_laser_image(qtbot: QtBot):
+    canvas = LaserImageCanvas(ViewOptions())
+    qtbot.addWidget(canvas)
+    canvas.drawFigure()
+    canvas.show()
+    qtbot.waitForWindowShown(canvas)
 
     np.random.seed(99586566)
     laser = Laser(np.array(np.random.random((10, 10)), dtype=[("a", float)]))
@@ -130,135 +218,63 @@ def test_canvas_laser(qtbot: QtBot):
     canvas.drawLaser(laser, "a")
 
 
-def test_canvas_interactive_laser(qtbot: QtBot):
-    canvas = InteractiveLaserCanvas(ViewOptions())
-    qtbot.addWidget(canvas)
-    canvas.show()
-    qtbot.waitForWindowShown(canvas)
+# def test_canvas_interactive_laser_selections(qtbot: QtBot):
+#     canvas = InteractiveLaserCanvas(ViewOptions())
+#     qtbot.addWidget(canvas)
+#     canvas.show()
+#     qtbot.waitForWindowShown(canvas)
 
-    np.random.seed(99586566)
-    laser = Laser(np.array(np.random.random((10, 10)), dtype=[("a", float)]))
-    canvas.drawLaser(laser, "a")
-    canvas.draw()
+#     np.random.seed(99586566)
+#     laser = Laser(np.array(np.random.random((10, 10)), dtype=[("a", float)]))
+#     canvas.drawLaser(laser, "a")
+#     canvas.draw()
 
-    # Test image is correct
-    data_path = os.path.join(os.path.dirname(__file__), "data", "laser_canvas_raw.png")
-    with tempfile.NamedTemporaryFile(suffix=".png") as tf:
-        canvas.saveRawImage(tf.name)
-        assert filecmp.cmp(tf.name, data_path)
+#     # Ruler
+#     canvas.startRuler()
+#     canvas.endSelection()  # Clears widget
 
-    # Check no crash with no window / status bar missing
-    canvas._move(FakeEvent(canvas.ax, 30.0, 30.0))
+#     # Selections
+#     assert canvas.selection_image is None
+#     # Test lassoo and ignored events
+#     canvas.startLassoSelection()
+#     assert canvas.ignore_event(FakeEvent(canvas.ax, 0.0, 0.0))
+#     canvas.clearSelection()  # Clears widget
 
+#     # Test rect and selections
+#     mask = np.zeros((10, 10), dtype=bool)
+#     mask[9, 0] = True
 
-def test_canvas_interactive_laser_events(qtbot: QtBot):
-    window = QtWidgets.QMainWindow()
-    qtbot.addWidget(window)
-    canvas = InteractiveLaserCanvas(ViewOptions())
-    window.setCentralWidget(canvas)
-    canvas.show()
-    qtbot.waitForWindowShown(canvas)
+#     canvas.startRectangleSelection()
+#     canvas.widget.press(FakeEvent(canvas.ax, 10.0, 10.0))
+#     canvas.widget.onmove(FakeEvent(canvas.ax, 40.0, 40.0))
+#     canvas.widget.release(FakeEvent(canvas.ax, 40.0, 40.0))
 
-    laser = Laser(np.array(np.random.random((10, 10)), dtype=[("a", float)]))
-    canvas.drawLaser(laser, "a")
-    canvas.draw()
+#     assert canvas.selection_image is not None
+#     assert np.all(canvas.getSelection() == mask)
+#     assert np.all(canvas.getMaskedData() == laser.data["a"][9, 0])
 
-    # Point under cursor
-    assert window.statusBar().currentMessage() == ""
-    canvas._move(FakeEvent(canvas.ax, 30.0, 30.0))
-    assert window.statusBar().currentMessage() == f"30,30 [{laser.data['a'][9, 0]:.4g}]"
-    canvas.viewoptions.units = "row"
-    canvas._move(FakeEvent(canvas.ax, 40.0, 40.0))
-    assert window.statusBar().currentMessage() == f"8,1 [{laser.data['a'][8, 1]:.4g}]"
-    canvas.viewoptions.units = "second"
-    canvas._move(FakeEvent(canvas.ax, 30.0, 30.0))
-    assert (
-        window.statusBar().currentMessage() == f"0.2143,0 [{laser.data['a'][9, 0]:.4g}]"
-    )
-    canvas.axis_leave(None)
-    assert window.statusBar().currentMessage() == ""
+#     canvas.endSelection()  # Clears widget
+#     assert np.all(canvas.getSelection() == mask)
+#     canvas.clearSelection()
+#     assert canvas.selection is None
 
-    # Scroll and drag
-    canvas._scroll(FakeEvent(canvas.ax, 0.0, 0.0, step=1))
-    assert canvas.view_limits == (0.0, 315.0, 0.0, 315.0)
-    # Towards edge
-    canvas._press(FakeEvent(canvas.ax, 0.0, 0.0))
-    canvas._move(FakeEvent(canvas.ax, 10.0, 10.0))
-    assert canvas.view_limits == (0.0, 315.0, 0.0, 315.0)
-    # Away from edge
-    canvas._press(FakeEvent(canvas.ax, 20.0, 20.0))
-    canvas._move(FakeEvent(canvas.ax, 10.0, 10.0))
-    assert canvas.view_limits == (10.0, 325.0, 10.0, 325.0)
-    canvas.unzoom()
-    assert canvas.view_limits == (0.0, 350.0, 0.0, 350.0)
+#     # Test masked data for multiple selections
+#     mask = np.zeros((10, 10), dtype=bool)
+#     mask[0, 0] = True
+#     mask[2, 2] = True
+#     canvas.setSelection(mask)
+#     assert np.all(canvas.getSelection() == mask)
+#     masked_data = canvas.getMaskedData()
+#     assert masked_data.shape == (3, 3)
 
-    # Zoom
-    canvas.startZoom()
-    canvas.widget.press(FakeEvent(canvas.widget.ax, 100.0, 100.0))
-    canvas.widget.onmove(FakeEvent(canvas.widget.ax, 300.0, 300.0))
-    canvas.widget.release(FakeEvent(canvas.widget.ax, 300.0, 300.0))
-    assert canvas.view_limits == (100.0, 300.0, 100.0, 300.0)
-    canvas.unzoom()
-    assert canvas.view_limits == (0.0, 350.0, 0.0, 350.0)
+#     assert np.all(np.isnan(masked_data) == ~mask[0:3, 0:3])
 
+#     class FakeQtKeyEscape(object):
+#         def key(self):
+#             return QtCore.Qt.Key_Escape
 
-def test_canvas_interactive_laser_selections(qtbot: QtBot):
-    canvas = InteractiveLaserCanvas(ViewOptions())
-    qtbot.addWidget(canvas)
-    canvas.show()
-    qtbot.waitForWindowShown(canvas)
+#         def modifiers(self):
+#             return QtCore.Qt.NoModifier
 
-    np.random.seed(99586566)
-    laser = Laser(np.array(np.random.random((10, 10)), dtype=[("a", float)]))
-    canvas.drawLaser(laser, "a")
-    canvas.draw()
-
-    # Ruler
-    canvas.startRuler()
-    canvas.endSelection()  # Clears widget
-
-    # Selections
-    assert canvas.selection_image is None
-    # Test lassoo and ignored events
-    canvas.startLassoSelection()
-    assert canvas.ignore_event(FakeEvent(canvas.ax, 0.0, 0.0))
-    canvas.clearSelection()  # Clears widget
-
-    # Test rect and selections
-    mask = np.zeros((10, 10), dtype=bool)
-    mask[9, 0] = True
-
-    canvas.startRectangleSelection()
-    canvas.widget.press(FakeEvent(canvas.ax, 10.0, 10.0))
-    canvas.widget.onmove(FakeEvent(canvas.ax, 40.0, 40.0))
-    canvas.widget.release(FakeEvent(canvas.ax, 40.0, 40.0))
-
-    assert canvas.selection_image is not None
-    assert np.all(canvas.getSelection() == mask)
-    assert np.all(canvas.getMaskedData() == laser.data["a"][9, 0])
-
-    canvas.endSelection()  # Clears widget
-    assert np.all(canvas.getSelection() == mask)
-    canvas.clearSelection()
-    assert canvas.selection is None
-
-    # Test masked data for multiple selections
-    mask = np.zeros((10, 10), dtype=bool)
-    mask[0, 0] = True
-    mask[2, 2] = True
-    canvas.setSelection(mask)
-    assert np.all(canvas.getSelection() == mask)
-    masked_data = canvas.getMaskedData()
-    assert masked_data.shape == (3, 3)
-
-    assert np.all(np.isnan(masked_data) == ~mask[0:3, 0:3])
-
-    class FakeQtKeyEscape(object):
-        def key(self):
-            return QtCore.Qt.Key_Escape
-
-        def modifiers(self):
-            return QtCore.Qt.NoModifier
-
-    canvas.keyPressEvent(FakeQtKeyEscape())
-    assert canvas.selection is None
+#     canvas.keyPressEvent(FakeQtKeyEscape())
+#     assert canvas.selection is None

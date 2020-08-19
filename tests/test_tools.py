@@ -20,11 +20,18 @@ def test_tool_widget(qtbot: QtBot):
     viewspace = LaserViewSpace()
     qtbot.addWidget(viewspace)
     viewspace.show()
+
     view = viewspace.activeView()
-    view.addLaser(Laser(rand_data("A1")))
-    tool = ToolWidget(view.activeWidget())
-    view.addTab("Tool", tool)
+    widget = view.addLaser(Laser(rand_data("A1"), name="Widget"))
+    tool = ToolWidget(widget)
+    index = widget.index
+
+    widget.view.removeTab(index)
+    widget.view.insertTab(index, "Tool", tool)
     qtbot.waitForWindowShown(tool)
+
+    tool.requestClose()
+    view.tabs.tabText(index) == "Widget"
 
 
 def test_standards_tool(qtbot: QtBot):
@@ -32,7 +39,8 @@ def test_standards_tool(qtbot: QtBot):
     qtbot.addWidget(viewspace)
     viewspace.show()
     view = viewspace.activeView()
-    view.addLaser(Laser(linear_data(["A1", "B2"])))
+    data = linear_data(["A1", "B2"])
+    view.addLaser(Laser(data))
     tool = StandardsTool(view.activeWidget())
     view.addTab("Tool", tool)
     qtbot.waitForWindowShown(tool)
@@ -45,14 +53,14 @@ def test_standards_tool(qtbot: QtBot):
     # Trim
     assert tool.canvas.getCurrentTrim() == (1, 9)
 
-    tool.canvas.picked_artist = tool.canvas.v_guides[0]
+    tool.canvas.picked_artist = tool.canvas.edge_guides[0]
     tool.canvas.move(FakeEvent(tool.canvas.ax, 90, 30))
     tool.canvas.release(FakeEvent(tool.canvas.ax, 90, 30))
 
     assert tool.canvas.getCurrentTrim() == (3, 9)
 
     # Test snap
-    tool.canvas.picked_artist = tool.canvas.v_guides[0]
+    tool.canvas.picked_artist = tool.canvas.edge_guides[0]
     tool.canvas.move(FakeEvent(tool.canvas.ax, 34, 30))
     tool.canvas.release(FakeEvent(tool.canvas.ax, 34, 30))
 
@@ -77,7 +85,7 @@ def test_standards_tool(qtbot: QtBot):
     tool.combo_isotope.setCurrentIndex(1)
     assert not tool.isComplete()
     assert tool.combo_weighting.currentIndex() == 0
-    assert tool.lineedit_units.text() == "unit"
+    assert tool.lineedit_units.text() == ""
     tool.lineedit_units.setText("none")
     tool.combo_weighting.setCurrentIndex(2)
 
@@ -92,6 +100,10 @@ def test_standards_tool(qtbot: QtBot):
         QtWidgets.QApplication.clipboard().text()
         == "RSQ\t1.0000\nGradient\t2.0000\nIntercept\t0.5000\nSxy\t0.0000\nLOD (3σ)\t0.0000"
     )
+
+    # Test SD weighting
+    tool.combo_weighting.setCurrentIndex(1)
+    assert np.all(tool.calibration["A1"].weights == 4.0)
 
     dlg = tool.showCurve()
     qtbot.waitForWindowShown(dlg)

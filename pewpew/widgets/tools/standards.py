@@ -34,7 +34,6 @@ class StandardsTool(ToolWidget):
 
         self.calibration: Dict[str, Calibration] = None
         self.previous_isotope = ""
-        self.standard_deviations: np.ndarray = None
 
         # Left side
         self.spinbox_levels = QtWidgets.QSpinBox()
@@ -98,7 +97,6 @@ class StandardsTool(ToolWidget):
         layout_left.addLayout(layout_cal_form)
         layout_left.addWidget(self.table)
         layout_left.addLayout(layout_table_form)
-        # layout_left.addStretch(1)
         layout_left.addWidget(self.results_box)
 
         layout_canvas_bar = QtWidgets.QHBoxLayout()
@@ -116,17 +114,17 @@ class StandardsTool(ToolWidget):
         self.layout_main.addLayout(layout_right, 1)
 
     def apply(self) -> None:
-        self.widget.applyCalibration(self.calibration)
+        self.widget.applyCalibration(self.calibration)  # pragma: no cover
 
     def applyAll(self) -> None:
-        self.viewspace.applyCalibration(self.calibration)
+        self.viewspace.applyCalibration(self.calibration)  # pragma: no cover
 
     def isComplete(self) -> bool:
         return self.table.isComplete()
 
     def refresh(self) -> None:
         isotope = self.combo_isotope.currentText()
-        if isotope not in self.widget.laser.isotopes:
+        if isotope not in self.widget.laser.isotopes:  # pragma: no cover
             return
 
         data = self.widget.laser.get(isotope, calibrate=False, flat=True)
@@ -150,8 +148,8 @@ class StandardsTool(ToolWidget):
 
     def updateWeights(self) -> None:
         isotope = self.combo_isotope.currentText()
-        weighting = self.combo_weighting.currentText()
-        if weighting == "1/σ²":
+        wstr = self.combo_weighting.currentText()
+        if wstr == "1/σ²":
             data = self.canvas.image.get_array()
             trim_left, trim_right = self.canvas.getCurrentTrim()
             data = data[:, trim_left:trim_right]
@@ -163,13 +161,13 @@ class StandardsTool(ToolWidget):
             )
             self.calibration[isotope].weights = weights
         else:
-            self.calibration[isotope].weights = weighting
+            self.calibration[isotope].weights = wstr
 
     def updateCounts(self) -> None:
         data = self.canvas.image.get_array()
         trim_left, trim_right = self.canvas.getCurrentTrim()
         data = data[:, trim_left:trim_right]
-        if data.size == 0:
+        if data.size == 0:  # pragma: no cover
             return
 
         levels = self.canvas.getCurrentLevels()
@@ -198,17 +196,10 @@ class StandardsTool(ToolWidget):
 
         if self.calibration[isotope].weighting is not None:
             self.combo_weighting.setCurrentText(self.calibration[isotope].weighting)
-        else:
+        else:  # pragma: no cover
             self.calibration[isotope].weighting = "None"
 
         self.refresh()
-
-    def getWeights(self, _weighting: str) -> np.ndarray:
-        isotope = self.combo_isotope.currentText()
-        if _weighting == "1/σ²":
-            return 1 / np.power(self.standard_deviations, 2)
-        else:
-            return weighting(self.calibration[isotope].concentrations(), _weighting)
 
     def comboWeighting(self, index: int) -> None:
         isotope = self.combo_isotope.currentText()

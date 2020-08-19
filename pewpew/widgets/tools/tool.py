@@ -35,13 +35,13 @@ class ToolWidget(_ViewWidget):
 
         self.setLayout(layout)
 
-    def accept(self) -> None:
+    def accept(self) -> None:  # pragma: no cover
         self.restoreWidget()
 
-    def apply(self) -> None:
+    def apply(self) -> None:  # pragma: no cover
         pass
 
-    def applyAll(self) -> None:
+    def applyAll(self) -> None:  # pragma: no cover
         pass
 
     def buttonClicked(self, button: QtWidgets.QAbstractButton) -> None:
@@ -65,8 +65,8 @@ class ToolWidget(_ViewWidget):
         if self.button_apply_all is not None:
             self.button_apply_all.setEnabled(enabled)
 
-    def isComplete(self) -> bool:
-        return True  # pragma: no cover
+    def isComplete(self) -> bool:  # pragma: no cover
+        return True
 
     def reject(self) -> None:
         self.restoreWidget()
