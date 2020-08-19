@@ -205,12 +205,6 @@ def test_canvas_laser_image(qtbot: QtBot):
 
     assert canvas.extent == laser.extent
 
-    # Test image is correct
-    data_path = os.path.join(os.path.dirname(__file__), "data", "laser_canvas_raw.png")
-    with tempfile.NamedTemporaryFile(suffix=".png") as tf:
-        canvas.saveRawImage(tf.name)
-        assert filecmp.cmp(tf.name, data_path)
-
     canvas.viewoptions.canvas.label = False
     canvas.viewoptions.canvas.scalebar = False
     canvas.viewoptions.canvas.colorbar = False
