@@ -131,35 +131,3 @@ def test_wizard_import_thermo(qtbot: QtBot):
 
     with qtbot.wait_signal(wiz.laserImported):
         wiz.accept()
-
-    # # Test text
-    # wiz.setField("text", True)
-    # wiz.setField("text.path", os.path.join(data_path, "txt.txt"))
-    # wiz.next()
-    # page = wiz.currentPage()
-    # assert page.title() == "Text Image Import"
-
-    # assert page.isComplete()
-    # wiz.setField("text.name", "")
-    # assert not page.isComplete()
-
-    # wiz.setField("text", False)
-    # wiz.back()
-
-    # # Test thermo
-    # wiz.setField("thermo", True)
-    # wiz.setField("thermo.path", os.path.join(data_path, "thermo.csv"))
-    # wiz.next()
-    # page = wiz.currentPage()
-    # assert page.title() == "Thermo iCap Data Import"
-
-    # assert page.radio_columns.isChecked()
-    # assert not page.check_use_analog.isChecked()
-
-    # # Config Page
-    # wiz.next()
-    # page = wiz.currentPage()
-
-    # page.readAgilent()
-    # page.readText()
-    # page.readThermo()
