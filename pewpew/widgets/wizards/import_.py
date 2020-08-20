@@ -134,7 +134,7 @@ class ImportFormatPage(QtWidgets.QWizardPage):
         self.registerField("thermo", self.radio_thermo)
 
     def nextId(self) -> int:
-        if self.page_id_dict is None:
+        if self.page_id_dict is None:  # prama: no cover
             return super().nextId()
 
         if self.field("agilent"):
@@ -245,7 +245,12 @@ class ImportAgilentPage(_ImportOptionsPage):
         self.options_box.setLayout(layout_options)
 
         self.registerField("agilent.path", self.lineedit_path)
-        self.registerField("agilent.method", self.combo_dfile_method)
+        self.registerField(
+            "agilent.method",
+            self.combo_dfile_method,
+            "currentText",
+            "currentTextChanged",
+        )
         self.registerField("agilent.acqNames", self.check_name_acq_xml)
 
     def dataFileCount(self) -> Tuple[int, int]:
@@ -270,7 +275,7 @@ class ImportAgilentPage(_ImportOptionsPage):
                 path, os.path.join(path, io.agilent.batch_xml_path)
             )
         else:
-            return 0, -1
+            raise ValueError("Unknown data file collection method.")
 
         csvs = [
             os.path.join(d, os.path.splitext(os.path.basename(d))[0] + ".csv")
@@ -402,8 +407,15 @@ class ImportThermoPage(_ImportOptionsPage):
         self.registerField("thermo.path", self.lineedit_path)
         self.registerField("thermo.sampleColumns", self.radio_columns)
         self.registerField("thermo.sampleRows", self.radio_rows)
-        self.registerField("thermo.delimiter", self.combo_delimiter)
-        self.registerField("thermo.decimal", self.combo_decimal)
+        self.registerField(
+            "thermo.delimiter",
+            self.combo_delimiter,
+            "currentText",
+            "currentTextChanged",
+        )
+        self.registerField(
+            "thermo.decimal", self.combo_decimal, "currentText", "currentTextChanged"
+        )
         self.registerField("thermo.useAnalog", self.check_use_analog)
 
     def initializePage(self) -> None:
@@ -577,8 +589,10 @@ class ImportConfigPage(QtWidgets.QWizardPage):
             method = ["acq_method_xml"]
         elif agilent_method == "Batch Log CSV":
             method = ["batch_csv"]
-        else:
+        elif agilent_method == "Batch Log XML":
             method = ["batch_xml"]
+        else:
+            raise ValueError("Unkonw data file collection method.")
 
         data, params = io.agilent.load(
             self.field("agilent.path"),
