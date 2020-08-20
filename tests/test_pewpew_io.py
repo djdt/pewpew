@@ -15,7 +15,7 @@ def test_import_any():
 
     paths = [
         os.path.join(data_path, f)
-        for f in ["agilent.b", "csv.csv", "npz.npz", "thermo.csv", "txt.txt"]
+        for f in ["agilent.b", "csv.csv", "npz.npz", "icap_rows.csv", "txt.txt"]
     ]
 
     with warnings.catch_warnings():

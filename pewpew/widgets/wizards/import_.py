@@ -134,7 +134,7 @@ class ImportFormatPage(QtWidgets.QWizardPage):
         self.registerField("thermo", self.radio_thermo)
 
     def nextId(self) -> int:
-        if self.page_id_dict is None:  # prama: no cover
+        if self.page_id_dict is None:  # pragma: no cover
             return super().nextId()
 
         if self.field("agilent"):
@@ -216,7 +216,6 @@ class ImportAgilentPage(_ImportOptionsPage):
 
     def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
         super().__init__("Agilent Batch", ["*.b"], path, parent)
-        self.setTitle("Agilent Batch")
 
         self.lineedit_path.setPlaceholderText("Path to batch directory...")
         self.button_path.setText("Open Batch")
@@ -609,19 +608,20 @@ class ImportConfigPage(QtWidgets.QWizardPage):
     def readThermo(self) -> Tuple[np.ndarray, dict]:
         kwargs = dict(
             delimiter=self.field("thermo.delimiter"),
-            combo_decimal=self.field("thermo.decimal") == ",",
-            use_analog=self.field("thermo.useAnalog"),
+            comma_decimal=self.field("thermo.decimal") == ",",
         )
+        use_analog = self.field("thermo.useAnalog")
+
         if self.field("thermo.sampleRows"):
             data = io.thermo.icap_csv_rows_read_data(
-                self.field("thermo.path"), **kwargs
+                self.field("thermo.path"), use_analog=use_analog, **kwargs
             )
             params = io.thermo.icap_csv_rows_read_params(
                 self.field("thermo.path"), **kwargs
             )
         else:
             data = io.thermo.icap_csv_columns_read_data(
-                self.field("thermo.path"), **kwargs
+                self.field("thermo.path"), use_analog=use_analog, **kwargs
             )
             params = io.thermo.icap_csv_columns_read_params(
                 self.field("thermo.path"), **kwargs

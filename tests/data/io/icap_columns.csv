@@ -1,0 +1,22 @@
+,,,,Sample 1,Sample 2,Sample 3
+,,,,1,2,3
+MainRuns,0,1A,Time,0,0,0
+MainRuns,1,1A,Time,0.1,0.1,0.1
+MainRuns,2,1A,Time,0.2,0.2,0.2
+MainRuns,0,1A,Analog,0.1,0.4,0.7
+MainRuns,1,1A,Analog,0.2,0.5,0.8
+MainRuns,2,1A,Analog,0.3,0.6,0.9
+MainRuns,0,1A,Counter,1,4,7
+MainRuns,1,1A,Counter,2,5,8
+MainRuns,2,1A,Counter,3,6,9
+MainRuns,0,2B,Time,0.01,0.01,0.01
+MainRuns,1,2B,Time,0.11,0.11,0.11
+MainRuns,2,2B,Time,0.21,0.21,0.21
+MainRuns,0,2B,Analog,0,0,0
+MainRuns,1,2B,Analog,0,0,0
+MainRuns,2,2B,Analog,0,0,0
+MainRuns,0,2B,Counter,10,40,70
+MainRuns,1,2B,Counter,20,50,80
+MainRuns,2,2B,Counter,30,60,90
+PMIAnalyteLaser,Laser Scan Position Number,,,1,2,3
+PMIAnalyteLaser,Laser Output Setting [%],,,20,20,20
