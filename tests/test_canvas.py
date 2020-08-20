@@ -3,7 +3,6 @@ import numpy as np
 import filecmp
 import tempfile
 
-import pytest
 from pytestqt.qtbot import QtBot
 
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -19,7 +18,7 @@ from pewpew.widgets.canvases import (
     LaserImageCanvas,
 )
 
-from testing import FakeEvent, FakePick
+from testing import FakeEvent
 
 
 def test_canvas_basic(qtbot: QtBot):

@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BatchLogDataSet SchemaVersion="65536" DataVersion="1" SIVersion="C.1.5.588.3" BatchName="20200630_agar_test_1.b" BatchDataPath="D:\Agilent\DATA\acq_batch_files.b" UserDefineColumnsCaptions="" HashCode="C48F63EE709FF76E7EB2B3C28C37F85391DF5E1C2D065A01831F4BA317B2C94AAE66E6EDE8192E8CACDFC4324451677E985AA27F3A37EC3AC6C19C9DA278F94B" xmlns="BatchLog">
+  <BatchLogInfo>
+    <BatchLogID>-1</BatchLogID>
+    <SampleLogID>0</SampleLogID>
+    <AcqDateTime>2020-06-30T11:40:27+10:00</AcqDateTime>
+    <AcqResult>Pass</AcqResult>
+    <DataFileName>D:\Agilent\DATA\acq_batch_files.b\a.d</DataFileName>
+    <DilutionResult>1</DilutionResult>
+    <OperatorName>ICPMS8900</OperatorName>
+    <SampleName>a</SampleName>
+    <SampleType>Sample</SampleType>
+    <ErrorMessage />
+  </BatchLogInfo>
+  <BatchLogInfo>
+    <BatchLogID>-1</BatchLogID>
+    <SampleLogID>1</SampleLogID>
+    <AcqDateTime>2020-06-30T11:41:12+10:00</AcqDateTime>
+    <AcqResult>Pass</AcqResult>
+    <DataFileName>D:\Agilent\DATA\acq_batch_files.b\c.d</DataFileName>
+    <DilutionResult>1</DilutionResult>
+    <OperatorName>ICPMS8900</OperatorName>
+    <SampleName>c</SampleName>
+    <SampleType>Sample</SampleType>
+    <ErrorMessage />
+  </BatchLogInfo>
+  <BatchLogInfo>
+    <BatchLogID>-1</BatchLogID>
+    <SampleLogID>2</SampleLogID>
+    <AcqDateTime>2020-06-30T11:41:50+10:00</AcqDateTime>
+    <AcqResult>Pass</AcqResult>
+    <DataFileName>D:\Agilent\DATA\acq_batch_files.b\b.d</DataFileName>
+    <DilutionResult>1</DilutionResult>
+    <OperatorName>ICPMS8900</OperatorName>
+    <SampleName>b</SampleName>
+    <SampleType>Sample</SampleType>
+    <ErrorMessage />
+  </BatchLogInfo>
+</BatchLogDataSet>

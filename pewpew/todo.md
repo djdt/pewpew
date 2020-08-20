@@ -1,6 +1,8 @@
 Bugs
 ----
 
+Laser not set changed on edit tool
+
 Misc
 ----
 

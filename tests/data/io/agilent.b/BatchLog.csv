@@ -1,0 +1,4 @@
+#,Acq. Date-Time,Sample Type,Sample Name,Vial#,File Name,Acquisition Result,Error Message,Dilution Result,Comment,Operator,Error Action,Replicates,Level,ISTD Conc,Auto Dilution (ISIS 2),Total Dil.,Final Weight or Volume,Sample Weight or Volume,Dilution Multiplier,Sublist,Total Acq Time,Max. Daily Dose,%J,User Def. 1,User Def. 2,User Def. 3,QC Failed Criteria,QC Failed Elements
+1,30/06/2020 11:40:27 AM,Sample,1,<Manual>,D:\Agilent\DATA\acq_batch_files.b\c.d,Pass,-,1,-,ICPMS8900,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-
+2,30/06/2020 11:41:12 AM,Sample,2,<Manual>,D:\Agilent\DATA\acq_batch_files.b\a.d,Pass,-,1,-,ICPMS8900,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-
+3,30/06/2020 11:41:50 AM,Sample,3,<Manual>,D:\Agilent\DATA\acq_batch_files.b\b.d,Pass,-,1,-,ICPMS8900,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-
