@@ -34,7 +34,8 @@ def test_numpy_array_table_model(qtbot: QtBot):
 
     assert model.data(model.index(0, 0)) == str(model.array[0, 0])
     assert model.data(model.index(0, -1)) is None
-    assert model.data(model.index(0, 3)) is None
+    assert model.data(model.index(0, 4)) is None
+    assert model.data(model.index(10, 0)) is None
 
     with qtbot.waitSignal(model.dataChanged):
         assert model.setData(model.index(0, 0), np.nan)
@@ -50,3 +51,9 @@ def test_numpy_array_table_model(qtbot: QtBot):
     assert model.flags(model.index(0, 0)) & QtCore.Qt.ItemIsEditable != 0
 
     assert model.headerData(0, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == "0"
+
+
+def test_numpy_array_table_model_empty(qtbot: QtBot):
+    model = NumpyArrayTableModel(np.random.random(5))
+    qtbot.addWidget(model)
+    assert model.columnCount() == 1

@@ -81,9 +81,6 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         if not index.isValid():
             return None
 
-        if index.row() >= self.rowCount() or index.column() >= self.columnCount():
-            return None
-
         if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
             value = self.array[index.row(), index.column()]
             return str(value)
@@ -96,9 +93,6 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         if not index.isValid():
             return False
 
-        if index.row() >= self.rowCount() or index.column() >= self.columnCount():
-            return False
-
         if role == QtCore.Qt.EditRole:
             try:
                 self.array[index.row(), index.column()] = value
@@ -109,7 +103,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         return False
 
     def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlags:
-        if not index.isValid():
+        if not index.isValid():  # pragma: no cover
             return QtCore.Qt.ItemIsEnabled
 
         return QtCore.Qt.ItemIsEditable | super().flags(index)
