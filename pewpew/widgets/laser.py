@@ -371,7 +371,7 @@ class LaserWidget(_ViewWidget):
 
     def rename(self, text: str) -> None:
         self.laser.name = text
-        self.setModified(True)
+        self.modified = True
 
     # Other
     def laserFilePath(self, ext: str = ".npz") -> str:
@@ -455,7 +455,7 @@ class LaserWidget(_ViewWidget):
         if rotate is not None:
             k = 1 if rotate == "right" else 3 if rotate == "left" else 2
             self.laser.data = np.rot90(self.laser.data, k=k, axes=(1, 0))
-        self.setModified(True)
+        self.modified = True
         self.refresh()
 
     # Callbacks
@@ -466,20 +466,20 @@ class LaserWidget(_ViewWidget):
                 self.laser.calibration[isotope] = copy.copy(calibrations[isotope])
                 modified = True
         if modified:
-            self.setModified(True)
+            self.modified = True
             self.refresh()
 
     def applyConfig(self, config: Config) -> None:
         # Only apply if the type of config is correct
         if isinstance(config, SRRConfig) == self.is_srr:
             self.laser.config = copy.copy(config)
-            self.setModified(True)
+            self.modified = True
             self.refresh()
 
     def saveDocument(self, path: str) -> None:
         io.npz.save(path, [self.laser])
         self.laser.path = path
-        self.setModified(False)
+        self.modified = False
 
     # Actions
     def createActions(self) -> None:

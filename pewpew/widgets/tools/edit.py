@@ -172,6 +172,7 @@ class EditTool(ToolWidget):
         stack = self.method_stack.widget(i)
         if stack.isComplete():
             stack.apply()
+            self.modified = True
         self.widgetChanged()
 
     def isComplete(self) -> bool:

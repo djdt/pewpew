@@ -10,6 +10,7 @@ class ToolWidget(_ViewWidget):
     def __init__(self, widget: _ViewWidget, apply_all: bool = False):
         super().__init__(widget.view, editable=False)
         self.widget = widget
+        self.modified = widget.modified
 
         self.layout_main = QtWidgets.QVBoxLayout()
 
@@ -74,6 +75,7 @@ class ToolWidget(_ViewWidget):
     def restoreWidget(self) -> None:
         self.view.insertTab(self.index, self.widget.laser.name, self.widget)
         self.view.removeTab(self.index)
+        self.widget.modified = self.modified
         self.widget.setActive()
 
     def requestClose(self) -> bool:

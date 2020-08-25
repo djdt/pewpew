@@ -237,12 +237,14 @@ class View(QtWidgets.QWidget):
     def addTab(self, text: str, widget: "_ViewWidget") -> int:
         index = self.tabs.addTab(text)
         self.stack.insertWidget(index, widget)
+        self.setTabModified(index, widget.modified)
         self.numTabsChanged.emit()
         return index
 
     def insertTab(self, index: int, text: str, widget: "_ViewWidget") -> int:
         index = self.tabs.insertTab(index, text)
         self.stack.insertWidget(index, widget)
+        self.setTabModified(index, widget.modified)
         self.numTabsChanged.emit()
         return index
 
@@ -414,6 +416,7 @@ class _ViewWidget(QtWidgets.QWidget):
         self.viewspace = view.viewspace
 
         self.editable = editable
+        self._modified = False
 
     @property
     def index(self) -> int:
@@ -422,6 +425,15 @@ class _ViewWidget(QtWidgets.QWidget):
     @property
     def name(self) -> str:
         return self.view.tabs.tabText(self.index)
+
+    @property
+    def modified(self) -> bool:
+        return self._modified
+
+    @modified.setter
+    def modified(self, modified: bool) -> None:
+        self._modified = modified
+        self.view.setTabModified(self.index, modified)
 
     def refresh(self) -> None:  # pragma: no cover
         raise NotImplementedError
@@ -434,9 +446,6 @@ class _ViewWidget(QtWidgets.QWidget):
 
     def setActive(self) -> None:
         self.view.tabs.setCurrentIndex(self.index)
-
-    def setModified(self, modified: bool) -> None:
-        self.view.setTabModified(self.index, modified)
 
     @QtCore.Slot("QWidget*")
     def mouseSelectStart(self, callback_widget: QtWidgets.QWidget) -> None:
