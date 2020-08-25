@@ -570,7 +570,7 @@ class ConfigDialog(ApplyDialog):
 
 class NameEditDialog(QtWidgets.QDialog):
     originalNameRole = QtCore.Qt.UserRole + 1
-    namesSelected = QtCore.Signal(list, list)
+    namesSelected = QtCore.Signal(dict)
 
     def __init__(self, names: List[str], parent: QtWidgets.QWidget = None):
         super().__init__(parent)
@@ -593,11 +593,13 @@ class NameEditDialog(QtWidgets.QDialog):
 
     def accept(self) -> None:
         items = [self.list.item(i) for i in range(self.list.count())]
-        items = [item for item in items if item.checkState() == QtCore.Qt.Checked]
-        old_names = [item.data(NameEditDialog.originalNameRole) for item in items]
-        new_names = [item.text() for item in items]
-        if not old_names == new_names:
-            self.namesSelected.emit(old_names, new_names)
+        rename = {}
+        for item in items:
+            if item.checkState() == QtCore.Qt.Checked:
+                rename[item.data(NameEditDialog.originalNameRole)] = item.text()
+            # else:
+            #     rename[item.data(NameEditDialog.originalNameRole)] = ""
+        self.namesSelected.emit(rename)
         super().accept()
 
     def addName(self, name: str) -> None:

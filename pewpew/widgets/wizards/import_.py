@@ -634,14 +634,13 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         text = fm.elidedText(text, QtCore.Qt.ElideRight, self.label_isotopes.width())
         self.label_isotopes.setText(text)
 
-    def updateNames(self, old_names: List[str], new_names: List[str]) -> None:
+    def updateNames(self, rename: dict) -> None:
         data = self.field("laserdata")
-        del_names = [n for n in data.dtype.names if n not in old_names]
-        data = rfn.drop_fields(data, del_names, usemask=False)
-        rename = {o: n for o, n in zip(old_names, new_names)}
+        remove = [name for name in data.dtype.names if name not in rename]
+        data = rfn.drop_fields(data, remove, usemask=False)
         data = rfn.rename_fields(data, rename)
 
         self.setField("laserdata", data)
-        self.setElidedNames(new_names)
+        self.setElidedNames(data.dtype.names)
 
     data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)

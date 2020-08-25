@@ -1,5 +1,6 @@
 import copy
 import numpy as np
+import numpy.lib.recfunctions as rfn
 import os
 import logging
 
@@ -259,6 +260,31 @@ class LaserWidgetImageCanvas(LaserImageCanvas):
         self.draw_idle()
 
 
+class LaserComboBox(QtWidgets.QComboBox):
+    namesSelected = QtCore.Signal(dict)
+
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+        self.action_edit_names = qAction(
+            "document-edit",
+            "Edit Names",
+            "Edit image names.",
+            self.actionNameEditDialog,
+        )
+
+    def actionNameEditDialog(self) -> QtWidgets.QDialog:
+        names = [self.itemText(i) for i in range(self.count())]
+        dlg = dialogs.NameEditDialog(names, parent=self)
+        dlg.namesSelected.connect(self.namesSelected)
+        dlg.open()
+        return dlg
+
+    def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(self.action_edit_names)
+        menu.popup(event.globalPos())
+
+
 class LaserWidget(_ViewWidget):
     def __init__(self, laser: Laser, viewoptions: ViewOptions, view: LaserView = None):
         super().__init__(view)
@@ -279,10 +305,59 @@ class LaserWidget(_ViewWidget):
             self.combo_layers.setEnabled(False)
             self.combo_layers.setVisible(False)
 
-        self.combo_isotope = QtWidgets.QComboBox()
+        self.combo_isotope = LaserComboBox()
+        self.combo_isotope.namesSelected.connect(self.updateNames)
         self.combo_isotope.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.combo_isotope.currentIndexChanged.connect(self.refresh)
         self.populateIsotopes()
+
+        self.action_calibration = qAction(
+            "go-top",
+            "Ca&libration",
+            "Edit the documents calibration.",
+            self.actionCalibration,
+        )
+        self.action_config = qAction(
+            "document-edit", "&Config", "Edit the document's config.", self.actionConfig
+        )
+        self.action_copy_image = qAction(
+            "insert-image",
+            "Copy &Image",
+            "Copy image to clipboard.",
+            self.actionCopyImage,
+        )
+        self.action_duplicate = qAction(
+            "edit-copy",
+            "Duplicate image",
+            "Open a copy of the image.",
+            self.actionDuplicate,
+        )
+        self.action_export = qAction(
+            "document-save-as", "E&xport", "Export documents.", self.actionExport
+        )
+        self.action_export.setShortcut("Ctrl+X")
+        # Add the export action so we can use it via shortcut
+        self.addAction(self.action_export)
+        self.action_save = qAction(
+            "document-save", "&Save", "Save document to numpy archive.", self.actionSave
+        )
+        self.action_save.setShortcut("Ctrl+S")
+        # Add the save action so we can use it via shortcut
+        self.addAction(self.action_save)
+        self.action_statistics = qAction(
+            "dialog-information",
+            "Statistics",
+            "Open statisitics dialog for selected data.",
+            self.actionStatistics,
+        )
+        self.action_colocalisation = qAction(
+            "dialog-information",
+            "Colocalisation",
+            "Open the colocalisation dialog.",
+            self.actionColocal,
+        )
+
+        # Toolbar actions
 
         self.action_select_none = qAction(
             "transform-move",
@@ -357,8 +432,6 @@ class LaserWidget(_ViewWidget):
         layout.addLayout(layout_bar)
         self.setLayout(layout)
 
-        self.createActions()
-
     # Virtual
     def refresh(self) -> None:
         if not self.is_srr or self.combo_layers.currentIndex() == 0:
@@ -411,6 +484,16 @@ class LaserWidget(_ViewWidget):
             status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
         else:
             status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
+
+    def updateNames(self, rename: dict) -> None:
+        current = self.combo_isotope.currentText()
+        remove = [name for name in self.laser.isotopes if name not in rename]
+
+        self.laser.remove(remove)
+        self.laser.rename(rename)
+        self.populateIsotopes()
+        current = rename[current]
+        self.combo_isotope.setCurrentText(current)
 
     # Transformations
     def crop(self, new_extent: Tuple[float, float, float, float] = None) -> None:
@@ -480,54 +563,6 @@ class LaserWidget(_ViewWidget):
         io.npz.save(path, [self.laser])
         self.laser.path = path
         self.modified = False
-
-    # Actions
-    def createActions(self) -> None:
-        self.action_calibration = qAction(
-            "go-top",
-            "Ca&libration",
-            "Edit the documents calibration.",
-            self.actionCalibration,
-        )
-        self.action_config = qAction(
-            "document-edit", "&Config", "Edit the document's config.", self.actionConfig
-        )
-        self.action_copy_image = qAction(
-            "insert-image",
-            "Copy &Image",
-            "Copy image to clipboard.",
-            self.actionCopyImage,
-        )
-        self.action_duplicate = qAction(
-            "edit-copy",
-            "Duplicate image",
-            "Open a copy of the image.",
-            self.actionDuplicate,
-        )
-        self.action_export = qAction(
-            "document-save-as", "E&xport", "Export documents.", self.actionExport
-        )
-        self.action_export.setShortcut("Ctrl+X")
-        # Add the export action so we can use it via shortcut
-        self.addAction(self.action_export)
-        self.action_save = qAction(
-            "document-save", "&Save", "Save document to numpy archive.", self.actionSave
-        )
-        self.action_save.setShortcut("Ctrl+S")
-        # Add the save action so we can use it via shortcut
-        self.addAction(self.action_save)
-        self.action_statistics = qAction(
-            "dialog-information",
-            "Statistics",
-            "Open statisitics dialog for selected data.",
-            self.actionStatistics,
-        )
-        self.action_colocalisation = qAction(
-            "dialog-information",
-            "Colocalisation",
-            "Open the colocalisation dialog.",
-            self.actionColocal,
-        )
 
     def actionCalibration(self) -> QtWidgets.QDialog:
         dlg = dialogs.CalibrationDialog(

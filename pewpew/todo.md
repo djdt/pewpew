@@ -1,8 +1,6 @@
 Bugs
 ----
 
-Laser not set changed on edit tool
-
 Misc
 ----
 
@@ -12,8 +10,6 @@ Standards result box should be in 2 rows.
 Colocal is slow (coastes has many python loop).
 
 Edit tool needs indicator for what is getting updated (single / multiple isotopes?)
-
-Edit isotopes on right click.
 
 
 Edit Tool
