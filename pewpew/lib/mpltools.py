@@ -12,7 +12,7 @@ from matplotlib.patheffects import withStroke
 
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
-from typing import Tuple
+from typing import Tuple, Union
 
 
 class LabeledLine2D(Line2D):
@@ -68,7 +68,7 @@ class MetricSizeBar(AnchoredSizeBar):
         self,
         axes: Axes,
         axes_unit: str = "μm",
-        loc: str = "upper right",
+        loc: Union[int, str] = "upper right",
         bar_height_fraction: float = 0.01,
         color: str = "white",
         edgecolor: str = "black",

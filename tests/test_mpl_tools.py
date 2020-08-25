@@ -27,6 +27,7 @@ def test_labeled_line2d():
         line.get_transform().transform(text_pos) + (1.0, 1.0)
         == line.text.get_transform().transform(text_pos)
     )
+    plt.close(fig)
 
 
 def test_metric_size_bar():

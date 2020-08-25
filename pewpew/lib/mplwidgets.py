@@ -59,7 +59,7 @@ class _ImageSelectionWidget(_SelectorWidget):
         vy[1] = min(shape[0], vy[1])
 
         # If somehow the data is malformed then return
-        if vx[1] - vx[0] < 1 or vy[1] - vy[0] < 1:
+        if vx[1] - vx[0] < 1 or vy[1] - vy[0] < 1:  # pragma: no cover
             return
 
         # Generate point mesh
@@ -100,7 +100,7 @@ class LassoImageSelectionWidget(_ImageSelectionWidget):
         self.verts: np.ndarray = None
 
     def _onmove(self, event: MouseEvent) -> None:
-        if self.verts is None:
+        if self.verts is None:  # pragma: no cover
             return
         self.verts.append(self._get_data(event))
         self.line.set_data(list(zip(*self.verts)))
@@ -143,7 +143,7 @@ class RectangleImageSelectionWidget(_ImageSelectionWidget):
         self.artists.append(self.line)
 
     def _onmove(self, event: MouseEvent) -> None:
-        if self.eventpress is None:
+        if self.eventpress is None:  # pragma: no cover
             return
         x0, y0 = self._get_data(self.eventpress)
         x1, y1 = self._get_data(event)
@@ -191,7 +191,7 @@ class RulerWidget(_SelectorWidget):
         self.artists.append(self.line)
 
         props = dict(animated=useblit, color="white", fontproperties=None)
-        if textprops is not None:
+        if textprops is not None:  # pragma: no cover
             props.update(textprops)
 
         self.text: Text = None
@@ -202,7 +202,7 @@ class RulerWidget(_SelectorWidget):
             self.artists.append(self.text)
 
     def _onmove(self, event: MouseEvent) -> None:
-        if self.eventpress is None:
+        if self.eventpress is None:  # pragma: no cover
             return
         x0, y0 = self._get_data(self.eventpress)
         x1, y1 = self._get_data(event)
