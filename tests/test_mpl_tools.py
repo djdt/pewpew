@@ -1,6 +1,32 @@
 import matplotlib.pyplot as plt
 
-from pewpew.lib.mpltools import MetricSizeBar
+from pewpew.lib.mpltools import LabeledLine2D, MetricSizeBar
+
+
+def test_labeled_line2d():
+    fig, ax = plt.subplots(figsize=(5.0, 5.0))
+
+    line = LabeledLine2D(
+        [0.0, 1.0, 2.0],
+        [1.0, -1.0, 1.0],
+        label="label",
+        label_index=1,
+        label_offset=(1.0, 1.0),
+        textprops=dict(color="white"),
+    )
+    # Axes added correctly
+    ax.add_artist(line)
+    assert line.axes == ax
+    assert line.text.axes == ax
+
+    # Position is correct
+    text_pos = line.text.get_position()
+    assert text_pos == (1.0, -1.0)
+    # Transform is correct
+    assert all(
+        line.get_transform().transform(text_pos) + (1.0, 1.0)
+        == line.text.get_transform().transform(text_pos)
+    )
 
 
 def test_metric_size_bar():

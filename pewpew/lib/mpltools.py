@@ -17,16 +17,18 @@ from typing import Tuple
 
 class LabeledLine2D(Line2D):
     def __init__(self, *args, **kwargs) -> None:
-        self.label_at = kwargs.pop("label_at", 0)
+        self.label_index = kwargs.pop("label_index", 0)
         self.label_offset = kwargs.pop("label_offset", (0, 0))
         text_props = kwargs.pop("textprops", {})
+
         self.text = Text(0, 0, "", **text_props)
         super().__init__(*args, **kwargs)
         self.text.set_text(self.get_label())
 
-    def set_axes(self, axes: Axes) -> None:
-        self.text.set_axes(axes)
-        super().set_axes(axes)
+    @Line2D.axes.setter
+    def axes(self, axes: Axes) -> None:
+        self.text.axes = axes
+        Line2D.axes.fset(self, axes)
 
     def set_figure(self, figure: Figure) -> None:
         self.text.set_figure(figure)
@@ -38,11 +40,11 @@ class LabeledLine2D(Line2D):
         super().set_transform(transform)
 
     def set_xdata(self, x: np.ndarray) -> None:
-        self.text.set_x(x[self.label_at])
+        self.text.set_x(x[self.label_index])
         super().set_xdata(x)
 
     def set_ydata(self, y: np.ndarray) -> None:
-        self.text.set_y(y[self.label_at])
+        self.text.set_y(y[self.label_index])
         super().set_ydata(y)
 
     def draw(self, renderer: RendererBase) -> None:
