@@ -98,13 +98,13 @@ class ImageOptions(object):
         for k, v in self.COLORMAPS.items():
             if v == self.cmap:
                 return k
-        return ""
+        return ""  # pragma: no cover
 
     def get_interpolation_name(self) -> str:
         for k, v in self.INTERPOLATIONS.items():
             if v == self.interpolation:
                 return k
-        return ""
+        return ""  # pragma: no cover
 
 
 class FontOptions(object):
