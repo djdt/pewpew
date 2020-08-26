@@ -566,7 +566,7 @@ class ImportConfigPage(QtWidgets.QWizardPage):
 
     def buttonNamesPressed(self) -> QtWidgets.QDialog:
         data = self.field("laserdata")
-        dlg = NameEditDialog(data.dtype.names, parent=self)
+        dlg = NameEditDialog(data.dtype.names, allow_remove=True, parent=self)
         dlg.namesSelected.connect(self.updateNames)
         dlg.open()
         return dlg

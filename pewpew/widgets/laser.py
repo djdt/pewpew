@@ -486,10 +486,11 @@ class LaserWidget(_ViewWidget):
             status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
 
     def updateNames(self, rename: dict) -> None:
+        print(rename)
         current = self.combo_isotope.currentText()
-        remove = [name for name in self.laser.isotopes if name not in rename]
+        # remove = [name for name in self.laser.isotopes if name not in rename]
 
-        self.laser.remove(remove)
+        # self.laser.remove(remove)
         self.laser.rename(rename)
         self.populateIsotopes()
         current = rename[current]

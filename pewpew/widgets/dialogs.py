@@ -572,9 +572,16 @@ class NameEditDialog(QtWidgets.QDialog):
     originalNameRole = QtCore.Qt.UserRole + 1
     namesSelected = QtCore.Signal(dict)
 
-    def __init__(self, names: List[str], parent: QtWidgets.QWidget = None):
+    def __init__(
+        self,
+        names: List[str],
+        allow_remove: bool = False,
+        parent: QtWidgets.QWidget = None,
+    ):
         super().__init__(parent)
         self.setWindowTitle("Edit Names")
+
+        self.allow_remove = allow_remove
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok
@@ -595,10 +602,11 @@ class NameEditDialog(QtWidgets.QDialog):
         items = [self.list.item(i) for i in range(self.list.count())]
         rename = {}
         for item in items:
-            if item.checkState() == QtCore.Qt.Checked:
+            if (
+                item.flags() & QtCore.Qt.ItemIsUserCheckable
+                and item.checkState() == QtCore.Qt.Checked
+            ) or not self.allow_remove:
                 rename[item.data(NameEditDialog.originalNameRole)] = item.text()
-            # else:
-            #     rename[item.data(NameEditDialog.originalNameRole)] = ""
         self.namesSelected.emit(rename)
         super().accept()
 
@@ -607,7 +615,8 @@ class NameEditDialog(QtWidgets.QDialog):
         item.setText(name)
         item.setData(NameEditDialog.originalNameRole, name)
         item.setFlags(QtCore.Qt.ItemIsEditable | item.flags())
-        item.setCheckState(QtCore.Qt.Checked)
+        if self.allow_remove:
+            item.setCheckState(QtCore.Qt.Checked)
         self.list.addItem(item)
 
     def addNames(self, names: List[str]) -> None:

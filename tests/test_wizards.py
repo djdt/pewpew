@@ -52,6 +52,7 @@ def test_wizard_import_agilent(qtbot: QtBot):
     with qtbot.wait_signal(wiz.laserImported):
         wiz.accept()
 
+
 def test_wizard_import_text(qtbot: QtBot):
     data_path = os.path.join(os.path.dirname(__file__), "data", "io")
 
@@ -84,7 +85,7 @@ def test_wizard_import_text(qtbot: QtBot):
 
     # Test the name dialog works
     dlg = page.buttonNamesPressed()
-    dlg.namesSelected.emit(["A1"], ["A2"])
+    dlg.namesSelected.emit({"A1": "A2"})
     dlg.close()
 
     assert page.label_isotopes.text() == "A2"
