@@ -208,11 +208,11 @@ class _ImportOptionsPage(QtWidgets.QWizardPage):
 
 
 class ImportAgilentPage(_ImportOptionsPage):
-    dfile_methods = {
-        "AcqMethod.xml": io.agilent.acq_method_xml_path,
-        "BatchLog.csv": io.agilent.batch_csv_path,
-        "BatchLog.xml": io.agilent.batch_xml_path,
-    }
+    # DFILE_METHODS = {
+    #     "AcqMethod.xml": io.agilent.acq_method_xml_path,
+    #     "BatchLog.csv": io.agilent.batch_csv_path,
+    #     "BatchLog.xml": io.agilent.batch_xml_path,
+    # }
 
     def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
         super().__init__("Agilent Batch", ["*.b"], path, parent)
@@ -591,7 +591,7 @@ class ImportConfigPage(QtWidgets.QWizardPage):
         elif agilent_method == "Batch Log XML":
             method = ["batch_xml"]
         else:
-            raise ValueError("Unkonw data file collection method.")
+            raise ValueError("Unknown data file collection method.")
 
         data, params = io.agilent.load(
             self.field("agilent.path"),
