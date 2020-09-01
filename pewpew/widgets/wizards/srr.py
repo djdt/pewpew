@@ -6,166 +6,88 @@ from pew import io
 from pew.config import Config
 from pew.srr import SRRLaser, SRRConfig
 
+from pewpew.actions import qAction, qToolButton
 from pewpew.validators import DecimalValidator, DecimalValidatorNoZero
-from pewpew.widgets.ext import MultipleDirDialog
+
 from pewpew.widgets.wizards.import_ import ImportFormatPage
+from pewpew.widgets.wizards.importoptions import (
+    _ImportOptions,
+    ImportOptionsAgilent,
+    ImportOptionsText,
+    ImportOptionsThermo,
+)
 
 from typing import List
 
 
-class LaserImportList(QtWidgets.QListWidget):
-    def __init__(
-        self, allowed_exts: List[str] = None, parent: QtWidgets.QWidget = None
-    ):
-        super().__init__(parent)
-        self.allowed_exts = allowed_exts
-        self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        self.setTextElideMode(QtCore.Qt.ElideLeft)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setDefaultDropAction(QtCore.Qt.MoveAction)
-        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
-        self.setAcceptDrops(True)
-
-    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-        else:
-            super().dragEnterEvent(event)
-
-    def dropEvent(self, event: QtGui.QDropEvent) -> None:
-        if event.mimeData().hasUrls():
-            urls = event.mimeData().urls()
-            for url in urls:
-                if url.isLocalFile():
-                    path = url.toLocalFile()
-                    name, ext = os.path.splitext(path)
-                    if self.allowed_exts is None or ext in self.allowed_exts:
-                        self.addItem(path)
-        else:
-            super().dropEvent(event)
-
-    @QtCore.Property("QStringList")
-    def paths(self) -> List[str]:
-        return [self.item(i).text() for i in range(0, self.count())]
-
-
-class SRRFilesPage(QtWidgets.QWizardPage):
-    def __init__(
-        self, min_files: int = 1, max_files: int = -1, parent: QtWidgets.QWidget = None
-    ):
-        super().__init__(parent)
-
-        self.min_files = min_files
-        self.max_files = max_files
-
-        self.setTitle("Files and Directories")
-        # List and box
-
-        self.list = LaserImportList()
-        self.list.model().rowsInserted.connect(self.completeChanged)
-        self.list.model().rowsRemoved.connect(self.completeChanged)
-
-        dir_box = QtWidgets.QGroupBox("Layer Order", self)
-        box_layout = QtWidgets.QVBoxLayout()
-        box_layout.addWidget(self.list)
-        dir_box.setLayout(box_layout)
-
-        # Buttons
-        button_file = QtWidgets.QPushButton("Open")
-        button_file.clicked.connect(self.buttonAdd)
-        button_dir = QtWidgets.QPushButton("Open All...")
-        button_dir.clicked.connect(self.buttonAddAll)
-
-        button_layout = QtWidgets.QHBoxLayout()
-        button_layout.addWidget(button_file)
-        button_layout.addWidget(button_dir)
-        box_layout.addLayout(button_layout)
-
-        main_layout = QtWidgets.QVBoxLayout()
-        main_layout.addWidget(dir_box)
-        self.setLayout(main_layout)
-
-        self.registerField("paths", self.list, "paths")
-
-    def initializePage(self) -> None:
-        if self.field("numpy"):
-            ext = ".npz"
-        elif self.field("agilent"):
-            ext = ".b"
-        elif self.field("thermo"):
-            ext = ".csv"
-        self.list.allowed_exts = [ext]
-
-    def buttonAdd(self) -> None:
-        if self.field("numpy"):
-            paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", "", "Numpy Archives(*.npz);;All Files(*)"
-            )
-        elif self.field("agilent"):
-            paths = MultipleDirDialog.getExistingDirectories(self, "Select Batches", "")
-        elif self.field("thermo"):
-            paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", "", "CSV Documents(*.csv);;All Files(*)"
-            )
-
-        for path in paths:
-            self.list.addItem(path)
-
-    def buttonAddAll(self) -> None:
-        path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory", "")
-        if len(path) == 0:
-            return
-        files = os.listdir(path)
-        files.sort()
-
-        ext = ".npz"
-        if self.field("agilent"):
-            ext = ".b"
-        elif self.field("thermo"):
-            ext = ".csv"
-
-        for f in files:
-            if f.lower().endswith(ext):
-                self.list.addItem(os.path.join(path, f))
-
-    def keyPressEvent(self, event: QtCore.QEvent) -> None:
-        if (
-            event.key() == QtCore.Qt.Key_Delete
-            or event.key() == QtCore.Qt.Key_Backspace
-        ):
-            for item in self.list.selectedItems():
-                self.list.takeItem(self.list.row(item))
-        super().keyPressEvent(event)
-
-    def isComplete(self) -> bool:
-        return self.list.count() >= self.min_files and (
-            self.max_files < 0 or self.list.count() <= self.max_files
-        )
-
-
 class SRRImportWizard(QtWidgets.QWizard):
+    page_format = 0
+    page_files = 1
+    page_agilent = 2
+    page_numpy = 3
+    page_text = 4
+    page_thermo = 5
+    page_config = 6
+
     laserImported = QtCore.Signal(SRRLaser)
 
-    def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self,
+        paths: List[str] = [],
+        config: Config = None,
+        parent: QtWidgets.QWidget = None,
+    ):
         super().__init__(parent)
         self.setWindowTitle("SRR Import Wizard")
 
-        self.config = SRRConfig(config.spotsize, config.speed, config.scantime)
+        config = config or SRRConfig()
 
-        self.laser = None
-
-        overview = QtWidgets.QLabel(
-            "This wizard will import SRR-LA-ICP-MS data. To begin, select "
-            "the type of data to import. You may then reorder imported layers "
-            "and edit the laser configuration."
+        overview = (
+            "The wizard will guide you through importing LA-ICP-MS data "
+            "and provides a higher level to control than the standard import. "
+            "To begin select the format of the file being imported."
         )
-        format_page = ImportFormatPage(overview, parent=self)
-        format_page.radio_text.setEnabled(False)
-        self.addPage(format_page)
-        self.addPage(SRRFilesPage(min_files=2))
-        self.addPage(SRRConfigPage(self.config))
 
-        self.resize(540, 480)
+        format_page = ImportFormatPage(
+            overview,
+            page_id_dict={
+                "agilent": self.page_agilent,
+                "numpy": self.page_numpy,
+                "text": self.page_text,
+                "thermo": self.page_thermo,
+            },
+            parent=self,
+        )
+
+        self.setPage(self.page_format, format_page)
+        self.setPage(self.page_agilent, SRRImportAgilentPage(paths, parent=self))
+        self.setPage(self.page_numpy, SRRImportNumpyPage(paths, parent=self))
+        self.setPage(self.page_text, SRRImportTextPage(paths, parent=self))
+        self.setPage(self.page_thermo, SRRImportThermoPage(paths, parent=self))
+
+        self.setPage(self.page_config, SRRImportConfigPage(config, parent=self))
+
+    def accept(self) -> None:
+        if self.field("agilent"):
+            path = self.field("agilent.path")
+        elif self.field("text"):
+            path = self.field("text.path")
+        elif self.field("thermo"):
+            path = self.field("thermo.path")
+        else:
+            raise ValueError("Invalid filetype selection.")
+
+        # data = self.field("laserdata")
+        # config = Config(
+        #     spotsize=float(self.field("spotsize")),
+        #     scantime=float(self.field("scantime")),
+        #     speed=float(self.field("speed")),
+        # )
+        # base, ext = os.path.splitext(path)
+        # self.laserImported.emit(
+        #     SRRLaser(data, config=config, path=path, name=os.path.basename(base))
+        # )
+        # super().accept()
 
     def accept(self) -> None:
         self.config.spotsize = float(self.field("spotsize"))
@@ -207,6 +129,134 @@ class SRRImportWizard(QtWidgets.QWizard):
             )
         )
         super().accept()
+
+
+class _SRRImportOptionsPage(QtWidgets.QWizardPage):
+    def __init__(
+        self,
+        options: _ImportOptions,
+        paths: List[str] = [],
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(parent)
+        self.setTitle(options.filetype + " Import")
+
+        self.paths = PathsSelectionWidget(paths, options.filetype, options.exts)
+        self.paths.pathsChanged.connect(self.pathsChanged)
+
+        self.options = options
+        self.options.completeChanged.connect(self.completeChanged)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.path, 0)
+        layout.addWidget(self.options, 1)
+        self.setLayout(layout)
+
+    def buttonPathPressed(self) -> QtWidgets.QFileDialog:
+        dlg = QtWidgets.QFileDialog(
+            self, "Select File", os.path.dirname(self.lineedit_path.text())
+        )
+        dlg.setNameFilters([self.nameFilter(), "All Files(*)"])
+        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
+        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFile)
+        dlg.fileSelected.connect(self.pathSelected)
+        dlg.open()
+        return dlg
+
+    def isComplete(self) -> bool:
+        paths = self.paths.paths
+        if len(paths) < 2:
+            return False
+        for path in paths:
+            if not self.validPath(path):
+                return False
+        return self.options.isComplete()
+
+    def nameFilter(self) -> str:
+        return f"{self.options.filetype}({' '.join(['*' + ext for ext in self.options.exts])})"
+
+    def nextId(self) -> int:
+        return SRRImportWizard.page_config
+
+    def pathsChanged(self) -> None:
+        self.completeChanged.emit()
+
+    def validPath(self, path: str) -> bool:
+        return os.path.exists(path) and os.path.isfile(path)
+
+
+class SRRImportAgilentPage(_SRRImportOptionsPage):
+    def __init__(self, paths: List[str] = [], parent: QtWidgets.QWidget = None):
+        super().__init__(ImportOptionsAgilent(), paths, parent)
+        self.paths.uses_directories = True
+
+        self.registerField("agilent.paths", self.paths.paths)
+        self.registerField(
+            "agilent.method",
+            self.options.combo_dfile_method,
+            "currentText",
+            "currentTextChanged",
+        )
+        self.registerField("agilent.acqNames", self.options.check_name_acq_xml)
+
+    def initializePage(self) -> None:
+        self.pathsChanged()
+
+    def pathsChanged(self) -> None:
+        paths = self.field("agilent.paths")
+        path = paths[0] if len(paths) > 0 else ""
+        if self.validPath(path):
+            self.options.setEnabled(True)
+            self.options.updateOptions(path)
+        else:
+            self.options.actual_datafiles = 0
+            self.options.setEnabled(False)
+        super().pathsChanged()
+
+    def validPath(self, path: str) -> bool:
+        return os.path.exists(path) and os.path.isdir(path)
+
+
+class SRRImportTextPage(_SRRImportOptionsPage):
+    def __init__(self, paths: List[str] = [], parent: QtWidgets.QWidget = None):
+        super().__init__(ImportOptionsText(), paths, parent)
+        self.registerField("text.paths", self.paths.paths)
+        self.registerField("text.name", self.options.lineedit_name)
+
+
+class SRRImportThermoPage(_SRRImportOptionsPage):
+    def __init__(self, paths: List[str] = [], parent: QtWidgets.QWidget = None):
+        super().__init__(ImportOptionsThermo(), paths, parent)
+
+        self.registerField("thermo.paths", self.paths.paths)
+        self.registerField("thermo.sampleColumns", self.options.radio_columns)
+        self.registerField("thermo.sampleRows", self.options.radio_rows)
+        self.registerField(
+            "thermo.delimiter",
+            self.options.combo_delimiter,
+            "currentText",
+            "currentTextChanged",
+        )
+        self.registerField(
+            "thermo.decimal",
+            self.options.combo_decimal,
+            "currentText",
+            "currentTextChanged",
+        )
+        self.registerField("thermo.useAnalog", self.options.check_use_analog)
+
+    def initializePage(self) -> None:
+        self.pathsChanged()
+
+    def pathChanged(self, path: str) -> None:
+        paths = self.field("thermo.paths")
+        path = paths[0] if len(paths) > 0 else ""
+        if self.validPath(path):
+            self.options.setEnabled(True)
+            self.options.updateOptions(path)
+        else:
+            self.options.setEnabled(False)
+        super().pathChanged(path)
 
 
 class SRRConfigPage(QtWidgets.QWizardPage):
@@ -277,3 +327,131 @@ class SRRConfigPage(QtWidgets.QWizardPage):
                 self.lineedit_warmup.hasAcceptableInput(),
             ]
         )
+
+
+class PathsSelectionWidget(QtWidgets.QWidget):
+    pathsChanged = QtCore.Signal()
+    firstPathChanged = QtCore.Signal()
+
+    def __init__(
+        self,
+        files: List[str],
+        filetype: str,
+        exts: List[str],
+        parent: QtWidgets.QWidget = None,
+        uses_directories: bool = False,
+    ):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+
+        self.list = QtWidgets.QListWidget()
+        self.list.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.list.setTextElideMode(QtCore.Qt.ElideLeft)
+        self.list.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.list.setDefaultDropAction(QtCore.Qt.MoveAction)
+        self.list.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+
+        self.list.model().rowsInserted.connect(self.pathsChanged)
+        self.list.model().rowsRemoved.connect(self.pathsChanged)
+        self.list.model().rowsMoved.connect(self.pathsChanged)
+
+        self.action_remove = qAction(
+            "list-remove", "Remove", "Remove the selected path.", self.removeSelected
+        )
+
+        self.button_path = QtWidgets.QPushButton("Add Files")
+        self.button_dir = QtWidgets.QPushButton("Add All Files...")
+        self.button_remove = qToolButton(action=self.action_remove)
+
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.addWidget(self.button_path, 0, QtCore.Qt.AlignLeft)
+        button_layout.addWidget(self.button_dir, 0, QtCore.Qt.AlignLeft)
+        button_layout.addWidget(self.button_remove, 0, QtCore.Qt.AlignRight)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.list)
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+    @QtCore.Property("QStringList")
+    def paths(self) -> List[str]:
+        return [self.list.item(i).text() for i in range(0, self.list.count())]
+
+    def addPaths(self, paths: List[str]) -> None:
+        for path in paths:
+            self.list.addItem(path)
+
+    def addPathsFromDirectory(self, directory: str) -> None:
+        files = os.listdir(directory)
+        files.sort()
+        for f in files:
+            name, ext = os.path.splitext(f)
+            if ext.lower() in self.exts:
+                self.list.addItem(os.path.join(directory, f))
+
+    def buttonPathsPressed(self) -> QtWidgets.QFileDialog:
+        item = self.list.currentItem()
+        dirname = os.path.dirname(item.text()) if item is not None else ""
+        dlg = QtWidgets.QFileDialog(self, "Select Files", dirname)
+        if self.uses_directories:
+            dlg.setAcceptMode(QtWidgets.QFileDialog.Directory)
+            dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+        else:
+            dlg.setNameFilters([self.nameFilter(), "All Files(*)"])
+            dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
+        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+        dlg.fileSelected.connect(self.addPaths)
+        dlg.open()
+        return dlg
+
+    def buttonDirectoryPressed(self) -> QtWidgets.QFileDialog:
+        item = self.list.currentItem()
+        dirname = os.path.dirname(item.text()) if item is not None else ""
+        dlg = QtWidgets.QFileDialog(self, "Select Directory", dirname)
+        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
+        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
+        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+        dlg.fileSelected.connect(self.addPathsFromDirectory)
+        dlg.open()
+        return dlg
+
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            for url in urls:
+                if url.isLocalFile():
+                    path = url.toLocalFile()
+                    name, ext = os.path.splitext(path)
+                    if ext.lower() in self.exts:
+                        self.list.addItem(path)
+        else:
+            super().dropEvent(event)
+
+    def keyPressEvent(self, event: QtCore.QEvent) -> None:
+        if (
+            event.key() == QtCore.Qt.Key_Delete
+            or event.key() == QtCore.Qt.Key_Backspace
+        ):
+            self.removeSelected()
+        super().keyPressEvent(event)
+
+    def nameFilter(self) -> str:
+        return f"{self.filetype}({' '.join(['*' + ext for ext in self.exts])})"
+
+    def removeSelected(self) -> None:
+        items = self.list.selectedItems()
+        for item in items:
+            self.list.takeItem(item)
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication()
+    w = SRRPathsWidget(["a", "b"], "a", [".x"])
+    w.show()
+    app.exec_()
