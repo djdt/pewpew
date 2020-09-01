@@ -148,19 +148,29 @@ class ImportFormatPage(QtWidgets.QWizardPage):
         return 0
 
 
+class _ImportOptions(QtWidgets.QGroupBox):
+    completeChanged = QtCore.Signal()
+
+    def __init__(
+        self, filetype: str, exts: List[str], parent: QtWidgets.QWidget = None
+    ):
+        super().__init__("Import Options", parent)
+        self.filetype = filetype
+        self.exts = exts
+
+    def isComplete(self) -> bool:
+        return True
+
+    def updateOptions(self, path: str) -> None:
+        pass
+
+
 class _ImportOptionsPage(QtWidgets.QWizardPage):
     def __init__(
-        self,
-        file_type: str,
-        file_exts: List[str],
-        path: str = "",
-        parent: QtWidgets.QWidget = None,
+        self, options: _ImportOptions, path: str = "", parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
-        self.setTitle(file_type + " Import")
-
-        self.file_type = file_type
-        self.file_exts = file_exts
+        self.setTitle(options.filetype + " Import")
 
         self.lineedit_path = QtWidgets.QLineEdit(path)
         self.lineedit_path.setPlaceholderText("Path to file...")
@@ -173,11 +183,12 @@ class _ImportOptionsPage(QtWidgets.QWizardPage):
         layout_path.addWidget(self.lineedit_path, 1)
         layout_path.addWidget(self.button_path, 0, QtCore.Qt.AlignRight)
 
-        self.options_box = QtWidgets.QGroupBox("Import Options")
+        self.options = options
+        self.options.completeChanged.connect(self.completeChanged)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addLayout(layout_path, 0)
-        layout.addWidget(self.options_box, 1)
+        layout.addWidget(self.options, 1)
         self.setLayout(layout)
 
     def buttonPathPressed(self) -> QtWidgets.QFileDialog:
@@ -191,8 +202,13 @@ class _ImportOptionsPage(QtWidgets.QWizardPage):
         dlg.open()
         return dlg
 
+    def isComplete(self) -> bool:
+        if not self.validPath(self.lineedit_path.text()):
+            return False
+        return self.options.isComplete()
+
     def nameFilter(self) -> str:
-        return f"{self.file_type}({' '.join(['*' + ext for ext in self.file_exts])})"
+        return f"{self.options.filetype}({' '.join(['*' + ext for ext in self.options.exts])})"
 
     def nextId(self) -> int:
         return ImportWizard.page_config
@@ -203,28 +219,26 @@ class _ImportOptionsPage(QtWidgets.QWizardPage):
     def pathSelected(self, path: str) -> None:
         raise NotImplementedError
 
+    def setEnabled(enabled: bool) -> None:
+        pass
+
     def validPath(self, path: str) -> bool:
         return os.path.exists(path) and os.path.isfile(path)
 
 
-class ImportAgilentPage(_ImportOptionsPage):
-    # DFILE_METHODS = {
-    #     "AcqMethod.xml": io.agilent.acq_method_xml_path,
-    #     "BatchLog.csv": io.agilent.batch_csv_path,
-    #     "BatchLog.xml": io.agilent.batch_xml_path,
-    # }
+class ImportOptionsAgilent(_ImportOptions):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__("Agilent Batch", ["*.b"], parent)
 
-    def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
-        super().__init__("Agilent Batch", ["*.b"], path, parent)
-
-        self.lineedit_path.setPlaceholderText("Path to batch directory...")
-        self.button_path.setText("Open Batch")
+        self.current_path = ""
+        self.actual_datafiles = 0
+        self.expected_datafiles = -1
 
         self.combo_dfile_method = QtWidgets.QComboBox()
         self.combo_dfile_method.setSizeAdjustPolicy(
             QtWidgets.QComboBox.AdjustToContents
         )
-        self.combo_dfile_method.activated.connect(self.updateDataFileCount)
+        self.combo_dfile_method.activated.connect(self.countDatafiles)
         self.combo_dfile_method.activated.connect(self.completeChanged)
 
         self.lineedit_dfile = QtWidgets.QLineEdit()
@@ -238,96 +252,59 @@ class ImportAgilentPage(_ImportOptionsPage):
         dfile_layout.addRow("Data File Collection:", self.combo_dfile_method)
         dfile_layout.addRow("Data Files Found:", self.lineedit_dfile)
 
-        layout_options = QtWidgets.QVBoxLayout()
-        layout_options.addLayout(dfile_layout, 1)
-        layout_options.addWidget(self.check_name_acq_xml, 0)
-        self.options_box.setLayout(layout_options)
+        layout = QtWidgets.QVBoxLayout()
+        layout.addLayout(dfile_layout, 1)
+        layout.addWidget(self.check_name_acq_xml, 0)
+        self.setLayout(layout)
 
-        self.registerField("agilent.path", self.lineedit_path)
-        self.registerField(
-            "agilent.method",
-            self.combo_dfile_method,
-            "currentText",
-            "currentTextChanged",
-        )
-        self.registerField("agilent.acqNames", self.check_name_acq_xml)
-
-    def dataFileCount(self) -> Tuple[int, int]:
-        path = self.field("agilent.path")
-        if not self.validPath(path):
-            return 0, -1
-
+    def countDatafiles(self) -> None:
         method = self.combo_dfile_method.currentText()
 
         if method == "Alphabetical Order":
-            data_files = io.agilent.find_datafiles_alphabetical(path)
+            datafiles = io.agilent.find_datafiles_alphabetical(self.current_path)
         elif method == "Acquistion Method":
-            data_files = io.agilent.acq_method_xml_read_datafiles(
-                path, os.path.join(path, io.agilent.acq_method_xml_path)
+            datafiles = io.agilent.acq_method_xml_read_datafiles(
+                self.current_path,
+                os.path.join(self.current_path, io.agilent.acq_method_xml_path),
             )
         elif method == "Batch Log CSV":
-            data_files = io.agilent.batch_csv_read_datafiles(
-                path, os.path.join(path, io.agilent.batch_csv_path)
+            datafiles = io.agilent.batch_csv_read_datafiles(
+                self.current_path,
+                os.path.join(self.current_path, io.agilent.batch_csv_path),
             )
         elif method == "Batch Log XML":
-            data_files = io.agilent.batch_xml_read_datafiles(
-                path, os.path.join(path, io.agilent.batch_xml_path)
+            datafiles = io.agilent.batch_xml_read_datafiles(
+                self.current_path,
+                os.path.join(self.current_path, io.agilent.batch_xml_path),
             )
         else:
             raise ValueError("Unknown data file collection method.")
 
         csvs = [
             os.path.join(d, os.path.splitext(os.path.basename(d))[0] + ".csv")
-            for d in data_files
+            for d in datafiles
         ]
-        return len(data_files), sum([os.path.exists(csv) for csv in csvs])
+        self.actual_datafiles = sum([os.path.exists(csv) for csv in csvs])
+        self.expected_datafiles = len(datafiles)
 
-    def initializePage(self) -> None:
-        self.updateImportOptions()
-        self.updateDataFileCount()
-
-    def isComplete(self) -> bool:
-        if not self.validPath(self.field("agilent.path")):
-            return False
-        return self.dataFileCount()[1] > 0
-
-    def buttonPathPressed(self) -> QtWidgets.QFileDialog:
-        dlg = QtWidgets.QFileDialog(
-            self, "Select Batch", os.path.dirname(self.lineedit_path.text())
-        )
-        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
-        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
-        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
-        dlg.fileSelected.connect(self.pathSelected)
-        dlg.open()
-        return dlg
-
-    def pathChanged(self, path: str) -> None:
-        self.updateImportOptions()
-        self.updateDataFileCount()
-        super().pathChanged(path)
-
-    def pathSelected(self, path: str) -> None:
-        self.setField("agilent.path", path)
-
-    def updateDataFileCount(self) -> None:
-        expected, actual = self.dataFileCount()
-        if (expected, actual) == (0, -1):
+        if self.expected_datafiles == 0:
             self.lineedit_dfile.clear()
         else:
-            self.lineedit_dfile.setText(f"{actual} ({expected} expected)")
+            self.lineedit_dfile.setText(
+                f"{self.actual_datafiles} ({self.expected_datafiles} expected)"
+            )
 
-    def updateImportOptions(self) -> None:
-        path: str = self.field("agilent.path")
+    def isComplete(self) -> bool:
+        return self.actual_datafiles > 0
 
-        if not self.validPath(path):
-            self.check_name_acq_xml.setEnabled(False)
-            self.combo_dfile_method.setEnabled(False)
-            return
+    def setEnabled(self, enabled: bool) -> None:
+        self.combo_dfile_method.setEnabled(enabled)
+        self.check_name_acq_xml.setEnabled(enabled)
 
+    def updateOptions(self, path: str) -> None:
+        self.current_path = path
         current_text = self.combo_dfile_method.currentText()
 
-        self.combo_dfile_method.setEnabled(True)
         self.combo_dfile_method.clear()
 
         self.combo_dfile_method.addItem("Alphabetical Order")
@@ -347,38 +324,26 @@ class ImportAgilentPage(_ImportOptionsPage):
         else:
             self.combo_dfile_method.setCurrentIndex(self.combo_dfile_method.count() - 1)
 
-    def validPath(self, path: str) -> bool:
-        return os.path.exists(path) and os.path.isdir(path)
+        self.countDatafiles()
 
 
-class ImportTextPage(_ImportOptionsPage):
-    def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
-        super().__init__("Text Image", [".csv", ".text", ".txt"], path, parent)
+class ImportOptionsText(_ImportOptions):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__("Text Image", ["*.csv", "*.text", "*.txt"], parent)
 
         self.lineedit_name = QtWidgets.QLineEdit("_Isotope_")
+        layout = QtWidgets.QFormLayout()
+        layout.addRow("Isotope Name:", self.lineedit_name)
 
-        layout_name = QtWidgets.QFormLayout()
-        layout_name.addRow("Isotope Name:", self.lineedit_name)
-
-        self.options_box.setLayout(layout_name)
-
-        self.registerField("text.path", self.lineedit_path)
-        self.registerField("text.name", self.lineedit_name)
+        self.setLayout(layout)
 
     def isComplete(self) -> bool:
-        if not self.validPath(self.field("text.path")):
-            return False
-        if self.lineedit_name.text() == "":
-            return False
-        return True
-
-    def pathSelected(self, path: str) -> None:
-        self.setField("text.path", path)
+        return self.lineedit_name.text() != ""
 
 
-class ImportThermoPage(_ImportOptionsPage):
-    def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
-        super().__init__("Thermo iCap Data", [".csv"], path, parent)
+class ImportOptionsThermo(_ImportOptions):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__("Thermo iCap Data", ["*.csv"], parent)
 
         self.radio_columns = QtWidgets.QRadioButton("Samples in columns.")
         self.radio_rows = QtWidgets.QRadioButton("Samples in rows.")
@@ -401,56 +366,7 @@ class ImportThermoPage(_ImportOptionsPage):
         layout.addRow("Delimiter:", self.combo_delimiter)
         layout.addRow("Decimal:", self.combo_decimal)
         layout.addRow(self.check_use_analog)
-        self.options_box.setLayout(layout)
-
-        self.registerField("thermo.path", self.lineedit_path)
-        self.registerField("thermo.sampleColumns", self.radio_columns)
-        self.registerField("thermo.sampleRows", self.radio_rows)
-        self.registerField(
-            "thermo.delimiter",
-            self.combo_delimiter,
-            "currentText",
-            "currentTextChanged",
-        )
-        self.registerField(
-            "thermo.decimal", self.combo_decimal, "currentText", "currentTextChanged"
-        )
-        self.registerField("thermo.useAnalog", self.check_use_analog)
-
-    def initializePage(self) -> None:
-        self.radio_rows.setChecked(True)
-        self.combo_decimal.setCurrentText(".")
-        self.updateImportOptions()
-
-    def isComplete(self) -> bool:
-        if not self.validPath(self.field("thermo.path")):
-            return False
-        return True
-
-    def updateImportOptions(self) -> None:
-        path = self.field("thermo.path")
-
-        if self.validPath(path):
-            delimiter, method, has_analog = self.preprocessFile(path)
-            self.combo_delimiter.setCurrentText(delimiter)
-            if method == "rows":
-                self.radio_rows.setChecked(True)
-            elif method == "columns":
-                self.radio_columns.setChecked(True)
-
-            if not has_analog:
-                self.check_use_analog.setChecked(False)
-
-            self.combo_delimiter.setEnabled(True)
-            self.combo_decimal.setEnabled(True)
-            self.check_use_analog.setEnabled(has_analog)
-            self.radio_rows.setEnabled(True)
-            self.radio_columns.setEnabled(True)
-        else:
-            self.combo_delimiter.setEnabled(False)
-            self.combo_decimal.setEnabled(False)
-            self.radio_rows.setEnabled(False)
-            self.radio_columns.setEnabled(False)
+        self.setLayout(layout)
 
     def preprocessFile(self, path: str) -> Tuple[str, str, bool]:
         method = "unknown"
@@ -468,8 +384,114 @@ class ImportThermoPage(_ImportOptionsPage):
                     break
             return delimiter, method, has_analog
 
+    def setEnabled(self, enabled: bool) -> None:
+        self.combo_delimiter.setEnabled(enabled)
+        self.combo_decimal.setEnabled(enabled)
+        self.radio_rows.setEnabled(enabled)
+        self.radio_columns.setEnabled(enabled)
+
+    def updateOptions(self, path: str) -> None:
+        delimiter, method, has_analog = self.preprocessFile(path)
+        self.combo_delimiter.setCurrentText(delimiter)
+        if method == "rows":
+            self.radio_rows.setChecked(True)
+        elif method == "columns":
+            self.radio_columns.setChecked(True)
+
+        if has_analog:
+            self.check_use_analog.setEnabled(True)
+        else:
+            self.check_use_analog.setEnabled(False)
+            self.check_use_analog.setChecked(False)
+
+
+class ImportAgilentPage(_ImportOptionsPage):
+
+    def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
+        super().__init__(ImportOptionsAgilent(), path, parent)
+
+        self.lineedit_path.setPlaceholderText("Path to batch directory...")
+        self.button_path.setText("Open Batch")
+
+        self.registerField("agilent.path", self.lineedit_path)
+        self.registerField(
+            "agilent.method",
+            self.options.combo_dfile_method,
+            "currentText",
+            "currentTextChanged",
+        )
+        self.registerField("agilent.acqNames", self.options.check_name_acq_xml)
+
+    def initializePage(self) -> None:
+        self.pathChanged(self.field("agilent.path"))
+
+    def buttonPathPressed(self) -> QtWidgets.QFileDialog:
+        dlg = QtWidgets.QFileDialog(
+            self, "Select Batch", os.path.dirname(self.lineedit_path.text())
+        )
+        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
+        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
+        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+        dlg.fileSelected.connect(self.pathSelected)
+        dlg.open()
+        return dlg
+
     def pathChanged(self, path: str) -> None:
-        self.updateImportOptions()
+        if self.validPath(path):
+            self.options.setEnabled(True)
+            self.options.updateOptions(path)
+        else:
+            self.options.actual_datafiles = 0
+            self.options.setEnabled(False)
+        super().pathChanged(path)
+
+    def pathSelected(self, path: str) -> None:
+        self.setField("agilent.path", path)
+
+    def validPath(self, path: str) -> bool:
+        return os.path.exists(path) and os.path.isdir(path)
+
+
+class ImportTextPage(_ImportOptionsPage):
+    def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
+        super().__init__(ImportOptionsText(), path, parent)
+        self.registerField("text.path", self.lineedit_path)
+        self.registerField("text.name", self.options.lineedit_name)
+
+    def pathSelected(self, path: str) -> None:
+        self.setField("text.path", path)
+
+
+class ImportThermoPage(_ImportOptionsPage):
+    def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
+        super().__init__(ImportOptionsThermo(), path, parent)
+
+        self.registerField("thermo.path", self.lineedit_path)
+        self.registerField("thermo.sampleColumns", self.options.radio_columns)
+        self.registerField("thermo.sampleRows", self.options.radio_rows)
+        self.registerField(
+            "thermo.delimiter",
+            self.options.combo_delimiter,
+            "currentText",
+            "currentTextChanged",
+        )
+        self.registerField(
+            "thermo.decimal",
+            self.options.combo_decimal,
+            "currentText",
+            "currentTextChanged",
+        )
+        self.registerField("thermo.useAnalog", self.options.check_use_analog)
+
+    def initializePage(self) -> None:
+        self.pathChanged(self.field("thermo.path"))
+
+    def pathChanged(self, path: str) -> None:
+        if self.validPath(path):
+            self.options.setEnabled(True)
+            self.options.updateOptions(path)
+        else:
+            self.options.setEnabled(False)
         super().pathChanged(path)
 
     def pathSelected(self, path: str) -> None:
