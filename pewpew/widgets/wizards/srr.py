@@ -24,12 +24,11 @@ from typing import List, Tuple
 
 class SRRImportWizard(QtWidgets.QWizard):
     page_format = 0
-    page_files = 1
-    page_agilent = 2
-    page_numpy = 3
-    page_text = 4
-    page_thermo = 5
-    page_config = 6
+    page_agilent = 1
+    page_numpy = 2
+    page_text = 3
+    page_thermo = 4
+    page_config = 5
 
     laserImported = QtCore.Signal(SRRLaser)
 

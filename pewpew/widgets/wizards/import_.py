@@ -27,11 +27,10 @@ logger = logging.getLogger(__name__)
 
 class ImportWizard(QtWidgets.QWizard):
     page_format = 0
-    page_files = 1
-    page_agilent = 2
+    page_agilent = 1
     page_text = 3
     page_thermo = 4
-    page_config = 6
+    page_config = 5
 
     laserImported = QtCore.Signal(Laser)
 
