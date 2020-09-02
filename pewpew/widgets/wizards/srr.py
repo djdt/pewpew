@@ -5,6 +5,7 @@ import os
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from pew import io
+from pew.config import Config
 from pew.srr import SRRLaser, SRRConfig
 
 from pewpew.actions import qAction, qToolButton
@@ -35,12 +36,17 @@ class SRRImportWizard(QtWidgets.QWizard):
     def __init__(
         self,
         paths: List[str] = [],
+        config: Config = None,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("SRR Import Wizard")
 
-        config = SRRConfig()
+        _config = SRRConfig()
+        if config is not None:
+            _config.spotsize = config.spotsize
+            _config.speed = config.speed
+            _config.scantime = config.scantime
 
         overview = (
             "The wizard will guide you through importing LA-ICP-MS data "
@@ -65,7 +71,7 @@ class SRRImportWizard(QtWidgets.QWizard):
         self.setPage(self.page_text, SRRTextPage(paths, parent=self))
         self.setPage(self.page_thermo, SRRThermoPage(paths, parent=self))
 
-        self.setPage(self.page_config, SRRConfigPage(config, parent=self))
+        self.setPage(self.page_config, SRRConfigPage(_config, parent=self))
 
     def accept(self) -> None:
         calibration = None

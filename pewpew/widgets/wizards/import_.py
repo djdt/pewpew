@@ -19,7 +19,7 @@ from pewpew.widgets.wizards.importoptions import (
     ThermoOptions,
 )
 
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple
 
 
 logger = logging.getLogger(__name__)
@@ -59,6 +59,7 @@ class ImportWizard(QtWidgets.QWizard):
             parent=self,
         )
         format_page.radio_numpy.setEnabled(False)
+        format_page.radio_numpy.setVisible(False)
 
         self.setPage(self.page_format, format_page)
         self.setPage(self.page_agilent, AgilentPage(path, parent=self))
@@ -91,15 +92,6 @@ class ImportWizard(QtWidgets.QWizard):
 
 
 class FormatPage(QtWidgets.QWizardPage):
-    formats = ["agilent", "numpy", "text", "thermo"]
-    format_exts: Dict[str, Union[str, Tuple[str, ...]]] = {
-        ".b": "agilent",
-        ".csv": ("csv", "thermo"),
-        ".npz": "numpy",
-        ".text": "csv",
-        ".txt": "csv",
-    }
-
     def __init__(
         self,
         text: str,
