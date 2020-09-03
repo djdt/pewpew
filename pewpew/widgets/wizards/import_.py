@@ -12,11 +12,12 @@ from pew.laser import Laser
 
 from pewpew.validators import DecimalValidatorNoZero
 from pewpew.widgets.dialogs import NameEditDialog
-from pewpew.widgets.wizards.importoptions import (
-    _ImportOptions,
+from pewpew.widgets.wizards.options import (
+    _OptionsBase,
     AgilentOptions,
     TextOptions,
     ThermoOptions,
+    PathSelectWidget,
 )
 
 from typing import Dict, List, Tuple
@@ -145,72 +146,41 @@ class FormatPage(QtWidgets.QWizardPage):
         return 0
 
 
-class _PageOptions(QtWidgets.QWizardPage):
+class _OptionsPage(QtWidgets.QWizardPage):
     def __init__(
-        self, options: _ImportOptions, path: str = "", parent: QtWidgets.QWidget = None,
+        self,
+        options: _OptionsBase,
+        path: str = "",
+        mode: str = "File",
+        parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
         self.setTitle(options.filetype + " Import")
 
-        self.lineedit_path = QtWidgets.QLineEdit(path)
-        self.lineedit_path.setPlaceholderText("Path to file...")
-        self.lineedit_path.textChanged.connect(self.pathChanged)
-
-        self.button_path = QtWidgets.QPushButton("Open File")
-        self.button_path.pressed.connect(self.buttonPathPressed)
-
-        layout_path = QtWidgets.QHBoxLayout()
-        layout_path.addWidget(self.lineedit_path, 1)
-        layout_path.addWidget(self.button_path, 0, QtCore.Qt.AlignRight)
+        self.path = PathSelectWidget(path, options.filetype, options.exts, mode)
+        self.path.pathChanged.connect(self.completeChanged)
 
         self.options = options
         self.options.completeChanged.connect(self.completeChanged)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addLayout(layout_path, 0)
+        layout.addWidget(self.path, 0)
         layout.addWidget(self.options, 1)
         self.setLayout(layout)
 
-    def buttonPathPressed(self) -> QtWidgets.QFileDialog:
-        dlg = QtWidgets.QFileDialog(
-            self, "Select File", os.path.dirname(self.lineedit_path.text())
-        )
-        dlg.setNameFilters([self.nameFilter(), "All Files(*)"])
-        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
-        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFile)
-        dlg.fileSelected.connect(self.pathSelected)
-        dlg.open()
-        return dlg
-
     def isComplete(self) -> bool:
-        if not self.validPath(self.lineedit_path.text()):
-            return False
-        return self.options.isComplete()
-
-    def nameFilter(self) -> str:
-        return f"{self.options.filetype}({' '.join(['*' + ext for ext in self.options.exts])})"
+        return self.path.isComplete() and self.options.isComplete()
 
     def nextId(self) -> int:
         return ImportWizard.page_config
 
-    def pathChanged(self, path: str) -> None:
-        self.completeChanged.emit()
 
-    def pathSelected(self, path: str) -> None:
-        raise NotImplementedError
-
-    def validPath(self, path: str) -> bool:
-        return os.path.exists(path) and os.path.isfile(path)
-
-
-class AgilentPage(_PageOptions):
+class AgilentPage(_OptionsPage):
     def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
-        super().__init__(AgilentOptions(), path, parent)
+        super().__init__(AgilentOptions(), path, mode="Directory", parent=parent)
+        self.path.pathChanged.connect(self.updateOptions)
 
-        self.lineedit_path.setPlaceholderText("Path to batch directory...")
-        self.button_path.setText("Open Batch")
-
-        self.registerField("agilent.path", self.lineedit_path)
+        self.registerField("agilent.path", self.path, "path")
         self.registerField(
             "agilent.method",
             self.options.combo_dfile_method,
@@ -220,50 +190,36 @@ class AgilentPage(_PageOptions):
         self.registerField("agilent.acqNames", self.options.check_name_acq_xml)
 
     def initializePage(self) -> None:
-        self.pathChanged(self.field("agilent.path"))
+        self.updateOptions()
 
-    def buttonPathPressed(self) -> QtWidgets.QFileDialog:
-        dlg = QtWidgets.QFileDialog(
-            self, "Select Batch", os.path.dirname(self.lineedit_path.text())
-        )
-        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
-        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
-        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
-        dlg.fileSelected.connect(self.pathSelected)
-        dlg.open()
-        return dlg
-
-    def pathChanged(self, path: str) -> None:
-        if self.validPath(path):
+    def updateOptions(self) -> None:
+        if self.path.isComplete():
             self.options.setEnabled(True)
-            self.options.updateOptions(path)
+            self.options.updateOptions(self.path.path)
         else:
             self.options.actual_datafiles = 0
             self.options.setEnabled(False)
-        super().pathChanged(path)
 
-    def pathSelected(self, path: str) -> None:
-        self.setField("agilent.path", path)
+    def isComplete(self) -> bool:
+        return self.path.isComplete() and self.options.isComplete()
 
-    def validPath(self, path: str) -> bool:
-        return os.path.exists(path) and os.path.isdir(path)
+    def nextId(self) -> int:
+        return ImportWizard.page_config
 
 
-class TextPage(_PageOptions):
+class TextPage(_OptionsPage):
     def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
-        super().__init__(TextOptions(), path, parent)
-        self.registerField("text.path", self.lineedit_path)
+        super().__init__(TextOptions(), path, parent=parent)
+        self.registerField("text.path", self.path, "path")
         self.registerField("text.name", self.options.lineedit_name)
 
-    def pathSelected(self, path: str) -> None:
-        self.setField("text.path", path)
 
-
-class ThermoPage(_PageOptions):
+class ThermoPage(_OptionsPage):
     def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
-        super().__init__(ThermoOptions(), path, parent)
+        super().__init__(ThermoOptions(), path, parent=parent)
+        self.path.pathChanged.connect(self.updateOptions)
 
-        self.registerField("thermo.path", self.lineedit_path)
+        self.registerField("thermo.path", self.path, "path")
         self.registerField("thermo.sampleColumns", self.options.radio_columns)
         self.registerField("thermo.sampleRows", self.options.radio_rows)
         self.registerField(
@@ -281,18 +237,14 @@ class ThermoPage(_PageOptions):
         self.registerField("thermo.useAnalog", self.options.check_use_analog)
 
     def initializePage(self) -> None:
-        self.pathChanged(self.field("thermo.path"))
+        self.updateOptions()
 
-    def pathChanged(self, path: str) -> None:
-        if self.validPath(path):
+    def updateOptions(self) -> None:
+        if self.path.isComplete():
             self.options.setEnabled(True)
-            self.options.updateOptions(path)
+            self.options.updateOptions(self.path.path)
         else:
             self.options.setEnabled(False)
-        super().pathChanged(path)
-
-    def pathSelected(self, path: str) -> None:
-        self.setField("thermo.path", path)
 
 
 class ConfigPage(QtWidgets.QWizardPage):

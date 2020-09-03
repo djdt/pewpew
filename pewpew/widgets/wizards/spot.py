@@ -11,173 +11,102 @@ from pew.srr import SRRLaser, SRRConfig
 
 from pewpew.validators import DecimalValidator, DecimalValidatorNoZero
 from pewpew.widgets.canvases import BasicCanvas
-from pewpew.widgets.ext import MultipleDirDialog
 
-from typing import List, Tuple
+# from pewpew.widgets.ext import MultipleDirDialog
+from pewpew.widgets.wizards.import_ import FormatPage
+
+from typing import Dict, List, Tuple
 
 
-class ImportFormatPage(QtWidgets.QWizardPage):
+class SpotFormatPage(FormatPage):
     def __init__(
-        self, label: QtWidgets.QLabel = None, parent: QtWidgets.QWidget = None
+        self,
+        text: str,
+        page_id_dict: Dict[str, int] = None,
+        parent: QtWidgets.QWidget = None,
+    ):
+        self.radio_single_line = QtWidgets.QRadioButton("Single acquistion.")
+        self.radio_multi_line = QtWidgets.QRadioButton("Multiple acquistions.")
+        self.radio_spot_per_line = QtWidgets.QRadioButton("One spot per acquistion.")
+
+        spot_box = QtWidgets.QGroupBox("Spot Format")
+        layout_spot = QtWidgets.QVBoxLayout()
+        layout_spot.addWidget(self.radio_single_line)
+        layout_spot.addWidget(self.radio_multi_line)
+        layout_spot.addWidget(self.radio_spot_per_line)
+        spot_box.setLayout(layout_spot)
+        self.layout().addWidget(spot_box)
+
+        self.registerField("singleLine", self.radio_single_line)
+        self.registerField("multipleLines", self.radio_multi_line)
+        self.registerField("spotPerLine", self.radio_spot_per_line)
+
+
+class SpotImportWizard(QtWidgets.QWizard):
+    page_format = 0
+    page_files = 1
+    page_agilent = 2
+    page_numpy = 3
+    page_text = 4
+    page_thermo = 5
+    page_config = 6
+
+    laserImported = QtCore.Signal(Laser)
+
+    def __init__(
+        self, path: str = "", config: Config = None, parent: QtWidgets.QWidget = None
     ):
         super().__init__(parent)
+        self.setWindowTitle("Import Wizard")
 
-        self.setTitle("Overview")
-        if label is None:
-            label = QtWidgets.QLabel()
-        label.setWordWrap(True)
+        config = config or Config()
 
-        mode_box = QtWidgets.QGroupBox("Data type", self)
-
-        radio_numpy = QtWidgets.QRadioButton("&Numpy archives", self)
-        radio_agilent = QtWidgets.QRadioButton("&Agilent batches", self)
-        radio_thermo = QtWidgets.QRadioButton("&Thermo iCap CSV exports", self)
-        radio_numpy.setChecked(True)
-
-        self.registerField("radio_numpy", radio_numpy)
-        self.registerField("radio_agilent", radio_agilent)
-        self.registerField("radio_thermo", radio_thermo)
-
-        box_layout = QtWidgets.QVBoxLayout()
-        box_layout.addWidget(radio_numpy)
-        box_layout.addWidget(radio_agilent)
-        box_layout.addWidget(radio_thermo)
-        mode_box.setLayout(box_layout)
-
-        main_layout = QtWidgets.QVBoxLayout()
-        main_layout.addWidget(label)
-        main_layout.addWidget(mode_box)
-        self.setLayout(main_layout)
-
-
-class LaserImportList(QtWidgets.QListWidget):
-    def __init__(
-        self, allowed_exts: List[str] = None, parent: QtWidgets.QWidget = None
-    ):
-        super().__init__(parent)
-        self.allowed_exts = allowed_exts
-        self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        self.setTextElideMode(QtCore.Qt.ElideLeft)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setDefaultDropAction(QtCore.Qt.MoveAction)
-        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
-        self.setAcceptDrops(True)
-
-    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-        else:
-            super().dragEnterEvent(event)
-
-    def dropEvent(self, event: QtGui.QDropEvent) -> None:
-        if event.mimeData().hasUrls():
-            urls = event.mimeData().urls()
-            for url in urls:
-                if url.isLocalFile():
-                    path = url.toLocalFile()
-                    name, ext = os.path.splitext(path)
-                    if self.allowed_exts is None or ext in self.allowed_exts:
-                        self.addItem(path)
-        else:
-            super().dropEvent(event)
-
-    @QtCore.Property("QStringList")
-    def paths(self) -> List[str]:
-        return [self.item(i).text() for i in range(0, self.count())]
-
-
-class ImportFilesPage(QtWidgets.QWizardPage):
-    def __init__(
-        self, min_files: int = 1, max_files: int = -1, parent: QtWidgets.QWidget = None
-    ):
-        super().__init__(parent)
-
-        self.min_files = min_files
-        self.max_files = max_files
-
-        self.setTitle("Files and Directories")
-        # List and box
-
-        self.list = LaserImportList()
-        self.list.model().rowsInserted.connect(self.completeChanged)
-        self.list.model().rowsRemoved.connect(self.completeChanged)
-
-        dir_box = QtWidgets.QGroupBox("Layer Order", self)
-        box_layout = QtWidgets.QVBoxLayout()
-        box_layout.addWidget(self.list)
-        dir_box.setLayout(box_layout)
-
-        # Buttons
-        button_file = QtWidgets.QPushButton("Open")
-        button_file.clicked.connect(self.buttonAdd)
-        button_dir = QtWidgets.QPushButton("Open All...")
-        button_dir.clicked.connect(self.buttonAddAll)
-
-        button_layout = QtWidgets.QHBoxLayout()
-        button_layout.addWidget(button_file)
-        button_layout.addWidget(button_dir)
-        box_layout.addLayout(button_layout)
-
-        main_layout = QtWidgets.QVBoxLayout()
-        main_layout.addWidget(dir_box)
-        self.setLayout(main_layout)
-
-        self.registerField("paths", self.list, "paths")
-
-    def initializePage(self) -> None:
-        if self.field("radio_numpy"):
-            ext = ".npz"
-        elif self.field("radio_agilent"):
-            ext = ".b"
-        elif self.field("radio_thermo"):
-            ext = ".csv"
-        self.list.allowed_exts = [ext]
-
-    def buttonAdd(self) -> None:
-        if self.field("radio_numpy"):
-            paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", "", "Numpy Archives(*.npz);;All Files(*)"
-            )
-        elif self.field("radio_agilent"):
-            paths = MultipleDirDialog.getExistingDirectories(self, "Select Batches", "")
-        elif self.field("radio_thermo"):
-            paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", "", "CSV Documents(*.csv);;All Files(*)"
-            )
-
-        for path in paths:
-            self.list.addItem(path)
-
-    def buttonAddAll(self) -> None:
-        path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory", "")
-        if len(path) == 0:
-            return
-        files = os.listdir(path)
-        files.sort()
-
-        ext = ".npz"
-        if self.field("radio_agilent"):
-            ext = ".b"
-        elif self.field("radio_thermo"):
-            ext = ".csv"
-
-        for f in files:
-            if f.lower().endswith(ext):
-                self.list.addItem(os.path.join(path, f))
-
-    def keyPressEvent(self, event: QtCore.QEvent) -> None:
-        if (
-            event.key() == QtCore.Qt.Key_Delete
-            or event.key() == QtCore.Qt.Key_Backspace
-        ):
-            for item in self.list.selectedItems():
-                self.list.takeItem(self.list.row(item))
-        super().keyPressEvent(event)
-
-    def isComplete(self) -> bool:
-        return self.list.count() >= self.min_files and (
-            self.max_files < 0 or self.list.count() <= self.max_files
+        overview = (
+            "The wizard will guide you through importing LA-ICP-MS data "
+            "and provides a higher level to control than the standard import. "
+            "To begin select the format of the file being imported."
         )
+
+        format_page = FormatPage(
+            overview,
+            page_id_dict={
+                "agilent": self.page_agilent,
+                "numpy": self.page_numpy,
+                "text": self.page_text,
+                "thermo": self.page_thermo,
+            },
+            parent=self,
+        )
+        format_page.radio_numpy.setEnabled(False)
+
+        self.setPage(self.page_format, format_page)
+        self.setPage(self.page_agilent, AgilentPage(path, parent=self))
+        self.setPage(self.page_text, TextPage(path, parent=self))
+        self.setPage(self.page_thermo, ThermoPage(path, parent=self))
+
+        self.setPage(self.page_config, ConfigPage(config, parent=self))
+
+    def accept(self) -> None:
+        if self.field("agilent"):
+            path = self.field("agilent.path")
+        elif self.field("text"):
+            path = self.field("text.path")
+        elif self.field("thermo"):
+            path = self.field("thermo.path")
+        else:
+            raise ValueError("Invalid filetype selection.")
+
+        data = self.field("laserdata")
+        config = Config(
+            spotsize=float(self.field("spotsize")),
+            scantime=float(self.field("scantime")),
+            speed=float(self.field("speed")),
+        )
+        base, ext = os.path.splitext(path)
+        self.laserImported.emit(
+            Laser(data, config=config, path=path, name=os.path.basename(base))
+        )
+        super().accept()
 
 
 class SpotImportWizard(QtWidgets.QWizard):
