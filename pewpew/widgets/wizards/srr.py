@@ -125,14 +125,18 @@ class _SRRPageOptions(QtWidgets.QWizardPage):
             paths, options.filetype, options.exts, mode
         )
         self.paths.pathChanged.connect(self.completeChanged)
+        self.paths.pathChanged.connect(self.updateOptionsForPath)
 
         self.options = options
-        self.options.completeChanged.connect(self.completeChanged)
+        self.options.optionsChanged.connect(self.completeChanged)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.paths, 0)
         layout.addWidget(self.options, 1)
         self.setLayout(layout)
+
+    def initializePage(self) -> None:
+        self.updateOptionsForPath()
 
     def isComplete(self) -> bool:
         if len(self.paths.paths) < 2:
@@ -142,11 +146,17 @@ class _SRRPageOptions(QtWidgets.QWizardPage):
     def nextId(self) -> int:
         return SRRImportWizard.page_config
 
+    def updateOptionsForPath(self) -> None:
+        if self.paths.isComplete():
+            self.options.setEnabled(True)
+            self.options.updateOptionsForPath(self.paths.path)
+        else:
+            self.options.setEnabled(False)
+
 
 class SRRAgilentPage(_SRRPageOptions):
     def __init__(self, paths: List[str] = [], parent: QtWidgets.QWidget = None):
         super().__init__(AgilentOptions(), paths, mode="Directory", parent=parent)
-        self.paths.pathChanged.connect(self.updateOptions)
 
         self.registerField("agilent.paths", self.paths, "paths")
         self.registerField(
@@ -156,17 +166,6 @@ class SRRAgilentPage(_SRRPageOptions):
             "currentTextChanged",
         )
         self.registerField("agilent.acqNames", self.options.check_name_acq_xml)
-
-    def initializePage(self) -> None:
-        self.updateOptions()
-
-    def updateOptions(self) -> None:
-        if self.paths.isComplete():
-            self.options.setEnabled(True)
-            self.options.updateOptions(self.paths.path)
-        else:
-            self.options.actual_datafiles = 0
-            self.options.setEnabled(False)
 
 
 class SRRNumpyPage(_SRRPageOptions):
@@ -186,7 +185,6 @@ class SRRTextPage(_SRRPageOptions):
 class SRRThermoPage(_SRRPageOptions):
     def __init__(self, paths: List[str] = [], parent: QtWidgets.QWidget = None):
         super().__init__(ThermoOptions(), paths, parent=parent)
-        self.paths.pathChanged.connect(self.updateOptions)
 
         self.registerField("thermo.paths", self.paths, "paths")
         self.registerField("thermo.sampleColumns", self.options.radio_columns)
@@ -204,16 +202,6 @@ class SRRThermoPage(_SRRPageOptions):
             "currentTextChanged",
         )
         self.registerField("thermo.useAnalog", self.options.check_use_analog)
-
-    def initializePage(self) -> None:
-        self.updateOptions()
-
-    def updateOptions(self) -> None:
-        if self.paths.isComplete():
-            self.options.setEnabled(True)
-            self.options.updateOptions(self.paths.path)
-        else:
-            self.options.setEnabled(False)
 
 
 class SRRConfigPage(ConfigPage):

@@ -11,7 +11,7 @@ from typing import List, Tuple
 
 
 class _OptionsBase(QtWidgets.QGroupBox):
-    completeChanged = QtCore.Signal()
+    optionsChanged = QtCore.Signal()
 
     def __init__(
         self, filetype: str, exts: List[str], parent: QtWidgets.QWidget = None
@@ -23,7 +23,10 @@ class _OptionsBase(QtWidgets.QGroupBox):
     def isComplete(self) -> bool:
         return True
 
-    def updateOptions(self, path: str) -> None:
+    def setEnabled(self, enabled: bool) -> None:
+        pass
+
+    def updateForPath(self, path: str) -> None:
         pass
 
 
@@ -40,7 +43,7 @@ class AgilentOptions(_OptionsBase):
             QtWidgets.QComboBox.AdjustToContents
         )
         self.combo_dfile_method.activated.connect(self.countDatafiles)
-        self.combo_dfile_method.activated.connect(self.completeChanged)
+        self.combo_dfile_method.activated.connect(self.optionsChanged)
 
         self.lineedit_dfile = QtWidgets.QLineEdit()
         self.lineedit_dfile.setReadOnly(True)
@@ -102,7 +105,10 @@ class AgilentOptions(_OptionsBase):
         self.combo_dfile_method.setEnabled(enabled)
         self.check_name_acq_xml.setEnabled(enabled)
 
-    def updateOptions(self, path: str) -> None:
+        if not enabled:
+            self.lineedit_dfile.clear()
+
+    def updateForPath(self, path: str) -> None:
         self.current_path = path
         current_text = self.combo_dfile_method.currentText()
 
@@ -200,7 +206,7 @@ class ThermoOptions(_OptionsBase):
         self.radio_rows.setEnabled(enabled)
         self.radio_columns.setEnabled(enabled)
 
-    def updateOptions(self, path: str) -> None:
+    def updateForPath(self, path: str) -> None:
         delimiter, method, has_analog = self.preprocessFile(path)
         self.combo_delimiter.setCurrentText(delimiter)
         if method == "rows":

@@ -159,14 +159,18 @@ class _OptionsPage(QtWidgets.QWizardPage):
 
         self.path = PathSelectWidget(path, options.filetype, options.exts, mode)
         self.path.pathChanged.connect(self.completeChanged)
+        self.path.pathChanged.connect(self.updateOptionsForPath)
 
         self.options = options
-        self.options.completeChanged.connect(self.completeChanged)
+        self.options.optionsChanged.connect(self.completeChanged)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.path, 0)
         layout.addWidget(self.options, 1)
         self.setLayout(layout)
+
+    def initializePage(self) -> None:
+        self.updateOptionsForPath()
 
     def isComplete(self) -> bool:
         return self.path.isComplete() and self.options.isComplete()
@@ -174,11 +178,17 @@ class _OptionsPage(QtWidgets.QWizardPage):
     def nextId(self) -> int:
         return ImportWizard.page_config
 
+    def updateOptionsForPath(self) -> None:
+        if self.path.isComplete():
+            self.options.setEnabled(True)
+            self.options.updateForPath(self.path.path)
+        else:
+            self.options.setEnabled(False)
+
 
 class AgilentPage(_OptionsPage):
     def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
         super().__init__(AgilentOptions(), path, mode="Directory", parent=parent)
-        self.path.pathChanged.connect(self.updateOptions)
 
         self.registerField("agilent.path", self.path, "path")
         self.registerField(
@@ -188,23 +198,6 @@ class AgilentPage(_OptionsPage):
             "currentTextChanged",
         )
         self.registerField("agilent.acqNames", self.options.check_name_acq_xml)
-
-    def initializePage(self) -> None:
-        self.updateOptions()
-
-    def updateOptions(self) -> None:
-        if self.path.isComplete():
-            self.options.setEnabled(True)
-            self.options.updateOptions(self.path.path)
-        else:
-            self.options.actual_datafiles = 0
-            self.options.setEnabled(False)
-
-    def isComplete(self) -> bool:
-        return self.path.isComplete() and self.options.isComplete()
-
-    def nextId(self) -> int:
-        return ImportWizard.page_config
 
 
 class TextPage(_OptionsPage):
@@ -217,7 +210,6 @@ class TextPage(_OptionsPage):
 class ThermoPage(_OptionsPage):
     def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
         super().__init__(ThermoOptions(), path, parent=parent)
-        self.path.pathChanged.connect(self.updateOptions)
 
         self.registerField("thermo.path", self.path, "path")
         self.registerField("thermo.sampleColumns", self.options.radio_columns)
@@ -235,16 +227,6 @@ class ThermoPage(_OptionsPage):
             "currentTextChanged",
         )
         self.registerField("thermo.useAnalog", self.options.check_use_analog)
-
-    def initializePage(self) -> None:
-        self.updateOptions()
-
-    def updateOptions(self) -> None:
-        if self.path.isComplete():
-            self.options.setEnabled(True)
-            self.options.updateOptions(self.path.path)
-        else:
-            self.options.setEnabled(False)
 
 
 class ConfigPage(QtWidgets.QWizardPage):
