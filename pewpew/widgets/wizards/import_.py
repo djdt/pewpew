@@ -13,14 +13,15 @@ from pew.laser import Laser
 from pewpew.validators import DecimalValidatorNoZero
 from pewpew.widgets.dialogs import NameEditDialog
 from pewpew.widgets.wizards.options import (
-    _OptionsBase,
     AgilentOptions,
+    NumpyOptions,
     TextOptions,
     ThermoOptions,
     PathSelectWidget,
+    MultiplePathSelectWidget,
 )
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Type
 
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ class ImportWizard(QtWidgets.QWizard):
     laserImported = QtCore.Signal(Laser)
 
     def __init__(
-        self, path: str = "", config: Config = None, parent: QtWidgets.QWidget = None
+        self, path: str = "", config: Config = None, parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Import Wizard")
@@ -63,9 +64,9 @@ class ImportWizard(QtWidgets.QWizard):
         format_page.radio_numpy.setVisible(False)
 
         self.setPage(self.page_format, format_page)
-        self.setPage(self.page_agilent, AgilentPage(path, parent=self))
-        self.setPage(self.page_text, TextPage(path, parent=self))
-        self.setPage(self.page_thermo, ThermoPage(path, parent=self))
+        self.setPage(self.page_agilent, PathAndOptionsPage([path], "agilent", parent=self))
+        self.setPage(self.page_text, PathAndOptionsPage([path], "text", parent=self))
+        self.setPage(self.page_thermo, PathAndOptionsPage([path], "thermo", parent=self))
 
         self.setPage(self.page_config, ConfigPage(config, parent=self))
 
@@ -146,28 +147,45 @@ class FormatPage(QtWidgets.QWizardPage):
         return 0
 
 
-class _OptionsPage(QtWidgets.QWizardPage):
+class PathAndOptionsPage(QtWidgets.QWizardPage):
+    formats: Dict[str, Tuple[Tuple[str, List[str], str], Type]] = {
+        "agilent": (("Agilent Batch", [".b"], "Directory"), AgilentOptions),
+        "numpy": (("Numpy Archive", [".npz"], "File"), NumpyOptions),
+        "text": (("Text Image", [".csv", ".text", ".txt"], "File"), TextOptions),
+        "thermo": (("Thermo iCap Data", [".csv"], "File"), ThermoOptions),
+    }
+
     def __init__(
         self,
-        options: _OptionsBase,
-        path: str = "",
-        mode: str = "File",
+        paths: List[str],
+        format: str,
+        multiple_paths: bool = False,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
-        self.setTitle(options.filetype + " Import")
+        (ftype, exts, fmode), otype = self.formats[format]
+        self.setTitle(ftype + " Import")
 
-        self.path = PathSelectWidget(path, options.filetype, options.exts, mode)
-        self.path.pathChanged.connect(self.completeChanged)
+        if multiple_paths:
+            self.path = MultiplePathSelectWidget(paths, ftype, exts, fmode)
+        else:
+            self.path = PathSelectWidget(paths[0], ftype, exts, fmode)
         self.path.pathChanged.connect(self.updateOptionsForPath)
+        self.path.pathChanged.connect(self.completeChanged)
 
-        self.options = options
+        self.options = otype()
         self.options.optionsChanged.connect(self.completeChanged)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.path, 0)
         layout.addWidget(self.options, 1)
         self.setLayout(layout)
+
+        for name, widget, prop, signal in self.options.fieldArgs():
+            self.registerField(format + "." + name, widget, prop, signal)
+
+        self.registerField(format + ".path", self.path, "path")
+        self.registerField(format + ".paths", self.path, "paths")
 
     def initializePage(self) -> None:
         self.updateOptionsForPath()
@@ -184,49 +202,6 @@ class _OptionsPage(QtWidgets.QWizardPage):
             self.options.updateForPath(self.path.path)
         else:
             self.options.setEnabled(False)
-
-
-class AgilentPage(_OptionsPage):
-    def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
-        super().__init__(AgilentOptions(), path, mode="Directory", parent=parent)
-
-        self.registerField("agilent.path", self.path, "path")
-        self.registerField(
-            "agilent.method",
-            self.options.combo_dfile_method,
-            "currentText",
-            "currentTextChanged",
-        )
-        self.registerField("agilent.acqNames", self.options.check_name_acq_xml)
-
-
-class TextPage(_OptionsPage):
-    def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
-        super().__init__(TextOptions(), path, parent=parent)
-        self.registerField("text.path", self.path, "path")
-        self.registerField("text.name", self.options.lineedit_name)
-
-
-class ThermoPage(_OptionsPage):
-    def __init__(self, path: str = "", parent: QtWidgets.QWidget = None):
-        super().__init__(ThermoOptions(), path, parent=parent)
-
-        self.registerField("thermo.path", self.path, "path")
-        self.registerField("thermo.sampleColumns", self.options.radio_columns)
-        self.registerField("thermo.sampleRows", self.options.radio_rows)
-        self.registerField(
-            "thermo.delimiter",
-            self.options.combo_delimiter,
-            "currentText",
-            "currentTextChanged",
-        )
-        self.registerField(
-            "thermo.decimal",
-            self.options.combo_decimal,
-            "currentText",
-            "currentTextChanged",
-        )
-        self.registerField("thermo.useAnalog", self.options.check_use_analog)
 
 
 class ConfigPage(QtWidgets.QWizardPage):
@@ -352,7 +327,7 @@ class ConfigPage(QtWidgets.QWizardPage):
         data, params = io.agilent.load(
             path,
             collection_methods=method,
-            use_acq_for_names=self.field("agilent.acqNames"),
+            use_acq_for_names=self.field("agilent.useAcqNames"),
             full=True,
         )
         return data, params

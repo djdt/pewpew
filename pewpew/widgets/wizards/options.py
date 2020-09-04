@@ -7,18 +7,26 @@ from pew import io
 from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog
 
-from typing import List, Tuple
+from typing import Dict, List, Tuple, Type
 
 
 class _OptionsBase(QtWidgets.QGroupBox):
     optionsChanged = QtCore.Signal()
 
     def __init__(
-        self, filetype: str, exts: List[str], parent: QtWidgets.QWidget = None
+        self,
+        filetype: str,
+        filemode: str,
+        exts: List[str],
+        parent: QtWidgets.QWidget = None,
     ):
         super().__init__("Import Options", parent)
         self.filetype = filetype
+        self.filemode = filemode
         self.exts = exts
+
+    def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
+        return []
 
     def isComplete(self) -> bool:
         return True
@@ -32,7 +40,7 @@ class _OptionsBase(QtWidgets.QGroupBox):
 
 class AgilentOptions(_OptionsBase):
     def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__("Agilent Batch", [".b"], parent)
+        super().__init__("Agilent Batch", "Directory", [".b"], parent)
 
         self.current_path = ""
         self.actual_datafiles = 0
@@ -98,6 +106,12 @@ class AgilentOptions(_OptionsBase):
                 f"{self.actual_datafiles} ({self.expected_datafiles} expected)"
             )
 
+    def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
+        return [
+            ("method", self.combo_dfile_method, "currentText", "currentTextChanged",),
+            ("useAcqNames", self.check_name_acq_xml, "checked", "toggled"),
+        ]
+
     def isComplete(self) -> bool:
         return self.actual_datafiles > 0
 
@@ -136,16 +150,19 @@ class AgilentOptions(_OptionsBase):
 
 class NumpyOptions(_OptionsBase):
     def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__("Numpy Archive", [".npz"], parent)
+        super().__init__("Numpy Archive", "File", [".npz"], parent)
         self.check_calibration = QtWidgets.QCheckBox("Import calibration.")
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.check_calibration)
         self.setLayout(layout)
 
+    def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
+        return [("useCalibration", self.check_calibration, "checked", "toggled")]
+
 
 class TextOptions(_OptionsBase):
     def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__("Text Image", [".csv", ".text", ".txt"], parent)
+        super().__init__("Text Image", "File", [".csv", ".text", ".txt"], parent)
 
         self.lineedit_name = QtWidgets.QLineEdit("_Isotope_")
         layout = QtWidgets.QFormLayout()
@@ -153,13 +170,16 @@ class TextOptions(_OptionsBase):
 
         self.setLayout(layout)
 
+    def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
+        return [("name", self.lineedit_name, "text", "textChanged")]
+
     def isComplete(self) -> bool:
         return self.lineedit_name.text() != ""
 
 
 class ThermoOptions(_OptionsBase):
     def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__("Thermo iCap Data", [".csv"], parent)
+        super().__init__("Thermo iCap Data", "File", [".csv"], parent)
 
         self.radio_columns = QtWidgets.QRadioButton("Samples in columns.")
         self.radio_rows = QtWidgets.QRadioButton("Samples in rows.")
@@ -183,6 +203,15 @@ class ThermoOptions(_OptionsBase):
         layout.addRow("Decimal:", self.combo_decimal)
         layout.addRow(self.check_use_analog)
         self.setLayout(layout)
+
+    def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
+        return [
+            ("delimiter", self.combo_delimiter, "currentText", "currentTextChanged"),
+            ("decimal", self.combo_decimal, "currentText", "currentTextChanged"),
+            ("sampleColumns", self.radio_columns, "checked", "toggled"),
+            ("sampleRows", self.radio_rows, "checked", "toggled"),
+            ("useAnalog", self.check_use_analog, "checked", "toggled"),
+        ]
 
     def preprocessFile(self, path: str) -> Tuple[str, str, bool]:
         method = "unknown"
