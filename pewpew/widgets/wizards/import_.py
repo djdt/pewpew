@@ -293,7 +293,7 @@ class ConfigPage(QtWidgets.QWizardPage):
                 / float(self.field("spotsize"))
             )
             self.lineedit_aspect.setText(f"{aspect:.2f}")
-        except ZeroDivisionError:
+        except (ValueError, ZeroDivisionError):
             self.lineedit_aspect.clear()
 
     def buttonNamesPressed(self) -> QtWidgets.QDialog:

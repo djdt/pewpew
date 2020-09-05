@@ -7,7 +7,7 @@ from pew import io
 from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog
 
-from typing import Dict, List, Tuple, Type
+from typing import List, Tuple
 
 
 class _OptionsBase(QtWidgets.QGroupBox):
@@ -124,7 +124,6 @@ class AgilentOptions(_OptionsBase):
 
     def updateForPath(self, path: str) -> None:
         self.current_path = path
-        current_text = self.combo_dfile_method.currentText()
 
         self.combo_dfile_method.clear()
 
@@ -139,11 +138,7 @@ class AgilentOptions(_OptionsBase):
         if os.path.exists(os.path.join(path, io.agilent.batch_xml_path)):
             self.combo_dfile_method.addItem("Batch Log XML")
 
-        # Restore the last method if available
-        if current_text != "":
-            self.combo_dfile_method.setCurrentText(current_text)
-        else:
-            self.combo_dfile_method.setCurrentIndex(self.combo_dfile_method.count() - 1)
+        self.combo_dfile_method.setCurrentIndex(self.combo_dfile_method.count() - 1)
 
         self.countDatafiles()
 

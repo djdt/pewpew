@@ -10,17 +10,19 @@ from pew.srr import SRRLaser, SRRConfig
 
 from pewpew.validators import DecimalValidator
 
-from pewpew.widgets.wizards.import_ import FormatPage, ConfigPage
-from pewpew.widgets.wizards.options import (
-    _OptionsBase,
-    AgilentOptions,
-    NumpyOptions,
-    TextOptions,
-    ThermoOptions,
-    MultiplePathSelectWidget,
-)
+from pewpew.widgets.wizards.import_ import ConfigPage, FormatPage, PathAndOptionsPage
 
 from typing import List, Tuple
+
+
+class SRRPathAndOptionsPage(PathAndOptionsPage):
+    def __init__(self, paths: List[str], format: str, parent: QtWidgets.QWidget = None):
+        super().__init__(paths, format, multiple_paths=True, parent=parent)
+
+    def isComplete(self) -> bool:
+        if not super().isComplete():
+            return False
+        return len(self.path.paths) >= 2
 
 
 class SRRImportWizard(QtWidgets.QWizard):
@@ -66,10 +68,16 @@ class SRRImportWizard(QtWidgets.QWizard):
         )
 
         self.setPage(self.page_format, format_page)
-        self.setPage(self.page_agilent, SRRAgilentPage(paths, parent=self))
-        self.setPage(self.page_numpy, SRRNumpyPage(paths, parent=self))
-        self.setPage(self.page_text, SRRTextPage(paths, parent=self))
-        self.setPage(self.page_thermo, SRRThermoPage(paths, parent=self))
+        self.setPage(
+            self.page_agilent, SRRPathAndOptionsPage(paths, "agilent", parent=self),
+        )
+        self.setPage(
+            self.page_numpy, SRRPathAndOptionsPage(paths, "numpy", parent=self)
+        )
+        self.setPage(self.page_text, SRRPathAndOptionsPage(paths, "text", parent=self))
+        self.setPage(
+            self.page_thermo, SRRPathAndOptionsPage(paths, "thermo", parent=self)
+        )
 
         self.setPage(self.page_config, SRRConfigPage(_config, parent=self))
 
@@ -108,100 +116,6 @@ class SRRImportWizard(QtWidgets.QWizard):
             )
         )
         super().accept()
-
-
-class _SRRPageOptions(QtWidgets.QWizardPage):
-    def __init__(
-        self,
-        options: _OptionsBase,
-        paths: List[str] = [],
-        mode: str = "File",
-        parent: QtWidgets.QWidget = None,
-    ):
-        super().__init__(parent)
-        self.setTitle(options.filetype + " Import")
-
-        self.paths = MultiplePathSelectWidget(
-            paths, options.filetype, options.exts, mode
-        )
-        self.paths.pathChanged.connect(self.completeChanged)
-        self.paths.pathChanged.connect(self.updateOptionsForPath)
-
-        self.options = options
-        self.options.optionsChanged.connect(self.completeChanged)
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.paths, 0)
-        layout.addWidget(self.options, 1)
-        self.setLayout(layout)
-
-    def initializePage(self) -> None:
-        self.updateOptionsForPath()
-
-    def isComplete(self) -> bool:
-        if len(self.paths.paths) < 2:
-            return False
-        return self.paths.isComplete() and self.options.isComplete()
-
-    def nextId(self) -> int:
-        return SRRImportWizard.page_config
-
-    def updateOptionsForPath(self) -> None:
-        if self.paths.isComplete():
-            self.options.setEnabled(True)
-            self.options.updateOptionsForPath(self.paths.path)
-        else:
-            self.options.setEnabled(False)
-
-
-class SRRAgilentPage(_SRRPageOptions):
-    def __init__(self, paths: List[str] = [], parent: QtWidgets.QWidget = None):
-        super().__init__(AgilentOptions(), paths, mode="Directory", parent=parent)
-
-        self.registerField("agilent.paths", self.paths, "paths")
-        self.registerField(
-            "agilent.method",
-            self.options.combo_dfile_method,
-            "currentText",
-            "currentTextChanged",
-        )
-        self.registerField("agilent.acqNames", self.options.check_name_acq_xml)
-
-
-class SRRNumpyPage(_SRRPageOptions):
-    def __init__(self, paths: List[str] = [], parent: QtWidgets.QWidget = None):
-        super().__init__(NumpyOptions(), paths, parent=parent)
-        self.registerField("numpy.paths", self.paths, "paths")
-        self.registerField("numpy.useCalibration", self.options.check_calibration)
-
-
-class SRRTextPage(_SRRPageOptions):
-    def __init__(self, paths: List[str] = [], parent: QtWidgets.QWidget = None):
-        super().__init__(TextOptions(), paths, parent=parent)
-        self.registerField("text.paths", self.paths, "paths")
-        self.registerField("text.name", self.options.lineedit_name)
-
-
-class SRRThermoPage(_SRRPageOptions):
-    def __init__(self, paths: List[str] = [], parent: QtWidgets.QWidget = None):
-        super().__init__(ThermoOptions(), paths, parent=parent)
-
-        self.registerField("thermo.paths", self.paths, "paths")
-        self.registerField("thermo.sampleColumns", self.options.radio_columns)
-        self.registerField("thermo.sampleRows", self.options.radio_rows)
-        self.registerField(
-            "thermo.delimiter",
-            self.options.combo_delimiter,
-            "currentText",
-            "currentTextChanged",
-        )
-        self.registerField(
-            "thermo.decimal",
-            self.options.combo_decimal,
-            "currentText",
-            "currentTextChanged",
-        )
-        self.registerField("thermo.useAnalog", self.options.check_use_analog)
 
 
 class SRRConfigPage(ConfigPage):
