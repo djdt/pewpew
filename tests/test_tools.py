@@ -59,20 +59,20 @@ def test_standards_tool(qtbot: QtBot):
     tool.combo_weighting.setCurrentIndex(2)
 
     # Trim
-    assert tool.canvas.getCurrentTrim() == (1, 9)
+    assert tool.canvas.getCurrentTrim() == (0, 10)
 
     tool.canvas.picked_artist = tool.canvas.edge_guides[0]
     tool.canvas.move(FakeEvent(tool.canvas.ax, 90, 30))
     tool.canvas.release(FakeEvent(tool.canvas.ax, 90, 30))
 
-    assert tool.canvas.getCurrentTrim() == (3, 9)
+    assert tool.canvas.getCurrentTrim() == (3, 10)
 
     # Test snap
     tool.canvas.picked_artist = tool.canvas.edge_guides[0]
     tool.canvas.move(FakeEvent(tool.canvas.ax, 34, 30))
     tool.canvas.release(FakeEvent(tool.canvas.ax, 34, 30))
 
-    assert tool.canvas.getCurrentTrim() == (1, 9)
+    assert tool.canvas.getCurrentTrim() == (1, 10)
 
     # Table
     tool.spinbox_levels.setValue(5)

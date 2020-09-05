@@ -7,9 +7,9 @@ from matplotlib.artist import Artist
 from matplotlib.backend_bases import PickEvent, MouseEvent
 from matplotlib.lines import Line2D
 from matplotlib.patheffects import withStroke
+from matplotlib.transforms import blended_transform_factory
 
 from pew import Calibration
-from pew.calibration import weighting
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 from pewpew.lib.viewoptions import ViewOptions
@@ -133,16 +133,19 @@ class StandardsTool(ToolWidget):
         # Update view limits
         self.canvas.view_limits = self.canvas.extentForAspect(extent)
         # Redraw guides if number of levels change
-        if len(self.canvas.level_guides) != self.spinbox_levels.value():
+        if len(self.canvas.level_guides) - 1 != self.spinbox_levels.value():
             self.canvas.drawLevels(
                 StandardsTable.ROW_LABELS, self.spinbox_levels.value()
             )
         # Draw vert guides after so they get pick priority
         if len(self.canvas.edge_guides) == 0:
-            self.canvas.drawEdgeGuides()
+            w = extent[1] - extent[0]
+            px = w / data.shape[1]
+            x0, x1 = px * np.round(np.array([0.05, 0.95]) * w / px)
+            self.canvas.drawEdgeGuides((x0, x1))
+
+        self.canvas.guides_need_draw = True
         self.canvas.draw()
-        self.canvas.update_background(None)
-        self.canvas.blitGuides()
 
         self.updateCounts()
 
@@ -263,11 +266,10 @@ class StandardsCanvas(InteractiveImageCanvas):
 
     def move(self, event: MouseEvent) -> None:
         if self.picked_artist is not None:
-            x, y = self.ax.transAxes.inverted().transform([event.x, event.y])
             if self.picked_artist in self.level_guides:
-                self.picked_artist.set_ydata([y, y])
+                self.picked_artist.set_ydata([event.ydata, event.ydata])
             elif self.picked_artist in self.edge_guides:
-                self.picked_artist.set_xdata([x, x])
+                self.picked_artist.set_xdata([event.xdata, event.xdata])
             self.blitGuides()
 
     def release(self, event: MouseEvent) -> None:
@@ -275,9 +277,10 @@ class StandardsCanvas(InteractiveImageCanvas):
             x = self.picked_artist.get_xdata()[0]
             y = self.picked_artist.get_ydata()[0]
             shape = self.image.get_array().shape
+            x0, x1, y0, y1 = self.extent
             # Snap to pixels
-            pxy = 1.0 / np.array([shape[1], shape[0]])
-            x, y = pxy * np.round([x, y] / pxy)
+            pxy = (x1 - x0, y1 - y0) / np.array((shape[1], shape[0]))
+            x, y = pxy * np.round((x, y) / pxy)
 
             if self.picked_artist in self.level_guides:
                 self.picked_artist.set_ydata([y, y])
@@ -288,12 +291,12 @@ class StandardsCanvas(InteractiveImageCanvas):
             self.guidesChanged.emit()
             self.picked_artist = None
 
-    def drawFigure(self) -> None:
-        self.background = None
-        self.figure.clear()
-        self.ax = self.figure.add_subplot(facecolor="black")
-        self.ax.get_xaxis().set_visible(False)
-        self.ax.get_yaxis().set_visible(False)
+    # def drawFigure(self) -> None:
+    #     self.background = None
+    #     self.figure.clear()
+    #     self.ax = self.figure.add_subplot(facecolor="black")
+    #     self.ax.get_xaxis().set_visible(False)
+    #     self.ax.get_yaxis().set_visible(False)
 
     def drawData(
         self, data: np.ndarray, extent: Tuple[float, float, float, float]
@@ -311,17 +314,19 @@ class StandardsCanvas(InteractiveImageCanvas):
         )
 
     def drawLevels(self, texts: List[str], levels: int) -> None:
-        ax_fraction = 1.0 / levels
-        ax_pos = np.linspace(1.0, ax_fraction, levels)
+        x0, x1, y0, y1 = self.extent
+        pos = np.linspace(y1, y0, num=levels + 1)
         # Snap
-        py = 1.0 / self.image.get_array().shape[0]
-        ax_pos = py * np.round(ax_pos / py)
-        self.drawLevelGuides(ax_pos, texts)
+        py = (y1 - y0) / self.image.get_array().shape[0]
+        pos = py * np.round(pos / py)
+        self.drawLevelGuides(pos, texts)
         # First guide is just for label
         self.level_guides[0].set_picker(None)
-        self.level_guides[0].set_visible(False)
+        self.level_guides[-1].set_picker(None)
+        self.level_guides[-1].text.set_text("")
+        # self.level_guides[0].set_visible()
 
-    def drawLevelGuides(self, ax_pos: List[float], texts: List[str]) -> None:
+    def drawLevelGuides(self, ypos: List[float], texts: List[str]) -> None:
         for line in self.level_guides:
             line.remove()
         self.level_guides = []
@@ -334,11 +339,13 @@ class StandardsCanvas(InteractiveImageCanvas):
             verticalalignment="top",
         )
 
-        for pos, text in zip(ax_pos, texts):
+        for y, text in zip(ypos, texts):
             line = LabeledLine2D(
                 (0.0, 1.0),
-                (pos, pos),
-                transform=self.ax.transAxes,
+                (y, y),
+                transform=blended_transform_factory(
+                    self.ax.transAxes, self.ax.transData
+                ),
                 color="white",
                 linestyle="--",
                 path_effects=[withStroke(linewidth=2.0, foreground="black")],
@@ -352,16 +359,18 @@ class StandardsCanvas(InteractiveImageCanvas):
             self.level_guides.append(line)
             self.ax.add_artist(line)
 
-    def drawEdgeGuides(self, ax_pos: Tuple[float, float] = (0.1, 0.9)) -> None:
+    def drawEdgeGuides(self, xpos: Tuple[float, float]) -> None:
         for line in self.edge_guides:
             line.remove()
         self.edge_guides = []
 
-        for pos in ax_pos:
+        for x in xpos:
             line = Line2D(
-                (pos, pos),
+                (x, x),
                 (0.0, 1.0),
-                transform=self.ax.transAxes,
+                transform=blended_transform_factory(
+                    self.ax.transData, self.ax.transAxes
+                ),
                 color="white",
                 linestyle="-",
                 path_effects=[withStroke(linewidth=2.0, foreground="black")],
@@ -381,19 +390,22 @@ class StandardsCanvas(InteractiveImageCanvas):
         for a in self.edge_guides:
             self.ax.draw_artist(a)
 
-        self.update()
+        self.blit()
         self.guides_need_draw = False
 
     def getCurrentLevels(self) -> List[int]:
         shape = self.image.get_array().shape
-        py = 1.0 / shape[0]  # Axes coords
+        x0, x1, y0, y1 = self.extent
+        py = (y1 - y0) / shape[0]  # Axes coords
         levels = shape[0] - np.array(
-            [guide.get_ydata()[0] / py for guide in self.level_guides], dtype=int
+            [guide.get_ydata()[0] / py for guide in self.level_guides[:-1]], dtype=int
         )
         return levels
 
     def getCurrentTrim(self) -> Tuple[int, int]:
-        px = 1.0 / self.image.get_array().shape[1]  # Axes coords
+        shape = self.image.get_array().shape
+        x0, x1, y0, y1 = self.extent
+        px = (x1 - x0) / shape[1]  # Axes coords
         trim = np.array(
             [guide.get_xdata()[0] / px for guide in self.edge_guides], dtype=int
         )
