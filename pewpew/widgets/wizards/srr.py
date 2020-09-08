@@ -10,14 +10,23 @@ from pew.srr import SRRLaser, SRRConfig
 
 from pewpew.validators import DecimalValidator
 
-from pewpew.widgets.wizards.import_ import ConfigPage, FormatPage, PathAndOptionsPage
+from pewpew.widgets.wizards.import_ import ConfigPage, FormatPage
+from pewpew.widgets.wizards.options import PathAndOptionsPage
 
 from typing import List, Tuple
 
 
 class SRRPathAndOptionsPage(PathAndOptionsPage):
-    def __init__(self, paths: List[str], format: str, parent: QtWidgets.QWidget = None):
-        super().__init__(paths, format, multiple_paths=True, parent=parent)
+    def __init__(
+        self,
+        paths: List[str],
+        format: str,
+        nextid: int,
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(
+            paths, format, multiplepaths=True, nextid=nextid, parent=parent
+        )
 
     def isComplete(self) -> bool:
         if not super().isComplete():
@@ -69,14 +78,24 @@ class SRRImportWizard(QtWidgets.QWizard):
 
         self.setPage(self.page_format, format_page)
         self.setPage(
-            self.page_agilent, SRRPathAndOptionsPage(paths, "agilent", parent=self),
+            self.page_agilent,
+            SRRPathAndOptionsPage(
+                paths, "agilent", nextid=self.page_config, parent=self
+            ),
         )
         self.setPage(
-            self.page_numpy, SRRPathAndOptionsPage(paths, "numpy", parent=self)
+            self.page_numpy,
+            SRRPathAndOptionsPage(paths, "numpy", nextid=self.page_config, parent=self),
         )
-        self.setPage(self.page_text, SRRPathAndOptionsPage(paths, "text", parent=self))
         self.setPage(
-            self.page_thermo, SRRPathAndOptionsPage(paths, "thermo", parent=self)
+            self.page_text,
+            SRRPathAndOptionsPage(paths, "text", nextid=self.page_config, parent=self),
+        )
+        self.setPage(
+            self.page_thermo,
+            SRRPathAndOptionsPage(
+                paths, "thermo", nextid=self.page_config, parent=self
+            ),
         )
 
         self.setPage(self.page_config, SRRConfigPage(_config, parent=self))

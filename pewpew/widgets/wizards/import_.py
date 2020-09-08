@@ -12,16 +12,9 @@ from pew.laser import Laser
 
 from pewpew.validators import DecimalValidatorNoZero
 from pewpew.widgets.dialogs import NameEditDialog
-from pewpew.widgets.wizards.options import (
-    AgilentOptions,
-    NumpyOptions,
-    TextOptions,
-    ThermoOptions,
-    PathSelectWidget,
-    MultiplePathSelectWidget,
-)
+from pewpew.widgets.wizards.options import PathAndOptionsPage
 
-from typing import Dict, List, Tuple, Type
+from typing import Dict, List, Tuple
 
 
 logger = logging.getLogger(__name__)
@@ -64,9 +57,18 @@ class ImportWizard(QtWidgets.QWizard):
         format_page.radio_numpy.setVisible(False)
 
         self.setPage(self.page_format, format_page)
-        self.setPage(self.page_agilent, PathAndOptionsPage([path], "agilent", parent=self))
-        self.setPage(self.page_text, PathAndOptionsPage([path], "text", parent=self))
-        self.setPage(self.page_thermo, PathAndOptionsPage([path], "thermo", parent=self))
+        self.setPage(
+            self.page_agilent,
+            PathAndOptionsPage([path], "agilent", nextid=self.page_config, parent=self),
+        )
+        self.setPage(
+            self.page_text,
+            PathAndOptionsPage([path], "text", nextid=self.page_config, parent=self),
+        )
+        self.setPage(
+            self.page_thermo,
+            PathAndOptionsPage([path], "thermo", nextid=self.page_config, parent=self),
+        )
 
         self.setPage(self.page_config, ConfigPage(config, parent=self))
 
@@ -145,63 +147,6 @@ class FormatPage(QtWidgets.QWizardPage):
         elif self.field("thermo"):
             return self.page_id_dict["thermo"]
         return 0
-
-
-class PathAndOptionsPage(QtWidgets.QWizardPage):
-    formats: Dict[str, Tuple[Tuple[str, List[str], str], Type]] = {
-        "agilent": (("Agilent Batch", [".b"], "Directory"), AgilentOptions),
-        "numpy": (("Numpy Archive", [".npz"], "File"), NumpyOptions),
-        "text": (("Text Image", [".csv", ".text", ".txt"], "File"), TextOptions),
-        "thermo": (("Thermo iCap Data", [".csv"], "File"), ThermoOptions),
-    }
-
-    def __init__(
-        self,
-        paths: List[str],
-        format: str,
-        multiple_paths: bool = False,
-        parent: QtWidgets.QWidget = None,
-    ):
-        super().__init__(parent)
-        (ftype, exts, fmode), otype = self.formats[format]
-        self.setTitle(ftype + " Import")
-
-        if multiple_paths:
-            self.path = MultiplePathSelectWidget(paths, ftype, exts, fmode)
-        else:
-            self.path = PathSelectWidget(paths[0], ftype, exts, fmode)
-        self.path.pathChanged.connect(self.updateOptionsForPath)
-        self.path.pathChanged.connect(self.completeChanged)
-
-        self.options = otype()
-        self.options.optionsChanged.connect(self.completeChanged)
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.path, 0)
-        layout.addWidget(self.options, 1)
-        self.setLayout(layout)
-
-        for name, widget, prop, signal in self.options.fieldArgs():
-            self.registerField(format + "." + name, widget, prop, signal)
-
-        self.registerField(format + ".path", self.path, "path")
-        self.registerField(format + ".paths", self.path, "paths")
-
-    def initializePage(self) -> None:
-        self.updateOptionsForPath()
-
-    def isComplete(self) -> bool:
-        return self.path.isComplete() and self.options.isComplete()
-
-    def nextId(self) -> int:
-        return ImportWizard.page_config
-
-    def updateOptionsForPath(self) -> None:
-        if self.path.isComplete():
-            self.options.setEnabled(True)
-            self.options.updateForPath(self.path.path)
-        else:
-            self.options.setEnabled(False)
 
 
 class ConfigPage(QtWidgets.QWizardPage):

@@ -7,7 +7,7 @@ from pew import io
 from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog
 
-from typing import List, Tuple
+from typing import Dict, List, Tuple, Type
 
 
 class _OptionsBase(QtWidgets.QGroupBox):
@@ -465,3 +465,64 @@ class MultiplePathSelectWidget(_PathSelectBase):
         dlg.fileSelected.connect(self.addPathsInDirectory)
         dlg.open()
         return dlg
+
+
+class PathAndOptionsPage(QtWidgets.QWizardPage):
+    formats: Dict[str, Tuple[Tuple[str, List[str], str], Type]] = {
+        "agilent": (("Agilent Batch", [".b"], "Directory"), AgilentOptions),
+        "numpy": (("Numpy Archive", [".npz"], "File"), NumpyOptions),
+        "text": (("Text Image", [".csv", ".text", ".txt"], "File"), TextOptions),
+        "thermo": (("Thermo iCap Data", [".csv"], "File"), ThermoOptions),
+    }
+
+    def __init__(
+        self,
+        paths: List[str],
+        format: str,
+        multiplepaths: bool = False,
+        nextid: int = None,
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(parent)
+        (ftype, exts, fmode), otype = self.formats[format]
+        self.setTitle(ftype + " Import")
+        self.nextid = nextid
+
+        if multiplepaths:
+            self.path = MultiplePathSelectWidget(paths, ftype, exts, fmode)
+        else:
+            self.path = PathSelectWidget(paths[0], ftype, exts, fmode)
+        self.path.pathChanged.connect(self.updateOptionsForPath)
+        self.path.pathChanged.connect(self.completeChanged)
+
+        self.options = otype()
+        self.options.optionsChanged.connect(self.completeChanged)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.path, 0)
+        layout.addWidget(self.options, 1)
+        self.setLayout(layout)
+
+        for name, widget, prop, signal in self.options.fieldArgs():
+            self.registerField(format + "." + name, widget, prop, signal)
+
+        self.registerField(format + ".path", self.path, "path")
+        self.registerField(format + ".paths", self.path, "paths")
+
+    def initializePage(self) -> None:
+        self.updateOptionsForPath()
+
+    def isComplete(self) -> bool:
+        return self.path.isComplete() and self.options.isComplete()
+
+    def nextId(self) -> int:
+        if self.nextid is not None:
+            return self.nextid
+        return super().nextId()
+
+    def updateOptionsForPath(self) -> None:
+        if self.path.isComplete():
+            self.options.setEnabled(True)
+            self.options.updateForPath(self.path.path)
+        else:
+            self.options.setEnabled(False)
