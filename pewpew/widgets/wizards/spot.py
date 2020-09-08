@@ -12,34 +12,10 @@ from pew.srr import SRRLaser, SRRConfig
 from pewpew.validators import DecimalValidator, DecimalValidatorNoZero
 from pewpew.widgets.canvases import BasicCanvas
 
-# from pewpew.widgets.ext import MultipleDirDialog
 from pewpew.widgets.wizards.import_ import FormatPage
+from pewpew.widgets.wizards.options import PathAndOptionsPage
 
 from typing import Dict, List, Tuple
-
-
-class SpotFormatPage(FormatPage):
-    def __init__(
-        self,
-        text: str,
-        page_id_dict: Dict[str, int] = None,
-        parent: QtWidgets.QWidget = None,
-    ):
-        self.radio_single_line = QtWidgets.QRadioButton("Single acquistion.")
-        self.radio_multi_line = QtWidgets.QRadioButton("Multiple acquistions.")
-        self.radio_spot_per_line = QtWidgets.QRadioButton("One spot per acquistion.")
-
-        spot_box = QtWidgets.QGroupBox("Spot Format")
-        layout_spot = QtWidgets.QVBoxLayout()
-        layout_spot.addWidget(self.radio_single_line)
-        layout_spot.addWidget(self.radio_multi_line)
-        layout_spot.addWidget(self.radio_spot_per_line)
-        spot_box.setLayout(layout_spot)
-        self.layout().addWidget(spot_box)
-
-        self.registerField("singleLine", self.radio_single_line)
-        self.registerField("multipleLines", self.radio_multi_line)
-        self.registerField("spotPerLine", self.radio_spot_per_line)
 
 
 class SpotImportWizard(QtWidgets.QWizard):
@@ -49,12 +25,16 @@ class SpotImportWizard(QtWidgets.QWizard):
     page_numpy = 3
     page_text = 4
     page_thermo = 5
-    page_config = 6
+    page_spot_format = 6
+    page_config = 7
 
     laserImported = QtCore.Signal(Laser)
 
     def __init__(
-        self, path: str = "", config: Config = None, parent: QtWidgets.QWidget = None
+        self,
+        paths: List[str] = [],
+        config: Config = None,
+        parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Import Wizard")
@@ -71,7 +51,7 @@ class SpotImportWizard(QtWidgets.QWizard):
             overview,
             page_id_dict={
                 "agilent": self.page_agilent,
-                "numpy": self.page_numpy,
+                # "numpy": self.page_numpy,
                 "text": self.page_text,
                 "thermo": self.page_thermo,
             },
@@ -80,11 +60,37 @@ class SpotImportWizard(QtWidgets.QWizard):
         format_page.radio_numpy.setEnabled(False)
 
         self.setPage(self.page_format, format_page)
-        self.setPage(self.page_agilent, AgilentPage(path, parent=self))
-        self.setPage(self.page_text, TextPage(path, parent=self))
-        self.setPage(self.page_thermo, ThermoPage(path, parent=self))
-
-        self.setPage(self.page_config, ConfigPage(config, parent=self))
+        self.setPage(
+            self.page_agilent,
+            PathAndOptionsPage(
+                paths,
+                "agilent",
+                multiplepaths=True,
+                nextid=self.page_spot_format,
+                parent=self,
+            ),
+        )
+        self.setPage(
+            self.page_text,
+            PathAndOptionsPage(
+                paths,
+                "text",
+                multiplepaths=True,
+                nextid=self.page_spot_format,
+                parent=self,
+            ),
+        )
+        self.setPage(
+            self.page_thermo,
+            PathAndOptionsPage(
+                paths,
+                "thermo",
+                multiplepaths=True,
+                nextid=self.page_spot_format,
+                parent=self,
+            ),
+        )
+        self.setPage(self.page_spot_format, SpotPeakFindingPage(parent=self))
 
     def accept(self) -> None:
         if self.field("agilent"):
@@ -109,22 +115,62 @@ class SpotImportWizard(QtWidgets.QWizard):
         super().accept()
 
 
-class SpotImportWizard(QtWidgets.QWizard):
-    laserImported = QtCore.Signal(Laser)
+# class SpotFormatPage(QtWidgets.QWizardPage):
+#     def __init__(
+#         self, parent: QtWidgets.QWidget = None,
+#     ):
+#         super().__init__(parent)
+#         self.radio_single_line = QtWidgets.QRadioButton("Single acquistion.")
+#         self.radio_multi_line = QtWidgets.QRadioButton("Multiple acquistions.")
+#         self.radio_spot_per_line = QtWidgets.QRadioButton("One spot per acquistion.")
 
-    def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
+#         self.lineedit_shape_x = QtWidgets.QLineEdit("1")
+#         self.lineedit_shape_x.setValidator(QtGui.QIntValidator(1, 9999))
+#         self.lineedit_shape_x.textEdited.connect(self.completeChanged)
+#         self.lineedit_shape_y = QtWidgets.QLineEdit("1")
+#         self.lineedit_shape_y.setValidator(QtGui.QIntValidator(1, 9999))
+#         self.lineedit_shape_y.textEdited.connect(self.completeChanged)
 
-        self.config = config
-        self.laser = None
+#         self.check_rastered = QtWidgets.QCheckBox("Data is rastered.")
 
-        label = QtWidgets.QLabel(
-            "Importer for data collected spotwise. To start, select the data type."
-        )
+#         spot_box = QtWidgets.QGroupBox("Spot Format")
+#         layout_spot = QtWidgets.QVBoxLayout()
+#         layout_spot.addWidget(self.radio_single_line)
+#         layout_spot.addWidget(self.radio_multi_line)
+#         layout_spot.addWidget(self.radio_spot_per_line)
+#         spot_box.setLayout(layout_spot)
 
-        self.addPage(ImportFormatPage(label))
-        self.addPage(ImportFilesPage(max_files=-1))
-        self.addPage(SpotImportPeaksPage())
+#         layout_shape = QtWidgets.QHBoxLayout()
+#         layout_shape.addWidget(self.lineedit_shape_x)
+#         layout_shape.addWidget(QtWidgets.QLabel("x"))
+#         layout_shape.addWidget(self.lineedit_shape_y)
+
+#         layout_options = QtWidgets.QFormLayout()
+#         layout_options.addRow("Shape:", layout_shape)
+#         layout_options.addRow(self.check_rastered)
+
+#         layout = QtWidgets.QVBoxLayout()
+#         layout.addWidget(spot_box)
+#         layout.addLayout(layout_options)
+#         self.setLayout(layout)
+
+#         self.registerField("singleLine", self.radio_single_line)
+#         self.registerField("multiLine", self.radio_multi_line)
+#         self.registerField("spotPerLine", self.radio_spot_per_line)
+
+#         self.registerField("shapeX", self.lineedit_shape_x)
+#         self.registerField("shapeY", self.lineedit_shape_y)
+#         self.registerField("rastered", self.check_rastered)
+
+#     def nextId(self) -> int:
+#         if self.field("singleLine"):
+#             return SpotImportWizard.page_single_line
+#         elif self.field("multiLine"):
+#             return SpotImportWizard.page_multi_line
+#         elif self.field("spotPerLine"):
+#             return SpotImportWizard.page_spot_per_line
+#         else:
+#             return super().nextId()
 
 
 class SpotImportCanvas(BasicCanvas):
@@ -162,7 +208,7 @@ class SpotImportCanvas(BasicCanvas):
         self.draw_idle()
 
 
-class SpotImportPeaksPage(QtWidgets.QWizardPage):
+class SpotPeakFindingPage(QtWidgets.QWizardPage):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
@@ -258,9 +304,9 @@ class SpotImportPeaksPage(QtWidgets.QWizardPage):
         self.setLayout(layout_main)
 
     def initializePage(self) -> None:
-        self.paths = self.field("paths")
-        if len(self.paths) == 1:
-            self.check_single_spot.setChecked(True)
+        # self.paths = self.field("paths")
+        # if len(self.paths) == 1:
+        #     self.check_single_spot.setChecked(True)
 
         self.updateData(0)
 
@@ -310,137 +356,144 @@ class SpotImportPeaksPage(QtWidgets.QWizardPage):
             raise ValueError("No radio selected!")
 
 
-class SRRImportWizard(QtWidgets.QWizard):
-    laserImported = QtCore.Signal(SRRLaser)
+# class SRRImportWizard(QtWidgets.QWizard):
+#     laserImported = QtCore.Signal(SRRLaser)
 
-    def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
+#     def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
+#         super().__init__(parent)
 
-        self.config = SRRConfig(config.spotsize, config.speed, config.scantime)
+#         self.config = SRRConfig(config.spotsize, config.speed, config.scantime)
 
-        self.laser = None
+#         self.laser = None
 
-        label = QtWidgets.QLabel(
-            "This wizard will import SRR-LA-ICP-MS data. To begin, select "
-            "the type of data to import. You may then import, reorder and "
-            "configure the imported data."
-        )
+#         label = QtWidgets.QLabel(
+#             "This wizard will import SRR-LA-ICP-MS data. To begin, select "
+#             "the type of data to import. You may then import, reorder and "
+#             "configure the imported data."
+#         )
 
-        self.addPage(ImportFormatPage(label))
-        self.addPage(ImportFilesPage(min_files=2))
-        self.addPage(SRRConfigPage(self.config))
+#         self.addPage(ImportFormatPage(label))
+#         self.addPage(ImportFilesPage(min_files=2))
+#         self.addPage(SRRConfigPage(self.config))
 
-        self.setWindowTitle("Kriss Kross Import Wizard")
+#         self.setWindowTitle("Kriss Kross Import Wizard")
 
-        self.resize(540, 480)
+#         self.resize(540, 480)
 
-    def accept(self) -> None:
-        self.config.spotsize = float(self.field("spotsize"))
-        self.config.speed = float(self.field("speed"))
-        self.config.scantime = float(self.field("scantime"))
-        self.config.warmup = float(self.field("warmup"))
+#     def accept(self) -> None:
+#         self.config.spotsize = float(self.field("spotsize"))
+#         self.config.speed = float(self.field("speed"))
+#         self.config.scantime = float(self.field("scantime"))
+#         self.config.warmup = float(self.field("warmup"))
 
-        subpixel_width = self.field("subpixel_width")
-        self.config.set_equal_subpixel_offsets(subpixel_width)
+#         subpixel_width = self.field("subpixel_width")
+#         self.config.set_equal_subpixel_offsets(subpixel_width)
 
-        paths = self.field("paths")
-        layers = []
+#         paths = self.field("paths")
+#         layers = []
 
-        if self.field("radio_numpy"):
-            for path in paths:
-                lds = io.npz.load(path)
-                if len(lds) > 1:
-                    QtWidgets.QMessageBox.warning(
-                        self,
-                        "Import Error",
-                        f'Archive "{os.path.basename(path)}" '
-                        "contains more than one image.",
-                    )
-                    return
-                layers.append(lds[0].get())
-        elif self.field("radio_agilent"):
-            for path in paths:
-                layers.append(io.agilent.load(path))
-        elif self.field("radio_thermo"):
-            for path in paths:
-                layers.append(io.thermo.load(path))
+#         if self.field("radio_numpy"):
+#             for path in paths:
+#                 lds = io.npz.load(path)
+#                 if len(lds) > 1:
+#                     QtWidgets.QMessageBox.warning(
+#                         self,
+#                         "Import Error",
+#                         f'Archive "{os.path.basename(path)}" '
+#                         "contains more than one image.",
+#                     )
+#                     return
+#                 layers.append(lds[0].get())
+#         elif self.field("radio_agilent"):
+#             for path in paths:
+#                 layers.append(io.agilent.load(path))
+#         elif self.field("radio_thermo"):
+#             for path in paths:
+#                 layers.append(io.thermo.load(path))
 
-        self.laserImported.emit(
-            SRRLaser(
-                layers,
-                config=self.config,
-                name=os.path.splitext(os.path.basename(paths[0]))[0],
-                path=paths[0],
-            )
-        )
-        super().accept()
+#         self.laserImported.emit(
+#             SRRLaser(
+#                 layers,
+#                 config=self.config,
+#                 name=os.path.splitext(os.path.basename(paths[0]))[0],
+#                 path=paths[0],
+#             )
+#         )
+#         super().accept()
 
 
-class SRRConfigPage(QtWidgets.QWizardPage):
-    def __init__(self, config: SRRConfig, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
+# class SRRConfigPage(QtWidgets.QWizardPage):
+#     def __init__(self, config: SRRConfig, parent: QtWidgets.QWidget = None):
+#         super().__init__(parent)
 
-        self.lineedit_spotsize = QtWidgets.QLineEdit()
-        self.lineedit_spotsize.setText(str(config.spotsize))
-        self.lineedit_spotsize.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
-        self.lineedit_spotsize.textEdited.connect(self.completeChanged)
+#         self.lineedit_spotsize = QtWidgets.QLineEdit()
+#         self.lineedit_spotsize.setText(str(config.spotsize))
+#         self.lineedit_spotsize.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
+#         self.lineedit_spotsize.textEdited.connect(self.completeChanged)
 
-        self.lineedit_speed = QtWidgets.QLineEdit()
-        self.lineedit_speed.setText(str(config.speed))
-        self.lineedit_speed.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
-        self.lineedit_speed.textEdited.connect(self.completeChanged)
+#         self.lineedit_speed = QtWidgets.QLineEdit()
+#         self.lineedit_speed.setText(str(config.speed))
+#         self.lineedit_speed.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
+#         self.lineedit_speed.textEdited.connect(self.completeChanged)
 
-        self.lineedit_scantime = QtWidgets.QLineEdit()
-        self.lineedit_scantime.setText(str(config.scantime))
-        self.lineedit_scantime.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
-        self.lineedit_scantime.textEdited.connect(self.completeChanged)
+#         self.lineedit_scantime = QtWidgets.QLineEdit()
+#         self.lineedit_scantime.setText(str(config.scantime))
+#         self.lineedit_scantime.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
+#         self.lineedit_scantime.textEdited.connect(self.completeChanged)
 
-        # Krisskross params
-        self.lineedit_warmup = QtWidgets.QLineEdit()
-        self.lineedit_warmup.setText(str(config.warmup))
-        self.lineedit_warmup.setValidator(DecimalValidator(0, 1e2, 2))
-        self.lineedit_warmup.textEdited.connect(self.completeChanged)
+#         # Krisskross params
+#         self.lineedit_warmup = QtWidgets.QLineEdit()
+#         self.lineedit_warmup.setText(str(config.warmup))
+#         self.lineedit_warmup.setValidator(DecimalValidator(0, 1e2, 2))
+#         self.lineedit_warmup.textEdited.connect(self.completeChanged)
 
-        self.spinbox_offsets = QtWidgets.QSpinBox()
-        self.spinbox_offsets.setRange(2, 10)
-        self.spinbox_offsets.setValue(config._subpixel_size)
-        self.spinbox_offsets.setToolTip(
-            "The number of subpixels per pixel in each dimension."
-        )
+#         self.spinbox_offsets = QtWidgets.QSpinBox()
+#         self.spinbox_offsets.setRange(2, 10)
+#         self.spinbox_offsets.setValue(config._subpixel_size)
+#         self.spinbox_offsets.setToolTip(
+#             "The number of subpixels per pixel in each dimension."
+#         )
 
-        # Form layout for line edits
-        config_layout = QtWidgets.QFormLayout()
-        config_layout.addRow("Spotsize (μm):", self.lineedit_spotsize)
-        config_layout.addRow("Speed (μm):", self.lineedit_speed)
-        config_layout.addRow("Scantime (s):", self.lineedit_scantime)
+#         # Form layout for line edits
+#         config_layout = QtWidgets.QFormLayout()
+#         config_layout.addRow("Spotsize (μm):", self.lineedit_spotsize)
+#         config_layout.addRow("Speed (μm):", self.lineedit_speed)
+#         config_layout.addRow("Scantime (s):", self.lineedit_scantime)
 
-        config_gbox = QtWidgets.QGroupBox("Laser Configuration", self)
-        config_gbox.setLayout(config_layout)
+#         config_gbox = QtWidgets.QGroupBox("Laser Configuration", self)
+#         config_gbox.setLayout(config_layout)
 
-        params_layout = QtWidgets.QFormLayout()
-        params_layout.addRow("Warmup (s):", self.lineedit_warmup)
-        params_layout.addRow("Subpixel width:", self.spinbox_offsets)
+#         params_layout = QtWidgets.QFormLayout()
+#         params_layout.addRow("Warmup (s):", self.lineedit_warmup)
+#         params_layout.addRow("Subpixel width:", self.spinbox_offsets)
 
-        params_gbox = QtWidgets.QGroupBox("SRRLaser Parameters", self)
-        params_gbox.setLayout(params_layout)
+#         params_gbox = QtWidgets.QGroupBox("SRRLaser Parameters", self)
+#         params_gbox.setLayout(params_layout)
 
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(config_gbox)
-        layout.addWidget(params_gbox)
-        self.setLayout(layout)
+#         layout = QtWidgets.QVBoxLayout()
+#         layout.addWidget(config_gbox)
+#         layout.addWidget(params_gbox)
+#         self.setLayout(layout)
 
-        self.registerField("spotsize", self.lineedit_spotsize)
-        self.registerField("speed", self.lineedit_speed)
-        self.registerField("scantime", self.lineedit_scantime)
-        self.registerField("warmup", self.lineedit_warmup)
-        self.registerField("subpixel_width", self.spinbox_offsets)
+#         self.registerField("spotsize", self.lineedit_spotsize)
+#         self.registerField("speed", self.lineedit_speed)
+#         self.registerField("scantime", self.lineedit_scantime)
+#         self.registerField("warmup", self.lineedit_warmup)
+#         self.registerField("subpixel_width", self.spinbox_offsets)
 
-    def isComplete(self) -> bool:
-        return all(
-            [
-                self.lineedit_spotsize.hasAcceptableInput(),
-                self.lineedit_speed.hasAcceptableInput(),
-                self.lineedit_scantime.hasAcceptableInput(),
-                self.lineedit_warmup.hasAcceptableInput(),
-            ]
-        )
+#     def isComplete(self) -> bool:
+#         return all(
+#             [
+#                 self.lineedit_spotsize.hasAcceptableInput(),
+#                 self.lineedit_speed.hasAcceptableInput(),
+#                 self.lineedit_scantime.hasAcceptableInput(),
+#                 self.lineedit_warmup.hasAcceptableInput(),
+#             ]
+#         )
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication()
+    w = SpotImportWizard([])
+    w.show()
+    app.exec_()
