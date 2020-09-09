@@ -107,7 +107,7 @@ class ImageCanvas(BasicCanvas):
         x0, x1, y0, y1 = limits
         self.ax.set_xlim(x0, x1)
         self.ax.set_ylim(y0, y1)
-        self.draw_idle()
+        self.updateImage()
 
     def extentForAspect(
         self, extent: Tuple[float, float, float, float], aspect: float = None
@@ -170,6 +170,9 @@ class ImageCanvas(BasicCanvas):
             origin=self.image.origin,
             dpi=100,
         )
+
+    def updateImage(self) -> None:
+        self.draw_idle()
 
 
 class InteractiveImageCanvas(ImageCanvas):
@@ -410,7 +413,7 @@ class SelectableImageCanvas(InteractiveImageCanvas):
         self.selection = None
         self.widget = None
         self.drawSelection()
-        self.draw_idle()
+        self.updateImage()
 
     def getMaskedData(self) -> np.ndarray:
         data = self.image.get_array()
@@ -560,4 +563,4 @@ class LaserImageCanvas(SelectableImageCanvas):
 
         # Selection drawing all handled in SelectableImageCanvas
         self.drawSelection()
-        self.draw_idle()
+        self.updateImage()
