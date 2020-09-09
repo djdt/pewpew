@@ -333,6 +333,59 @@ class SpotPeakFindingPage(QtWidgets.QWizardPage):
             "ridge_min_snr": float(self.lineedit_minsnr.text()),
         }
 
+    def readAgilent(self, paths: List[str]) -> List[np.ndarray]:
+        data = []
+        for path in paths:
+            agilent_method = self.field("agilent.method")
+            if agilent_method == "Alphabetical Order":
+                method = None
+            elif agilent_method == "Acquistion Method":
+                method = ["acq_method_xml"]
+            elif agilent_method == "Batch Log CSV":
+                method = ["batch_csv"]
+            elif agilent_method == "Batch Log XML":
+                method = ["batch_xml"]
+            else:
+                raise ValueError("Unknown data file collection method.")
+
+            data.append(
+                io.agilent.load(
+                    path,
+                    collection_methods=method,
+                    use_acq_for_names=self.field("agilent.useAcqNames"),
+                )
+            )
+        return data
+
+    def readText(self, paths: List[str]) -> List[np.ndarray]:
+        data = []
+        for path in paths:
+            data.append(io.csv.load(path, isotope=self.field("text.name")))
+        return data
+
+    def readThermo(self, paths: List[str]) -> List[np.ndarray]:
+        data = []
+        for path in paths:
+            kwargs = dict(
+                delimiter=self.field("thermo.delimiter"),
+                comma_decimal=self.field("thermo.decimal") == ",",
+            )
+            use_analog = self.field("thermo.useAnalog")
+
+            if self.field("thermo.sampleRows"):
+                data.append(
+                    io.thermo.icap_csv_rows_read_data(
+                        path, use_analog=use_analog, **kwargs
+                    )
+                )
+            else:
+                data.append(
+                    io.thermo.icap_csv_columns_read_data(
+                        path, use_analog=use_analog, **kwargs
+                    )
+                )
+        return data
+
     def updateCanvas(self) -> None:
         data = self.data[self.combo_isotope.currentText()][
             self.spinbox_line.value() - 1
@@ -356,144 +409,8 @@ class SpotPeakFindingPage(QtWidgets.QWizardPage):
             raise ValueError("No radio selected!")
 
 
-# class SRRImportWizard(QtWidgets.QWizard):
-#     laserImported = QtCore.Signal(SRRLaser)
-
-#     def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
-#         super().__init__(parent)
-
-#         self.config = SRRConfig(config.spotsize, config.speed, config.scantime)
-
-#         self.laser = None
-
-#         label = QtWidgets.QLabel(
-#             "This wizard will import SRR-LA-ICP-MS data. To begin, select "
-#             "the type of data to import. You may then import, reorder and "
-#             "configure the imported data."
-#         )
-
-#         self.addPage(ImportFormatPage(label))
-#         self.addPage(ImportFilesPage(min_files=2))
-#         self.addPage(SRRConfigPage(self.config))
-
-#         self.setWindowTitle("Kriss Kross Import Wizard")
-
-#         self.resize(540, 480)
-
-#     def accept(self) -> None:
-#         self.config.spotsize = float(self.field("spotsize"))
-#         self.config.speed = float(self.field("speed"))
-#         self.config.scantime = float(self.field("scantime"))
-#         self.config.warmup = float(self.field("warmup"))
-
-#         subpixel_width = self.field("subpixel_width")
-#         self.config.set_equal_subpixel_offsets(subpixel_width)
-
-#         paths = self.field("paths")
-#         layers = []
-
-#         if self.field("radio_numpy"):
-#             for path in paths:
-#                 lds = io.npz.load(path)
-#                 if len(lds) > 1:
-#                     QtWidgets.QMessageBox.warning(
-#                         self,
-#                         "Import Error",
-#                         f'Archive "{os.path.basename(path)}" '
-#                         "contains more than one image.",
-#                     )
-#                     return
-#                 layers.append(lds[0].get())
-#         elif self.field("radio_agilent"):
-#             for path in paths:
-#                 layers.append(io.agilent.load(path))
-#         elif self.field("radio_thermo"):
-#             for path in paths:
-#                 layers.append(io.thermo.load(path))
-
-#         self.laserImported.emit(
-#             SRRLaser(
-#                 layers,
-#                 config=self.config,
-#                 name=os.path.splitext(os.path.basename(paths[0]))[0],
-#                 path=paths[0],
-#             )
-#         )
-#         super().accept()
-
-
-# class SRRConfigPage(QtWidgets.QWizardPage):
-#     def __init__(self, config: SRRConfig, parent: QtWidgets.QWidget = None):
-#         super().__init__(parent)
-
-#         self.lineedit_spotsize = QtWidgets.QLineEdit()
-#         self.lineedit_spotsize.setText(str(config.spotsize))
-#         self.lineedit_spotsize.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
-#         self.lineedit_spotsize.textEdited.connect(self.completeChanged)
-
-#         self.lineedit_speed = QtWidgets.QLineEdit()
-#         self.lineedit_speed.setText(str(config.speed))
-#         self.lineedit_speed.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
-#         self.lineedit_speed.textEdited.connect(self.completeChanged)
-
-#         self.lineedit_scantime = QtWidgets.QLineEdit()
-#         self.lineedit_scantime.setText(str(config.scantime))
-#         self.lineedit_scantime.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
-#         self.lineedit_scantime.textEdited.connect(self.completeChanged)
-
-#         # Krisskross params
-#         self.lineedit_warmup = QtWidgets.QLineEdit()
-#         self.lineedit_warmup.setText(str(config.warmup))
-#         self.lineedit_warmup.setValidator(DecimalValidator(0, 1e2, 2))
-#         self.lineedit_warmup.textEdited.connect(self.completeChanged)
-
-#         self.spinbox_offsets = QtWidgets.QSpinBox()
-#         self.spinbox_offsets.setRange(2, 10)
-#         self.spinbox_offsets.setValue(config._subpixel_size)
-#         self.spinbox_offsets.setToolTip(
-#             "The number of subpixels per pixel in each dimension."
-#         )
-
-#         # Form layout for line edits
-#         config_layout = QtWidgets.QFormLayout()
-#         config_layout.addRow("Spotsize (μm):", self.lineedit_spotsize)
-#         config_layout.addRow("Speed (μm):", self.lineedit_speed)
-#         config_layout.addRow("Scantime (s):", self.lineedit_scantime)
-
-#         config_gbox = QtWidgets.QGroupBox("Laser Configuration", self)
-#         config_gbox.setLayout(config_layout)
-
-#         params_layout = QtWidgets.QFormLayout()
-#         params_layout.addRow("Warmup (s):", self.lineedit_warmup)
-#         params_layout.addRow("Subpixel width:", self.spinbox_offsets)
-
-#         params_gbox = QtWidgets.QGroupBox("SRRLaser Parameters", self)
-#         params_gbox.setLayout(params_layout)
-
-#         layout = QtWidgets.QVBoxLayout()
-#         layout.addWidget(config_gbox)
-#         layout.addWidget(params_gbox)
-#         self.setLayout(layout)
-
-#         self.registerField("spotsize", self.lineedit_spotsize)
-#         self.registerField("speed", self.lineedit_speed)
-#         self.registerField("scantime", self.lineedit_scantime)
-#         self.registerField("warmup", self.lineedit_warmup)
-#         self.registerField("subpixel_width", self.spinbox_offsets)
-
-#     def isComplete(self) -> bool:
-#         return all(
-#             [
-#                 self.lineedit_spotsize.hasAcceptableInput(),
-#                 self.lineedit_speed.hasAcceptableInput(),
-#                 self.lineedit_scantime.hasAcceptableInput(),
-#                 self.lineedit_warmup.hasAcceptableInput(),
-#             ]
-#         )
-
-
 if __name__ == "__main__":
     app = QtWidgets.QApplication()
-    w = SpotImportWizard([])
+    w = SpotImportWizard(["/home/tom/Downloads/spotty boy.b"])
     w.show()
     app.exec_()
