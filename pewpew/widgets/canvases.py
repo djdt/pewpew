@@ -345,10 +345,10 @@ class InteractiveImageCanvas(ImageCanvas):
         if y2 > ymax:
             y1, y2 = max(ymin, y1 - (y2 - ymax)), ymax
 
-        if (x1, x2, y1, y2) != self.extent:
-            self.state.add("zoom")
-        else:
+        if np.all((x1, x2, y1, y2) == self.extent):
             self.state.discard("zoom")
+        else:
+            self.state.add("zoom")
         self.view_limits = x1, x2, y1, y2
 
     def zoom(self, press: MouseEvent, release: MouseEvent) -> None:
