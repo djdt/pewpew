@@ -100,13 +100,13 @@ class ImageCanvas(BasicCanvas):
     def view_limits(self) -> Tuple[float, float, float, float]:
         x0, x1, = self.ax.get_xlim()
         y0, y1 = self.ax.get_ylim()
-        return x0, x1, y0, y1
+        return x0, x1, y1, y0
 
     @view_limits.setter
     def view_limits(self, limits: Tuple[float, float, float, float]) -> None:
         x0, x1, y0, y1 = limits
         self.ax.set_xlim(x0, x1)
-        self.ax.set_ylim(y0, y1)
+        self.ax.set_ylim(y1, y0)
         self.updateImage()
 
     def extentForAspect(
@@ -496,7 +496,7 @@ class LaserImageCanvas(SelectableImageCanvas):
             vmax=vmax,
             extent=extent,
             aspect="equal",
-            origin="upper",
+            origin="lower",
         )
 
     def drawLabel(self, text: str) -> None:
