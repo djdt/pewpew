@@ -282,6 +282,7 @@ class InteractiveImageCanvas(ImageCanvas):
             return
         self.move(event)
         self.moveCursor(event)
+        self.eventmove = event
 
     def move(self, event: MouseEvent) -> None:
         if (
