@@ -397,8 +397,8 @@ class ExportDialog(_ExportDialogBase):
                         path,
                         dpi=300,
                         bbox_inches="tight",
-                        transparent=True,
-                        facecolor=None,
+                        transparent=False,
+                        facecolor="black",
                     )
             canvas.close()
 
