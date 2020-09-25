@@ -1,3 +1,5 @@
+import numpy as np
+import numpy.lib.recfunctions as rfn
 import os
 
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -6,227 +8,141 @@ from pew import io
 from pew.config import Config
 from pew.srr import SRRLaser, SRRConfig
 
-from pewpew.validators import DecimalValidator, DecimalValidatorNoZero
-from pewpew.widgets.ext import MultipleDirDialog
-from pewpew.widgets.wizards.import_ import ImportFormatPage
+from pewpew.validators import DecimalValidator
 
-from typing import List
+from pewpew.widgets.wizards.import_ import ConfigPage, FormatPage
+from pewpew.widgets.wizards.options import PathAndOptionsPage
+
+from typing import List, Tuple
 
 
-class LaserImportList(QtWidgets.QListWidget):
+class SRRPathAndOptionsPage(PathAndOptionsPage):
     def __init__(
-        self, allowed_exts: List[str] = None, parent: QtWidgets.QWidget = None
+        self,
+        paths: List[str],
+        format: str,
+        nextid: int,
+        parent: QtWidgets.QWidget = None,
     ):
-        super().__init__(parent)
-        self.allowed_exts = allowed_exts
-        self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        self.setTextElideMode(QtCore.Qt.ElideLeft)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setDefaultDropAction(QtCore.Qt.MoveAction)
-        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
-        self.setAcceptDrops(True)
-
-    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-        else:
-            super().dragEnterEvent(event)
-
-    def dropEvent(self, event: QtGui.QDropEvent) -> None:
-        if event.mimeData().hasUrls():
-            urls = event.mimeData().urls()
-            for url in urls:
-                if url.isLocalFile():
-                    path = url.toLocalFile()
-                    name, ext = os.path.splitext(path)
-                    if self.allowed_exts is None or ext in self.allowed_exts:
-                        self.addItem(path)
-        else:
-            super().dropEvent(event)
-
-    @QtCore.Property("QStringList")
-    def paths(self) -> List[str]:
-        return [self.item(i).text() for i in range(0, self.count())]
-
-
-class SRRFilesPage(QtWidgets.QWizardPage):
-    def __init__(
-        self, min_files: int = 1, max_files: int = -1, parent: QtWidgets.QWidget = None
-    ):
-        super().__init__(parent)
-
-        self.min_files = min_files
-        self.max_files = max_files
-
-        self.setTitle("Files and Directories")
-        # List and box
-
-        self.list = LaserImportList()
-        self.list.model().rowsInserted.connect(self.completeChanged)
-        self.list.model().rowsRemoved.connect(self.completeChanged)
-
-        dir_box = QtWidgets.QGroupBox("Layer Order", self)
-        box_layout = QtWidgets.QVBoxLayout()
-        box_layout.addWidget(self.list)
-        dir_box.setLayout(box_layout)
-
-        # Buttons
-        button_file = QtWidgets.QPushButton("Open")
-        button_file.clicked.connect(self.buttonAdd)
-        button_dir = QtWidgets.QPushButton("Open All...")
-        button_dir.clicked.connect(self.buttonAddAll)
-
-        button_layout = QtWidgets.QHBoxLayout()
-        button_layout.addWidget(button_file)
-        button_layout.addWidget(button_dir)
-        box_layout.addLayout(button_layout)
-
-        main_layout = QtWidgets.QVBoxLayout()
-        main_layout.addWidget(dir_box)
-        self.setLayout(main_layout)
-
-        self.registerField("paths", self.list, "paths")
-
-    def initializePage(self) -> None:
-        if self.field("numpy"):
-            ext = ".npz"
-        elif self.field("agilent"):
-            ext = ".b"
-        elif self.field("thermo"):
-            ext = ".csv"
-        self.list.allowed_exts = [ext]
-
-    def buttonAdd(self) -> None:
-        if self.field("numpy"):
-            paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", "", "Numpy Archives(*.npz);;All Files(*)"
-            )
-        elif self.field("agilent"):
-            paths = MultipleDirDialog.getExistingDirectories(self, "Select Batches", "")
-        elif self.field("thermo"):
-            paths, _filter = QtWidgets.QFileDialog.getOpenFileNames(
-                self, "Select Files", "", "CSV Documents(*.csv);;All Files(*)"
-            )
-
-        for path in paths:
-            self.list.addItem(path)
-
-    def buttonAddAll(self) -> None:
-        path = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory", "")
-        if len(path) == 0:
-            return
-        files = os.listdir(path)
-        files.sort()
-
-        ext = ".npz"
-        if self.field("agilent"):
-            ext = ".b"
-        elif self.field("thermo"):
-            ext = ".csv"
-
-        for f in files:
-            if f.lower().endswith(ext):
-                self.list.addItem(os.path.join(path, f))
-
-    def keyPressEvent(self, event: QtCore.QEvent) -> None:
-        if (
-            event.key() == QtCore.Qt.Key_Delete
-            or event.key() == QtCore.Qt.Key_Backspace
-        ):
-            for item in self.list.selectedItems():
-                self.list.takeItem(self.list.row(item))
-        super().keyPressEvent(event)
+        super().__init__(
+            paths, format, multiplepaths=True, nextid=nextid, parent=parent
+        )
 
     def isComplete(self) -> bool:
-        return self.list.count() >= self.min_files and (
-            self.max_files < 0 or self.list.count() <= self.max_files
-        )
+        if not super().isComplete():
+            return False
+        return len(self.path.paths) >= 2
 
 
 class SRRImportWizard(QtWidgets.QWizard):
+    page_format = 0
+    page_agilent = 1
+    page_numpy = 2
+    page_text = 3
+    page_thermo = 4
+    page_config = 5
+
     laserImported = QtCore.Signal(SRRLaser)
 
-    def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self,
+        paths: List[str] = [],
+        config: Config = None,
+        parent: QtWidgets.QWidget = None,
+    ):
         super().__init__(parent)
         self.setWindowTitle("SRR Import Wizard")
 
-        self.config = SRRConfig(config.spotsize, config.speed, config.scantime)
+        _config = SRRConfig()
+        if config is not None:
+            _config.spotsize = config.spotsize
+            _config.speed = config.speed
+            _config.scantime = config.scantime
 
-        self.laser = None
-
-        overview = QtWidgets.QLabel(
-            "This wizard will import SRR-LA-ICP-MS data. To begin, select "
-            "the type of data to import. You may then reorder imported layers "
-            "and edit the laser configuration."
+        overview = (
+            "The wizard will guide you through importing LA-ICP-MS data "
+            "and provides a higher level to control than the standard import. "
+            "To begin select the format of the file being imported."
         )
-        format_page = ImportFormatPage(overview, parent=self)
-        format_page.radio_text.setEnabled(False)
-        self.addPage(format_page)
-        self.addPage(SRRFilesPage(min_files=2))
-        self.addPage(SRRConfigPage(self.config))
 
-        self.resize(540, 480)
+        format_page = FormatPage(
+            overview,
+            page_id_dict={
+                "agilent": self.page_agilent,
+                "numpy": self.page_numpy,
+                "text": self.page_text,
+                "thermo": self.page_thermo,
+            },
+            parent=self,
+        )
+
+        self.setPage(self.page_format, format_page)
+        self.setPage(
+            self.page_agilent,
+            SRRPathAndOptionsPage(
+                paths, "agilent", nextid=self.page_config, parent=self
+            ),
+        )
+        self.setPage(
+            self.page_numpy,
+            SRRPathAndOptionsPage(paths, "numpy", nextid=self.page_config, parent=self),
+        )
+        self.setPage(
+            self.page_text,
+            SRRPathAndOptionsPage(paths, "text", nextid=self.page_config, parent=self),
+        )
+        self.setPage(
+            self.page_thermo,
+            SRRPathAndOptionsPage(
+                paths, "thermo", nextid=self.page_config, parent=self
+            ),
+        )
+
+        self.setPage(self.page_config, SRRConfigPage(_config, parent=self))
 
     def accept(self) -> None:
-        self.config.spotsize = float(self.field("spotsize"))
-        self.config.speed = float(self.field("speed"))
-        self.config.scantime = float(self.field("scantime"))
-        self.config.warmup = float(self.field("warmup"))
-
-        subpixel_width = self.field("subpixel_width")
-        self.config.set_equal_subpixel_offsets(subpixel_width)
-
-        paths = self.field("paths")
-        layers = []
-
-        if self.field("numpy"):
-            for path in paths:
-                lds = io.npz.load(path)
-                if len(lds) > 1:
-                    QtWidgets.QMessageBox.warning(
-                        self,
-                        "Import Error",
-                        f'Archive "{os.path.basename(path)}" '
-                        "contains more than one image.",
-                    )
-                    return
-                layers.append(lds[0].get())
-        elif self.field("agilent"):
-            for path in paths:
-                layers.append(io.agilent.load(path))
+        calibration = None
+        if self.field("agilent"):
+            path = self.field("agilent.paths")[0]
+        elif self.field("numpy"):
+            path = self.field("numpy.paths")[0]
+            if self.field("numpy.useCalibration"):
+                # Hack
+                calibration = io.npz.load(path)[0].calibration
+        elif self.field("text"):
+            path = self.field("text.paths")[0]
         elif self.field("thermo"):
-            for path in paths:
-                layers.append(io.thermo.load(path))
+            path = self.field("thermo.paths")[0]
+        else:
+            raise ValueError("Invalid filetype selection.")
 
+        data = self.field("laserdata")
+        config = SRRConfig(
+            spotsize=float(self.field("spotsize")),
+            scantime=float(self.field("scantime")),
+            speed=float(self.field("speed")),
+            warmup=float(self.field("warmup")),
+        )
+        config.set_equal_subpixel_offsets(self.field("subpixelWidth"))
+        base, ext = os.path.splitext(path)
         self.laserImported.emit(
             SRRLaser(
-                layers,
-                config=self.config,
-                name=os.path.splitext(os.path.basename(paths[0]))[0],
-                path=paths[0],
+                data,
+                calibration=calibration,
+                config=config,
+                path=path,
+                name=os.path.basename(base),
             )
         )
         super().accept()
 
 
-class SRRConfigPage(QtWidgets.QWizardPage):
+class SRRConfigPage(ConfigPage):
+    dataChanged = QtCore.Signal()
+
     def __init__(self, config: SRRConfig, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
-
-        self.lineedit_spotsize = QtWidgets.QLineEdit()
-        self.lineedit_spotsize.setText(str(config.spotsize))
-        self.lineedit_spotsize.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
-        self.lineedit_spotsize.textEdited.connect(self.completeChanged)
-
-        self.lineedit_speed = QtWidgets.QLineEdit()
-        self.lineedit_speed.setText(str(config.speed))
-        self.lineedit_speed.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
-        self.lineedit_speed.textEdited.connect(self.completeChanged)
-
-        self.lineedit_scantime = QtWidgets.QLineEdit()
-        self.lineedit_scantime.setText(str(config.scantime))
-        self.lineedit_scantime.setValidator(DecimalValidatorNoZero(0, 1e3, 4))
-        self.lineedit_scantime.textEdited.connect(self.completeChanged)
+        super().__init__(config, parent)
+        self._srrdata: List[np.ndarray] = []
 
         # Krisskross params
         self.lineedit_warmup = QtWidgets.QLineEdit()
@@ -241,39 +157,125 @@ class SRRConfigPage(QtWidgets.QWizardPage):
             "The number of subpixels per pixel in each dimension."
         )
 
-        # Form layout for line edits
-        config_layout = QtWidgets.QFormLayout()
-        config_layout.addRow("Spotsize (μm):", self.lineedit_spotsize)
-        config_layout.addRow("Speed (μm):", self.lineedit_speed)
-        config_layout.addRow("Scantime (s):", self.lineedit_scantime)
-
-        config_gbox = QtWidgets.QGroupBox("Laser Configuration", self)
-        config_gbox.setLayout(config_layout)
-
+        params_box = QtWidgets.QGroupBox("SRR Parameters", self)
         params_layout = QtWidgets.QFormLayout()
         params_layout.addRow("Warmup (s):", self.lineedit_warmup)
         params_layout.addRow("Subpixel width:", self.spinbox_offsets)
+        params_box.setLayout(params_layout)
 
-        params_gbox = QtWidgets.QGroupBox("SRRLaser Parameters", self)
-        params_gbox.setLayout(params_layout)
+        self.layout().addWidget(params_box)
 
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(config_gbox)
-        layout.addWidget(params_gbox)
-        self.setLayout(layout)
-
-        self.registerField("spotsize", self.lineedit_spotsize)
-        self.registerField("speed", self.lineedit_speed)
-        self.registerField("scantime", self.lineedit_scantime)
         self.registerField("warmup", self.lineedit_warmup)
-        self.registerField("subpixel_width", self.spinbox_offsets)
+        self.registerField("subpixelWidth", self.spinbox_offsets)
+
+    def getData(self) -> np.ndarray:
+        return self._srrdata
+
+    def setData(self, data: np.ndarray) -> None:
+        self._srrdata = data
+        self.dataChanged.emit()
+
+    def initializePage(self) -> None:
+        if self.field("agilent"):
+            data, params = self.readSRRAgilent(self.field("agilent.paths"))
+        elif self.field("numpy"):
+            data, params = self.readSRRNumpy(self.field("numpy.paths"))
+        elif self.field("text"):
+            data, params = self.readSRRText(self.field("text.paths"))
+        elif self.field("thermo"):
+            data, params = self.readSRRThermo(self.field("thermo.paths"))
+
+        if "scantime" in params:
+            self.setField("scantime", f"{params['scantime']:.4g}")
+        if "speed" in params:
+            self.setField("speed", f"{params['speed']:.2g}")
+        if "spotsize" in params:
+            self.setField("spotsize", f"{params['spotsize']:.2g}")
+
+        self.setField("laserdata", data)
+        self.setElidedNames(data[0].dtype.names)
+
+    def configValid(self) -> bool:
+        data = self.field("laserdata")
+        if len(data) < 2:
+            return False
+        spotsize = float(self.field("spotsize"))
+        speed = float(self.field("speed"))
+        scantime = float(self.field("scantime"))
+        mag = np.round(spotsize / (speed * scantime)).astype(int)
+        warmup = np.round(float(self.field("warmup")) / scantime).astype(int)
+        if mag == 0:
+            return False
+
+        shape = data[1].shape[0], data[0].shape[1]
+        limit = data[0].shape[0], data[1].shape[1]
+        if mag * shape[0] + warmup > limit[0]:
+            return False
+        if mag * shape[1] + warmup > limit[1]:
+            return False
+        return True
+
+    def getNames(self) -> List[str]:
+        data = self.field("laserdata")[0]
+        return data.dtype.names if data is not None else []
 
     def isComplete(self) -> bool:
-        return all(
-            [
-                self.lineedit_spotsize.hasAcceptableInput(),
-                self.lineedit_speed.hasAcceptableInput(),
-                self.lineedit_scantime.hasAcceptableInput(),
-                self.lineedit_warmup.hasAcceptableInput(),
-            ]
+        if not super().isComplete():
+            return False
+        if not self.lineedit_warmup.hasAcceptableInput():
+            return False
+        return self.configValid()
+
+    def readSRRAgilent(self, paths: List[str]) -> Tuple[List[np.ndarray], dict]:
+        data, param = self.readAgilent(paths[0])
+        datas = [data]
+        for path in paths[1:]:
+            data, _ = self.readAgilent(path)
+            datas.append(data)
+
+        return datas, param
+
+    def readSRRNumpy(self, paths: List[str]) -> Tuple[List[np.ndarray], dict]:
+        lasers = [io.npz.load(path)[0] for path in paths]
+        param = dict(
+            scantime=lasers[0].config.scantime,
+            speed=lasers[0].config.speed,
+            spotsize=lasers[0].config.spotsize,
         )
+        return [laser.data for laser in lasers], param
+
+    def readSRRText(self, paths: List[str]) -> Tuple[np.ndarray, dict]:
+        data, param = self.readAgilent(paths[0])
+        datas = [data]
+        for path in paths[1:]:
+            data, _ = self.readText(path)
+            datas.append(data)
+
+        return data, param
+
+    def readSRRThermo(self, paths: List[str]) -> Tuple[np.ndarray, dict]:
+        data, param = self.readAgilent(paths[0])
+        datas = [data]
+        for path in paths[1:]:
+            data, _ = self.readText(path)
+            datas.append(data)
+
+        return data, param
+
+    def setElidedNames(self, names: List[str]) -> None:
+        text = ", ".join(name for name in names)
+        fm = QtGui.QFontMetrics(self.label_isotopes.font())
+        text = fm.elidedText(text, QtCore.Qt.ElideRight, self.label_isotopes.width())
+        self.label_isotopes.setText(text)
+
+    def updateNames(self, rename: dict) -> None:
+        datas = self.field("laserdata")
+        for data in datas:
+            remove = [name for name in data.dtype.names if name not in rename]
+            data = rfn.drop_fields(data, remove, usemask=False)
+            data = rfn.rename_fields(data, rename)
+
+        self.setField("laserdata", datas)
+        self.setElidedNames(datas[0].dtype.names)
+
+    data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
