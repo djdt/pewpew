@@ -259,7 +259,7 @@ class ConfigPage(QtWidgets.QWizardPage):
     def readAgilent(self, path: str) -> Tuple[np.ndarray, dict]:
         agilent_method = self.field("agilent.method")
         if agilent_method == "Alphabetical Order":
-            method = None
+            method = []  # Fallback to alphabetical
         elif agilent_method == "Acquistion Method":
             method = ["acq_method_xml"]
         elif agilent_method == "Batch Log CSV":
