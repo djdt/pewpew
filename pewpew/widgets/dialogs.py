@@ -813,12 +813,20 @@ class StatsDialog(QtWidgets.QDialog):
 
         self.label_shape.setText(str(data.shape))
         self.label_size.setText(str(data.size))
-        if self.pixel_size is not None:
-            self.label_area.setText(
-                f"{data.size * self.pixel_size[0] * self.pixel_size[1]:.0f} μm²"
-            )
         # Discard nans and shape
         data = data[~np.isnan(data)].ravel()
+        if self.pixel_size is not None:
+            area = data.size * self.pixel_size[0] * self.pixel_size[1]
+            if area > 1e11:
+                area /= 1e8
+                unit = "cm"
+            elif area > 1e6:
+                area /= 1e6
+                unit = "mm"
+            else:
+                unit = "μm"
+
+            self.label_area.setText(f"{area:.6g} {unit}²")
 
         self.label_min.setText(f"{np.min(data):.4g}")
         self.label_max.setText(f"{np.max(data):.4g}")
