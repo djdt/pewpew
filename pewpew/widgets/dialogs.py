@@ -760,8 +760,12 @@ class StatsDialog(QtWidgets.QDialog):
         self.canvas = BasicCanvas(figsize=(6, 2))
         self.canvas.ax = self.canvas.figure.add_subplot()
 
+        self.button_clipboard = QtWidgets.QPushButton("Copy to Clipboard")
+        self.button_clipboard.pressed.connect(self.copyToClipboard)
+
         self.button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
         self.button_box.rejected.connect(self.close)
+        self.button_box.addButton(self.button_clipboard)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.addItems(self.data.dtype.names or [isotope])
@@ -806,6 +810,40 @@ class StatsDialog(QtWidgets.QDialog):
 
         # Calculate the range
         self.updateStats()
+
+    def copyToClipboard(self) -> None:
+        data = (
+            '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
+            "<table>"
+        )
+        text = ""
+        size = self.data[~np.isnan(self.data)].size
+        area = size * self.pixel_size[0] * self.pixel_size[1]
+
+        data += f"<tr><td>Size</td><td>{size}</td></tr>"
+        text += f"Size\t{size}\n"
+        data += f"<tr><td>Area</td><td>{area}</td><td>μm²</td></tr>"
+        text += f"Shape\t{area}\n"
+
+        data += "<tr><td>Name</td><td>Min</td><td>Max</td><td>Mean</td><td>Median</td><td>Std dev</tr>"
+        text += "Name\tMin\tMax\tMean\tMedian\tStd dev\n"
+
+        for name in self.data.dtype.names:
+            nd = self.data[name]
+
+            data += f"<tr><td>{name}</td><td>{np.min(nd)}</td><td>{np.max(nd)}</td>"
+            data += f"<td>{np.mean(nd)}</td><td>{np.median(nd)}</td><td>{np.std(nd)}</td></tr>"
+
+            text += f"{name}\t{np.min(nd)}\t{np.max(nd)}\t"
+            text += f"{np.mean(nd)}\t{np.median(nd)}\t{np.std(nd)}\n"
+
+        text = text.rstrip("\n")
+        data += "</table>"
+
+        mime = QtCore.QMimeData()
+        mime.setHtml(data)
+        mime.setText(text)
+        QtWidgets.QApplication.clipboard().setMimeData(mime)
 
     def updateStats(self) -> None:
         isotope = self.combo_isotope.currentText()
