@@ -765,7 +765,7 @@ class StatsDialog(QtWidgets.QDialog):
 
         self.button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
         self.button_box.rejected.connect(self.close)
-        self.button_box.addButton(self.button_clipboard)
+        self.button_box.addButton(self.button_clipboard, QtWidgets.QDialogButtonBox.ActionRole)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.addItems(self.data.dtype.names or [isotope])
@@ -817,7 +817,7 @@ class StatsDialog(QtWidgets.QDialog):
             "<table>"
         )
         text = ""
-        size = self.data[~np.isnan(self.data)].size
+        size = self.data[~np.isnan(self.data[self.data.dtype.names[0]])].size
         area = size * self.pixel_size[0] * self.pixel_size[1]
 
         data += f"<tr><td>Size</td><td>{size}</td></tr>"
@@ -830,6 +830,7 @@ class StatsDialog(QtWidgets.QDialog):
 
         for name in self.data.dtype.names:
             nd = self.data[name]
+            nd = nd[~np.isnan(nd)]
 
             data += f"<tr><td>{name}</td><td>{np.min(nd)}</td><td>{np.max(nd)}</td>"
             data += f"<td>{np.mean(nd)}</td><td>{np.median(nd)}</td><td>{np.std(nd)}</td></tr>"
