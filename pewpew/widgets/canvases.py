@@ -81,7 +81,7 @@ class ImageCanvas(BasicCanvas):
 
         self.figure.clear()
         self.ax = self.figure.add_subplot(
-            facecolor="black", autoscale_on=False, xmargin=0, ymargin=0
+            facecolor="#181818", autoscale_on=False, xmargin=0, ymargin=0
         )
         self.ax.get_xaxis().set_visible(False)
         self.ax.get_yaxis().set_visible(False)

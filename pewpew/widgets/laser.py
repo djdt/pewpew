@@ -513,13 +513,41 @@ class LaserWidget(_ViewWidget):
         w, h = extent[1] - extent[0], extent[3] - extent[2]
         sy, sx = self.laser.data.shape
         data = self.laser.data[
-            sy - int(new_extent[3] / h * sy) : sy - int(new_extent[2] / h * sy),
+            int(new_extent[2] / h * sy) : int(new_extent[3] / h * sy),
             int(new_extent[0] / w * sx) : int(new_extent[1] / w * sx),
         ]
 
         new_widget = self.view.addLaser(
             Laser(
                 data,
+                calibration=self.laser.calibration,
+                config=self.laser.config,
+                name=self.laser.name + "_cropped",
+            )
+        )
+        new_widget.setActive()
+
+    def cropToSelection(self) -> None:
+        if self.is_srr:
+            QtWidgets.QMessageBox.information(
+                self, "Transform", "Unable to transform SRR data."
+            )
+            return
+
+        mask = self.canvas.selection
+        if mask is None or np.all(mask == 0):
+            return
+        ix, iy = np.nonzero(mask)
+        x0, x1, y0, y1 = np.min(ix), np.max(ix) + 1, np.min(iy), np.max(iy) + 1
+
+        data = self.laser.data
+        new_data = np.empty((x1 - x0, y1 - y0), dtype=data.dtype)
+        for name in new_data.dtype.names:
+            new_data[name] = np.where(mask[x0:x1, y0:y1], data[name][x0:x1, y0:y1], np.nan)
+
+        new_widget = self.view.addLaser(
+            Laser(
+                new_data,
                 calibration=self.laser.calibration,
                 config=self.laser.config,
                 name=self.laser.name + "_cropped",

@@ -170,12 +170,19 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionToolOverlay,
         )
 
-        self.action_transform_crop = qAction(
+        self.action_crop_view = qAction(
             "transform-crop",
             "Crop to View",
             "Crop the image to the current view.",
-            self.actionTransformCrop,
+            self.actionCropView,
         )
+        self.action_crop_selection = qAction(
+            "transform-crop",
+            "Crop to Selection",
+            "Crop the image to the current selection.",
+            self.actionCropSelection,
+        )
+
         self.action_transform_flip_horizontal = qAction(
             "object-flip-horizontal",
             "Flip Horizontal",
@@ -275,6 +282,18 @@ class MainWindow(QtWidgets.QMainWindow):
         text = action.text().replace("&", "")
         self.viewspace.options.image.set_cmap_name(text)
         self.refresh()
+
+    def actionCropView(self) -> None:
+        widget = self.viewspace.activeWidget()
+        if widget is None:
+            return
+        widget.crop()
+
+    def actionCropSelection(self) -> None:
+        widget = self.viewspace.activeWidget()
+        if widget is None:
+            return
+        widget.cropToSelection()
 
     def actionGroupInterp(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
@@ -384,12 +403,6 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         widget.transform(rotate="right")
 
-    def actionTransformCrop(self) -> None:
-        widget = self.viewspace.activeWidget()
-        if widget is None:
-            return
-        widget.crop()
-
     def createMenus(self) -> None:
         # File
         menu_file = self.menuBar().addMenu("&File")
@@ -415,7 +428,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu_edit.addSeparator()
 
-        menu_edit.addAction(self.action_transform_crop)
+        menu_edit.addAction(self.action_crop_view)
+        menu_edit.addAction(self.action_crop_selection)
+
+        menu_edit.addSeparator()
+
         menu_edit.addAction(self.action_transform_flip_horizontal)
         menu_edit.addAction(self.action_transform_flip_vertical)
         menu_edit.addAction(self.action_transform_rotate_left)
