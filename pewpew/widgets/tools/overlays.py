@@ -179,7 +179,7 @@ class OverlayTool(ToolWidget):
             imsave(path, self.canvas.image.get_array())
         else:
             self.canvas.figure.savefig(
-                path, dpi=300, bbox_inches="tight", transparent=True, facecolor=None
+                path, dpi=300, bbox_inches="tight", transparent=False, facecolor="black"
             )
 
     def updateCursorStatus(self, v: np.ndarray) -> None:
@@ -259,7 +259,7 @@ class OverlayCanvas(InteractiveImageCanvas):
             interpolation=self.viewoptions.image.interpolation,
             extent=extent,
             aspect="equal",
-            origin="upper",
+            origin="lower",
         )
 
 
@@ -579,7 +579,11 @@ class OverlayExportDialog(_ExportDialogBase):
                     self.widget.canvas.figure.get_size_inches()
                 )
                 canvas.figure.savefig(
-                    path, dpi=300, bbox_inches="tight", transparent=True, facecolor=None
+                    path,
+                    dpi=300,
+                    bbox_inches="tight",
+                    transparent=False,
+                    facecolor="black",
                 )
                 canvas.close()
         else:

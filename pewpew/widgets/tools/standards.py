@@ -310,12 +310,12 @@ class StandardsCanvas(InteractiveImageCanvas):
             interpolation=self.viewoptions.image.interpolation,
             alpha=self.viewoptions.image.alpha,
             aspect="equal",
-            origin="upper",
+            origin="lower",
         )
 
     def drawLevels(self, texts: List[str], levels: int) -> None:
         x0, x1, y0, y1 = self.extent
-        pos = np.linspace(y1, y0, num=levels + 1)
+        pos = np.linspace(y0, y1, num=levels + 1)
         # Snap
         py = (y1 - y0) / self.image.get_array().shape[0]
         pos = py * np.round(pos / py)
@@ -397,7 +397,7 @@ class StandardsCanvas(InteractiveImageCanvas):
         shape = self.image.get_array().shape
         x0, x1, y0, y1 = self.extent
         py = (y1 - y0) / shape[0]  # Axes coords
-        levels = shape[0] - np.array(
+        levels = np.array(
             [guide.get_ydata()[0] / py for guide in self.level_guides[:-1]], dtype=int
         )
         return levels
