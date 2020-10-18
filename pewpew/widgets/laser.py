@@ -489,11 +489,7 @@ class LaserWidget(_ViewWidget):
             status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
 
     def updateNames(self, rename: dict) -> None:
-        print(rename)
         current = self.combo_isotope.currentText()
-        # remove = [name for name in self.laser.isotopes if name not in rename]
-
-        # self.laser.remove(remove)
         self.laser.rename(rename)
         self.populateIsotopes()
         current = rename[current]
@@ -520,12 +516,14 @@ class LaserWidget(_ViewWidget):
             int(new_extent[0] / w * sx) : int(new_extent[1] / w * sx),
         ]
 
+        path, ext = os.path.splitext(self.laser.path)
         new_widget = self.view.addLaser(
             Laser(
                 data,
                 calibration=self.laser.calibration,
                 config=self.laser.config,
                 name=self.laser.name + "_cropped",
+                path=os.path.join(path, self.laser.name + "_cropped" + ext)
             )
         )
         new_widget.setActive()
@@ -550,12 +548,14 @@ class LaserWidget(_ViewWidget):
                 mask[x0:x1, y0:y1], data[name][x0:x1, y0:y1], np.nan
             )
 
+        path, ext = os.path.splitext(self.laser.path)
         new_widget = self.view.addLaser(
             Laser(
                 new_data,
                 calibration=self.laser.calibration,
                 config=self.laser.config,
                 name=self.laser.name + "_cropped",
+                path=os.path.join(path, self.laser.name + "_cropped" + ext)
             )
         )
         new_widget.setActive()
