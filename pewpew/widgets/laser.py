@@ -1,6 +1,5 @@
 import copy
 import numpy as np
-import numpy.lib.recfunctions as rfn
 import os
 import logging
 
@@ -34,8 +33,12 @@ logger = logging.getLogger(__name__)
 
 
 class LaserViewSpace(ViewSpace):
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
+    def __init__(
+        self,
+        orientaion: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(orientaion, parent)
         self.config = Config()
         self.options = ViewOptions()
 
@@ -543,7 +546,9 @@ class LaserWidget(_ViewWidget):
         data = self.laser.data
         new_data = np.empty((x1 - x0, y1 - y0), dtype=data.dtype)
         for name in new_data.dtype.names:
-            new_data[name] = np.where(mask[x0:x1, y0:y1], data[name][x0:x1, y0:y1], np.nan)
+            new_data[name] = np.where(
+                mask[x0:x1, y0:y1], data[name][x0:x1, y0:y1], np.nan
+            )
 
         new_widget = self.view.addLaser(
             Laser(
