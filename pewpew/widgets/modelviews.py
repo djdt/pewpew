@@ -79,16 +79,19 @@ class BasicTableView(QtWidgets.QTableView):
                 self.model().setData(i, "")
 
     def _paste(self) -> None:
-        text = QtWidgets.QApplication.clipboard().text("plain")
+        text = QtWidgets.QApplication.clipboard().text("plain")[0]
         selection = self.selectedIndexes()
         start_row = min(selection, key=lambda i: i.row()).row()
         start_column = min(selection, key=lambda i: i.column()).column()
 
-        for row, row_text in enumerate(text[0].split("\n")):
+        for row, row_text in enumerate(text.split("\n")):
             for column, text in enumerate(row_text.split("\t")):
-                index = self.model().createIndex(start_row + row, start_column + column)
-                if index.flags() & QtCore.Qt.ItemIsEditable:
-                    self.model().setData(index, text)
+                if self.model().hasIndex(start_row + row, start_column + column):
+                    index = self.model().createIndex(
+                        start_row + row, start_column + column
+                    )
+                    if index.isValid() and index.flags() & QtCore.Qt.ItemIsEditable:
+                        self.model().setData(index, text)
 
 
 class BasicTable(QtWidgets.QTableWidget):
