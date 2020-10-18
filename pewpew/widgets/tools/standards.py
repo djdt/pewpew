@@ -17,7 +17,7 @@ from pewpew.lib.mpltools import LabeledLine2D
 from pewpew.validators import DoubleSignificantFiguresDelegate
 from pewpew.widgets.canvases import InteractiveImageCanvas
 from pewpew.widgets.dialogs import CalibrationCurveDialog
-from pewpew.widgets.modelviews import BasicTableView
+from pewpew.widgets.modelviews import BasicTable, BasicTableView
 from pewpew.widgets.laser import LaserWidget
 
 from .tool import ToolWidget
@@ -43,14 +43,18 @@ class StandardsTool(ToolWidget):
         self.spinbox_levels.valueChanged.connect(self.spinBoxLevels)
 
         self.lineedit_units = QtWidgets.QLineEdit()
+        self.lineedit_units.setSizePolicy(
+            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
+        )
         self.lineedit_units.editingFinished.connect(self.lineeditUnits)
 
         self.combo_weighting = QtWidgets.QComboBox()
         self.combo_weighting.addItems(self.WEIGHTINGS)
         self.combo_weighting.currentIndexChanged.connect(self.comboWeighting)
 
-        self.results_box = StandardsResultsBox()
-        self.results_box.button_plot.pressed.connect(self.showCurve)
+        self.results = StandardsResultsTable(self)
+
+        # self.results_box.button_plot.pressed.connect(self.showCurve)
 
         # Right side
         self.canvas = StandardsCanvas(self.viewspace.options, parent=self)
@@ -66,8 +70,6 @@ class StandardsTool(ToolWidget):
         self.table.model().dataChanged.connect(self.completeChanged)
         self.table.model().dataChanged.connect(self.updateResults)
 
-        self.layoutWidgets()
-
         # Initialise
         self.calibration = copy.deepcopy(self.widget.laser.calibration)
         # Prevent currentIndexChanged being emmited
@@ -82,6 +84,8 @@ class StandardsTool(ToolWidget):
         self.lineedit_units.setText(self.calibration[isotope].unit)
         self.table.model().setCalibration(self.calibration[isotope])
 
+        self.layoutWidgets()
+
         self.refresh()
         self.updateResults()
 
@@ -93,25 +97,39 @@ class StandardsTool(ToolWidget):
         layout_table_form.addRow("Units:", self.lineedit_units)
         layout_table_form.addRow("Weighting:", self.combo_weighting)
 
-        layout_left = QtWidgets.QVBoxLayout()
-        layout_left.addLayout(layout_cal_form)
-        layout_left.addWidget(self.table)
-        layout_left.addLayout(layout_table_form)
-        layout_left.addWidget(self.results_box)
+        # layout_left = QtWidgets.QVBoxLayout()
+        # layout_left.addLayout(layout_cal_form)
+        # layout_left.addWidget(self.table)
+        # layout_left.addLayout(layout_table_form)
+        # layout_left.addWidget(self.results)
 
         layout_canvas_bar = QtWidgets.QHBoxLayout()
         layout_canvas_bar.addWidget(
             self.combo_isotope, 0, QtCore.Qt.AlignTop | QtCore.Qt.AlignRight
         )
 
-        layout_right = QtWidgets.QVBoxLayout()
-        layout_right.addWidget(self.canvas, 0, QtCore.Qt.AlignTop)
-        layout_right.addStretch(1)
-        layout_right.addLayout(layout_canvas_bar)
+        # layout_right = QtWidgets.QVBoxLayout()
+        # layout_right.addWidget(self.canvas, 0, QtCore.Qt.AlignTop)
+        # layout_right.addStretch(1)
+        # layout_right.addLayout(layout_canvas_bar)
 
-        self.layout_main.setDirection(QtWidgets.QBoxLayout.LeftToRight)
-        self.layout_main.addLayout(layout_left, 0)
-        self.layout_main.addLayout(layout_right, 1)
+        layout = QtWidgets.QGridLayout()
+        layout.setColumnStretch(1, 1)
+        layout.setRowStretch(1, 1)
+        layout.addLayout(layout_cal_form, 0, 0, 1, 1, QtCore.Qt.AlignLeft)
+        layout.addWidget(self.table, 1, 0, 1, 1, QtCore.Qt.AlignLeft)
+        layout.addLayout(layout_table_form, 2, 0, 1, 1, QtCore.Qt.AlignLeft)
+
+        layout.addWidget(self.canvas, 0, 1, 3, 2)
+        layout.addWidget(
+            self.combo_isotope, 3, 1, 1, 1, QtCore.Qt.AlignTop | QtCore.Qt.AlignRight
+        )
+        layout.addWidget(self.results, 4, 0, 1, 3)
+
+        self.layout_main.addLayout(layout)
+        # self.layout_main.setDirection(QtWidgets.QBoxLayout.LeftToRight)
+        # self.layout_main.addLayout(layout_left, 0)
+        # self.layout_main.addLayout(layout_right, 1)
 
     def apply(self) -> None:
         self.widget.applyCalibration(self.calibration)  # pragma: no cover
@@ -183,12 +201,12 @@ class StandardsTool(ToolWidget):
         self.updateWeights()
         # Clear results if not complete
         if not self.isComplete():
-            self.results_box.clear()
+            self.results.clearResults()
             return
         else:
             isotope = self.combo_isotope.currentText()
             self.calibration[isotope].update_linreg()
-            self.results_box.update(self.calibration[isotope])
+            self.results.updateResults(self.calibration[isotope])
 
     # Widget callbacks
     def comboIsotope(self, text: str) -> None:
@@ -413,73 +431,108 @@ class StandardsCanvas(InteractiveImageCanvas):
         return np.min(trim), np.max(trim)
 
 
-class StandardsResultsBox(QtWidgets.QGroupBox):
+class StandardsResultsTable(BasicTable):
     LABELS = ["RSQ", "Gradient", "Intercept", "Sxy", "LOD (3σ)"]
 
-    # TODO rearange this into 2 rows
     def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__("Results", parent)
-        self.lineedits: List[QtWidgets.QLineEdit] = []
-        self.button_copy = QtWidgets.QPushButton("Copy")
-        self.button_copy.pressed.connect(self.copy)
-        self.button_copy.setEnabled(False)
-        self.button_plot = QtWidgets.QPushButton("Plot")
-        self.button_plot.setEnabled(False)
+        super().__init__(2, 5, parent)
+        self.horizontalHeader().hide()
+        self.verticalHeader().hide()
+        self.setSortingEnabled(False)
+        for r in range(2):
+            for c in range(len(StandardsResultsTable.LABELS)):
+                item = QtWidgets.QTableWidgetItem()
+                item.setFlags(item.flags() | ~QtCore.Qt.ItemIsEditable)
+                self.setItem(r, c, item)
+        # self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        # self.setHorizontalHeaderLabels(StandardsResultsTable.LABELS)
+        # self.horizontalHeader().setStretchLastSection(True)
+        # self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        # self.verticalHeader().setSectionResizeMode(
+        #     QtWidgets.QHeaderView.ResizeToContents
+        # )
+        # self.setItemDelegate(DoubleSignificantFiguresDelegate(4))
+        # readonly_item = QtWidgets.QTableWidgetItem("")
+        # readonly_item.setFlags(readonly_item.flags() | ~(QtCore.Qt.ItemIsEditable))
+        # self.setItemPrototype(readonly_item)
+        # self.setRowText(1, StandardsResultsTable.LABELS)
+        # self.lineedits: List[QtWidgets.QLineEdit] = []
+        # self.button_copy = QtWidgets.QPushButton("Copy")
+        # self.button_copy.pressed.connect(self.copy)
+        # self.button_copy.setEnabled(False)
+        # self.button_plot = QtWidgets.QPushButton("Plot")
+        # self.button_plot.setEnabled(False)
 
-        layout = QtWidgets.QFormLayout()
+        # layout = QtWidgets.QFormLayout()
 
-        for label in StandardsResultsBox.LABELS:
-            le = QtWidgets.QLineEdit()
-            le.setReadOnly(True)
+    #         for label in StandardsResultsBox.LABELS:
+    #             le = QtWidgets.QLineEdit()
+    #             le.setReadOnly(True)
 
-            layout.addRow(label, le)
-            self.lineedits.append(le)
+    #             layout.addRow(label, le)
+    #             self.lineedits.append(le)
 
-        button_layout = QtWidgets.QHBoxLayout()
-        button_layout.addWidget(self.button_copy, 0, QtCore.Qt.AlignLeft)
-        button_layout.addWidget(self.button_plot, 0, QtCore.Qt.AlignRight)
-        layout.addRow(button_layout)
-        self.setLayout(layout)
+    #         button_layout = QtWidgets.QHBoxLayout()
+    #         button_layout.addWidget(self.button_copy, 0, QtCore.Qt.AlignLeft)
+    #         button_layout.addWidget(self.button_plot, 0, QtCore.Qt.AlignRight)
+    #         layout.addRow(button_layout)
+    #         self.setLayout(layout)
 
-    def copy(self) -> None:
-        data = (
-            '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
-            "<table>"
-        )
-        text = ""
+    # def copy(self) -> None:
+    #     data = (
+    #         '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
+    #         "<table>"
+    #     )
+    #     text = ""
 
-        for label, lineedit in zip(StandardsResultsBox.LABELS, self.lineedits):
-            value = lineedit.text()
-            data += f"<tr><td>{label}</td><td>{value}</td></tr>"
-            text += f"{label}\t{value}\n"
-        text = text.rstrip("\n")
-        data += "</table>"
+    #     for label, lineedit in zip(StandardsResultsBox.LABELS, self.lineedits):
+    #         value = lineedit.text()
+    #         data += f"<tr><td>{label}</td><td>{value}</td></tr>"
+    #         text += f"{label}\t{value}\n"
+    #     text = text.rstrip("\n")
+    #     data += "</table>"
 
-        mime = QtCore.QMimeData()
-        mime.setHtml(data)
-        mime.setText(text)
-        QtWidgets.QApplication.clipboard().setMimeData(mime)
+    #     mime = QtCore.QMimeData()
+    #     mime.setHtml(data)
+    #     mime.setText(text)
+    #     QtWidgets.QApplication.clipboard().setMimeData(mime)
 
-    def clear(self) -> None:
-        for le in self.lineedits:
-            le.setText("")
-        self.button_copy.setEnabled(False)
-        self.button_plot.setEnabled(False)
+    # def clear(self) -> None:
+    #     for le in self.lineedits:
+    #         le.setText("")
+    #     self.button_copy.setEnabled(False)
+    #     self.button_plot.setEnabled(False)
 
-    def update(self, calibration: Calibration) -> None:
-        for v, le in zip(
+    def clearResults(self) -> None:
+        for i in range(len(StandardsResultsTable.LABELS)):
+            self.item(1, i).setText("")
+
+    def updateResults(self, calibration: Calibration) -> None:
+        for i, v in enumerate(
             [
                 calibration.rsq,
                 calibration.gradient,
                 calibration.intercept,
                 calibration.error,
                 (3.0 * calibration.error / calibration.gradient),
-            ],
-            self.lineedits,
+            ]
         ):
-            le.setText(f"{v:.4f}" if v is not None else "")
-        self.button_copy.setEnabled(True)
-        self.button_plot.setEnabled(True)
+            item = self.item(1, i)
+            item.setText(f"{v:.4f}")
+        # for v, le in zip(
+        #     [
+        #         calibration.rsq,
+        #         calibration.gradient,
+        #         calibration.intercept,
+        #         calibration.error,
+        #         (3.0 * calibration.error / calibration.gradient),
+        #     ],
+        #     self.lineedits,
+        # ):
+        #     le.setText(f"{v:.4f}" if v is not None else "")
+
+        # self.button_copy.setEnabled(True)
+        # self.button_plot.setEnabled(True)
 
 
 class CalibrationPointsTableModel(NumpyArrayTableModel):
@@ -567,9 +620,9 @@ class StandardsTable(BasicTableView):
 
     def __init__(self, calibration: Calibration, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding
-        )
+        # self.setSizePolicy(
+        #     QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding
+        # )
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         model = CalibrationPointsTableModel(calibration, self)
         self.setModel(model)
