@@ -75,6 +75,7 @@ class ImageCanvas(BasicCanvas):
     ):
         super().__init__(figsize, parent)
         self.image: AxesImage = None
+        self.previousSize: QtCore.QSize = None
 
     def drawFigure(self) -> None:
         view_limits = self.view_limits if self.ax is not None else None
@@ -98,7 +99,10 @@ class ImageCanvas(BasicCanvas):
 
     @property
     def view_limits(self) -> Tuple[float, float, float, float]:
-        x0, x1, = self.ax.get_xlim()
+        (
+            x0,
+            x1,
+        ) = self.ax.get_xlim()
         y0, y1 = self.ax.get_ylim()
         return x0, x1, y1, y0
 
@@ -133,23 +137,26 @@ class ImageCanvas(BasicCanvas):
 
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
         super().resizeEvent(event)
+        # Apparently it's easier to just remember the last valid size
+        if self.isVisible() and event.oldSize().isValid():
+            self.previousSize = event.oldSize()
 
         x0, x1, y0, y1 = self.view_limits
         xmin, xmax, ymin, ymax = self.extentForAspect(self.extent)
 
-        rw = event.size().width() / event.oldSize().width()
-        rh = event.size().height() / event.oldSize().height()
-
-        # Check if view limits for the full aspect extent of previous size
-        if np.allclose(
+        # Check if view limits for the full aspect extent of previousious size
+        if self.previousSize is None or np.allclose(
             self.view_limits,
             self.extentForAspect(
-                self.extent, aspect=event.oldSize().width() / event.oldSize().height()
+                self.extent,
+                aspect=self.previousSize.width() / self.previousSize.height(),
             ),
         ):
             # Set view limits at new full aspect extent
             x0, x1, y0, y1 = xmin, xmax, ymin, ymax
         else:  # Adjust the view limits to fit aspect
+            rw = event.size().width() / self.previousSize.width()
+            rh = event.size().height() / self.previousSize.height()
             w, h = (x1 - x0), (y1 - y0)
             x0, x1 = x0 + w / 2.0 - (w / 2.0) * rw, x0 + w / 2.0 + (w / 2.0) * rw
             x0, x1 = max(xmin, x0), min(xmax, x1)
