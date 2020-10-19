@@ -138,7 +138,7 @@ class ImageCanvas(BasicCanvas):
     def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
         super().resizeEvent(event)
         # Apparently it's easier to just remember the last valid size
-        if self.isVisible() and event.oldSize().isValid():
+        if event.oldSize().isValid():
             self.previousSize = event.oldSize()
 
         x0, x1, y0, y1 = self.view_limits
