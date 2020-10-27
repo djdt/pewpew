@@ -5,12 +5,16 @@ Misc
 ----
 
 Overlay tool could use a colorbar scale.
-Standards result box should be in 2 rows.
 
 Colocal is slow (coastes has many python loop).
 
 Edit tool needs indicator for what is getting updated (single / multiple isotopes?)
 
+
+Selection Dialog
+----------------
+
+Add option for selection of currently selected / not-selected.
 
 Edit Tool
 ---------
