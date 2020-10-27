@@ -9,10 +9,11 @@ from matplotlib.colors import LinearSegmentedColormap
 from pew import Calibration, Config
 from pew.lib import colocal
 from pew.lib.calc import normalise
-from pew.lib.threshold import kmeans_threshold, otsu
+from pew.lib.threshold import otsu
 from pew.srr import SRRConfig
 
 from pewpew.lib.viewoptions import ViewOptions, ColorOptions
+from pewpew.lib import kmeans
 from pewpew.widgets.canvases import BasicCanvas
 from pewpew.validators import (
     DecimalValidator,
@@ -632,7 +633,7 @@ class SelectionDialog(QtWidgets.QDialog):
         "Mean": (np.nanmean, None),
         "Median": (np.nanmedian, None),
         "Otsu": (otsu, None),
-        "K-means": (kmeans_threshold, ("k: ", 3, (2, 9))),
+        "K-means": (kmeans.thresholds, ("k: ", 3, (2, 9))),
     }
     COMPARISION = {">": np.greater, "<": np.less, "=": np.equal}
 

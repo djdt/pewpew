@@ -3,12 +3,12 @@ import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pew.lib import convolve
-from pew.lib import filter as fltr
+from pew.lib import convolve, filters
 from pew.lib.calc import normalise
-from pew.lib.threshold import kmeans_threshold, otsu
+from pew.lib.threshold import otsu
 
 from pewpew.actions import qAction, qToolButton
+from pewpew.lib import kmeans
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
@@ -354,7 +354,7 @@ class CalculatorMethod(MethodStackWidget):
     }
     reducer_functions = {
         "abs": (np.abs, 1),
-        "kmeans": (kmeans_threshold, 2),
+        "kmeans": (kmeans.thresholds, 2),
         "mean": (np.nanmean, 1),
         "median": (np.nanmedian, 1),
         "normalise": (normalise, 3),
@@ -733,12 +733,12 @@ class FilterMethod(MethodStackWidget):
         #     "desc": ["Filter if low pass changes value d amount."],
         # },
         "Mean": {
-            "filter": fltr.mean_filter,
+            "filter": filters.rolling_mean,
             "params": [("σ", 3.0, (0.0, np.inf))],
             "desc": ["Filter if > σ stddevs from mean."],
         },
         "Median": {
-            "filter": fltr.median_filter,
+            "filter": filters.rolling_median,
             "params": [("M", 3.0, (0.0, np.inf))],
             "desc": ["Filter if > M medians from median."],
         },
