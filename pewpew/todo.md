@@ -10,12 +10,6 @@ Colocal is slow (coastes has many python loop).
 
 Edit tool needs indicator for what is getting updated (single / multiple isotopes?)
 
-
-Selection Dialog
-----------------
-
-Add option for selection of currently selected / not-selected.
-
 Edit Tool
 ---------
 _The transform tool is hard to use for trimming, draggable would help here._

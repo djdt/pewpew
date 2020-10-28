@@ -12,7 +12,7 @@ setup(
         "numpy",
         "matplotlib>=3.0.0",
         "PySide2",
-        "pew@git+https://github.com/djdt/pew#egg=pew-4.0.5",
+        "pew@git+https://github.com/djdt/pew#egg=pew-4.0.6",
     ],
     entry_points={"console_scripts": ["pewpew=pewpew.__main__:main"]},
     setup_requires=["pytest-runner"],
