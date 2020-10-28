@@ -410,6 +410,7 @@ class ViewTitleBar(QtWidgets.QWidget):
 
 
 class _ViewWidget(QtWidgets.QWidget):
+    refreshed = QtCore.Signal()
     def __init__(self, view: View, editable: bool = True):
         super().__init__(view)
         self.view = view
@@ -436,7 +437,7 @@ class _ViewWidget(QtWidgets.QWidget):
         self.view.setTabModified(self.index, modified)
 
     def refresh(self) -> None:  # pragma: no cover
-        raise NotImplementedError
+        self.refreshed.emit()
 
     def rename(self, text: str) -> None:  # pragma: no cover
         pass

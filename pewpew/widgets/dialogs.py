@@ -14,7 +14,7 @@ from pew.srr import SRRConfig
 
 from pewpew.lib.viewoptions import ViewOptions, ColorOptions
 from pewpew.lib import kmeans
-from pewpew.widgets.canvases import BasicCanvas
+from pewpew.widgets.canvases import BasicCanvas, SelectableImageCanvas
 from pewpew.validators import (
     DecimalValidator,
     DecimalValidatorNoZero,
@@ -625,8 +625,8 @@ class NameEditDialog(QtWidgets.QDialog):
             self.addName(name)
 
 
-class SelectionDialog(QtWidgets.QDialog):
-    maskSelected = QtCore.Signal(np.ndarray)
+class SelectionDialog(ApplyDialog):
+    maskSelected = QtCore.Signal(np.ndarray, str)
 
     METHODS = {
         "Manual": (None, None),
@@ -637,19 +637,13 @@ class SelectionDialog(QtWidgets.QDialog):
     }
     COMPARISION = {">": np.greater, "<": np.less, "=": np.equal}
 
-    def __init__(
-        self, data: np.ndarray, current: str, parent: QtWidgets.QWidget = None
-    ):
+    def __init__(self, canvas: SelectableImageCanvas, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Selection")
 
-        self.data = data
-        self.threshold: float = 0.0
+        self.canvas = canvas
 
-        self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.addItems(self.data.dtype.names)
-        self.combo_isotope.setCurrentText(current)
-        self.combo_isotope.activated.connect(self.refresh)
+        self.threshold: float = 0.0
 
         self.combo_method = QtWidgets.QComboBox()
         self.combo_method.addItems(list(self.METHODS.keys()))
@@ -673,11 +667,9 @@ class SelectionDialog(QtWidgets.QDialog):
         self.lineedit_manual.setEnabled(True)
         self.lineedit_manual.textEdited.connect(self.refresh)
 
-        self.button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Close
+        self.check_limit_to_selection = QtWidgets.QCheckBox(
+            "Limit to current selection."
         )
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.close)
 
         layout_method = QtWidgets.QHBoxLayout()
         layout_method.addWidget(self.combo_method)
@@ -688,19 +680,16 @@ class SelectionDialog(QtWidgets.QDialog):
         layout_comparison.addWidget(self.spinbox_comparison)
 
         layout_form = QtWidgets.QFormLayout()
-        layout_form.addRow("Isotope", self.combo_isotope)
         layout_form.addRow("Method", layout_method)
         layout_form.addRow("Comparison", layout_comparison)
         layout_form.addRow("Value", self.lineedit_manual)
+        layout_form.addRow(self.check_limit_to_selection)
 
-        layout = QtWidgets.QVBoxLayout()
-        layout.addLayout(layout_form)
-        layout.addWidget(self.button_box)
-        self.setLayout(layout)
+        self.layout_main.addLayout(layout_form)
 
     def refresh(self) -> None:
-        isotope = self.combo_isotope.currentText()
         method = self.combo_method.currentText()
+        data = self.canvas.image.get_array()
         # Enable lineedit if manual mode
         self.lineedit_manual.setEnabled(method == "Manual")
 
@@ -721,22 +710,21 @@ class SelectionDialog(QtWidgets.QDialog):
                 self.spinbox_comparison.setEnabled(True)
                 self.spinbox_comparison.setRange(1, self.spinbox_method.value() - 1)
 
-                self.threshold = op(self.data[isotope], self.spinbox_method.value())[
+                self.threshold = op(data, self.spinbox_method.value())[
                     self.spinbox_comparison.value() - 1
                 ]
             else:
                 self.spinbox_method.setEnabled(False)
                 self.spinbox_comparison.setEnabled(False)
 
-                self.threshold = op(self.data[isotope])
+                self.threshold = op(data)
             self.lineedit_manual.setText(f"{self.threshold:.4g}")
 
-    def accept(self) -> None:
-        isotope = self.combo_isotope.currentText()
+    def apply(self) -> None:
         comparison = self.COMPARISION[self.combo_comparison.currentText()]
-        mask = comparison(self.data[isotope], self.threshold)
-        self.maskSelected.emit(mask)
-        super().accept()
+        mask = comparison(self.canvas.image.get_array(), self.threshold)
+        state = "intersect" if self.check_limit_to_selection.isChecked() else None
+        self.maskSelected.emit(mask, state)
 
 
 class StatsDialog(QtWidgets.QDialog):
@@ -766,7 +754,9 @@ class StatsDialog(QtWidgets.QDialog):
 
         self.button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
         self.button_box.rejected.connect(self.close)
-        self.button_box.addButton(self.button_clipboard, QtWidgets.QDialogButtonBox.ActionRole)
+        self.button_box.addButton(
+            self.button_clipboard, QtWidgets.QDialogButtonBox.ActionRole
+        )
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.addItems(self.data.dtype.names or [isotope])
@@ -893,6 +883,8 @@ class StatsDialog(QtWidgets.QDialog):
         data = np.empty((x1 - x0, y1 - y0), dtype=structured.dtype)
         for name in structured.dtype.names:
             data[name] = np.where(
-                mask[x0:x1, y0:y1], structured[name][x0:x1, y0:y1], np.nan,
+                mask[x0:x1, y0:y1],
+                structured[name][x0:x1, y0:y1],
+                np.nan,
             )
         return data

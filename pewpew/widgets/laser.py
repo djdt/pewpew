@@ -61,7 +61,7 @@ class LaserViewSpace(ViewSpace):
         widget = self.activeWidget()
         if widget is None:
             return None
-        return widget.combo_isotope.currentText()
+        return widget.current_isotope
 
     def setCurrentIsotope(self, isotope: str) -> None:
         for view in self.views:
@@ -93,7 +93,7 @@ class LaserView(View):
     def setCurrentIsotope(self, isotope: str) -> None:
         for widget in self.widgets():
             if isotope in widget.laser.isotopes:
-                widget.combo_isotope.setCurrentText(isotope)
+                widget.current_isotope = isotope
 
     # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
@@ -252,10 +252,15 @@ class LaserWidgetImageCanvas(LaserImageCanvas):
         self.widget.set_active(True)
 
     def updateAndDrawSelection(self, mask: np.ndarray, state: set = None) -> None:
-        if state is not None and "add" in state and self.selection is not None:
-            self.selection = np.logical_or(self.selection, mask)
-        elif state is not None and "subtract" in state and self.selection is not None:
-            self.selection = np.logical_and(self.selection, ~mask)
+        if state is not None and self.selection is not None:
+            if "add" in state:
+                self.selection = np.logical_or(self.selection, mask)
+            elif"subtract" in state:
+                self.selection = np.logical_and(self.selection, ~mask)
+            elif "intersect" in state:
+                self.selection = np.logical_and(self.selection, mask)
+            else:
+                self.selection = mask
         else:
             self.selection = mask
 
@@ -435,15 +440,27 @@ class LaserWidget(_ViewWidget):
         layout.addLayout(layout_bar)
         self.setLayout(layout)
 
+    @property
+    def current_isotope(self) -> str:
+        return self.combo_isotope.currentText()
+
+    @current_isotope.setter
+    def current_isotope(self, isotope: str) -> None:
+        self.combo_isotope.setCurrentText(isotope)
+
+    @property
+    def current_layer(self) -> int:
+        if not self.is_srr or self.combo_layers.currentIndex() == 0:
+            return None
+        return int(self.combo_layers.currentText())
+
     # Virtual
     def refresh(self) -> None:
-        if not self.is_srr or self.combo_layers.currentIndex() == 0:
-            layer = None
-        else:
-            layer = int(self.combo_layers.currentText())
-
         self.canvas.widget = None
-        self.canvas.drawLaser(self.laser, self.combo_isotope.currentText(), layer=layer)
+        self.canvas.drawLaser(
+            self.laser, self.current_isotope, layer=self.current_layer
+        )
+        super().refresh()
 
     def rename(self, text: str) -> None:
         self.laser.name = text
@@ -470,11 +487,11 @@ class LaserWidget(_ViewWidget):
             return
         unit = self.canvas.viewoptions.units
 
-        if not self.is_srr or self.combo_layers.currentIndex() == 0:
+        layer = self.current_layer
+        if layer is None:
             px = self.laser.config.get_pixel_width()
             py = self.laser.config.get_pixel_height()
         else:
-            layer = int(self.combo_layers.currentText())
             px = self.laser.config.get_pixel_width(layer)
             py = self.laser.config.get_pixel_height(layer)
 
@@ -489,11 +506,11 @@ class LaserWidget(_ViewWidget):
             status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
 
     def updateNames(self, rename: dict) -> None:
-        current = self.combo_isotope.currentText()
+        current = self.current_isotope
         self.laser.rename(rename)
         self.populateIsotopes()
         current = rename[current]
-        self.combo_isotope.setCurrentText(current)
+        self.current_isotope = current
 
     # Transformations
     def crop(self, new_extent: Tuple[float, float, float, float] = None) -> None:
@@ -523,7 +540,7 @@ class LaserWidget(_ViewWidget):
                 calibration=self.laser.calibration,
                 config=self.laser.config,
                 name=self.laser.name + "_cropped",
-                path=os.path.join(path, self.laser.name + "_cropped" + ext)
+                path=os.path.join(path, self.laser.name + "_cropped" + ext),
             )
         )
         new_widget.setActive()
@@ -555,7 +572,7 @@ class LaserWidget(_ViewWidget):
                 calibration=self.laser.calibration,
                 config=self.laser.config,
                 name=self.laser.name + "_cropped",
-                path=os.path.join(path, self.laser.name + "_cropped" + ext)
+                path=os.path.join(path, self.laser.name + "_cropped" + ext),
             )
         )
         new_widget.setActive()
@@ -600,7 +617,7 @@ class LaserWidget(_ViewWidget):
 
     def actionCalibration(self) -> QtWidgets.QDialog:
         dlg = dialogs.CalibrationDialog(
-            self.laser.calibration, self.combo_isotope.currentText(), parent=self
+            self.laser.calibration, self.current_isotope, parent=self
         )
         dlg.calibrationSelected.connect(self.applyCalibration)
         dlg.calibrationApplyAll.connect(self.viewspace.applyCalibration)
@@ -641,11 +658,10 @@ class LaserWidget(_ViewWidget):
         return dlg
 
     def actionSelectDialog(self) -> QtWidgets.QDialog:
-        dlg = dialogs.SelectionDialog(
-            self.laser.get(flat=True), self.combo_isotope.currentText(), parent=self
-        )
+        dlg = dialogs.SelectionDialog(self.canvas, parent=self)
         dlg.maskSelected.connect(self.canvas.updateAndDrawSelection)
-        dlg.open()
+        self.refreshed.connect(dlg.refresh)
+        dlg.show()
         return dlg
 
     def actionStatistics(self) -> QtWidgets.QDialog:
@@ -656,7 +672,7 @@ class LaserWidget(_ViewWidget):
         dlg = dialogs.StatsDialog(
             self.laser.get(calibrate=self.viewspace.options.calibrate, flat=True),
             mask,
-            self.combo_isotope.currentText(),
+            self.current_isotope,
             pixel_size=(
                 self.laser.config.get_pixel_width(),
                 self.laser.config.get_pixel_height(),
