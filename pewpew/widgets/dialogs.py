@@ -667,9 +667,13 @@ class SelectionDialog(ApplyDialog):
         self.lineedit_manual.setEnabled(True)
         self.lineedit_manual.textEdited.connect(self.refresh)
 
-        self.check_limit_to_selection = QtWidgets.QCheckBox(
-            "Limit to current selection."
+        self.check_limit_selection = QtWidgets.QCheckBox(
+            "Limit selection to current selection."
         )
+        self.check_limit_threshold = QtWidgets.QCheckBox(
+            "Limit thresholding to current selection."
+        )
+        self.check_limit_threshold.clicked.connect(self.refresh)
 
         layout_method = QtWidgets.QHBoxLayout()
         layout_method.addWidget(self.combo_method)
@@ -683,13 +687,17 @@ class SelectionDialog(ApplyDialog):
         layout_form.addRow("Method", layout_method)
         layout_form.addRow("Comparison", layout_comparison)
         layout_form.addRow("Value", self.lineedit_manual)
-        layout_form.addRow(self.check_limit_to_selection)
+        layout_form.addRow(self.check_limit_selection)
+        layout_form.addRow(self.check_limit_threshold)
 
         self.layout_main.addLayout(layout_form)
 
     def refresh(self) -> None:
         method = self.combo_method.currentText()
         data = self.canvas.image.get_array()
+        if self.check_limit_threshold.isChecked() and self.canvas.selection is not None:
+            data = data[self.canvas.selection]
+
         # Enable lineedit if manual mode
         self.lineedit_manual.setEnabled(method == "Manual")
 
@@ -723,7 +731,7 @@ class SelectionDialog(ApplyDialog):
     def apply(self) -> None:
         comparison = self.COMPARISION[self.combo_comparison.currentText()]
         mask = comparison(self.canvas.image.get_array(), self.threshold)
-        state = "intersect" if self.check_limit_to_selection.isChecked() else None
+        state = "intersect" if self.check_limit_selection.isChecked() else None
         self.maskSelected.emit(mask, state)
 
 
