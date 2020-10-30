@@ -671,7 +671,7 @@ class SelectionDialog(ApplyDialog):
             "Limit selection to current selection."
         )
         self.check_limit_threshold = QtWidgets.QCheckBox(
-            "Limit thresholding to current selection."
+            "Limit thresholding to selected values."
         )
         self.check_limit_threshold.clicked.connect(self.refresh)
 
