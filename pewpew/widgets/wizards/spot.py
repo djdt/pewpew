@@ -400,7 +400,7 @@ class SpotPeakFindingPage(QtWidgets.QWizardPage):
     def updateData(self, idx: int = 0) -> None:
         path = self.paths[0]
         if self.field("radio_numpy"):
-            self.data = io.npz.load(path)[0].get(calibrated=None, flat=True)
+            self.data = io.npz.load(path).get(calibrated=None, flat=True)
         elif self.field("radio_agilent"):
             self.data = io.agilent.load(path)
         elif self.field("radio_thermo"):

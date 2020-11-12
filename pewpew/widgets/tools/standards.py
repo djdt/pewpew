@@ -468,7 +468,7 @@ class StandardsResultsTable(BasicTable):
 class CalibrationPointsTableModel(NumpyArrayTableModel):
     def __init__(self, calibration: Calibration, parent: QtCore.QObject = None):
         self.calibration = calibration
-        if self.calibration.points is None or self.calibration.points.size == 0:
+        if self.calibration.points.size == 0:
             array = np.array([[np.nan, np.nan]], dtype=np.float64)
         else:
             array = self.calibration.points
@@ -486,7 +486,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         self.beginResetModel()
         self.calibration = calibration
         new_array = np.full_like(self.array, np.nan)
-        if self.calibration.points is not None and self.calibration.points.size > 0:
+        if self.calibration.points.size > 0:
             min_row = np.min((new_array.shape[0], self.calibration.points.shape[0]))
             new_array[:min_row, :2] = self.calibration.points[:min_row]
         self.array = new_array
@@ -537,7 +537,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
 
     def updateCalibration(self, *args) -> None:
         if np.count_nonzero(np.nan_to_num(self.array[:, 0])) < 2:
-            self.calibration._points = None
+            self.calibration._points = np.array([[], []], dtype=np.float64)
         else:
             self.calibration.points = self.array[:, :2]
 

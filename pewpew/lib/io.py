@@ -21,7 +21,7 @@ def import_any(paths: List[str], config: Config) -> List[Laser]:
         logger.info(f"Importing {name}.")
 
         if ext == ".npz":
-            lasers.extend(io.npz.load(path))
+            lasers.append(io.npz.load(path))
         else:
             if ext == ".csv":
                 try:

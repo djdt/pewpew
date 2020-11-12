@@ -108,7 +108,7 @@ class SRRImportWizard(QtWidgets.QWizard):
             path = self.field("numpy.paths")[0]
             if self.field("numpy.useCalibration"):
                 # Hack
-                calibration = io.npz.load(path)[0].calibration
+                calibration = io.npz.load(path).calibration
         elif self.field("text"):
             path = self.field("text.paths")[0]
         elif self.field("thermo"):
@@ -236,7 +236,7 @@ class SRRConfigPage(ConfigPage):
         return datas, param
 
     def readSRRNumpy(self, paths: List[str]) -> Tuple[List[np.ndarray], dict]:
-        lasers = [io.npz.load(path)[0] for path in paths]
+        lasers = [io.npz.load(path) for path in paths]
         param = dict(
             scantime=lasers[0].config.scantime,
             speed=lasers[0].config.speed,

@@ -210,7 +210,7 @@ if __name__ == "__main__":
 
     import pew.io
 
-    laser = pew.io.npz.load("/home/tom/Downloads/her 00003.npz")[0]
+    laser = pew.io.npz.load("/home/tom/Downloads/her 00003.npz")
     canvas.drawData(laser.get("31P"), laser.extent)
 
     canvas.brush["shape"] = "circle"

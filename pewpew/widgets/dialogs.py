@@ -110,7 +110,7 @@ class CalibrationDialog(ApplyDialog):
         # Button to plot
         self.button_plot = QtWidgets.QPushButton("Plot")
         self.button_plot.setEnabled(
-            self.calibrations[current_isotope].points is not None
+            self.calibrations[current_isotope].points.size > 0
         )
         self.button_plot.pressed.connect(self.showCurve)
 
@@ -167,7 +167,7 @@ class CalibrationDialog(ApplyDialog):
         self.updateLineEdits()
         self.previous_index = self.combo_isotope.currentIndex()
         self.button_plot.setEnabled(
-            self.calibrations[self.combo_isotope.currentText()].points is not None
+            self.calibrations[self.combo_isotope.currentText()].points.size > 0
         )
 
     def showCurve(self) -> None:
