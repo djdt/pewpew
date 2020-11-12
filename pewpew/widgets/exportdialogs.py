@@ -408,7 +408,7 @@ class ExportDialog(_ExportDialogBase):
             io.vtk.save(path, data, spacing)
 
         elif option.ext == ".npz":  # npz
-            io.npz.save(path, [widget.laser])
+            io.npz.save(path, widget.laser)
 
         else:
             raise io.error.PewException(f"Unable to export file as '{option.ext}'.")

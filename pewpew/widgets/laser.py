@@ -611,7 +611,7 @@ class LaserWidget(_ViewWidget):
             self.refresh()
 
     def saveDocument(self, path: str) -> None:
-        io.npz.save(path, [self.laser])
+        io.npz.save(path, self.laser)
         self.laser.path = path
         self.modified = False
 
