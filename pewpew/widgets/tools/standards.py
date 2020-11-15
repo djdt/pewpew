@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Tuple
 
 
 class StandardsTool(ToolWidget):
-    WEIGHTINGS = ["None", "1/σ²", "x", "1/x", "1/x²"]
+    WEIGHTINGS = ["Equal", "1/σ²", "x", "1/x", "1/x²"]
 
     def __init__(self, widget: LaserWidget):
         super().__init__(widget, apply_all=True)
@@ -168,17 +168,22 @@ class StandardsTool(ToolWidget):
         isotope = self.combo_isotope.currentText()
         wstr = self.combo_weighting.currentText()
         if wstr == "1/σ²":
-            data = self.canvas.image.get_array()
-            trim_left, trim_right = self.canvas.getCurrentTrim()
-            data = data[:, trim_left:trim_right]
-            levels = self.canvas.getCurrentLevels()
-            order = np.argsort(levels)
-            buckets = np.split(data, levels[order], axis=0)
-            weights = 1.0 / np.square(
-                np.array([np.nanstd(buckets[i + 1]) for i in order])
-            )
-            self.calibration[isotope].weights = weights
+            if self.calibration[isotope].x.size > 0:
+                data = self.canvas.image.get_array()
+                trim_left, trim_right = self.canvas.getCurrentTrim()
+                data = data[:, trim_left:trim_right]
+                levels = self.canvas.getCurrentLevels()
+                order = np.argsort(levels)
+                buckets = np.split(data, levels[order], axis=0)
+                weights = 1.0 / np.square(
+                    np.array([np.nanstd(buckets[i + 1]) for i in order])
+                )
+            else:
+                weights = np.empty(0, dtype=np.float64)
+            self.calibration[isotope].weights = (wstr, weights)
         else:
+            if wstr == "1/x²":
+                wstr = "1/(x^2)"
             self.calibration[isotope].weights = wstr
 
     def updateCounts(self) -> None:
@@ -217,7 +222,7 @@ class StandardsTool(ToolWidget):
         if self.calibration[isotope].weighting is not None:
             self.combo_weighting.setCurrentText(self.calibration[isotope].weighting)
         else:  # pragma: no cover
-            self.calibration[isotope].weighting = "None"
+            self.calibration[isotope].weighting = "Equal"
 
         self.refresh()
 
@@ -537,7 +542,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
 
     def updateCalibration(self, *args) -> None:
         if np.count_nonzero(np.nan_to_num(self.array[:, 0])) < 2:
-            self.calibration._points = np.array([[], []], dtype=np.float64)
+            self.calibration._points = np.empty((0, 2), dtype=np.float64)
         else:
             self.calibration.points = self.array[:, :2]
 
