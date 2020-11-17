@@ -446,7 +446,7 @@ class ExportAllDialog(ExportDialog):
         self.widgets = widgets
 
         # Adjust widgets for all
-        self.lineedit_filename.setText("<NAME>.npz")
+        self.lineedit_filename.setText("<name>.npz")
         label = self.layout_form.labelForField(self.lineedit_filename)
         label.setText("Prefix:")
         self.layout_form.replaceWidget(self.lineedit_filename, self.lineedit_prefix)

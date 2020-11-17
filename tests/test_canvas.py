@@ -1,6 +1,6 @@
-import os.path
 import numpy as np
 import filecmp
+from pathlib import Path
 import tempfile
 
 from pytestqt.qtbot import QtBot
@@ -39,11 +39,9 @@ def test_canvas_basic(qtbot: QtBot):
     canvas.draw()
     canvas.copyToClipboard()
     # Test that the image generated is the same
-    data_path = os.path.join(
-        os.path.dirname(__file__), "data", "basic_canvas_clipboard.png"
-    )
+    path = Path(__file__).parent.joinpath("data", "basic_canvas_clipboard.png")
     actual = QtWidgets.QApplication.clipboard().pixmap().toImage()
-    expected = QtGui.QImage(data_path).convertToFormat(actual.format())
+    expected = QtGui.QImage(str(path.resolve())).convertToFormat(actual.format())
     assert actual == expected
 
     # Test context menu
@@ -95,10 +93,10 @@ def test_image_canvas(qtbot: QtBot):
     assert canvas.view_limits == (15, 25, 5, 25)
 
     # Test image is correct
-    data_path = os.path.join(os.path.dirname(__file__), "data", "image_canvas_raw.png")
+    path = Path(__file__).parent.joinpath("data", "image_canvas_raw.png")
     with tempfile.NamedTemporaryFile(suffix=".png") as tf:
         canvas.saveRawImage(tf.name)
-        assert filecmp.cmp(tf.name, data_path)
+        assert filecmp.cmp(tf.name, path)
 
 
 def test_canvas_interactive_image(qtbot: QtBot):

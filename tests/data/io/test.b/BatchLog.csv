@@ -1,0 +1,7 @@
+#,Acq. Date-Time,Sample Type,Sample Name,Vial#,File Name,Acquisition Result,Error Message,Dilution Result,Comment,Operator,Error Action,Replicates,Level,ISTD Conc,Auto Dilution (ISIS 2),Total Dil.,Final Weight or Volume,Sample Weight or Volume,Dilution Multiplier,Sublist,Total Acq Time,Max. Daily Dose,%J,User Def. 1,User Def. 2,User Def. 3,QC Failed Criteria,QC Failed Elements,
+1,16/11/2020 1:08:48 PM,Sample,001,<Manual>,D:\Agilent\ICPMH\1\DATA\Tom\Tests\test_ms.b\001.d,Pass,-,1,-,ICPMS8900,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,
+2,16/11/2020 1:09:10 PM,Sample,002,<Manual>,D:\Agilent\ICPMH\1\DATA\Tom\Tests\test_ms.b\002.d,Pass,-,1,-,ICPMS8900,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,
+3,16/11/2020 1:09:20 PM,Sample,003,<Manual>,D:\Agilent\ICPMH\1\DATA\Tom\Tests\test_ms.b\003.d,Pass,-,1,-,ICPMS8900,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,
+4,16/11/2020 1:09:34 PM,Sample,004,<Manual>,D:\Agilent\ICPMH\1\DATA\Tom\Tests\test_ms.b\004.d,Pass,-,1,-,ICPMS8900,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,
+5,16/11/2020 1:09:42 PM,Sample,005,<Manual>,D:\Agilent\ICPMH\1\DATA\Tom\Tests\test_ms.b\005.d,Pass,-,1,-,ICPMS8900,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,-,
+

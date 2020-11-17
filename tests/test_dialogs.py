@@ -10,6 +10,7 @@ from pew.srr.config import SRRConfig
 
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets import dialogs
+from pewpew.widgets.canvases import SelectableImageCanvas
 
 
 def test_apply_dialog(qtbot: QtBot):
@@ -69,6 +70,7 @@ def test_colocalisation_dialog(qtbot: QtBot):
     data = np.empty((10, 10), dtype=[("a", float), ("b", float), ("c", float)])
     data["a"] = np.repeat(np.linspace(0, 1, 10).reshape(1, -1), 10, axis=0)
     data["b"] = np.repeat(np.linspace(0, 1, 10).reshape(-1, 1), 10, axis=1)
+    np.random.seed(9764915)
     data["c"] = np.random.random((10, 10))
 
     mask = np.ones((10, 10), dtype=bool)
@@ -189,18 +191,16 @@ def test_config_dialog_krisskross(qtbot: QtBot):
 
 
 def test_selection_dialog(qtbot: QtBot):
-    x = np.empty((10, 10), dtype=[("a", float), ("b", float)])
-    x["a"] = 1.0
-    x["b"] = np.random.random((10, 10))
+    x = np.random.random((10, 10))
+    canvas = SelectableImageCanvas()
+    canvas.drawFigure()
+    canvas.image = canvas.ax.imshow(x)
 
-    dialog = dialogs.SelectionDialog(x, "a")
+    dialog = dialogs.SelectionDialog(canvas)
     qtbot.addWidget(dialog)
     dialog.open()
 
-    assert dialog.combo_isotope.currentText() == "a"
-    dialog.combo_isotope.setCurrentText("b")
-    dialog.refresh()
-
+    # Test enabling of options
     assert dialog.lineedit_manual.isEnabled()
     assert not dialog.spinbox_method.isEnabled()
     assert not dialog.spinbox_comparison.isEnabled()
@@ -218,9 +218,20 @@ def test_selection_dialog(qtbot: QtBot):
     assert not dialog.spinbox_method.isEnabled()
     assert not dialog.spinbox_comparison.isEnabled()
 
+    # Test correct states and masks emmited
     with qtbot.wait_signal(dialog.maskSelected) as emitted:
-        dialog.accept()
-        assert np.all(emitted.args[0] == (x["b"] > np.mean(x["b"])))
+        dialog.apply()
+        assert np.all(emitted.args[0] == (x > x.mean()))
+        assert emitted.args[1] == ""
+
+    dialog.check_limit_selection.setChecked(True)
+    dialog.combo_method.setCurrentText("Manual")
+    dialog.lineedit_manual.setText("0.9")
+    dialog.refresh()
+    with qtbot.wait_signal(dialog.maskSelected) as emitted:
+        dialog.apply()
+        assert np.all(emitted.args[0] == (x > 0.9))
+        assert emitted.args[1] == "intersect"
 
 
 def test_stats_dialog(qtbot: QtBot):
