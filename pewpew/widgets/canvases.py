@@ -93,7 +93,7 @@ class ImageCanvas(BasicCanvas):
     @property
     def extent(self) -> Tuple[float, float, float, float]:
         if self.image is None:
-            return (0.0, 0.0, 0.0, 0.0)
+            return (-1.0, 0.0, -1.0, 0.0)
         else:
             return self.image.get_extent()
 
