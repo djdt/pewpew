@@ -27,7 +27,8 @@ def kmeans(
     Args:
        x: Data. Shape is (n, m) for n objects with m attributes.
        k: Number of clusters.
-       init: Method to determine initial cluster centers. Can be 'kmeans++' or 'random'."""
+       init: Method to determine initial cluster centers. Can be 'kmeans++' or 'random'
+    """
     # Ensure at least 1 dim for variables
     if x.ndim == 1:
         x = x.reshape(-1, 1)
@@ -63,13 +64,13 @@ def kmeans(
 def kmeans1d(x: np.ndarray, k: int, method: str = "ckmeans1d", **kwargs) -> np.ndarray:
     """K-means clustering. Returns an array mapping objects to their clusters.
     Uses ckwrap if it is available and 'non_optimal' is not False. Raises an error
-    if 'use_ckwrap' is True and ckwrap is not found. **kwargs are passed to ckwrap.ckmeans
-    or _kmeans.
+    if 'use_ckwrap' is True and ckwrap is not found. **kwargs are passed to
+    ckwrap.ckmeans or _kmeans.
 
     Args:
         x: Data. Flattened to 1d.
         k: number of clusters.
-        method: If 'ckmeans1d' attempts to use ckwrap, otherwise uses local implementaion.
+        method: If 'ckmeans1d' ckwrap is used, otherwise 'kmeans' in 1d.
         kwrags: kwargs passed through to the implementaion used.
     """
     if method == "ckmeans1d":
@@ -77,9 +78,8 @@ def kmeans1d(x: np.ndarray, k: int, method: str = "ckmeans1d", **kwargs) -> np.n
             from ckwrap import ckmeans
 
             idx = ckmeans(x.ravel(), (k, k), **kwargs).labels
-        except ImportError as e:
-            pass
-    idx = kmeans(x.ravel(), k, **kwargs)
+        except ImportError:
+            idx = kmeans(x.ravel(), k, **kwargs)
     return np.reshape(idx, x.shape)
 
 
