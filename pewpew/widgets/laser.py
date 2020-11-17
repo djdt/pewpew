@@ -1,6 +1,6 @@
 import copy
 import numpy as np
-import os
+from pathlib import Path
 import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -15,7 +15,7 @@ from pew.config import Config
 
 from pewpew.actions import qAction, qToolButton
 
-from pewpew.lib.io import import_any, PEW_VALID_EXTS
+from pewpew.lib.io import import_any
 from pewpew.lib.mplwidgets import (
     RectangleImageSelectionWidget,
     LassoImageSelectionWidget,
@@ -26,7 +26,7 @@ from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.canvases import LaserImageCanvas
 from pewpew.widgets.views import View, ViewSpace, _ViewWidget
 
-from typing import List, Set, Tuple
+from typing import List, Set, Tuple, Union
 
 
 logger = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ class LaserView(View):
 
     def addLaser(self, laser: Laser) -> "LaserWidget":
         widget = LaserWidget(laser, self.viewspace.options, self)
-        name = laser.name if laser.name != "" else os.path.basename(laser.path)
+        name = laser.name if laser.name != "" else laser.path.stem
         self.addTab(name, widget)
         return widget
 
@@ -111,11 +111,7 @@ class LaserView(View):
         if not event.mimeData().hasUrls():
             return super().dropEvent(event)
 
-        paths = [
-            url.toLocalFile()
-            for url in event.mimeData().urls()
-            if any(url.fileName().lower().endswith(ext) for ext in PEW_VALID_EXTS)
-        ]
+        paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
         try:
             lasers = import_any(paths, self.viewspace.config)
             for laser in lasers:
@@ -127,7 +123,7 @@ class LaserView(View):
             QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
 
     # Callbacks
-    def openDocument(self, paths: List[str]) -> None:
+    def openDocument(self, paths: List[Path]) -> None:
         try:
             for laser in import_any(paths, self.viewspace.config):
                 self.addLaser(laser)
@@ -255,7 +251,7 @@ class LaserWidgetImageCanvas(LaserImageCanvas):
         if state is not None and self.selection is not None:
             if "add" in state:
                 self.selection = np.logical_or(self.selection, mask)
-            elif"subtract" in state:
+            elif "subtract" in state:
                 self.selection = np.logical_and(self.selection, ~mask)
             elif "intersect" in state:
                 self.selection = np.logical_and(self.selection, mask)
@@ -467,8 +463,8 @@ class LaserWidget(_ViewWidget):
         self.modified = True
 
     # Other
-    def laserFilePath(self, ext: str = ".npz") -> str:
-        return os.path.join(os.path.dirname(self.laser.path), self.laser.name + ext)
+    def laserFilePath(self, ext: str = ".npz") -> Path:
+        return self.laser.path.parent.joinpath(self.laser.name + ext)
 
     def populateIsotopes(self) -> None:
         self.combo_isotope.blockSignals(True)
@@ -533,14 +529,14 @@ class LaserWidget(_ViewWidget):
             int(new_extent[0] / w * sx) : int(new_extent[1] / w * sx),
         ]
 
-        path, ext = os.path.splitext(self.laser.path)
+        path = self.laser.path
         new_widget = self.view.addLaser(
             Laser(
                 data,
                 calibration=self.laser.calibration,
                 config=self.laser.config,
                 name=self.laser.name + "_cropped",
-                path=os.path.join(path, self.laser.name + "_cropped" + ext),
+                path=path.parent.joinpath(self.laser.name + "_cropped" + path.suffix),
             )
         )
         new_widget.setActive()
@@ -565,14 +561,14 @@ class LaserWidget(_ViewWidget):
                 mask[x0:x1, y0:y1], data[name][x0:x1, y0:y1], np.nan
             )
 
-        path, ext = os.path.splitext(self.laser.path)
+        path = self.laser.path
         new_widget = self.view.addLaser(
             Laser(
                 new_data,
                 calibration=self.laser.calibration,
                 config=self.laser.config,
                 name=self.laser.name + "_cropped",
-                path=os.path.join(path, self.laser.name + "_cropped" + ext),
+                path=path.parent.joinpath(self.laser.name + "_cropped" + path.suffix),
             )
         )
         new_widget.setActive()
@@ -610,7 +606,10 @@ class LaserWidget(_ViewWidget):
             self.modified = True
             self.refresh()
 
-    def saveDocument(self, path: str) -> None:
+    def saveDocument(self, path: Union[str, Path]) -> None:
+        if isinstance(path, str):
+            path = Path(path)
+
         io.npz.save(path, self.laser)
         self.laser.path = path
         self.modified = False
@@ -644,13 +643,13 @@ class LaserWidget(_ViewWidget):
 
     def actionSave(self) -> QtWidgets.QDialog:
         path = self.laser.path
-        if path.lower().endswith(".npz") and os.path.exists(path):
+        if path.suffix.lower() == ".npz" and path.exists():
             self.saveDocument(path)
             return None
         else:
             path = self.laserFilePath()
         dlg = QtWidgets.QFileDialog(
-            self, "Save File", path, "Numpy archive(*.npz);;All files(*)"
+            self, "Save File", str(path.resolve()), "Numpy archive(*.npz);;All files(*)"
         )
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
         dlg.fileSelected.connect(self.saveDocument)

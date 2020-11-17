@@ -1,13 +1,13 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
-import os.path
+from pathlib import Path
 
 from pew import io
 
 from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog
 
-from typing import Dict, List, Tuple, Type
+from typing import Dict, List, Tuple, Type, Union
 
 
 class _OptionsBase(QtWidgets.QGroupBox):
@@ -34,7 +34,7 @@ class _OptionsBase(QtWidgets.QGroupBox):
     def setEnabled(self, enabled: bool) -> None:
         pass
 
-    def updateForPath(self, path: str) -> None:
+    def updateForPath(self, path: Path) -> None:
         pass
 
 
@@ -42,7 +42,7 @@ class AgilentOptions(_OptionsBase):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__("Agilent Batch", "Directory", [".b"], parent)
 
-        self.current_path = ""
+        self.current_path = Path()
         self.actual_datafiles = 0
         self.expected_datafiles = -1
 
@@ -77,26 +77,24 @@ class AgilentOptions(_OptionsBase):
         elif method == "Acquistion Method":
             datafiles = io.agilent.acq_method_xml_read_datafiles(
                 self.current_path,
-                os.path.join(self.current_path, io.agilent.acq_method_xml_path),
+                self.current_path.joinpath(io.agilent.acq_method_xml_path),
             )
         elif method == "Batch Log CSV":
             datafiles = io.agilent.batch_csv_read_datafiles(
                 self.current_path,
-                os.path.join(self.current_path, io.agilent.batch_csv_path),
+                self.current_path.joinpath(io.agilent.batch_csv_path),
             )
         elif method == "Batch Log XML":
             datafiles = io.agilent.batch_xml_read_datafiles(
                 self.current_path,
-                os.path.join(self.current_path, io.agilent.batch_xml_path),
+                self.current_path.joinpath(io.agilent.batch_xml_path),
             )
         else:
             raise ValueError("Unknown data file collection method.")
 
-        csvs = [
-            os.path.join(d, os.path.splitext(os.path.basename(d))[0] + ".csv")
-            for d in datafiles
-        ]
-        self.actual_datafiles = sum([os.path.exists(csv) for csv in csvs])
+        csvs = [df.joinpath(df.with_suffix(".csv").name) for df in datafiles]
+
+        self.actual_datafiles = sum([csv.exists() for csv in csvs])
         self.expected_datafiles = len(datafiles)
 
         if self.expected_datafiles == 0:
@@ -108,7 +106,12 @@ class AgilentOptions(_OptionsBase):
 
     def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
         return [
-            ("method", self.combo_dfile_method, "currentText", "currentTextChanged",),
+            (
+                "method",
+                self.combo_dfile_method,
+                "currentText",
+                "currentTextChanged",
+            ),
             ("useAcqNames", self.check_name_acq_xml, "checked", "toggled"),
         ]
 
@@ -122,20 +125,20 @@ class AgilentOptions(_OptionsBase):
         if not enabled:
             self.lineedit_dfile.clear()
 
-    def updateForPath(self, path: str) -> None:
+    def updateForPath(self, path: Path) -> None:
         self.current_path = path
 
         self.combo_dfile_method.clear()
 
         self.combo_dfile_method.addItem("Alphabetical Order")
-        if os.path.exists(os.path.join(path, io.agilent.acq_method_xml_path)):
+        if path.joinpath(io.agilent.acq_method_xml_path).exists():
             self.combo_dfile_method.addItem("Acquistion Method")
             self.check_name_acq_xml.setEnabled(True)
         else:
             self.check_name_acq_xml.setEnabled(False)
-        if os.path.exists(os.path.join(path, io.agilent.batch_csv_path)):
+        if path.joinpath(io.agilent.batch_csv_path).exists():
             self.combo_dfile_method.addItem("Batch Log CSV")
-        if os.path.exists(os.path.join(path, io.agilent.batch_xml_path)):
+        if path.joinpath(io.agilent.batch_xml_path).exists():
             self.combo_dfile_method.addItem("Batch Log XML")
 
         self.combo_dfile_method.setCurrentIndex(self.combo_dfile_method.count() - 1)
@@ -153,6 +156,26 @@ class NumpyOptions(_OptionsBase):
 
     def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
         return [("useCalibration", self.check_calibration, "checked", "toggled")]
+
+
+class PerkinElmerOptions(_OptionsBase):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__("Perkin-Elmer 'XL'", "Directory", [""], parent)
+        self.datafiles = 0
+
+        self.lineedit_dfile = QtWidgets.QLineEdit("0")
+        self.lineedit_dfile.setReadOnly(True)
+
+        layout = QtWidgets.QFormLayout()
+        layout.addRow("Datafiles found:", self.lineedit_dfile)
+        self.setLayout(layout)
+
+    def isComplete(self) -> bool:
+        return self.datafiles > 0
+
+    def updateForPath(self, path: Path) -> None:
+        self.datafiles = sum([it.suffix.lower() == ".xl" for it in path.iterdir()])
+        self.lineedit_dfile.setText(str(self.datafiles))
 
 
 class TextOptions(_OptionsBase):
@@ -208,10 +231,10 @@ class ThermoOptions(_OptionsBase):
             ("useAnalog", self.check_use_analog, "checked", "toggled"),
         ]
 
-    def preprocessFile(self, path: str) -> Tuple[str, str, bool]:
+    def preprocessFile(self, path: Path) -> Tuple[str, str, bool]:
         method = "unknown"
         has_analog = False
-        with open(path, "r", encoding="utf-8-sig") as fp:
+        with path.open("r", encoding="utf-8-sig") as fp:
             lines = [next(fp) for i in range(3)]
             delimiter = lines[0][0]
             if "MainRuns" in lines[0]:
@@ -230,7 +253,7 @@ class ThermoOptions(_OptionsBase):
         self.radio_rows.setEnabled(enabled)
         self.radio_columns.setEnabled(enabled)
 
-    def updateForPath(self, path: str) -> None:
+    def updateForPath(self, path: Path) -> None:
         delimiter, method, has_analog = self.preprocessFile(path)
         self.combo_delimiter.setCurrentText(delimiter)
         if method == "rows":
@@ -265,21 +288,31 @@ class _PathSelectBase(QtWidgets.QWidget):
         self.setAcceptDrops(True)
 
     @QtCore.Property("QString")
-    def path(self) -> str:
+    def _path(self) -> str:
         raise NotImplementedError
+
+    @property
+    def path(self) -> Path:
+        return Path(self._path)
 
     @QtCore.Property("QStringList")
-    def paths(self) -> List[str]:
+    def _paths(self) -> List[str]:
         raise NotImplementedError
 
-    def addPath(self, path: str) -> None:
+    @property
+    def paths(self) -> List[Path]:
+        return [Path(p) for p in self._paths]
+
+    def addPath(self, path: Union[str, Path]) -> None:
         raise NotImplementedError
 
-    def addPaths(self, paths: List[str]) -> None:
+    def addPaths(self, paths: Union[List[str], List[Path]]) -> None:
         raise NotImplementedError
 
     def selectPath(self) -> QtWidgets.QFileDialog:
-        dlg = QtWidgets.QFileDialog(self, f"Select {self.mode}", self.currentDir())
+        dlg = QtWidgets.QFileDialog(
+            self, f"Select {self.mode}", str(self.currentDir().resolve())
+        )
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
         if self.mode == "File":
             dlg.setNameFilters([self.nameFilter(), "All Files(*)"])
@@ -293,20 +326,20 @@ class _PathSelectBase(QtWidgets.QWidget):
 
     def selectMultiplePaths(self) -> QtWidgets.QFileDialog:
         if self.mode == "File":
-            dlg = QtWidgets.QFileDialog(
-                self, "Select Files", os.path.dirname(self.currentDir())
-            )
+            dlg = QtWidgets.QFileDialog(self, "Select Files", self.currentDir().parent)
             dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
             dlg.setNameFilters([self.nameFilter(), "All Files(*)"])
             dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
         else:
-            dlg = MultipleDirDialog(self, "Select Directories", self.currentDir())
+            dlg = MultipleDirDialog(
+                self, "Select Directories", str(self.currentDir().resolve())
+            )
         dlg.filesSelected.connect(self.addPaths)
         dlg.open()
         return dlg
 
-    def currentDir(self) -> str:
-        return os.path.dirname(self.path)
+    def currentDir(self) -> Path:
+        return self.path
 
     def isComplete(self) -> bool:
         if len(self.paths) == 0:
@@ -316,16 +349,15 @@ class _PathSelectBase(QtWidgets.QWidget):
     def nameFilter(self) -> str:
         return f"{self.filetype}({' '.join(['*' + ext for ext in self.exts])})"
 
-    def validPath(self, path: str) -> bool:
-        if not os.path.exists(path):
+    def validPath(self, path: Path) -> bool:
+        if not path.exists():
             return False
-        name, ext = os.path.splitext(path)
-        if not ext.lower() in self.exts:
+        if not path.suffix.lower() in self.exts:
             return False
         if self.mode == "File":
-            return os.path.isfile(path)
+            return path.is_file()
         else:
-            return os.path.isdir(path)
+            return path.is_dir()
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
@@ -338,7 +370,7 @@ class _PathSelectBase(QtWidgets.QWidget):
             urls = event.mimeData().urls()
             for url in urls:
                 if url.isLocalFile():
-                    path = url.toLocalFile()
+                    path = Path(url.toLocalFile())
                     if self.validPath(path):
                         self.addPath(path)
             event.acceptProposedAction()
@@ -349,7 +381,7 @@ class _PathSelectBase(QtWidgets.QWidget):
 class PathSelectWidget(_PathSelectBase):
     def __init__(
         self,
-        path: str,
+        path: Path,
         filetype: str,
         exts: List[str],
         mode: str = "File",
@@ -357,7 +389,7 @@ class PathSelectWidget(_PathSelectBase):
     ):
         super().__init__(filetype, exts, mode, parent)
 
-        self.lineedit_path = QtWidgets.QLineEdit(path)
+        self.lineedit_path = QtWidgets.QLineEdit(str(path.resolve()))
         self.lineedit_path.setPlaceholderText(f"Path to {self.mode}...")
         self.lineedit_path.textChanged.connect(self.pathChanged)
         self.lineedit_path.installEventFilter(DragDropRedirectFilter(self))
@@ -372,21 +404,23 @@ class PathSelectWidget(_PathSelectBase):
         self.setLayout(layout)
 
     @QtCore.Property("QString")
-    def path(self) -> str:
+    def _path(self) -> str:
         return self.lineedit_path.text()
 
     @QtCore.Property("QStringList")
-    def paths(self) -> List[str]:
+    def _paths(self) -> List[str]:
         return [self.lineedit_path.text()]
 
-    def addPath(self, path: str) -> None:
+    def addPath(self, path: Union[str, Path]) -> None:
+        if isinstance(path, Path):
+            path = str(path.resolve())
         self.lineedit_path.setText(path)
 
 
 class MultiplePathSelectWidget(_PathSelectBase):
     def __init__(
         self,
-        paths: List[str],
+        paths: List[Path],
         filetype: str,
         exts: List[str],
         mode: str = "File",
@@ -426,30 +460,31 @@ class MultiplePathSelectWidget(_PathSelectBase):
         self.setLayout(layout)
 
     @QtCore.Property("QString")
-    def path(self) -> str:
+    def _path(self) -> str:
         first = self.list.item(0)
         return first.text() if first is not None else ""
 
     @QtCore.Property("QStringList")
-    def paths(self) -> List[str]:
+    def _paths(self) -> List[str]:
         return [self.list.item(i).text() for i in range(0, self.list.count())]
 
-    def addPath(self, path: str) -> None:
+    def addPath(self, path: Union[str, Path]) -> None:
+        if isinstance(path, Path):
+            path = str(path.resolve())
         self.list.addItem(path)
 
-    def addPaths(self, paths: List[str]) -> None:
-        self.list.addItems(paths)
+    def addPaths(self, paths: Union[List[str], List[Path]]) -> None:
+        for path in paths:
+            if isinstance(path, Path):
+                path = str(path.resolve())
+            self.list.addItem(path)
 
-    def addPathsInDirectory(self, directory: str) -> None:
-        files = os.listdir(directory)
-        files.sort()
-        for f in files:
-            name, ext = os.path.splitext(f)
-            print(ext.lower(), self.exts)
-            path = os.path.join(directory, f)
-            if ext.lower() in self.exts and self.validPath(path):
-                print(path)
-                self.list.addItem(path)
+    def addPathsInDirectory(self, directory: Path) -> None:
+        files = []
+        for it in directory.iterdir():
+            if it.suffix.lower() in [self.exts] and self.validPath(it):
+                files.append(str(it.resolve()))
+        self.listdir.addItem(sorted(files))
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() in [QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete]:
@@ -458,7 +493,9 @@ class MultiplePathSelectWidget(_PathSelectBase):
                 self.list.takeItem(self.list.row(item))
 
     def selectAllInDirectory(self) -> QtWidgets.QFileDialog:
-        dlg = QtWidgets.QFileDialog(self, "Select Directory", self.currentDir())
+        dlg = QtWidgets.QFileDialog(
+            self, "Select Directory", str(self.currentDir().resolve())
+        )
         dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
         dlg.setFileMode(QtWidgets.QFileDialog.Directory)
         dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
@@ -471,13 +508,14 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
     formats: Dict[str, Tuple[Tuple[str, List[str], str], Type]] = {
         "agilent": (("Agilent Batch", [".b"], "Directory"), AgilentOptions),
         "numpy": (("Numpy Archive", [".npz"], "File"), NumpyOptions),
+        "perkinelmer": (("Perkin-Elmer 'XL'", [""], "Directory"), PerkinElmerOptions),
         "text": (("Text Image", [".csv", ".text", ".txt"], "File"), TextOptions),
         "thermo": (("Thermo iCap Data", [".csv"], "File"), ThermoOptions),
     }
 
     def __init__(
         self,
-        paths: List[str],
+        paths: List[Path],
         format: str,
         multiplepaths: bool = False,
         nextid: int = None,
@@ -506,8 +544,8 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         for name, widget, prop, signal in self.options.fieldArgs():
             self.registerField(format + "." + name, widget, prop, signal)
 
-        self.registerField(format + ".path", self.path, "path")
-        self.registerField(format + ".paths", self.path, "paths")
+        self.registerField(format + ".path", self.path, "_path")
+        self.registerField(format + ".paths", self.path, "_paths")
 
     def initializePage(self) -> None:
         self.updateOptionsForPath()

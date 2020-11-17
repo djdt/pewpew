@@ -1,4 +1,5 @@
-import os.path
+from pathlib import Path
+from os import sep
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -207,12 +208,12 @@ class _ExportDialogBase(QtWidgets.QDialog):
         return QtCore.QSize(600, 200)
 
     def isComplete(self) -> bool:
-        if not os.path.exists(self.lineedit_directory.text()):
+        if not Path(self.lineedit_directory.text()).exists():
             return False
         filename = self.lineedit_filename.text()
         if filename == "":
             return False
-        if self.options.indexForExt(os.path.splitext(filename)[1]) == -1:
+        if self.options.indexForExt(Path(filename).suffix) == -1:
             return False
         if not self.options.isComplete():
             return False
@@ -226,8 +227,7 @@ class _ExportDialogBase(QtWidgets.QDialog):
         self.lineedit_preview.setText(self.lineedit_filename.text())
 
     def filenameChanged(self, filename: str) -> None:
-        _, ext = os.path.splitext(filename.lower())
-        index = self.options.indexForExt(ext)
+        index = self.options.indexForExt(Path(filename).suffix.lower())
         if index == -1:
             return
         self.options.setCurrentIndex(index)
@@ -235,10 +235,11 @@ class _ExportDialogBase(QtWidgets.QDialog):
 
     def typeChanged(self, index: int) -> None:
         # Update name of file
-        base, ext = os.path.splitext(self.lineedit_filename.text())
-        if ext != "":
-            ext = self.options.currentExt()
-        self.lineedit_filename.setText(base + ext)
+        path = Path(self.lineedit_filename.text())
+        if path.suffix != "":
+            self.lineedit_filename.setText(
+                str(path.with_suffix(self.options.currentExt()))
+            )
 
         self.adjustSize()
 
@@ -295,11 +296,11 @@ class ExportDialog(_ExportDialogBase):
         self.layout.insertWidget(4, self.check_export_layers)
 
         # A default path
-        path = os.path.join(
-            os.path.dirname(self.widget.laser.path), self.widget.laser.name + ".npz"
-        )
-        self.lineedit_directory.setText(os.path.dirname(path))
-        self.lineedit_filename.setText(os.path.basename(path))
+        path = self.widget.laser.path.parent.joinpath(
+            self.widget.laser.name + ".npz"
+        ).resolve()
+        self.lineedit_directory.setText(str(path.parent))
+        self.lineedit_filename.setText(str(path.name))
         self.typeChanged(0)
 
     def allowCalibrate(self) -> bool:
@@ -324,12 +325,12 @@ class ExportDialog(_ExportDialogBase):
         )
 
     def updatePreview(self) -> None:
-        base, ext = os.path.splitext(self.lineedit_filename.text())
+        path = Path(self.lineedit_filename.text())
         if self.isExportAll():
-            base += "_<ISOTOPE>"
+            path = path.with_name(path.stem + "_<isotope>" + path.suffix)
         if self.isExportLayers():
-            base += "_layer<#>"
-        self.lineedit_preview.setText(base + ext)
+            path = path.with_name(path.stem + "_<layer#>" + path.suffix)
+        self.lineedit_preview.setText(str(path))
 
     def typeChanged(self, index: int) -> None:
         super().typeChanged(index)
@@ -339,22 +340,19 @@ class ExportDialog(_ExportDialogBase):
         self.check_export_layers.setEnabled(self.allowExportLayers())
         self.updatePreview()
 
-    def getPath(self) -> str:
-        return os.path.join(
-            self.lineedit_directory.text(), self.lineedit_filename.text()
+    def getPath(self) -> Path:
+        return Path(self.lineedit_directory.text()).joinpath(
+            self.lineedit_filename.text()
         )
 
-    def getPathForIsotope(self, path: str, isotope: str) -> str:
-        base, ext = os.path.splitext(path)
-        isotope = isotope.replace(os.path.sep, "_")
-        return f"{base}_{isotope}{ext}"
+    def getPathForIsotope(self, path: Path, isotope: str) -> Path:
+        return path.with_name(path.stem + "_" + isotope.replace(sep, "_") + path.suffix)
 
-    def getPathForLayer(self, path: str, layer: int) -> str:
-        base, ext = os.path.splitext(path)
-        return f"{base}_layer{layer}{ext}"
+    def getPathForLayer(self, path: Path, layer: int) -> Path:
+        return path.with_name(path.stem + "_layer" + str(layer) + path.suffix)
 
-    def generatePaths(self, laser: Laser) -> List[Tuple[str, str, int]]:
-        paths: List[Tuple[str, str, int]] = [
+    def generatePaths(self, laser: Laser) -> List[Tuple[Path, str, int]]:
+        paths: List[Tuple[Path, str, int]] = [
             (self.getPath(), self.widget.combo_isotope.currentText(), None)
         ]
         if self.isExportAll():
@@ -372,14 +370,14 @@ class ExportDialog(_ExportDialogBase):
 
         return [p for p in paths if p[0] != ""]
 
-    def export(self, path: str, isotope: str, layer: int, widget: _ViewWidget) -> None:
+    def export(self, path: Path, isotope: str, layer: int, widget: _ViewWidget) -> None:
         option = self.options.currentOption()
 
         if option.ext == ".csv":
             kwargs = {"calibrate": self.isCalibrate(), "flat": True}
             if isotope in widget.laser.isotopes:
                 data = widget.laser.get(isotope, layer=layer, **kwargs)
-                io.csv.save(path, data)
+                io.textimage.save(path, data)
 
         elif option.ext == ".png":
             canvas = LaserImageCanvas(widget.canvas.viewoptions, parent=self)
@@ -387,7 +385,7 @@ class ExportDialog(_ExportDialogBase):
             if isotope in widget.laser.isotopes:
                 canvas.drawLaser(widget.laser, isotope)
                 if option.raw():
-                    canvas.saveRawImage(path)
+                    canvas.saveRawImage(str(path.resolve()))
                 else:
                     canvas.view_limits = widget.canvas.view_limits
                     canvas.figure.set_size_inches(
@@ -416,7 +414,7 @@ class ExportDialog(_ExportDialogBase):
     def accept(self) -> None:
         paths = self.generatePaths(self.widget.laser)
         prompt = OverwriteFilePrompt()
-        paths = [p for p in paths if prompt.promptOverwrite(p[0])]
+        paths = [p for p in paths if prompt.promptOverwrite(str(p[0].resolve()))]
 
         if len(paths) == 0:
             return
@@ -466,23 +464,26 @@ class ExportAllDialog(ExportDialog):
         self.showIsotopes()
 
     def updatePreview(self) -> None:
-        base, ext = os.path.splitext(self.lineedit_filename.text())
+        path = Path(self.lineedit_filename.text())
         prefix = self.lineedit_prefix.text()
         if prefix != "":
-            prefix += "_"
+            path = path.with_name(prefix + "_" + path.name)
         if self.isExportAll():
-            base += "_<ISOTOPE>"
-        self.lineedit_preview.setText(prefix + base + ext)
+            path = path.with_name(path.stem + "_<isotope>" + path.suffix)
+        self.lineedit_preview.setText(str(path))
 
-    def getPath(self, name: str = None) -> str:
-        _, ext = os.path.splitext(self.lineedit_filename.text())
+    def getPath(self, name: str = None) -> Path:
+        path = Path(self.lineedit_directory.text()).joinpath(
+            name + Path(self.lineedit_filename.text()).suffix
+        )
         prefix = self.lineedit_prefix.text()
         if prefix != "":
-            prefix += "_"
-        return os.path.join(self.lineedit_directory.text(), f"{prefix}{name}{ext}")
+            path = path.with_name(prefix + "_" + path.name)
+        return path
+        # return path.with_name(path.stem + "_" + path.suffix)
 
-    def generatePaths(self, laser: Laser) -> List[Tuple[str, str, int]]:
-        paths: List[Tuple[str, str, int]] = [
+    def generatePaths(self, laser: Laser) -> List[Tuple[Path, str, int]]:
+        paths: List[Tuple[Path, str, int]] = [
             (self.getPath(laser.name), self.widget.combo_isotope.currentText(), None)
         ]
         if self.isExportAll():
@@ -506,7 +507,9 @@ class ExportAllDialog(ExportDialog):
 
         for widget in self.widgets:
             paths = self.generatePaths(widget.laser)
-            all_paths.append([p for p in paths if prompt.promptOverwrite(p[0])])
+            all_paths.append(
+                [p for p in paths if prompt.promptOverwrite(str(p[0].resolve()))]
+            )
 
         if all(len(paths) == 0 for paths in all_paths):
             return

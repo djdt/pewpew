@@ -191,9 +191,7 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
         self.canvas = BasicCanvas(parent=self)
         ax = self.canvas.figure.subplots()
 
-        x = calibration.concentrations()
-        y = calibration.counts()
-        x0, x1 = 0.0, np.nanmax(x) * 1.1
+        x0, x1 = 0.0, np.nanmax(calibration.x) * 1.1
 
         m = calibration.gradient
         b = calibration.intercept
@@ -202,7 +200,7 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
         if calibration.unit != "":
             xlabel += f" ({calibration.unit})"
 
-        ax.scatter(x, y, color="black")
+        ax.scatter(calibration.x, calibration.y, color="black")
         ax.plot([x0, x1], [m * x0 + b, m * x1 + b], ls=":", lw=1.5, color="black")
         ax.set_xlabel(xlabel)
         ax.set_ylabel("Counts")

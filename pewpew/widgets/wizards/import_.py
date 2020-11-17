@@ -1,8 +1,8 @@
-import os
-
 import numpy as np
 import numpy.lib.recfunctions as rfn
 import logging
+
+from pathlib import Path
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -14,7 +14,7 @@ from pewpew.validators import DecimalValidatorNoZero
 from pewpew.widgets.dialogs import NameEditDialog
 from pewpew.widgets.wizards.options import PathAndOptionsPage
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 
 logger = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 class ImportWizard(QtWidgets.QWizard):
     page_format = 0
     page_agilent = 1
+    page_perkinelmer = 2
     page_text = 3
     page_thermo = 4
     page_config = 5
@@ -30,10 +31,16 @@ class ImportWizard(QtWidgets.QWizard):
     laserImported = QtCore.Signal(Laser)
 
     def __init__(
-        self, path: str = "", config: Config = None, parent: QtWidgets.QWidget = None,
+        self,
+        path: Union[str, Path] = "",
+        config: Config = None,
+        parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Import Wizard")
+
+        if isinstance(path, str):
+            path = Path(path)
 
         config = config or Config()
 
@@ -48,6 +55,7 @@ class ImportWizard(QtWidgets.QWizard):
             page_id_dict={
                 "agilent": self.page_agilent,
                 "numpy": 0,
+                "perkinelmer": self.page_perkinelmer,
                 "text": self.page_text,
                 "thermo": self.page_thermo,
             },
@@ -62,6 +70,12 @@ class ImportWizard(QtWidgets.QWizard):
             PathAndOptionsPage([path], "agilent", nextid=self.page_config, parent=self),
         )
         self.setPage(
+            self.page_perkinelmer,
+            PathAndOptionsPage(
+                [path], "perkinelmer", nextid=self.page_config, parent=self
+            ),
+        )
+        self.setPage(
             self.page_text,
             PathAndOptionsPage([path], "text", nextid=self.page_config, parent=self),
         )
@@ -74,11 +88,13 @@ class ImportWizard(QtWidgets.QWizard):
 
     def accept(self) -> None:
         if self.field("agilent"):
-            path = self.field("agilent.path")
+            path = Path(self.field("agilent.path"))
+        if self.field("perkinelmer"):
+            path = Path(self.field("perkinelmer.path"))
         elif self.field("text"):
-            path = self.field("text.path")
+            path = Path(self.field("text.path"))
         elif self.field("thermo"):
-            path = self.field("thermo.path")
+            path = Path(self.field("thermo.path"))
         else:
             raise ValueError("Invalid filetype selection.")
 
@@ -88,10 +104,7 @@ class ImportWizard(QtWidgets.QWizard):
             scantime=float(self.field("scantime")),
             speed=float(self.field("speed")),
         )
-        base, ext = os.path.splitext(path)
-        self.laserImported.emit(
-            Laser(data, config=config, path=path, name=os.path.basename(base))
-        )
+        self.laserImported.emit(Laser(data, config=config, name=path.stem, path=path))
         super().accept()
 
 
@@ -113,6 +126,7 @@ class FormatPage(QtWidgets.QWizardPage):
         self.radio_agilent = QtWidgets.QRadioButton("&Agilent Batches")
         self.radio_agilent.setChecked(True)
         self.radio_numpy = QtWidgets.QRadioButton("&Numpy Archives")
+        self.radio_perkinelmer = QtWidgets.QRadioButton("&Perkin-Elmer 'XL'")
         self.radio_text = QtWidgets.QRadioButton("Text and &CSV Images")
         self.radio_thermo = QtWidgets.QRadioButton("&Thermo iCap CSV")
 
@@ -120,6 +134,7 @@ class FormatPage(QtWidgets.QWizardPage):
         layout_format = QtWidgets.QVBoxLayout()
         layout_format.addWidget(self.radio_agilent)
         layout_format.addWidget(self.radio_numpy)
+        layout_format.addWidget(self.radio_perkinelmer)
         layout_format.addWidget(self.radio_text)
         layout_format.addWidget(self.radio_thermo)
         format_box.setLayout(layout_format)
@@ -130,6 +145,7 @@ class FormatPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
         self.registerField("agilent", self.radio_agilent)
+        self.registerField("perkinelmer", self.radio_perkinelmer)
         self.registerField("numpy", self.radio_numpy)
         self.registerField("text", self.radio_text)
         self.registerField("thermo", self.radio_thermo)
@@ -140,6 +156,8 @@ class FormatPage(QtWidgets.QWizardPage):
 
         if self.field("agilent"):
             return self.page_id_dict["agilent"]
+        if self.field("perkinelmer"):
+            return self.page_id_dict["perkinelmer"]
         elif self.field("numpy"):
             return self.page_id_dict["numpy"]
         elif self.field("text"):
@@ -218,12 +236,18 @@ class ConfigPage(QtWidgets.QWizardPage):
 
     def initializePage(self) -> None:
         if self.field("agilent"):
-            data, params = self.readAgilent(self.field("agilent.path"))
+            data, params = self.readAgilent(Path(self.field("agilent.path")))
+        elif self.field("perkinelmer"):
+            data, params = self.readPerkinElmer(Path(self.field("perkinelmer.path")))
         elif self.field("text"):
-            data, params = self.readText(self.field("text.path"))
+            data, params = self.readText(Path(self.field("text.path")))
         elif self.field("thermo"):
-            data, params = self.readThermo(self.field("thermo.path"))
+            data, params = self.readThermo(Path(self.field("thermo.path")))
 
+        if "spotsize" in params:
+            self.setField("spotsize", f"{params['spotsize']:.4g}")
+        if "speed" in params:
+            self.setField("speed", f"{params['speed']:.4g}")
         if "scantime" in params:
             self.setField("scantime", f"{params['scantime']:.4g}")
 
@@ -256,7 +280,7 @@ class ConfigPage(QtWidgets.QWizardPage):
             return False
         return True
 
-    def readAgilent(self, path: str) -> Tuple[np.ndarray, dict]:
+    def readAgilent(self, path: Path) -> Tuple[np.ndarray, dict]:
         agilent_method = self.field("agilent.method")
         if agilent_method == "Alphabetical Order":
             method = []  # Fallback to alphabetical
@@ -277,11 +301,15 @@ class ConfigPage(QtWidgets.QWizardPage):
         )
         return data, params
 
-    def readText(self, path: str) -> Tuple[np.ndarray, dict]:
-        data = io.csv.load(path, isotope=self.field("text.name"))
+    def readPerkinElmer(self, path: Path) -> Tuple[np.ndarray, dict]:
+        data, params = io.perkinelmer.load(path, full=True)
+        return data, params
+
+    def readText(self, path: Path) -> Tuple[np.ndarray, dict]:
+        data = io.textimage.load(path, name=self.field("text.name"))
         return data, {}
 
-    def readThermo(self, path: str) -> Tuple[np.ndarray, dict]:
+    def readThermo(self, path: Path) -> Tuple[np.ndarray, dict]:
         kwargs = dict(
             delimiter=self.field("thermo.delimiter"),
             comma_decimal=self.field("thermo.decimal") == ",",
