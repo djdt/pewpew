@@ -343,8 +343,8 @@ class StandardsCanvas(InteractiveImageCanvas):
         pos = py * np.round(pos / py)
         self.drawLevelGuides(pos, texts)
         # First guide is just for label
-        self.level_guides[0].set_picker(None)
-        self.level_guides[-1].set_picker(None)
+        self.level_guides[0].set_pickradius(0)
+        self.level_guides[-1].set_pickradius(0)
         self.level_guides[-1].text.set_text("")
         # self.level_guides[0].set_visible()
 
@@ -372,7 +372,7 @@ class StandardsCanvas(InteractiveImageCanvas):
                 linestyle="--",
                 path_effects=[withStroke(linewidth=2.0, foreground="black")],
                 linewidth=1.0,
-                picker=5,
+                pickradius=5,
                 animated=True,
                 label=text,
                 label_offset=(5, -5),
@@ -397,7 +397,7 @@ class StandardsCanvas(InteractiveImageCanvas):
                 linestyle="-",
                 path_effects=[withStroke(linewidth=2.0, foreground="black")],
                 linewidth=1.0,
-                picker=5,
+                pickradius=5,
                 animated=True,
             )
             self.edge_guides.append(line)
