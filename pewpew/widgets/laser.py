@@ -113,7 +113,7 @@ class LaserView(View):
 
         paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
         try:
-            lasers = import_any(paths, self.viewspace.config)
+            lasers = import_any(paths, default_config=self.viewspace.config)
             for laser in lasers:
                 self.addLaser(laser)
             event.acceptProposedAction()

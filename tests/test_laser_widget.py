@@ -1,5 +1,5 @@
 import numpy as np
-import os.path
+from pathlib import Path
 from pytestqt.qtbot import QtBot
 from PySide2 import QtCore, QtGui
 
@@ -78,8 +78,8 @@ def test_laser_view(qtbot: QtBot):
 
     # Drop event
     drag_mime = QtCore.QMimeData()
-    path = os.path.join(os.path.dirname(__file__), "data", "io", "npz.npz")
-    drag_mime.setUrls([QtCore.QUrl.fromLocalFile(path)])
+    path = Path(__file__).parent.joinpath("data", "io", "test.npz")
+    drag_mime.setUrls([QtCore.QUrl.fromLocalFile(str(path.resolve()))])
     drag_event = QtGui.QDragEnterEvent(
         QtCore.QPoint(0, 0),
         QtCore.Qt.CopyAction,
@@ -96,7 +96,9 @@ def test_laser_view(qtbot: QtBot):
         QtCore.Qt.LeftButton,
         QtCore.Qt.NoModifier,
     )
-    view.dropEvent(drop_event)
+    with qtbot.wait_signal(view.numTabsChanged) as emitted:
+        view.dropEvent(drop_event)
+    assert drop_event.isAccepted()
     assert len(view.widgets()) == 2
 
     dlg = view.actionOpen()
