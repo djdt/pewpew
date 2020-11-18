@@ -77,7 +77,8 @@ def test_main_window_actions_widget(qtbot: QtBot):
     window.actionTransformFlipVert()
     window.actionTransformRotateLeft()
     window.actionTransformRotateRight()
-    window.actionTransformCrop()
+    window.actionCropSelection()
+    window.actionCropView()
 
     window.actionExportAll()
     window.actionToolEdit()

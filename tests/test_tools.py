@@ -78,7 +78,7 @@ def test_standards_tool(qtbot: QtBot):
     tool.spinbox_levels.setValue(5)
 
     assert not tool.isComplete()
-    assert not tool.results_box.button_plot.isEnabled()
+    assert not tool.button_plot.isEnabled()
     for i in range(0, tool.table.model().rowCount()):
         index = tool.table.model().index(i, 0)
         tool.table.model().setData(index, 0)
@@ -87,7 +87,7 @@ def test_standards_tool(qtbot: QtBot):
         index = tool.table.model().index(i, 0)
         tool.table.model().setData(index, i)
     assert tool.isComplete()
-    assert tool.results_box.button_plot.isEnabled()
+    assert tool.button_plot.isEnabled()
 
     # Change isotope, check if weighting and unit have remained
     tool.combo_isotope.setCurrentIndex(1)
@@ -102,12 +102,6 @@ def test_standards_tool(qtbot: QtBot):
     assert tool.isComplete()
     assert tool.lineedit_units.text() == "unit"
     assert tool.combo_weighting.currentIndex() == 2
-
-    tool.results_box.copy()
-    assert (
-        QtWidgets.QApplication.clipboard().text()
-        == "RSQ\t1.0000\nGradient\t2.0000\nIntercept\t0.5000\nSxy\t0.0000\nLOD (3σ)\t0.0000"
-    )
 
     # Test SD weighting
     tool.combo_weighting.setCurrentIndex(1)
