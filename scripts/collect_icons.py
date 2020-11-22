@@ -64,7 +64,7 @@ def write_qrc(qrc_path: str, icons_path: str, icons_root: str, icons: List[str])
         fp.write("</RCC>")
 
 
-script_path = os.path.dirname(os.path.realpath(__file__))
+script_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 icons = list(collect_icons(script_path))
 
-write_qrc("icons.qrc", "/usr/share/icons/breath/", "/usr/share", icons)
+write_qrc("icons.qrc", "/usr/share/icons/breath2/", "/usr/share", icons)

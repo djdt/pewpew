@@ -1,0 +1,5 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/icons/breath2">
+<file alias="index.theme">/usr/share/icons/breath2/index.theme</file>
+</qresource>
+</RCC>
