@@ -6,7 +6,6 @@ block_cipher = None
 
 a = Analysis(
     [os.path.join("pewpew", "__main__.py")],
-    pathex=[os.path.join(os.path.abspath(".."), "pew")],
     binaries=None,
     datas=None,
     hiddenimports=[],
