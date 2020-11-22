@@ -13,7 +13,7 @@ from matplotlib.widgets import AxesWidget
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from pew.laser import Laser
+from pewlib.laser import Laser
 
 from pewpew.lib.mpltools import MetricSizeBar
 from pewpew.lib.viewoptions import ViewOptions
@@ -543,7 +543,11 @@ class LaserImageCanvas(SelectableImageCanvas):
         unit = str(laser.calibration[name].unit) if self.viewoptions.calibrate else ""
 
         # Get extent
-        extent = laser.config.data_extent(data.shape, layer=layer)
+        if laser.layers > 1:
+            extent = laser.config.data_extent(data.shape, layer=layer)
+        else:
+            extent = laser.config.data_extent(data.shape)
+
         # Only change the view if new or the laser extent has changed (i.e. conf edit)
         if self.extent != extent:
             self.view_limits = self.extentForAspect(extent)
