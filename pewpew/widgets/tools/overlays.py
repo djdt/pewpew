@@ -8,8 +8,8 @@ from matplotlib.image import imsave
 from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
 from matplotlib.patheffects import withStroke
 
-from pew import io
-from pew.lib.calc import greyscale_to_rgb, normalise
+from pewlib import io
+from pewlib.process.calc import greyscale_to_rgb, normalise
 
 from pewpew.actions import qAction, qToolButton
 from pewpew.validators import PercentOrDecimalValidator

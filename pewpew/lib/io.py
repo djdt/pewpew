@@ -1,8 +1,8 @@
 import logging
 from pathlib import Path
 
-from pew import io
-from pew import Laser, Config
+from pewlib import io
+from pewlib import Laser, Config
 
 from typing import List, Union
 

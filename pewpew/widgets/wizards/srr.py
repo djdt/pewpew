@@ -4,9 +4,9 @@ import os
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pew import io
-from pew.config import Config
-from pew.srr import SRRLaser, SRRConfig
+from pewlib import io
+from pewlib.config import Config
+from pewlib.srr import SRRLaser, SRRConfig
 
 from pewpew.validators import DecimalValidator
 

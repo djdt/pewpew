@@ -1,16 +1,20 @@
 from pathlib import Path
 from os import sep
+import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pew import io
-from pew.laser import Laser
+from pewlib import io
+from pewlib.laser import Laser
 
 from pewpew.widgets.canvases import LaserImageCanvas
 from pewpew.widgets.prompts import OverwriteFilePrompt
 from pewpew.widgets.views import _ViewWidget
 
 from typing import List, Set, Tuple
+
+
+logger = logging.getLogger(__name__)
 
 
 class OptionsBox(QtWidgets.QGroupBox):
@@ -409,7 +413,9 @@ class ExportDialog(_ExportDialogBase):
             io.npz.save(path, widget.laser)
 
         else:
-            raise io.error.PewException(f"Unable to export file as '{option.ext}'.")
+            raise ValueError(f"Unable to export file as '{option.ext}'.")
+
+        logger.info(f"Exported {widget.laser.name} to {path.name}.")
 
     def accept(self) -> None:
         paths = self.generatePaths(self.widget.laser)
@@ -422,7 +428,8 @@ class ExportDialog(_ExportDialogBase):
         try:
             for path, isotope, layer in paths:
                 self.export(path, isotope, layer, self.widget)
-        except io.error.PewException as e:
+        except Exception as e:
+            logger.exception(e)
             QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
             return
 
@@ -529,7 +536,8 @@ class ExportAllDialog(ExportDialog):
                         break
                     self.export(path, isotope, layer, widget)
                     exported += 1
-        except io.error.PewException as e:
+        except Exception as e:
+            logger.exception(e)
             QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
             dlg.cancel()
             return

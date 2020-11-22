@@ -3,9 +3,9 @@ from pathlib import Path
 from pytestqt.qtbot import QtBot
 from PySide2 import QtCore, QtGui
 
-from pew.laser import Laser
-from pew.config import Config
-from pew.calibration import Calibration
+from pewlib.laser import Laser
+from pewlib.config import Config
+from pewlib.calibration import Calibration
 
 from pewpew.widgets.laser import LaserViewSpace
 

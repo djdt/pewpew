@@ -3,11 +3,11 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pew import io
-from pew.lib import peakfinding
-from pew.config import Config
-from pew.laser import Laser
-from pew.srr import SRRLaser, SRRConfig
+from pewlib import io
+from pewlib.process import peakfinding
+from pewlib.config import Config
+from pewlib.laser import Laser
+from pewlib.srr import SRRLaser, SRRConfig
 
 from pewpew.validators import DecimalValidator, DecimalValidatorNoZero
 from pewpew.widgets.canvases import BasicCanvas

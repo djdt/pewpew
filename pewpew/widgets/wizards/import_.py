@@ -6,9 +6,9 @@ from pathlib import Path
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pew import io
-from pew.config import Config
-from pew.laser import Laser
+from pewlib import io
+from pewlib.config import Config
+from pewlib.laser import Laser
 
 from pewpew.validators import DecimalValidatorNoZero
 from pewpew.widgets.dialogs import NameEditDialog

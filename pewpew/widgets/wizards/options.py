@@ -2,7 +2,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 from pathlib import Path
 
-from pew import io
+from pewlib import io
 
 from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog

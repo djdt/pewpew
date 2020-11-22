@@ -4,7 +4,7 @@ import os.path
 import logging
 from PySide2 import QtCore, QtGui, QtWidgets
 
-import pew
+import pewlib
 from pewpew import __version__
 
 from pewpew.mainwindow import MainWindow
@@ -46,7 +46,7 @@ def main(argv: List[str] = None) -> int:
     sys.excepthook = window.exceptHook
     logger.addHandler(window.log.handler)
     logger.info(f"Pewpew {__version__} started.")
-    logger.info(f"Using Pew {pew.__version__}.")
+    logger.info(f"Using Pewlib {pewlib.__version__}.")
 
     window.show()
     window.setWindowIcon(QtGui.QIcon(":/app.ico"))

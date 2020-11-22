@@ -7,7 +7,7 @@ from pytestqt.qtbot import QtBot
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pew import Laser
+from pewlib import Laser
 
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets.canvases import (

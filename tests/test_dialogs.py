@@ -4,9 +4,9 @@ from pytestqt.qtbot import QtBot
 
 from PySide2 import QtCore, QtGui
 
-from pew.config import Config
-from pew.calibration import Calibration
-from pew.srr.config import SRRConfig
+from pewlib.config import Config
+from pewlib.calibration import Calibration
+from pewlib.srr.config import SRRConfig
 
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets import dialogs

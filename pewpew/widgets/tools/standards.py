@@ -9,7 +9,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patheffects import withStroke
 from matplotlib.transforms import blended_transform_factory
 
-from pew import Calibration
+from pewlib import Calibration
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 from pewpew.lib.viewoptions import ViewOptions

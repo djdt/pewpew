@@ -3,9 +3,9 @@ import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pew.lib import convolve, filters
-from pew.lib.calc import normalise
-from pew.lib.threshold import otsu
+from pewlib.process import convolve, filters
+from pewlib.process.calc import normalise
+from pewlib.process.threshold import otsu
 
 from pewpew.actions import qAction, qToolButton
 from pewpew.lib import kmeans

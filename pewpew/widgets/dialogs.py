@@ -6,11 +6,11 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from matplotlib.text import Text
 from matplotlib.colors import LinearSegmentedColormap
 
-from pew import Calibration, Config
-from pew.lib import colocal
-from pew.lib.calc import normalise
-from pew.lib.threshold import otsu
-from pew.srr import SRRConfig
+from pewlib import Calibration, Config
+from pewlib.process import colocal
+from pewlib.process.calc import normalise
+from pewlib.process.threshold import otsu
+from pewlib.srr import SRRConfig
 
 from pewpew.lib.viewoptions import ViewOptions, ColorOptions
 from pewpew.lib import kmeans

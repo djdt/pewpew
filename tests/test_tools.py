@@ -5,7 +5,7 @@ import tempfile
 from PySide2 import QtGui, QtWidgets
 from pytestqt.qtbot import QtBot
 
-from pew.laser import Laser
+from pewlib.laser import Laser
 
 from pewpew.widgets.laser import LaserViewSpace
 from pewpew.widgets.tools.tool import ToolWidget

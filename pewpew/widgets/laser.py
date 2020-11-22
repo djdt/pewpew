@@ -8,10 +8,10 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from matplotlib.patheffects import Normal, SimpleLineShadow
 from matplotlib.widgets import RectangleSelector
 
-from pew import io
-from pew.laser import Laser
-from pew.srr import SRRLaser, SRRConfig
-from pew.config import Config
+from pewlib import io
+from pewlib.laser import Laser
+from pewlib.srr import SRRLaser, SRRConfig
+from pewlib.config import Config
 
 from pewpew.actions import qAction, qToolButton
 
@@ -117,7 +117,7 @@ class LaserView(View):
             for laser in lasers:
                 self.addLaser(laser)
             event.acceptProposedAction()
-        except io.error.PewException as e:  # pragma: no cover
+        except Exception as e:  # pragma: no cover
             event.ignore()
             logger.exception(e)
             QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
@@ -128,7 +128,7 @@ class LaserView(View):
             for laser in import_any(paths, self.viewspace.config):
                 self.addLaser(laser)
 
-        except io.error.PewException as e:  # pragma: no cover
+        except Exception as e:  # pragma: no cover
             logger.exception(e)
             QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
 

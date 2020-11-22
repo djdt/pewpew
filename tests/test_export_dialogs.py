@@ -3,7 +3,7 @@ import tempfile
 
 from pytestqt.qtbot import QtBot
 
-from pew.laser import Laser
+from pewlib.laser import Laser
 
 from pewpew.widgets.exportdialogs import ExportDialog, ExportAllDialog
 from pewpew.widgets.laser import LaserViewSpace
