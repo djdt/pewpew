@@ -19,6 +19,7 @@ pewlib_.
     :numbered:
 
     tutorials/import
+    tutorials/calibration
 
 .. _pewlib: https://github.com/djdt/pewlib
 

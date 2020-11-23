@@ -1,18 +1,17 @@
-
 Importing Data
 ==============
 
 .. table:: Vendor formats supported by |pewpew|.
 
-+-----------+-----------+-------------+--------------+
-|Vendor     |Software   |Format       |Tested        |
-+===========+===========+=============+==============+
-|Agilent    |Mass Hunter|.b directory |7500,7700,8900|
-+-----------+-----------+-------------+--------------+
-|Thermo     |Qtegra     |.csv         |iCAP RQ       |
-+-----------+-----------+-------------+--------------+
-|PerkinElmer|           |directory    |              |
-+-----------+-----------+-------------+--------------+
+    +-----------+-----------+-------------+--------------+
+    |Vendor     |Software   |Format       |Tested With   |
+    +===========+===========+=============+==============+
+    |Agilent    |Mass Hunter|.b directory |7500,7700,8900|
+    +-----------+-----------+-------------+--------------+
+    |PerkinElmer|           |directory    |              |
+    +-----------+-----------+-------------+--------------+
+    |Thermo     |Qtegra     |.csv         |iCAP RQ       |
+    +-----------+-----------+-------------+--------------+
 
 For the majority of users importing data consists of dragging-and-dropping of files into |pewpew|.
 An `Import Wizard` exists for cases of incorrectly formatted data or if you required finer control over an import.

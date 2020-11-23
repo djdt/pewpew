@@ -88,12 +88,6 @@ class StandardsTool(ToolWidget):
         self.lineedit_units.setText(self.calibration[isotope].unit)
         self.table.model().setCalibration(self.calibration[isotope])
 
-        self.layoutWidgets()
-
-        self.refresh()
-        self.updateResults()
-
-    def layoutWidgets(self) -> None:
         layout_cal_form = QtWidgets.QFormLayout()
         layout_cal_form.addRow("Calibration Levels:", self.spinbox_levels)
 
@@ -124,9 +118,12 @@ class StandardsTool(ToolWidget):
         layout.addWidget(
             self.combo_isotope, 3, 1, 1, 1, QtCore.Qt.AlignTop | QtCore.Qt.AlignRight
         )
-        layout.addLayout(layout_results, 4, 0, 1, 2)
+        layout.addLayout(layout_results, 3, 0, 1, 2)
 
         self.layout_main.addLayout(layout)
+
+        self.refresh()
+        self.updateResults()
 
     def apply(self) -> None:
         self.widget.applyCalibration(self.calibration)  # pragma: no cover
@@ -343,8 +340,8 @@ class StandardsCanvas(InteractiveImageCanvas):
         pos = py * np.round(pos / py)
         self.drawLevelGuides(pos, texts)
         # First guide is just for label
-        self.level_guides[0].set_pickradius(0)
-        self.level_guides[-1].set_pickradius(0)
+        self.level_guides[0].set_picker(False)
+        self.level_guides[-1].set_picker(False)
         self.level_guides[-1].text.set_text("")
         # self.level_guides[0].set_visible()
 
@@ -372,6 +369,7 @@ class StandardsCanvas(InteractiveImageCanvas):
                 linestyle="--",
                 path_effects=[withStroke(linewidth=2.0, foreground="black")],
                 linewidth=1.0,
+                picker=True,
                 pickradius=5,
                 animated=True,
                 label=text,
@@ -397,6 +395,7 @@ class StandardsCanvas(InteractiveImageCanvas):
                 linestyle="-",
                 path_effects=[withStroke(linewidth=2.0, foreground="black")],
                 linewidth=1.0,
+                picker=True,
                 pickradius=5,
                 animated=True,
             )
