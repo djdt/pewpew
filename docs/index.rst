@@ -8,7 +8,7 @@ Welcome to pewpew's documentation!
 ===============================
 
 Pewpew is an open-source LA-ICP-MS data import and processing application, based on the python library
-[pewlib](https://github.com/djdt/pewlib).
+pewlib_.
 
 .. toctree::
     :maxdepth: 2
@@ -20,6 +20,7 @@ Pewpew is an open-source LA-ICP-MS data import and processing application, based
 
     tutorials/import
 
+.. _pewlib: https://github.com/djdt/pewlib
 
 Indices and tables
 ==================
