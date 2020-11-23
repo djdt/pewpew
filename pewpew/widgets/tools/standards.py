@@ -435,7 +435,7 @@ class StandardsCanvas(InteractiveImageCanvas):
 
 
 class StandardsResultsTable(BasicTable):
-    LABELS = ["RSQ", "Gradient", "Intercept", "Sxy", "LOD (3σ)"]
+    LABELS = ["r²", "Gradient", "Intercept", "Sxy", "LOD (3σ)"]
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(2, 5, parent)
