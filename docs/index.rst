@@ -13,6 +13,8 @@ pewlib_.
 .. toctree::
     :maxdepth: 2
 
+    install
+
 .. toctree::
     :maxdepth: 2
     :caption: Tutorials
@@ -21,6 +23,10 @@ pewlib_.
     tutorials/import
     tutorials/calibration
     tutorials/selection
+    tutorials/process
+    tutorials/stats
+    tutorials/colocal
+
 
 .. _pewlib: https://github.com/djdt/pewlib
 
