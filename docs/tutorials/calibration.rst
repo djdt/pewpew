@@ -1,15 +1,20 @@
 Calibration
 ===========
 
-
-There are two ways of calibrating data in |pewpew|.
-
-
-.. figure:: ../images/tutorial_calibration_example.png
+.. figure:: ../images/tutorial_calibration_example_label.png
     :align: center
 
-    Calibration standards loaded into the `Standards Tool`.
+    Calibration standards loaded into the `Standards Tool`_.
+    Red highlights indicate important controls.
 
+
+Calibration Dialog
+------------------
+
+* **Right Click -> Calibration**
+
+The calibration dialog allows manual entry of the gradient, intercept and unit for each isotope.
+To apply the current calibration to all other open images check the `Apply calibration to all images.` box and then click `Apply`.
 
 Standards Tool
 --------------
@@ -42,12 +47,19 @@ Data should be collected line-by-line with all similar calibration levels in adj
 6. Repeat for other isotopes.
     |
 
+
+Calibration Curve
+-----------------
+
+Both the `Calibration Dialog`_ and `Standards Tool`_ have a button `Button Plot` that will open
+a window with the current calibration plotted.
+*Note that the y-axis title will always read* Counts *!*
+
 .. figure:: ../images/tutorial_calibration_plot.png
     :width: 240px
     :align: center
 
-    Clicking the `Plot` button will show the calibration curve.
-    Right clicking the plot allows copying the image to the clipboard.
+    Calibration curve, right clicking the plot allows copying the image to the clipboard.
 
 .. rubric:: Footnotes
 
