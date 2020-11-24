@@ -14,19 +14,21 @@ Importing Data
     +-----------+-----------+-------------+--------------+
 
 For the majority of users importing data consists of dragging-and-dropping of files into |pewpew|.
-An `Import Wizard` exists for cases of incorrectly formatted data or if you required finer control over an import.
 
 Import Wizard
 -------------
 
 * **File -> Import -> Import Wizard**
 
-Importing data using the `Import Wizard` begins by selecting the format to be used.
-The path of the file or directory can be chosen on the next page using either the file dialog `Open File`
-or by drag-and-drop of the file into the import wizard.
+The `Import Wizard` allows users to provide specific options when importing data and consists of three pages.
 
-Once the file has been selected format options will be automatically filled with sensible defaults.
-These can be changed if required, for example to extract the analog channel from a Thermo iCAP CSV.
+1. Select the data format.
+    The data format will affect whether the path is to a file or folder and the import options.
 
-The final page of the wizard allows the user to fill in any incorrect laser parameters and to rename or delete
-imported isotopes. Clicking finish will import the data into |pewpew|.
+2. Select the path to the data and format specific import options.
+    Path selection uses the file dialog `Open File` or `Open Directory` or drag-and-drop of files into the wizard.
+    Default import options are automatically filled in on path selection.
+
+3. Select laser parameters and isotopes for import.
+    If available, laser parameters will be read from the data.
+    Isotopes names are editable by pressing the `Edit Names` button.
