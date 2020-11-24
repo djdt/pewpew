@@ -1,6 +1,6 @@
 import argparse
 import sys
-import os.path
+from pathlib import Path
 import logging
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -23,7 +23,7 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
         description="GUI for visualisation and manipulation of LA-ICP-MS data.",
     )
 
-    parser.add_argument("--open", "-i", nargs="+", help="Open file(s) on startup.")
+    parser.add_argument("--open", "-i", type=Path, nargs="+", help="Open file(s) on startup.")
     parser.add_argument(
         "qtargs", nargs=argparse.REMAINDER, help="Arguments to pass to Qt."
     )
@@ -31,7 +31,7 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
 
     if args.open is not None:
         for path in args.open:
-            if not os.path.exists(path):
+            if not path.exists:
                 raise parser.error(f"[--open, -i]: File '{path}' not found.")
 
     return args
