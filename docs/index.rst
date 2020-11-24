@@ -3,11 +3,11 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to pewpew's documentation!
+Welcome to |pewpew|'s documentation!
 
 ===============================
 
-Pewpew is an open-source LA-ICP-MS data import and processing application, based on the python library
+|pewpew| is an open-source LA-ICP-MS data import and processing application, based on the python library
 pewlib_.
 
 .. toctree::
@@ -20,6 +20,7 @@ pewlib_.
 
     tutorials/import
     tutorials/calibration
+    tutorials/selection
 
 .. _pewlib: https://github.com/djdt/pewlib
 
