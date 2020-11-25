@@ -40,7 +40,7 @@ to compare the data to it.
 As an example, if the `Method` produces a value of 1 and the `Comparison` is '>' then all values greater
 than 1 will be selected.
 
-Checking `Limit selection to current selection` will select the intersection (:math:`A \cup B`)
+Checking `Limit selection to current selection` will select the intersection (:math:`A \cap B`)
 with the previously selected area.
 
 Checking `Limit thresholding to selected value` will pass only currently selected values
