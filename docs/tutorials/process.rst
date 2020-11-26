@@ -108,6 +108,8 @@ In this example we use the calculator tool to simultaneously threshold and divid
 Convolution
 -----------
 
+* **Tools -> Edit Tool -> Convolve / Deconvolve**
+
 The `Convolve` and `Deconvolve` tools
 Convolution can be used to add blur to images.
 
@@ -116,7 +118,7 @@ Example: Removing wash-out blur
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. figure:: ../images/tutorial_convolve_pre.png
-    :width: 200px
+    :width: 300px
     :align: center
 
     An image with wash-out blur, seen on the right hand side of the tissue.
@@ -132,7 +134,7 @@ Example: Removing wash-out blur
 
 
 .. figure:: ../images/tutorial_convolve_post.png
-    :width: 200px
+    :width: 300px
     :align: center
 
     The same image post-deconvolution. Notice the lessen blur on the right hand side.
