@@ -103,3 +103,36 @@ In this example we use the calculator tool to simultaneously threshold and divid
 
 3. Enter the new name, and click `Apply`.
     Choose a unique name to prevent overwriting data.
+
+
+Convolution
+-----------
+
+The `Convolve` and `Deconvolve` tools
+Convolution can be used to add blur to images.
+
+
+Example: Removing wash-out blur
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. figure:: ../images/tutorial_convolve_pre.png
+    :width: 200px
+    :align: center
+
+    An image with wash-out blur, seen on the right hand side of the tissue.
+
+1. Calculate the wash-out time in pixels.
+    If the wash-out time is known then use wash-out (s) / acquisition time (s).
+
+2. `Deconvolve` in one-dimension with a non-symmetrical point-spread-function.
+    In this example `Log-Normal` (size=12; σ=1.50, μ=0.0) worked well.
+
+3. Optional, to remove deconvolution artefacts take the absolute value of the image.
+    Use the abs() function in the `Calculator`.
+
+
+.. figure:: ../images/tutorial_convolve_post.png
+    :width: 200px
+    :align: center
+
+    The same image post-deconvolution. Notice the lessen blur on the right hand side.
