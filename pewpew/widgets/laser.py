@@ -15,7 +15,6 @@ from pewlib.config import Config
 
 from pewpew.actions import qAction, qToolButton
 
-from pewpew.lib.io import import_any
 from pewpew.lib.mplwidgets import (
     RectangleImageSelectionWidget,
     LassoImageSelectionWidget,
@@ -24,6 +23,7 @@ from pewpew.lib.mplwidgets import (
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.canvases import LaserImageCanvas
+from pewpew.widgets.operations import ImportThread
 from pewpew.widgets.views import View, ViewSpace, _ViewWidget
 
 from typing import List, Set, Tuple, Union
@@ -112,25 +112,51 @@ class LaserView(View):
             return super().dropEvent(event)
 
         paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
-        try:
-            lasers = import_any(paths, default_config=self.viewspace.config)
-            for laser in lasers:
-                self.addLaser(laser)
-            event.acceptProposedAction()
-        except Exception as e:  # pragma: no cover
-            event.ignore()
-            logger.exception(e)
-            QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
+        event.acceptProposedAction()
+
+        progress = QtWidgets.QProgressDialog(
+            "Importing...", "Cancel", 0, 0, parent=self
+        )
+        progress.setMinimumDuration(1000)
+        thread = ImportThread(paths, config=self.viewspace.config, parent=self)
+
+        progress.canceled.connect(thread.requestInterruption)
+        thread.importStarted.connect(progress.setLabelText)
+        thread.progressChanged.connect(progress.setValue)
+
+        thread.importFinished.connect(self.addLaser)
+        thread.importFailed.connect(logger.exception)
+        thread.finished.connect(progress.close)
+
+        thread.start()
+
+    #         operation.completed.connect(
+    #             lambda lasers: [self.addLaser(laser) for laser in lasers]
+    #         )
+    #         operation.perform()
+    # try:
+    #     lasers = import_any(paths, default_config=self.viewspace.config)
+    #     for laser in lasers:
+    #         self.addLaser(laser)
+    # except Exception as e:  # pragma: no cover
+    #     event.ignore()
+    #     logger.exception(e)
+    #     QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
 
     # Callbacks
     def openDocument(self, paths: List[Path]) -> None:
-        try:
-            for laser in import_any(paths, self.viewspace.config):
-                self.addLaser(laser)
+        operation = ImportOperation(paths, config=self.viewspace.config)
+        operation.completed.connect(
+            lambda lasers: [self.addLaser(laser) for laser in lasers]
+        )
+        operation.perform()
+        # try:
+        #     for laser in import_any(paths, self.viewspace.config):
+        #         self.addLaser(laser)
 
-        except Exception as e:  # pragma: no cover
-            logger.exception(e)
-            QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
+        # except Exception as e:  # pragma: no cover
+        #     logger.exception(e)
+        #     QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
 
     def applyCalibration(self, calibration: dict) -> None:
         for widget in self.widgets():
