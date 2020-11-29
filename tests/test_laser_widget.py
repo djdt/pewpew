@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
 from pytestqt.qtbot import QtBot
-from PySide2 import QtCore, QtGui
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewlib.laser import Laser
 from pewlib.config import Config
@@ -25,6 +25,8 @@ def test_laser_view_space(qtbot: QtBot):
     viewspace.views[1].addLaser(Laser(rand_data(["B2", "D4"])))
 
     assert viewspace.uniqueIsotopes() == ["A1", "B2", "C3", "D4"]
+    assert viewspace.currentIsotope() == "A1"
+
     # Apply config
     viewspace.applyConfig(Config(10, 10, 10))
     for view in viewspace.views:
@@ -78,7 +80,7 @@ def test_laser_view(qtbot: QtBot):
 
     # Drop event
     drag_mime = QtCore.QMimeData()
-    path = Path(__file__).parent.joinpath("data", "io", "test.npz")
+    path = Path(__file__).parent.joinpath("data", "io", "npz", "test.npz")
     drag_mime.setUrls([QtCore.QUrl.fromLocalFile(str(path.resolve()))])
     drag_event = QtGui.QDragEnterEvent(
         QtCore.QPoint(0, 0),
@@ -96,7 +98,7 @@ def test_laser_view(qtbot: QtBot):
         QtCore.Qt.LeftButton,
         QtCore.Qt.NoModifier,
     )
-    with qtbot.wait_signal(view.numTabsChanged) as emitted:
+    with qtbot.waitSignal(view.numTabsChanged):
         view.dropEvent(drop_event)
     assert drop_event.isAccepted()
     assert len(view.widgets()) == 2
@@ -123,6 +125,9 @@ def test_laser_widget(qtbot: QtBot):
     widget.applyCalibration({"B2": Calibration(2.0, 2.0)})
     assert widget.laser.calibration["B2"].intercept == 2.0
 
+    widget.updateNames({"A1": "A1", "B2": "2B"})
+    assert np.all(viewspace.uniqueIsotopes() == ["2B", "A1"])
+
     widget.crop((1.5, 9.5, 1.5, 9.5))
     assert view.activeWidget().laser.data.shape == (8, 8)
     widget.transform(flip="horizontal")
@@ -136,6 +141,32 @@ def test_laser_widget(qtbot: QtBot):
     assert np.all(widget.laser.get("A1") == np.rot90(y, k=1, axes=(1, 0)))
     widget.transform(rotate="left")
     assert np.all(widget.laser.get("A1") == y)
+
+    # croptoselect
+
+
+def test_laser_widget_cursor(qtbot: QtBot):
+    main = QtWidgets.QMainWindow()
+    qtbot.addWidget(main)
+    main.statusBar()  # Create bar
+    viewspace = LaserViewSpace()
+    main.setCentralWidget(viewspace)
+
+    view = viewspace.activeView()
+    view.addLaser(Laser(np.array(np.ones((10, 10)), dtype=[("a", np.float64)])))
+    widget = view.activeWidget()
+    qtbot.waitForWindowShown(widget)
+
+    widget.updateCursorStatus(2.0, 2.0, 1.0)
+    assert main.statusBar().currentMessage() == "2,2 [1]"
+
+    widget.canvas.viewoptions.units = "row"
+    widget.updateCursorStatus(2.0, 2.0, 1.0)
+    assert main.statusBar().currentMessage() == "9,0 [1]"
+
+    widget.canvas.viewoptions.units = "second"
+    widget.updateCursorStatus(70.0, 70.0, 1.0)
+    assert main.statusBar().currentMessage() == "0.5,0 [1]"
 
 
 def test_laser_widget_actions(qtbot: QtBot):

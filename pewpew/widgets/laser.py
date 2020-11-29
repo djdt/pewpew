@@ -14,6 +14,7 @@ from pewlib.srr import SRRLaser, SRRConfig
 from pewlib.config import Config
 
 from pewpew.actions import qAction, qToolButton
+from pewpew.threads import ImportThread
 
 from pewpew.lib.mplwidgets import (
     RectangleImageSelectionWidget,
@@ -23,7 +24,6 @@ from pewpew.lib.mplwidgets import (
 from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.canvases import LaserImageCanvas
-from pewpew.widgets.operations import ImportThread
 from pewpew.widgets.views import View, ViewSpace, _ViewWidget
 
 from typing import List, Set, Tuple, Union
@@ -104,16 +104,20 @@ class LaserView(View):
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
-        else:
+        else:  # pragma: no cover
             super().dragEnterEvent(event)
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
-        if not event.mimeData().hasUrls():
+        if not event.mimeData().hasUrls():  # pragma: no cover
             return super().dropEvent(event)
 
         paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
         event.acceptProposedAction()
 
+        self.openDocument(paths)
+
+    # Callbacks
+    def openDocument(self, paths: List[Path]) -> None:
         progress = QtWidgets.QProgressDialog(
             "Importing...", "Cancel", 0, 0, parent=self
         )
@@ -129,34 +133,6 @@ class LaserView(View):
         thread.finished.connect(progress.close)
 
         thread.start()
-
-    #         operation.completed.connect(
-    #             lambda lasers: [self.addLaser(laser) for laser in lasers]
-    #         )
-    #         operation.perform()
-    # try:
-    #     lasers = import_any(paths, default_config=self.viewspace.config)
-    #     for laser in lasers:
-    #         self.addLaser(laser)
-    # except Exception as e:  # pragma: no cover
-    #     event.ignore()
-    #     logger.exception(e)
-    #     QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
-
-    # Callbacks
-    def openDocument(self, paths: List[Path]) -> None:
-        operation = ImportOperation(paths, config=self.viewspace.config)
-        operation.completed.connect(
-            lambda lasers: [self.addLaser(laser) for laser in lasers]
-        )
-        operation.perform()
-        # try:
-        #     for laser in import_any(paths, self.viewspace.config):
-        #         self.addLaser(laser)
-
-        # except Exception as e:  # pragma: no cover
-        #     logger.exception(e)
-        #     QtWidgets.QMessageBox.critical(self, type(e).__name__, f"{e}")
 
     def applyCalibration(self, calibration: dict) -> None:
         for widget in self.widgets():
@@ -220,7 +196,7 @@ class LaserWidgetImageCanvas(LaserImageCanvas):
 
         self.drawFigure()
 
-    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # pragma: no cover
         if event.key() == QtCore.Qt.Key_Escape:
             self.widget = None  # End any widget
         super().keyPressEvent(event)
@@ -507,7 +483,7 @@ class LaserWidget(_ViewWidget):
 
     def updateCursorStatus(self, x: float, y: float, v: float) -> None:
         status_bar = self.viewspace.window().statusBar()
-        if status_bar is None:
+        if status_bar is None:  # pragma: no cover
             return
         unit = self.canvas.viewoptions.units
 
@@ -538,15 +514,15 @@ class LaserWidget(_ViewWidget):
 
     # Transformations
     def crop(self, new_extent: Tuple[float, float, float, float] = None) -> None:
-        if self.is_srr:
+        if self.is_srr:  # pragma: no cover
             QtWidgets.QMessageBox.information(
                 self, "Transform", "Unable to transform SRR data."
             )
             return
-        if new_extent is None:
+        if new_extent is None:  # pragma: no cover
             # Default is to crop to current view limits.
             new_extent = self.canvas.view_limits
-        if new_extent == self.canvas.extent:
+        if new_extent == self.canvas.extent:  # pragma: no cover
             # Extent is same
             return
         extent = self.canvas.extent
