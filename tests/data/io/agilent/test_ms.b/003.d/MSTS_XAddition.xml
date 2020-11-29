@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfMSTS_XAddition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <MSTS_XAddition TimeSegmentID="1">
+    <ScanType>SingleQuad</ScanType>
+    <IonGuideMode>QFIonGuideMode</IonGuideMode>
+    <QpoleBalanceForPeakPattern>QS</QpoleBalanceForPeakPattern>
+    <IndexedMasses>
+      <MSTS_XAddition_IndexedMasses>
+        <Index>1</Index>
+        <PrecursorIonMZ>31</PrecursorIonMZ>
+        <ProductIonMZ>31</ProductIonMZ>
+      </MSTS_XAddition_IndexedMasses>
+      <MSTS_XAddition_IndexedMasses>
+        <Index>2</Index>
+        <PrecursorIonMZ>153</PrecursorIonMZ>
+        <ProductIonMZ>153</ProductIonMZ>
+      </MSTS_XAddition_IndexedMasses>
+      <MSTS_XAddition_IndexedMasses>
+        <Index>3</Index>
+        <PrecursorIonMZ>182</PrecursorIonMZ>
+        <ProductIonMZ>182</ProductIonMZ>
+      </MSTS_XAddition_IndexedMasses>
+    </IndexedMasses>
+  </MSTS_XAddition>
+</ArrayOfMSTS_XAddition>

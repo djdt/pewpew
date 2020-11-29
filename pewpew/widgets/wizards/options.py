@@ -240,7 +240,7 @@ class ThermoOptions(_OptionsBase):
         with path.open("r", encoding="utf-8-sig") as fp:
             lines = [next(fp) for i in range(3)]
             delimiter = lines[0][0]
-            if "MainRuns" in lines[0]:
+            if "MainRuns" in lines[0]:  # pragma: no cover
                 method = "rows"
             elif "MainRuns" in lines[2]:
                 method = "columns"
@@ -259,7 +259,7 @@ class ThermoOptions(_OptionsBase):
     def updateForPath(self, path: Path) -> None:
         delimiter, method, has_analog = self.preprocessFile(path)
         self.combo_delimiter.setCurrentText(delimiter)
-        if method == "rows":
+        if method == "rows":  # pragma: no cover
             self.radio_rows.setChecked(True)
         elif method == "columns":
             self.radio_columns.setChecked(True)
@@ -287,7 +287,7 @@ class _PathSelectBase(QtWidgets.QWidget):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
-        if mode not in ["File", "Directory"]:
+        if mode not in ["File", "Directory"]:  # pragma: no cover
             raise ValueError("Mode must be one of 'File', 'Directory'.")
         self.mode = mode
         self.filetype = filetype
@@ -296,7 +296,7 @@ class _PathSelectBase(QtWidgets.QWidget):
         self.setAcceptDrops(True)
 
     @QtCore.Property("QString")
-    def _path(self) -> str:
+    def _path(self) -> str:  # pragma: no cover
         raise NotImplementedError
 
     @property
@@ -304,17 +304,17 @@ class _PathSelectBase(QtWidgets.QWidget):
         return Path(self._path)
 
     @QtCore.Property("QStringList")
-    def _paths(self) -> List[str]:
+    def _paths(self) -> List[str]:  # pragma: no cover
         raise NotImplementedError
 
     @property
     def paths(self) -> List[Path]:
         return [Path(p) for p in self._paths]
 
-    def addPath(self, path: Union[str, Path]) -> None:
+    def addPath(self, path: Union[str, Path]) -> None:  # pragma: no cover
         raise NotImplementedError
 
-    def addPaths(self, paths: Union[List[str], List[Path]]) -> None:
+    def addPaths(self, paths: Union[List[str], List[Path]]) -> None:  # pragma: no cover
         raise NotImplementedError
 
     def selectPath(self) -> QtWidgets.QFileDialog:
@@ -334,7 +334,9 @@ class _PathSelectBase(QtWidgets.QWidget):
 
     def selectMultiplePaths(self) -> QtWidgets.QFileDialog:
         if self.mode == "File":
-            dlg = QtWidgets.QFileDialog(self, "Select Files", self.currentDir().parent)
+            dlg = QtWidgets.QFileDialog(
+                self, "Select Files", str(self.currentDir().resolve())
+            )
             dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
             dlg.setNameFilters([self.nameFilter(), "All Files(*)"])
             dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
@@ -370,7 +372,7 @@ class _PathSelectBase(QtWidgets.QWidget):
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
-        else:
+        else:  # pragma: no cover
             super().dragEnterEvent(event)
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
@@ -382,7 +384,7 @@ class _PathSelectBase(QtWidgets.QWidget):
                     if self.validPath(path):
                         self.addPath(path)
             event.acceptProposedAction()
-        else:
+        else:  # pragma: no cover
             super().dropEvent(event)
 
 
@@ -447,7 +449,7 @@ class MultiplePathSelectWidget(_PathSelectBase):
         self.list.model().rowsRemoved.connect(self.pathChanged)
         self.list.model().rowsMoved.connect(self.pathChanged)
 
-        self.list.addItems(paths)
+        self.addPaths(paths)
 
         text = "Files" if self.mode == "File" else "Directories"
         self.button_path = QtWidgets.QPushButton(f"Open {text}")
@@ -490,9 +492,9 @@ class MultiplePathSelectWidget(_PathSelectBase):
     def addPathsInDirectory(self, directory: Path) -> None:
         files = []
         for it in directory.iterdir():
-            if it.suffix.lower() in [self.exts] and self.validPath(it):
+            if self.validPath(it):
                 files.append(str(it.resolve()))
-        self.listdir.addItem(sorted(files))
+        self.list.addItems(sorted(files))
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.key() in [QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete]:
@@ -561,7 +563,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
     def isComplete(self) -> bool:
         return self.path.isComplete() and self.options.isComplete()
 
-    def nextId(self) -> int:
+    def nextId(self) -> int:  # pragma: no cover
         if self.nextid is not None:
             return self.nextid
         return super().nextId()

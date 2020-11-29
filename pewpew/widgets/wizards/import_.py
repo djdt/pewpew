@@ -39,7 +39,7 @@ class ImportWizard(QtWidgets.QWizard):
         super().__init__(parent)
         self.setWindowTitle("Import Wizard")
 
-        if isinstance(path, str):
+        if isinstance(path, str):  # pragma: no cover
             path = Path(path)
 
         config = config or Config()
@@ -89,13 +89,13 @@ class ImportWizard(QtWidgets.QWizard):
     def accept(self) -> None:
         if self.field("agilent"):
             path = Path(self.field("agilent.path"))
-        if self.field("perkinelmer"):
+        elif self.field("perkinelmer"):
             path = Path(self.field("perkinelmer.path"))
         elif self.field("text"):
             path = Path(self.field("text.path"))
         elif self.field("thermo"):
             path = Path(self.field("thermo.path"))
-        else:
+        else:  # pragma: no cover
             raise ValueError("Invalid filetype selection.")
 
         data = self.field("laserdata")
@@ -158,13 +158,13 @@ class FormatPage(QtWidgets.QWizardPage):
             return self.page_id_dict["agilent"]
         if self.field("perkinelmer"):
             return self.page_id_dict["perkinelmer"]
-        elif self.field("numpy"):
+        elif self.field("numpy"):  # pragma: no cover
             return self.page_id_dict["numpy"]
         elif self.field("text"):
             return self.page_id_dict["text"]
         elif self.field("thermo"):
             return self.page_id_dict["thermo"]
-        return 0
+        return 0  # pragma: no cover
 
 
 class ConfigPage(QtWidgets.QWizardPage):
@@ -282,15 +282,15 @@ class ConfigPage(QtWidgets.QWizardPage):
 
     def readAgilent(self, path: Path) -> Tuple[np.ndarray, dict]:
         agilent_method = self.field("agilent.method")
-        if agilent_method == "Alphabetical Order":
+        if agilent_method == "Alphabetical Order":  # pragma: no cover
             method = []  # Fallback to alphabetical
-        elif agilent_method == "Acquistion Method":
+        elif agilent_method == "Acquistion Method":  # pragma: no cover
             method = ["acq_method_xml"]
-        elif agilent_method == "Batch Log CSV":
+        elif agilent_method == "Batch Log CSV":  # pragma: no cover
             method = ["batch_csv"]
         elif agilent_method == "Batch Log XML":
             method = ["batch_xml"]
-        else:
+        else:  # pragma: no cover
             raise ValueError("Unknown data file collection method.")
 
         data, params = io.agilent.load(
@@ -316,7 +316,7 @@ class ConfigPage(QtWidgets.QWizardPage):
         )
         use_analog = self.field("thermo.useAnalog")
 
-        if self.field("thermo.sampleRows"):
+        if self.field("thermo.sampleRows"):  # pragma: no cover
             data = io.thermo.icap_csv_rows_read_data(
                 path, use_analog=use_analog, **kwargs
             )
