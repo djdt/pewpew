@@ -10,7 +10,7 @@ from pewpew.widgets.ext import MultipleDirDialog
 from typing import Dict, List, Tuple, Type, Union
 
 
-class _OptionsBase(QtWidgets.QGroupBox):
+class _OptionsBase(QtWidgets.QGroupBox):  # pragma: no cover
     optionsChanged = QtCore.Signal()
 
     def __init__(
@@ -90,7 +90,7 @@ class AgilentOptions(_OptionsBase):
                 self.current_path.joinpath(io.agilent.batch_xml_path),
             )
         else:
-            raise ValueError("Unknown data file collection method.")
+            raise ValueError("Unknown data file collection method.")  # pragma: no cover
 
         csvs = [df.joinpath(df.with_suffix(".csv").name) for df in datafiles]
 
@@ -174,7 +174,7 @@ class PerkinElmerOptions(_OptionsBase):
         return self.datafiles > 0
 
     def updateForPath(self, path: Path) -> None:
-        self.datafiles = sum([it.suffix.lower() == ".xl" for it in path.iterdir()])
+        self.datafiles = len(list(path.glob("*.xl")))
         self.lineedit_dfile.setText(str(self.datafiles))
 
 
@@ -231,6 +231,9 @@ class ThermoOptions(_OptionsBase):
             ("useAnalog", self.check_use_analog, "checked", "toggled"),
         ]
 
+    def isComplete(self) -> bool:
+        return self.radio_rows.isChecked() or self.radio_columns.isChecked()
+
     def preprocessFile(self, path: Path) -> Tuple[str, str, bool]:
         method = "unknown"
         has_analog = False
@@ -260,6 +263,11 @@ class ThermoOptions(_OptionsBase):
             self.radio_rows.setChecked(True)
         elif method == "columns":
             self.radio_columns.setChecked(True)
+        else:
+            self.radio_rows.setChecked(False)
+            self.radio_rows.setAutoExclusive(False)
+            self.radio_columns.setChecked(False)
+            self.radio_rows.setAutoExclusive(True)
 
         if has_analog:
             self.check_use_analog.setEnabled(True)
