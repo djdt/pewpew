@@ -545,6 +545,8 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
 
         self.options = otype()
         self.options.optionsChanged.connect(self.completeChanged)
+        self.setAcceptDrops(True)
+        self.installEventFilter(DragDropRedirectFilter(self.path))
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.path, 0)
