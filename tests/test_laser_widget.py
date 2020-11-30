@@ -7,7 +7,7 @@ from pewlib.laser import Laser
 from pewlib.config import Config
 from pewlib.calibration import Calibration
 
-from pewpew.widgets.laser import LaserViewSpace
+from pewpew.widgets.laser import LaserViewSpace, LaserComboBox
 
 from testing import rand_data
 
@@ -18,6 +18,8 @@ def test_laser_view_space(qtbot: QtBot):
     viewspace.show()
 
     viewspace.splitActiveHorizontal()
+
+    assert viewspace.currentIsotope() is None
 
     viewspace.views[0].addLaser(Laser(rand_data(["A1", "B2"])))
     viewspace.views[0].addLaser(Laser(rand_data(["A1", "C3"])))
@@ -117,7 +119,6 @@ def test_laser_widget(qtbot: QtBot):
 
     view = viewspace.activeView()
     view.addLaser(Laser(x))
-
     widget = view.activeWidget()
 
     widget.applyConfig(Config(1.0, 1.0, 1.0))
@@ -142,7 +143,80 @@ def test_laser_widget(qtbot: QtBot):
     widget.transform(rotate="left")
     assert np.all(widget.laser.get("A1") == y)
 
-    # croptoselect
+
+def test_laser_widget_canvas(qtbot: QtBot):
+    x = rand_data(["A1", "B2"])
+
+    viewspace = LaserViewSpace()
+    qtbot.addWidget(viewspace)
+    viewspace.show()
+
+    view = viewspace.activeView()
+    view.addLaser(Laser(x))
+    widget = view.activeWidget()
+    qtbot.waitForWindowShown(widget)
+
+    assert widget.canvas.widget is None
+    widget.canvas.startLassoSelection()
+    assert widget.canvas.widget is not None
+    widget.canvas.startRectangleSelection()
+    assert widget.canvas.widget is not None
+    widget.canvas.startRuler()
+    assert widget.canvas.widget is not None
+    widget.canvas.startZoom()
+    assert widget.canvas.widget is not None
+    key_event = QtGui.QKeyEvent(
+        QtCore.QEvent.KeyPress, QtCore.Qt.Key_Escape, QtCore.Qt.NoModifier
+    )
+    widget.canvas.keyPressEvent(key_event)
+    assert widget.canvas.widget is None
+
+    selection = np.zeros(x.shape, dtype=bool)
+    selection[:5, :5] = True
+    widget.canvas.updateAndDrawSelection(selection.copy())
+    assert np.all(widget.canvas.selection[:5, :5])
+    assert not np.any(widget.canvas.selection[5:])
+    assert not np.any(widget.canvas.selection[:, 5:])
+
+    selection[:, :] = False
+    selection[5:, :5] = True
+    widget.canvas.updateAndDrawSelection(selection.copy(), state=set(["add"]))
+    assert np.all(widget.canvas.selection[:, :5])
+    assert np.all(widget.canvas.selection[:5, :5])
+    assert not np.any(widget.canvas.selection[5:, 5:])
+
+    selection[:, :] = False
+    selection[:5, :5] = True
+    widget.canvas.updateAndDrawSelection(selection.copy(), state=set(["subtract"]))
+    assert np.all(widget.canvas.selection[5:, :5])
+    assert not np.any(widget.canvas.selection[:5])
+    assert not np.any(widget.canvas.selection[5:, 5:])
+
+    selection[:, :] = False
+    selection[:, :3] = True
+    widget.canvas.updateAndDrawSelection(selection.copy(), state=set(["intersect"]))
+    assert np.all(widget.canvas.selection[5:, :3])
+    assert not np.any(widget.canvas.selection[:5, :3])
+    assert not np.any(widget.canvas.selection[:, 3:])
+
+    widget.canvas.selection = np.zeros(x.shape, dtype=bool)
+    widget.canvas.selection[2:8, 2:8] = True
+    widget.cropToSelection()
+    assert len(view.widgets()) == 2
+
+
+def test_laser_widget_combo(qtbot: QtBot):
+    box = LaserComboBox()
+    qtbot.addWidget(box)
+
+    box.addItems("abcde")
+
+    dlg = box.actionNameEditDialog()
+    dlg.close()
+
+    box.contextMenuEvent(
+        QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
+    )
 
 
 def test_laser_widget_cursor(qtbot: QtBot):
@@ -153,12 +227,15 @@ def test_laser_widget_cursor(qtbot: QtBot):
     main.setCentralWidget(viewspace)
 
     view = viewspace.activeView()
-    view.addLaser(Laser(np.array(np.ones((10, 10)), dtype=[("a", np.float64)])))
+    view.addLaser(Laser(rand_data(["A1"])))
     widget = view.activeWidget()
     qtbot.waitForWindowShown(widget)
 
     widget.updateCursorStatus(2.0, 2.0, 1.0)
     assert main.statusBar().currentMessage() == "2,2 [1]"
+
+    widget.updateCursorStatus(1.0, 3.0, np.nan)
+    assert main.statusBar().currentMessage() == "1,3 [nan]"
 
     widget.canvas.viewoptions.units = "row"
     widget.updateCursorStatus(2.0, 2.0, 1.0)
@@ -167,6 +244,9 @@ def test_laser_widget_cursor(qtbot: QtBot):
     widget.canvas.viewoptions.units = "second"
     widget.updateCursorStatus(70.0, 70.0, 1.0)
     assert main.statusBar().currentMessage() == "0.5,0 [1]"
+
+    widget.clearCursorStatus()
+    assert main.statusBar().currentMessage() == ""
 
 
 def test_laser_widget_actions(qtbot: QtBot):
@@ -181,6 +261,7 @@ def test_laser_widget_actions(qtbot: QtBot):
     dlg.close()
     dlg = widget.actionConfig()
     dlg.close()
+    widget.actionDuplicate()
     widget.actionCopyImage()
     dlg = widget.actionExport()
     dlg.close()

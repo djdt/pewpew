@@ -257,7 +257,7 @@ class LaserWidgetImageCanvas(LaserImageCanvas):
                 self.selection = np.logical_and(self.selection, ~mask)
             elif "intersect" in state:
                 self.selection = np.logical_and(self.selection, mask)
-            else:
+            else:  # pragma: no cover
                 self.selection = mask
         else:
             self.selection = mask
@@ -491,7 +491,7 @@ class LaserWidget(_ViewWidget):
         if layer is None:
             px = self.laser.config.get_pixel_width()
             py = self.laser.config.get_pixel_height()
-        else:
+        else:  # pragma: no cover
             px = self.laser.config.get_pixel_width(layer)
             py = self.laser.config.get_pixel_height(layer)
 
@@ -546,14 +546,14 @@ class LaserWidget(_ViewWidget):
         new_widget.setActive()
 
     def cropToSelection(self) -> None:
-        if self.is_srr:
+        if self.is_srr:  # pragma: no cover
             QtWidgets.QMessageBox.information(
                 self, "Transform", "Unable to transform SRR data."
             )
             return
 
         mask = self.canvas.selection
-        if mask is None or np.all(mask == 0):
+        if mask is None or np.all(mask == 0):  # pragma: no cover
             return
         ix, iy = np.nonzero(mask)
         x0, x1, y0, y1 = np.min(ix), np.max(ix) + 1, np.min(iy), np.max(iy) + 1
