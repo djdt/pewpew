@@ -164,6 +164,14 @@ def test_laser_config_dialog(qtbot: QtBot):
     assert dialog.config.speed == 2.0
     assert dialog.config.scantime == 3.0
 
+    assert dialog.isComplete()
+    dialog.lineedit_scantime.setText("-1")
+    assert not dialog.isComplete()
+    dialog.lineedit_speed.setText("-1")
+    assert not dialog.isComplete()
+    dialog.lineedit_spotsize.setText("-1")
+    assert not dialog.isComplete()
+
     dialog.apply()
     dialog.check_all.setChecked(True)
     dialog.apply()
@@ -185,9 +193,42 @@ def test_config_dialog_krisskross(qtbot: QtBot):
     assert dialog.config.warmup == 7.5
     assert dialog.config._subpixel_size == 3
 
+    assert dialog.isComplete()
+    dialog.lineedit_warmup.setText("-1")
+    assert not dialog.isComplete()
+
     dialog.apply()
     dialog.check_all.setChecked(True)
     dialog.apply()
+
+
+def test_name_edit_dialog(qtbot: QtBot):
+    dialog = dialogs.NameEditDialog(["a", "b"], allow_remove=True)
+    qtbot.addWidget(dialog)
+    dialog.open()
+
+    dialog.addName("c")
+    dialog.addNames(["d", "e"])
+
+    dialog.list.item(0).setText("A")
+    dialog.list.item(1).setCheckState(QtCore.Qt.Unchecked)
+
+    assert np.all(
+        [
+            dialog.list.item(i).data(dialog.originalNameRole)
+            for i in range(dialog.list.count())
+        ]
+        == ["a", "b", "c", "d", "e"],
+    )
+    assert np.all(
+        [dialog.list.item(i).text() for i in range(dialog.list.count())]
+        == ["A", "b", "c", "d", "e"],
+    )
+
+    with qtbot.waitSignal(dialog.namesSelected) as emit:
+        dialog.accept()
+
+    assert np.all(list(emit.args[0].keys()) == ["a", "c", "d", "e"])
 
 
 def test_selection_dialog(qtbot: QtBot):
@@ -221,28 +262,51 @@ def test_selection_dialog(qtbot: QtBot):
     # Test correct states and masks emmited
     with qtbot.wait_signal(dialog.maskSelected) as emitted:
         dialog.apply()
-        assert np.all(emitted.args[0] == (x > x.mean()))
-        assert emitted.args[1] == ""
+    assert np.all(emitted.args[0] == (x > x.mean()))
+    assert emitted.args[1] == ""
 
     dialog.check_limit_selection.setChecked(True)
     dialog.combo_method.setCurrentText("Manual")
     dialog.lineedit_manual.setText("0.9")
     dialog.refresh()
+
     with qtbot.wait_signal(dialog.maskSelected) as emitted:
         dialog.apply()
-        assert np.all(emitted.args[0] == (x > 0.9))
-        assert emitted.args[1] == "intersect"
+    assert np.all(emitted.args[0] == (x > 0.9))
+    assert emitted.args[1] == "intersect"
+
+    dialog.canvas.selection = emitted.args[0]
+
+    # Test limit threshold
+    dialog.combo_method.setCurrentText("Mean")
+    dialog.check_limit_selection.setChecked(False)
+    dialog.check_limit_threshold.setChecked(True)
+    dialog.refresh()
+
+    with qtbot.wait_signal(dialog.maskSelected) as emitted:
+        dialog.apply()
+    assert np.all(emitted.args[0] == (x > np.mean(x[x > 0.9])))
 
 
 def test_stats_dialog(qtbot: QtBot):
     x = np.array(np.random.random([10, 10]), dtype=[("a", float)])
-    x[0, 0] = np.nan
+    x[0, :] = np.nan
     m = np.full(x.shape, True, dtype=bool)
 
-    dialog = dialogs.StatsDialog(x, m, "a", (0, 1))
+    dialog = dialogs.StatsDialog(x, m, "a", (1.0, 1.0))
     qtbot.addWidget(dialog)
     dialog.open()
+
+    assert dialog.label_area.text().endswith("90 μm²")
+    dialog.pixel_size = (1e3, 1e3)
+    dialog.updateStats()
+    assert dialog.label_area.text().endswith("90 mm²")
+    dialog.pixel_size = (1e5, 1e5)
+    dialog.updateStats()
+    assert dialog.label_area.text().endswith("9000 cm²")
 
     dialog.contextMenuEvent(
         QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
     )
+
+    dialog.copyToClipboard()

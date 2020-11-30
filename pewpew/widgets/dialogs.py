@@ -109,9 +109,7 @@ class CalibrationDialog(ApplyDialog):
 
         # Button to plot
         self.button_plot = QtWidgets.QPushButton("Plot")
-        self.button_plot.setEnabled(
-            self.calibrations[current_isotope].points.size > 0
-        )
+        self.button_plot.setEnabled(self.calibrations[current_isotope].points.size > 0)
         self.button_plot.pressed.connect(self.showCurve)
 
         layout_isotopes = QtWidgets.QHBoxLayout()
@@ -463,7 +461,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.canvas.ax.clear()
 
         x, y = data1.ravel(), data2.ravel()
-        if x.size > 10000:
+        if x.size > 10000:  # pragma: no cover
             n = np.random.choice(x.size, 10000)
             x, y = x[n], y[n]
 
@@ -601,10 +599,10 @@ class NameEditDialog(QtWidgets.QDialog):
         items = [self.list.item(i) for i in range(self.list.count())]
         rename = {}
         for item in items:
-            if (
+            if not self.allow_remove or (
                 item.flags() & QtCore.Qt.ItemIsUserCheckable
                 and item.checkState() == QtCore.Qt.Checked
-            ) or not self.allow_remove:
+            ):
                 rename[item.data(NameEditDialog.originalNameRole)] = item.text()
         self.namesSelected.emit(rename)
         super().accept()
