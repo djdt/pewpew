@@ -3,35 +3,12 @@
 
 name: Release Windows Exec
 on:
-  push:
-    tags:
-      - 'v*'
+  release: [created]
   workflow_dispatch:
     inputs:
       
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.8
-    - name: Install dependencies
-      run: |
-
-        python -m pip install --upgrade pip
-        pip install pytest pytest-qt
-        pip install .
-    - name: Test with pytest
-      run: |
-        sudo apt-get install xvfb libxkbcommon-x11-0
-        sudo Xvfb :1 -screen 0 1024x768x24 </dev/null &
-        export DISPLAY=":1"
-        pytest
   build:
-    needs: test
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
@@ -47,23 +24,13 @@ jobs:
     - name: Build exec
       run: |
         pyinstaller --clean --noupx -y pewpew.spec
-    - name: Create release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: True
-        prerelease: True
     - name: Upload binary
       id: upload-release-asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outpus.upload_url }}
+        upload_url: ${{ github.event.release.upload_url }}
         asset_path: ./dist/pewpew.exe
         asset_name: pewpew.exe
         asset_content_type: application/octet-stream
