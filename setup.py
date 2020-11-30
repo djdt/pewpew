@@ -11,7 +11,7 @@ setup(
     install_requires=[
         "numpy",
         "matplotlib>=3.0.0",
-        "pewlib"
+        "pewlib",
         "PySide2",
     ],
     entry_points={"console_scripts": ["pewpew=pewpew.__main__:main"]},
