@@ -21,7 +21,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install pytest pytest-qt pyinstaller
         pip install .
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Test with pytest
       run: |
         pytest
