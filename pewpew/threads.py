@@ -25,9 +25,10 @@ class ImportThread(QtCore.QThread):
         self.config = config
 
     def run(self) -> None:
-        for path in self.paths:
-            if self.isInterruptionRequested():
+        for i, path in enumerate(self.paths):
+            if self.isInterruptionRequested():  # pragma: no cover
                 break
+            self.progressChanged.emit(i)
             self.importStarted.emit(f"Importing {path.name}...")
             try:
                 laser = self.importPath(path)
@@ -36,7 +37,7 @@ class ImportThread(QtCore.QThread):
             except Exception as e:
                 logger.exception(e)
                 self.importFailed.emit(f"Unable to import {path.name}.")
-            self.progressChanged.emit(0)
+        self.progressChanged.emit(len(self.paths))
 
     def importPath(self, path: Path) -> Laser:
         config = Config(
@@ -45,15 +46,20 @@ class ImportThread(QtCore.QThread):
             scantime=self.config.scantime,
         )
 
+        if not path.exists():
+            raise FileNotFoundError(f"{path.name} not found.")
+
         if path.is_dir():
             if path.suffix.lower() == ".b":
                 data, params = io.agilent.load(path, full=True)
                 config.scantime = params["scantime"]
+            # elif io.perkinelmer.is_valid_directory(path):
             elif any([it.suffix.lower() == ".xl" for it in path.iterdir()]):
                 data, params = io.perkinelmer.load(path, full=True)
                 config.spotsize = params["spotsize"]
                 config.speed = params["speed"]
                 config.scantime = params["scantime"]
+            # elif io.nu.is_valid_directory(path):
         else:
             if path.suffix.lower() == ".npz":
                 return io.npz.load(path)
@@ -63,10 +69,10 @@ class ImportThread(QtCore.QThread):
                     data, params = io.thermo.load(path, full=True)
                     config.scantime = params["scantime"]
                 else:
-                    data = io.textimage.load(path, name="_")
+                    data = io.textimage.load(path, name="_isotope_")
             elif path.suffix.lower() in [".txt", ".text"]:
-                data = io.textimage.load(path, name="_")
-            else:
+                data = io.textimage.load(path, name="_isotope_")
+            else:  # pragma: no cover
                 raise ValueError(f"{path.name}: Unknown extention '{path.suffix}'.")
 
         return Laser(data=data, config=config, name=path.stem, path=path.resolve())
