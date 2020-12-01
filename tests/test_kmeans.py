@@ -9,13 +9,13 @@ def test_kmeans_1d():
     c = np.random.permutation(100)
     x[c[:25]] += 2.0
 
-    idx = kmeans.kmeans(x.ravel(), 2, init="random")
+    idx = kmeans.kmeans1d(x, 2, method="kmeans", method_kws=dict(init="random"))
     _, counts = np.unique(idx, return_counts=True)
     assert np.all(np.sort(counts) == [25, 75])
 
     x[c[25:75]] -= 2.0
 
-    idx = kmeans.kmeans(x.ravel(), 3, init="kmeans++")
+    idx = kmeans.kmeans1d(x, 3, method="kmeans", method_kws=dict(init="kmeans++"))
     _, counts = np.unique(idx, return_counts=True)
     assert np.all(np.sort(counts) == [25, 25, 50])
 
