@@ -188,19 +188,19 @@ class LeftIndex(Left):
 
 
 class Parser(object):
+    function_token = "[a-z]+[a-zA-Z0-9_]*"
+    null_token = "[\\[\\]\\(\\)\\,]|if|then|else"
+    number_token = "\\d+\\.?\\d*(?:[eE][+\\-]?\\d+)?|nan"
+    operator_token = "[+\\-\\*/^!=<>?:]+"
+    base_tokens = "|".join([function_token, null_token, number_token, operator_token])
+
     def __init__(self, variables: List[str] = None):
-        number_token = "\\d+\\.?\\d*(?:[eE][+\\-]?\\d+)?"
-        operator_token = "[+\\-\\*/^!=<>?:]+"
-        variable_token = "\\d*[a-zA-Z][a-zA-Z0-9_\\-\\>]*"  # also covers if then else
+        self.regexp_number = re.compile(Parser.number_token)
+        self.regexp_tokenise = re.compile(f"\\s*({Parser.base_tokens})\\s*")
 
-        self.regexp_number = re.compile(number_token)
-        self.regexp_tokenise = re.compile(
-            f"\\s*([\\[\\]\\(\\)\\,]|{variable_token}|{number_token}|{operator_token})\\s*"
-        )
-
-        self.variables: List[str] = []
+        self._variables: List[str] = []
         if variables is not None:
-            self.variables.extend(variables)
+            self.variables = variables
 
         self.nulls: Dict[str, Null] = {
             "(": Parens(),
@@ -223,6 +223,18 @@ class Parser(object):
             "^": LeftBinary("^", 50, right=True),
             "[": LeftIndex("[", 80),
         }
+
+    @property
+    def variables(self) -> List[str]:
+        return self._variables
+
+    @variables.setter
+    def variables(self, variables: List[str]) -> None:
+        variable_token = "|".join(re.escape(v) for v in variables)
+        self.regexp_tokenise = re.compile(
+            f"\\s*({variable_token}|{Parser.base_tokens})\\s*"
+        )
+        self._variables = variables
 
     def getNull(self, token: str) -> Null:
         if token in self.nulls:
@@ -286,7 +298,7 @@ class Reducer(object):
         if len(tokens) == 0:
             raise ReducerException("Unexpected end of input.")
         token = tokens.pop(0)
-        if token == "[":
+        if token == "[":  # Special case for array access
             try:
                 n = np.array(self.reduceExpr(tokens))
                 i = self.reduceExpr(tokens)
@@ -299,7 +311,7 @@ class Reducer(object):
             return op(*args)
         elif token in self.variables:
             return self.variables[token]
-        else:
+        else:  # is a number
             try:
                 if any(t in token for t in [".", "e", "E", "n"]):
                     return float(token)
