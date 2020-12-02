@@ -28,7 +28,7 @@ def test_wizard_srr_import_text(qtbot: QtBot):
 
     # Config
     page = wiz.currentPage()
-    page.lineedit_warmup.setText(0)
+    page.lineedit_warmup.setText("0")
 
     with qtbot.waitSignal(wiz.laserImported) as emit:
         wiz.accept()

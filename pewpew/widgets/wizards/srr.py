@@ -236,16 +236,16 @@ class SRRConfigPage(ConfigPage):
             data, _ = self.readText(path)
             datas.append(data)
 
-        return data, param
+        return datas, param
 
     def readSRRThermo(self, paths: List[Path]) -> Tuple[np.ndarray, dict]:
         data, param = self.readThermo(paths[0])
         datas = [data]
         for path in paths[1:]:
-            data, _ = self.readText(path)
+            data, _ = self.readThermo(path)
             datas.append(data)
 
-        return data, param
+        return datas, param
 
     def setElidedNames(self, names: List[str]) -> None:
         text = ", ".join(name for name in names)
