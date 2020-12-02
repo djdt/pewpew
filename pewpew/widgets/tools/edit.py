@@ -208,7 +208,9 @@ class EditTool(ToolWidget):
             self.canvas.view_limits = self.canvas.extentForAspect(extent)
 
         self.canvas.drawData(
-            data, extent, isotope=isotope,
+            data,
+            extent,
+            isotope=isotope,
         )
         if self.canvas.viewoptions.canvas.colorbar:
             self.canvas.drawColorbar(self.widget.laser.calibration[isotope].unit)
@@ -283,17 +285,14 @@ class CalculatorName(ValidColorLineEdit):
     ):
         super().__init__(text, parent)
 
-        self.badchars = " +-=*/\\^<>!()[]"
         self.badnames = badnames
-        self._badnames = ["nan", "if", "then", "else"]
-        self._badnames.extend(badparser)
+        self.badnulls = ["nan", "if", "then", "else"]
+        self.badnulls.extend(badparser)
 
     def hasAcceptableInput(self) -> bool:
         if self.text() == "":
             return False
-        if any(c in self.text() for c in self.badchars):
-            return False
-        if self.text() in self._badnames:
+        if self.text() in self.badnulls:
             return False
         if self.text() in self.badnames:
             return False
@@ -309,9 +308,6 @@ class CalculatorFormula(ValidColorTextEdit):
         self.textChanged.connect(self.calculate)
         self.parser = Parser(variables)
         self.expr = ""
-
-        self.cgood = self.palette().color(QtGui.QPalette.Base)
-        self.cbad = QtGui.QColor.fromRgb(255, 172, 172)
 
     def hasAcceptableInput(self) -> bool:
         return self.expr != ""
@@ -333,13 +329,21 @@ class CalculatorMethod(MethodStackWidget):
             "Returns lower bounds of 1 to <k> kmeans clusters.",
         ),
         "mean": (UnaryFunction("mean"), "(<x>)", "Returns the mean of <x>."),
-        "median": (UnaryFunction("median"), "(<x>)", "Returns the median of <x>.",),
+        "median": (
+            UnaryFunction("median"),
+            "(<x>)",
+            "Returns the median of <x>.",
+        ),
         "normalise": (
             TernaryFunction("normalise"),
             "(<x>, <min>, <max>)",
             "Normalise <x> from from <min> to <max>.",
         ),
-        "otsu": (UnaryFunction("otsu"), "(<x>)", "Returns Otsu's threshold for <x>.",),
+        "otsu": (
+            UnaryFunction("otsu"),
+            "(<x>)",
+            "Returns Otsu's threshold for <x>.",
+        ),
         # "multiotsu": (BinaryFunction("multiotsu"), "(<x>, <t>)", "Returns <t> thresholds for <x>.",),
         "percentile": (
             BinaryFunction("percentile"),
@@ -370,7 +374,9 @@ class CalculatorMethod(MethodStackWidget):
         self.output.setEnabled(False)
 
         self.lineedit_name = CalculatorName(
-            "", badnames=[], badparser=list(CalculatorMethod.parser_functions.keys()),
+            "",
+            badnames=[],
+            badparser=list(CalculatorMethod.parser_functions.keys()),
         )
         self.lineedit_name.revalidate()
         self.lineedit_name.textEdited.connect(self.inputChanged)
@@ -657,7 +663,7 @@ class ConvolveMethod(MethodStackWidget):
         if not self.lineedit_kscale.hasAcceptableInput():
             return False
         if not all(
-            le.hasAcceptableInput() for le in self.lineedit_kparams if le.isVisible()
+            le.hasAcceptableInput() for le in self.lineedit_kparams if le.isEnabled()
         ):
             return False
         return True
@@ -667,7 +673,7 @@ class ConvolveMethod(MethodStackWidget):
         psf = ConvolveMethod.kernels[self.combo_kernel.currentText()]["psf"]
         kernel = psf(self.ksize, *self.kparams, scale=self.kscale)
 
-        if kernel.sum() == 0:
+        if kernel.sum() == 0:  # pragma: no cover
             self.canvas_kernel.ax.clear()
             self.canvas_kernel.draw_idle()
             return None  # Invalid kernel
@@ -677,16 +683,19 @@ class ConvolveMethod(MethodStackWidget):
         hmode = self.combo_horizontal.currentText()
         hslice = slice(None, None, -1 if hmode == "Right to Left" else 1)
         vmode = self.combo_vertical.currentText()
-        vslice = slice(None, None, -1 if hmode == "Bottom to Top" else 1)
+        vslice = slice(None, None, -1 if vmode == "Bottom to Top" else 1)
 
+        # Flip if required
         data = data[vslice, hslice]
 
-        kernel = kernel[:, 1]
-
         if hmode != "No":
-            data = np.apply_along_axis(convolve.convolve, 1, data, kernel, mode="pad")
+            data = np.apply_along_axis(
+                convolve.convolve, 1, data, kernel[:, 1], mode="pad"
+            )
         if vmode != "No":
-            data = np.apply_along_axis(convolve.convolve, 0, data, kernel, mode="pad")
+            data = np.apply_along_axis(
+                convolve.convolve, 0, data, kernel[:, 1], mode="pad"
+            )
 
         return data[vslice, hslice]
 
@@ -707,19 +716,17 @@ class DeconvolveMethod(ConvolveMethod):
         hmode = self.combo_horizontal.currentText()
         hslice = slice(None, None, -1 if hmode == "Right to Left" else 1)
         vmode = self.combo_vertical.currentText()
-        vslice = slice(None, None, -1 if hmode == "Bottom to Top" else 1)
+        vslice = slice(None, None, -1 if vmode == "Bottom to Top" else 1)
 
         data = data[vslice, hslice]
 
-        kernel = kernel[:, 1]
-
         if hmode != "No":
             data = np.apply_along_axis(
-                convolve.deconvolve, 1, data, kernel, mode="same"
+                    convolve.deconvolve, 1, data, kernel[:, 1], mode="same"
             )
         if vmode != "No":
             data = np.apply_along_axis(
-                convolve.deconvolve, 0, data, kernel, mode="same"
+                    convolve.deconvolve, 0, data, kernel[:, 1], mode="same"
             )
 
         return data[vslice, hslice]
@@ -755,13 +762,13 @@ class FilterMethod(MethodStackWidget):
 
         self.lineedit_fsize = ValidColorLineEdit()
         self.lineedit_fsize.setValidator(OddIntValidator(3, 21))
-        self.lineedit_fsize.textEdited.connect(self.inputChanged)
+        self.lineedit_fsize.editingFinished.connect(self.inputChanged)
 
         nparams = np.amax([len(f["params"]) for f in FilterMethod.filters.values()])
         self.label_fparams = [QtWidgets.QLabel() for i in range(nparams)]
         self.lineedit_fparams = [ValidColorLineEdit() for i in range(nparams)]
         for le in self.lineedit_fparams:
-            le.textEdited.connect(self.inputChanged)
+            le.editingFinished.connect(self.inputChanged)
             le.setValidator(LimitValidator(0.0, 0.0, 4))
 
         layout_filter = QtWidgets.QFormLayout()
@@ -781,7 +788,7 @@ class FilterMethod(MethodStackWidget):
 
     @property
     def fparams(self) -> List[float]:
-        return [float(le.text()) for le in self.lineedit_fparams if le.isVisible()]
+        return [float(le.text()) for le in self.lineedit_fparams if le.isEnabled()]
 
     def initialise(self) -> None:
         if not self.lineedit_fsize.hasAcceptableInput():
@@ -814,7 +821,7 @@ class FilterMethod(MethodStackWidget):
         if not self.lineedit_fsize.hasAcceptableInput():
             return False
         if not all(
-            le.hasAcceptableInput() for le in self.lineedit_fparams if le.isVisible()
+            le.hasAcceptableInput() for le in self.lineedit_fparams if le.isEnabled()
         ):
             return False
         return True
@@ -909,5 +916,6 @@ class TransformMethod(MethodStackWidget):
         data = np.repeat(np.repeat(data, self.scale, axis=0), self.scale, axis=1)
         trim = self.trim
         return data[
-            trim[2] : data.shape[0] - trim[3], trim[0] : data.shape[1] - trim[1],
+            trim[2] : data.shape[0] - trim[3],
+            trim[0] : data.shape[1] - trim[1],
         ]
