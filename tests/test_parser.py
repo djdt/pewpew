@@ -13,6 +13,7 @@ def test_parser_basic():
     assert str(parser.parse("a1")) == "a1"
     assert str(parser.parse("1a")) == "1a"
     assert str(parser.parse("nan")) == "nan"
+    assert str(parser.parse("1a+a1")) == "+ 1a a1"
     # Test ops
     assert str(parser.parse("1 + 2 - 3")) == "- + 1 2 3"
     assert str(parser.parse("1 * 2 / 3")) == "/ * 1 2 3"
@@ -79,9 +80,9 @@ def test_parser_raises():
     with pytest.raises(ParserException):
         parser.parse("")
     with pytest.raises(ParserException):
+        parser.parse("qf")
+    with pytest.raises(ParserException):
         parser.parse("a2")
-    # with pytest.raises(ParserException):
-    #     parser.parse("a-a")
     with pytest.raises(ParserException):
         parser.parse("1.0.0")
     # Missing op
@@ -168,11 +169,3 @@ def test_reduce_raises():
         reducer.reduce("[ a 3.3")
     with pytest.raises(ReducerException):
         reducer.reduce("[ 2 3")
-
-
-test_reduce_raises()
-test_reduce_additional()
-test_reduce_basic()
-test_parser_raises()
-test_parser_additional()
-test_parser_basic()
