@@ -1,8 +1,8 @@
-import os.path
+from pathlib import Path
 
 from PySide2 import QtCore, QtWidgets
 
-from typing import List
+from typing import List, Union
 
 
 class DetailedError(QtWidgets.QMessageBox):
@@ -68,7 +68,9 @@ class NonModalMessageBox(QtWidgets.QMessageBox):
 
     @staticmethod
     def info(
-        title: str = "Info", message: str = "", parent: QtWidgets.QWidget = None,
+        title: str = "Info",
+        message: str = "",
+        parent: QtWidgets.QWidget = None,
     ) -> QtWidgets.QMessageBox:
         dlg = NonModalMessageBox(
             QtWidgets.QMessageBox.Information, title, message, parent
@@ -77,7 +79,9 @@ class NonModalMessageBox(QtWidgets.QMessageBox):
 
     @staticmethod
     def warning(
-        title: str = "Warning", message: str = "", parent: QtWidgets.QWidget = None,
+        title: str = "Warning",
+        message: str = "",
+        parent: QtWidgets.QWidget = None,
     ) -> QtWidgets.QMessageBox:
         dlg = NonModalMessageBox(
             QtWidgets.QMessageBox.Warning, title, message, parent
@@ -86,7 +90,9 @@ class NonModalMessageBox(QtWidgets.QMessageBox):
 
     @staticmethod
     def critical(
-        title: str = "Critical", message: str = "", parent: QtWidgets.QWidget = None,
+        title: str = "Critical",
+        message: str = "",
+        parent: QtWidgets.QWidget = None,
     ) -> QtWidgets.QMessageBox:
         dlg = NonModalMessageBox(
             QtWidgets.QMessageBox.Critical, title, message, parent
@@ -107,16 +113,18 @@ class OverwriteFilePrompt(QtWidgets.QMessageBox):
             QtWidgets.QMessageBox.Warning, "Overwrite File?", "", buttons, parent
         )
 
-    def promptOverwrite(self, path: str) -> bool:
+    def promptOverwrite(self, path: Union[str, Path]) -> bool:
+        if isinstance(path, str):  # pragma: no cover
+            path = Path(path)
+
         if self.yes_to_all:
             return True
         if self.no_to_all:
             return False
 
-        if os.path.exists(path):
+        if path.exists():
             self.setText(
-                f'The file "{os.path.basename(path)}" '
-                "already exists. Do you wish to overwrite it?"
+                f"The file '{path.name}' already exists. Do you wish to overwrite it?"
             )
             result = self.exec()
             if result == QtWidgets.QMessageBox.YesToAll:
@@ -132,20 +140,23 @@ class OverwriteFilePrompt(QtWidgets.QMessageBox):
         return True
 
     def promptOverwriteSingleFile(
-        self, path: str, parent: QtWidgets.QWidget = None
+        self, path: Union[str, Path], parent: QtWidgets.QWidget = None
     ) -> bool:
+        if isinstance(path, str):  # pragma: no cover
+            path = Path(path)
+
         return OverwriteFilePrompt(
             show_all_buttons=False, parent=parent
         ).promptOverwrite(path)
 
 
 class OverwriteFilesPrompt(QtWidgets.QMessageBox):
-    def __init__(self, files: List[str], parent: QtWidgets.QWidget = None):
+    def __init__(self, paths: List[Path], parent: QtWidgets.QWidget = None):
         buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
         super().__init__(
             QtWidgets.QMessageBox.Warning,
             "Overwrite multiple files?",
-            "\n".join([os.path.basename(f) for f in files]),
+            "\n".join(p.name for p in paths),
             buttons,
             parent,
         )

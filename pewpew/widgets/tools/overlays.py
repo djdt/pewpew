@@ -1,5 +1,5 @@
-import os.path
 import numpy as np
+from pathlib import Path
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -174,7 +174,7 @@ class OverlayTool(ToolWidget):
 
         self.canvas.draw_idle()
 
-    def saveCanvas(self, path: str, raw: bool = False) -> None:
+    def saveCanvas(self, path: Path, raw: bool = False) -> None:
         if raw:
             imsave(path, self.canvas.image.get_array())
         else:
@@ -461,12 +461,6 @@ class OverlayRows(QtWidgets.QScrollArea):
                 row.setColorPickable(True)
 
 
-class OverlayColocalisationDialog(QtWidgets.QDialog):
-    def __init__(self, parent: OverlayTool):
-        super().__init__(parent)
-        self.widget = parent
-
-
 class OverlayExportDialog(_ExportDialogBase):
     def __init__(self, parent: OverlayTool):
         super().__init__([PngOptionsBox()], parent)
@@ -482,35 +476,28 @@ class OverlayExportDialog(_ExportDialogBase):
 
         self.layout.insertWidget(2, self.check_individual)
 
-        path = os.path.join(
-            os.path.dirname(self.widget.widget.laser.path),
-            self.widget.widget.laser.name + ".png",
+        path = (
+            self.widget.widget.laser.path.parent.joinpath(self.widget.widget.laser.name)
+            .with_suffix(".png")
+            .resolve()
         )
-        self.lineedit_directory.setText(os.path.dirname(path))
-        self.lineedit_filename.setText(os.path.basename(path))
+        self.lineedit_directory.setText(str(path.parent))
+        self.lineedit_filename.setText(str(path.name))
         self.typeChanged(0)
 
     def isIndividual(self) -> bool:
         return self.check_individual.isChecked() and self.check_individual.isEnabled()
 
     def updatePreview(self) -> None:
-        base, ext = os.path.splitext(self.lineedit_filename.text())
+        path = Path(self.lineedit_filename.text())
         if self.isIndividual():
             if self.widget.rows.color_model == "rgb":
-                base += "_<rgb>"
+                path = path.with_name(path.stem + "_<rgb>" + path.suffix)
             elif self.widget.rows.color_model == "cmyk":
-                base += "_<cmy>"
+                path = path.with_name(path.stem + "_<cmyk>" + path.suffix)
             else:
-                base += "_<#>"
-        self.lineedit_preview.setText(base + ext)
-
-    def filenameChanged(self, filename: str) -> None:
-        _, ext = os.path.splitext(filename.lower())
-        index = self.options.indexForExt(ext)
-        if index == -1:
-            return
-        self.options.setCurrentIndex(index)
-        self.updatePreview()
+                path = path.with_name(path.stem + "_<#>" + path.suffix)
+        self.lineedit_preview.setText(str(path))
 
     def selectDirectory(self) -> QtWidgets.QDialog:
         dlg = QtWidgets.QFileDialog(self, "Select Directory", "")
@@ -521,12 +508,12 @@ class OverlayExportDialog(_ExportDialogBase):
         dlg.open()
         return dlg
 
-    def getPath(self) -> str:
-        return os.path.join(
-            self.lineedit_directory.text(), self.lineedit_filename.text()
+    def getPath(self) -> Path:
+        return Path(self.lineedit_directory.text()).joinpath(
+            self.lineedit_filename.text()
         )
 
-    def getPathForRow(self, row: int) -> str:
+    def getPathForRow(self, row: int) -> Path:
         color_model = self.widget.rows.color_model
         if color_model == "rgb":
             r, g, b, _a = self.widget.rows[row].getColor().getRgb()
@@ -536,15 +523,16 @@ class OverlayExportDialog(_ExportDialogBase):
             suffix = "c" if c > 0 else "m" if m > 0 else "y"
         else:
             suffix = str(row)
-        base, ext = os.path.splitext(self.getPath())
-        return f"{base}_{suffix}{ext}"
 
-    def generateRowPaths(self) -> Generator[Tuple[str, int], None, None]:
+        path = self.getPath()
+        return path.with_name(path.stem + "_" + suffix + path.suffix)
+
+    def generateRowPaths(self) -> Generator[Tuple[Path, int], None, None]:
         for i, row in enumerate(self.widget.rows):
             if not row.hidden:
                 yield (self.getPathForRow(i), i)
 
-    def export(self, path: str) -> None:
+    def export(self, path: Path) -> None:
         option = self.options.currentOption()
 
         if option.ext == ".png":
@@ -552,7 +540,7 @@ class OverlayExportDialog(_ExportDialogBase):
         else:
             raise io.error.PewException(f"Unable to export file as '{option.ext}'.")
 
-    def exportIndividual(self, path: str, row: int) -> None:
+    def exportIndividual(self, path: Path, row: int) -> None:
         option = self.options.currentOption()
 
         if option.ext == ".png":
