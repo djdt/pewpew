@@ -54,7 +54,7 @@ class ImportWizard(QtWidgets.QWizard):
             overview,
             page_id_dict={
                 "agilent": self.page_agilent,
-                "numpy": 0,
+                "numpy": -1,
                 "perkinelmer": self.page_perkinelmer,
                 "text": self.page_text,
                 "thermo": self.page_thermo,

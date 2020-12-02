@@ -559,6 +559,9 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         self.registerField(format + ".path", self.path, "_path")
         self.registerField(format + ".paths", self.path, "_paths")
 
+    def cleanupPage(self) -> None:
+        pass
+
     def initializePage(self) -> None:
         self.updateOptionsForPath()
 
