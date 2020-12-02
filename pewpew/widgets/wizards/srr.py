@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.lib.recfunctions as rfn
-import os
+from pathlib import Path
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -19,7 +19,7 @@ from typing import List, Tuple
 class SRRPathAndOptionsPage(PathAndOptionsPage):
     def __init__(
         self,
-        paths: List[str],
+        paths: List[Path],
         format: str,
         nextid: int,
         parent: QtWidgets.QWidget = None,
@@ -46,7 +46,7 @@ class SRRImportWizard(QtWidgets.QWizard):
 
     def __init__(
         self,
-        paths: List[str] = [],
+        paths: List[Path] = [],
         config: Config = None,
         parent: QtWidgets.QWidget = None,
     ):
@@ -103,16 +103,16 @@ class SRRImportWizard(QtWidgets.QWizard):
     def accept(self) -> None:
         calibration = None
         if self.field("agilent"):
-            path = self.field("agilent.paths")[0]
+            path = Path(self.field("agilent.paths")[0])
         elif self.field("numpy"):
-            path = self.field("numpy.paths")[0]
+            path = Path(self.field("numpy.paths")[0])
             if self.field("numpy.useCalibration"):
                 # Hack
                 calibration = io.npz.load(path).calibration
         elif self.field("text"):
-            path = self.field("text.paths")[0]
+            path = Path(self.field("text.paths")[0])
         elif self.field("thermo"):
-            path = self.field("thermo.paths")[0]
+            path = Path(self.field("thermo.paths")[0])
         else:
             raise ValueError("Invalid filetype selection.")
 
@@ -124,14 +124,13 @@ class SRRImportWizard(QtWidgets.QWizard):
             warmup=float(self.field("warmup")),
         )
         config.set_equal_subpixel_offsets(self.field("subpixelWidth"))
-        base, ext = os.path.splitext(path)
         self.laserImported.emit(
             SRRLaser(
                 data,
                 calibration=calibration,
                 config=config,
+                name=path.stem,
                 path=path,
-                name=os.path.basename(base),
             )
         )
         super().accept()
@@ -177,20 +176,24 @@ class SRRConfigPage(ConfigPage):
 
     def initializePage(self) -> None:
         if self.field("agilent"):
-            data, params = self.readSRRAgilent(self.field("agilent.paths"))
+            paths = [Path(p) for p in self.field("agilent.paths")]
+            data, params = self.readSRRAgilent(paths)
         elif self.field("numpy"):
-            data, params = self.readSRRNumpy(self.field("numpy.paths"))
+            paths = [Path(p) for p in self.field("numpy.paths")]
+            data, params = self.readSRRNumpy(paths)
         elif self.field("text"):
-            data, params = self.readSRRText(self.field("text.paths"))
+            paths = [Path(p) for p in self.field("text.paths")]
+            data, params = self.readSRRText(paths)
         elif self.field("thermo"):
-            data, params = self.readSRRThermo(self.field("thermo.paths"))
+            paths = [Path(p) for p in self.field("thermo.paths")]
+            data, params = self.readSRRThermo(paths)
 
         if "scantime" in params:
-            self.setField("scantime", f"{params['scantime']:.4g}")
+            self.setField("scantime", f"{params['scantime']:.6g}")
         if "speed" in params:
-            self.setField("speed", f"{params['speed']:.2g}")
+            self.setField("speed", f"{params['speed']:.6g}")
         if "spotsize" in params:
-            self.setField("spotsize", f"{params['spotsize']:.2g}")
+            self.setField("spotsize", f"{params['spotsize']:.6g}")
 
         self.setField("laserdata", data)
         self.setElidedNames(data[0].dtype.names)
@@ -226,7 +229,7 @@ class SRRConfigPage(ConfigPage):
             return False
         return self.configValid()
 
-    def readSRRAgilent(self, paths: List[str]) -> Tuple[List[np.ndarray], dict]:
+    def readSRRAgilent(self, paths: List[Path]) -> Tuple[List[np.ndarray], dict]:
         data, param = self.readAgilent(paths[0])
         datas = [data]
         for path in paths[1:]:
@@ -235,7 +238,7 @@ class SRRConfigPage(ConfigPage):
 
         return datas, param
 
-    def readSRRNumpy(self, paths: List[str]) -> Tuple[List[np.ndarray], dict]:
+    def readSRRNumpy(self, paths: List[Path]) -> Tuple[List[np.ndarray], dict]:
         lasers = [io.npz.load(path) for path in paths]
         param = dict(
             scantime=lasers[0].config.scantime,
@@ -244,7 +247,7 @@ class SRRConfigPage(ConfigPage):
         )
         return [laser.data for laser in lasers], param
 
-    def readSRRText(self, paths: List[str]) -> Tuple[np.ndarray, dict]:
+    def readSRRText(self, paths: List[Path]) -> Tuple[np.ndarray, dict]:
         data, param = self.readAgilent(paths[0])
         datas = [data]
         for path in paths[1:]:
@@ -253,7 +256,7 @@ class SRRConfigPage(ConfigPage):
 
         return data, param
 
-    def readSRRThermo(self, paths: List[str]) -> Tuple[np.ndarray, dict]:
+    def readSRRThermo(self, paths: List[Path]) -> Tuple[np.ndarray, dict]:
         data, param = self.readAgilent(paths[0])
         datas = [data]
         for path in paths[1:]:
