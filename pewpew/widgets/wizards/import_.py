@@ -181,17 +181,17 @@ class ConfigPage(QtWidgets.QWizardPage):
 
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setText(str(config.spotsize))
-        self.lineedit_spotsize.setValidator(DecimalValidatorNoZero(0, 1e5, 1))
+        self.lineedit_spotsize.setValidator(DecimalValidatorNoZero(0, 1e9, 4))
         self.lineedit_spotsize.textChanged.connect(self.aspectChanged)
         self.lineedit_spotsize.textChanged.connect(self.completeChanged)
         self.lineedit_speed = QtWidgets.QLineEdit()
         self.lineedit_speed.setText(str(config.speed))
-        self.lineedit_speed.setValidator(DecimalValidatorNoZero(0, 1e5, 1))
+        self.lineedit_speed.setValidator(DecimalValidatorNoZero(0, 1e9, 4))
         self.lineedit_speed.textChanged.connect(self.aspectChanged)
         self.lineedit_speed.textChanged.connect(self.completeChanged)
         self.lineedit_scantime = QtWidgets.QLineEdit()
         self.lineedit_scantime.setText(str(config.scantime))
-        self.lineedit_scantime.setValidator(DecimalValidatorNoZero(0, 1e5, 4))
+        self.lineedit_scantime.setValidator(DecimalValidatorNoZero(0, 1e9, 4))
         self.lineedit_scantime.textChanged.connect(self.aspectChanged)
         self.lineedit_scantime.textChanged.connect(self.completeChanged)
 
@@ -245,11 +245,11 @@ class ConfigPage(QtWidgets.QWizardPage):
             data, params = self.readThermo(Path(self.field("thermo.path")))
 
         if "spotsize" in params:
-            self.setField("spotsize", f"{params['spotsize']:.4g}")
+            self.setField("spotsize", f"{params['spotsize']:.6g}")
         if "speed" in params:
-            self.setField("speed", f"{params['speed']:.4g}")
+            self.setField("speed", f"{params['speed']:.6g}")
         if "scantime" in params:
-            self.setField("scantime", f"{params['scantime']:.4g}")
+            self.setField("scantime", f"{params['scantime']:.6g}")
 
         self.setField("laserdata", data)
         self.setElidedNames(data.dtype.names)

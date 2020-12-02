@@ -503,15 +503,15 @@ class ConfigDialog(ApplyDialog):
         # Line edits
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setText(str(self.config.spotsize))
-        self.lineedit_spotsize.setValidator(DecimalValidator(0, 1e5, 1))
+        self.lineedit_spotsize.setValidator(DecimalValidator(0, 1e9, 4))
         self.lineedit_spotsize.textChanged.connect(self.completeChanged)
         self.lineedit_speed = QtWidgets.QLineEdit()
         self.lineedit_speed.setText(str(self.config.speed))
-        self.lineedit_speed.setValidator(DecimalValidator(0, 1e5, 1))
+        self.lineedit_speed.setValidator(DecimalValidator(0, 1e9, 4))
         self.lineedit_speed.textChanged.connect(self.completeChanged)
         self.lineedit_scantime = QtWidgets.QLineEdit()
         self.lineedit_scantime.setText(str(self.config.scantime))
-        self.lineedit_scantime.setValidator(DecimalValidator(0, 1e5, 4))
+        self.lineedit_scantime.setValidator(DecimalValidator(0, 1e9, 4))
         self.lineedit_scantime.textChanged.connect(self.completeChanged)
 
         if isinstance(config, SRRConfig):
