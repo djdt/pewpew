@@ -1,6 +1,9 @@
 from pytestqt.qtbot import QtBot
 from pathlib import Path
 
+
+from pewlib.srr import SRRConfig
+
 from pewpew.widgets.wizards.srr import (
     SRRImportWizard,
     SRRConfigPage,
@@ -28,16 +31,13 @@ def test_wizard_srr_import_text(qtbot: QtBot):
 
     # Config
     page = wiz.currentPage()
-    page.lineedit_warmup.setText(0)
+    page.lineedit_warmup.setText("0")
 
     with qtbot.waitSignal(wiz.laserImported) as emit:
         wiz.accept()
         len(emit.args[0].data) == 2
 
+
 # def test_wizard_srr_config(qtbot: QtBot):
-#     page = SRRConfigPage()
-#     pass
-
-
-# def test_wizard_srr_path_and_options(qtbot: QtBot):
+#     page = SRRConfigPage(SRRConfig())
 #     pass
