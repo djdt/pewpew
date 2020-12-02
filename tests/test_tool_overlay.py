@@ -188,7 +188,7 @@ def test_edit_tool(qtbot: QtBot):
     tool.filter_method.apply()
     tool.combo_method.setCurrentText("Transform")
     assert tool.combo_isotope.isEnabled()
-    tool.transform_method.apply()
+    tool.apply()
 
 
 # def test_calculations_tool(qtbot: QtBot):

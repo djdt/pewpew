@@ -300,9 +300,11 @@ class ExportDialog(_ExportDialogBase):
         self.layout.insertWidget(4, self.check_export_layers)
 
         # A default path
-        path = self.widget.laser.path.parent.joinpath(
-            self.widget.laser.name + ".npz"
-        ).resolve()
+        path = (
+            self.widget.laser.path.parent.joinpath(self.widget.laser.name)
+            .with_suffix(".npz")
+            .resolve()
+        )
         self.lineedit_directory.setText(str(path.parent))
         self.lineedit_filename.setText(str(path.name))
         self.typeChanged(0)
@@ -480,14 +482,15 @@ class ExportAllDialog(ExportDialog):
         self.lineedit_preview.setText(str(path))
 
     def getPath(self, name: str = None) -> Path:
-        path = Path(self.lineedit_directory.text()).joinpath(
-            name + Path(self.lineedit_filename.text()).suffix
+        path = (
+            Path(self.lineedit_directory.text())
+            .joinpath(name)
+            .with_suffix(Path(self.lineedit_filename.text()).suffix)
         )
         prefix = self.lineedit_prefix.text()
         if prefix != "":
             path = path.with_name(prefix + "_" + path.name)
         return path
-        # return path.with_name(path.stem + "_" + path.suffix)
 
     def generatePaths(self, laser: Laser) -> List[Tuple[Path, str, int]]:
         paths: List[Tuple[Path, str, int]] = [
