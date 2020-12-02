@@ -11,7 +11,7 @@ log.setLevel(__loglevel__)
 
 # Set Some Qt attributes
 QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
-QtGui.QIcon.setThemeName("breath2")
+QtGui.QIcon.setThemeName("breeze")
 # Until KDE fix directory viewer
 # if sys.platform != "win32":
 #     QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_DontUseNativeDialogs)
