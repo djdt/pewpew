@@ -16,24 +16,6 @@ from pewpew.widgets.wizards.options import PathAndOptionsPage
 from typing import List, Tuple
 
 
-class SRRPathAndOptionsPage(PathAndOptionsPage):
-    def __init__(
-        self,
-        paths: List[Path],
-        format: str,
-        nextid: int,
-        parent: QtWidgets.QWidget = None,
-    ):
-        super().__init__(
-            paths, format, multiplepaths=True, nextid=nextid, parent=parent
-        )
-
-    def isComplete(self) -> bool:
-        if not super().isComplete():
-            return False
-        return len(self.path.paths) >= 2
-
-
 class SRRImportWizard(QtWidgets.QWizard):
     page_format = 0
     page_agilent = 1
@@ -248,7 +230,7 @@ class SRRConfigPage(ConfigPage):
         return [laser.data for laser in lasers], param
 
     def readSRRText(self, paths: List[Path]) -> Tuple[np.ndarray, dict]:
-        data, param = self.readAgilent(paths[0])
+        data, param = self.readText(paths[0])
         datas = [data]
         for path in paths[1:]:
             data, _ = self.readText(path)
@@ -257,7 +239,7 @@ class SRRConfigPage(ConfigPage):
         return data, param
 
     def readSRRThermo(self, paths: List[Path]) -> Tuple[np.ndarray, dict]:
-        data, param = self.readAgilent(paths[0])
+        data, param = self.readThermo(paths[0])
         datas = [data]
         for path in paths[1:]:
             data, _ = self.readText(path)
@@ -282,3 +264,21 @@ class SRRConfigPage(ConfigPage):
         self.setElidedNames(datas[0].dtype.names)
 
     data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
+
+
+class SRRPathAndOptionsPage(PathAndOptionsPage):
+    def __init__(
+        self,
+        paths: List[Path],
+        format: str,
+        nextid: int,
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(
+            paths, format, multiplepaths=True, nextid=nextid, parent=parent
+        )
+
+    def isComplete(self) -> bool:
+        if not super().isComplete():
+            return False
+        return len(self.path.paths) >= 2
