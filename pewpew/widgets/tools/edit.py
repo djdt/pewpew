@@ -334,6 +334,7 @@ class CalculatorMethod(MethodStackWidget):
             "(<x>)",
             "Returns the median of <x>.",
         ),
+        "nantonum": (UnaryFunction("nantonum"), "(<x>)", "Sets nan values to 0."),
         "normalise": (
             TernaryFunction("normalise"),
             "(<x>, <min>, <max>)",
@@ -361,6 +362,7 @@ class CalculatorMethod(MethodStackWidget):
         "kmeans": (kmeans.thresholds, 2),
         "mean": (np.nanmean, 1),
         "median": (np.nanmedian, 1),
+        "nantonum": (np.nan_to_num, 1),
         "normalise": (normalise, 3),
         "otsu": (otsu, 1),
         # "multiotsu": (multiotsu, 2),
@@ -722,11 +724,11 @@ class DeconvolveMethod(ConvolveMethod):
 
         if hmode != "No":
             data = np.apply_along_axis(
-                    convolve.deconvolve, 1, data, kernel[:, 1], mode="same"
+                convolve.deconvolve, 1, data, kernel[:, 1], mode="same"
             )
         if vmode != "No":
             data = np.apply_along_axis(
-                    convolve.deconvolve, 0, data, kernel[:, 1], mode="same"
+                convolve.deconvolve, 0, data, kernel[:, 1], mode="same"
             )
 
         return data[vslice, hslice]

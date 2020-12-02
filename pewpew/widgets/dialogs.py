@@ -626,8 +626,8 @@ class SelectionDialog(ApplyDialog):
 
     METHODS = {
         "Manual": (None, None),
-        "Mean": (np.nanmean, None),
-        "Median": (np.nanmedian, None),
+        "Mean": (np.mean, None),
+        "Median": (np.median, None),
         "Otsu": (otsu, None),
         "K-means": (kmeans.thresholds, ("k: ", 3, (2, 9))),
     }
@@ -693,6 +693,9 @@ class SelectionDialog(ApplyDialog):
         data = self.canvas.image.get_array()
         if self.check_limit_threshold.isChecked() and self.canvas.selection is not None:
             data = data[self.canvas.selection]
+
+        # Remove nans
+        data = data[~np.isnan(data)]
 
         # Enable lineedit if manual mode
         self.lineedit_manual.setEnabled(method == "Manual")
