@@ -477,7 +477,7 @@ class OverlayExportDialog(_ExportDialogBase):
         self.layout.insertWidget(2, self.check_individual)
 
         path = (
-            self.widget.widget.laser.path.parent.joinpath(self.widget.widget.laser.name)
+            self.widget.widget.laser.path.with_name(self.widget.widget.laser.name)
             .with_suffix(".png")
             .resolve()
         )

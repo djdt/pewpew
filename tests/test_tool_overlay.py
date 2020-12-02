@@ -23,7 +23,7 @@ def test_overlay_tool(qtbot: QtBot):
     qtbot.addWidget(viewspace)
     viewspace.show()
     view = viewspace.activeView()
-    view.addLaser(Laser(data))
+    view.addLaser(Laser(data, path=Path("/home/pewpew/real.npz")))
     tool = OverlayTool(view.activeWidget())
     view.addTab("Tool", tool)
     qtbot.waitForWindowShown(tool)

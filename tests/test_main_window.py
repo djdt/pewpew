@@ -1,4 +1,5 @@
 from pytestqt.qtbot import QtBot
+from pathlib import Path
 
 from pewlib.laser import Laser
 
@@ -63,7 +64,7 @@ def test_main_window_actions_empty(qtbot: QtBot):
 def test_main_window_actions_widget(qtbot: QtBot):
     window = MainWindow()
     qtbot.addWidget(window)
-    window.viewspace.views[0].addLaser(Laser(rand_data("A1")))
+    window.viewspace.views[0].addLaser(Laser(rand_data("A1"), path=Path("/home/pewpew/real.npz")))
     window.viewspace.refresh()
 
     assert window.action_export_all.isEnabled()
