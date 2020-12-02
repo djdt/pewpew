@@ -536,7 +536,7 @@ class LaserWidget(_ViewWidget):
         path = self.laser.path
         new_widget = self.view.addLaser(
             Laser(
-                data,
+                data.copy(),
                 calibration=self.laser.calibration,
                 config=self.laser.config,
                 name=self.laser.name + "_cropped",
