@@ -129,7 +129,7 @@ def test_wizard_import_thermo(qtbot: QtBot):
 
     # Config
     page = wiz.currentPage()
-    assert page.lineedit_scantime.text() == "1.005"
+    assert page.lineedit_scantime.text() == "1.0049"
 
     with qtbot.waitSignal(wiz.laserImported) as emit:
         wiz.accept()
