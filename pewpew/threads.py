@@ -62,7 +62,10 @@ class ImportThread(QtCore.QThread):
             # elif io.nu.is_valid_directory(path):
         else:
             if path.suffix.lower() == ".npz":
-                return io.npz.load(path)
+                laser = io.npz.load(path)
+                if laser.name == "":
+                    laser.name = path.stem
+                return laser
             if path.suffix.lower() == ".csv":
                 sample_format = io.thermo.icap_csv_sample_format(path)
                 if sample_format in ["columns", "rows"]:
