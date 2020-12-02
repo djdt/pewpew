@@ -1,6 +1,4 @@
 import numpy as np
-import os.path
-import tempfile
 
 from PySide2 import QtGui, QtWidgets
 from pytestqt.qtbot import QtBot

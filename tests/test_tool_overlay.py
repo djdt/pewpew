@@ -1,5 +1,5 @@
+from pathlib import Path
 import numpy as np
-import os.path
 import tempfile
 
 from PySide2 import QtGui, QtWidgets
@@ -8,225 +8,9 @@ from pytestqt.qtbot import QtBot
 from pewlib.laser import Laser
 
 from pewpew.widgets.laser import LaserViewSpace
-from pewpew.widgets.tools.tool import ToolWidget
-from pewpew.widgets.tools.edit import EditTool
-from pewpew.widgets.tools.standards import StandardsTool
 from pewpew.widgets.tools.overlays import OverlayTool
 
 from testing import linear_data, rand_data, FakeEvent
-
-
-def test_tool_widget(qtbot: QtBot):
-    viewspace = LaserViewSpace()
-    qtbot.addWidget(viewspace)
-    viewspace.show()
-
-    view = viewspace.activeView()
-    widget = view.addLaser(Laser(rand_data("A1"), name="Widget"))
-    tool = ToolWidget(widget, apply_all=True)
-    index = widget.index
-
-    widget.view.removeTab(index)
-    widget.view.insertTab(index, "Tool", tool)
-    qtbot.waitForWindowShown(tool)
-
-    tool.requestClose()
-    view.tabs.tabText(index) == "Widget"
-
-    with qtbot.wait_signal(tool.applyPressed):
-        button = tool.button_box.button(QtWidgets.QDialogButtonBox.Apply)
-        button.click()
-
-    with qtbot.wait_signal(tool.applyPressed):
-        button = tool.button_box.button(QtWidgets.QDialogButtonBox.Ok)
-        button.click()
-
-
-def test_standards_tool(qtbot: QtBot):
-    viewspace = LaserViewSpace()
-    qtbot.addWidget(viewspace)
-    viewspace.show()
-    view = viewspace.activeView()
-    data = linear_data(["A1", "B2"])
-    view.addLaser(Laser(data))
-    tool = StandardsTool(view.activeWidget())
-    view.addTab("Tool", tool)
-    qtbot.waitForWindowShown(tool)
-
-    # Units
-    tool.lineedit_units.setText("unit")
-    tool.lineedit_units.editingFinished.emit()
-    tool.combo_weighting.setCurrentIndex(2)
-
-    # Trim
-    assert tool.canvas.getCurrentTrim() == (0, 10)
-
-    tool.canvas.picked_artist = tool.canvas.edge_guides[0]
-    tool.canvas.move(FakeEvent(tool.canvas.ax, 90, 30))
-    tool.canvas.release(FakeEvent(tool.canvas.ax, 90, 30))
-
-    assert tool.canvas.getCurrentTrim() == (3, 10)
-
-    # Test snap
-    tool.canvas.picked_artist = tool.canvas.edge_guides[0]
-    tool.canvas.move(FakeEvent(tool.canvas.ax, 34, 30))
-    tool.canvas.release(FakeEvent(tool.canvas.ax, 34, 30))
-
-    assert tool.canvas.getCurrentTrim() == (1, 10)
-
-    # Table
-    tool.spinbox_levels.setValue(5)
-
-    assert not tool.isComplete()
-    assert not tool.button_plot.isEnabled()
-    for i in range(0, tool.table.model().rowCount()):
-        index = tool.table.model().index(i, 0)
-        tool.table.model().setData(index, 0)
-    assert not tool.table.isComplete()
-    for i in range(0, tool.table.model().rowCount()):
-        index = tool.table.model().index(i, 0)
-        tool.table.model().setData(index, i)
-    assert tool.isComplete()
-    assert tool.button_plot.isEnabled()
-
-    # Change isotope, check if weighting and unit have remained
-    tool.combo_isotope.setCurrentIndex(1)
-    assert not tool.isComplete()
-    assert tool.combo_weighting.currentIndex() == 0
-    assert tool.lineedit_units.text() == ""
-    tool.lineedit_units.setText("none")
-    tool.combo_weighting.setCurrentIndex(2)
-
-    # Change isotope back, check weighting, unit, table restored
-    tool.combo_isotope.setCurrentIndex(0)
-    assert tool.isComplete()
-    assert tool.lineedit_units.text() == "unit"
-    assert tool.combo_weighting.currentIndex() == 2
-
-    # Test SD weighting
-    tool.combo_weighting.setCurrentIndex(1)
-    assert np.all(tool.calibration["A1"].weights == 4.0)
-
-    dlg = tool.showCurve()
-    qtbot.waitForWindowShown(dlg)
-    dlg.close()
-
-
-def test_edit_tool(qtbot: QtBot):
-    viewspace = LaserViewSpace()
-    qtbot.addWidget(viewspace)
-    viewspace.show()
-    view = viewspace.activeView()
-    widget = view.addLaser(Laser(rand_data(["a", "b"])))
-    tool = EditTool(view.activeWidget())
-    view.addTab("Tool", tool)
-    qtbot.waitForWindowShown(tool)
-
-    # Transform tools
-    tool.actionTransformFlipHorz()
-    assert tool.flip_horizontal
-    tool.actionTransformFlipHorz()
-    tool.actionTransformFlipVert()
-    assert tool.flip_vertical
-    tool.actionTransformFlipVert()
-    tool.actionTransformRotateLeft()
-    assert tool.rotate == 3
-    tool.actionTransformRotateRight()
-    assert tool.rotate == 0
-
-    assert tool.combo_method.currentText() == "Calculator"
-    assert not tool.combo_isotope.isEnabled()  # Full data tool
-
-    assert tool.calculator_method.lineedit_name.text() == "calc0"
-    tool.calculator_method.apply()
-    # Applying should add isotope to widget
-    isotopes = [
-        tool.widget.combo_isotope.itemText(i)
-        for i in range(widget.combo_isotope.count())
-    ]
-    assert "calc0" in isotopes
-    isotopes = [
-        widget.combo_isotope.itemText(i) for i in range(widget.combo_isotope.count())
-    ]
-    assert "calc0" in isotopes
-
-    # Inserters
-    assert tool.calculator_method.formula.toPlainText() == "a"
-    tool.calculator_method.insertFunction(1)
-    assert tool.calculator_method.formula.toPlainText() == "abs(a"
-    tool.calculator_method.insertVariable(2)
-    assert tool.calculator_method.formula.toPlainText() == "abs(ba"
-
-    # Test output of previewData and output lineedit
-    x = np.array(np.random.random((10, 10)), dtype=[("a", float)])
-
-    tool.calculator_method.formula.setPlainText("mean(a)")
-    assert tool.calculator_method.previewData(x) is None
-    assert tool.calculator_method.output.text() == f"{np.mean(x['a']):.10g}"
-
-    tool.calculator_method.formula.setPlainText("a[0]")
-    assert tool.calculator_method.previewData(x) is None
-    assert (
-        tool.calculator_method.output.text()
-        == f"{list(map('{:.4g}'.format, x['a'][0]))}"
-    )
-
-    tool.calculator_method.formula.setPlainText("a + 1.0")
-    assert np.all(tool.calculator_method.previewData(x) == x["a"] + 1.0)
-
-    tool.calculator_method.formula.setPlainText("fail")
-    assert tool.calculator_method.previewData(x) is None
-
-    tool.combo_method.setCurrentText("Convolve")
-    assert tool.combo_isotope.isEnabled()
-    tool.convolve_method.apply()
-    tool.combo_method.setCurrentText("Deconvolve")
-    assert tool.combo_isotope.isEnabled()
-    tool.deconvolve_method.apply()
-    tool.combo_method.setCurrentText("Filter")
-    assert tool.combo_isotope.isEnabled()
-    tool.filter_method.apply()
-    tool.combo_method.setCurrentText("Transform")
-    assert tool.combo_isotope.isEnabled()
-    tool.apply()
-
-
-# def test_calculations_tool(qtbot: QtBot):
-#     viewspace = LaserViewSpace()
-#     qtbot.addWidget(viewspace)
-#     viewspace.show()
-#     view = viewspace.activeView()
-#     view.addLaser(Laser(rand_data("A1")))
-#     tool = CalculationsTool(view.activeWidget())
-#     view.addTab("Tool", tool)
-#     qtbot.waitForWindowShown(tool)
-
-#     assert not tool.isComplete()
-
-#     tool.formula.setText("1 +")
-#     assert tool.formula.expr == ""
-#     tool.combo_isotope.setCurrentIndex(1)
-#     tool.insertVariable(1)
-#     assert tool.formula.expr == "+ 1 A1"
-#     assert tool.combo_isotope.currentIndex() == 0
-
-#     assert not tool.isComplete()
-
-#     tool.lineedit_name.setText("A1")
-#     assert not tool.lineedit_name.hasAcceptableInput()
-#     tool.lineedit_name.setText("A2 ")
-#     assert not tool.lineedit_name.hasAcceptableInput()
-#     tool.lineedit_name.setText("if")
-#     assert not tool.lineedit_name.hasAcceptableInput()
-#     tool.lineedit_name.setText(" ")
-#     assert not tool.lineedit_name.hasAcceptableInput()
-#     tool.lineedit_name.setText("A2")
-#     assert tool.lineedit_name.hasAcceptableInput()
-
-#     assert tool.isComplete()
-
-#     tool.apply()
-#     assert np.all(tool.widget.laser.data["A2"] == tool.widget.laser.data["A1"] + 1.0)
 
 
 def test_overlay_tool(qtbot: QtBot):
@@ -304,7 +88,7 @@ def test_overlay_tool(qtbot: QtBot):
 
     with tempfile.NamedTemporaryFile() as tf:
         dlg.export(tf)
-        assert os.path.exists(tf.name)
+        assert Path(tf.name).exists()
 
     with tempfile.TemporaryDirectory() as td:
         dlg.lineedit_directory.setText(td)
@@ -312,9 +96,9 @@ def test_overlay_tool(qtbot: QtBot):
         dlg.check_individual.setChecked(True)
         dlg.accept()
         qtbot.wait(300)
-        assert os.path.exists(os.path.join(td, "test_1.png"))
-        assert os.path.exists(os.path.join(td, "test_2.png"))
-        assert os.path.exists(os.path.join(td, "test_3.png"))
+        assert Path(td).joinpath("test_1.png").exists()
+        assert Path(td).joinpath("test_2.png").exists()
+        assert Path(td).joinpath("test_3.png").exists()
 
     # Test close
     with qtbot.wait_signal(tool.rows.rowsChanged):
@@ -332,26 +116,3 @@ def test_overlay_tool(qtbot: QtBot):
 
     dlg = tool.rows[0].selectColor()
     dlg.close()
-
-
-# def test_tools_main_window(qtbot: QtBot):
-#     window = MainWindow()
-#     qtbot.addWidget(window)
-#     window.show()
-
-#     window.viewspace.views[0].addLaser(Laser(rand_data("A1")))
-#     window.viewspace.views[0].addTab(
-#         "Tool 1", StandardsTool(window.viewspace.activeWidget())
-#     )
-#     window.viewspace.views[0].addTab(
-#         "Tool 2", EditTool(window.viewspace.activeWidget())
-#     )
-#     window.viewspace.views[0].addTab(
-#         "Tool 3", OverlayTool(window.viewspace.activeWidget())
-#     )
-#     window.viewspace.refresh()
-
-#     window.actionToggleCalibrate(False)
-#     window.actionToggleColorbar(False)
-#     window.actionToggleLabel(False)
-#     window.actionToggleScalebar(False)
