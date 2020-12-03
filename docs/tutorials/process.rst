@@ -18,6 +18,7 @@ Supported Input
 
 .. table:: Supported `Formula` inputs with examples.
     :name: calc_input
+    :align: center
 
     +--------------------+------------------------------------------------+
     |Type                |Example                                         |
@@ -26,7 +27,7 @@ Supported Input
     |                    |                                                |
     |                    |``153Eu/31P``                                   |
     +--------------------+------------------------------------------------+
-    |Mathematical Symbols|``+  -  \*  /  ^  (  )``                        |
+    |Mathematical Symbols|``+  -  *  /  ^  (  )``                         |
     |                    |                                                |
     |                    |``a / (b + 1)``                                 |
     |                    |                                                |
@@ -46,6 +47,7 @@ Supported Formulas
 
 .. table:: Calculator functions.
     :name: calc_functions
+    :align: center
 
     +----------+-----------------+------------------------------------+
     |Function  |Arguments        |Result                              |
@@ -112,8 +114,40 @@ Convolution
 
 * **Tools -> Edit Tool -> Convolve / Deconvolve**
 
-The `Convolve` and `Deconvolve` tools
-Convolution can be used to add blur to images.
+The `Convolve` and `Deconvolve` tools enable the creation of a kernel that can be
+convolved with image data in one or two dimensions. For a full list of kernels see
+:ref:`convolve_kernels`. The `Size` (in pixels) and `Scale` of each kernel is also
+alterable.
+
+
+Available Kernels
+~~~~~~~~~~~~~~~~~
+
+.. table:: Convolution kernels and parameters.
+    :name: convolve_kernels
+    :align: center
+
+    +-------------------+-----------+-----------+-----------+
+    | Kernel            | Parameters                        |
+    +===================+===========+===========+===========+
+    | Beta              | α [0, ∞)  | β [0, ∞)  |           |
+    +-------------------+-----------+-----------+-----------+
+    | Exponential       | λ [0, ∞)  |           |           |
+    +-------------------+-----------+-----------+-----------+
+    | Inverse-gamma     | α [0, ∞)  | β [0, ∞)  |           |
+    +-------------------+-----------+-----------+-----------+
+    | Laplace           | b [0, ∞)  | μ (-∞, ∞) |           |
+    +-------------------+-----------+-----------+-----------+
+    | Log-Laplace       | b [0, ∞)  | μ (-∞, ∞) |           |
+    +-------------------+-----------+-----------+-----------+
+    | Log-normal        | σ [0, ∞)  | μ (-∞, ∞) |           |
+    +-------------------+-----------+-----------+-----------+
+    | Gaussian (normal) | σ [0, ∞)  | μ (-∞, ∞) |           |
+    +-------------------+-----------+-----------+-----------+
+    | Super-Gaussian    | σ [0, ∞)  | μ (-∞, ∞) | P (-∞, ∞) |
+    +-------------------+-----------+-----------+-----------+
+    | Triangular        | a (-∞, 0] | b [0, ∞)  |           |
+    +-------------------+-----------+-----------+-----------+
 
 
 Example: Removing wash-out blur
@@ -143,15 +177,31 @@ Example: Removing wash-out blur
 
 
 Filtering
-=========
+---------
 
 * **Tools -> Edit Tool -> Filter**
 
 Instrument noise often causes unwanted spikes in data.
 The `Filter` tool removes spikes by applying a rolling filter across an image.
 
+Filters
+~~~~~~~
+
+.. table:: Implemented filters.
+    :name: filter_methods
+    :align: center
+
+    +----------------+---+--------------------------------------------+
+    | Type           | Threshold                                      |
+    +================+===+============================================+
+    | Rolling Mean   | σ | Distance in stddevs from the local mean.   |
+    |                |   | Stddev excludes the tested value.          |
+    +----------------+---+--------------------------------------------+
+    | Rolling Median | M | Distance in medians from the local median. |
+    +----------------+---+--------------------------------------------+
+
 Example: De-noising an image
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. figure:: ../images/tutorial_filter_pre.png
     :width: 300px
@@ -161,18 +211,16 @@ Example: De-noising an image
     cycle.
 
 1. Using the `Filter` tool select the appropriate filter.
-   Available filters are `Mean` and `Median`.
+    Available filters are `Mean` and `Median`.
 
 2. Select appropriate filter size.
-   Typical window sizes are 3, 5 or 7. A larger window size will be more
-   sensitive in detecting outlying data but is more likely to introduce artifacts.
+    Typical window sizes are 3, 5 or 7. A larger window size will be more
+    sensitive in detecting outlying data but is more likely to introduce artifacts.
 
 3. Select the appropriate filter threshold.
-   For `Median` the `M` value is the distance (in medians) a value must be from the
-   local median to be considered an outlier.
-   For `Mean` the `σ` value is the distance (in standard deviations, excluding the tested point)
-   a value must be from the local mean to be considered an outlier.
-   An ideal threshold will change invalid data while leaving valid data untouched.
+    An outlyling data (those above the the thresholds in :ref:`filter_methods`)
+    are set to the relevant local value.
+    An ideal threshold will change invalid data while leaving valid data untouched.
 
 .. figure:: ../images/tutorial_filter_post.png
     :width: 300px
