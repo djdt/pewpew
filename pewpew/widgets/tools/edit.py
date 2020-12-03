@@ -483,7 +483,7 @@ class CalculatorMethod(MethodStackWidget):
                 self.output.setText(f"{list(map('{:.4g}'.format, data))}")
                 return None
             elif isinstance(data, np.ndarray):
-                self.output.setText("")
+                self.output.setText(f"{data.dtype.name} array: {data.shape}")
                 return data
         except (ReducerException, ValueError) as e:
             self.output.setText(str(e))
