@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.setWindowTitle("pew²")
         self.resize(1280, 800)
 
         self.log = LoggingDialog()

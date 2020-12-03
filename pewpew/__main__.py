@@ -1,7 +1,8 @@
 import argparse
-import sys
-from pathlib import Path
 import logging
+from pathlib import Path
+import sys
+
 from PySide2 import QtCore, QtGui, QtWidgets
 
 import pewlib
@@ -41,11 +42,13 @@ def main(argv: List[str] = None) -> int:
     args = parse_args(argv)
 
     app = QtWidgets.QApplication(args.qtargs)
+    app.setApplicationName("pew²")
+    app.setApplicationVersion(__version__)
 
     window = MainWindow()
     sys.excepthook = window.exceptHook
     logger.addHandler(window.log.handler)
-    logger.info(f"Pewpew {__version__} started.")
+    logger.info(f"Pew² {__version__} started.")
     logger.info(f"Using Pewlib {pewlib.__version__}.")
 
     window.show()
