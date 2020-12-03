@@ -1,70 +1,52 @@
-#!/usr/bin/python
-import os
-import re
-
 import argparse
+from pathlib import Path
+import re
+import sys
 
 from typing import Generator, List, Set, Tuple
 
 
-def sorted_walk(root: str) -> Generator[Tuple[str, List[str], List[str]], None, None]:
-    names = os.listdir(root)
-    names.sort()
-
-    dirs, files = [], []
-    for name in names:
-        if os.path.isdir(os.path.join(root, name)):
-            dirs.append(name)
-        else:
-            files.append(name)
-
-    yield root, dirs, files
-
-    for d in dirs:
-        path = os.path.join(root, d)
-        if not os.path.islink(path):
-            for x in sorted_walk(path):
-                yield x
-
-
-def collect_icons(path: str) -> Set[str]:
+def collect_icons(path: Path) -> Set[str]:
     regex_icon = "(?:fromTheme|qAction|qToolButton)\\(\\s*['\"]([a-z\\-]+)['\"]"
     icons = set()
 
-    for root, _dirs, files in os.walk(path):
-        for f in files:
-            if not f.endswith(".py"):
-                continue
-            with open(os.path.join(root, f), "r") as fp:
-                icons.update(re.findall(regex_icon, fp.read()))
-
+    for path in sorted(path.glob("**/*.py")):
+        with path.open() as fp:
+            icons.update(re.findall(regex_icon, fp.read()))
     return icons
 
 
-def write_qrc(qrc_path: str, icons_path: str, icons_root: str, icons: List[str]):
-    with open(qrc_path, "w") as fp:
+def write_qrc(qrc: Path, icons: Path, reroot: Path, icon_names: List[str]):
+    with qrc.open("w") as fp:
         fp.write('<!DOCTYPE RCC><RCC version="1.0">\n')
+        fp.write("<qresource>\n")
 
-        for root, _, files in sorted_walk(icons_path):
-            root = os.path.abspath(root)
-            files = [
-                f
-                for f in files
-                if os.path.splitext(f)[0] in icons or f == "index.theme"
-            ]
-            if len(files) == 0:
-                continue
-            fp.write(
-                f'<qresource prefix="{os.path.sep + os.path.relpath(root, icons_root)}">\n'
-            )
-            for f in files:
-                fp.write(f'<file alias="{f}">{os.path.join(root, f)}</file>\n')
-            fp.write("</qresource>\n")
+        theme = list(icons.glob("**/index.theme"))[0]
+        fp.write(f'\t<file alias="{theme.name}">{theme}</file>\n')
 
+        for path in sorted(icons.glob("**/*.svg")):
+            if path.stem in icon_names or path.name == "index.theme":
+                fp.write(f'\t<file alias="{path.relative_to(reroot)}">{path}</file>\n')
+        fp.write("</qresource>\n")
         fp.write("</RCC>")
 
 
-script_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-icons = list(collect_icons(script_path))
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("project", type=Path, help="The project directory.")
+    parser.add_argument(
+        "--icons",
+        type=Path,
+        default="/usr/share/icons/breeze",
+        help="The icons directory",
+    )
+    parser.add_argument(
+        "--reroot",
+        type=Path,
+        default="/usr/share",
+        help="Path to remove, relative to icon paths.",
+    )
+    args = parser.parse_args(sys.argv[1:])
 
-write_qrc("icons.qrc", "/usr/share/icons/breath2/", "/usr/share", icons)
+    icon_names = collect_icons(args.project)
+    write_qrc(Path("icons.qrc"), args.icons, args.reroot, list(icon_names))
