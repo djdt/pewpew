@@ -286,11 +286,14 @@ class CalculatorName(ValidColorLineEdit):
         super().__init__(text, parent)
 
         self.badnames = badnames
+        self.badchars = [" ", "\t", "\n"]
         self.badnulls = ["nan", "if", "then", "else"]
         self.badnulls.extend(badparser)
 
     def hasAcceptableInput(self) -> bool:
         if self.text() == "":
+            return False
+        if any(char in self.text() for char in self.badchars):
             return False
         if self.text() in self.badnulls:
             return False

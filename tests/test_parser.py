@@ -169,3 +169,5 @@ def test_reduce_raises():
         reducer.reduce("[ a 3.3")
     with pytest.raises(ReducerException):
         reducer.reduce("[ 2 3")
+    with pytest.raises(ValueError):
+        reducer.variables = {"a b": 1.0}

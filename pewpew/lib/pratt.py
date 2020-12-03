@@ -273,9 +273,10 @@ class Parser(object):
 
 class Reducer(object):
     def __init__(self, variables: dict = None):
-        self.variables: Dict[str, Union[float, np.ndarray]] = {}
+        self._variables: Dict[str, Union[float, np.ndarray]] = {}
+
         if variables is not None:
-            self.variables.update(variables)
+            self.variables = variables
 
         self.operations = {
             "u-": (np.negative, 1),
@@ -293,6 +294,16 @@ class Reducer(object):
             "?": (np.where, 3),
             "[": (None, 2),
         }
+
+    @property
+    def variables(self) -> Dict[str, Union[float, np.ndarray]]:
+        return self._variables
+
+    @variables.setter
+    def variables(self, variables: Dict[str, Union[float, np.ndarray]]) -> None:
+        if any(" " in v for v in variables.keys()):
+            raise ValueError("Spaces are not allowed in variable names!")
+        self._variables = variables
 
     def reduceExpr(self, tokens: List[str]) -> Union[float, np.ndarray]:
         if len(tokens) == 0:
