@@ -831,7 +831,7 @@ class StatsDialog(QtWidgets.QDialog):
 
         for name in self.data.dtype.names:
             nd = self.data[name]
-            unit = self.units[name]
+            unit = self.units.get(name, "")
             nd = nd[~np.isnan(nd)]
 
             data += f"<tr><td>{name}</td><td>{unit}</td><td>{np.min(nd)}</td>"
@@ -852,7 +852,7 @@ class StatsDialog(QtWidgets.QDialog):
     def updateStats(self) -> None:
         isotope = self.combo_isotope.currentText()
         data = self.data[isotope]
-        unit = self.units[isotope]
+        unit = self.units.get(isotope, "")
 
         self.label_shape.setText(str(data.shape))
         self.label_size.setText(str(data.size))

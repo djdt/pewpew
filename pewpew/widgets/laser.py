@@ -668,13 +668,18 @@ class LaserWidget(_ViewWidget):
         return dlg
 
     def actionStatistics(self) -> QtWidgets.QDialog:
+        data = self.laser.get(calibrate=self.viewspace.options.calibrate, flat=True)
         mask = self.canvas.selection
         if mask is None:
             mask = np.full(self.laser.shape, True, dtype=bool)
+        units = {}
+        if self.viewspace.options.calibrate:
+            units = {k: v.unit for k, v in self.laser.calibration.items()}
 
         dlg = dialogs.StatsDialog(
-            self.laser.get(calibrate=self.viewspace.options.calibrate, flat=True),
+            data,
             mask,
+            units,
             self.current_isotope,
             pixel_size=(
                 self.laser.config.get_pixel_width(),
