@@ -348,7 +348,6 @@ class CalculatorMethod(MethodStackWidget):
             "(<x>)",
             "Returns Otsu's threshold for <x>.",
         ),
-        # "multiotsu": (BinaryFunction("multiotsu"), "(<x>, <t>)", "Returns <t> thresholds for <x>.",),
         "percentile": (
             BinaryFunction("percentile"),
             "(<x>, <percent>)",
@@ -368,7 +367,6 @@ class CalculatorMethod(MethodStackWidget):
         "nantonum": (np.nan_to_num, 1),
         "normalise": (normalise, 3),
         "otsu": (otsu, 1),
-        # "multiotsu": (multiotsu, 2),
         "percentile": (np.nanpercentile, 2),
         "threshold": (lambda x, a: np.where(x > a, x, np.nan), 2),
     }
@@ -738,7 +736,7 @@ class DeconvolveMethod(ConvolveMethod):
 
 
 class FilterMethod(MethodStackWidget):
-    filters: dict = {
+    methods: dict = {
         # "Low-pass": {
         #     "filter": fltrs.low_pass_filter,
         #     "params": [("d", 0.5, (0.0, 1.0))],
@@ -760,7 +758,7 @@ class FilterMethod(MethodStackWidget):
         super().__init__(parent)
 
         self.combo_filter = QtWidgets.QComboBox()
-        self.combo_filter.addItems(FilterMethod.filters.keys())
+        self.combo_filter.addItems(FilterMethod.methods.keys())
         self.combo_filter.setCurrentText("Median")
         self.combo_filter.activated.connect(self.filterChanged)
         self.combo_filter.activated.connect(self.inputChanged)
@@ -769,7 +767,7 @@ class FilterMethod(MethodStackWidget):
         self.lineedit_fsize.setValidator(OddIntValidator(3, 21))
         self.lineedit_fsize.editingFinished.connect(self.inputChanged)
 
-        nparams = np.amax([len(f["params"]) for f in FilterMethod.filters.values()])
+        nparams = np.amax([len(f["params"]) for f in FilterMethod.methods.values()])
         self.label_fparams = [QtWidgets.QLabel() for i in range(nparams)]
         self.lineedit_fparams = [ValidColorLineEdit() for i in range(nparams)]
         for le in self.lineedit_fparams:
@@ -802,7 +800,7 @@ class FilterMethod(MethodStackWidget):
         self.filterChanged()
 
     def filterChanged(self) -> None:
-        filter_ = FilterMethod.filters[self.combo_filter.currentText()]
+        filter_ = FilterMethod.methods[self.combo_filter.currentText()]
         # Clear all the current params
         for le in self.label_fparams:
             le.setVisible(False)
@@ -832,7 +830,7 @@ class FilterMethod(MethodStackWidget):
         return True
 
     def previewData(self, data: np.ndarray) -> np.ndarray:
-        filter_ = FilterMethod.filters[self.combo_filter.currentText()]["filter"]
+        filter_ = FilterMethod.methods[self.combo_filter.currentText()]["filter"]
         return filter_(data, (self.fsize, self.fsize), *self.fparams)
 
 
