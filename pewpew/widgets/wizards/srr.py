@@ -88,14 +88,14 @@ class SRRImportWizard(QtWidgets.QWizard):
             path = Path(self.field("agilent.paths")[0])
         elif self.field("numpy"):
             path = Path(self.field("numpy.paths")[0])
-            if self.field("numpy.useCalibration"):
+            if self.field("numpy.useCalibration"):  # pragma: no cover
                 # Hack
                 calibration = io.npz.load(path).calibration
         elif self.field("text"):
             path = Path(self.field("text.paths")[0])
         elif self.field("thermo"):
             path = Path(self.field("thermo.paths")[0])
-        else:
+        else:  # pragma: no cover
             raise ValueError("Invalid filetype selection.")
 
         data = self.field("laserdata")
@@ -187,18 +187,11 @@ class SRRConfigPage(ConfigPage):
         spotsize = float(self.field("spotsize"))
         speed = float(self.field("speed"))
         scantime = float(self.field("scantime"))
-        mag = np.round(spotsize / (speed * scantime)).astype(int)
         warmup = np.round(float(self.field("warmup")) / scantime).astype(int)
-        if mag == 0:
-            return False
-
-        shape = data[1].shape[0], data[0].shape[1]
-        limit = data[0].shape[0], data[1].shape[1]
-        if mag * shape[0] + warmup > limit[0]:
-            return False
-        if mag * shape[1] + warmup > limit[1]:
-            return False
-        return True
+        config = SRRConfig(
+            spotsize=spotsize, speed=speed, scantime=scantime, warmup=warmup
+        )
+        return config.valid_for_data(data)
 
     def getNames(self) -> List[str]:
         data = self.field("laserdata")[0]
@@ -255,10 +248,10 @@ class SRRConfigPage(ConfigPage):
 
     def updateNames(self, rename: dict) -> None:
         datas = self.field("laserdata")
-        for data in datas:
-            remove = [name for name in data.dtype.names if name not in rename]
-            data = rfn.drop_fields(data, remove, usemask=False)
-            data = rfn.rename_fields(data, rename)
+        for i in range(len(datas)):
+            remove = [name for name in datas[i].dtype.names if name not in rename]
+            datas[i] = rfn.drop_fields(datas[i], remove, usemask=False)
+            datas[i] = rfn.rename_fields(datas[i], rename)
 
         self.setField("laserdata", datas)
         self.setElidedNames(datas[0].dtype.names)
@@ -279,6 +272,6 @@ class SRRPathAndOptionsPage(PathAndOptionsPage):
         )
 
     def isComplete(self) -> bool:
-        if not super().isComplete():
+        if not super().isComplete():  # pragma: no cover
             return False
         return len(self.path.paths) >= 2
