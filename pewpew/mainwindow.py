@@ -217,7 +217,7 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.Information,
             "About pew²",
             (
-                "Visualiser / converter for LA-ICP-MS data.\n"
+                "Import, process and export of LA-ICP-MS data.\n"
                 f"Version {__version__}\n"
                 "Developed by the Atomic Medicine Initiative.\n"
                 "https://github.com/djdt/pewpew"
