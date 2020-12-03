@@ -741,6 +741,7 @@ class StatsDialog(QtWidgets.QDialog):
         self,
         data: np.ndarray,
         mask: np.ndarray,
+        units: Dict[str, str],
         isotope: str,
         pixel_size: Tuple[float, float] = None,
         coloroptions: ColorOptions = None,
@@ -750,6 +751,7 @@ class StatsDialog(QtWidgets.QDialog):
         self.setWindowTitle("Statistics")
 
         self.data = self.prepareData(data, mask)
+        self.units = units
         self.pixel_size = pixel_size
         self.coloroptions = coloroptions or ColorOptions()
 
@@ -823,18 +825,21 @@ class StatsDialog(QtWidgets.QDialog):
         data += f"<tr><td>Area</td><td>{area}</td><td>μm²</td></tr>"
         text += f"Shape\t{area}\n"
 
-        data += "<tr><td>Name</td><td>Min</td><td>Max</td><td>Mean</td><td>Median</td><td>Std dev</tr>"
-        text += "Name\tMin\tMax\tMean\tMedian\tStd dev\n"
+        data += "<tr><td>Name</td><td>Unit</td><td>Min</td><td>Max</td><td>Mean</td>"
+        "<td>Median</td><td>Std</tr>"
+        text += "Name\tUnit\tMin\tMax\tMean\tMedian\tStd\n"
 
         for name in self.data.dtype.names:
             nd = self.data[name]
+            unit = self.units[name]
             nd = nd[~np.isnan(nd)]
 
-            data += f"<tr><td>{name}</td><td>{np.min(nd)}</td><td>{np.max(nd)}</td>"
-            data += f"<td>{np.mean(nd)}</td><td>{np.median(nd)}</td><td>{np.std(nd)}</td></tr>"
+            data += f"<tr><td>{name}</td><td>{unit}</td><td>{np.min(nd)}</td>"
+            f"<td>{np.max(nd)}</td><td>{np.mean(nd)}</td><td>{np.median(nd)}</td>"
+            f"<td>{np.std(nd)}</td></tr>"
 
-            text += f"{name}\t{np.min(nd)}\t{np.max(nd)}\t"
-            text += f"{np.mean(nd)}\t{np.median(nd)}\t{np.std(nd)}\n"
+            text += f"{name}\t{unit}\t{np.min(nd)}\t{np.max(nd)}\t"
+            f"{np.mean(nd)}\t{np.median(nd)}\t{np.std(nd)}\n"
 
         text = text.rstrip("\n")
         data += "</table>"
@@ -847,6 +852,7 @@ class StatsDialog(QtWidgets.QDialog):
     def updateStats(self) -> None:
         isotope = self.combo_isotope.currentText()
         data = self.data[isotope]
+        unit = self.units[isotope]
 
         self.label_shape.setText(str(data.shape))
         self.label_size.setText(str(data.size))
@@ -856,20 +862,20 @@ class StatsDialog(QtWidgets.QDialog):
             area = data.size * self.pixel_size[0] * self.pixel_size[1]
             if area > 1e11:
                 area /= 1e8
-                unit = "cm"
+                areaunit = "cm"
             elif area > 1e6:
                 area /= 1e6
-                unit = "mm"
+                areaunit = "mm"
             else:
-                unit = "μm"
+                areaunit = "μm"
 
-            self.label_area.setText(f"{area:.6g} {unit}²")
+            self.label_area.setText(f"{area:.6g} {areaunit}²")
 
-        self.label_min.setText(f"{np.min(data):.4g}")
-        self.label_max.setText(f"{np.max(data):.4g}")
-        self.label_mean.setText(f"{np.mean(data):.4g}")
-        self.label_median.setText(f"{np.median(data):.4g}")
-        self.label_stddev.setText(f"{np.std(data):.4g}")
+        self.label_min.setText(f"{np.min(data):.4g} {unit}")
+        self.label_max.setText(f"{np.max(data):.4g} {unit}")
+        self.label_mean.setText(f"{np.mean(data):.4g} {unit}")
+        self.label_median.setText(f"{np.median(data):.4g} {unit}")
+        self.label_stddev.setText(f"{np.std(data):.4g} {unit}")
 
         vmin, vmax = self.coloroptions.get_range_as_float(isotope, data)
         self.plot(data[np.logical_and(data >= vmin, data <= vmax)])
