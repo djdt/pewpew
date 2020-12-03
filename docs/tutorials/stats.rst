@@ -7,7 +7,7 @@ Basic statistical data is available in the `Statistics` dialog,
 accessable by right clicking an image. 
 If a region is selected (see `Region Selection`_) then the dialog will only process
 that region, otherwise the entire image is processed.
-To copy the statistics for all availble elements click the `Copy To Clipboard` button.
+To copy the statistics for all availble elements click the `Copy to Clipboard` button.
 
 .. figure:: ../images/tutorial_stats.png
     :name: stats_dialog
@@ -26,5 +26,5 @@ Example: Means in a region
 2. Open the `Statistics Dialog`.
     The stats shown will pertain only to the selected region.
 
-3. Export the statistics using `Copy To Clipboard`.
+3. Export the statistics using `Copy to Clipboard`.
     Statistics can now be pasted into a spreadsheet program.
