@@ -140,3 +140,42 @@ Example: Removing wash-out blur
     :align: center
 
     The same image post-deconvolution. Notice the lessen blur on the right hand side.
+
+
+Filtering
+=========
+
+* **Tools -> Edit Tool -> Filter**
+
+Instrument noise often causes unwanted spikes in data.
+The `Filter` tool removes spikes by applying a rolling filter across an image.
+
+Example: De-noising an image
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. figure:: ../images/tutorial_filter_pre.png
+    :width: 300px
+    :align: center
+
+    Negative spikes (-33) are visible due the to instrument missing an acquisition
+    cycle.
+
+1. Using the `Filter` tool select the appropriate filter.
+   Available filters are `Mean` and `Median`.
+
+2. Select appropriate filter size.
+   Typical window sizes are 3, 5 or 7. A larger window size will be more
+   sensitive in detecting outlying data but is more likely to introduce artifacts.
+
+3. Select the appropriate filter threshold.
+   For `Median` the `M` value is the distance (in medians) a value must be from the
+   local median to be considered an outlier.
+   For `Mean` the `σ` value is the distance (in standard deviations, excluding the tested point)
+   a value must be from the local mean to be considered an outlier.
+   An ideal threshold will change invalid data while leaving valid data untouched.
+
+.. figure:: ../images/tutorial_filter_post.png
+    :width: 300px
+    :align: center
+
+    A rolling mean filter replaces the invalid values with the local mean.
