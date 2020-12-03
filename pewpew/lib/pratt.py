@@ -306,9 +306,13 @@ class Reducer(object):
             except (IndexError, TypeError, ValueError):
                 raise ReducerException(f"Invalid indexing of '{n}' using '{i}'.")
         elif token in self.operations:
-            op, nargs = self.operations[token]
-            args = [self.reduceExpr(tokens) for i in range(nargs)]
-            return op(*args)
+            try:
+                op, nargs = self.operations[token]
+                arg_tokens = tokens[:nargs]
+                args = [self.reduceExpr(tokens) for i in range(nargs)]
+                return op(*args)
+            except (AttributeError, KeyError, ValueError):
+                raise ReducerException(f"Invalid args '{arg_tokens}' for '{token}'.")
         elif token in self.variables:
             return self.variables[token]
         else:  # is a number
