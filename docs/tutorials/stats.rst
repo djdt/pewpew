@@ -4,7 +4,7 @@ Statistics
 * ** Image Context Menu -> Statistics **
 
 Basic statistical data is available in the `Statistics` dialog,
-accessable by right clicking an image. 
+accessable by right clicking an image.
 If a region is selected (see `Region Selection`_) then the dialog will only process
 that region, otherwise the entire image is processed.
 To copy the statistics for all availble elements click the `Copy to Clipboard` button.
