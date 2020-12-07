@@ -30,6 +30,7 @@ author = "djdt"
 extensions = [
     "matplotlib.sphinxext.plot_directive",
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosectionlabel",
     "sphinx.ext.napoleon",
     "sphinx_autodoc_typehints",
 ]
