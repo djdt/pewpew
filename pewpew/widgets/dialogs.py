@@ -12,6 +12,7 @@ from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
 from pewlib.srr import SRRConfig
 
+from pewpew.actions import qToolButton
 from pewpew.lib.viewoptions import ViewOptions, ColorOptions
 from pewpew.lib import kmeans
 from pewpew.widgets.canvases import BasicCanvas, SelectableImageCanvas
@@ -360,28 +361,20 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.label_m1 = QtWidgets.QLabel()
         self.label_m2 = QtWidgets.QLabel()
 
-        self.button_p = QtWidgets.QPushButton("Calculate ρ")
+        self.button_p = qToolButton("view-refresh")
+        self.button_p.setToolTip("Calculate Pearson r probability.")
         self.button_p.pressed.connect(self.calculatePearsonsProbablity)
 
         self.button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
         self.button_box.rejected.connect(self.close)
 
-        layout_combos = QtWidgets.QHBoxLayout()
-        layout_combos.addWidget(QtWidgets.QLabel("1:"))
-        layout_combos.addWidget(self.combo_name1)
-        layout_combos.addWidget(QtWidgets.QLabel("2:"))
-        layout_combos.addWidget(self.combo_name2)
-
-        group_li = QtWidgets.QGroupBox("Li")
-        layout_li = QtWidgets.QFormLayout()
-        layout_li.addRow("ICQ:", self.label_icq)
-        group_li.setLayout(layout_li)
-
         group_pearson = QtWidgets.QGroupBox("Pearson")
         layout_pearson = QtWidgets.QFormLayout()
         layout_pearson.addRow("r:", self.label_r)
-        layout_pearson.addRow("ρ:", self.label_p)
-        layout_pearson.addWidget(self.button_p)
+        layout_p = QtWidgets.QHBoxLayout()
+        layout_p.addWidget(self.label_p, 1)
+        layout_p.addWidget(self.button_p, 0)
+        layout_pearson.addRow("ρ:", layout_p)
         group_pearson.setLayout(layout_pearson)
 
         group_manders = QtWidgets.QGroupBox("Manders")
@@ -390,16 +383,26 @@ class ColocalisationDialog(QtWidgets.QDialog):
         layout_manders.addRow("M2:", self.label_m2)
         group_manders.setLayout(layout_manders)
 
+        group_li = QtWidgets.QGroupBox("Li")
+        layout_li = QtWidgets.QFormLayout()
+        layout_li.addRow("ICQ:", self.label_icq)
+        group_li.setLayout(layout_li)
+
+        layout_combos = QtWidgets.QFormLayout()
+        layout_combos.addRow("Element 1:", self.combo_name1)
+        layout_combos.addRow("Element 2:", self.combo_name2)
+
         layout_vert = QtWidgets.QVBoxLayout()
-        layout_vert.addStretch(1)
+        layout_vert.addSpacing(12)
         layout_vert.addWidget(group_pearson)
         layout_vert.addWidget(group_manders)
         layout_vert.addWidget(group_li)
+        layout_vert.addStretch(1)
         layout_vert.addLayout(layout_combos)
 
         layout_horz = QtWidgets.QHBoxLayout()
         layout_horz.addLayout(layout_vert)
-        layout_horz.addWidget(self.canvas)
+        layout_horz.addWidget(self.canvas, 1)
 
         layout_main = QtWidgets.QVBoxLayout()
         layout_main.addLayout(layout_horz)
