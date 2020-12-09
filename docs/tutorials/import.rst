@@ -39,7 +39,7 @@ Kriss-Kross Import Wizard
 
 * **File -> Import -> Kriss-Kross Import Wizard**
 
-Import of `Kriss-Kross` collected Super-Resolution-Reconstruction images is performed
+Import of Kriss-Kross_ collected Super-Resolution-Reconstruction images is performed
 using the `Kriss-Kross Import Wizard`. This will guide users through import of the data
 in a simliar manner to the `Import Wizard`.
 
@@ -54,3 +54,4 @@ in a simliar manner to the `Import Wizard`.
     If available, laser parameters will be read from the data.
     Isotopes names are editable by pressing the `Edit Names` button.
 
+ .. _Kriss-Kross: https://doi.org/10.1021/acs.analchem.9b02380
