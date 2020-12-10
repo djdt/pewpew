@@ -1,31 +1,20 @@
 import numpy as np
-import logging
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtWidgets
 
-from pewlib.process import convolve, filters
 from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
 
-from pewpew.actions import qAction, qToolButton
 from pewpew.lib import kmeans
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
-from pewpew.widgets.canvases import BasicCanvas, LaserImageCanvas
+from pewpew.widgets.canvases import LaserImageCanvas
 from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import ToolWidget
 
-from pewpew.validators import DecimalValidator, LimitValidator, OddIntValidator
-
-from typing import List, Tuple
-
-
-# TODO
-# Add some kind of indicator for if all data or just current isotope changed
-
-logger = logging.getLogger(__name__)
+from typing import List
 
 
 class CalculatorName(ValidColorLineEdit):
@@ -135,7 +124,6 @@ class CalculatorTool(ToolWidget):
         self.canvas.cursorMoved.connect(self.widget.updateCursorStatus)
         self.canvas.view_limits = self.widget.canvas.view_limits
 
-
         self.output = QtWidgets.QLineEdit("Result")
         self.output.setEnabled(False)
 
@@ -184,7 +172,6 @@ class CalculatorTool(ToolWidget):
         layout_controls.addRow("Formula:", self.formula)
         layout_controls.addRow("Result:", self.output)
         self.box_controls.setLayout(layout_controls)
-
 
         # layout_grid = QtWidgets.QGridLayout()
         # layout_grid.addWidget(QtWidgets.QLabel("Name:"), 0, 0)
@@ -268,7 +255,6 @@ class CalculatorTool(ToolWidget):
         except (ReducerException, ValueError) as e:
             self.output.setText(str(e))
             return None
-
 
     def refresh(self) -> None:
         if not self.isComplete():  # Not ready for update to preview
