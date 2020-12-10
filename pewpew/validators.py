@@ -39,16 +39,23 @@ class LimitValidator(QtGui.QDoubleValidator):
         bottom: float,
         top: float,
         decimals: int = 4,
+        modulus: float = None,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(bottom, top, decimals, parent)
+        self.modulus = modulus
+
+    def setModulus(self, modulus: float) -> None:
+        self.modulus = modulus
 
     def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
         result, _, _ = super().validate(input, pos)
         if result == QtGui.QValidator.Acceptable:
             try:
                 v = float(input)
-                if v == self.bottom():
+                if self.modulus is not None and v % self.modulus != 0.0:
+                    return (QtGui.QValidator.Intermediate, input, pos)
+                elif v == self.bottom():
                     return (QtGui.QValidator.Intermediate, input, pos)
                 elif v == self.top():
                     return (QtGui.QValidator.Intermediate, input, pos)

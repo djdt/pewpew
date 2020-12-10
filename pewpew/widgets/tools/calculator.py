@@ -260,8 +260,6 @@ class CalculatorTool(ToolWidget):
         if not self.isComplete():  # Not ready for update to preview
             return
 
-        isotope = self.combo_isotope.currentText()
-
         data = self.previewData(self.widget.laser.get(flat=True, calibrated=False))
         if data is None:
             return
@@ -271,11 +269,7 @@ class CalculatorTool(ToolWidget):
         if self.canvas.extent != extent:
             self.canvas.view_limits = self.canvas.extentForAspect(extent)
 
-        self.canvas.drawData(
-            data,
-            extent,
-            isotope=isotope,
-        )
+        self.canvas.drawData(data, extent)
 
         if self.canvas.viewoptions.canvas.colorbar:
             self.canvas.drawColorbar("")
