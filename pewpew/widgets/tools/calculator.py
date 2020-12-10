@@ -191,6 +191,7 @@ class CalculatorTool(ToolWidget):
         self.initialise()
 
     def apply(self) -> None:
+        self.modified = True
         name = self.lineedit_name.text()
         data = self.reducer.reduce(self.formula.expr)
         if name in self.widget.laser.isotopes:
@@ -199,6 +200,8 @@ class CalculatorTool(ToolWidget):
             self.widget.laser.add(self.lineedit_name.text(), data)
         # Make sure to repop isotopes
         self.widget.populateIsotopes()
+
+        self.initialise()
 
     def initialise(self) -> None:
         isotopes = self.widget.laser.isotopes
@@ -214,7 +217,7 @@ class CalculatorTool(ToolWidget):
         self.lineedit_name.setText(name)
         self.formula.parser.variables = isotopes
         self.formula.valid = True
-        self.formula.setText(self.widget.combo_isotope.currentText())
+        self.formula.setText(self.widget.combo_isotope.currentText())  # refreshes
 
     def insertFunction(self, index: int) -> None:
         if index == 0:

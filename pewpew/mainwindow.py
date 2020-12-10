@@ -14,6 +14,7 @@ from pewpew.widgets.laser import LaserWidget, LaserViewSpace
 from pewpew.widgets.tools import (
     ToolWidget,
     CalculatorTool,
+    FilteringTool,
     EditTool,
     StandardsTool,
     OverlayTool,
@@ -156,6 +157,12 @@ class MainWindow(QtWidgets.QMainWindow):
             "Calculator",
             "Open the calculator.",
             self.actionToolCalculator,
+        )
+        self.action_tool_filter = qAction(
+            "document-properties",
+            "Filtering",
+            "Open the filtering tool.",
+            self.actionToolFilter,
         )
         self.action_tool_edit = qAction(
             "document-properties",
@@ -357,6 +364,17 @@ class MainWindow(QtWidgets.QMainWindow):
         widget.view.insertTab(index, name, tool)
         tool.setActive()
 
+    def actionToolFilter(self) -> None:
+        widget = self.viewspace.activeWidget()
+        index = widget.index
+        if isinstance(widget, ToolWidget):
+            widget = widget.widget
+        tool = FilteringTool(widget)
+        name = f"Filter: {widget.laser.name}"
+        widget.view.removeTab(index)
+        widget.view.insertTab(index, name, tool)
+        tool.setActive()
+
     def actionToolStandards(self) -> None:
         widget = self.viewspace.activeWidget()
         index = widget.index
@@ -452,6 +470,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_tools = self.menuBar().addMenu("&Tools")
         menu_tools.addAction(self.action_tool_calculator)
         menu_tools.addAction(self.action_tool_edit)
+        menu_tools.addAction(self.action_tool_filter)
         menu_tools.addAction(self.action_tool_standards)
         menu_tools.addAction(self.action_tool_overlay)
 

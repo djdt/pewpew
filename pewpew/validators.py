@@ -1,6 +1,6 @@
 from PySide2 import QtGui, QtWidgets
 
-from typing import Tuple
+from typing import Callable, Tuple
 
 
 class DecimalValidator(QtGui.QDoubleValidator):
@@ -39,25 +39,45 @@ class LimitValidator(QtGui.QDoubleValidator):
         bottom: float,
         top: float,
         decimals: int = 4,
-        modulus: float = None,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(bottom, top, decimals, parent)
-        self.modulus = modulus
-
-    def setModulus(self, modulus: float) -> None:
-        self.modulus = modulus
 
     def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
         result, _, _ = super().validate(input, pos)
         if result == QtGui.QValidator.Acceptable:
             try:
                 v = float(input)
-                if self.modulus is not None and v % self.modulus != 0.0:
-                    return (QtGui.QValidator.Intermediate, input, pos)
-                elif v == self.bottom():
+                if v == self.bottom():
                     return (QtGui.QValidator.Intermediate, input, pos)
                 elif v == self.top():
+                    return (QtGui.QValidator.Intermediate, input, pos)
+            except ValueError:  # pragma: no cover
+                pass
+        return (result, input, pos)
+
+
+class ConditionalLimitValidator(LimitValidator):
+    def __init__(
+        self,
+        bottom: float,
+        top: float,
+        decimals: int = 4,
+        condition: Callable[[float], bool] = None,
+        parent: QtWidgets.QWidget = None,
+    ):
+        super().__init__(bottom, top, decimals, parent)
+        self.condition = condition
+
+    def setCondition(self, condition: Callable[[float], bool]) -> None:
+        self.condition = condition
+
+    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
+        result, _, _ = super().validate(input, pos)
+        if result == QtGui.QValidator.Acceptable:
+            try:
+                v = float(input)
+                if self.condition is not None and not self.condition(v):
                     return (QtGui.QValidator.Intermediate, input, pos)
             except ValueError:  # pragma: no cover
                 pass
@@ -106,37 +126,6 @@ class PercentOrDecimalValidator(DecimalValidator):
         # Treat as double
         self.setRange(self._bottom, self._top, self.decimals())
         return super().validate(input, pos)
-
-
-# class IntListValidator(QtGui.QIntValidator):
-#     def __init__(
-#         self,
-#         bottom: int,
-#         top: int,
-#         delimiter: str = ",",
-#         parent: QtWidgets.QWidget = None,
-#     ):
-#         super().__init__(bottom, top, parent)
-#         self.delimiter = delimiter
-
-#     def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
-#         tokens = input.split(self.delimiter)
-#         intermediate = False
-
-#         for token in tokens:
-#             result = super().validate(token, 0)[0]
-#             if result == QtGui.QValidator.Invalid:
-#                 return (result, input, pos)
-#             elif result == QtGui.QValidator.Intermediate:
-#                 intermediate = True
-
-#         return (
-#             QtGui.QValidator.Intermediate
-#             if intermediate
-#             else QtGui.QValidator.Acceptable,
-#             input,
-#             pos,
-#         )
 
 
 class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
