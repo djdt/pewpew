@@ -104,10 +104,15 @@ class StandardsTool(ToolWidget):
         layout_results.addStretch(1)
         box_results.setLayout(layout_results)
 
-        self.box_canvas.layout().addWidget(self.canvas)
-        self.box_controls.layout().addLayout(layout_cal_form)
-        self.box_controls.layout().addWidget(self.table)
-        self.box_controls.layout().addLayout(layout_table_form)
+        layout_canvas = QtWidgets.QVBoxLayout()
+        layout_canvas.addWidget(self.canvas)
+        self.box_canvas.setLayout(layout_canvas)
+
+        layout_controls = QtWidgets.QVBoxLayout()
+        layout_controls.addLayout(layout_cal_form)
+        layout_controls.addWidget(self.table)
+        layout_controls.addLayout(layout_table_form)
+        self.box_controls.setLayout(layout_controls)
         
         self.layout_bottom.addWidget(box_results, 0, QtCore.Qt.AlignLeft)
         self.layout_bottom.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignTop | QtCore.Qt.AlignRight)

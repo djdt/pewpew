@@ -13,6 +13,7 @@ from pewpew.widgets.laser import LaserWidget, LaserViewSpace
 
 from pewpew.widgets.tools import (
     ToolWidget,
+    CalculatorTool,
     EditTool,
     StandardsTool,
     OverlayTool,
@@ -150,12 +151,12 @@ class MainWindow(QtWidgets.QMainWindow):
             "Open the standards calibration tool.",
             self.actionToolStandards,
         )
-        # self.action_tool_calculations = qAction(
-        #     "document-properties",
-        #     "Calculations Tool",
-        #     "Open the calculations tool.",
-        #     self.actionToolCalculations,
-        # )
+        self.action_tool_calculator = qAction(
+            "document-properties",
+            "Calculator",
+            "Open the calculator.",
+            self.actionToolCalculator,
+        )
         self.action_tool_edit = qAction(
             "document-properties",
             "Edit Tool",
@@ -345,6 +346,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.viewspace.options.canvas.scalebar = checked
         self.refresh()
 
+    def actionToolCalculator(self) -> None:
+        widget = self.viewspace.activeWidget()
+        index = widget.index
+        if isinstance(widget, ToolWidget):
+            widget = widget.widget
+        tool = CalculatorTool(widget)
+        name = f"Calculator: {widget.laser.name}"
+        widget.view.removeTab(index)
+        widget.view.insertTab(index, name, tool)
+        tool.setActive()
+
     def actionToolStandards(self) -> None:
         widget = self.viewspace.activeWidget()
         index = widget.index
@@ -438,7 +450,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_edit.addAction(self.action_transform_rotate_right)
 
         menu_tools = self.menuBar().addMenu("&Tools")
-        # menu_tools.addAction(self.action_tool_calculations)
+        menu_tools.addAction(self.action_tool_calculator)
         menu_tools.addAction(self.action_tool_edit)
         menu_tools.addAction(self.action_tool_standards)
         menu_tools.addAction(self.action_tool_overlay)

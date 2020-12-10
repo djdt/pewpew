@@ -126,6 +126,16 @@ class CalculatorTool(ToolWidget):
 
     def __init__(self, widget: LaserWidget):
         super().__init__(widget, canvas_label="Preview")
+
+        self.canvas = LaserImageCanvas(
+            self.viewspace.options, move_button=1, parent=self
+        )
+        self.canvas.drawFigure()
+        self.canvas.cursorClear.connect(self.widget.clearCursorStatus)
+        self.canvas.cursorMoved.connect(self.widget.updateCursorStatus)
+        self.canvas.view_limits = self.widget.canvas.view_limits
+
+
         self.output = QtWidgets.QLineEdit("Result")
         self.output.setEnabled(False)
 
@@ -135,7 +145,8 @@ class CalculatorTool(ToolWidget):
             badparser=list(CalculatorTool.parser_functions.keys()),
         )
         self.lineedit_name.revalidate()
-        self.lineedit_name.textEdited.connect(self.inputChanged)
+        self.lineedit_name.textEdited.connect(self.completeChanged)
+        self.lineedit_name.textEdited.connect(self.refresh)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.activated.connect(self.insertVariable)
@@ -151,7 +162,8 @@ class CalculatorTool(ToolWidget):
 
         self.reducer = Reducer({})
         self.formula = CalculatorFormula("", variables=[])
-        self.formula.textChanged.connect(self.inputChanged)
+        self.formula.textChanged.connect(self.completeChanged)
+        self.formula.textChanged.connect(self.refresh)
 
         self.reducer.operations.update(CalculatorTool.reducer_functions)
         self.formula.parser.nulls.update(
@@ -162,33 +174,47 @@ class CalculatorTool(ToolWidget):
         layout_combos.addWidget(self.combo_isotope)
         layout_combos.addWidget(self.combo_function)
 
-        layout_grid = QtWidgets.QGridLayout()
-        layout_grid.addWidget(QtWidgets.QLabel("Name:"), 0, 0)
-        layout_grid.addWidget(self.lineedit_name, 0, 1)
-        layout_grid.addWidget(QtWidgets.QLabel("Insert:"), 1, 0)
-        layout_grid.addLayout(layout_combos, 1, 1)
-        layout_grid.addWidget(QtWidgets.QLabel("Formula:"), 2, 0)
-        layout_grid.addWidget(self.formula, 2, 1, 1, 1)
-        layout_grid.addWidget(QtWidgets.QLabel("Result:"), 3, 0)
-        layout_grid.addWidget(self.output, 3, 1)
+        layout_canvas = QtWidgets.QVBoxLayout()
+        layout_canvas.addWidget(self.canvas)
+        self.box_canvas.setLayout(layout_canvas)
 
-        layout_main = QtWidgets.QVBoxLayout()
-        layout_main.addLayout(layout_grid)
-        layout_main.addStretch(0)
-        self.setLayout(layout_main)
+        layout_controls = QtWidgets.QFormLayout()
+        layout_controls.addRow("Name:", self.lineedit_name)
+        layout_controls.addRow("Insert:", layout_combos)
+        layout_controls.addRow("Formula:", self.formula)
+        layout_controls.addRow("Result:", self.output)
+        self.box_controls.setLayout(layout_controls)
+
+
+        # layout_grid = QtWidgets.QGridLayout()
+        # layout_grid.addWidget(QtWidgets.QLabel("Name:"), 0, 0)
+        # layout_grid.addWidget(self.lineedit_name, 0, 1)
+        # layout_grid.addWidget(QtWidgets.QLabel("Insert:"), 1, 0)
+        # layout_grid.addLayout(layout_combos, 1, 1)
+        # layout_grid.addWidget(QtWidgets.QLabel("Formula:"), 2, 0)
+        # layout_grid.addWidget(self.formula, 2, 1, 1, 1)
+        # layout_grid.addWidget(QtWidgets.QLabel("Result:"), 3, 0)
+        # layout_grid.addWidget(self.output, 3, 1)
+
+        # layout_main = QtWidgets.QVBoxLayout()
+        # layout_main.addLayout(layout_grid)
+        # layout_main.addStretch(0)
+        # self.setLayout(layout_main)
+
+        self.initialise()
 
     def apply(self) -> None:
         name = self.lineedit_name.text()
         data = self.reducer.reduce(self.formula.expr)
-        if name in self.edit.widget.laser.isotopes:
-            self.edit.widget.laser.data[name] = data
+        if name in self.widget.laser.isotopes:
+            self.widget.laser.data[name] = data
         else:
-            self.edit.widget.laser.add(self.lineedit_name.text(), data)
+            self.widget.laser.add(self.lineedit_name.text(), data)
         # Make sure to repop isotopes
-        self.edit.widget.populateIsotopes()
+        self.widget.populateIsotopes()
 
     def initialise(self) -> None:
-        isotopes = self.edit.widget.laser.isotopes
+        isotopes = self.widget.laser.isotopes
         self.combo_isotope.clear()
         self.combo_isotope.addItem("Isotopes")
         self.combo_isotope.addItems(isotopes)
@@ -201,7 +227,7 @@ class CalculatorTool(ToolWidget):
         self.lineedit_name.setText(name)
         self.formula.parser.variables = isotopes
         self.formula.valid = True
-        self.formula.setText(self.edit.combo_isotope.currentText())
+        self.formula.setText(self.widget.combo_isotope.currentText())
 
     def insertFunction(self, index: int) -> None:
         if index == 0:
@@ -244,3 +270,40 @@ class CalculatorTool(ToolWidget):
             return None
 
 
+    def refresh(self) -> None:
+        if not self.isComplete():  # Not ready for update to preview
+            return
+
+        isotope = self.combo_isotope.currentText()
+
+        data = self.previewData(self.widget.laser.get(flat=True, calibrated=False))
+        if data is None:
+            return
+        extent = self.widget.laser.config.data_extent(data.shape)
+
+        # Only change the view if new or the laser extent has changed (i.e. conf edit)
+        if self.canvas.extent != extent:
+            self.canvas.view_limits = self.canvas.extentForAspect(extent)
+
+        self.canvas.drawData(
+            data,
+            extent,
+            isotope=isotope,
+        )
+
+        if self.canvas.viewoptions.canvas.colorbar:
+            self.canvas.drawColorbar("")
+
+        if self.canvas.viewoptions.canvas.label:
+            self.canvas.drawLabel(self.lineedit_name.text())
+        elif self.canvas.label is not None:
+            self.canvas.label.remove()
+            self.canvas.label = None
+
+        if self.canvas.viewoptions.canvas.scalebar:
+            self.canvas.drawScalebar()
+        elif self.canvas.scalebar is not None:
+            self.canvas.scalebar.remove()
+            self.canvas.scalebar = None
+
+        self.canvas.draw_idle()

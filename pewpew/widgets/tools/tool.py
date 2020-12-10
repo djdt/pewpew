@@ -38,9 +38,7 @@ class ToolWidget(_ViewWidget):
         self.layout_bottom = QtWidgets.QHBoxLayout()
 
         self.box_canvas = QtWidgets.QGroupBox(canvas_label)
-        self.box_canvas.setLayout(QtWidgets.QVBoxLayout())
         self.box_controls = QtWidgets.QGroupBox(control_label)
-        self.box_controls.setLayout(QtWidgets.QVBoxLayout())
 
         self.layout_top.addWidget(self.box_controls, 0)
         self.layout_top.addWidget(self.box_canvas, 1)
