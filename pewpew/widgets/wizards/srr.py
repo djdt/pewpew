@@ -187,7 +187,7 @@ class SRRConfigPage(ConfigPage):
         spotsize = float(self.field("spotsize"))
         speed = float(self.field("speed"))
         scantime = float(self.field("scantime"))
-        warmup = np.round(float(self.field("warmup")) / scantime).astype(int)
+        warmup = float(self.field("warmup"))
         config = SRRConfig(
             spotsize=spotsize, speed=speed, scantime=scantime, warmup=warmup
         )
