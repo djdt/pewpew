@@ -113,9 +113,11 @@ class StandardsTool(ToolWidget):
         layout_controls.addWidget(self.table)
         layout_controls.addLayout(layout_table_form)
         self.box_controls.setLayout(layout_controls)
-        
+
         self.layout_bottom.addWidget(box_results, 0, QtCore.Qt.AlignLeft)
-        self.layout_bottom.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignTop | QtCore.Qt.AlignRight)
+        self.layout_bottom.addWidget(
+            self.combo_isotope, 0, QtCore.Qt.AlignTop | QtCore.Qt.AlignRight
+        )
 
         self.refresh()
         self.updateResults()

@@ -14,6 +14,7 @@ from pewpew.widgets.laser import LaserWidget, LaserViewSpace
 from pewpew.widgets.tools import (
     ToolWidget,
     CalculatorTool,
+    DriftTool,
     FilteringTool,
     StandardsTool,
     OverlayTool,
@@ -150,6 +151,12 @@ class MainWindow(QtWidgets.QMainWindow):
             "Calculator",
             "Open the calculator.",
             self.actionToolCalculator,
+        )
+        self.action_tool_drift = qAction(
+            "document-properties",
+            "Drift Compensation",
+            "Open the drift compensation tool.",
+            self.actionToolDrift,
         )
         self.action_tool_filter = qAction(
             "document-properties",
@@ -357,6 +364,17 @@ class MainWindow(QtWidgets.QMainWindow):
         widget.view.insertTab(index, name, tool)
         tool.setActive()
 
+    def actionToolDrift(self) -> None:
+        widget = self.viewspace.activeWidget()
+        index = widget.index
+        if isinstance(widget, ToolWidget):
+            widget = widget.widget
+        tool = DriftTool(widget)
+        name = f"Drift: {widget.laser.name}"
+        widget.view.removeTab(index)
+        widget.view.insertTab(index, name, tool)
+        tool.setActive()
+
     def actionToolFilter(self) -> None:
         widget = self.viewspace.activeWidget()
         index = widget.index
@@ -451,6 +469,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu_tools = self.menuBar().addMenu("&Tools")
         menu_tools.addAction(self.action_tool_calculator)
+        menu_tools.addAction(self.action_tool_drift)
         menu_tools.addAction(self.action_tool_filter)
         menu_tools.addAction(self.action_tool_standards)
         menu_tools.addAction(self.action_tool_overlay)
@@ -500,6 +519,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_export_all.setEnabled(enabled)
 
         self.action_tool_calculator.setEnabled(enabled)
+        self.action_tool_drift.setEnabled(enabled)
         self.action_tool_filter.setEnabled(enabled)
         self.action_tool_standards.setEnabled(enabled)
         self.action_tool_overlay.setEnabled(enabled)
