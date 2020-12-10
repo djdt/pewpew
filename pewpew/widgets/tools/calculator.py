@@ -173,21 +173,6 @@ class CalculatorTool(ToolWidget):
         layout_controls.addRow("Result:", self.output)
         self.box_controls.setLayout(layout_controls)
 
-        # layout_grid = QtWidgets.QGridLayout()
-        # layout_grid.addWidget(QtWidgets.QLabel("Name:"), 0, 0)
-        # layout_grid.addWidget(self.lineedit_name, 0, 1)
-        # layout_grid.addWidget(QtWidgets.QLabel("Insert:"), 1, 0)
-        # layout_grid.addLayout(layout_combos, 1, 1)
-        # layout_grid.addWidget(QtWidgets.QLabel("Formula:"), 2, 0)
-        # layout_grid.addWidget(self.formula, 2, 1, 1, 1)
-        # layout_grid.addWidget(QtWidgets.QLabel("Result:"), 3, 0)
-        # layout_grid.addWidget(self.output, 3, 1)
-
-        # layout_main = QtWidgets.QVBoxLayout()
-        # layout_main.addLayout(layout_grid)
-        # layout_main.addStretch(0)
-        # self.setLayout(layout_main)
-
         self.initialise()
 
     def apply(self) -> None:
