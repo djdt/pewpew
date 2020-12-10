@@ -24,7 +24,6 @@ from .tool import ToolWidget
 
 from typing import Any, Dict, List, Tuple
 
-
 class DriftCanvas(InteractiveImageCanvas):
     guidesChanged = QtCore.Signal()
 

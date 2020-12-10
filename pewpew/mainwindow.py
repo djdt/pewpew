@@ -13,7 +13,8 @@ from pewpew.widgets.laser import LaserWidget, LaserViewSpace
 
 from pewpew.widgets.tools import (
     ToolWidget,
-    EditTool,
+    CalculatorTool,
+    FilteringTool,
     StandardsTool,
     OverlayTool,
 )
@@ -144,27 +145,27 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_toggle_scalebar.setCheckable(True)
         self.action_toggle_scalebar.setChecked(self.viewspace.options.canvas.scalebar)
+        self.action_tool_calculator = qAction(
+            "document-properties",
+            "Calculator",
+            "Open the calculator.",
+            self.actionToolCalculator,
+        )
+        self.action_tool_filter = qAction(
+            "document-properties",
+            "Filtering",
+            "Open the filtering tool.",
+            self.actionToolFilter,
+        )
         self.action_tool_standards = qAction(
             "document-properties",
-            "Standards Tool",
+            "Calibration Standards",
             "Open the standards calibration tool.",
             self.actionToolStandards,
         )
-        # self.action_tool_calculations = qAction(
-        #     "document-properties",
-        #     "Calculations Tool",
-        #     "Open the calculations tool.",
-        #     self.actionToolCalculations,
-        # )
-        self.action_tool_edit = qAction(
-            "document-properties",
-            "Edit Tool",
-            "Open tool for editing and transforming laser data.",
-            self.actionToolEdit,
-        )
         self.action_tool_overlay = qAction(
             "document-properties",
-            "Image Overlay Tool",
+            "Image Overlay",
             "Open the overlay tool.",
             self.actionToolOverlay,
         )
@@ -345,6 +346,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.viewspace.options.canvas.scalebar = checked
         self.refresh()
 
+    def actionToolCalculator(self) -> None:
+        widget = self.viewspace.activeWidget()
+        index = widget.index
+        if isinstance(widget, ToolWidget):
+            widget = widget.widget
+        tool = CalculatorTool(widget)
+        name = f"Calculator: {widget.laser.name}"
+        widget.view.removeTab(index)
+        widget.view.insertTab(index, name, tool)
+        tool.setActive()
+
+    def actionToolFilter(self) -> None:
+        widget = self.viewspace.activeWidget()
+        index = widget.index
+        if isinstance(widget, ToolWidget):
+            widget = widget.widget
+        tool = FilteringTool(widget)
+        name = f"Filter: {widget.laser.name}"
+        widget.view.removeTab(index)
+        widget.view.insertTab(index, name, tool)
+        tool.setActive()
+
     def actionToolStandards(self) -> None:
         widget = self.viewspace.activeWidget()
         index = widget.index
@@ -352,17 +375,6 @@ class MainWindow(QtWidgets.QMainWindow):
             widget = widget.widget
         tool = StandardsTool(widget)
         name = f"Standards: {widget.laser.name}"
-        widget.view.removeTab(index)
-        widget.view.insertTab(index, name, tool)
-        tool.setActive()
-
-    def actionToolEdit(self) -> None:
-        widget = self.viewspace.activeWidget()
-        index = widget.index
-        if isinstance(widget, ToolWidget):
-            widget = widget.widget
-        tool = EditTool(widget)
-        name = f"Edit: {widget.laser.name}"
         widget.view.removeTab(index)
         widget.view.insertTab(index, name, tool)
         tool.setActive()
@@ -438,8 +450,8 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_edit.addAction(self.action_transform_rotate_right)
 
         menu_tools = self.menuBar().addMenu("&Tools")
-        # menu_tools.addAction(self.action_tool_calculations)
-        menu_tools.addAction(self.action_tool_edit)
+        menu_tools.addAction(self.action_tool_calculator)
+        menu_tools.addAction(self.action_tool_filter)
         menu_tools.addAction(self.action_tool_standards)
         menu_tools.addAction(self.action_tool_overlay)
 
@@ -487,7 +499,8 @@ class MainWindow(QtWidgets.QMainWindow):
         enabled = self.viewspace.countViewTabs() > 0
         self.action_export_all.setEnabled(enabled)
 
-        self.action_tool_edit.setEnabled(enabled)
+        self.action_tool_calculator.setEnabled(enabled)
+        self.action_tool_filter.setEnabled(enabled)
         self.action_tool_standards.setEnabled(enabled)
         self.action_tool_overlay.setEnabled(enabled)
 

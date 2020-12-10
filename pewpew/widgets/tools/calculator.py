@@ -1,31 +1,20 @@
 import numpy as np
-import logging
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtWidgets
 
-from pewlib.process import convolve, filters
 from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
 
-from pewpew.actions import qAction, qToolButton
 from pewpew.lib import kmeans
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
-from pewpew.widgets.canvases import BasicCanvas, LaserImageCanvas
+from pewpew.widgets.canvases import LaserImageCanvas
 from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import ToolWidget
 
-from pewpew.validators import DecimalValidator, LimitValidator, OddIntValidator
-
-from typing import List, Tuple
-
-
-# TODO
-# Add some kind of indicator for if all data or just current isotope changed
-
-logger = logging.getLogger(__name__)
+from typing import List
 
 
 class CalculatorName(ValidColorLineEdit):
@@ -135,7 +124,6 @@ class CalculatorTool(ToolWidget):
         self.canvas.cursorMoved.connect(self.widget.updateCursorStatus)
         self.canvas.view_limits = self.widget.canvas.view_limits
 
-
         self.output = QtWidgets.QLineEdit("Result")
         self.output.setEnabled(False)
 
@@ -185,9 +173,25 @@ class CalculatorTool(ToolWidget):
         layout_controls.addRow("Result:", self.output)
         self.box_controls.setLayout(layout_controls)
 
+        # layout_grid = QtWidgets.QGridLayout()
+        # layout_grid.addWidget(QtWidgets.QLabel("Name:"), 0, 0)
+        # layout_grid.addWidget(self.lineedit_name, 0, 1)
+        # layout_grid.addWidget(QtWidgets.QLabel("Insert:"), 1, 0)
+        # layout_grid.addLayout(layout_combos, 1, 1)
+        # layout_grid.addWidget(QtWidgets.QLabel("Formula:"), 2, 0)
+        # layout_grid.addWidget(self.formula, 2, 1, 1, 1)
+        # layout_grid.addWidget(QtWidgets.QLabel("Result:"), 3, 0)
+        # layout_grid.addWidget(self.output, 3, 1)
+
+        # layout_main = QtWidgets.QVBoxLayout()
+        # layout_main.addLayout(layout_grid)
+        # layout_main.addStretch(0)
+        # self.setLayout(layout_main)
+
         self.initialise()
 
     def apply(self) -> None:
+        self.modified = True
         name = self.lineedit_name.text()
         data = self.reducer.reduce(self.formula.expr)
         if name in self.widget.laser.isotopes:
@@ -196,6 +200,8 @@ class CalculatorTool(ToolWidget):
             self.widget.laser.add(self.lineedit_name.text(), data)
         # Make sure to repop isotopes
         self.widget.populateIsotopes()
+
+        self.initialise()
 
     def initialise(self) -> None:
         isotopes = self.widget.laser.isotopes
@@ -211,7 +217,7 @@ class CalculatorTool(ToolWidget):
         self.lineedit_name.setText(name)
         self.formula.parser.variables = isotopes
         self.formula.valid = True
-        self.formula.setText(self.widget.combo_isotope.currentText())
+        self.formula.setText(self.widget.combo_isotope.currentText())  # refreshes
 
     def insertFunction(self, index: int) -> None:
         if index == 0:
@@ -253,12 +259,9 @@ class CalculatorTool(ToolWidget):
             self.output.setText(str(e))
             return None
 
-
     def refresh(self) -> None:
         if not self.isComplete():  # Not ready for update to preview
             return
-
-        isotope = self.combo_isotope.currentText()
 
         data = self.previewData(self.widget.laser.get(flat=True, calibrated=False))
         if data is None:
@@ -269,11 +272,7 @@ class CalculatorTool(ToolWidget):
         if self.canvas.extent != extent:
             self.canvas.view_limits = self.canvas.extentForAspect(extent)
 
-        self.canvas.drawData(
-            data,
-            extent,
-            isotope=isotope,
-        )
+        self.canvas.drawData(data, extent)
 
         if self.canvas.viewoptions.canvas.colorbar:
             self.canvas.drawColorbar("")

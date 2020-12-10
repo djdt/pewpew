@@ -7,12 +7,16 @@ class ToolWidget(_ViewWidget):
     applyPressed = QtCore.Signal()
     applyAllPressed = QtCore.Signal()
 
-    def __init__(self, widget: _ViewWidget, apply_all: bool = False):
+    def __init__(
+        self,
+        widget: _ViewWidget,
+        control_label: str = "Controls",
+        canvas_label: str = "",
+        apply_all: bool = False,
+    ):
         super().__init__(widget.view, editable=False)
         self.widget = widget
         self.modified = widget.modified
-
-        self.layout_main = QtWidgets.QVBoxLayout()
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Cancel
@@ -30,10 +34,19 @@ class ToolWidget(_ViewWidget):
             self.button_apply_all.setIcon(QtGui.QIcon.fromTheme("dialog-ok-apply"))
             self.button_apply_all.clicked.connect(self.applyAll)
 
-        layout = QtWidgets.QVBoxLayout()
-        layout.addLayout(self.layout_main)
-        layout.addWidget(self.button_box)
+        self.layout_top = QtWidgets.QHBoxLayout()
+        self.layout_bottom = QtWidgets.QHBoxLayout()
 
+        self.box_canvas = QtWidgets.QGroupBox(canvas_label)
+        self.box_controls = QtWidgets.QGroupBox(control_label)
+
+        self.layout_top.addWidget(self.box_controls, 0)
+        self.layout_top.addWidget(self.box_canvas, 1)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addLayout(self.layout_top)
+        layout.addLayout(self.layout_bottom)
+        layout.addWidget(self.button_box)
         self.setLayout(layout)
 
     def accept(self) -> None:  # pragma: no cover

@@ -31,7 +31,7 @@ class OverlayTool(ToolWidget):
 
     def __init__(self, widget: LaserWidget):
         super().__init__(widget, apply_all=False)
-        self.setWindowTitle("Image Overlay Tool")
+        self.setWindowTitle("Image Overlay")
 
         self.button_box.clear()
 
@@ -72,10 +72,15 @@ class OverlayTool(ToolWidget):
         layout_top.addWidget(self.radio_cmyk, 0, QtCore.Qt.AlignRight)
         layout_top.addWidget(self.radio_custom, 0, QtCore.Qt.AlignRight)
 
-        self.layout_main.addWidget(self.canvas, 1)
-        self.layout_main.addLayout(layout_top)
-        self.layout_main.addWidget(self.rows, 0)
-        self.layout_main.addWidget(self.check_normalise, 0)
+        layout_canvas = QtWidgets.QVBoxLayout()
+        layout_canvas.addWidget(self.canvas)
+        self.box_canvas.setLayout(layout_canvas)
+        self.box_controls.setVisible(False)
+
+        self.layout_bottom.setDirection(QtWidgets.QBoxLayout.TopToBottom)
+        self.layout_bottom.addLayout(layout_top)
+        self.layout_bottom.addWidget(self.rows, 1)
+        self.layout_bottom.addWidget(self.check_normalise)
 
         self.button_box.addButton(self.button_save, QtWidgets.QDialogButtonBox.YesRole)
         self.button_box.addButton(QtWidgets.QDialogButtonBox.Cancel)

@@ -29,7 +29,7 @@ class StandardsTool(ToolWidget):
     WEIGHTINGS = ["Equal", "1/σ²", "x", "1/x", "1/x²"]
 
     def __init__(self, widget: LaserWidget):
-        super().__init__(widget, apply_all=True)
+        super().__init__(widget, control_label="Calibration", apply_all=True)
         self.setWindowTitle("Calibration Tool")
 
         self.calibration: Dict[str, Calibration] = None
@@ -89,38 +89,33 @@ class StandardsTool(ToolWidget):
         self.table.model().setCalibration(self.calibration[isotope])
 
         layout_cal_form = QtWidgets.QFormLayout()
-        layout_cal_form.addRow("Calibration Levels:", self.spinbox_levels)
+        layout_cal_form.addRow("Levels:", self.spinbox_levels)
 
         layout_table_form = QtWidgets.QFormLayout()
         layout_table_form.addRow("Units:", self.lineedit_units)
         layout_table_form.addRow("Weighting:", self.combo_weighting)
 
-        layout_canvas_bar = QtWidgets.QHBoxLayout()
-        layout_canvas_bar.addWidget(
-            self.combo_isotope, 0, QtCore.Qt.AlignTop | QtCore.Qt.AlignRight
-        )
-
+        box_results = QtWidgets.QGroupBox("Results")
         layout_results = QtWidgets.QHBoxLayout()
         layout_results.addWidget(self.results, 0)
         layout_results.addWidget(
             self.button_plot, 0, QtCore.Qt.AlignRight | QtCore.Qt.AlignBottom
         )
         layout_results.addStretch(1)
+        box_results.setLayout(layout_results)
 
-        layout = QtWidgets.QGridLayout()
-        layout.setColumnStretch(1, 1)
-        layout.setRowStretch(1, 1)
-        layout.addLayout(layout_cal_form, 0, 0, 1, 1, QtCore.Qt.AlignLeft)
-        layout.addWidget(self.table, 1, 0, 1, 1, QtCore.Qt.AlignLeft)
-        layout.addLayout(layout_table_form, 2, 0, 1, 1, QtCore.Qt.AlignLeft)
+        layout_canvas = QtWidgets.QVBoxLayout()
+        layout_canvas.addWidget(self.canvas)
+        self.box_canvas.setLayout(layout_canvas)
 
-        layout.addWidget(self.canvas, 0, 1, 3, 2)
-        layout.addWidget(
-            self.combo_isotope, 3, 1, 1, 1, QtCore.Qt.AlignTop | QtCore.Qt.AlignRight
-        )
-        layout.addLayout(layout_results, 3, 0, 1, 2)
-
-        self.layout_main.addLayout(layout)
+        layout_controls = QtWidgets.QVBoxLayout()
+        layout_controls.addLayout(layout_cal_form)
+        layout_controls.addWidget(self.table)
+        layout_controls.addLayout(layout_table_form)
+        self.box_controls.setLayout(layout_controls)
+        
+        self.layout_bottom.addWidget(box_results, 0, QtCore.Qt.AlignLeft)
+        self.layout_bottom.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignTop | QtCore.Qt.AlignRight)
 
         self.refresh()
         self.updateResults()
@@ -439,6 +434,7 @@ class StandardsResultsTable(BasicTable):
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(2, 5, parent)
+        self.setMinimumSize(QtCore.QSize(0, 1))
         self.horizontalHeader().hide()
         self.verticalHeader().hide()
         self.setSortingEnabled(False)
