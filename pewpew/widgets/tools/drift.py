@@ -9,7 +9,8 @@ from matplotlib.patheffects import withStroke
 from matplotlib.transforms import blended_transform_factory
 
 from pewpew.lib.viewoptions import ViewOptions
-from pewpew.widgets.canvases import BasicCanvas, InteractiveImageCanvas
+
+from pewpew.widgets.canvases import BasicCanvas, LaserImageCanvas
 from pewpew.widgets.laser import LaserWidget
 
 from .tool import ToolWidget
@@ -42,12 +43,11 @@ class DriftPlotCanvas(BasicCanvas):
         return QtCore.QSize(100, 100)
 
 
-class DriftCanvas(InteractiveImageCanvas):
+class DriftCanvas(LaserImageCanvas):
     guidesChanged = QtCore.Signal()
 
     def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):
-        super().__init__(widget_button=1, state=(), parent=parent)
-        self.viewoptions = viewoptions
+        super().__init__(viewoptions, widget_button=1, parent=parent)
 
         self.connect_event("draw_event", self.update_background)
         self.connect_event("resize_event", self._resize)
@@ -106,21 +106,6 @@ class DriftCanvas(InteractiveImageCanvas):
             self.blitGuides()
             self.guidesChanged.emit()
             self.picked_artist = None
-
-    def drawData(
-        self, data: np.ndarray, extent: Tuple[float, float, float, float]
-    ) -> None:
-        if self.image is not None:
-            self.image.remove()
-        self.image = self.ax.imshow(
-            data,
-            extent=extent,
-            cmap=self.viewoptions.image.cmap,
-            interpolation=self.viewoptions.image.interpolation,
-            alpha=self.viewoptions.image.alpha,
-            aspect="equal",
-            origin="lower",
-        )
 
     def drawEdgeGuides(self, ypos: Tuple[float, float]) -> None:
         for line in self.edge_guides:
@@ -215,39 +200,39 @@ class DriftCanvas(InteractiveImageCanvas):
 
 
 class DriftTool(ToolWidget):
-    fitting = ["None", "First Degree", "Second Degree", "Third Degree"]
-    fittings: dict = {
-        "None": {
-            "method": None,
-            "params": [],
-            "desc": [],
-        },
-        "Linear": {
-            "method": None,
-            "params": [],
-            "desc": [],
-        },
-        "Polynomial": {
-            "method": None,
-            "params": [
-                ("degree", 2, (2, 10), None),
-            ],
-            "desc": ["Degree if polynomial fit."],
-        },
-    }
+    normalise_methods = ["Maximum", "Minimum"]
 
     def __init__(self, widget: LaserWidget):
-        super().__init__(widget, apply_all=True)
+        super().__init__(widget, apply_all=False)
+
+        self.drift: np.ndarray = None
 
         self.canvas = DriftCanvas(self.viewspace.options, parent=self)
+        self.canvas.state.discard("move")  # Prevent moving
+        self.canvas.state.discard("scroll")  # Prevent scroll zoom
         self.canvas.guidesChanged.connect(self.updateDrift)
-        self.drift = DriftPlotCanvas(parent=self)
-        self.drift.drawFigure()
+
+        self.drift_plot = DriftPlotCanvas(parent=self)
+        self.drift_plot.drawFigure()
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.activated.connect(self.refresh)
 
-        self.combo_fitting = QtWidgets.QComboBox()
+        self.spinbox_degree = QtWidgets.QSpinBox()
+        self.spinbox_degree.setRange(0, 9)
+        self.spinbox_degree.setValue(3)
+        self.spinbox_degree.valueChanged.connect(self.updateDrift)
+        self.spinbox_degree.setToolTip(
+            "Degree of polynomial used to fit the drift,\nuse 0 for the raw data."
+        )
+
+        self.combo_normalise = QtWidgets.QComboBox()
+        self.combo_normalise.addItems(DriftTool.normalise_methods)
+        self.combo_normalise.setCurrentText("Minimum")
+        self.combo_normalise.activated.connect(self.updateNormalise)
+
+        self.lineedit_normalise = QtWidgets.QLineEdit()
+        self.lineedit_normalise.setEnabled(False)
 
         self.check_trim = QtWidgets.QCheckBox("Show drift trim controls.")
         self.check_trim.toggled.connect(self.canvas.setEdgeGuidesVisible)
@@ -255,12 +240,32 @@ class DriftTool(ToolWidget):
 
         layout_canvas = QtWidgets.QVBoxLayout()
         layout_canvas.addWidget(self.canvas)
-        layout_canvas.addWidget(self.drift)
+        layout_canvas.addWidget(self.drift_plot)
+        layout_canvas.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
         self.box_canvas.setLayout(layout_canvas)
 
+        layout_norm = QtWidgets.QVBoxLayout()
+        layout_norm.addWidget(self.combo_normalise)
+        layout_norm.addWidget(self.lineedit_normalise)
+
         layout_controls = QtWidgets.QFormLayout()
-        layout_controls.addWidget(self.check_trim)
+        layout_controls.addRow("Degree of fit:", self.spinbox_degree)
+        layout_controls.addRow("Normalise to:", layout_norm)
+        layout_controls.addRow(self.check_trim)
         self.box_controls.setLayout(layout_controls)
+
+        self.initialise()
+
+    def apply(self) -> None:
+        name = self.combo_isotope.currentText()
+
+        if self.combo_normalise.currentText() == "Maximum":
+            value = np.amax(self.drift)
+        elif self.combo_normalise.currentText() == "Minimum":
+            value = np.amin(self.drift)
+
+        transpose = self.widget.laser.data[name].T
+        transpose /= (self.drift / value)
 
         self.initialise()
 
@@ -271,23 +276,39 @@ class DriftTool(ToolWidget):
 
         self.refresh()
 
+    def isComplete(self) -> bool:
+        return self.drift is not None
+
     def updateDrift(self) -> None:
         ys = self.canvas.getDriftData()
         ys = np.nanmean(ys, axis=1)
 
         xs = np.arange(ys.size)
 
-        coef = np.polynomial.polynomial.polyfit(xs, ys, 1)
-        fit = np.polynomial.polynomial.polyval(xs, coef)
+        nans = np.isnan(ys)
 
-        self.drift.drawDrift(xs, ys, fit)
+        deg = self.spinbox_degree.value()
+        if deg == 0:
+            self.drift = ys
+            self.drift_plot.drawDrift(xs, ys, None)
+        else:
+            coef = np.polynomial.polynomial.polyfit(xs[~nans], ys[~nans], deg)
+            self.drift = np.polynomial.polynomial.polyval(xs, coef)
+            self.drift_plot.drawDrift(xs, ys, self.drift)
+
+    def updateNormalise(self) -> None:
+        if self.combo_normalise.currentText() == "Maximum":
+            value = np.amax(self.drift)
+        elif self.combo_normalise.currentText() == "Minimum":
+            value = np.amin(self.drift)
+        self.lineedit_normalise.setText(f"{value:.8g}")
 
     def refresh(self) -> None:
         isotope = self.combo_isotope.currentText()
 
         data = self.widget.laser.get(isotope, calibrate=False, flat=True)
         extent = self.widget.laser.config.data_extent(data.shape)
-        self.canvas.drawData(data, extent)
+        self.canvas.drawData(data, extent, isotope=isotope)
         # Update view limits
         self.canvas.view_limits = self.canvas.extentForAspect(extent)
         if len(self.canvas.drift_guides) == 0:
@@ -304,3 +325,4 @@ class DriftTool(ToolWidget):
         self.canvas.guides_need_draw = True
         self.canvas.draw()
         self.updateDrift()
+        self.updateNormalise()
