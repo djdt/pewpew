@@ -31,7 +31,7 @@ class OverlayTool(ToolWidget):
 
     def __init__(self, widget: LaserWidget):
         super().__init__(widget, apply_all=False)
-        self.setWindowTitle("Image Overlay Tool")
+        self.setWindowTitle("Image Overlay")
 
         self.button_box.clear()
 
