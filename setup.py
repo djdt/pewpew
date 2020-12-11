@@ -7,7 +7,7 @@ with open("README.md") as fp:
 with Path("pewpew", "__init__.py").open() as fp:
     for line in fp:
         if line.startswith("__version__"):
-            version = line.split("=")[1].strip()
+            version = line.split("=")[1].strip().strip('"')
 
 setup(
     name="pewpew",
