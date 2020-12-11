@@ -1,5 +1,6 @@
 import argparse
 import logging
+import multiprocessing
 from pathlib import Path
 import sys
 
@@ -39,6 +40,7 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
 
 
 def main(argv: List[str] = None) -> int:
+    multiprocessing.freeze_support()
     args = parse_args(argv)
 
     app = QtWidgets.QApplication(args.qtargs)
