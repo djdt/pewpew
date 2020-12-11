@@ -40,7 +40,6 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
 
 
 def main(argv: List[str] = None) -> int:
-    multiprocessing.freeze_support()
     args = parse_args(argv)
 
     app = QtWidgets.QApplication(args.qtargs)
@@ -69,4 +68,5 @@ def main(argv: List[str] = None) -> int:
 
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
     main(sys.argv[1:])
