@@ -2,15 +2,18 @@ import numpy as np
 
 from PySide2 import QtCore, QtWidgets
 
+from matplotlib.axes import Axes
 from matplotlib.artist import Artist
 from matplotlib.backend_bases import PickEvent, MouseEvent
 from matplotlib.lines import Line2D
 from matplotlib.patheffects import withStroke
 from matplotlib.transforms import blended_transform_factory
 
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 from pewpew.lib.viewoptions import ViewOptions
 
-from pewpew.widgets.canvases import BasicCanvas, LaserImageCanvas
+from pewpew.widgets.canvases import InteractiveImageCanvas
 from pewpew.widgets.laser import LaserWidget
 
 from .tool import ToolWidget
@@ -18,36 +21,12 @@ from .tool import ToolWidget
 from typing import List, Tuple
 
 
-class DriftPlotCanvas(BasicCanvas):
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__((1.0, 0.1), parent=parent)
-
-    def drawFigure(self) -> None:
-        self.figure.clear()
-        self.ax = self.figure.add_subplot()
-        self.ax.get_xaxis().set_visible(False)
-        self.ax.get_yaxis().set_visible(False)
-
-    def drawDrift(self, x: np.ndarray, y: np.ndarray, fit: np.ndarray = None):
-        self.ax.clear()
-
-        if fit is not None:
-            self.ax.plot(x, y, lw=0.75, color="black")
-        else:  # So we dont have to plot twixe if no fit needed
-            fit = y
-
-        self.ax.plot(x, fit, color="red")
-        self.draw_idle()
-
-    def minimumSizeHint(self) -> QtCore.QSize:
-        return QtCore.QSize(100, 100)
-
-
-class DriftCanvas(LaserImageCanvas):
+class DriftCanvas(InteractiveImageCanvas):
     guidesChanged = QtCore.Signal()
 
     def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):
-        super().__init__(viewoptions, widget_button=1, parent=parent)
+        super().__init__(widget_button=1, state=(), parent=parent)
+        self.viewoptions = viewoptions
 
         self.connect_event("draw_event", self.update_background)
         self.connect_event("resize_event", self._resize)
@@ -57,12 +36,24 @@ class DriftCanvas(LaserImageCanvas):
         self.draw_edge_guides = False
 
         self.background = None
+
         self.drift_guides: List[Line2D] = []
         self.edge_guides: List[Line2D] = []
 
         self.picked_artist: Artist = None
 
+        self.cax: Axes = None
+        self.cbackground = None
+
         self.drawFigure()
+
+    def drawFigure(self) -> None:
+        # TODO: whitespace?
+        super().drawFigure()
+        div = make_axes_locatable(self.ax)
+        self.cax = div.append_axes("bottom", size=1.0, pad=0.1, xmargin=0, ymargin=0)
+        self.cax.get_xaxis().set_visible(False)
+        self.cax.get_yaxis().set_visible(False)
 
     def _resize(self, event) -> None:
         self.guides_need_draw = True
@@ -106,6 +97,62 @@ class DriftCanvas(LaserImageCanvas):
             self.blitGuides()
             self.guidesChanged.emit()
             self.picked_artist = None
+
+    def blitGuides(self) -> None:
+        if self.background is not None:
+            self.restore_region(self.background)
+
+        if self.draw_edge_guides:
+            for a in self.edge_guides:
+                self.ax.draw_artist(a)
+        for a in self.drift_guides:
+            self.ax.draw_artist(a)
+
+        self.blit(self.ax.bbox)
+        self.guides_need_draw = False
+
+    def drawData(
+        self,
+        data: np.ndarray,
+        extent: Tuple[float, float, float, float],
+        isotope: str = None,
+    ) -> None:
+        if self.image is not None:  # pragma: no cover
+            self.image.remove()
+
+        # Calculate the range
+        vmin, vmax = self.viewoptions.colors.get_range_as_float(isotope, data)
+        # Ensure than vmin is actually lower than vmax
+        if vmin > vmax:
+            vmin, vmax = vmax, vmin
+
+        # Plot the image
+        self.image = self.ax.imshow(
+            data,
+            cmap=self.viewoptions.image.cmap,
+            interpolation=self.viewoptions.image.interpolation,
+            alpha=self.viewoptions.image.alpha,
+            vmin=vmin,
+            vmax=vmax,
+            extent=extent,
+            aspect="equal",
+            origin="lower",
+        )
+
+    def drawDrift(self, x: np.ndarray, y: np.ndarray, fit: np.ndarray = None):
+        # if self.cbackground is not None:
+        #     self.restore_region(self.cbackground)
+        self.cax.clear()
+
+        if fit is not None:
+            self.cax.plot(x, y, lw=0.75, color="black")
+        else:  # So we dont have to plot twice if no fit needed
+            fit = y
+
+        self.cax.plot(x, fit, color="red")
+
+        self.draw_idle()
+        self.guides_need_draw = True
 
     def drawEdgeGuides(self, ypos: Tuple[float, float]) -> None:
         for line in self.edge_guides:
@@ -153,19 +200,6 @@ class DriftCanvas(LaserImageCanvas):
             self.drift_guides.append(line)
             self.ax.add_artist(line)
 
-    def blitGuides(self) -> None:
-        if self.background is not None:
-            self.restore_region(self.background)
-
-        if self.draw_edge_guides:
-            for a in self.edge_guides:
-                self.ax.draw_artist(a)
-        for a in self.drift_guides:
-            self.ax.draw_artist(a)
-
-        self.blit()
-        self.guides_need_draw = False
-
     def getCurrentDriftTrim(self) -> Tuple[int, int]:
         shape = self.image.get_array().shape
         x0, x1, y0, y1 = self.extent
@@ -212,8 +246,8 @@ class DriftTool(ToolWidget):
         self.canvas.state.discard("scroll")  # Prevent scroll zoom
         self.canvas.guidesChanged.connect(self.updateDrift)
 
-        self.drift_plot = DriftPlotCanvas(parent=self)
-        self.drift_plot.drawFigure()
+        # self.drift_plot = DriftPlotCanvas(parent=self)
+        # self.drift_plot.drawFigure()
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.activated.connect(self.refresh)
@@ -238,9 +272,11 @@ class DriftTool(ToolWidget):
         self.check_trim.toggled.connect(self.canvas.setEdgeGuidesVisible)
         self.check_trim.toggled.connect(self.updateDrift)
 
+        self.check_apply_all = QtWidgets.QCheckBox("Apply to all elements.")
+
         layout_canvas = QtWidgets.QVBoxLayout()
         layout_canvas.addWidget(self.canvas)
-        layout_canvas.addWidget(self.drift_plot)
+        # layout_canvas.addWidget(self.drift_plot)
         layout_canvas.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
         self.box_canvas.setLayout(layout_canvas)
 
@@ -252,20 +288,25 @@ class DriftTool(ToolWidget):
         layout_controls.addRow("Degree of fit:", self.spinbox_degree)
         layout_controls.addRow("Normalise to:", layout_norm)
         layout_controls.addRow(self.check_trim)
+        layout_controls.addRow(self.check_apply_all)
         self.box_controls.setLayout(layout_controls)
 
         self.initialise()
 
     def apply(self) -> None:
-        name = self.combo_isotope.currentText()
-
         if self.combo_normalise.currentText() == "Maximum":
             value = np.amax(self.drift)
         elif self.combo_normalise.currentText() == "Minimum":
             value = np.amin(self.drift)
 
-        transpose = self.widget.laser.data[name].T
-        transpose /= (self.drift / value)
+        if self.check_apply_all.isChecked():
+            names = self.widget.laser.isotopes
+        else:
+            names = [self.combo_isotope.currentText()]
+
+        for name in names:
+            transpose = self.widget.laser.data[name].T
+            transpose /= (self.drift / value)
 
         self.initialise()
 
@@ -290,11 +331,11 @@ class DriftTool(ToolWidget):
         deg = self.spinbox_degree.value()
         if deg == 0:
             self.drift = ys
-            self.drift_plot.drawDrift(xs, ys, None)
+            self.canvas.drawDrift(xs, ys, None)
         else:
             coef = np.polynomial.polynomial.polyfit(xs[~nans], ys[~nans], deg)
             self.drift = np.polynomial.polynomial.polyval(xs, coef)
-            self.drift_plot.drawDrift(xs, ys, self.drift)
+            self.canvas.drawDrift(xs, ys, self.drift)
 
     def updateNormalise(self) -> None:
         if self.combo_normalise.currentText() == "Maximum":
@@ -323,6 +364,6 @@ class DriftTool(ToolWidget):
             self.canvas.drawEdgeGuides((y0, y1))
 
         self.canvas.guides_need_draw = True
-        self.canvas.draw()
         self.updateDrift()
         self.updateNormalise()
+        self.canvas.draw()
