@@ -13,7 +13,9 @@ def test_main_window_actions_empty(qtbot: QtBot):
     qtbot.addWidget(window)
 
     assert not window.action_export_all.isEnabled()
-    assert not window.action_tool_edit.isEnabled()
+    assert not window.action_tool_calculator.isEnabled()
+    assert not window.action_tool_drift.isEnabled()
+    assert not window.action_tool_filter.isEnabled()
     assert not window.action_tool_standards.isEnabled()
     assert not window.action_tool_overlay.isEnabled()
 
@@ -64,11 +66,15 @@ def test_main_window_actions_empty(qtbot: QtBot):
 def test_main_window_actions_widget(qtbot: QtBot):
     window = MainWindow()
     qtbot.addWidget(window)
-    window.viewspace.views[0].addLaser(Laser(rand_data("A1"), path=Path("/home/pewpew/real.npz")))
+    window.viewspace.views[0].addLaser(
+        Laser(rand_data("A1"), path=Path("/home/pewpew/real.npz"))
+    )
     window.viewspace.refresh()
 
     assert window.action_export_all.isEnabled()
-    assert window.action_tool_edit.isEnabled()
+    assert window.action_tool_calculator.isEnabled()
+    assert window.action_tool_drift.isEnabled()
+    assert window.action_tool_filter.isEnabled()
     assert window.action_tool_standards.isEnabled()
     assert window.action_tool_overlay.isEnabled()
 
@@ -82,7 +88,9 @@ def test_main_window_actions_widget(qtbot: QtBot):
     window.actionCropView()
 
     window.actionExportAll()
-    window.actionToolEdit()
+    window.actionToolCalculator()
+    window.actionToolDrift()
+    window.actionToolFilter()
     window.actionToolStandards()
     window.actionToolOverlay()
 

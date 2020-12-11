@@ -2,15 +2,13 @@ from pathlib import Path
 import numpy as np
 import tempfile
 
-from PySide2 import QtGui, QtWidgets
+from PySide2 import QtGui
 from pytestqt.qtbot import QtBot
 
 from pewlib.laser import Laser
 
 from pewpew.widgets.laser import LaserViewSpace
 from pewpew.widgets.tools.overlays import OverlayTool
-
-from testing import linear_data, rand_data, FakeEvent
 
 
 def test_overlay_tool(qtbot: QtBot):

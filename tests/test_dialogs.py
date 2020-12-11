@@ -293,7 +293,7 @@ def test_stats_dialog(qtbot: QtBot):
     x[0, :] = np.nan
     m = np.full(x.shape, True, dtype=bool)
 
-    dialog = dialogs.StatsDialog(x, m, "a", (1.0, 1.0))
+    dialog = dialogs.StatsDialog(x, m, {"a": "u"}, "a", (1.0, 1.0))
     qtbot.addWidget(dialog)
     dialog.open()
 

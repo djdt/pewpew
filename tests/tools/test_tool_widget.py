@@ -1,6 +1,4 @@
-import numpy as np
-
-from PySide2 import QtGui, QtWidgets
+from PySide2 import QtWidgets
 from pytestqt.qtbot import QtBot
 
 from pewlib.laser import Laser

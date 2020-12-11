@@ -1,6 +1,5 @@
 import numpy as np
 
-from PySide2 import QtGui, QtWidgets
 from pytestqt.qtbot import QtBot
 
 from pewlib.laser import Laser
@@ -8,7 +7,7 @@ from pewlib.laser import Laser
 from pewpew.widgets.laser import LaserViewSpace
 from pewpew.widgets.tools.standards import StandardsTool
 
-from testing import linear_data, rand_data, FakeEvent
+from testing import linear_data, FakeEvent
 
 
 def test_standards_tool(qtbot: QtBot):
