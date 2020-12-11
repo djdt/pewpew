@@ -17,7 +17,7 @@ jobs:
       id: build-exec
       run: |
         pyinstaller --clean --noupx -y pewpew.spec
-        echo "set-ouput name=version::$(python setup.py --version)"
+        echo "set-output name=version::$(python setup.py --version)"
     - name: Upload binary
       id: upload-release-asset
       uses: actions/upload-release-asset@v1
