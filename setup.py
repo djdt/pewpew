@@ -5,7 +5,7 @@ with open("README.md") as fp:
 
 setup(
     name="pewpew",
-    version="1.1.0",
+    version="1.1.1",
     description="GUI for visualisation and manipulation of LA-ICP-MS data.",
     long_description=long_description,
     long_description_content_type="text/markdown",
