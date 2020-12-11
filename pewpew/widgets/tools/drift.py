@@ -140,8 +140,6 @@ class DriftCanvas(InteractiveImageCanvas):
         )
 
     def drawDrift(self, x: np.ndarray, y: np.ndarray, fit: np.ndarray = None):
-        # if self.cbackground is not None:
-        #     self.restore_region(self.cbackground)
         self.cax.clear()
 
         if fit is not None:
@@ -308,7 +306,7 @@ class DriftTool(ToolWidget):
             transpose = self.widget.laser.data[name].T
             transpose /= (self.drift / value)
 
-        self.initialise()
+        self.refresh()
 
     def initialise(self) -> None:
         isotopes = self.widget.laser.isotopes
