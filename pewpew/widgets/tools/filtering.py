@@ -1,6 +1,6 @@
 import numpy as np
 
-from PySide2 import QtWidgets
+from PySide2 import QtCore, QtWidgets
 
 from pewlib.process import filters
 
@@ -104,6 +104,7 @@ class FilteringTool(ToolWidget):
 
         layout_canvas = QtWidgets.QVBoxLayout()
         layout_canvas.addWidget(self.canvas)
+        layout_canvas.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
         self.box_canvas.setLayout(layout_canvas)
 
         layout_controls = QtWidgets.QFormLayout()
