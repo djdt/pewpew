@@ -1,11 +1,15 @@
 # vim: set ft=python:
-import os.path
+from pathlib import Path
 
+with Path("pewpew", "__init__.py").open() as fp:
+    for line in fp:
+        if line.startswith("__version__"):
+            version = line.split("=")[1].strip()
 
 block_cipher = None
 
 a = Analysis(
-    [os.path.join("pewpew", "__main__.py")],
+    [Path("pewpew", "__main__.py")],
     binaries=None,
     datas=None,
     hiddenimports=[],
@@ -26,7 +30,7 @@ exe = EXE(
     a.datas,
     [],
     exclude_binaries=False,
-    name="pewpew",
+    name="pewpew" + "_" + version,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

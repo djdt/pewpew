@@ -1,11 +1,17 @@
+from pathlib import Path
 from setuptools import setup, find_packages
 
 with open("README.md") as fp:
     long_description = fp.read()
 
+with Path("pewpew", "__init__.py").open() as fp:
+    for line in fp:
+        if line.startswith("__version__"):
+            version = line.split("=")[1].strip()
+
 setup(
     name="pewpew",
-    version="1.1.1",
+    version=version,
     description="GUI for visualisation and manipulation of LA-ICP-MS data.",
     long_description=long_description,
     long_description_content_type="text/markdown",
