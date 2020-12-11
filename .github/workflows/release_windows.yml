@@ -14,8 +14,10 @@ jobs:
           pip install pyinstaller
           pip install .
     - name: Build exec
+      id: build-exec
       run: |
         pyinstaller --clean --noupx -y pewpew.spec
+        echo "set-ouput name=version::$(python setup.py --version)"
     - name: Upload binary
       id: upload-release-asset
       uses: actions/upload-release-asset@v1
@@ -23,6 +25,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./dist/pewpew.exe
-        asset_name: pewpew.exe
+        asset_path: ./dist/pewpew_${{ steps.build-exec.outputs.version }}.exe
+        asset_name: pewpew_${{ steps.build-exec.outputs.version }}.exe
         asset_content_type: application/octet-stream
