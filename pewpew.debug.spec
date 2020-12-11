@@ -1,11 +1,11 @@
 # vim: set ft=python:
-import os.path
+from pathlib import Path
 
 
 block_cipher = None
 
 a = Analysis(
-    [os.path.join("pewpew", "__main__.py")],
+    [Path("pewpew", "__main__.py")],
     binaries=None,
     datas=None,
     hiddenimports=[],
@@ -23,7 +23,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="pewpew-debug",
+    name="pewpew_debug",
     debug=True,
     bootloader_ignore_signals=False,
     strip=False,
@@ -39,5 +39,5 @@ coll = COLLECT(
     strip=False,
     upx=False,
     upx_exclude=[],
-    name="pewpew-debug",
+    name="pewpew_debug",
 )
