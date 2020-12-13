@@ -25,17 +25,17 @@ def rolling_median(x: np.ndarray, size: int, threshold: float) -> np.ndarray:
     return filters.rolling_median(x, (size, size), threshold)
 
 
-def simple_highpass(x: np.ndarray, limit: float, replace: float) -> np.ndarray:
-    return np.where(x < limit, replace, x)
+# def simple_highpass(x: np.ndarray, limit: float, replace: float) -> np.ndarray:
+#     return np.where(x < limit, replace, x)
 
 
-def simple_lowpass(x: np.ndarray, limit: float, replace: float) -> np.ndarray:
-    return np.where(x > limit, replace, x)
+# def simple_lowpass(x: np.ndarray, limit: float, replace: float) -> np.ndarray:
+#     return np.where(x > limit, replace, x)
 
 
 class FilteringTool(ToolWidget):
     methods: dict = {
-        "Mean": {
+        "Rolling Mean": {
             "filter": rolling_mean,
             "params": [
                 ("size", 5, (2.5, 99), lambda x: (x + 1) % 2 == 0),
@@ -43,7 +43,7 @@ class FilteringTool(ToolWidget):
             ],
             "desc": ["Window size for local mean.", "Filter if > σ stddevs from mean."],
         },
-        "Median": {
+        "Rolling Median": {
             "filter": rolling_median,
             "params": [
                 ("size", 5, (2.5, 99), lambda x: (x + 1) % 2 == 0),
@@ -54,22 +54,22 @@ class FilteringTool(ToolWidget):
                 "Filter if > M medians from median.",
             ],
         },
-        "Simple High-pass": {
-            "filter": simple_highpass,
-            "params": [
-                ("min", 1e3, (-np.inf, np.inf), None),
-                ("replace", 0.0, (-np.inf, np.inf), None),
-            ],
-            "desc": ["Filter if below this value.", "Value to replace with."],
-        },
-        "Simple Low-pass": {
-            "filter": simple_lowpass,
-            "params": [
-                ("max", 1e3, (-np.inf, np.inf), None),
-                ("replace", 0.0, (-np.inf, np.inf), None),
-            ],
-            "desc": ["Filter if above this value.", "Value to replace with."],
-        },
+        # "Simple High-pass": {
+        #     "filter": simple_highpass,
+        #     "params": [
+        #         ("min", 1e3, (-np.inf, np.inf), None),
+        #         ("replace", 0.0, (-np.inf, np.inf), None),
+        #     ],
+        #     "desc": ["Filter if below this value.", "Value to replace with."],
+        # },
+        # "Simple Low-pass": {
+        #     "filter": simple_lowpass,
+        #     "params": [
+        #         ("max", 1e3, (-np.inf, np.inf), None),
+        #         ("replace", 0.0, (-np.inf, np.inf), None),
+        #     ],
+        #     "desc": ["Filter if above this value.", "Value to replace with."],
+        # },
     }
 
     def __init__(self, widget: LaserWidget):
@@ -89,7 +89,7 @@ class FilteringTool(ToolWidget):
 
         self.combo_filter = QtWidgets.QComboBox()
         self.combo_filter.addItems(FilteringTool.methods.keys())
-        self.combo_filter.setCurrentText("Median")
+        self.combo_filter.setCurrentText("Rolling Median")
         self.combo_filter.activated.connect(self.filterChanged)
         self.combo_filter.activated.connect(self.completeChanged)
         self.combo_filter.activated.connect(self.refresh)
