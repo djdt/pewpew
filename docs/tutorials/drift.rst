@@ -1,10 +1,15 @@
 Drift Compensation
 ==================
 
+.. figure:: ../images/tutorial_drift_label.png
+    :align: center
+
+    Important controls of the `Drift Compensation` tool.
+
 * **Tools -> Drift Compensation**
 
-Drift in signal can be caused by changes in laser, plasma or mass-spec conditions and
-can be minimised by using short runs and correctly 'warming up' the ICP-MS.
+Changes in laser, plasma or mass-spec conditions cause signal drift and
+should be minimised by using short runs and correctly 'warming up' the ICP-MS.
 In cases where quantification is not required then drift can be compensated using the
 `Drift Compensation` tool.
 This tool fits a polynomial to a section of the image and then normalises with
@@ -14,27 +19,29 @@ respect to the fit.
 Example: Compensating Laser Drift
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. figure:: ../images/tutorial_filter_pre.png
+.. figure:: ../images/tutorial_drift_pre.png
     :width: 300px
     :align: center
 
-    Negative spikes (-33) are visible due the to instrument missing an acquisition
-    cycle.
+    An image with signal drift.
 
-1. Using the `Filtering` tool select the appropriate filter.
-    Available filters are `Rolling Mean` and `Rolling Median`.
+1. Select drift area.
+    Drag the white guides to cover an area where no sample is present,
+    such as the start or end of an image.
+    If there sample is present throughout an image then use the trim controls
+    (`Show drift trim controls.`) to remove the sample area.
 
-2. Select appropriate filter size.
-    Typical window sizes are 3, 5 or 7. A larger window size will be more
-    sensitive in detecting outlying data but is more likely to introduce artifacts.
+2. Select the degree of fit.
+    The red line in the drift preview shows the fitted polynomial.
+    A degree of 0 will use the raw data.
 
-3. Select the appropriate filter threshold.
-    An outlying data (those above the thresholds in :ref:`Available Filters`)
-    are set to the relevant local value.
-    An ideal threshold will change invalid data while leaving valid data untouched.
+3. Select normalisation method.
+    The available options allow normalisation to wither the minimum or maximum
+    signal in the drift area.
 
-.. figure:: ../images/tutorial_filter_post.png
+
+.. figure:: ../images/tutorial_drift_post.png
     :width: 300px
     :align: center
 
-    A rolling mean filter replaces the invalid values with the local mean.
+    The same image after drift compensation.
