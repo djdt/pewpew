@@ -74,31 +74,38 @@ class DriftCanvas(InteractiveImageCanvas):
             self.blitGuides()
 
     def move(self, event: MouseEvent) -> None:
-        if self.picked_artist is not None:
-            if self.picked_artist in self.guides_x:
-                self.picked_artist.set_xdata([event.xdata, event.xdata])
-            elif self.picked_artist in self.guides_y:
-                self.picked_artist.set_ydata([event.ydata, event.ydata])
-            self.blitGuides()
+        if self.picked_artist is None:
+            return
+
+        if self.picked_artist in self.guides_x:
+            self.picked_artist.set_xdata([event.xdata, event.xdata])
+        elif self.picked_artist in self.guides_y:
+            self.picked_artist.set_ydata([event.ydata, event.ydata])
+
+        self.updateGuideRects()
+        self.blitGuides()
 
     def release(self, event: MouseEvent) -> None:
-        if self.picked_artist is not None:
-            x = self.picked_artist.get_xdata()[0]
-            y = self.picked_artist.get_ydata()[0]
-            shape = self.image.get_array().shape
-            x0, x1, y0, y1 = self.extent
-            # Snap to pixels
-            pxy = (x1 - x0, y1 - y0) / np.array((shape[1], shape[0]))
-            x, y = pxy * np.round((x, y) / pxy)
+        if self.picked_artist is None:
+            return
+        x = self.picked_artist.get_xdata()[0]
+        y = self.picked_artist.get_ydata()[0]
+        shape = self.image.get_array().shape
+        x0, x1, y0, y1 = self.extent
+        # Snap to pixels
+        pxy = (x1 - x0, y1 - y0) / np.array((shape[1], shape[0]))
+        x, y = pxy * np.round((x, y) / pxy)
 
-            if self.picked_artist in self.guides_x:
-                self.picked_artist.set_xdata([x, x])
-            elif self.picked_artist in self.guides_y:
-                self.picked_artist.set_ydata([y, y])
+        if self.picked_artist in self.guides_x:
+            self.picked_artist.set_xdata([x, x])
+        elif self.picked_artist in self.guides_y:
+            self.picked_artist.set_ydata([y, y])
 
-            self.blitGuides()
-            self.guidesChanged.emit()
-            self.picked_artist = None
+        # Update the rects
+        self.updateGuideRects()
+        self.blitGuides()
+        self.guidesChanged.emit()
+        self.picked_artist = None
 
     def blitGuides(self) -> None:
         if self.background is not None:
@@ -159,11 +166,27 @@ class DriftCanvas(InteractiveImageCanvas):
         self.draw_idle()
         self.guides_need_draw = True
 
+    def updateGuideRects(self) -> None:
+        x0 = np.amin([line.get_xdata() for line in self.guides_x])
+        x1 = np.amax([line.get_xdata() for line in self.guides_x])
+        y0 = np.amin([line.get_ydata() for line in self.guides_y])
+        y1 = np.amax([line.get_ydata() for line in self.guides_y])
+
+        extent = self.image.get_extent()
+
+        for rect, y, h in zip(
+            self.guide_rects,
+            [extent[2], y0, y1],
+            [y0, y1 - y0, extent[3] - y1],
+        ):
+            rect.set_xy((x0, y))
+            rect.set_width(x1 - x0)
+            rect.set_height(h)
+
     def drawGuides(
         self,
         xs: Tuple[float, float],
         ys: Tuple[float, float],
-        extent: Tuple[float, float, float, float],
     ) -> None:
         for line in self.guides_x:
             line.remove()
@@ -171,6 +194,9 @@ class DriftCanvas(InteractiveImageCanvas):
         for line in self.guides_y:
             line.remove()
         self.guides_y = []
+        for rect in self.guide_rects:
+            rect.remove()
+        self.guide_rects = []
 
         for x in xs:
             line = Line2D(
@@ -208,28 +234,20 @@ class DriftCanvas(InteractiveImageCanvas):
             self.guides_y.append(line)
             self.ax.add_artist(line)
 
-        w = max(xs) - min(xs)
-        x = min(xs)
-        for y, h in zip(
-            [extent[2], min(ys), max(ys)],
-            [min(ys), max(ys) - min(ys), extent[3] - max(ys)],
-        ):
+        for i in range(3):
             rect = Rectangle(
-                (x, y),
-                w,
-                h,
+                (0, 0),
+                1,
+                1,
                 fill=False,
-                lw=0.0,
+                lw=0.0,  # no edges
                 edgecolor="white",
                 hatch="/",
                 animated=True,
             )
             self.guide_rects.append(rect)
             self.ax.add_artist(rect)
-
-        # rx = min(line.get_xdata() for line in self.guides_x)
-        # ry = min(line.get_xdata() for line in self.guides_x)
-        # self.guides_rect = Rectangle((np.amin(xs), 0.0, ))
+        self.updateGuideRects()
 
     def getCurrentXTrim(self) -> Tuple[int, int]:
         shape = self.image.get_array().shape
@@ -388,7 +406,7 @@ class DriftTool(ToolWidget):
             px, py = w / data.shape[1], h / data.shape[0]
             x0, x1 = px * np.round(np.array([0.01, 0.11]) * w / px)
             y0, y1 = py * np.round(np.array([0.1, 0.9]) * h / py)
-            self.canvas.drawGuides((x0, x1), (y0, y1), extent)
+            self.canvas.drawGuides((x0, x1), (y0, y1))
 
         self.canvas.guides_need_draw = True
         self.updateDrift()
