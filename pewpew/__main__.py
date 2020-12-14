@@ -25,7 +25,12 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
         description="GUI for visualisation and manipulation of LA-ICP-MS data.",
     )
 
-    parser.add_argument("--open", "-i", type=Path, nargs="+", help="Open file(s) on startup.")
+    parser.add_argument(
+        "--open", "-i", type=Path, nargs="+", help="Open file(s) on startup."
+    )
+    parser.add_argument(
+        "--nohook", action="store_true", help="Don't install the execption hook."
+    )
     parser.add_argument(
         "qtargs", nargs=argparse.REMAINDER, help="Arguments to pass to Qt."
     )
@@ -47,7 +52,8 @@ def main(argv: List[str] = None) -> int:
     app.setApplicationVersion(__version__)
 
     window = MainWindow()
-    sys.excepthook = window.exceptHook
+    if not args.nohook:
+        sys.excepthook = window.exceptHook
     logger.addHandler(window.log.handler)
     logger.info(f"Pew² {__version__} started.")
     logger.info(f"Using Pewlib {pewlib.__version__}.")
