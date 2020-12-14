@@ -1,5 +1,4 @@
 from pathlib import Path
-from os import sep
 import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -162,6 +161,8 @@ class ExportOptions(QtWidgets.QWidget):
 
 
 class _ExportDialogBase(QtWidgets.QDialog):
+    invalid_chars = '<>:"/\\|?*'
+
     def __init__(self, options: List[OptionsBox], parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Export")
@@ -177,6 +178,9 @@ class _ExportDialogBase(QtWidgets.QDialog):
         )
         self.button_directory.clicked.connect(self.selectDirectory)
         self.lineedit_filename = QtWidgets.QLineEdit()
+
+        filename_regexp = QtCore.QRegExp(f"[^{self.invalid_chars}]+")
+        self.lineedit_filename.setValidator(QtGui.QRegExpValidator(filename_regexp))
         self.lineedit_filename.textChanged.connect(self.filenameChanged)
         self.lineedit_filename.textChanged.connect(self.validate)
 
@@ -306,7 +310,7 @@ class ExportDialog(_ExportDialogBase):
             .resolve()
         )
         self.lineedit_directory.setText(str(path.parent))
-        self.lineedit_filename.setText(str(path.name))
+        self.lineedit_filename.setText(str(path.name).replace(self.invalid_chars, "_"))
         self.typeChanged(0)
 
     def allowCalibrate(self) -> bool:
@@ -352,7 +356,9 @@ class ExportDialog(_ExportDialogBase):
         )
 
     def getPathForIsotope(self, path: Path, isotope: str) -> Path:
-        return path.with_name(path.stem + "_" + isotope.replace(sep, "_") + path.suffix)
+        return path.with_name(
+            path.stem + "_" + isotope.replace(self.invalid_chars, "_") + path.suffix
+        )
 
     def getPathForLayer(self, path: Path, layer: int) -> Path:
         return path.with_name(path.stem + "_layer" + str(layer) + path.suffix)
@@ -448,6 +454,8 @@ class ExportAllDialog(ExportDialog):
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.addItems(isotopes)
         self.lineedit_prefix = QtWidgets.QLineEdit("")
+        prefix_regexp = QtCore.QRegExp(f"[^{self.invalid_chars}]+")
+        self.lineedit_prefix.setValidator(QtGui.QRegExpValidator(prefix_regexp))
         self.lineedit_prefix.textChanged.connect(self.updatePreview)
 
         super().__init__(widgets[0], parent)
