@@ -34,13 +34,13 @@ class DriftCanvas(InteractiveImageCanvas):
         self.connect_event("pick_event", self._pick)
 
         self.guides_need_draw = True
-        self.draw_edge_guides = False
+        self.draw_y_guides = False
 
         self.background = None
 
         self.guides_x: List[Line2D] = []
         self.guides_y: List[Line2D] = []
-        self.guides_rect: Rectangle = None
+        self.guide_rects: List[Rectangle] = []
 
         self.picked_artist: Artist = None
 
@@ -104,13 +104,16 @@ class DriftCanvas(InteractiveImageCanvas):
         if self.background is not None:
             self.restore_region(self.background)
 
-        if self.draw_edge_guides:
+        self.ax.draw_artist(self.guide_rects[0])
+        self.ax.draw_artist(self.guide_rects[2])
+
+        if self.draw_y_guides:
             for a in self.guides_y:
                 self.ax.draw_artist(a)
+        else:
+            self.ax.draw_artist(self.guide_rects[1])  # Center rect
         for a in self.guides_x:
             self.ax.draw_artist(a)
-
-        # self.ax.draw_artist(self.guides_rect)
 
         self.blit(self.ax.bbox)
         self.guides_need_draw = False
@@ -156,7 +159,12 @@ class DriftCanvas(InteractiveImageCanvas):
         self.draw_idle()
         self.guides_need_draw = True
 
-    def drawGuides(self, xs: Tuple[float, float], ys: Tuple[float, float]) -> None:
+    def drawGuides(
+        self,
+        xs: Tuple[float, float],
+        ys: Tuple[float, float],
+        extent: Tuple[float, float, float, float],
+    ) -> None:
         for line in self.guides_x:
             line.remove()
         self.guides_x = []
@@ -200,6 +208,25 @@ class DriftCanvas(InteractiveImageCanvas):
             self.guides_y.append(line)
             self.ax.add_artist(line)
 
+        w = max(xs) - min(xs)
+        x = min(xs)
+        for y, h in zip(
+            [extent[2], min(ys), max(ys)],
+            [min(ys), max(ys) - min(ys), extent[3] - max(ys)],
+        ):
+            rect = Rectangle(
+                (x, y),
+                w,
+                h,
+                fill=False,
+                lw=0.0,
+                edgecolor="white",
+                hatch="/",
+                animated=True,
+            )
+            self.guide_rects.append(rect)
+            self.ax.add_artist(rect)
+
         # rx = min(line.get_xdata() for line in self.guides_x)
         # ry = min(line.get_xdata() for line in self.guides_x)
         # self.guides_rect = Rectangle((np.amin(xs), 0.0, ))
@@ -227,13 +254,13 @@ class DriftCanvas(InteractiveImageCanvas):
     def getDriftData(self) -> np.ndarray:
         start, end = self.getCurrentXTrim()
         data = self.image.get_array()[:, start:end].copy()
-        if self.draw_edge_guides:
+        if self.draw_y_guides:
             start, end = self.getCurrentYTrim()
             data[start:end] = np.nan
         return data
 
-    def setEdgeGuidesVisible(self, visible: bool) -> None:
-        self.draw_edge_guides = visible
+    def setYGuidesVisible(self, visible: bool) -> None:
+        self.draw_y_guides = visible
         self.blitGuides()
 
 
@@ -273,7 +300,7 @@ class DriftTool(ToolWidget):
         self.lineedit_normalise.setEnabled(False)
 
         self.check_trim = QtWidgets.QCheckBox("Show drift trim controls.")
-        self.check_trim.toggled.connect(self.canvas.setEdgeGuidesVisible)
+        self.check_trim.toggled.connect(self.canvas.setYGuidesVisible)
         self.check_trim.toggled.connect(self.updateDrift)
 
         self.check_apply_all = QtWidgets.QCheckBox("Apply to all elements.")
@@ -361,7 +388,7 @@ class DriftTool(ToolWidget):
             px, py = w / data.shape[1], h / data.shape[0]
             x0, x1 = px * np.round(np.array([0.01, 0.11]) * w / px)
             y0, y1 = py * np.round(np.array([0.1, 0.9]) * h / py)
-            self.canvas.drawGuides((x0, x1), (y0, y1))
+            self.canvas.drawGuides((x0, x1), (y0, y1), extent)
 
         self.canvas.guides_need_draw = True
         self.updateDrift()
