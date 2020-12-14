@@ -6,6 +6,7 @@ from matplotlib.axes import Axes
 from matplotlib.artist import Artist
 from matplotlib.backend_bases import PickEvent, MouseEvent
 from matplotlib.lines import Line2D
+from matplotlib.patches import Rectangle
 from matplotlib.patheffects import withStroke
 from matplotlib.transforms import blended_transform_factory
 
@@ -37,8 +38,9 @@ class DriftCanvas(InteractiveImageCanvas):
 
         self.background = None
 
-        self.drift_guides: List[Line2D] = []
-        self.edge_guides: List[Line2D] = []
+        self.guides_x: List[Line2D] = []
+        self.guides_y: List[Line2D] = []
+        self.guides_rect: Rectangle = None
 
         self.picked_artist: Artist = None
 
@@ -73,9 +75,9 @@ class DriftCanvas(InteractiveImageCanvas):
 
     def move(self, event: MouseEvent) -> None:
         if self.picked_artist is not None:
-            if self.picked_artist in self.drift_guides:
+            if self.picked_artist in self.guides_x:
                 self.picked_artist.set_xdata([event.xdata, event.xdata])
-            elif self.picked_artist in self.edge_guides:
+            elif self.picked_artist in self.guides_y:
                 self.picked_artist.set_ydata([event.ydata, event.ydata])
             self.blitGuides()
 
@@ -89,9 +91,9 @@ class DriftCanvas(InteractiveImageCanvas):
             pxy = (x1 - x0, y1 - y0) / np.array((shape[1], shape[0]))
             x, y = pxy * np.round((x, y) / pxy)
 
-            if self.picked_artist in self.drift_guides:
+            if self.picked_artist in self.guides_x:
                 self.picked_artist.set_xdata([x, x])
-            elif self.picked_artist in self.edge_guides:
+            elif self.picked_artist in self.guides_y:
                 self.picked_artist.set_ydata([y, y])
 
             self.blitGuides()
@@ -103,10 +105,12 @@ class DriftCanvas(InteractiveImageCanvas):
             self.restore_region(self.background)
 
         if self.draw_edge_guides:
-            for a in self.edge_guides:
+            for a in self.guides_y:
                 self.ax.draw_artist(a)
-        for a in self.drift_guides:
+        for a in self.guides_x:
             self.ax.draw_artist(a)
+
+        # self.ax.draw_artist(self.guides_rect)
 
         self.blit(self.ax.bbox)
         self.guides_need_draw = False
@@ -152,35 +156,15 @@ class DriftCanvas(InteractiveImageCanvas):
         self.draw_idle()
         self.guides_need_draw = True
 
-    def drawEdgeGuides(self, ypos: Tuple[float, float]) -> None:
-        for line in self.edge_guides:
+    def drawGuides(self, xs: Tuple[float, float], ys: Tuple[float, float]) -> None:
+        for line in self.guides_x:
             line.remove()
-        self.edge_guides = []
-
-        for y in ypos:
-            line = Line2D(
-                (0.0, 1.0),
-                (y, y),
-                transform=blended_transform_factory(
-                    self.ax.transAxes, self.ax.transData
-                ),
-                color="white",
-                linestyle="--",
-                path_effects=[withStroke(linewidth=2.0, foreground="black")],
-                linewidth=1.0,
-                picker=True,
-                pickradius=5,
-                animated=True,
-            )
-            self.edge_guides.append(line)
-            self.ax.add_artist(line)
-
-    def drawDriftGuides(self, xpos: Tuple[float, float]) -> None:
-        for line in self.drift_guides:
+        self.guides_x = []
+        for line in self.guides_y:
             line.remove()
-        self.drift_guides = []
+        self.guides_y = []
 
-        for x in xpos:
+        for x in xs:
             line = Line2D(
                 (x, x),
                 (0.0, 1.0),
@@ -195,34 +179,56 @@ class DriftCanvas(InteractiveImageCanvas):
                 pickradius=5,
                 animated=True,
             )
-            self.drift_guides.append(line)
+            self.guides_x.append(line)
             self.ax.add_artist(line)
 
-    def getCurrentDriftTrim(self) -> Tuple[int, int]:
+        for y in ys:
+            line = Line2D(
+                (0.0, 1.0),
+                (y, y),
+                transform=blended_transform_factory(
+                    self.ax.transAxes, self.ax.transData
+                ),
+                color="white",
+                linestyle="--",
+                path_effects=[withStroke(linewidth=2.0, foreground="black")],
+                linewidth=1.0,
+                picker=True,
+                pickradius=5,
+                animated=True,
+            )
+            self.guides_y.append(line)
+            self.ax.add_artist(line)
+
+        # rx = min(line.get_xdata() for line in self.guides_x)
+        # ry = min(line.get_xdata() for line in self.guides_x)
+        # self.guides_rect = Rectangle((np.amin(xs), 0.0, ))
+
+    def getCurrentXTrim(self) -> Tuple[int, int]:
         shape = self.image.get_array().shape
         x0, x1, y0, y1 = self.extent
         px = (x1 - x0) / shape[1]  # Data coords
         trim = np.array(
-            [guide.get_xdata()[0] / px for guide in self.drift_guides], dtype=int
+            [guide.get_xdata()[0] / px for guide in self.guides_x], dtype=int
         )
 
         return np.min(trim), np.max(trim)
 
-    def getCurrentEdgeTrim(self) -> Tuple[int, int]:
+    def getCurrentYTrim(self) -> Tuple[int, int]:
         shape = self.image.get_array().shape
         x0, x1, y0, y1 = self.extent
         py = (y1 - y0) / shape[0]  # Data coords
         trim = np.array(
-            [guide.get_ydata()[0] / py for guide in self.edge_guides], dtype=int
+            [guide.get_ydata()[0] / py for guide in self.guides_y], dtype=int
         )
 
         return np.min(trim), np.max(trim)
 
     def getDriftData(self) -> np.ndarray:
-        start, end = self.getCurrentDriftTrim()
+        start, end = self.getCurrentXTrim()
         data = self.image.get_array()[:, start:end].copy()
         if self.draw_edge_guides:
-            start, end = self.getCurrentEdgeTrim()
+            start, end = self.getCurrentYTrim()
             data[start:end] = np.nan
         return data
 
@@ -304,7 +310,7 @@ class DriftTool(ToolWidget):
 
         for name in names:
             transpose = self.widget.laser.data[name].T
-            transpose /= (self.drift / value)
+            transpose /= self.drift / value
 
         self.refresh()
 
@@ -350,16 +356,12 @@ class DriftTool(ToolWidget):
         self.canvas.drawData(data, extent, isotope=isotope)
         # Update view limits
         self.canvas.view_limits = self.canvas.extentForAspect(extent)
-        if len(self.canvas.drift_guides) == 0:
-            w = extent[1] - extent[0]
-            px = w / data.shape[1]
+        if len(self.canvas.guides_x) == 0:
+            w, h = extent[1] - extent[0], extent[3] - extent[2]
+            px, py = w / data.shape[1], h / data.shape[0]
             x0, x1 = px * np.round(np.array([0.01, 0.11]) * w / px)
-            self.canvas.drawDriftGuides((x0, x1))
-        if len(self.canvas.edge_guides) == 0:
-            w = extent[3] - extent[2]
-            py = w / data.shape[0]
-            y0, y1 = py * np.round(np.array([0.1, 0.9]) * w / py)
-            self.canvas.drawEdgeGuides((y0, y1))
+            y0, y1 = py * np.round(np.array([0.1, 0.9]) * h / py)
+            self.canvas.drawGuides((x0, x1), (y0, y1))
 
         self.canvas.guides_need_draw = True
         self.updateDrift()
