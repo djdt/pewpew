@@ -53,7 +53,7 @@ class DriftCanvas(InteractiveImageCanvas):
         # TODO: whitespace?
         super().drawFigure()
         div = make_axes_locatable(self.ax)
-        self.cax = div.append_axes("bottom", size=1.0, pad=0.1, xmargin=0, ymargin=0)
+        self.cax = div.append_axes("bottom", size="20%", pad="2%")
         self.cax.get_xaxis().set_visible(False)
         self.cax.get_yaxis().set_visible(False)
 
