@@ -23,7 +23,9 @@ pewlib_.
     tutorials/import
     tutorials/calibration
     tutorials/selection
-    tutorials/process
+    tutorials/calculator
+    tutorials/drift
+    tutorials/filter
     tutorials/stats
     tutorials/colocal
 

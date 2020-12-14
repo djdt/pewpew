@@ -3,7 +3,7 @@ Region Selection
 
 Most elemental images have small regions of interest contained within the bulk of the image.
 The selection tools in |pewpew| allow extraction of information from these regions.
-The `Stats Dialog`_ and `Colocalisation Dialog`_ both limit their calculations to selected regions and
+The :ref:`Statistics` and :ref:`Colocalisation` dialogs both limit their calculations to selected regions and
 a new image can be formed from the selection using **Edit -> Crop to Selection**.
 
 Manual Selection

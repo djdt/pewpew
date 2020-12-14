@@ -11,7 +11,7 @@ however the image must have a large enough dynamic range.
 
 
 .. figure:: ../images/tutorial_colocal.png
-    :name: stats_dialog
+    :name: colocal_dialog
     :align: center
 
     The Colocalisation dialog.

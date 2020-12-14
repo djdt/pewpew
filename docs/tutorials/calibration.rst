@@ -16,6 +16,7 @@ Calibration Dialog
 The calibration dialog allows manual entry of the gradient, intercept and unit for each isotope.
 To apply the current calibration to all other open images check the `Apply calibration to all images.` box and then click `Apply`.
 
+
 Standards Tool
 --------------
 

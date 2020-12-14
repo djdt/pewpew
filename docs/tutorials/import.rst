@@ -35,23 +35,22 @@ The `Import Wizard` allows users to provide specific options when importing data
 
 
 Kriss-Kross Import Wizard
-=========================
+-------------------------
 
 * **File -> Import -> Kriss-Kross Import Wizard**
 
 Import of Kriss-Kross_ collected Super-Resolution-Reconstruction images is performed
 using the `Kriss-Kross Import Wizard`. This will guide users through import of the data
-in a simliar manner to the `Import Wizard`.
+in a simliar manner to the :ref:`Import Wizard`.
 
 1. Select the data format.
     The data format will affect whether the path is to a file or folder and the import options.
 
 2. Select the path to the data and format specific import options.
-    Path selection uses the file dialog `Open File` or `Open Directory` or drag-and-drop of files into the wizard.
-    Default import options are automatically filled in on path selection.
+    Paths are selected as in the :ref:`Import Wizard`, with the first path being the top layer of the 3D array.
+    Selected paths can be reordered by dragging and a minimum of two paths must be selected.
 
 3. Select laser parameters and isotopes for import.
-    If available, laser parameters will be read from the data.
-    Isotopes names are editable by pressing the `Edit Names` button.
+    The wizard can only be completed once a valid configuration is input.
 
  .. _Kriss-Kross: https://doi.org/10.1021/acs.analchem.9b02380
