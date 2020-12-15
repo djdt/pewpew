@@ -53,29 +53,29 @@ class VtiOptionsBox(OptionsBox):
         self, spacing: Tuple[float, float, float], parent: QtWidgets.QWidget = None
     ):
         super().__init__("VTK Images", ".vti", visible=True, parent=parent)
-        self.linedits = [QtWidgets.QLineEdit(str(dim)) for dim in spacing]
-        for le in self.linedits:
+        self.lineedits = [QtWidgets.QLineEdit(str(dim)) for dim in spacing]
+        for le in self.lineedits:
             le.setValidator(QtGui.QDoubleValidator(-1e9, 1e9, 4))
             le.textEdited.connect(self.inputChanged)
-        self.linedits[0].setEnabled(False)  # X
-        self.linedits[1].setEnabled(False)  # Y
+        self.lineedits[0].setEnabled(False)  # X
+        self.lineedits[1].setEnabled(False)  # Y
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(QtWidgets.QLabel("Spacing:"), 0)
-        layout.addWidget(self.linedits[0], 0)  # X
+        layout.addWidget(self.lineedits[0], 0)  # X
         layout.addWidget(QtWidgets.QLabel("x"), 0, QtCore.Qt.AlignCenter)
-        layout.addWidget(self.linedits[1], 0)  # Y
+        layout.addWidget(self.lineedits[1], 0)  # Y
         layout.addWidget(QtWidgets.QLabel("x"), 0, QtCore.Qt.AlignCenter)
-        layout.addWidget(self.linedits[2], 0)  # Z
+        layout.addWidget(self.lineedits[2], 0)  # Z
         layout.addStretch(1)
 
         self.setLayout(layout)
 
     def isComplete(self) -> bool:
-        return all(le.hasAcceptableInput() for le in self.linedits)
+        return all(le.hasAcceptableInput() for le in self.lineedits)
 
     def spacing(self) -> Tuple[float, float, float]:
-        return tuple(float(le.text()) for le in self.linedits)  # type: ignore
+        return tuple(float(le.text()) for le in self.lineedits)  # type: ignore
 
 
 class _ExportOptionsStack(QtWidgets.QStackedWidget):
@@ -414,6 +414,8 @@ class ExportDialog(_ExportDialogBase):
 
         elif option.ext == ".vti":
             spacing = option.spacing()
+            # Last axis (z) is negative for layer order
+            spacing = spacing[0], spacing[1], -spacing[2]
             data = widget.laser.get(calibrate=self.isCalibrate())
             io.vtk.save(path, data, spacing)
 
