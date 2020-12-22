@@ -244,7 +244,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.refresh()
 
         dlg = dialogs.ColorRangeDialog(
-            self.viewspace.options,
+            self.viewspace.options._colorranges,
+            self.viewspace.options.colorrange_default,
             self.viewspace.uniqueIsotopes(),
             current_isotope=self.viewspace.currentIsotope(),
             parent=self,
@@ -287,7 +288,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionGroupColormap(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
-        self.viewspace.options.image.set_cmap_name(text)
+        self.viewspace.options.colortable = text
         self.refresh()
 
     def actionCropView(self) -> None:
@@ -338,7 +339,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.refresh()
 
     def actionToggleColorbar(self, checked: bool) -> None:
-        self.viewspace.options.canvas.colorbar = checked
+        self.viewspace.options.items["colorbar"] = checked
         # Hard refresh
         for view in self.viewspace.views:
             for widget in view.widgets():
@@ -346,11 +347,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 widget.refresh()
 
     def actionToggleLabel(self, checked: bool) -> None:
-        self.viewspace.options.canvas.label = checked
+        self.viewspace.options.items["label"] = checked
         self.refresh()
 
     def actionToggleScalebar(self, checked: bool) -> None:
-        self.viewspace.options.canvas.scalebar = checked
+        self.viewspace.options.items["scalebar"] = checked
         self.refresh()
 
     def actionToolCalculator(self) -> None:
