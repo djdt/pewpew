@@ -41,7 +41,7 @@ class LaserGraphicsView(OverlayView):
             QtCore.Qt.TopLeftCorner,
             QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft,
         )
-        self.label.setPos(50, 10)
+        self.label.setPos(10, 10)
         self.scene().addOverlayItem(
             self.scalebar,
             QtCore.Qt.TopRightCorner,
