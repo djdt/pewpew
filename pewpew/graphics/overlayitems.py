@@ -61,6 +61,7 @@ class ColorBarOverlay(QtWidgets.QGraphicsItem):
         colortable: np.ndarray,
         vmin: float,
         vmax: float,
+        unit: str = "",
         height: int = 16,
         font: QtGui.QFont = None,
         color: QtGui.QColor = None,
@@ -80,7 +81,7 @@ class ColorBarOverlay(QtWidgets.QGraphicsItem):
 
         self.vmin = vmin
         self.vmax = vmax
-
+        self.unit = unit
         self.height = height
 
         if font is None:
@@ -127,13 +128,17 @@ class ColorBarOverlay(QtWidgets.QGraphicsItem):
 
         path = QtGui.QPainterPath()
         fm = QtGui.QFontMetrics(self.font, painter.device())
+        # Todo: find a better pad value
+        path.addText(
+            width - fm.width(self.unit) - 10, fm.ascent(), self.font, self.unit
+        )
         for value in np.linspace(self.vmin, self.vmax, 7)[1:-1]:
             value = self.formatValue(value, 2)
             x = width * value / (self.vmax - self.vmin)
             text = f"{value:.6g}"
             path.addText(
                 x - fm.width(text) / 2.0,
-                self.height + fm.ascent(),
+                fm.ascent(),
                 self.font,
                 text,
             )
@@ -141,7 +146,7 @@ class ColorBarOverlay(QtWidgets.QGraphicsItem):
         painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
         painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
 
-        rect = QtCore.QRect(0, 0, width, self.height)
+        rect = QtCore.QRect(0, fm.height(), width, self.height)
         painter.drawPixmap(rect, self.pixmap)
         painter.setPen(QtGui.QPen(QtCore.Qt.black, 2.0))
         painter.setBrush(QtGui.QBrush(QtCore.Qt.white, QtCore.Qt.NoBrush))

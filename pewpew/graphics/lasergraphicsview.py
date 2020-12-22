@@ -2,6 +2,7 @@
 import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from pewlib.laser import _Laser
 
 from pewpew.graphics import colortable
 from pewpew.graphics.numpyimage import NumpyImage
@@ -53,27 +54,46 @@ class LaserGraphicsView(OverlayView):
             QtCore.Qt.AlignBottom | QtCore.Qt.AlignLeft,
         )
 
-    def drawImage(self, data: np.ndarray, extent: QtCore.QRectF, name: str) -> None:
+    def drawImage(self, data: np.ndarray, rect: QtCore.QRectF, name: str) -> None:
         if self.image is not None:
             self.scene().removeItem(self.image)
 
         vmin, vmax = self.options.get_colorrange_as_float(name, data)
-        self.image = NumpyImage(data, extent, vmin, vmax)
+        self.image = NumpyImage(data, rect, vmin, vmax)
         self.image.image.setColorTable(colortable.to_table(self.options.colortable))
-
-        self.scene().addItem(self.image)
-
-        # Update overlay items
-        self.label.text = name
         self.colorbar.updateTable(
             self.image.image.colorTable(), self.image.vmin, self.image.vmax
         )
+
+        self.scene().addItem(self.image)
+
+        if self.sceneRect() != rect:
+            self.setSceneRect(rect)
+            self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+
+        self.viewChanged.emit(self.viewport().rect())
+        self.viewport().update()
+
+    def drawLaser(self, laser: _Laser, name: str, layer: int = None) -> None:
+        kwargs = {"calibrate": self.options.calibrate, "layer": layer, "flat": True}
+
+        data = laser.get(name, **kwargs)
+        unit = laser.calibration[name].unit if self.options.calibrate else ""
+
+        # Get extent
+        if laser.layers > 1:
+            x0, x1, y0, y1 = laser.config.data_extent(data.shape, layer=layer)
+        else:
+            x0, x1, y0, y1 = laser.config.data_extent(data.shape)
+        rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
+
+        # Update overlay items
+        self.label.text = name
+        self.colorbar.unit = unit
 
         # Set overlay items visibility
         self.label.setVisible(self.options.items["label"])
         self.scalebar.setVisible(self.options.items["scalebar"])
         self.colorbar.setVisible(self.options.items["colorbar"])
 
-        self.setSceneRect(extent)
-        self.viewChanged.emit(self.viewport().rect())
-        self.viewport().update()
+        self.drawImage(data, rect, name)
