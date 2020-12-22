@@ -57,10 +57,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_about = qAction(
             "help-about", "&About", "About pew².", self.actionAbout
         )
-        self.action_colormap_range = qAction(
-            "", "Set &Range", "Set the range of the colormap.", self.actionColormapRange
+        self.action_colortable_range = qAction(
+            "",
+            "Set &Range",
+            "Set the range of the colortable.",
+            self.actionColortableRange,
         )
-        self.action_colormap_range.setShortcut("Ctrl+R")
+        self.action_colortable_range.setShortcut("Ctrl+R")
         self.action_config = qAction(
             "document-edit",
             "Default Config",
@@ -85,10 +88,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_fontsize = qAction(
             "insert-text", "Fontsize", "Set size of fonts.", self.actionFontsize
         )
-        self.action_group_colormap = qActionGroup(
+        self.action_group_colortable = qActionGroup(
             self,
             list(self.viewspace.options.colortables.keys()),
-            self.actionGroupColormap,
+            self.actionGroupColortable,
             checked=self.viewspace.options.colortable,
             statuses=list(self.viewspace.options.colortables.values()),
         )
@@ -237,7 +240,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.open()
         return dlg
 
-    def actionColormapRange(self) -> QtWidgets.QDialog:
+    def actionColortableRange(self) -> QtWidgets.QDialog:
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
             self.viewspace.options._colorranges = dialog.ranges
             self.viewspace.options.colorrange_default = dialog.default_range
@@ -286,7 +289,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.open()
         return dlg
 
-    def actionGroupColormap(self, action: QtWidgets.QAction) -> None:
+    def actionGroupColortable(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
         self.viewspace.options.colortable = text
         self.refresh()
@@ -477,10 +480,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # View
         menu_view = self.menuBar().addMenu("&View")
-        menu_cmap = menu_view.addMenu("&Colormap")
-        menu_cmap.setStatusTip("Colormap of displayed images.")
-        menu_cmap.addActions(self.action_group_colormap.actions())
-        menu_cmap.addAction(self.action_colormap_range)
+        menu_cmap = menu_view.addMenu("&Colortable")
+        menu_cmap.setStatusTip("Colortable of displayed images.")
+        menu_cmap.addActions(self.action_group_colortable.actions())
+        menu_cmap.addAction(self.action_colortable_range)
 
         # View - interpolation
         # menu_interp = menu_view.addMenu("&Interpolation")
