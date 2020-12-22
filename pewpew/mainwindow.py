@@ -87,17 +87,17 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_group_colormap = qActionGroup(
             self,
-            list(self.viewspace.options.image.COLORMAPS.keys()),
+            list(self.viewspace.options.colortables.keys()),
             self.actionGroupColormap,
-            checked=self.viewspace.options.image.get_cmap_name(),
-            statuses=list(self.viewspace.options.image.COLORMAP_DESCRIPTIONS.values()),
+            checked=self.viewspace.options.colortable,
+            statuses=list(self.viewspace.options.colortables.values()),
         )
-        self.action_group_interp = qActionGroup(
-            self,
-            list(self.viewspace.options.image.INTERPOLATIONS.keys()),
-            self.actionGroupInterp,
-            checked=self.viewspace.options.image.get_interpolation_name(),
-        )
+        # self.action_group_interp = qActionGroup(
+        #     self,
+        #     list(self.viewspace.options.image.NTERPOLATIONS.keys()),
+        #     self.actionGroupInterp,
+        #     checked=self.viewspace.options.image.get_interpolation_name(),
+        # )
         self.action_wizard_import = qAction(
             "",
             "Import Wizard",
@@ -135,17 +135,17 @@ class MainWindow(QtWidgets.QMainWindow):
             "", "Show Colorbar", "Toggle colorbars.", self.actionToggleColorbar
         )
         self.action_toggle_colorbar.setCheckable(True)
-        self.action_toggle_colorbar.setChecked(self.viewspace.options.canvas.colorbar)
+        self.action_toggle_colorbar.setChecked(self.viewspace.options.items["colorbar"])
         self.action_toggle_label = qAction(
             "", "Show Labels", "Toggle element labels.", self.actionToggleLabel
         )
         self.action_toggle_label.setCheckable(True)
-        self.action_toggle_label.setChecked(self.viewspace.options.canvas.label)
+        self.action_toggle_label.setChecked(self.viewspace.options.items["label"])
         self.action_toggle_scalebar = qAction(
             "", "Show Scalebar", "Toggle scalebar.", self.actionToggleScalebar
         )
         self.action_toggle_scalebar.setCheckable(True)
-        self.action_toggle_scalebar.setChecked(self.viewspace.options.canvas.scalebar)
+        self.action_toggle_scalebar.setChecked(self.viewspace.options.items["scalebar"])
         self.action_tool_calculator = qAction(
             "document-properties",
             "Calculator",
@@ -239,8 +239,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionColormapRange(self) -> QtWidgets.QDialog:
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
-            self.viewspace.options.colors._ranges = dialog.ranges
-            self.viewspace.options.colors.default_range = dialog.default_range
+            self.viewspace.options._colorranges = dialog.ranges
+            self.viewspace.options.colorrange_default = dialog.default_range
             self.refresh()
 
         dlg = dialogs.ColorRangeDialog(
@@ -302,11 +302,11 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         widget.cropToSelection()
 
-    def actionGroupInterp(self, action: QtWidgets.QAction) -> None:
-        text = action.text().replace("&", "")
-        interp = self.viewspace.options.image.INTERPOLATIONS[text]
-        self.viewspace.options.image.interpolation = interp
-        self.refresh()
+    # def actionGroupInterp(self, action: QtWidgets.QAction) -> None:
+    #     text = action.text().replace("&", "")
+    #     interp = self.viewspace.options.image.INTERPOLATIONS[text]
+    #     self.viewspace.options.image.interpolation = interp
+    #     self.refresh()
 
     def actionWizardImport(self) -> QtWidgets.QWizard:
         wiz = ImportWizard(config=self.viewspace.config, parent=self)
@@ -482,9 +482,9 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_cmap.addAction(self.action_colormap_range)
 
         # View - interpolation
-        menu_interp = menu_view.addMenu("&Interpolation")
-        menu_interp.setStatusTip("Interpolation of displayed images.")
-        menu_interp.addActions(self.action_group_interp.actions())
+        # menu_interp = menu_view.addMenu("&Interpolation")
+        # menu_interp.setStatusTip("Interpolation of displayed images.")
+        # menu_interp.addActions(self.action_group_interp.actions())
 
         menu_view.addAction(self.action_fontsize)
 

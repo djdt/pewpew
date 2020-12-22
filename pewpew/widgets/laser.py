@@ -5,8 +5,8 @@ import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from matplotlib.patheffects import Normal, SimpleLineShadow
-from matplotlib.widgets import RectangleSelector
+# from matplotlib.patheffects import Normal, SimpleLineShadow
+# from matplotlib.widgets import RectangleSelector
 
 from pewlib import io
 from pewlib.laser import Laser
@@ -16,14 +16,16 @@ from pewlib.config import Config
 from pewpew.actions import qAction, qToolButton
 from pewpew.threads import ImportThread
 
-from pewpew.lib.mplwidgets import (
-    RectangleImageSelectionWidget,
-    LassoImageSelectionWidget,
-    RulerWidget,
-)
-from pewpew.lib.viewoptions import ViewOptions
+# from pewpew.lib.mplwidgets import (
+#     RectangleImageSelectionWidget,
+#     LassoImageSelectionWidget,
+#     RulerWidget,
+# )
+# from pewpew.lib.viewoptions import ViewOptions
 from pewpew.widgets import dialogs, exportdialogs
-from pewpew.widgets.canvases import LaserImageCanvas
+from pewpew.graphics.lasergraphicsview import LaserGraphicsView
+from pewpew.graphics.options import GraphicsOptions
+# from pewpew.widgets.canvases import LaserImageCanvas
 from pewpew.widgets.views import View, ViewSpace, _ViewWidget
 
 from typing import List, Set, Tuple, Union
@@ -40,7 +42,7 @@ class LaserViewSpace(ViewSpace):
     ):
         super().__init__(orientaion, parent)
         self.config = Config()
-        self.options = ViewOptions()
+        self.options = GraphicsOptions()
 
     def uniqueIsotopes(self) -> List[str]:
         isotopes: Set[str] = set()
@@ -159,111 +161,111 @@ class LaserView(View):
         return dlg
 
 
-class LaserWidgetImageCanvas(LaserImageCanvas):
-    def __init__(
-        self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
-    ) -> None:
-        shadow = (
-            QtWidgets.QApplication.instance().palette().color(QtGui.QPalette.Shadow)
-        )
-        highlight = (
-            QtWidgets.QApplication.instance().palette().color(QtGui.QPalette.Highlight)
-        )
-        lineshadow = SimpleLineShadow(
-            offset=(0.5, -0.5), alpha=0.66, shadow_color=shadow.name()
-        )
-        rgba = (highlight.red(), highlight.green(), highlight.blue(), 200)
-        super().__init__(
-            viewoptions=viewoptions,
-            move_button=1,
-            widget_button=1,
-            selection_rgba=rgba,
-            parent=parent,
-        )
-        self.rectprops = {
-            "edgecolor": highlight.name(),
-            "facecolor": "none",
-            "linestyle": "-",
-            "linewidth": 1.1,
-            "path_effects": [lineshadow, Normal()],
-        }
-        self.lineprops = {
-            "color": highlight.name(),
-            "linestyle": "--",
-            "linewidth": 1.1,
-            "path_effects": [lineshadow, Normal()],
-        }
+# class LaserWidgetImageCanvas(LaserImageCanvas):
+#     def __init__(
+#         self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
+#     ) -> None:
+#         shadow = (
+#             QtWidgets.QApplication.instance().palette().color(QtGui.QPalette.Shadow)
+#         )
+#         highlight = (
+#             QtWidgets.QApplication.instance().palette().color(QtGui.QPalette.Highlight)
+#         )
+#         lineshadow = SimpleLineShadow(
+#             offset=(0.5, -0.5), alpha=0.66, shadow_color=shadow.name()
+#         )
+#         rgba = (highlight.red(), highlight.green(), highlight.blue(), 200)
+#         super().__init__(
+#             viewoptions=viewoptions,
+#             move_button=1,
+#             widget_button=1,
+#             selection_rgba=rgba,
+#             parent=parent,
+#         )
+#         self.rectprops = {
+#             "edgecolor": highlight.name(),
+#             "facecolor": "none",
+#             "linestyle": "-",
+#             "linewidth": 1.1,
+#             "path_effects": [lineshadow, Normal()],
+#         }
+#         self.lineprops = {
+#             "color": highlight.name(),
+#             "linestyle": "--",
+#             "linewidth": 1.1,
+#             "path_effects": [lineshadow, Normal()],
+#         }
 
-        self.drawFigure()
+#         self.drawFigure()
 
-    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # pragma: no cover
-        if event.key() == QtCore.Qt.Key_Escape:
-            self.widget = None  # End any widget
-        super().keyPressEvent(event)
+#     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # pragma: no cover
+#         if event.key() == QtCore.Qt.Key_Escape:
+#             self.widget = None  # End any widget
+#         super().keyPressEvent(event)
 
-    def startLassoSelection(self) -> None:
-        self.state.add("selection")
-        self.widget = LassoImageSelectionWidget(
-            self.image,
-            self.updateAndDrawSelection,
-            useblit=True,
-            button=self.widget_button,
-            lineprops=self.lineprops,
-        )
-        self.widget.set_active(True)
-        self.setFocus(QtCore.Qt.NoFocusReason)
+#     def startLassoSelection(self) -> None:
+#         self.state.add("selection")
+#         self.widget = LassoImageSelectionWidget(
+#             self.image,
+#             self.updateAndDrawSelection,
+#             useblit=True,
+#             button=self.widget_button,
+#             lineprops=self.lineprops,
+#         )
+#         self.widget.set_active(True)
+#         self.setFocus(QtCore.Qt.NoFocusReason)
 
-    def startRectangleSelection(self) -> None:
-        self.state.add("selection")
-        self.widget = RectangleImageSelectionWidget(
-            self.image,
-            self.updateAndDrawSelection,
-            useblit=True,
-            button=self.widget_button,
-            lineprops=self.lineprops,
-        )
-        self.widget.set_active(True)
-        self.setFocus(QtCore.Qt.NoFocusReason)
+#     def startRectangleSelection(self) -> None:
+#         self.state.add("selection")
+#         self.widget = RectangleImageSelectionWidget(
+#             self.image,
+#             self.updateAndDrawSelection,
+#             useblit=True,
+#             button=self.widget_button,
+#             lineprops=self.lineprops,
+#         )
+#         self.widget.set_active(True)
+#         self.setFocus(QtCore.Qt.NoFocusReason)
 
-    def startRuler(self) -> None:
-        self.widget = RulerWidget(
-            self.ax,
-            lambda x: None,
-            useblit=True,
-            button=self.widget_button,
-            lineprops=self.lineprops,
-            drawtext=True,
-            textprops=self.viewoptions.font.props(),
-        )
-        self.widget.set_active(True)
-        self.setFocus(QtCore.Qt.NoFocusReason)
+#     def startRuler(self) -> None:
+#         self.widget = RulerWidget(
+#             self.ax,
+#             lambda x: None,
+#             useblit=True,
+#             button=self.widget_button,
+#             lineprops=self.lineprops,
+#             drawtext=True,
+#             textprops=self.viewoptions.font.props(),
+#         )
+#         self.widget.set_active(True)
+#         self.setFocus(QtCore.Qt.NoFocusReason)
 
-    def startZoom(self) -> None:
-        self.widget = RectangleSelector(
-            self.ax,
-            self.zoom,
-            useblit=True,
-            drawtype="box",
-            button=self.widget_button,
-            rectprops=self.rectprops,
-        )
-        self.widget.set_active(True)
+#     def startZoom(self) -> None:
+#         self.widget = RectangleSelector(
+#             self.ax,
+#             self.zoom,
+#             useblit=True,
+#             drawtype="box",
+#             button=self.widget_button,
+#             rectprops=self.rectprops,
+#         )
+#         self.widget.set_active(True)
 
-    def updateAndDrawSelection(self, mask: np.ndarray, state: set = None) -> None:
-        if state is not None and self.selection is not None:
-            if "add" in state:
-                self.selection = np.logical_or(self.selection, mask)
-            elif "subtract" in state:
-                self.selection = np.logical_and(self.selection, ~mask)
-            elif "intersect" in state:
-                self.selection = np.logical_and(self.selection, mask)
-            else:  # pragma: no cover
-                self.selection = mask
-        else:
-            self.selection = mask
+#     def updateAndDrawSelection(self, mask: np.ndarray, state: set = None) -> None:
+#         if state is not None and self.selection is not None:
+#             if "add" in state:
+#                 self.selection = np.logical_or(self.selection, mask)
+#             elif "subtract" in state:
+#                 self.selection = np.logical_and(self.selection, ~mask)
+#             elif "intersect" in state:
+#                 self.selection = np.logical_and(self.selection, mask)
+#             else:  # pragma: no cover
+#                 self.selection = mask
+#         else:
+#             self.selection = mask
 
-        self.drawSelection()
-        self.draw_idle()
+#         self.drawSelection()
+#         self.draw_idle()
 
 
 class LaserComboBox(QtWidgets.QComboBox):
@@ -292,16 +294,16 @@ class LaserComboBox(QtWidgets.QComboBox):
 
 
 class LaserWidget(_ViewWidget):
-    def __init__(self, laser: Laser, viewoptions: ViewOptions, view: LaserView = None):
+    def __init__(self, laser: Laser, options: GraphicsOptions, view: LaserView = None):
         super().__init__(view)
         self.laser = laser
         self.is_srr = isinstance(laser, SRRLaser)
 
-        self.canvas = LaserWidgetImageCanvas(viewoptions, parent=self)
-        self.canvas.cursorClear.connect(self.clearCursorStatus)
-        self.canvas.cursorMoved.connect(self.updateCursorStatus)
+        self.canvas = LaserGraphicsView(options, parent=self)
+        # self.canvas.cursorClear.connect(self.clearCursorStatus)
+        # self.canvas.cursorMoved.connect(self.updateCursorStatus)
         # We have our own ConnectionRefusedErrorxt menu so hide the normal one
-        self.canvas.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
+        # self.canvas.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
         self.combo_layers = QtWidgets.QComboBox()
         self.combo_layers.addItem("*")
@@ -369,21 +371,24 @@ class LaserWidget(_ViewWidget):
             "transform-move",
             "Clear Selection",
             "Clear any selections.",
-            self.canvas.clearSelection,
+            lambda: None,
+            # self.canvas.clear,
         )
         self.action_select_rect = qAction(
             "draw-rectangle",
             "Rectangle Selector",
             "Start the rectangle selector tool, use 'Shift' "
             "to add to selection and 'Control' to subtract.",
-            self.canvas.startRectangleSelection,
+            lambda: None,
+            # self.canvas.startRectangleSelection,
         )
         self.action_select_lasso = qAction(
             "draw-freehand",
             "Lasso Selector",
             "Start the lasso selector tool, use 'Shift' "
             "to add to selection and 'Control' to subtract.",
-            self.canvas.startLassoSelection,
+            lambda: None,
+            # self.canvas.startLassoSelection,
         )
         self.action_select_dialog = qAction(
             "dialog-information",
@@ -401,7 +406,8 @@ class LaserWidget(_ViewWidget):
             "tool-measure",
             "Measure",
             "Use a ruler to measure distance.",
-            self.canvas.startRuler,
+            lambda: None,
+            # self.canvas.startRuler,
         )
         self.widgets_button = qToolButton("tool-measure", "Widgets")
         self.widgets_button.addAction(self.action_ruler)
@@ -410,13 +416,15 @@ class LaserWidget(_ViewWidget):
             "zoom-in",
             "Zoom to Area",
             "Start zoom area selection.",
-            self.canvas.startZoom,
+            lambda: None,
+            # self.canvas.startZoom,
         )
         self.action_zoom_out = qAction(
             "zoom-original",
             "Reset Zoom",
             "Reset zoom to full imgae extent.",
-            self.canvas.unzoom,
+            lambda: None,
+            # self.canvas.unzoom,
         )
         self.view_button = qToolButton("zoom", "Zoom")
         self.view_button.addAction(self.action_zoom_in)
@@ -485,7 +493,7 @@ class LaserWidget(_ViewWidget):
         status_bar = self.viewspace.window().statusBar()
         if status_bar is None:  # pragma: no cover
             return
-        unit = self.canvas.viewoptions.units
+        unit = self.canvas.options.units
 
         layer = self.current_layer
         if layer is None:

@@ -4,7 +4,7 @@ import numpy as np
 from typing import Dict, Tuple, Union
 
 
-class ViewOptions(object):
+class GraphicsOptions(object):
     colortables = {
         "cividis": "Perceptually uniform colormap.",
         "grey": "Simple black to white gradient.",
