@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 import sys
 
-from typing import Generator, List, Set, Tuple
+from typing import Generator, List, Set
 
 
 def collect_icons(path: Path) -> Set[str]:
