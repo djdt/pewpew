@@ -60,7 +60,7 @@ class LaserGraphicsView(OverlayView):
 
         vmin, vmax = self.options.get_colorrange_as_float(name, data)
         self.image = NumpyImage(data, rect, vmin, vmax)
-        self.image.image.setColorTable(colortable.to_table(self.options.colortable))
+        self.image.image.setColorTable(colortable.get_table(self.options.colortable))
         self.colorbar.updateTable(
             self.image.image.colorTable(), self.image.vmin, self.image.vmax
         )
