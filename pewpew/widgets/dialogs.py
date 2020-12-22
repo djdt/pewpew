@@ -13,7 +13,6 @@ from pewlib.process.threshold import otsu
 from pewlib.srr import SRRConfig
 
 from pewpew.actions import qToolButton
-from pewpew.lib.viewoptions import ViewOptions, ColorOptions
 from pewpew.lib import kmeans
 from pewpew.widgets.canvases import BasicCanvas, SelectableImageCanvas
 from pewpew.validators import (
@@ -22,7 +21,7 @@ from pewpew.validators import (
     PercentOrDecimalValidator,
 )
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 
 class ApplyDialog(QtWidgets.QDialog):
@@ -227,14 +226,15 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
 class ColorRangeDialog(ApplyDialog):
     def __init__(
         self,
-        viewoptions: ViewOptions,
+        ranges: Dict[str, Tuple[Union[float, str], Union[float, str]]],
+        default_range: Tuple[Union[float, str], Union[float, str]],
         isotopes: List[str],
         current_isotope: str = None,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
-        self.default_range = viewoptions.colors.default_range
-        self.ranges = copy.copy(viewoptions.colors._ranges)
+        self.default_range = default_range
+        self.ranges = copy.copy(ranges)
         self.previous_isotope = current_isotope
         self.setWindowTitle("Colormap Range")
 
@@ -747,7 +747,7 @@ class StatsDialog(QtWidgets.QDialog):
         units: Dict[str, str],
         isotope: str,
         pixel_size: Tuple[float, float] = None,
-        coloroptions: ColorOptions = None,
+        # coloroptions: ColorOptions = None,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
@@ -756,7 +756,7 @@ class StatsDialog(QtWidgets.QDialog):
         self.data = self.prepareData(data, mask)
         self.units = units
         self.pixel_size = pixel_size
-        self.coloroptions = coloroptions or ColorOptions()
+        # self.coloroptions = coloroptions or ColorOptions()
 
         self.canvas = BasicCanvas(figsize=(6, 2))
         self.canvas.ax = self.canvas.figure.add_subplot()
@@ -880,7 +880,7 @@ class StatsDialog(QtWidgets.QDialog):
         self.label_median.setText(f"{np.median(data):.4g} {unit}")
         self.label_stddev.setText(f"{np.std(data):.4g} {unit}")
 
-        vmin, vmax = self.coloroptions.get_range_as_float(isotope, data)
+        vmin, vmax = np.percentile(data, 1), np.percentile(data, 99)
         self.plot(data[np.logical_and(data >= vmin, data <= vmax)])
 
     def isCalibrate(self) -> bool:
