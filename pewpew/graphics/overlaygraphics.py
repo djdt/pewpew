@@ -93,6 +93,8 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
         for item in self.overlayitems:
+            if not item.item.isVisible():
+                continue
             transform = QtGui.QTransform()
             transform.translate(item.pos().x(), item.pos().y())
             transform.translate(item.anchorPos(rect).x(), item.anchorPos(rect).y())
@@ -108,11 +110,7 @@ class OverlayScene(QtWidgets.QGraphicsScene):
 
         painter.save()
         painter.resetTransform()
-        # Offset to draw a shadow
-        # painter.setCompositionMode(QtGui.QPainter.CompositionMode_DestinationOut)
-        # painter.drawPixmap(1, 1, self.foreground_pixmap)
         # Draw the actual overlay
-        painter.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
         painter.drawPixmap(0, 0, self.foreground_pixmap)
         painter.restore()
 

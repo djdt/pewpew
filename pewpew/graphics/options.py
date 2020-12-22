@@ -16,10 +16,11 @@ class GraphicsOptions(object):
     }
 
     def __init__(self, *args, **kwargs) -> None:
+        # Todo: maybe alignments here?
         self.items = {
-            "label": QtCore.Qt.TopLeftCorner,
-            "scalebar": QtCore.Qt.TopRightCorner,
-            "colorbar": QtCore.Qt.BottomLeftCorner,
+            "label": True,
+            "scalebar": True,
+            "colorbar": True,
         }
 
         self.colortable = "viridis"

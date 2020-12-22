@@ -343,11 +343,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionToggleColorbar(self, checked: bool) -> None:
         self.viewspace.options.items["colorbar"] = checked
-        # Hard refresh
-        for view in self.viewspace.views:
-            for widget in view.widgets():
-                widget.canvas.drawFigure()
-                widget.refresh()
+        self.refresh()
 
     def actionToggleLabel(self, checked: bool) -> None:
         self.viewspace.options.items["label"] = checked
