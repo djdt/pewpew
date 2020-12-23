@@ -71,9 +71,6 @@ class LaserGraphicsView(OverlayView):
             self.setSceneRect(rect)
             self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
 
-        self.viewChanged.emit(self.viewport().rect())
-        self.viewport().update()
-
     def drawLaser(self, laser: _Laser, name: str, layer: int = None) -> None:
         kwargs = {"calibrate": self.options.calibrate, "layer": layer, "flat": True}
 
