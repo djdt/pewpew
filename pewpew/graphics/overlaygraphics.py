@@ -116,8 +116,8 @@ class OverlayScene(QtWidgets.QGraphicsScene):
 
 
 class OverlayView(QtWidgets.QGraphicsView):
-    scaleChanged = QtCore.Signal()
-    viewChanged = QtCore.Signal(QtCore.QRect)
+    viewScaleChanged = QtCore.Signal()
+    viewSizeChanged = QtCore.Signal(QtCore.QRect)
 
     def __init__(
         self,
@@ -131,8 +131,10 @@ class OverlayView(QtWidgets.QGraphicsView):
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
         # Only redraw the ForegroundLayer when needed
-        self.viewChanged.connect(scene.updateForeground)
-        self.scaleChanged.connect(lambda: self.viewChanged.emit(self.viewport().rect()))
+        self.viewSizeChanged.connect(scene.updateForeground)
+        self.viewScaleChanged.connect(
+            lambda: self.viewSizeChanged.emit(self.viewport().rect())
+        )
 
     def scrollContentsBy(self, dx: int, dy: int) -> None:
         super().scrollContentsBy(dx, dy)
@@ -147,32 +149,27 @@ class OverlayView(QtWidgets.QGraphicsView):
         anchor = self.transformationAnchor()
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
 
-        # Scale a small amount per scroll
-        scale = 1.0 + event.angleDelta().y() / 360.0
-        new_scale = self.sceneScale() * scale
+        rect = self.mapFromScene(self.sceneRect()).boundingRect()
+        if self.viewport().rect() == rect:
+            print("equal")
 
-        if new_scale < 1.0:
+        # Scale a small amount per scroll
+        scale = pow(2, event.angleDelta().y() / 360.0)
+        self.scale(scale, scale)
+
+        rect = self.mapFromScene(self.sceneRect()).boundingRect()
+        if self.viewport().rect().contains(rect):
             self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
-            self.scaleChanged.emit()
-        elif 1.0 < new_scale < 100.0:
-            self.scale(scale, scale)
-            self.scaleChanged.emit()
+        self.viewScaleChanged.emit()
 
         self.setTransformationAnchor(anchor)
 
-    def sceneScale(self) -> float:
-        return (
-            self.mapFromScene(self.sceneRect()).boundingRect().width()
-            / self.viewport().width()
-        )
-
     def resizeEvent(self, event: QtGui.QResizeEvent):
         super().resizeEvent(event)
-        scale = (
-            self.mapFromScene(self.sceneRect()).boundingRect().width()
-            / event.oldSize().width()
-        )
-        if scale <= 1.05:
+        rect = self.mapFromScene(self.sceneRect()).boundingRect()
+        rect.moveTo(0, 0)
+        oldrect = QtCore.QRect(QtCore.QPoint(0, 0), event.oldSize())
+        if oldrect.contains(rect):
             self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
-        self.viewChanged.emit(self.viewport().rect())
+        self.viewSizeChanged.emit(self.viewport().rect())
