@@ -5,26 +5,28 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from pewlib.laser import _Laser
 
 from pewpew.graphics import colortable
-from pewpew.graphics.numpyimage import NumpyImage
+from pewpew.graphics.items import ScaledImageItem
+from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
 from pewpew.graphics.overlayitems import (
     ColorBarOverlay,
     MetricScaleBarOverlay,
     LabelOverlay,
 )
-from pewpew.graphics.options import GraphicsOptions
+from pewpew.graphics.util import array_as_indexed8
 
 
 class LaserGraphicsView(OverlayView):
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
         self.options = options
+        self.data: np.ndarray = None
 
         self._scene = OverlayScene(0, 0, 640, 480)
         self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
 
         super().__init__(self._scene, parent)
 
-        self.image: NumpyImage = None
+        self.image: ScaledImageItem = None
 
         self.label = LabelOverlay(
             "_", font=self.options.font, color=self.options.font_color
@@ -58,14 +60,18 @@ class LaserGraphicsView(OverlayView):
         if self.image is not None:
             self.scene().removeItem(self.image)
 
-        vmin, vmax = self.options.get_colorrange_as_float(name, data)
-        self.image = NumpyImage(data, rect, vmin, vmax)
-        self.image.image.setColorTable(colortable.get_table(self.options.colortable))
-        self.colorbar.updateTable(
-            self.image.image.colorTable(), self.image.vmin, self.image.vmax
-        )
+        self.data = data
+        vmin, vmax = self.options.get_colorrange_as_float(name, self.data)
+        table = colortable.get_table(self.options.colortable)
 
+        array = array_as_indexed8(self.data, vmin, vmax)
+
+        self.image = ScaledImageItem.fromArray(
+            array, rect, QtGui.QImage.Format_Indexed8, colortable=table
+        )
         self.scene().addItem(self.image)
+
+        self.colorbar.updateTable(table, vmin, vmax)
 
         if self.sceneRect() != rect:
             self.setSceneRect(rect)
