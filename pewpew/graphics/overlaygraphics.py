@@ -2,7 +2,7 @@
 """
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from typing import Union, List
+from typing import List, Set, Union
 
 
 class OverlayItem(object):
@@ -125,16 +125,33 @@ class OverlayView(QtWidgets.QGraphicsView):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(scene, parent)
-        self.scale_factor = 1.0
-        self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+
+        self.cursors = {
+            "navigate": QtCore.Qt.OpenHandCursor,
+            "drag": QtCore.Qt.ClosedHandCursor,
+        }
+        self.interaction_mode = "navigate"
+        self.interaction_flags: Set[str] = set()
+        self._last_pos = QtCore.QPoint(0, 0)  # Used for mouse events
 
         # Only redraw the ForegroundLayer when needed
         self.viewSizeChanged.connect(scene.updateForeground)
         self.viewScaleChanged.connect(
             lambda: self.viewSizeChanged.emit(self.viewport().rect())
         )
+
+    def setInteractionFlag(self, flag: str, on: bool = True) -> None:
+        if on:
+            self.interaction_flags.add(flag)
+        else:
+            self.interaction_flags.discard(flag)
+
+    def setInteractionMode(self, mode: str) -> None:
+        self.viewport().setCursor(self.cursors.get(mode, QtCore.Qt.ArrowCursor))
+        self.interaction_mode = mode
 
     def scrollContentsBy(self, dx: int, dy: int) -> None:
         super().scrollContentsBy(dx, dy)
@@ -143,6 +160,37 @@ class OverlayView(QtWidgets.QGraphicsView):
                 self.mapToScene(self.viewport().rect()).boundingRect(),
                 QtWidgets.QGraphicsScene.ForegroundLayer,
             )
+
+    def mousePressEvent(self, event: QtGui.QMouseEvent):
+        if (
+            self.interaction_mode == "navigate"
+            or event.button() == QtCore.Qt.MouseButton.MiddleButton
+        ):
+            self.setInteractionFlag("drag")
+            self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)
+            self._last_pos = event.globalPos()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
+        if "drag" in self.interaction_flags:
+            dx = self._last_pos.x() - event.globalPos().x()
+            dy = self._last_pos.y() - event.globalPos().y()
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + dx)
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() + dy)
+            self._last_pos = event.globalPos()
+        else:
+            super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
+        if "drag" in self.interaction_flags:
+            self.setInteractionFlag("drag", False)
+            # Restore cursor
+            self.viewport().setCursor(
+                self.cursors.get(self.interaction_mode, QtCore.Qt.ArrowCursor)
+            )
+        else:
+            super().mouseReleaseEvent(event)
 
     def wheelEvent(self, event: QtGui.QWheelEvent):
         # Save transformation anchor and set to mouse position
