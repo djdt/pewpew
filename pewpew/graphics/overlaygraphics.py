@@ -72,6 +72,11 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(x, y, width, height, parent)
+        self.setSortCacheEnabled(True)
+        self.setItemIndexMethod(
+            QtWidgets.QGraphicsScene.NoIndex
+        )  # Turn off BSP indexing, it causes a crash on item removal
+
         self.overlayitems: List[OverlayItem] = []
 
         self.foreground_pixmap: QtGui.QPixmap = None
@@ -82,7 +87,9 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         anchor: QtCore.Qt.AnchorPoint,
         alignment: QtCore.Qt.Alignment = None,
     ):
-        item.setFlag(QtWidgets.QGraphicsItem.ItemHasNoContents)
+        item.setFlag(
+            QtWidgets.QGraphicsItem.ItemHasNoContents
+        )  # Drawing handled manually
         self.addItem(item)
         self.overlayitems.append(OverlayItem(item, anchor, alignment))
 
@@ -125,7 +132,7 @@ class OverlayView(QtWidgets.QGraphicsView):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(scene, parent)
-
+        self.setCacheMode(QtWidgets.QGraphicsView.CacheBackground)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
