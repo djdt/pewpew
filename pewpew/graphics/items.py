@@ -16,7 +16,7 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
     ):
         super().__init__(parent)
         self.image = image
-        self.rect = rect
+        self.rect = QtCore.QRectF(rect)  # copy the rect
         self._data = None
 
     def boundingRect(self) -> QtCore.QRectF:
@@ -83,7 +83,7 @@ class ScaledImageSelectionItem(SelectionItem):
             _modes.update(modes)
         super().__init__(modes=_modes, parent=parent)
 
-        self.rect = image.rect
+        self.rect = QtCore.QRectF(image.rect)
         self.size = (image.image.width(), image.image.height())
 
         self.mask = np.zeros(self.size, dtype=np.bool)
@@ -149,7 +149,13 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
     def boundingRect(self) -> QtCore.QRectF:
         return self.poly.boundingRect()
 
+    def shape(self) -> QtGui.QPainterPath:
+        path = QtGui.QPainterPath()
+        path.addPolygon(self.poly)
+        return path
+
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        self.poly.clear()
         self.poly.append(event.pos())
 
         self._last_sceen_pos = event.screenPos()
@@ -220,6 +226,8 @@ class RectImageSelectionItem(ScaledImageSelectionItem):
         return self._rect.normalized()
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        if not event.button() & QtCore.Qt.LeftButton:
+            return
         self._rect.setTopLeft(event.pos())
         self.prepareGeometryChange()
 
@@ -230,6 +238,8 @@ class RectImageSelectionItem(ScaledImageSelectionItem):
         self.prepareGeometryChange()
 
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        if not event.button() & QtCore.Qt.LeftButton:
+            return
         modes = list(self.modifierModes(event.modifiers()))
 
         px, py = (
