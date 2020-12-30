@@ -5,7 +5,12 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from pewlib.laser import _Laser
 
 from pewpew.graphics import colortable
-from pewpew.graphics.items import ScaledImageItem
+from pewpew.graphics.items import (
+    ScaledImageItem,
+    ScaledImageSelectionItem,
+    LassoImageSelectionItem,
+    RectImageSelectionItem,
+)
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
 from pewpew.graphics.overlayitems import (
@@ -25,8 +30,11 @@ class LaserGraphicsView(OverlayView):
         self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
 
         super().__init__(self._scene, parent)
+        self.cursors["selection"] = QtCore.Qt.ArrowCursor
 
         self.image: ScaledImageItem = None
+        self.selection_item: ScaledImageSelectionItem = None
+        self.selection_image: ScaledImageItem = None
 
         self.label = LabelOverlay(
             "_", font=self.options.font, color=self.options.font_color
@@ -76,6 +84,36 @@ class LaserGraphicsView(OverlayView):
         if self.sceneRect() != rect:
             self.setSceneRect(rect)
             self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+
+    def startLassoSelection(self) -> None:
+        if self.selection_item is not None:
+            self.scene().removeItem(self.selection_item)
+
+        self.selection_item = LassoImageSelectionItem(self.image)
+        self.selection_item.selectionChanged.connect(self.drawSelectionImage)
+        self.scene().addItem(self.selection_item)
+        self.selection_item.grabMouse()
+        self.setInteractionMode("selection")
+
+    def startRectangleSelection(self) -> None:
+        if self.selection_item is not None:
+            self.scene().removeItem(self.selection_item)
+
+        self.selection_item = RectImageSelectionItem(self.image)
+        self.selection_item.selectionChanged.connect(self.drawSelectionImage)
+        self.scene().addItem(self.selection_item)
+        self.selection_item.grabMouse()
+        self.setInteractionMode("selection")
+
+    def drawSelectionImage(self) -> None:
+        if self.selection_item is None:
+            return
+        if self.selection_image is not None:
+            self.scene().removeItem(self.selection_image)
+
+        color = QtGui.QColor(255, 255, 255, a=128)
+        self.selection_image = self.selection_item.maskAsImage(color)
+        self.scene().addItem(self.selection_image)
 
     def drawLaser(self, laser: _Laser, name: str, layer: int = None) -> None:
         kwargs = {"calibrate": self.options.calibrate, "layer": layer, "flat": True}

@@ -379,16 +379,14 @@ class LaserWidget(_ViewWidget):
             "Rectangle Selector",
             "Start the rectangle selector tool, use 'Shift' "
             "to add to selection and 'Control' to subtract.",
-            lambda: None,
-            # self.canvas.startRectangleSelection,
+            self.canvas.startRectangleSelection,
         )
         self.action_select_lasso = qAction(
             "draw-freehand",
             "Lasso Selector",
             "Start the lasso selector tool, use 'Shift' "
             "to add to selection and 'Control' to subtract.",
-            lambda: None,
-            # self.canvas.startLassoSelection,
+            self.canvas.startLassoSelection,
         )
         self.action_select_dialog = qAction(
             "dialog-information",
