@@ -34,7 +34,6 @@ setup(
     packages=find_packages(include=["pewpew", "pewpew.*"]),
     install_requires=[
         "numpy!=1.19.4",
-        "matplotlib>=3.0.0",
         "pewlib>=0.6.3",
         "PySide2",
     ],
