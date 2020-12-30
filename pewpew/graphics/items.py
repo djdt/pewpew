@@ -15,6 +15,9 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
         parent: QtWidgets.QGraphicsItem = None,
     ):
         super().__init__(parent)
+        self.setCacheMode(
+            QtWidgets.QGraphicsItem.DeviceCoordinateCache
+        )  # Speed up redraw of image
         self.image = image
         self.rect = QtCore.QRectF(rect)  # copy the rect
         self._data = None
