@@ -558,7 +558,7 @@ class LaserWidget(_ViewWidget):
             )
             return
 
-        mask = self.canvas.selection
+        mask = self.canvas.mask
         if mask is None or np.all(mask == 0):  # pragma: no cover
             return
         ix, iy = np.nonzero(mask)
@@ -675,7 +675,7 @@ class LaserWidget(_ViewWidget):
 
     def actionStatistics(self) -> QtWidgets.QDialog:
         data = self.laser.get(calibrate=self.viewspace.options.calibrate, flat=True)
-        mask = self.canvas.selection
+        mask = self.canvas.mask
         if mask is None:
             mask = np.full(self.laser.shape, True, dtype=bool)
         units = {}
@@ -698,7 +698,7 @@ class LaserWidget(_ViewWidget):
         return dlg
 
     def actionColocal(self) -> QtWidgets.QDialog:
-        mask = self.canvas.selection
+        mask = self.canvas.mask
         dlg = dialogs.ColocalisationDialog(self.laser.get(flat=True), mask, parent=self)
         dlg.open()
         return dlg
