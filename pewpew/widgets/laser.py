@@ -466,6 +466,7 @@ class LaserWidget(_ViewWidget):
         self.canvas.drawLaser(
             self.laser, self.current_isotope, layer=self.current_layer
         )
+        self.canvas.invalidateScene()
         super().refresh()
 
     def rename(self, text: str) -> None:

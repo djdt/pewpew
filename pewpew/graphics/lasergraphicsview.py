@@ -141,3 +141,4 @@ class LaserGraphicsView(OverlayView):
         self.colorbar.setVisible(self.options.items["colorbar"])
 
         self.drawImage(data, rect, name)
+        self.scene().updateForeground(self.viewport().rect())
