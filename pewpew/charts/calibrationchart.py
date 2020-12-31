@@ -34,14 +34,14 @@ class CalibrationChart(QtCharts.QChartView):
         self.label_series.attachAxis(self.yaxis)
 
         self.line = QtCharts.QLineSeries()
-        self.line.setColor(QtCore.Qt.red)
+        # self.line.setColor(QtCore.Qt.red)
 
         self.chart().addSeries(self.line)
         self.line.attachAxis(self.xaxis)
         self.line.attachAxis(self.yaxis)
 
         self.series = QtCharts.QScatterSeries()
-        self.series.setColor(QtCore.Qt.black)
+        # self.series.setColor(QtCore.Qt.black)
         self.series.setMarkerSize(12)
 
         self.chart().addSeries(self.series)
