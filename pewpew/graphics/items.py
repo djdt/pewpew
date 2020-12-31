@@ -232,6 +232,7 @@ class RectImageSelectionItem(ScaledImageSelectionItem):
         if not event.button() & QtCore.Qt.LeftButton:
             return
         self._rect.setTopLeft(event.pos())
+        self._rect.setBottomRight(event.pos())
         self.prepareGeometryChange()
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
