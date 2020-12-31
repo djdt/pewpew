@@ -137,7 +137,7 @@ class OverlayView(QtWidgets.QGraphicsView):
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
         self.cursors = {
-            "navigate": QtCore.Qt.OpenHandCursor,
+            "navigate": QtCore.Qt.ArrowCursor,
             "drag": QtCore.Qt.ClosedHandCursor,
         }
         self.interaction_mode = "navigate"
