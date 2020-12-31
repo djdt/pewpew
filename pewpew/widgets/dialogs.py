@@ -22,6 +22,7 @@ from pewpew.validators import (
 )
 
 from pewpew.charts.calibrationchart import CalibrationChart
+from pewpew.charts.histogramchart import HistogramChart
 
 from typing import Dict, List, Tuple, Union
 
@@ -756,7 +757,7 @@ class StatsDialog(QtWidgets.QDialog):
         units: Dict[str, str],
         isotope: str,
         pixel_size: Tuple[float, float] = None,
-        # coloroptions: ColorOptions = None,
+        colorranges: dict = None,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
@@ -765,10 +766,9 @@ class StatsDialog(QtWidgets.QDialog):
         self.data = self.prepareData(data, mask)
         self.units = units
         self.pixel_size = pixel_size
-        # self.coloroptions = coloroptions or ColorOptions()
+        self.colorranges = colorranges
 
-        self.canvas = BasicCanvas(figsize=(6, 2))
-        self.canvas.ax = self.canvas.figure.add_subplot()
+        self.chart = HistogramChart()
 
         self.button_clipboard = QtWidgets.QPushButton("Copy to Clipboard")
         self.button_clipboard.pressed.connect(self.copyToClipboard)
@@ -814,7 +814,7 @@ class StatsDialog(QtWidgets.QDialog):
         stats_box.setLayout(stats_layout)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.canvas)
+        layout.addWidget(self.chart)
         layout.addWidget(stats_box)
         layout.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
         layout.addWidget(self.button_box)
@@ -889,17 +889,17 @@ class StatsDialog(QtWidgets.QDialog):
         self.label_median.setText(f"{np.median(data):.4g} {unit}")
         self.label_stddev.setText(f"{np.std(data):.4g} {unit}")
 
-        vmin, vmax = np.percentile(data, 1), np.percentile(data, 99)
-        self.plot(data[np.logical_and(data >= vmin, data <= vmax)])
+        vmin, vmax = np.percentile(data, 1), np.percentile(data, 95)
+        self.chart.setHistogram(data[np.logical_and(data >= vmin, data <= vmax)])
 
     def isCalibrate(self) -> bool:
         return False  # pragma: no cover
 
-    def plot(self, data: np.ndarray) -> None:
-        highlight = self.palette().color(QtGui.QPalette.Highlight).name()
-        self.canvas.ax.clear()
-        self.canvas.ax.hist(data.ravel(), bins="auto", color=highlight)
-        self.canvas.draw()
+    # def plot(self, data: np.ndarray) -> None:
+    #     highlight = self.palette().color(QtGui.QPalette.Highlight).name()
+    #     self.canvas.ax.clear()
+    #     self.canvas.ax.hist(data.ravel(), bins="auto", color=highlight)
+    #     self.canvas.draw()
 
     def prepareData(self, structured: np.ndarray, mask: np.ndarray) -> np.ndarray:
         ix, iy = np.nonzero(mask)
