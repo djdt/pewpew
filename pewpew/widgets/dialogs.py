@@ -21,6 +21,8 @@ from pewpew.validators import (
     PercentOrDecimalValidator,
 )
 
+from pewpew.charts.calibrationchart import CalibrationChart
+
 from typing import Dict, List, Tuple, Union
 
 
@@ -170,7 +172,9 @@ class CalibrationDialog(ApplyDialog):
 
     def showCurve(self) -> None:
         dlg = CalibrationCurveDialog(
-            self.calibrations[self.combo_isotope.currentText()], parent=self
+            self.combo_isotope.currentText(),
+            self.calibrations[self.combo_isotope.currentText()],
+            parent=self,
         )
         dlg.show()
 
@@ -183,43 +187,48 @@ class CalibrationDialog(ApplyDialog):
 
 
 class CalibrationCurveDialog(QtWidgets.QDialog):
-    def __init__(self, calibration: Calibration, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self, title: str, calibration: Calibration, parent: QtWidgets.QWidget = None
+    ):
         super().__init__(parent)
         self.setWindowTitle("Calibration Curve")
-        self.canvas = BasicCanvas(parent=self)
-        ax = self.canvas.figure.subplots()
-
-        x0, x1 = 0.0, np.nanmax(calibration.x) * 1.1
-
-        m = calibration.gradient
-        b = calibration.intercept
-
-        xlabel = "Concentration"
-        if calibration.unit != "":
-            xlabel += f" ({calibration.unit})"
-
-        ax.scatter(calibration.x, calibration.y, color="black")
-        ax.plot([x0, x1], [m * x0 + b, m * x1 + b], ls=":", lw=1.5, color="black")
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel("Counts")
-
-        text = Text(
-            x=0.05,
-            y=0.95,
-            text=str(calibration),
-            transform=ax.transAxes,
-            color="black",
-            fontsize=12,
-            horizontalalignment="left",
-            verticalalignment="top",
+        self.chart = CalibrationChart(title, parent=self)
+        self.chart.xaxis.setTitleText(calibration.unit)
+        # ax = self.canvas.figure.subplots()
+        self.chart.setPoints(calibration.points)
+        self.chart.setLine(
+            0.0,
+            np.nanmax(calibration.x) * 1.1,
+            calibration.gradient,
+            calibration.intercept,
         )
 
-        ax.add_artist(text)
+        #         xlabel = "Concentration"
+        #         if calibration.unit != "":
+        #             xlabel += f" ({calibration.unit})"
 
-        self.canvas.draw()
+        #         ax.scatter(calibration.x, calibration.y, color="black")
+        #         ax.plot([x0, x1], [m * x0 + b, m * x1 + b], ls=":", lw=1.5, color="black")
+        #         ax.set_xlabel(xlabel)
+        #         ax.set_ylabel("Counts")
+
+        #         text = Text(
+        #             x=0.05,
+        #             y=0.95,
+        #             text=str(calibration),
+        #             transform=ax.transAxes,
+        #             color="black",
+        #             fontsize=12,
+        #             horizontalalignment="left",
+        #             verticalalignment="top",
+        #         )
+
+        #         ax.add_artist(text)
+
+        #         self.canvas.draw()
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.canvas)
+        layout.addWidget(self.chart)
         self.setLayout(layout)
 
 
