@@ -691,7 +691,7 @@ class LaserWidget(_ViewWidget):
                 self.laser.config.get_pixel_width(),
                 self.laser.config.get_pixel_height(),
             ),
-            coloroptions=self.viewspace.options.colors,
+            colorranges=None,
             parent=self,
         )
         dlg.open()

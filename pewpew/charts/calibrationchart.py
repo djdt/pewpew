@@ -19,9 +19,7 @@ class CalibrationChart(QtCharts.QChartView):
         self.chart().legend().hide()
 
         self.xaxis = QtCharts.QValueAxis()
-        self.xaxis.setTickCount(8)
         self.yaxis = QtCharts.QValueAxis()
-        self.yaxis.setTickCount(8)
 
         self.chart().addAxis(self.xaxis, QtCore.Qt.AlignBottom)
         self.chart().addAxis(self.yaxis, QtCore.Qt.AlignLeft)
