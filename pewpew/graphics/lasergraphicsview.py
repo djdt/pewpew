@@ -136,9 +136,26 @@ class LaserGraphicsView(OverlayView):
         self.colorbar.unit = unit
 
         # Set overlay items visibility
-        self.label.setVisible(self.options.items["label"])
-        self.scalebar.setVisible(self.options.items["scalebar"])
-        self.colorbar.setVisible(self.options.items["colorbar"])
+        self.setOverlayItemVisibility()
 
         self.drawImage(data, rect, name)
-        self.scene().updateForeground(self.viewport().rect())
+        self.updateForeground()
+
+    def setOverlayItemVisibility(
+        self, label: bool = None, scalebar: bool = None, colorbar: bool = None
+    ):
+        if label is None:
+            label = self.options.items["label"]
+        if scalebar is None:
+            scalebar = self.options.items["scalebar"]
+        if colorbar is None:
+            colorbar = self.options.items["colorbar"]
+
+        self.label.setVisible(label)
+        self.scalebar.setVisible(scalebar)
+        self.colorbar.setVisible(colorbar)
+
+    def updateForeground(self, rect: QtCore.QRect = None) -> None:
+        if rect is None:
+            rect = self.viewport().rect()
+        self.scene().updateForeground(rect)

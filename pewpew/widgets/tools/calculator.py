@@ -9,7 +9,9 @@ from pewpew.lib import kmeans
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
-from pewpew.widgets.canvases import LaserImageCanvas
+# from pewpew.widgets.graphicses import LaserImagegraphics
+from pewpew.graphics.lasergraphicsview import LaserGraphicsView
+
 from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import ToolWidget
@@ -114,15 +116,19 @@ class CalculatorTool(ToolWidget):
     }
 
     def __init__(self, widget: LaserWidget):
-        super().__init__(widget, canvas_label="Preview")
+        super().__init__(widget, graphics_label="Preview")
 
-        self.canvas = LaserImageCanvas(
-            self.viewspace.options, move_button=1, parent=self
+        self.graphics = LaserGraphicsView(self.viewspace.options, parent=self)
+        # self.graphics.drawFigure()
+        # self.graphics.cursorClear.connect(self.widget.clearCursorStatus)
+        # self.graphics.cursorMoved.connect(self.widget.updateCursorStatus)
+        # Todo: this doesnt fit it in properly
+        self.graphics.setSceneRect(self.widget.graphics.sceneRect())
+        self.graphics.setTransform(self.widget.graphics.transform())
+        self.graphics.ensureVisible(
+            self.widget.graphics.sceneRect(), QtCore.Qt.KeepAspectRatio
         )
-        self.canvas.drawFigure()
-        self.canvas.cursorClear.connect(self.widget.clearCursorStatus)
-        self.canvas.cursorMoved.connect(self.widget.updateCursorStatus)
-        self.canvas.view_limits = self.widget.canvas.view_limits
+        # self.graphics.view_limits = self.widget.graphics.view_limits
 
         self.output = QtWidgets.QLineEdit("Result")
         self.output.setEnabled(False)
@@ -162,9 +168,9 @@ class CalculatorTool(ToolWidget):
         layout_combos.addWidget(self.combo_isotope)
         layout_combos.addWidget(self.combo_function)
 
-        layout_canvas = QtWidgets.QVBoxLayout()
-        layout_canvas.addWidget(self.canvas)
-        self.box_canvas.setLayout(layout_canvas)
+        layout_graphics = QtWidgets.QVBoxLayout()
+        layout_graphics.addWidget(self.graphics)
+        self.box_graphics.setLayout(layout_graphics)
 
         layout_controls = QtWidgets.QFormLayout()
         layout_controls.addRow("Name:", self.lineedit_name)
@@ -251,27 +257,9 @@ class CalculatorTool(ToolWidget):
         data = self.previewData(self.widget.laser.get(flat=True, calibrated=False))
         if data is None:
             return
-        extent = self.widget.laser.config.data_extent(data.shape)
+        x0, x1, y0, y1 = self.widget.laser.config.data_extent(data.shape)
+        rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
-        # Only change the view if new or the laser extent has changed (i.e. conf edit)
-        if self.canvas.extent != extent:
-            self.canvas.view_limits = self.canvas.extentForAspect(extent)
-
-        self.canvas.drawData(data, extent)
-
-        if self.canvas.viewoptions.canvas.colorbar:
-            self.canvas.drawColorbar("")
-
-        if self.canvas.viewoptions.canvas.label:
-            self.canvas.drawLabel(self.lineedit_name.text())
-        elif self.canvas.label is not None:
-            self.canvas.label.remove()
-            self.canvas.label = None
-
-        if self.canvas.viewoptions.canvas.scalebar:
-            self.canvas.drawScalebar()
-        elif self.canvas.scalebar is not None:
-            self.canvas.scalebar.remove()
-            self.canvas.scalebar = None
-
-        self.canvas.draw_idle()
+        self.graphics.setOverlayItemVisibility()
+        self.graphics.drawImage(data, rect, self.lineedit_name.text())
+        self.graphics.updateForeground()

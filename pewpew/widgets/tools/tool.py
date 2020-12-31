@@ -11,7 +11,7 @@ class ToolWidget(_ViewWidget):
         self,
         widget: _ViewWidget,
         control_label: str = "Controls",
-        canvas_label: str = "",
+        graphics_label: str = "",
         apply_all: bool = False,
     ):
         super().__init__(widget.view, editable=False)
@@ -37,11 +37,11 @@ class ToolWidget(_ViewWidget):
         self.layout_top = QtWidgets.QHBoxLayout()
         self.layout_bottom = QtWidgets.QHBoxLayout()
 
-        self.box_canvas = QtWidgets.QGroupBox(canvas_label)
+        self.box_graphics = QtWidgets.QGroupBox(graphics_label)
         self.box_controls = QtWidgets.QGroupBox(control_label)
 
         self.layout_top.addWidget(self.box_controls, 0)
-        self.layout_top.addWidget(self.box_canvas, 1)
+        self.layout_top.addWidget(self.box_graphics, 1)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addLayout(self.layout_top)

@@ -299,7 +299,7 @@ class LaserWidget(_ViewWidget):
         self.laser = laser
         self.is_srr = isinstance(laser, SRRLaser)
 
-        self.canvas = LaserGraphicsView(options, parent=self)
+        self.graphics = LaserGraphicsView(options, parent=self)
         # self.canvas.cursorClear.connect(self.clearCursorStatus)
         # self.canvas.cursorMoved.connect(self.updateCursorStatus)
         # We have our own ConnectionRefusedErrorxt menu so hide the normal one
@@ -372,21 +372,21 @@ class LaserWidget(_ViewWidget):
             "Clear Selection",
             "Clear any selections.",
             lambda: None,
-            # self.canvas.clear,
+            # self.graphics.clear,
         )
         self.action_select_rect = qAction(
             "draw-rectangle",
             "Rectangle Selector",
             "Start the rectangle selector tool, use 'Shift' "
             "to add to selection and 'Control' to subtract.",
-            self.canvas.startRectangleSelection,
+            self.graphics.startRectangleSelection,
         )
         self.action_select_lasso = qAction(
             "draw-freehand",
             "Lasso Selector",
             "Start the lasso selector tool, use 'Shift' "
             "to add to selection and 'Control' to subtract.",
-            self.canvas.startLassoSelection,
+            self.graphics.startLassoSelection,
         )
         self.action_select_dialog = qAction(
             "dialog-information",
@@ -405,7 +405,7 @@ class LaserWidget(_ViewWidget):
             "Measure",
             "Use a ruler to measure distance.",
             lambda: None,
-            # self.canvas.startRuler,
+            # self.graphics.startRuler,
         )
         self.widgets_button = qToolButton("tool-measure", "Widgets")
         self.widgets_button.addAction(self.action_ruler)
@@ -415,20 +415,20 @@ class LaserWidget(_ViewWidget):
             "Zoom to Area",
             "Start zoom area selection.",
             lambda: None,
-            # self.canvas.startZoom,
+            # self.graphics.startZoom,
         )
         self.action_zoom_out = qAction(
             "zoom-original",
             "Reset Zoom",
             "Reset zoom to full imgae extent.",
             lambda: None,
-            # self.canvas.unzoom,
+            # self.graphics.unzoom,
         )
         self.view_button = qToolButton("zoom", "Zoom")
         self.view_button.addAction(self.action_zoom_in)
         self.view_button.addAction(self.action_zoom_out)
 
-        self.canvas.installEventFilter(self)
+        self.graphics.installEventFilter(self)
         self.combo_isotope.installEventFilter(self)
         self.selection_button.installEventFilter(self)
         self.view_button.installEventFilter(self)
@@ -442,7 +442,7 @@ class LaserWidget(_ViewWidget):
         layout_bar.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.canvas, 1)
+        layout.addWidget(self.graphics, 1)
         layout.addLayout(layout_bar)
         self.setLayout(layout)
 
@@ -462,11 +462,11 @@ class LaserWidget(_ViewWidget):
 
     # Virtual
     def refresh(self) -> None:
-        self.canvas.widget = None
-        self.canvas.drawLaser(
+        self.graphics.widget = None
+        self.graphics.drawLaser(
             self.laser, self.current_isotope, layer=self.current_layer
         )
-        self.canvas.invalidateScene()
+        self.graphics.invalidateScene()
         super().refresh()
 
     def rename(self, text: str) -> None:
@@ -492,7 +492,7 @@ class LaserWidget(_ViewWidget):
         status_bar = self.viewspace.window().statusBar()
         if status_bar is None:  # pragma: no cover
             return
-        unit = self.canvas.options.units
+        unit = self.graphics.options.units
 
         layer = self.current_layer
         if layer is None:
@@ -528,11 +528,11 @@ class LaserWidget(_ViewWidget):
             return
         if new_extent is None:  # pragma: no cover
             # Default is to crop to current view limits.
-            new_extent = self.canvas.view_limits
-        if new_extent == self.canvas.extent:  # pragma: no cover
+            new_extent = self.graphics.view_limits
+        if new_extent == self.graphics.extent:  # pragma: no cover
             # Extent is same
             return
-        extent = self.canvas.extent
+        extent = self.graphics.extent
         w, h = extent[1] - extent[0], extent[3] - extent[2]
         sy, sx = self.laser.data.shape
         data = self.laser.data[
@@ -559,7 +559,7 @@ class LaserWidget(_ViewWidget):
             )
             return
 
-        mask = self.canvas.mask
+        mask = self.graphics.mask
         if mask is None or np.all(mask == 0):  # pragma: no cover
             return
         ix, iy = np.nonzero(mask)
@@ -642,7 +642,7 @@ class LaserWidget(_ViewWidget):
         return dlg
 
     def actionCopyImage(self) -> None:
-        self.canvas.copyToClipboard()
+        self.graphics.copyToClipboard()
 
     def actionDuplicate(self) -> None:
         self.view.addLaser(copy.deepcopy(self.laser))
@@ -668,15 +668,15 @@ class LaserWidget(_ViewWidget):
         return dlg
 
     def actionSelectDialog(self) -> QtWidgets.QDialog:
-        dlg = dialogs.SelectionDialog(self.canvas, parent=self)
-        dlg.maskSelected.connect(self.canvas.updateAndDrawSelection)
+        dlg = dialogs.SelectionDialog(self.graphics, parent=self)
+        dlg.maskSelected.connect(self.graphics.updateAndDrawSelection)
         self.refreshed.connect(dlg.refresh)
         dlg.show()
         return dlg
 
     def actionStatistics(self) -> QtWidgets.QDialog:
         data = self.laser.get(calibrate=self.viewspace.options.calibrate, flat=True)
-        mask = self.canvas.mask
+        mask = self.graphics.mask
         if mask is None:
             mask = np.full(self.laser.shape, True, dtype=bool)
         units = {}
@@ -699,7 +699,7 @@ class LaserWidget(_ViewWidget):
         return dlg
 
     def actionColocal(self) -> QtWidgets.QDialog:
-        mask = self.canvas.mask
+        mask = self.graphics.mask
         dlg = dialogs.ColocalisationDialog(self.laser.get(flat=True), mask, parent=self)
         dlg.open()
         return dlg
