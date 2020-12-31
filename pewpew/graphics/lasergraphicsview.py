@@ -18,7 +18,7 @@ from pewpew.graphics.overlayitems import (
     MetricScaleBarOverlay,
     LabelOverlay,
 )
-from pewpew.graphics.util import array_as_indexed8
+from pewpew.lib.numpyqt import array_as_indexed8
 
 
 class LaserGraphicsView(OverlayView):

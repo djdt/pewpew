@@ -1,7 +1,48 @@
-from PySide2 import QtCore
+from PySide2 import QtCore, QtGui
+
+import ctypes
 import numpy as np
+import shiboken2
 
 from typing import Any
+
+
+def array_as_indexed8(
+    array: np.ndarray, vmin: float = None, vmax: float = None
+) -> np.ndarray:
+    if vmin is None:
+        vmin = np.amin(array)
+    if vmax is None:
+        vmax = np.amax(array)
+    if vmin > vmax:
+        vmin, vmax = vmax, vmin
+
+    array = np.atleast_2d(array)
+    data = np.clip(array, vmin, vmax)
+    data = (data - vmin) / (vmax - vmin)
+    return (data * 255.0).astype(np.uint8)
+
+
+def polygonf_to_array(polygon: QtGui.QPolygonF) -> np.ndarray:
+    buf = (ctypes.c_double * 2 * polygon.length()).from_address(
+        shiboken2.getCppPointer(polygon.data())[0]
+    )
+    return np.frombuffer(buf, dtype=np.float64).reshape(-1, 2)
+
+
+def array_to_polygonf(array: np.ndarray) -> QtGui.QPolygonF:
+    assert array.ndim == 2
+    assert array.shape[1] == 2
+
+    polygon = QtGui.QPolygonF(array.shape[0])
+
+    buf = (ctypes.c_double * array.size).from_address(
+        shiboken2.getCppPointer(polygon.data())[0]
+    )
+
+    memory = np.frombuffer(buf, np.float64)
+    memory[:] = array.ravel()
+    return polygon
 
 
 class NumpyArrayTableModel(QtCore.QAbstractTableModel):

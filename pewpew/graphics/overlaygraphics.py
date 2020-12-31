@@ -171,8 +171,8 @@ class OverlayView(QtWidgets.QGraphicsView):
     def mousePressEvent(self, event: QtGui.QMouseEvent):
         if (
             self.interaction_mode == "navigate"
-            or event.button() == QtCore.Qt.MouseButton.MiddleButton
-        ):
+            and event.button() == QtCore.Qt.LeftButton
+        ) or event.button() == QtCore.Qt.MiddleButton:
             self.setInteractionFlag("drag")
             self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)
             self._last_pos = event.globalPos()
@@ -205,8 +205,6 @@ class OverlayView(QtWidgets.QGraphicsView):
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
 
         rect = self.mapFromScene(self.sceneRect()).boundingRect()
-        if self.viewport().rect() == rect:
-            print("equal")
 
         # Scale a small amount per scroll
         scale = pow(2, event.angleDelta().y() / 360.0)
