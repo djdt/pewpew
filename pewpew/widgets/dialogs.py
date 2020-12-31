@@ -889,8 +889,7 @@ class StatsDialog(QtWidgets.QDialog):
         self.label_median.setText(f"{np.median(data):.4g} {unit}")
         self.label_stddev.setText(f"{np.std(data):.4g} {unit}")
 
-        vmin, vmax = np.percentile(data, 1), np.percentile(data, 95)
-        self.chart.setHistogram(data[np.logical_and(data >= vmin, data <= vmax)])
+        self.chart.setHistogram(data)
 
     def isCalibrate(self) -> bool:
         return False  # pragma: no cover

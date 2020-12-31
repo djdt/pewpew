@@ -9,7 +9,6 @@ from typing import Union
 class HistogramChart(QtCharts.QChartView):
     def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
         super().__init__(QtCharts.QChart(), parent)
-        # self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
         self.setMinimumSize(QtCore.QSize(640, 320))
         self.setRenderHint(QtGui.QPainter.Antialiasing)
 
@@ -18,44 +17,46 @@ class HistogramChart(QtCharts.QChartView):
 
         self.chart().legend().hide()
 
-        self.xaxis = QtCharts.QValueAxis()
-        self.xaxis.setLabelsVisible(False)
+        self._xaxis = QtCharts.QValueAxis()  # Alignment axis
+        self._xaxis.setVisible(False)
+        self.xaxis = QtCharts.QValueAxis()  # Value axis
         self.xaxis.setGridLineVisible(False)
-        self.yaxis = QtCharts.QValueAxis()
-        self.yaxis.setLabelsVisible(False)
-        self.yaxis.setGridLineVisible(False)
 
+        self.yaxis = QtCharts.QValueAxis()
+        self.yaxis.setGridLineVisible(False)
+        self.yaxis.setLabelFormat("%d")
+
+        self.chart().addAxis(self._xaxis, QtCore.Qt.AlignBottom)
         self.chart().addAxis(self.xaxis, QtCore.Qt.AlignBottom)
         self.chart().addAxis(self.yaxis, QtCore.Qt.AlignLeft)
 
         self.series = QtCharts.QBarSeries()
         self.series.setBarWidth(1.0)
-        # self.series.setColor(QtCore.Qt.black)
 
         self.chart().addSeries(self.series)
-        self.series.attachAxis(self.xaxis)
+        self.series.attachAxis(self._xaxis)
         self.series.attachAxis(self.yaxis)
 
-        # self.series.hovered.connect(self.showPointPosition)
+    def setHistogram(
+        self, data: np.ndarray, bins: Union[int, str] = "auto", max_bins: int = 128
+    ) -> None:
+        vmin, vmax = np.percentile(data, 5), np.percentile(data, 95)
 
-    def setHistogram(self, data: np.ndarray, bins: Union[int, str] = "fd") -> None:
-        print('a')
         barset = QtCharts.QBarSet("histogram")
 
-        hist, _edges = np.histogram(data, bins=bins)
+        bin_edges = np.histogram_bin_edges(data, bins=bins, range=(vmin, vmax))
+        if bin_edges.size > max_bins:
+            bin_edges = np.histogram_bin_edges(data, bins=max_bins, range=(vmin, vmax))
+        elif bin_edges.size < 16:
+            bin_edges = np.histogram_bin_edges(data, bins=10, range=(vmin, vmax))
+
+        hist, edges = np.histogram(data, bins=bin_edges)
         barset.append(list(hist))
 
         self.series.clear()
         self.series.append(barset)
 
-        self.xaxis.setRange(-0.5, hist.size - 0.5)
+        self._xaxis.setRange(-0.5, hist.size - 0.5)
+        self.xaxis.setRange(edges[0], edges[-1])
         self.yaxis.setRange(0, np.amax(hist))
         self.yaxis.applyNiceNumbers()
-
-    # def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
-    #     if event.button() == QtCore.Qt.RightButton:
-    #         self.chart().zoomReset()
-    #     else:
-    #         super().mouseReleaseEvent(event)
-    #     self.xaxis.applyNiceNumbers()
-    #     self.yaxis.applyNiceNumbers()
