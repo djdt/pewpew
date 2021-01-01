@@ -4,6 +4,8 @@ import numpy as np
 
 from pewpew.graphics.util import polygon_contains_points
 
+from pewpew.lib.numpyqt import array_to_image
+
 from typing import Dict, Generator, List
 
 
@@ -20,7 +22,6 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
         )  # Speed up redraw of image
         self.image = image
         self.rect = QtCore.QRectF(rect)  # copy the rect
-        self._data = None
 
     def boundingRect(self) -> QtCore.QRectF:
         return self.rect
@@ -38,17 +39,14 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
         cls,
         array: np.ndarray,
         rect: QtCore.QRectF,
-        image_format: QtGui.QImage.Format,
         colortable: np.ndarray = None,
         parent: QtWidgets.QGraphicsItem = None,
     ) -> "ScaledImageItem":
-        image = QtGui.QImage(
-            array.data, array.shape[1], array.shape[0], array.strides[0], image_format
-        )
+        image = array_to_image(array)
         if colortable is not None:
             image.setColorTable(colortable)
+            image.setColorCount(len(colortable))
         item = cls(image, rect, parent=parent)
-        item._data = array
         return item
 
 
@@ -99,10 +97,8 @@ class ScaledImageSelectionItem(SelectionItem):
         item = ScaledImageItem.fromArray(
             data,
             self.rect,
-            QtGui.QImage.Format_Indexed8,
             colortable=[0, color.rgba()],
         )
-        item.image.setColorCount(2)
         return item
 
     def updateMask(self, mask: np.ndarray, modes: List[str]) -> None:

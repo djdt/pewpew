@@ -18,7 +18,8 @@ from pewpew.graphics.overlayitems import (
     MetricScaleBarOverlay,
     LabelOverlay,
 )
-from pewpew.lib.numpyqt import array_as_indexed8
+
+from pewpew.lib.numpyqt import array_to_image
 
 
 class LaserGraphicsView(OverlayView):
@@ -93,11 +94,12 @@ class LaserGraphicsView(OverlayView):
         vmin, vmax = self.options.get_colorrange_as_float(name, self.data)
         table = colortable.get_table(self.options.colortable)
 
-        array = array_as_indexed8(self.data, vmin, vmax)
+        data = np.clip(data, vmin, vmax)
+        data = (data - vmin) / (vmax - vmin)
 
-        self.image = ScaledImageItem.fromArray(
-            array, rect, QtGui.QImage.Format_Indexed8, colortable=table
-        )
+        image = array_to_image(data)
+        image.setColorTable(table)
+        self.image = ScaledImageItem(image, rect)
         self.scene().addItem(self.image)
 
         self.colorbar.updateTable(table, vmin, vmax)
@@ -110,13 +112,11 @@ class LaserGraphicsView(OverlayView):
         if self.selection_image is not None:
             self.scene().removeItem(self.selection_image)
 
-        if self.selection_item is None:
-            self.mask = np.ones(self.data.shape, dtype=np.bool)
-        else:
-            color = QtGui.QColor(255, 255, 255, a=128)
-            self.selection_image = self.selection_item.maskAsImage(color)
-            self.mask = self.selection_item.mask
-            self.scene().addItem(self.selection_image)
+        color = QtGui.QColor(255, 255, 255, a=128)
+        self.selection_image = self.selection_item.maskAsImage(color)
+        self.selection_image.setZValue(self.image.zValue() + 1.0)
+        self.mask = self.selection_item.mask
+        self.scene().addItem(self.selection_image)
 
     def drawLaser(self, laser: _Laser, name: str, layer: int = None) -> None:
         kwargs = {"calibrate": self.options.calibrate, "layer": layer, "flat": True}

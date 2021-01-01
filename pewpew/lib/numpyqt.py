@@ -12,9 +12,12 @@ def array_to_image(
 ) -> QtGui.QImage:
     array = np.atleast_2d(array)
 
+    # Clip float arrays to 0.0 - 1.0 then convert to uint8
     if array.dtype in [np.float32, np.float64]:
         array = np.clip(array, 0.0, 1.0)
         array = (array * 255.0).astype(np.uint8)
+
+    # 3D arrays interpreted as RGB
     if array.ndim == 3:
         array = array.astype(np.uint32)
         array = (array[:, :, 0] << 16) + (array[:, :, 1] << 8) + array[:, :, 2]
