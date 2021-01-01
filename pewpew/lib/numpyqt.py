@@ -7,20 +7,29 @@ import shiboken2
 from typing import Any
 
 
-def array_as_indexed8(
+def array_to_image(
     array: np.ndarray, vmin: float = None, vmax: float = None
-) -> np.ndarray:
-    if vmin is None:
-        vmin = np.amin(array)
-    if vmax is None:
-        vmax = np.amax(array)
-    if vmin > vmax:
-        vmin, vmax = vmax, vmin
-
+) -> QtGui.QImage:
     array = np.atleast_2d(array)
-    data = np.clip(array, vmin, vmax)
-    data = (data - vmin) / (vmax - vmin)
-    return (data * 255.0).astype(np.uint8)
+
+    if array.dtype in [np.float32, np.float64]:
+        array = np.clip(array, 0.0, 1.0)
+        array = (array * 255.0).astype(np.uint8)
+    if array.ndim == 3:
+        array = array.astype(np.uint32)
+        array = (array[:, :, 0] << 16) + (array[:, :, 1] << 8) + array[:, :, 2]
+        array += 255 << 24
+
+    if array.dtype == np.uint8:
+        image_format = QtGui.QImage.Format_Indexed8
+    elif array.dtype == np.uint32:
+        image_format = QtGui.QImage.Format_RGB32
+
+    image = QtGui.QImage(
+        array.data, array.shape[1], array.shape[0], array.strides[0], image_format
+    )
+    image._array = array
+    return image
 
 
 def polygonf_to_array(polygon: QtGui.QPolygonF) -> np.ndarray:
