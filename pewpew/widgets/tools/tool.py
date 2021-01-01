@@ -17,6 +17,7 @@ class ToolWidget(_ViewWidget):
         super().__init__(widget.view, editable=False)
         self.widget = widget
         self.modified = widget.modified
+        self._shown = False
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Cancel
@@ -82,6 +83,9 @@ class ToolWidget(_ViewWidget):
     def isComplete(self) -> bool:  # pragma: no cover
         return True
 
+    def onFirstShow(self) -> None:
+        pass
+
     def reject(self) -> None:
         self.restoreWidget()
 
@@ -94,6 +98,12 @@ class ToolWidget(_ViewWidget):
     def requestClose(self) -> bool:
         self.reject()
         return False
+
+    def showEvent(self, event: QtGui.QShowEvent) -> None:
+        super().showEvent(event)
+        if not self._shown:
+            self.onFirstShow()
+            self._shown
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(800, 600)

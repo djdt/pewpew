@@ -1,6 +1,6 @@
 import numpy as np
 
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
@@ -119,16 +119,8 @@ class CalculatorTool(ToolWidget):
         super().__init__(widget, graphics_label="Preview")
 
         self.graphics = LaserGraphicsView(self.viewspace.options, parent=self)
-        # self.graphics.drawFigure()
         # self.graphics.cursorClear.connect(self.widget.clearCursorStatus)
         # self.graphics.cursorMoved.connect(self.widget.updateCursorStatus)
-        # Todo: this doesnt fit it in properly
-        self.graphics.setSceneRect(self.widget.graphics.sceneRect())
-        self.graphics.setTransform(self.widget.graphics.transform())
-        self.graphics.ensureVisible(
-            self.widget.graphics.sceneRect(), QtCore.Qt.KeepAspectRatio
-        )
-        # self.graphics.view_limits = self.widget.graphics.view_limits
 
         self.output = QtWidgets.QLineEdit("Result")
         self.output.setEnabled(False)
@@ -140,7 +132,7 @@ class CalculatorTool(ToolWidget):
         )
         self.lineedit_name.revalidate()
         self.lineedit_name.textEdited.connect(self.completeChanged)
-        self.lineedit_name.textEdited.connect(self.refresh)
+        self.lineedit_name.editingFinished.connect(self.refresh)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.activated.connect(self.insertVariable)
@@ -233,6 +225,16 @@ class CalculatorTool(ToolWidget):
             return False
         return True
 
+    def onFirstShow(self) -> None:
+        rect = self.widget.graphics.mapToScene(
+            self.widget.graphics.viewport().rect()
+        ).boundingRect()
+        self.graphics.fitInView(
+            rect, QtCore.Qt.KeepAspectRatio
+        )
+        self.graphics.updateForeground()
+        self.graphics.invalidateScene()
+
     def previewData(self, data: np.ndarray) -> np.ndarray:
         self.reducer.variables = {name: data[name] for name in data.dtype.names}
         try:
@@ -260,6 +262,10 @@ class CalculatorTool(ToolWidget):
         x0, x1, y0, y1 = self.widget.laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
-        self.graphics.setOverlayItemVisibility()
         self.graphics.drawImage(data, rect, self.lineedit_name.text())
+
+        self.graphics.label.text = self.lineedit_name.text()
+
+        self.graphics.setOverlayItemVisibility()
         self.graphics.updateForeground()
+        self.graphics.invalidateScene()
