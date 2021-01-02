@@ -3,21 +3,17 @@ from pathlib import Path
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from matplotlib.backend_bases import MouseEvent
-from matplotlib.image import imsave
-from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
-from matplotlib.patheffects import withStroke
-
 from pewlib import io
-from pewlib.process.calc import greyscale_to_rgb, normalise
+from pewlib.process.calc import normalise
 
 from pewpew.actions import qAction, qToolButton
 from pewpew.validators import PercentOrDecimalValidator
 
-from pewpew.lib.mpltools import MetricSizeBar
-from pewpew.lib.viewoptions import ViewOptions
+from pewpew.graphics.options import GraphicsOptions
+from pewpew.graphics.items import ScaledImageItem
+from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
+from pewpew.graphics.overlayitems import MetricScaleBarOverlay
 
-from pewpew.widgets.canvases import InteractiveImageCanvas
 from pewpew.widgets.exportdialogs import _ExportDialogBase, PngOptionsBox
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.prompts import OverwriteFilePrompt
@@ -26,23 +22,129 @@ from pewpew.widgets.tools import ToolWidget
 from typing import Iterator, Generator, List, Tuple, Union
 
 
+class RGBLabelItem(QtWidgets.QGraphicsItem):
+    def __init__(
+        self,
+        texts: List[str],
+        colors: List[QtGui.QColor],
+        font: QtGui.QFont = None,
+        parent: QtWidgets.QGraphicsItem = None,
+    ):
+        super().__init__(parent)
+
+        if font is None:
+            font = QtGui.QFont()
+
+        self._texts = texts
+        self.colors = colors
+        self.font = font
+
+    @property
+    def texts(self) -> List[str]:
+        return self._texts
+
+    @texts.setter
+    def texts(self, texts: List[str]) -> None:
+        self._texts = texts
+        self.prepareGeometryChange()
+
+    def boundingRect(self):
+        fm = QtGui.QFontMetrics(self.font)
+        width = max((fm.width(text) for text in self._texts), default=0.0)
+        return QtCore.QRectF(0, 0, width, fm.height() * len(self._texts))
+
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: QtWidgets.QWidget = None,
+    ):
+
+        fm = QtGui.QFontMetrics(self.font, painter.device())
+        y = fm.ascent()
+        for text, color in zip(self._texts, self.colors):
+            path = QtGui.QPainterPath()
+            path.addText(0, y, self.font, text)
+
+            painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
+            painter.fillPath(path, QtGui.QBrush(color, QtCore.Qt.SolidPattern))
+
+            y += fm.height()
+
+
+class RGBOverlayView(OverlayView):
+    def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
+        self.options = options
+        self.data: np.ndarray = None
+
+        self._scene = OverlayScene(0, 0, 640, 480)
+        self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
+
+        super().__init__(self._scene, parent)
+        self.cursors["selection"] = QtCore.Qt.ArrowCursor
+
+        self.image: ScaledImageItem = None
+
+        self.label = RGBLabelItem(
+            ["_"], colors=[self.options.font_color], font=self.options.font
+        )
+        self.scalebar = MetricScaleBarOverlay(
+            font=self.options.font, color=self.options.font_color
+        )
+
+        self.scene().addOverlayItem(
+            self.label,
+            QtCore.Qt.TopLeftCorner,
+            QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft,
+        )
+        self.label.setPos(10, 10)
+        self.scene().addOverlayItem(
+            self.scalebar,
+            QtCore.Qt.TopRightCorner,
+            QtCore.Qt.AlignTop | QtCore.Qt.AlignRight,
+        )
+        self.scalebar.setPos(0, 10)
+
+    def setOverlayItemVisibility(
+        self, label: bool = None, scalebar: bool = None, colorbar: bool = None
+    ):
+        if label is None:
+            label = self.options.items["label"]
+        if scalebar is None:
+            scalebar = self.options.items["scalebar"]
+        # if colorbar is None:
+        #     colorbar = self.options.items["colorbar"]
+
+        self.label.setVisible(label)
+        self.scalebar.setVisible(scalebar)
+        # self.colorbar.setVisible(colorbar)
+
+    def drawImage(self, data: np.ndarray, rect: QtCore.QRectF) -> None:
+        if self.image is not None:
+            self.scene().removeItem(self.image)
+
+        self.image = ScaledImageItem.fromArray(data, rect)
+        self.scene().addItem(self.image)
+
+        if self.sceneRect() != rect:
+            self.setSceneRect(rect)
+            self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+
+
 class OverlayTool(ToolWidget):
     model_type = {"any": "additive", "cmyk": "subtractive", "rgb": "additive"}
 
     def __init__(self, widget: LaserWidget):
-        super().__init__(widget, apply_all=False)
+        super().__init__(widget, control_label="", orientation=QtCore.Qt.Vertical, apply_all=False)
         self.setWindowTitle("Image Overlay")
-
-        self.button_box.clear()
 
         self.button_save = QtWidgets.QPushButton("Export")
         self.button_save.setIcon(QtGui.QIcon.fromTheme("document-export"))
         self.button_save.pressed.connect(self.openExportDialog)
 
-        self.canvas = OverlayCanvas(self.viewspace.options)
-        self.canvas.cursorClear.connect(self.widget.clearCursorStatus)
-        self.canvas.cursorMoved.connect(self.updateCursorStatus)
-        self.canvas.view_limits = self.widget.canvas.view_limits
+        self.graphics = RGBOverlayView(self.viewspace.options)
+        # self.graphics.cursorClear.connect(self.widget.clearCursorStatus)
+        # self.graphics.cursorMoved.connect(self.updateCursorStatus)
 
         self.check_normalise = QtWidgets.QCheckBox("Renormalise")
         self.check_normalise.setEnabled(False)
@@ -66,22 +168,24 @@ class OverlayTool(ToolWidget):
         self.rows.rowsChanged.connect(self.completeChanged)
         self.rows.itemChanged.connect(self.refresh)
 
-        layout_top = QtWidgets.QHBoxLayout()
-        layout_top.addWidget(self.combo_add, 1, QtCore.Qt.AlignLeft)
-        layout_top.addWidget(self.radio_rgb, 0, QtCore.Qt.AlignRight)
-        layout_top.addWidget(self.radio_cmyk, 0, QtCore.Qt.AlignRight)
-        layout_top.addWidget(self.radio_custom, 0, QtCore.Qt.AlignRight)
+        layout_row_bar = QtWidgets.QHBoxLayout()
+        layout_row_bar.addWidget(self.combo_add, 1, QtCore.Qt.AlignLeft)
+        layout_row_bar.addWidget(self.check_normalise, 0, QtCore.Qt.AlignRight)
+        layout_row_bar.addWidget(self.radio_rgb, 0, QtCore.Qt.AlignRight)
+        layout_row_bar.addWidget(self.radio_cmyk, 0, QtCore.Qt.AlignRight)
+        layout_row_bar.addWidget(self.radio_custom, 0, QtCore.Qt.AlignRight)
 
-        layout_canvas = QtWidgets.QVBoxLayout()
-        layout_canvas.addWidget(self.canvas)
-        self.box_canvas.setLayout(layout_canvas)
-        self.box_controls.setVisible(False)
+        layout_graphics = QtWidgets.QVBoxLayout()
+        layout_graphics.addWidget(self.graphics)
 
-        self.layout_bottom.setDirection(QtWidgets.QBoxLayout.TopToBottom)
-        self.layout_bottom.addLayout(layout_top)
-        self.layout_bottom.addWidget(self.rows, 1)
-        self.layout_bottom.addWidget(self.check_normalise)
+        layout_controls = QtWidgets.QVBoxLayout()
+        layout_controls.addLayout(layout_row_bar, 0)
+        layout_controls.addWidget(self.rows, 1)
 
+        self.box_graphics.setLayout(layout_graphics)
+        self.box_controls.setLayout(layout_controls)
+
+        self.button_box.clear()
         self.button_box.addButton(self.button_save, QtWidgets.QDialogButtonBox.YesRole)
         self.button_box.addButton(QtWidgets.QDialogButtonBox.Cancel)
 
@@ -106,7 +210,7 @@ class OverlayTool(ToolWidget):
         self.combo_add.setCurrentIndex(0)
 
     def addRow(self, label: str) -> None:
-        vmin, vmax = self.viewspace.options.colors.get_range(label)
+        vmin, vmax = self.viewspace.options.get_colorrange(label)
         self.rows.addRow(label, vmin, vmax)
 
     def updateColorModel(self) -> None:
@@ -133,57 +237,55 @@ class OverlayTool(ToolWidget):
         img = self.widget.laser.get(row.label_name.text(), calibrate=True, flat=True)
         vmin, vmax = row.getVmin(img), row.getVmax(img)
 
-        r, g, b, _a = row.getColor().getRgbF()
+        r, g, b, _ = row.getColor().getRgb()
         if self.model_type[self.rows.color_model] == "subtractive":
-            r, g, b = 1.0 - r, 1.0 - g, 1.0 - b
+            r, g, b = 255 - r, 255 - g, 255 - b
 
-        return greyscale_to_rgb(
-            (np.clip(img, vmin, vmax) - vmin) / (vmax - vmin), (r, g, b)
-        )
+        # Normalise to range
+        img = np.clip(img, vmin, vmax)
+        img = (img - vmin) / (vmax - vmin)
+        # Convert to separate rgb channels
+        img = (img[:, :, None] * np.array([r, g, b])).astype(np.uint8)
+
+        return img
 
     def refresh(self) -> None:
-        datas = [self.processRow(row) for row in self.rows if not row.hidden]
+        rows = [row for row in self.rows if not row.hidden]
+        datas = [self.processRow(row) for row in rows]
+
         if len(datas) == 0:
-            img = np.zeros((*self.widget.laser.shape[:2], 3), float)
+            img = np.zeros((*self.widget.laser.shape[:2], 3), dtype=np.uint32)
         else:
-            img = np.sum(datas, axis=0)
+            img = np.sum(datas, axis=0).astype(np.uint32)
 
         if self.model_type[self.rows.color_model] == "subtractive":
-            img = np.ones_like(img) - img
+            img = np.full_like(img, 255) - img
 
         if self.check_normalise.isChecked() and self.check_normalise.isEnabled():
-            img = normalise(img, 0.0, 1.0)
+            img = normalise(img, 0, 255).astype(np.uint32)
         else:
-            img = np.clip(img, 0.0, 1.0)
+            img = np.clip(img, 0, 255)
 
-        extent = self.widget.laser.config.data_extent(img.shape)
-        # Only change the view if new or the laser extent has changed (i.e. conf edit)
-        if self.canvas.extent != extent:
-            self.canvas.view_limits = self.canvas.extentForAspect(extent)
+        img = (255 << 24) + (img[:, :, 0] << 16) + (img[:, :, 1] << 8) + img[:, :, 2]
 
-        self.canvas.drawData(img, extent)
+        x0, x1, y0, y1 = self.widget.laser.config.data_extent(img.shape)
+        rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
-        if self.viewspace.options.canvas.label:
-            names = [row.label_name.text() for row in self.rows if not row.hidden]
-            colors = [row.getColor().name() for row in self.rows if not row.hidden]
-            self.canvas.drawLabel(names, colors)
-        elif self.canvas.label is not None:  # pragma: no cover
-            self.canvas.label.remove()
-            self.canvas.label = None
+        self.graphics.drawImage(img, rect)
 
-        if self.viewspace.options.canvas.scalebar:
-            self.canvas.drawScalebar()
-        elif self.canvas.scalebar is not None:  # pragma: no cover
-            self.canvas.scalebar.remove()
-            self.canvas.scalebar = None
+        self.graphics.label.colors = [row.getColor() for row in rows]
+        self.graphics.label.texts = [row.label_name.text() for row in rows]
 
-        self.canvas.draw_idle()
+        self.graphics.setOverlayItemVisibility()
+        self.graphics.updateForeground()
+        self.graphics.invalidateScene()
 
-    def saveCanvas(self, path: Path, raw: bool = False) -> None:
+    def savegraphics(self, path: Path, raw: bool = False) -> None:
         if raw:
-            imsave(path, self.canvas.image.get_array())
+            pass
+            # imsave(path, self.graphics.image.get_array())
         else:
-            self.canvas.figure.savefig(
+            self.graphics.figure.savefig(
                 path, dpi=300, bbox_inches="tight", transparent=False, facecolor="black"
             )
 
@@ -194,78 +296,50 @@ class OverlayTool(ToolWidget):
         status_bar.showMessage(f"r: {v[0]:.2f}, g: {v[1]:.2f}, b: {v[2]:.2f}")
 
 
-class OverlayCanvas(InteractiveImageCanvas):
-    cursorMoved = QtCore.Signal(np.ndarray)
+# class OverlayCanvas(InteractiveImageCanvas):
+#     cursorMoved = QtCore.Signal(np.ndarray)
 
-    def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):
-        super().__init__(move_button=1, parent=parent)
-        self.viewoptions = viewoptions
+#     def __init__(self, viewoptions: GraphicsOptions, parent: QtWidgets.QWidget = None):
+#         super().__init__(move_button=1, parent=parent)
+#         self.viewoptions = viewoptions
 
-        self.label: AnchoredOffsetbox = None
-        self.scalebar: MetricSizeBar = None
+#         self.label: AnchoredOffsetbox = None
+#         self.scalebar: MetricSizeBar = None
 
-        self.drawFigure()
+#         self.drawFigure()
 
-    def moveCursor(self, event: MouseEvent) -> None:
-        if self.image is not None and self.image.contains(event)[0]:
-            v = self.image.get_cursor_data(event)
-            self.cursorMoved.emit(v)
-        else:
-            self.cursorClear.emit()
+#     def moveCursor(self, event: MouseEvent) -> None:
+#         if self.image is not None and self.image.contains(event)[0]:
+#             v = self.image.get_cursor_data(event)
+#             self.cursorMoved.emit(v)
+#         else:
+#             self.cursorClear.emit()
 
-    def drawLabel(self, names: List[str], colors: List[str]) -> None:
-        if self.label is not None:
-            self.label.remove()
+#     def drawLabel(self, names: List[str], colors: List[str]) -> None:
+#         if self.label is not None:
+#             self.label.remove()
 
-        if len(names) == 0:
-            self.label = None
-            return
+#         if len(names) == 0:
+#             self.label = None
+#             return
 
-        texts = [
-            TextArea(
-                name,
-                textprops=dict(
-                    color=color,
-                    fontproperties=self.viewoptions.font.mpl_props(),
-                    path_effects=[withStroke(linewidth=1.5, foreground="black")],
-                ),
-            )
-            for name, color in zip(names, colors)
-        ]
+#         texts = [
+#             TextArea(
+#                 name,
+#                 textprops=dict(
+#                     color=color,
+#                     fontproperties=self.viewoptions.font.mpl_props(),
+#                     path_effects=[withStroke(linewidth=1.5, foreground="black")],
+#                 ),
+#             )
+#             for name, color in zip(names, colors)
+#         ]
 
-        packer = VPacker(pad=0, sep=5, children=texts)
+#         packer = VPacker(pad=0, sep=5, children=texts)
 
-        self.label = AnchoredOffsetbox(
-            "upper left", pad=0.5, borderpad=0, frameon=False, child=packer
-        )
-
-        self.ax.add_artist(self.label)
-
-    def drawScalebar(self) -> None:
-        if self.scalebar is not None:
-            self.scalebar.remove()
-
-        self.scalebar = MetricSizeBar(
-            self.ax,
-            loc="upper right",
-            color=self.viewoptions.font.color,
-            font_properties=self.viewoptions.font.mpl_props(),
-        )
-        self.ax.add_artist(self.scalebar)
-
-    def drawData(
-        self, data: np.ndarray, extent: Tuple[float, float, float, float]
-    ) -> None:
-        if self.image is not None:
-            self.image.remove()
-
-        self.image = self.ax.imshow(
-            data,
-            interpolation=self.viewoptions.image.interpolation,
-            extent=extent,
-            aspect="equal",
-            origin="lower",
-        )
+#         self.label = AnchoredOffsetbox(
+#             "upper left", pad=0.5, borderpad=0, frameon=False, child=packer
+#         )
 
 
 class OverlayItemRow(QtWidgets.QWidget):
@@ -328,7 +402,7 @@ class OverlayItemRow(QtWidgets.QWidget):
         self.setLayout(layout)
 
     @property
-    def hidden(self) -> None:
+    def hidden(self) -> bool:
         return self.action_hide.isChecked()
 
     def hideChanged(self) -> None:
@@ -553,32 +627,34 @@ class OverlayExportDialog(_ExportDialogBase):
             if self.widget.model_type[self.widget.rows.color_model] == "subtractive":
                 data = np.ones_like(data) - data
             if option.raw():
-                imsave(path, data)
+                pass
+                # imsave(path, data)
             else:
-                canvas = OverlayCanvas(self.widget.canvas.viewoptions, self)
-                canvas.drawData(
-                    data, self.widget.widget.laser.config.data_extent(data.shape)
-                )
-                canvas.view_limits = self.widget.canvas.view_limits
+                pass
+                # canvas = OverlayCanvas(self.widget.canvas.viewoptions, self)
+                # canvas.drawData(
+                #     data, self.widget.widget.laser.config.data_extent(data.shape)
+                # )
+                # canvas.view_limits = self.widget.canvas.view_limits
 
-                if canvas.viewoptions.canvas.label:
-                    names = [self.widget.rows[row].label_name.text()]
-                    canvas.drawLabel(names, ["white"])
+                # if canvas.viewoptions.canvas.label:
+                #     names = [self.widget.rows[row].label_name.text()]
+                #     canvas.drawLabel(names, ["white"])
 
-                if canvas.viewoptions.canvas.scalebar:
-                    canvas.drawScalebar()
+                # if canvas.viewoptions.canvas.scalebar:
+                #     canvas.drawScalebar()
 
-                canvas.figure.set_size_inches(
-                    self.widget.canvas.figure.get_size_inches()
-                )
-                canvas.figure.savefig(
-                    path,
-                    dpi=300,
-                    bbox_inches="tight",
-                    transparent=False,
-                    facecolor="black",
-                )
-                canvas.close()
+                # canvas.figure.set_size_inches(
+                #     self.widget.canvas.figure.get_size_inches()
+                # )
+                # canvas.figure.savefig(
+                #     path,
+                #     dpi=300,
+                #     bbox_inches="tight",
+                #     transparent=False,
+                #     facecolor="black",
+                # )
+                # canvas.close()
         else:
             raise io.error.PewException(f"Unable to export file as '{option.ext}'.")
 
@@ -603,3 +679,54 @@ class OverlayExportDialog(_ExportDialogBase):
             return
 
         super().accept()
+
+
+def process(x, c: QtGui.QColor):
+    r, g, b, _a = c.getRgb()
+    # if self.model_type[self.rows.color_model] == "subtractive":
+    #     r, g, b = 1.0 - r, 1.0 - g, 1.0 - b
+    return x[..., None] * np.array([r, g, b], dtype=np.uint16)
+
+
+if __name__ == "__main__":
+    r = np.zeros((200, 100), dtype=np.uint32)
+    r[:100] = 255
+    g = np.zeros((200, 100), dtype=np.uint32)
+    g[:, :50] = 255
+    b = np.zeros((200, 100), dtype=np.uint32)
+    b[50:150, 25:75] = 255
+
+    # data = np.sum(
+    #     [
+    #         process(r, QtGui.QColor(QtCore.Qt.red)),
+    #         process(g, QtGui.QColor(QtCore.Qt.green)),
+    #         # process(b, QtGui.QColor(QtCore.Qt.blue)),
+    #     ],
+    #     axis=0,
+    # ).astype(np.uint8)
+    data = (r << 16) + (g << 8) + b
+    data += 255 << 24
+    # data = np.zeros((200, 100, 3))
+    # data[:, :, 0] = 1.
+    # data = np.transpose(data, (2, 0, 1))
+    # data = np.full((200, 100, 3), 255, dtype=np.uint8)
+    # data = np.clip(data, 0, 255)
+
+    app = QtWidgets.QApplication()
+    mainwindow = QtWidgets.QMainWindow()
+    view = RGBOverlayView(GraphicsOptions())
+
+    widget = QtWidgets.QWidget()
+    layout = QtWidgets.QVBoxLayout()
+    layout.addWidget(view)
+    # layout.addWidget(ctview)
+    # layout.addWidget(label)
+    widget.setLayout(layout)
+
+    mainwindow.setCentralWidget(widget)
+    mainwindow.resize(1280, 800)
+    mainwindow.show()
+
+    view.drawImage(data, QtCore.QRectF(0, 0, 200, 100))
+
+    app.exec_()
