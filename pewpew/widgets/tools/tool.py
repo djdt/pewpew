@@ -12,6 +12,7 @@ class ToolWidget(_ViewWidget):
         widget: _ViewWidget,
         control_label: str = "Controls",
         graphics_label: str = "",
+        orientation: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
         apply_all: bool = False,
     ):
         super().__init__(widget.view, editable=False)
@@ -35,18 +36,23 @@ class ToolWidget(_ViewWidget):
             self.button_apply_all.setIcon(QtGui.QIcon.fromTheme("dialog-ok-apply"))
             self.button_apply_all.clicked.connect(self.applyAll)
 
-        self.layout_top = QtWidgets.QHBoxLayout()
-        self.layout_bottom = QtWidgets.QHBoxLayout()
-
-        self.box_graphics = QtWidgets.QGroupBox(graphics_label)
         self.box_controls = QtWidgets.QGroupBox(control_label)
+        self.box_graphics = QtWidgets.QGroupBox(graphics_label)
 
-        self.layout_top.addWidget(self.box_controls, 0)
-        self.layout_top.addWidget(self.box_graphics, 1)
+        self.splitter = QtWidgets.QSplitter(orientation)
+        if orientation == QtCore.Qt.Horizontal:
+            self.splitter.addWidget(self.box_controls)
+            self.splitter.setStretchFactor(0, 0)
+            self.splitter.addWidget(self.box_graphics)
+            self.splitter.setStretchFactor(1, 1)
+        else:
+            self.splitter.addWidget(self.box_graphics)
+            self.splitter.setStretchFactor(0, 1)
+            self.splitter.addWidget(self.box_controls)
+            self.splitter.setStretchFactor(1, 0)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addLayout(self.layout_top)
-        layout.addLayout(self.layout_bottom)
+        layout.addWidget(self.splitter)
         layout.addWidget(self.button_box)
         self.setLayout(layout)
 
