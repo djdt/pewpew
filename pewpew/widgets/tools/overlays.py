@@ -7,7 +7,6 @@ from pewlib import io
 from pewlib.process.calc import normalise
 
 from pewpew.actions import qAction, qToolButton
-from pewpew.validators import PercentOrDecimalValidator
 
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.items import ScaledImageItem
@@ -15,11 +14,12 @@ from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
 from pewpew.graphics.overlayitems import MetricScaleBarOverlay
 
 from pewpew.widgets.exportdialogs import _ExportDialogBase, PngOptionsBox
+from pewpew.widgets.ext import RangeSlider
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.prompts import OverwriteFilePrompt
 from pewpew.widgets.tools import ToolWidget
 
-from typing import Iterator, Generator, List, Tuple, Union
+from typing import Iterator, Generator, List, Tuple
 
 
 class RGBLabelItem(QtWidgets.QGraphicsItem):
@@ -135,7 +135,9 @@ class OverlayTool(ToolWidget):
     model_type = {"any": "additive", "cmyk": "subtractive", "rgb": "additive"}
 
     def __init__(self, widget: LaserWidget):
-        super().__init__(widget, control_label="", orientation=QtCore.Qt.Vertical, apply_all=False)
+        super().__init__(
+            widget, control_label="", orientation=QtCore.Qt.Vertical, apply_all=False
+        )
         self.setWindowTitle("Image Overlay")
 
         self.button_save = QtWidgets.QPushButton("Export")
@@ -210,8 +212,9 @@ class OverlayTool(ToolWidget):
         self.combo_add.setCurrentIndex(0)
 
     def addRow(self, label: str) -> None:
-        vmin, vmax = self.viewspace.options.get_colorrange(label)
-        self.rows.addRow(label, vmin, vmax)
+        img = self.widget.laser.get(label, calibrate=True, flat=True)
+        vmin, vmax = self.viewspace.options.get_colorrange_as_percentile(label, img)
+        self.rows.addRow(label, int(vmin), int(vmax))
 
     def updateColorModel(self) -> None:
         color_model = (
@@ -296,52 +299,6 @@ class OverlayTool(ToolWidget):
         status_bar.showMessage(f"r: {v[0]:.2f}, g: {v[1]:.2f}, b: {v[2]:.2f}")
 
 
-# class OverlayCanvas(InteractiveImageCanvas):
-#     cursorMoved = QtCore.Signal(np.ndarray)
-
-#     def __init__(self, viewoptions: GraphicsOptions, parent: QtWidgets.QWidget = None):
-#         super().__init__(move_button=1, parent=parent)
-#         self.viewoptions = viewoptions
-
-#         self.label: AnchoredOffsetbox = None
-#         self.scalebar: MetricSizeBar = None
-
-#         self.drawFigure()
-
-#     def moveCursor(self, event: MouseEvent) -> None:
-#         if self.image is not None and self.image.contains(event)[0]:
-#             v = self.image.get_cursor_data(event)
-#             self.cursorMoved.emit(v)
-#         else:
-#             self.cursorClear.emit()
-
-#     def drawLabel(self, names: List[str], colors: List[str]) -> None:
-#         if self.label is not None:
-#             self.label.remove()
-
-#         if len(names) == 0:
-#             self.label = None
-#             return
-
-#         texts = [
-#             TextArea(
-#                 name,
-#                 textprops=dict(
-#                     color=color,
-#                     fontproperties=self.viewoptions.font.mpl_props(),
-#                     path_effects=[withStroke(linewidth=1.5, foreground="black")],
-#                 ),
-#             )
-#             for name, color in zip(names, colors)
-#         ]
-
-#         packer = VPacker(pad=0, sep=5, children=texts)
-
-#         self.label = AnchoredOffsetbox(
-#             "upper left", pad=0.5, borderpad=0, frameon=False, child=packer
-#         )
-
-
 class OverlayItemRow(QtWidgets.QWidget):
     closeRequested = QtCore.Signal("QWidget*")
     itemChanged = QtCore.Signal()
@@ -349,8 +306,8 @@ class OverlayItemRow(QtWidgets.QWidget):
     def __init__(
         self,
         label: str,
-        vmin: Union[str, float],
-        vmax: Union[str, float],
+        vmin: int,
+        vmax: int,
         color: QtGui.QColor,
         color_pickable: bool = False,
         parent: "OverlayRows" = None,
@@ -358,12 +315,10 @@ class OverlayItemRow(QtWidgets.QWidget):
         super().__init__(parent)
 
         self.label_name = QtWidgets.QLabel(label)
-        self.ledit_vmin = QtWidgets.QLineEdit(str(vmin), self)
-        self.ledit_vmin.setValidator(PercentOrDecimalValidator(0.0, 1e99))
-        self.ledit_vmin.editingFinished.connect(self.itemChanged)
-        self.ledit_vmax = QtWidgets.QLineEdit(str(vmax), self)
-        self.ledit_vmax.setValidator(PercentOrDecimalValidator(0.0, 1e99))
-        self.ledit_vmax.editingFinished.connect(self.itemChanged)
+        self.colorrange = RangeSlider()
+        self.colorrange.setRange(0, 99)
+        self.colorrange.setValues(vmin, vmax)
+        self.colorrange.sliderReleased.connect(self.itemChanged)
 
         self.action_color = qAction(
             "color-picker",
@@ -392,10 +347,7 @@ class OverlayItemRow(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.label_name, 2)
-        layout.addWidget(QtWidgets.QLabel("min:"), 0, QtCore.Qt.AlignRight)
-        layout.addWidget(self.ledit_vmin, 1)
-        layout.addWidget(QtWidgets.QLabel("max:"), 0, QtCore.Qt.AlignRight)
-        layout.addWidget(self.ledit_vmax, 1)
+        layout.addWidget(self.colorrange, 1)
         layout.addWidget(self.button_hide, 0)
         layout.addWidget(self.button_color, 0)
         layout.addWidget(self.button_close, 0, QtCore.Qt.AlignRight)
@@ -413,18 +365,10 @@ class OverlayItemRow(QtWidgets.QWidget):
         self.itemChanged.emit()
 
     def getVmin(self, data: np.ndarray) -> float:
-        vmin = self.ledit_vmin.text()
-        try:
-            return float(vmin)
-        except ValueError:  # pragma: no cover
-            return np.nanpercentile(data, float(vmin.rstrip("%")))
+        return np.nanpercentile(data, self.colorrange.left())
 
     def getVmax(self, data: np.ndarray) -> float:
-        vmax = self.ledit_vmax.text()
-        try:
-            return float(vmax)
-        except ValueError:  # pragma: no cover
-            return np.nanpercentile(data, float(vmax.rstrip("%")))
+        return np.nanpercentile(data, self.colorrange.right())
 
     def getColor(self) -> QtGui.QColor:
         return self.effect_color.color()
@@ -491,7 +435,10 @@ class OverlayRows(QtWidgets.QScrollArea):
         return len(self.rows)
 
     def addRow(
-        self, label: str, vmin: Union[str, float], vmax: Union[str, float]
+        self,
+        label: str,
+        vmin: int,
+        vmax: int,
     ) -> None:
         if self.rowCount() >= self.max_rows:
             return
@@ -507,7 +454,6 @@ class OverlayRows(QtWidgets.QScrollArea):
         self.rows.append(row)
         self.layout.addWidget(row)
         self.rowsChanged.emit(self.rowCount())
-        row.ledit_vmin.setFocus()
         self.recolor()
 
     def removeRow(self, row: OverlayItemRow) -> None:
@@ -540,6 +486,7 @@ class OverlayRows(QtWidgets.QScrollArea):
                 row.setColorPickable(True)
 
 
+# Todo: this export isnt real!
 class OverlayExportDialog(_ExportDialogBase):
     def __init__(self, parent: OverlayTool):
         super().__init__([PngOptionsBox()], parent)
@@ -681,52 +628,10 @@ class OverlayExportDialog(_ExportDialogBase):
         super().accept()
 
 
-def process(x, c: QtGui.QColor):
-    r, g, b, _a = c.getRgb()
-    # if self.model_type[self.rows.color_model] == "subtractive":
-    #     r, g, b = 1.0 - r, 1.0 - g, 1.0 - b
-    return x[..., None] * np.array([r, g, b], dtype=np.uint16)
-
-
-if __name__ == "__main__":
-    r = np.zeros((200, 100), dtype=np.uint32)
-    r[:100] = 255
-    g = np.zeros((200, 100), dtype=np.uint32)
-    g[:, :50] = 255
-    b = np.zeros((200, 100), dtype=np.uint32)
-    b[50:150, 25:75] = 255
-
-    # data = np.sum(
-    #     [
-    #         process(r, QtGui.QColor(QtCore.Qt.red)),
-    #         process(g, QtGui.QColor(QtCore.Qt.green)),
-    #         # process(b, QtGui.QColor(QtCore.Qt.blue)),
-    #     ],
-    #     axis=0,
-    # ).astype(np.uint8)
-    data = (r << 16) + (g << 8) + b
-    data += 255 << 24
-    # data = np.zeros((200, 100, 3))
-    # data[:, :, 0] = 1.
-    # data = np.transpose(data, (2, 0, 1))
-    # data = np.full((200, 100, 3), 255, dtype=np.uint8)
-    # data = np.clip(data, 0, 255)
-
-    app = QtWidgets.QApplication()
-    mainwindow = QtWidgets.QMainWindow()
-    view = RGBOverlayView(GraphicsOptions())
-
-    widget = QtWidgets.QWidget()
-    layout = QtWidgets.QVBoxLayout()
-    layout.addWidget(view)
-    # layout.addWidget(ctview)
-    # layout.addWidget(label)
-    widget.setLayout(layout)
-
-    mainwindow.setCentralWidget(widget)
-    mainwindow.resize(1280, 800)
-    mainwindow.show()
-
-    view.drawImage(data, QtCore.QRectF(0, 0, 200, 100))
-
-    app.exec_()
+# if __name__ == "__main__":
+    # r = np.zeros((200, 100), dtype=np.uint32)
+    # r[:100] = 255
+    # g = np.zeros((200, 100), dtype=np.uint32)
+    # g[:, :50] = 255
+    # b = np.zeros((200, 100), dtype=np.uint32)
+    # b[50:150, 25:75] = 255
