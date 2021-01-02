@@ -25,14 +25,10 @@ class LabelOverlay(QtWidgets.QGraphicsItem):
 
         if font is None:
             font = QtGui.QFont()
-            font.setPointSize(16)
-        self.text = text
-
-        if font is None:
-            font = QtGui.QFont()
         if color is None:
             color = QtCore.Qt.white
 
+        self.text = text
         self.font = font
         self.color = color
 
