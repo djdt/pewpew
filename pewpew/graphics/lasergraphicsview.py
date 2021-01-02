@@ -154,8 +154,3 @@ class LaserGraphicsView(OverlayView):
         self.label.setVisible(label)
         self.scalebar.setVisible(scalebar)
         self.colorbar.setVisible(colorbar)
-
-    def updateForeground(self, rect: QtCore.QRect = None) -> None:
-        if rect is None:
-            rect = self.viewport().rect()
-        self.scene().updateForeground(rect)

@@ -145,10 +145,8 @@ class OverlayView(QtWidgets.QGraphicsView):
         self._last_pos = QtCore.QPoint(0, 0)  # Used for mouse events
 
         # Only redraw the ForegroundLayer when needed
-        self.viewSizeChanged.connect(scene.updateForeground)
-        self.viewScaleChanged.connect(
-            lambda: self.viewSizeChanged.emit(self.viewport().rect())
-        )
+        self.viewSizeChanged.connect(self.updateForeground)
+        self.viewScaleChanged.connect(self.updateForeground)
 
     def setInteractionFlag(self, flag: str, on: bool = True) -> None:
         if on:
@@ -199,6 +197,21 @@ class OverlayView(QtWidgets.QGraphicsView):
         else:
             super().mouseReleaseEvent(event)
 
+    def resizeEvent(self, event: QtGui.QResizeEvent):
+        super().resizeEvent(event)
+        rect = self.mapFromScene(self.sceneRect()).boundingRect()
+        rect.moveTo(0, 0)
+        oldrect = QtCore.QRect(QtCore.QPoint(0, 0), event.oldSize())
+        if oldrect.contains(rect):
+            self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
+
+        self.viewSizeChanged.emit(self.viewport().rect())
+
+    def updateForeground(self, rect: QtCore.QRect = None) -> None:
+        if rect is None:
+            rect = self.viewport().rect()
+        self.scene().updateForeground(rect)
+
     def wheelEvent(self, event: QtGui.QWheelEvent):
         # Save transformation anchor and set to mouse position
         anchor = self.transformationAnchor()
@@ -216,13 +229,3 @@ class OverlayView(QtWidgets.QGraphicsView):
         self.viewScaleChanged.emit()
 
         self.setTransformationAnchor(anchor)
-
-    def resizeEvent(self, event: QtGui.QResizeEvent):
-        super().resizeEvent(event)
-        rect = self.mapFromScene(self.sceneRect()).boundingRect()
-        rect.moveTo(0, 0)
-        oldrect = QtCore.QRect(QtCore.QPoint(0, 0), event.oldSize())
-        if oldrect.contains(rect):
-            self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
-
-        self.viewSizeChanged.emit(self.viewport().rect())
