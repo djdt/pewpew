@@ -93,6 +93,16 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         self.addItem(item)
         self.overlayitems.append(OverlayItem(item, anchor, alignment))
 
+    def drawForeground(self, painter: QtGui.QPainter, rect: QtCore.QRectF):
+        if self.foreground_pixmap is None:
+            self.updateForeground(self.views()[0].viewport().rect())
+
+        painter.save()
+        painter.resetTransform()
+        # Draw the actual overlay
+        painter.drawPixmap(0, 0, self.foreground_pixmap)
+        painter.restore()
+
     def updateForeground(self, rect: QtCore.QRect) -> None:
         self.foreground_pixmap = QtGui.QPixmap(rect.size())
         self.foreground_pixmap.fill(QtCore.Qt.transparent)
@@ -110,16 +120,6 @@ class OverlayScene(QtWidgets.QGraphicsScene):
 
             # painter.setBrush(QtGui.QBrush(QtCore.Qt.red, QtCore.Qt.Dense7Pattern))
             # painter.drawRect(item.item.boundingRect())
-
-    def drawForeground(self, painter: QtGui.QPainter, rect: QtCore.QRectF):
-        if self.foreground_pixmap is None:
-            self.updateForeground(self.views()[0].viewport().rect())
-
-        painter.save()
-        painter.resetTransform()
-        # Draw the actual overlay
-        painter.drawPixmap(0, 0, self.foreground_pixmap)
-        painter.restore()
 
 
 class OverlayView(QtWidgets.QGraphicsView):
@@ -148,23 +148,19 @@ class OverlayView(QtWidgets.QGraphicsView):
         self.viewSizeChanged.connect(self.updateForeground)
         self.viewScaleChanged.connect(self.updateForeground)
 
-    def setInteractionFlag(self, flag: str, on: bool = True) -> None:
-        if on:
-            self.interaction_flags.add(flag)
-        else:
-            self.interaction_flags.discard(flag)
+    def contextMenuEvent(self, event: QtCore.QEvent) -> None:
+        action_copy_image = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("insert-image"), "Copy To Clipboard", self
+        )
+        action_copy_image.setStatusTip("Copy the graphics view to the clipboard.")
+        action_copy_image.triggered.connect(self.copyToClipboard)
 
-    def setInteractionMode(self, mode: str) -> None:
-        self.viewport().setCursor(self.cursors.get(mode, QtCore.Qt.ArrowCursor))
-        self.interaction_mode = mode
+        context_menu = QtWidgets.QMenu(self.parent())
+        context_menu.addAction(action_copy_image)
+        context_menu.popup(event.globalPos())
 
-    def scrollContentsBy(self, dx: int, dy: int) -> None:
-        super().scrollContentsBy(dx, dy)
-        if self.scene() is not None:
-            self.scene().invalidate(
-                self.mapToScene(self.viewport().rect()).boundingRect(),
-                QtWidgets.QGraphicsScene.ForegroundLayer,
-            )
+    def copyToClipboard(self) -> None:
+        QtWidgets.QApplication.clipboard().setPixmap(self.grab(self.viewport().rect()))
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
         if (
@@ -206,6 +202,24 @@ class OverlayView(QtWidgets.QGraphicsView):
             self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
         self.viewSizeChanged.emit(self.viewport().rect())
+
+    def setInteractionFlag(self, flag: str, on: bool = True) -> None:
+        if on:
+            self.interaction_flags.add(flag)
+        else:
+            self.interaction_flags.discard(flag)
+
+    def setInteractionMode(self, mode: str) -> None:
+        self.viewport().setCursor(self.cursors.get(mode, QtCore.Qt.ArrowCursor))
+        self.interaction_mode = mode
+
+    def scrollContentsBy(self, dx: int, dy: int) -> None:
+        super().scrollContentsBy(dx, dy)
+        if self.scene() is not None:
+            self.scene().invalidate(
+                self.mapToScene(self.viewport().rect()).boundingRect(),
+                QtWidgets.QGraphicsScene.ForegroundLayer,
+            )
 
     def updateForeground(self, rect: QtCore.QRect = None) -> None:
         if rect is None:

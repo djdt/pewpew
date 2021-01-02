@@ -300,10 +300,10 @@ class LaserWidget(_ViewWidget):
         self.is_srr = isinstance(laser, SRRLaser)
 
         self.graphics = LaserGraphicsView(options, parent=self)
+        # We have our own ConnectionRefusedErrorxt menu so hide the normal one
+        self.graphics.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
         # self.canvas.cursorClear.connect(self.clearCursorStatus)
         # self.canvas.cursorMoved.connect(self.updateCursorStatus)
-        # We have our own ConnectionRefusedErrorxt menu so hide the normal one
-        # self.canvas.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
         self.combo_layers = QtWidgets.QComboBox()
         self.combo_layers.addItem("*")
