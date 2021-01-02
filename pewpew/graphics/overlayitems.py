@@ -28,13 +28,22 @@ class LabelOverlay(QtWidgets.QGraphicsItem):
         if color is None:
             color = QtCore.Qt.white
 
-        self.text = text
+        self._text = text
         self.font = font
         self.color = color
 
+    @property
+    def text(self) -> str:
+        return self._text
+
+    @text.setter
+    def text(self, text: str) -> None:
+        self._text = text
+        self.prepareGeometryChange()
+
     def boundingRect(self):
         fm = QtGui.QFontMetrics(self.font)
-        return QtCore.QRectF(0, 0, fm.width(self.text), fm.height())
+        return QtCore.QRectF(0, 0, fm.width(self._text), fm.height())
 
     def paint(
         self,
@@ -45,7 +54,7 @@ class LabelOverlay(QtWidgets.QGraphicsItem):
 
         fm = QtGui.QFontMetrics(self.font, painter.device())
         path = QtGui.QPainterPath()
-        path.addText(0, fm.ascent(), self.font, self.text)
+        path.addText(0, fm.ascent(), self.font, self._text)
 
         painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
         painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
