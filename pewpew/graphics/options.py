@@ -47,6 +47,20 @@ class GraphicsOptions(object):
             vmax = np.nanpercentile(data, float(vmax.rstrip("%")))
         return vmin, vmax  # type: ignore
 
+    def get_colorrange_as_percentile(
+        self, name: str, data: np.ndarray
+    ) -> Tuple[float, float]:
+        vmin, vmax = self.get_colorrange(name)
+        if isinstance(vmin, str):
+            vmin = float(vmin.rstrip("%"))
+        else:
+            vmin = np.count_nonzero(data < vmin) / data.size * 100
+        if isinstance(vmax, str):
+            vmax = float(vmax.rstrip("%"))
+        else:
+            vmin = np.count_nonzero(data < vmax) / data.size * 100
+        return vmin, vmax  # type: ignore
+
     def set_colorrange(
         self, name: str, colorrange: Tuple[Union[float, str], Union[float, str]]
     ) -> None:
