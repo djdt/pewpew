@@ -1,4 +1,3 @@
-"""This is a more efficient way (less paints get called.)"""
 import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
