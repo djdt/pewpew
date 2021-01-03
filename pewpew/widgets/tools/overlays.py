@@ -316,7 +316,8 @@ class OverlayItemRow(QtWidgets.QWidget):
         self.colorrange = RangeSlider()
         self.colorrange.setRange(0, 99)
         self.colorrange.setValues(vmin, vmax)
-        self.colorrange.sliderReleased.connect(self.itemChanged)
+        self.colorrange.valueChanged.connect(self.itemChanged)
+        self.colorrange.value2Changed.connect(self.itemChanged)
 
         self.action_color = qAction(
             "color-picker",

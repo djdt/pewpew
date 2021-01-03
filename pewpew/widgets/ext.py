@@ -1,6 +1,6 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from typing import List
+from typing import List, Tuple
 
 
 class MultipleDirDialog(QtWidgets.QFileDialog):
@@ -33,21 +33,40 @@ class RangeSlider(QtWidgets.QSlider):
         super().__init__(parent)
         self.setOrientation(QtCore.Qt.Horizontal)
 
-        self.value2 = 80
-        self.value2_pressed = False
+        self._value2 = 99
+        self._pressed = False
 
     def left(self) -> int:
-        return min(self.value(), self.value2)
+        return min(self.value(), self.value2())
+
+    def setLeft(self, value: int) -> None:
+        if self.value() < self._value2:
+            self.setValue(value)
+        else:
+            self.setValue2(value)
 
     def right(self) -> int:
-        return max(self.value(), self.value2)
+        return max(self.value(), self.value2())
 
-    def setValue2(self, value: int) -> None:
-        self.value2 = value
+    def setRight(self, value: int) -> None:
+        if self.value() > self._value2:
+            self.setValue(value)
+        else:
+            self.setValue2(value)
+
+    def values(self) -> Tuple[int, int]:
+        return self.value(), self.value2()
 
     def setValues(self, left: int, right: int) -> None:
         self.setValue(left)
-        self.value2 = right
+        self.setValue2(right)
+
+    def value2(self) -> int:
+        return self._value2
+
+    def setValue2(self, value: int) -> None:
+        self._value2 = value
+        self.value2Changed.emit(self._value2)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         option = QtWidgets.QStyleOptionSlider()
@@ -59,19 +78,19 @@ class RangeSlider(QtWidgets.QSlider):
             QtWidgets.QStyle.CC_Slider, option, QtWidgets.QStyle.SC_SliderHandle, self
         )
         pos = self.style().sliderPositionFromValue(
-            self.minimum(), self.maximum(), self.value2, groove.width()
+            self.minimum(), self.maximum(), self.value2(), groove.width()
         )
 
         handle.moveCenter(QtCore.QPoint(pos, handle.center().y()))
         if handle.contains(event.pos()):
             event.accept()
-            self.value2_pressed = True
+            self._pressed = True
             self.setSliderDown(True)
         else:
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
-        if self.value2_pressed:
+        if self._pressed:
             option = QtWidgets.QStyleOptionSlider()
             self.initStyleOption(option)
             groove = self.style().subControlRect(
@@ -95,15 +114,14 @@ class RangeSlider(QtWidgets.QSlider):
                     handle.width(), handle.width(), handle.width(), handle.width()
                 )
             )
-            self.value2 = value
-            self.value2Changed.emit(self.value2)
+            self.setValue2(value)
             self.repaint(handle)
         else:
             super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
-        if self.value2_pressed:
-            self.value2_pressed = False
+        if self._pressed:
+            self._pressed = False
             self.setSliderDown(False)
         super().mouseReleaseEvent(event)
 
