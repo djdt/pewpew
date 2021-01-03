@@ -3,19 +3,22 @@ import numpy as np
 
 from PySide2 import QtCore, QtWidgets
 
-from matplotlib.artist import Artist
-from matplotlib.backend_bases import PickEvent, MouseEvent
-from matplotlib.lines import Line2D
-from matplotlib.patheffects import withStroke
-from matplotlib.transforms import blended_transform_factory
+# from matplotlib.artist import Artist
+# from matplotlib.backend_bases import PickEvent, MouseEvent
+# from matplotlib.lines import Line2D
+# from matplotlib.patheffects import withStroke
+# from matplotlib.transforms import blended_transform_factory
 
 from pewlib import Calibration
 
+from pewpew.graphics.overlaygraphics import OverlayView
+from pewpew.graphics.options import GraphicsOptions
+
 from pewpew.lib.numpyqt import NumpyArrayTableModel
-from pewpew.lib.viewoptions import ViewOptions
-from pewpew.lib.mpltools import LabeledLine2D
+# from pewpew.lib.viewoptions import ViewOptions
+# from pewpew.lib.mpltools import LabeledLine2D
 from pewpew.validators import DoubleSignificantFiguresDelegate
-from pewpew.widgets.canvases import InteractiveImageCanvas
+# from pewpew.widgets.canvases import InteractiveImageCanvas
 from pewpew.widgets.dialogs import CalibrationCurveDialog
 from pewpew.widgets.modelviews import BasicTable, BasicTableView
 from pewpew.widgets.laser import LaserWidget
@@ -61,10 +64,10 @@ class StandardsTool(ToolWidget):
         self.button_plot.pressed.connect(self.showCurve)
 
         # Right side
-        self.canvas = StandardsCanvas(self.viewspace.options, parent=self)
-        self.canvas.state.discard("move")  # Prevent moving
-        self.canvas.state.discard("scroll")  # Prevent scroll zoom
-        self.canvas.guidesChanged.connect(self.updateCounts)
+        self.graphics = StandardsCanvas(self.viewspace.options, parent=self)
+        self.graphics.state.discard("move")  # Prevent moving
+        self.graphics.state.discard("scroll")  # Prevent scroll zoom
+        self.graphics.guidesChanged.connect(self.updateCounts)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
@@ -104,9 +107,9 @@ class StandardsTool(ToolWidget):
         layout_results.addStretch(1)
         box_results.setLayout(layout_results)
 
-        layout_canvas = QtWidgets.QVBoxLayout()
-        layout_canvas.addWidget(self.canvas)
-        self.box_canvas.setLayout(layout_canvas)
+        layout_graphics = QtWidgets.QVBoxLayout()
+        layout_graphics.addWidget(self.graphics)
+        self.box_graphics.setLayout(layout_graphics)
 
         layout_controls = QtWidgets.QVBoxLayout()
         layout_controls.addLayout(layout_cal_form)
@@ -138,7 +141,7 @@ class StandardsTool(ToolWidget):
 
         data = self.widget.laser.get(isotope, calibrate=False, flat=True)
         extent = self.widget.laser.config.data_extent(data.shape)
-        self.canvas.drawData(data, extent)
+        self.graphics.drawData(data, extent)
         # Update view limits
         self.canvas.view_limits = self.canvas.extentForAspect(extent)
         # Redraw guides if number of levels change
@@ -163,10 +166,10 @@ class StandardsTool(ToolWidget):
         wstr = self.combo_weighting.currentText()
         if wstr == "1/σ²":
             if self.calibration[isotope].x.size > 0:
-                data = self.canvas.image.get_array()
-                trim_left, trim_right = self.canvas.getCurrentTrim()
+                data = self.graphics.image.get_array()
+                trim_left, trim_right = self.graphics.getCurrentTrim()
                 data = data[:, trim_left:trim_right]
-                levels = self.canvas.getCurrentLevels()
+                levels = self.graphics.getCurrentLevels()
                 order = np.argsort(levels)
                 buckets = np.split(data, levels[order], axis=0)
                 weights = 1.0 / np.square(
@@ -181,13 +184,13 @@ class StandardsTool(ToolWidget):
             self.calibration[isotope].weights = wstr
 
     def updateCounts(self) -> None:
-        data = self.canvas.image.get_array()
-        trim_left, trim_right = self.canvas.getCurrentTrim()
+        data = self.graphics.image.get_array()
+        trim_left, trim_right = self.graphics.getCurrentTrim()
         data = data[:, trim_left:trim_right]
         if data.size == 0:  # pragma: no cover
             return
 
-        levels = self.canvas.getCurrentLevels()
+        levels = self.graphics.getCurrentLevels()
         order = np.argsort(levels)
         buckets = np.split(data, levels[order], axis=0)
         self.table.setCounts([np.nanmean(buckets[i + 1]) for i in order])
