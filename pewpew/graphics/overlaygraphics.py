@@ -2,6 +2,8 @@
 """
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from pathlib import Path
+
 from typing import List, Set, Union
 
 
@@ -93,9 +95,9 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         self.addItem(item)
         self.overlayitems.append(OverlayItem(item, anchor, alignment))
 
-    def drawForeground(self, painter: QtGui.QPainter, rect: QtCore.QRectF):
+    def drawForeground(self, painter: QtGui.QPainter, rect: QtCore.QRect):
         if self.foreground_pixmap is None:
-            self.updateForeground(self.views()[0].viewport().rect())
+            self.updateForeground(rect)
 
         painter.save()
         painter.resetTransform()
@@ -202,6 +204,17 @@ class OverlayView(QtWidgets.QGraphicsView):
             self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
         self.viewSizeChanged.emit(self.viewport().rect())
+
+    def saveToFile(self, path: Union[str, Path]) -> None:
+        if isinstance(path, str):
+            path = Path(path)
+
+        pixmap = QtGui.QPixmap(self.viewport().size())
+        painter = QtGui.QPainter(pixmap)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        self.render(painter)
+        pixmap.save(str(path.absolute()))
+        painter.end()
 
     def setInteractionFlag(self, flag: str, on: bool = True) -> None:
         if on:
