@@ -171,7 +171,7 @@ class CalculatorTool(ToolWidget):
         layout_controls.addRow("Result:", self.output)
         self.box_controls.setLayout(layout_controls)
 
-        self.initialise()
+        self.initialise()  # refreshes
 
     def apply(self) -> None:
         self.modified = True
@@ -224,16 +224,6 @@ class CalculatorTool(ToolWidget):
         if not self.lineedit_name.hasAcceptableInput():
             return False
         return True
-
-    def onFirstShow(self) -> None:
-        rect = self.widget.graphics.mapToScene(
-            self.widget.graphics.viewport().rect()
-        ).boundingRect()
-        self.graphics.fitInView(
-            rect, QtCore.Qt.KeepAspectRatio
-        )
-        self.graphics.updateForeground()
-        self.graphics.invalidateScene()
 
     def previewData(self, data: np.ndarray) -> np.ndarray:
         self.reducer.variables = {name: data[name] for name in data.dtype.names}

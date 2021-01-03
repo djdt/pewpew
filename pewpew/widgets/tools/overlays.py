@@ -190,6 +190,8 @@ class OverlayTool(ToolWidget):
         self.button_box.addButton(self.button_save, QtWidgets.QDialogButtonBox.YesRole)
         self.button_box.addButton(QtWidgets.QDialogButtonBox.Cancel)
 
+        self.refresh()
+
     def isComplete(self) -> bool:
         return self.rows.rowCount() > 0
 
@@ -234,14 +236,6 @@ class OverlayTool(ToolWidget):
             self.combo_add.setEnabled(True)
             self.check_normalise.setEnabled(True)
         self.refresh()
-
-    def onFirstShow(self) -> None:
-        rect = self.widget.graphics.mapToScene(
-            self.widget.graphics.viewport().rect()
-        ).boundingRect()
-        self.graphics.fitInView(rect, QtCore.Qt.KeepAspectRatio)
-        self.graphics.updateForeground()
-        self.graphics.invalidateScene()
 
     def processRow(self, row: "OverlayItemRow") -> np.ndarray:
         img = self.widget.laser.get(row.label_name.text(), calibrate=True, flat=True)

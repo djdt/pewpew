@@ -20,6 +20,8 @@ class ToolWidget(_ViewWidget):
         self.modified = widget.modified
         self._shown = False
 
+        self.graphics: QtWidgets.QGraphicsView = None
+
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Cancel
             | QtWidgets.QDialogButtonBox.Ok
@@ -90,7 +92,13 @@ class ToolWidget(_ViewWidget):
         return True
 
     def onFirstShow(self) -> None:
-        pass
+        rect = self.widget.graphics.mapToScene(
+            self.widget.graphics.viewport().rect()
+        ).boundingRect()
+        rect = rect.intersected(self.widget.graphics.sceneRect())
+        self.graphics.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+        self.graphics.updateForeground()
+        self.graphics.invalidateScene()
 
     def reject(self) -> None:
         self.restoreWidget()
