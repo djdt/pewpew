@@ -3,7 +3,6 @@ from pathlib import Path
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewlib import io
 from pewlib.process.calc import normalise
 
 from pewpew.actions import qAction, qToolButton
@@ -236,6 +235,14 @@ class OverlayTool(ToolWidget):
             self.check_normalise.setEnabled(True)
         self.refresh()
 
+    def onFirstShow(self) -> None:
+        rect = self.widget.graphics.mapToScene(
+            self.widget.graphics.viewport().rect()
+        ).boundingRect()
+        self.graphics.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+        self.graphics.updateForeground()
+        self.graphics.invalidateScene()
+
     def processRow(self, row: "OverlayItemRow") -> np.ndarray:
         img = self.widget.laser.get(row.label_name.text(), calibrate=True, flat=True)
         vmin, vmax = row.getVmin(img), row.getVmax(img)
@@ -282,15 +289,6 @@ class OverlayTool(ToolWidget):
         self.graphics.setOverlayItemVisibility()
         self.graphics.updateForeground()
         self.graphics.invalidateScene()
-
-    def savegraphics(self, path: Path, raw: bool = False) -> None:
-        if raw:
-            pass
-            # imsave(path, self.graphics.image.get_array())
-        else:
-            self.graphics.figure.savefig(
-                path, dpi=300, bbox_inches="tight", transparent=False, facecolor="black"
-            )
 
     def updateCursorStatus(self, v: np.ndarray) -> None:
         status_bar = self.viewspace.window().statusBar()
@@ -562,48 +560,53 @@ class OverlayExportDialog(_ExportDialogBase):
         option = self.options.currentOption()
 
         if option.ext == ".png":
-            self.widget.saveCanvas(path, raw=option.raw())
+            if option.raw():
+                self.widget.graphics.image.image.save(str(path.absolute()))
+            else:
+                self.widget.graphics.saveToFile(str(path.absolute()))
         else:
-            raise io.error.PewException(f"Unable to export file as '{option.ext}'.")
+            raise ValueError(f"Unable to export file as '{option.ext}'.")
 
-    def exportIndividual(self, path: Path, row: int) -> None:
+    def exportIndividual(self, path: Path, rowi: int) -> None:
         option = self.options.currentOption()
+        row = self.widget.rows[rowi]
 
         if option.ext == ".png":
-            data = self.widget.processRow(self.widget.rows[row])
-            if self.widget.model_type[self.widget.rows.color_model] == "subtractive":
-                data = np.ones_like(data) - data
+            img = self.widget.processRow(row).astype(np.uint32)
+
+            if OverlayTool.model_type[self.widget.rows.color_model] == "subtractive":
+                img = np.full_like(img, 255) - img
+
+            img = (
+                (255 << 24) + (img[:, :, 0] << 16) + (img[:, :, 1] << 8) + img[:, :, 2]
+            )
+
+            x0, x1, y0, y1 = self.widget.widget.laser.config.data_extent(img.shape)
+            rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
+
             if option.raw():
-                pass
-                # imsave(path, data)
+                image = QtGui.QImage(
+                    img.data, img.shape[1], img.shape[0], QtGui.QImage.Format_RGB32
+                )
+                image.save(str(path.absolute()))
             else:
-                pass
-                # canvas = OverlayCanvas(self.widget.canvas.viewoptions, self)
-                # canvas.drawData(
-                #     data, self.widget.widget.laser.config.data_extent(data.shape)
-                # )
-                # canvas.view_limits = self.widget.canvas.view_limits
+                self.widget.graphics.drawImage(img, rect)
 
-                # if canvas.viewoptions.canvas.label:
-                #     names = [self.widget.rows[row].label_name.text()]
-                #     canvas.drawLabel(names, ["white"])
+                self.widget.graphics.label.colors = [QtCore.Qt.white]
+                self.widget.graphics.label.texts = [row.label_name.text()]
 
-                # if canvas.viewoptions.canvas.scalebar:
-                #     canvas.drawScalebar()
+                self.widget.graphics.updateForeground()
+                self.widget.graphics.invalidateScene()
 
-                # canvas.figure.set_size_inches(
-                #     self.widget.canvas.figure.get_size_inches()
-                # )
-                # canvas.figure.savefig(
-                #     path,
-                #     dpi=300,
-                #     bbox_inches="tight",
-                #     transparent=False,
-                #     facecolor="black",
-                # )
-                # canvas.close()
+                pixmap = QtGui.QPixmap(self.widget.graphics.viewport().size())
+
+                painter = QtGui.QPainter(pixmap)
+                self.widget.graphics.render(painter)
+                painter.end()
+
+                pixmap.save(str(path.absolute()))
         else:
-            raise io.error.PewException(f"Unable to export file as '{option.ext}'.")
+            raise ValueError(f"Unable to export file as '{option.ext}'.")
 
     def accept(self) -> None:
         prompt = OverwriteFilePrompt()
@@ -615,23 +618,11 @@ class OverlayExportDialog(_ExportDialogBase):
             if not prompt.promptOverwrite(self.getPath()):
                 return
 
-        try:
-            if self.isIndividual():
-                for path, row in paths:
-                    self.exportIndividual(path, row)
-            else:
-                self.export(self.getPath())
-        except io.error.PewException as e:
-            QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
-            return
+        if self.isIndividual():
+            for path, row in paths:
+                self.exportIndividual(path, row)
+            self.widget.refresh()
+        else:
+            self.export(self.getPath())
 
         super().accept()
-
-
-# if __name__ == "__main__":
-    # r = np.zeros((200, 100), dtype=np.uint32)
-    # r[:100] = 255
-    # g = np.zeros((200, 100), dtype=np.uint32)
-    # g[:, :50] = 255
-    # b = np.zeros((200, 100), dtype=np.uint32)
-    # b[50:150, 25:75] = 255
