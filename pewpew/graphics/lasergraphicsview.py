@@ -65,6 +65,16 @@ class LaserGraphicsView(OverlayView):
             QtCore.Qt.AlignBottom | QtCore.Qt.AlignLeft,
         )
 
+    def mapToData(self, pos: QtCore.QPointF) -> QtCore.QPoint:
+        if self.image is None or self.data is None:
+            return QtCore.QPoint(0, 0)
+
+        px = self.image.rect.width() / self.data.shape[1]
+        py = self.image.rect.height() / self.data.shape[0]
+
+        pos -= self.image.rect.topLeft()
+        return QtCore.QPoint(pos.x() / px, pos.y() / py)
+
     def startLassoSelection(self) -> None:
         if self.selection_item is not None:
             self.scene().removeItem(self.selection_item)

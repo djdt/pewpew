@@ -27,14 +27,58 @@ from pewpew.widgets.laser import LaserWidget
 
 from .tool import ToolWidget
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 
 class StandardsGraphicsView(LaserGraphicsView):
+    levelsChanged = QtCore.Signal()
+
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
         super().__init__(options, parent)
+        self.setInteractionMode("selection")
+        self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
 
-    pass
+        self.levels: List[CalibrationRectItem] = []
+
+    def drawLevels(self, labels: str, n: int) -> None:
+        for item in self.levels:
+            self.scene().removeItem(item)
+        self.levels = []
+
+        px = self.image.rect.width() / self.data.shape[1]
+        py = self.image.rect.height() / self.data.shape[0]
+
+        x1 = self.image.rect.x() + 0.1 * self.image.rect.width()
+        x2 = self.image.rect.x() + 0.9 * self.image.rect.width()
+
+        height_per_level = self.image.rect.height() / n
+
+        for i in range(n):
+            y1 = self.image.rect.y() + i * height_per_level
+            y2 = self.image.rect.y() + (i + 1) * height_per_level
+
+            rect = QtCore.QRectF(x1, y1, x2 - x1, y2 - y1)
+
+            item = CalibrationRectItem(rect, labels[i], px, py, font=self.options.font)
+            self.levels.append(item)
+            self.scene().addItem(item)
+
+    def currentLevelDataCoords(self) -> List[Tuple[int, int, int, int]]:
+        levels = []
+        for item in self.levels:
+            p1 = self.mapToData(item.mapToScene(item.rect.topLeft()))
+            p2 = self.mapToData(item.mapToScene(item.rect.bottomRight()))
+            levels.append((p1.x(), p1.y(), p2.x(), p2.y()))
+        return levels
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
+        for item in self.levels:
+            if item.changed:
+                self.levelsChanged.emit()
+                break
+        for item in self.levels:
+            item.changed = False
+        super().mouseReleaseEvent(event)
 
 
 class StandardsTool(ToolWidget):
@@ -74,9 +118,7 @@ class StandardsTool(ToolWidget):
 
         # Right side
         self.graphics = StandardsGraphicsView(self.viewspace.options, parent=self)
-        self.graphics.state.discard("move")  # Prevent moving
-        self.graphics.state.discard("scroll")  # Prevent scroll zoom
-        self.graphics.guidesChanged.connect(self.updateCounts)
+        self.graphics.levelsChanged.connect(self.updateCounts)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
@@ -107,17 +149,19 @@ class StandardsTool(ToolWidget):
         layout_table_form.addRow("Units:", self.lineedit_units)
         layout_table_form.addRow("Weighting:", self.combo_weighting)
 
-        box_results = QtWidgets.QGroupBox("Results")
+        # box_results = QtWidgets.QGroupBox("Results")
         layout_results = QtWidgets.QHBoxLayout()
         layout_results.addWidget(self.results, 0)
         layout_results.addWidget(
             self.button_plot, 0, QtCore.Qt.AlignRight | QtCore.Qt.AlignBottom
         )
         layout_results.addStretch(1)
-        box_results.setLayout(layout_results)
+        # box_results.setLayout(layout_results)
 
         layout_graphics = QtWidgets.QVBoxLayout()
-        layout_graphics.addWidget(self.graphics)
+        layout_graphics.addWidget(self.graphics, 1)
+        layout_graphics.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+        layout_graphics.addLayout(layout_results)
         self.box_graphics.setLayout(layout_graphics)
 
         layout_controls = QtWidgets.QVBoxLayout()
@@ -126,10 +170,10 @@ class StandardsTool(ToolWidget):
         layout_controls.addLayout(layout_table_form)
         self.box_controls.setLayout(layout_controls)
 
-        self.layout_bottom.addWidget(box_results, 0, QtCore.Qt.AlignLeft)
-        self.layout_bottom.addWidget(
-            self.combo_isotope, 0, QtCore.Qt.AlignTop | QtCore.Qt.AlignRight
-        )
+        # self.layout_bottom.addWidget(box_results, 0, QtCore.Qt.AlignLeft)
+        # self.layout_bottom.addWidget(
+        #     self.combo_isotope, 0, QtCore.Qt.AlignTop | QtCore.Qt.AlignRight
+        # )
 
         self.refresh()
         self.updateResults()
@@ -153,7 +197,9 @@ class StandardsTool(ToolWidget):
         x0, x1, y0, y1 = self.widget.laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
-        self.graphics.drawImage(data, rect, self.lineedit_name.text())
+        self.graphics.drawImage(data, rect, self.combo_isotope.currentText())
+
+        self.graphics.label.text = self.combo_isotope.currentText()
 
         self.graphics.setOverlayItemVisibility()
         self.graphics.updateForeground()
@@ -164,10 +210,8 @@ class StandardsTool(ToolWidget):
         # # Update view limits
         # self.canvas.view_limits = self.canvas.extentForAspect(extent)
         # # Redraw guides if number of levels change
-        # if len(self.canvas.level_guides) - 1 != self.spinbox_levels.value():
-        #     self.canvas.drawLevels(
-        #         StandardsTable.ROW_LABELS, self.spinbox_levels.value()
-        #     )
+        if len(self.graphics.levels) != self.spinbox_levels.value():
+            self.graphics.drawLevels(self.table.ROW_LABELS, self.spinbox_levels.value())
         # # Draw vert guides after so they get pick priority
         # if len(self.canvas.edge_guides) == 0:
         #     w = extent[1] - extent[0]
@@ -203,16 +247,18 @@ class StandardsTool(ToolWidget):
             self.calibration[isotope].weights = wstr
 
     def updateCounts(self) -> None:
-        data = self.graphics.image.get_array()
-        trim_left, trim_right = self.graphics.getCurrentTrim()
-        data = data[:, trim_left:trim_right]
-        if data.size == 0:  # pragma: no cover
+        if self.graphics.data.size == 0:  # pragma: no cover
             return
 
-        levels = self.graphics.getCurrentLevels()
-        order = np.argsort(levels)
-        buckets = np.split(data, levels[order], axis=0)
-        self.table.setCounts([np.nanmean(buckets[i + 1]) for i in order])
+        shape = self.graphics.data.shape
+        levels = self.graphics.currentLevelDataCoords()
+        buckets = []
+        for i, (x1, y1, x2, y2) in enumerate(levels):
+            x1, y1 = max(x1, 0), max(y1, 0)
+            x2, y2 = max(x2, shape[0]), max(y1, shape[1])
+            bucket = self.graphics.data[y1:y2, x1:x2]
+            buckets.append(bucket)
+        self.table.setCounts([np.nanmean(bucket) for bucket in buckets])
 
     def updateResults(self) -> None:
         # Make sure weights are up to date
@@ -265,194 +311,6 @@ class StandardsTool(ToolWidget):
         self.table.setRowCount(self.spinbox_levels.value())
         self.table.updateGeometry()
         self.refresh()
-
-
-# class StandardsCanvas(InteractiveImageCanvas):
-#     guidesChanged = QtCore.Signal()
-
-#     def __init__(self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None):
-#         super().__init__(widget_button=1, state=(), parent=parent)
-#         self.viewoptions = viewoptions
-
-#         self.connect_event("draw_event", self.update_background)
-#         self.connect_event("resize_event", self._resize)
-#         self.connect_event("pick_event", self._pick)
-
-#         self.guides_need_draw = True
-
-#         self.background = None
-#         self.level_guides: List[LabeledLine2D] = []
-#         self.edge_guides: List[Line2D] = []
-
-#         self.picked_artist: Artist = None
-
-#         self.drawFigure()
-
-#     def _resize(self, event) -> None:
-#         self.guides_need_draw = True
-
-#     def _pick(self, event: PickEvent) -> None:
-#         if self.ignore_event(event.mouseevent):
-#             return
-#         if event.mouseevent.button == self.widget_button:
-#             self.picked_artist = event.artist
-#         else:
-#             self.picked_artist = None
-
-#     def update_background(self, event) -> None:
-#         self.background = self.copy_from_bbox(self.ax.bbox)
-#         if self.guides_need_draw:
-#             self.blitGuides()
-
-#     def move(self, event: MouseEvent) -> None:
-#         if self.picked_artist is not None:
-#             if self.picked_artist in self.level_guides:
-#                 self.picked_artist.set_ydata([event.ydata, event.ydata])
-#             elif self.picked_artist in self.edge_guides:
-#                 self.picked_artist.set_xdata([event.xdata, event.xdata])
-#             self.blitGuides()
-
-#     def release(self, event: MouseEvent) -> None:
-#         if self.picked_artist is not None:
-#             x = self.picked_artist.get_xdata()[0]
-#             y = self.picked_artist.get_ydata()[0]
-#             shape = self.image.get_array().shape
-#             x0, x1, y0, y1 = self.extent
-#             # Snap to pixels
-#             pxy = (x1 - x0, y1 - y0) / np.array((shape[1], shape[0]))
-#             x, y = pxy * np.round((x, y) / pxy)
-
-#             if self.picked_artist in self.level_guides:
-#                 self.picked_artist.set_ydata([y, y])
-#             elif self.picked_artist in self.edge_guides:
-#                 self.picked_artist.set_xdata([x, x])
-
-#             self.blitGuides()
-#             self.guidesChanged.emit()
-#             self.picked_artist = None
-
-#     # def drawFigure(self) -> None:
-#     #     self.background = None
-#     #     self.figure.clear()
-#     #     self.ax = self.figure.add_subplot(facecolor="black")
-#     #     self.ax.get_xaxis().set_visible(False)
-#     #     self.ax.get_yaxis().set_visible(False)
-
-#     def drawData(
-#         self, data: np.ndarray, extent: Tuple[float, float, float, float]
-#     ) -> None:
-#         if self.image is not None:
-#             self.image.remove()
-#         self.image = self.ax.imshow(
-#             data,
-#             extent=extent,
-#             cmap=self.viewoptions.image.cmap,
-#             interpolation=self.viewoptions.image.interpolation,
-#             alpha=self.viewoptions.image.alpha,
-#             aspect="equal",
-#             origin="lower",
-#         )
-
-#     def drawLevels(self, texts: List[str], levels: int) -> None:
-#         x0, x1, y0, y1 = self.extent
-#         pos = np.linspace(y0, y1, num=levels + 1)
-#         # Snap
-#         py = (y1 - y0) / self.image.get_array().shape[0]
-#         pos = py * np.round(pos / py)
-#         self.drawLevelGuides(pos, texts)
-#         # First guide is just for label
-#         self.level_guides[0].set_picker(False)
-#         self.level_guides[-1].set_picker(False)
-#         self.level_guides[-1].text.set_text("")
-#         # self.level_guides[0].set_visible()
-
-#     def drawLevelGuides(self, ypos: List[float], texts: List[str]) -> None:
-#         for line in self.level_guides:
-#             line.remove()
-#         self.level_guides = []
-
-#         textprops = dict(
-#             color="white",
-#             fontsize=12,
-#             path_effects=[withStroke(linewidth=1.5, foreground="black")],
-#             horizontalalignment="left",
-#             verticalalignment="top",
-#         )
-
-#         for y, text in zip(ypos, texts):
-#             line = LabeledLine2D(
-#                 (0.0, 1.0),
-#                 (y, y),
-#                 transform=blended_transform_factory(
-#                     self.ax.transAxes, self.ax.transData
-#                 ),
-#                 color="white",
-#                 linestyle="--",
-#                 path_effects=[withStroke(linewidth=2.0, foreground="black")],
-#                 linewidth=1.0,
-#                 picker=True,
-#                 pickradius=5,
-#                 animated=True,
-#                 label=text,
-#                 label_offset=(5, -5),
-#                 textprops=textprops,
-#             )
-#             self.level_guides.append(line)
-#             self.ax.add_artist(line)
-
-#     def drawEdgeGuides(self, xpos: Tuple[float, float]) -> None:
-#         for line in self.edge_guides:
-#             line.remove()
-#         self.edge_guides = []
-
-#         for x in xpos:
-#             line = Line2D(
-#                 (x, x),
-#                 (0.0, 1.0),
-#                 transform=blended_transform_factory(
-#                     self.ax.transData, self.ax.transAxes
-#                 ),
-#                 color="white",
-#                 linestyle="-",
-#                 path_effects=[withStroke(linewidth=2.0, foreground="black")],
-#                 linewidth=1.0,
-#                 picker=True,
-#                 pickradius=5,
-#                 animated=True,
-#             )
-#             self.edge_guides.append(line)
-#             self.ax.add_artist(line)
-
-#     def blitGuides(self) -> None:
-#         if self.background is not None:
-#             self.restore_region(self.background)
-
-#         for a in self.level_guides:
-#             self.ax.draw_artist(a)
-#         for a in self.edge_guides:
-#             self.ax.draw_artist(a)
-
-#         self.blit()
-#         self.guides_need_draw = False
-
-#     def getCurrentLevels(self) -> List[int]:
-#         shape = self.image.get_array().shape
-#         x0, x1, y0, y1 = self.extent
-#         py = (y1 - y0) / shape[0]  # Axes coords
-#         levels = np.array(
-#             [guide.get_ydata()[0] / py for guide in self.level_guides[:-1]], dtype=int
-#         )
-#         return levels
-
-#     def getCurrentTrim(self) -> Tuple[int, int]:
-#         shape = self.image.get_array().shape
-#         x0, x1, y0, y1 = self.extent
-#         px = (x1 - x0) / shape[1]  # Axes coords
-#         trim = np.array(
-#             [guide.get_xdata()[0] / px for guide in self.edge_guides], dtype=int
-#         )
-
-#         return np.min(trim), np.max(trim)
 
 
 class StandardsResultsTable(BasicTable):
@@ -620,7 +478,7 @@ class StandardsTable(BasicTableView):
             self.model().removeRows(rows, current_rows - rows)
 
 
-class CalibrationRectItem(QtWidgets.QGraphicsRectItem):
+class CalibrationRectItem(QtWidgets.QGraphicsItem):
     cursors = {
         "left": QtCore.Qt.SizeHorCursor,
         "right": QtCore.Qt.SizeHorCursor,
@@ -637,7 +495,7 @@ class CalibrationRectItem(QtWidgets.QGraphicsRectItem):
         font: QtGui.QFont = None,
         parent: QtWidgets.QGraphicsItem = None,
     ):
-        super().__init__(rect, parent=parent)
+        super().__init__(parent=parent)
         self.setFlags(
             QtWidgets.QGraphicsItem.ItemIsFocusable
             | QtWidgets.QGraphicsItem.ItemIsMovable
@@ -645,25 +503,31 @@ class CalibrationRectItem(QtWidgets.QGraphicsRectItem):
             | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges
         )
         self.setAcceptHoverEvents(True)
+        self.setFiltersChildEvents(True)
 
-        pen = QtGui.QPen(QtCore.Qt.white, 2.0)
-        pen.setCosmetic(True)
-        self.setPen(pen)
+        self.pen = QtGui.QPen(QtCore.Qt.white, 2.0)
+        self.pen.setCosmetic(True)
 
         if font is None:
             font = QtGui.QFont()
 
-        self.label = QtWidgets.QGraphicsTextItem(label, self)
+        self.label = QtWidgets.QGraphicsTextItem(label, parent=self)
         self.label.setFont(font)
         self.label.setDefaultTextColor(QtCore.Qt.white)
         self.label.setFlag(QtWidgets.QGraphicsTextItem.ItemIgnoresTransformations)
-        self.font = font
+        self.label.setFlag(QtWidgets.QGraphicsTextItem.ItemStacksBehindParent, True)
+
+        self.rect = rect
 
         self.px = px
         self.py = py
-        self.max_dist = np.sqrt(self.px ** 2 + self.py ** 2) / 2.0
+        self.max_dist = 10
 
         self.selectedEdge: str = None
+        self.changed = False
+
+    def boundingRect(self) -> QtCore.QRectF:
+        return self.rect
 
     def paint(
         self,
@@ -671,15 +535,20 @@ class CalibrationRectItem(QtWidgets.QGraphicsRectItem):
         option: QtWidgets.QStyleOptionGraphicsItem,
         widget: QtWidgets.QWidget = None,
     ):
-        self.label.setPos(self.rect().topLeft())
-        self.label.paint(painter, option, widget)
+        painter.setPen(self.pen)
+        painter.drawRect(self.rect)
 
-        super().paint(painter, option, widget)
+        if self.isSelected():
+            painter.fillRect(self.rect, QtGui.QBrush(QtGui.QColor(255, 255, 255, 32)))
+
+        self.label.setPos(self.rect.topLeft())
+        self.label.paint(painter, option, widget)
 
     def itemChange(
         self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
     ) -> Any:
         if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+            self.changed = True
             pos = QtCore.QPointF(value)
             pos.setX(pos.x() - pos.x() % self.px)
             pos.setY(pos.y() - pos.y() % self.py)
@@ -694,24 +563,20 @@ class CalibrationRectItem(QtWidgets.QGraphicsRectItem):
         ]
 
     def edgeAt(self, pos: QtCore.QPointF) -> str:
-        if (
-            not self.rect()
-            .marginsAdded(
-                QtCore.QMarginsF(
-                    self.max_dist, self.max_dist, self.max_dist, self.max_dist
-                )
-            )
-            .contains(pos)
-        ):
+        view = next(iter(self.scene().views()), None)
+        if view is None:
             return None
+        max_dist = view.mapToScene(
+            QtCore.QRect(0, 0, self.max_dist, self.max_dist)
+        ).boundingRect().width()
 
-        if pos.x() < self.rect().left() + self.max_dist:
+        if pos.x() < self.rect.left() + max_dist:
             return "left"
-        elif pos.x() > self.rect().right() - self.max_dist:
+        elif pos.x() > self.rect.right() - max_dist:
             return "right"
-        elif pos.y() < self.rect().top() + self.max_dist:
+        elif pos.y() < self.rect.top() + max_dist:
             return "top"
-        elif pos.y() > self.rect().bottom() - self.max_dist:
+        elif pos.y() > self.rect.bottom() - max_dist:
             return "bottom"
         else:
             return None
@@ -740,7 +605,7 @@ class CalibrationRectItem(QtWidgets.QGraphicsRectItem):
         else:
             for item in self.selectedSiblings():
                 pos = item.mapFromItem(self, event.pos())
-                rect = item.rect()
+                rect = item.rect
                 if self.selectedEdge == "left" and pos.x() < rect.right():
                     rect.setLeft(pos.x() - pos.x() % self.px)
                 elif self.selectedEdge == "right" and pos.x() > rect.left() + self.px:
@@ -750,7 +615,8 @@ class CalibrationRectItem(QtWidgets.QGraphicsRectItem):
                 elif self.selectedEdge == "bottom" and pos.y() > rect.top() + self.py:
                     rect.setBottom(pos.y() - pos.y() % self.py)
 
-                item.setRect(rect)
+                item.prepareGeometryChange()
+                item.changed = True
 
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         self.selectedEdge = None
