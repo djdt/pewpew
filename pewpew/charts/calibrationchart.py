@@ -56,16 +56,12 @@ class CalibrationChart(QtCharts.QChartView):
 
         xmin, xmax = np.amin(points[:, 0]), np.amax(points[:, 0])
         ymin, ymax = np.amin(points[:, 1]), np.amax(points[:, 1])
-        # self.xaxis.setRange(xmin - (xmax - xmin) * 0.05, xmax + (xmax - xmin) * 0.05)
-        # self.yaxis.setRange(ymin - (ymax - ymin) * 0.05, ymax + (ymax - ymin) * 0.05)
 
         self.xaxis.setRange(xmin, xmax)
         self.yaxis.setRange(ymin, ymax)
 
         poly = array_to_polygonf(points)
         self.series.replace(poly)
-
-        self.line.replace([poly.first(), poly.last()])
 
         self.xaxis.applyNiceNumbers()
         self.yaxis.applyNiceNumbers()

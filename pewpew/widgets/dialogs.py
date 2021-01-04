@@ -194,8 +194,15 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle("Calibration Curve")
         self.chart = CalibrationChart(title, parent=self)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.chart)
+        self.setLayout(layout)
+
+        self.updateChart(calibration)
+
+    def updateChart(self, calibration: Calibration) -> None:
         self.chart.xaxis.setTitleText(calibration.unit)
-        # ax = self.canvas.figure.subplots()
         self.chart.setPoints(calibration.points)
         self.chart.setLine(
             0.0,
@@ -203,34 +210,6 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
             calibration.gradient,
             calibration.intercept,
         )
-
-        #         xlabel = "Concentration"
-        #         if calibration.unit != "":
-        #             xlabel += f" ({calibration.unit})"
-
-        #         ax.scatter(calibration.x, calibration.y, color="black")
-        #         ax.plot([x0, x1], [m * x0 + b, m * x1 + b], ls=":", lw=1.5, color="black")
-        #         ax.set_xlabel(xlabel)
-        #         ax.set_ylabel("Counts")
-
-        #         text = Text(
-        #             x=0.05,
-        #             y=0.95,
-        #             text=str(calibration),
-        #             transform=ax.transAxes,
-        #             color="black",
-        #             fontsize=12,
-        #             horizontalalignment="left",
-        #             verticalalignment="top",
-        #         )
-
-        #         ax.add_artist(text)
-
-        #         self.canvas.draw()
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.chart)
-        self.setLayout(layout)
 
 
 class ColorRangeDialog(ApplyDialog):

@@ -60,6 +60,7 @@ class StandardsGraphicsView(LaserGraphicsView):
             rect = QtCore.QRectF(x1, y1, x2 - x1, y2 - y1)
 
             item = CalibrationRectItem(rect, labels[i], px, py, font=self.options.font)
+            item.setZValue(self.image.zValue() + 1)
             self.levels.append(item)
             self.scene().addItem(item)
 
@@ -90,6 +91,7 @@ class StandardsTool(ToolWidget):
 
         self.calibration: Dict[str, Calibration] = None
         self.previous_isotope = ""
+        self.dlg: CalibrationCurveDialog = None
 
         # Left side
         self.spinbox_levels = QtWidgets.QSpinBox()
@@ -149,18 +151,15 @@ class StandardsTool(ToolWidget):
         layout_table_form.addRow("Units:", self.lineedit_units)
         layout_table_form.addRow("Weighting:", self.combo_weighting)
 
-        # box_results = QtWidgets.QGroupBox("Results")
         layout_results = QtWidgets.QHBoxLayout()
-        layout_results.addWidget(self.results, 0)
+        layout_results.addWidget(self.results, 1)
         layout_results.addWidget(
-            self.button_plot, 0, QtCore.Qt.AlignRight | QtCore.Qt.AlignBottom
+            self.button_plot, 0, QtCore.Qt.AlignRight | QtCore.Qt.AlignTop
         )
-        layout_results.addStretch(1)
-        # box_results.setLayout(layout_results)
+        layout_results.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignTop)
 
         layout_graphics = QtWidgets.QVBoxLayout()
         layout_graphics.addWidget(self.graphics, 1)
-        layout_graphics.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
         layout_graphics.addLayout(layout_results)
         self.box_graphics.setLayout(layout_graphics)
 
@@ -169,11 +168,6 @@ class StandardsTool(ToolWidget):
         layout_controls.addWidget(self.table)
         layout_controls.addLayout(layout_table_form)
         self.box_controls.setLayout(layout_controls)
-
-        # self.layout_bottom.addWidget(box_results, 0, QtCore.Qt.AlignLeft)
-        # self.layout_bottom.addWidget(
-        #     self.combo_isotope, 0, QtCore.Qt.AlignTop | QtCore.Qt.AlignRight
-        # )
 
         self.refresh()
         self.updateResults()
@@ -255,7 +249,7 @@ class StandardsTool(ToolWidget):
         buckets = []
         for i, (x1, y1, x2, y2) in enumerate(levels):
             x1, y1 = max(x1, 0), max(y1, 0)
-            x2, y2 = max(x2, shape[0]), max(y1, shape[1])
+            x2, y2 = min(x2, shape[1]), min(y2, shape[0])
             bucket = self.graphics.data[y1:y2, x1:x2]
             buckets.append(bucket)
         self.table.setCounts([np.nanmean(bucket) for bucket in buckets])
@@ -273,6 +267,8 @@ class StandardsTool(ToolWidget):
             self.calibration[isotope].update_linreg()
             self.results.updateResults(self.calibration[isotope])
             self.button_plot.setEnabled(True)
+            if self.dlg is not None:
+                self.dlg.updateChart(self.calibration[isotope])
 
     # Widget callbacks
     def comboIsotope(self, text: str) -> None:
@@ -299,13 +295,17 @@ class StandardsTool(ToolWidget):
         self.calibration[isotope].unit = unit
 
     def showCurve(self) -> QtWidgets.QDialog:
-        dlg = CalibrationCurveDialog(
+        self.dlg = CalibrationCurveDialog(
             self.combo_isotope.currentText(),
             self.calibration[self.combo_isotope.currentText()],
             parent=self,
         )
-        dlg.show()
-        return dlg
+        self.dlg.finished.connect(self.clearCurve)
+        self.dlg.show()
+        return self.dlg
+
+    def clearCurve(self) -> None:
+        self.dlg = None
 
     def spinBoxLevels(self) -> None:
         self.table.setRowCount(self.spinbox_levels.value())
