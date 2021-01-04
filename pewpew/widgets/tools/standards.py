@@ -511,11 +511,8 @@ class CalibrationRectItem(QtWidgets.QGraphicsItem):
         if font is None:
             font = QtGui.QFont()
 
-        self.label = QtWidgets.QGraphicsTextItem(label, parent=self)
-        self.label.setFont(font)
-        self.label.setDefaultTextColor(QtCore.Qt.white)
-        self.label.setFlag(QtWidgets.QGraphicsTextItem.ItemIgnoresTransformations)
-        self.label.setFlag(QtWidgets.QGraphicsTextItem.ItemStacksBehindParent, True)
+        self.font = font
+        self.label = label
 
         self.rect = rect
 
@@ -541,8 +538,15 @@ class CalibrationRectItem(QtWidgets.QGraphicsItem):
         if self.isSelected():
             painter.fillRect(self.rect, QtGui.QBrush(QtGui.QColor(255, 255, 255, 32)))
 
-        self.label.setPos(self.rect.topLeft())
-        self.label.paint(painter, option, widget)
+        painter.setFont(self.font)
+        fm = painter.fontMetrics()
+
+        pos = QtCore.QPointF(self.rect.left(), self.rect.top())
+        pos = painter.transform().map(pos)
+        painter.save()
+        painter.resetTransform()
+        painter.drawText(pos.x() + 5, pos.y() + fm.ascent(), self.label)
+        painter.restore()
 
     def itemChange(
         self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
