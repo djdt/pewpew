@@ -4,7 +4,7 @@ from PySide2 import QtCore, QtWidgets
 
 from pewlib.process import filters
 
-from pewpew.widgets.canvases import LaserImageCanvas
+from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.widgets.ext import ValidColorLineEdit
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import ToolWidget
@@ -73,15 +73,11 @@ class FilteringTool(ToolWidget):
     }
 
     def __init__(self, widget: LaserWidget):
-        super().__init__(widget, canvas_label="Preview")
+        super().__init__(widget, graphics_label="Preview")
 
-        self.canvas = LaserImageCanvas(
-            self.viewspace.options, move_button=1, parent=self
-        )
-        self.canvas.drawFigure()
-        self.canvas.cursorClear.connect(self.widget.clearCursorStatus)
-        self.canvas.cursorMoved.connect(self.widget.updateCursorStatus)
-        self.canvas.view_limits = self.widget.canvas.view_limits
+        self.graphics = LaserGraphicsView(self.viewspace.options, parent=self)
+        # self.graphics.cursorClear.connect(self.widget.clearCursorStatus)
+        # self.graphics.cursorMoved.connect(self.widget.updateCursorStatus)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.activated.connect(self.completeChanged)
@@ -102,10 +98,10 @@ class FilteringTool(ToolWidget):
             le.editingFinished.connect(self.refresh)
             le.setValidator(ConditionalLimitValidator(0.0, 0.0, 4, condition=None))
 
-        layout_canvas = QtWidgets.QVBoxLayout()
-        layout_canvas.addWidget(self.canvas)
-        layout_canvas.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
-        self.box_canvas.setLayout(layout_canvas)
+        layout_graphics = QtWidgets.QVBoxLayout()
+        layout_graphics.addWidget(self.graphics)
+        layout_graphics.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+        self.box_graphics.setLayout(layout_graphics)
 
         layout_controls = QtWidgets.QFormLayout()
         layout_controls.addWidget(self.combo_filter)
@@ -119,7 +115,7 @@ class FilteringTool(ToolWidget):
     def apply(self) -> None:
         self.modified = True
         name = self.combo_isotope.currentText()
-        self.widget.laser.data[name] = self.canvas.image.get_array()
+        self.widget.laser.data[name] = self.graphics.data
 
         self.initialise()
 
@@ -181,30 +177,12 @@ class FilteringTool(ToolWidget):
         )
         if data is None:
             return
-        extent = self.widget.laser.config.data_extent(data.shape)
+        x0, x1, y0, y1 = self.widget.laser.config.data_extent(data.shape)
+        rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
-        # Only change the view if new or the laser extent has changed (i.e. conf edit)
-        if self.canvas.extent != extent:
-            self.canvas.view_limits = self.canvas.extentForAspect(extent)
+        self.graphics.drawImage(data, rect, isotope)
+        self.graphics.label.text = isotope
 
-        self.canvas.drawData(
-            data,
-            extent,
-            isotope=isotope,
-        )
-        if self.canvas.viewoptions.canvas.colorbar:
-            self.canvas.drawColorbar(self.widget.laser.calibration[isotope].unit)
-
-        if self.canvas.viewoptions.canvas.label:
-            self.canvas.drawLabel(isotope)
-        elif self.canvas.label is not None:
-            self.canvas.label.remove()
-            self.canvas.label = None
-
-        if self.canvas.viewoptions.canvas.scalebar:
-            self.canvas.drawScalebar()
-        elif self.canvas.scalebar is not None:
-            self.canvas.scalebar.remove()
-            self.canvas.scalebar = None
-
-        self.canvas.draw_idle()
+        self.graphics.setOverlayItemVisibility()
+        self.graphics.updateForeground()
+        self.graphics.invalidateScene()

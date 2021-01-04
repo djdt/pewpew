@@ -3,10 +3,11 @@ from PySide2.QtCharts import QtCharts
 
 import numpy as np
 
+from pewpew.charts.base import BaseChart
 from pewpew.lib.numpyqt import array_to_polygonf
 
 
-class CalibrationChart(QtCharts.QChartView):
+class CalibrationChart(BaseChart):
     def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
         super().__init__(QtCharts.QChart(), parent)
         self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)

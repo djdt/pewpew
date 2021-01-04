@@ -1,9 +1,8 @@
 import copy
 import numpy as np
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtWidgets
 
-from matplotlib.text import Text
 from matplotlib.colors import LinearSegmentedColormap
 
 from pewlib import Calibration, Config
@@ -21,8 +20,8 @@ from pewpew.validators import (
     PercentOrDecimalValidator,
 )
 
-from pewpew.charts.calibrationchart import CalibrationChart
-from pewpew.charts.histogramchart import HistogramChart
+from pewpew.charts.calibration import CalibrationChart
+from pewpew.charts.histogram import HistogramChart
 
 from typing import Dict, List, Tuple, Union
 

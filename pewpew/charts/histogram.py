@@ -3,10 +3,12 @@ from PySide2.QtCharts import QtCharts
 
 import numpy as np
 
+from pewpew.charts.base import BaseChart
+
 from typing import Union
 
 
-class HistogramChart(QtCharts.QChartView):
+class HistogramChart(BaseChart):
     def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
         super().__init__(QtCharts.QChart(), parent)
         self.setMinimumSize(QtCore.QSize(640, 320))
