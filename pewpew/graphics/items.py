@@ -2,9 +2,9 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 import numpy as np
 
-from pewpew.graphics.util import polygon_contains_points
+from pewpew.graphics.util import polygonf_contains_points
 
-from pewpew.lib.numpyqt import array_to_image
+from pewpew.lib.numpyqt import array_to_image, polygonf_to_array
 
 from typing import Dict, Generator, List
 
@@ -168,9 +168,9 @@ class ScaledImageSelectionItem(SelectionItem):
         super().__init__(modes=_modes, parent=parent)
 
         self.rect = QtCore.QRectF(image.rect)
-        self.size = (image.image.width(), image.image.height())
+        self.image_shape = (image.image.height(), image.image.width())
 
-        self.mask = np.zeros(self.size, dtype=np.bool)
+        self.mask = np.zeros(self.image_shape, dtype=np.bool)
 
     def maskAsImage(self, color: QtGui.QColor = None) -> ScaledImageItem:
         if color is None:
@@ -183,6 +183,18 @@ class ScaledImageSelectionItem(SelectionItem):
             colortable=[0, color.rgba()],
         )
         return item
+
+    def pixelSize(self) -> QtCore.QSizeF:
+        return QtCore.QSizeF(
+            self.rect.width() / self.image_shape[1],
+            self.rect.height() / self.image_shape[0],
+        )
+
+    def snapPos(self, pos: QtCore.QPointF) -> QtCore.QPointF:
+        pixel = self.pixelSize()
+        x = round(pos.x() / pixel.width()) * pixel.width()
+        y = round(pos.y() / pixel.height()) * pixel.height()
+        return QtCore.QPointF(x, y)
 
     def updateMask(self, mask: np.ndarray, modes: List[str]) -> None:
         mask = mask.astype(np.bool)
@@ -197,15 +209,6 @@ class ScaledImageSelectionItem(SelectionItem):
         else:
             self.mask = mask
 
-    def pixelPositions(self, shift: float = 0.5) -> np.ndarray:
-        x, y, w, h = self.rect.getRect()
-        px, py = w / self.size[0], h / self.size[1]  # pixel size
-
-        xs = np.linspace(x, x + w, self.size[0], endpoint=False) + (px * shift)
-        ys = np.linspace(y, y + h, self.size[1], endpoint=False) + (py * shift)
-        X, Y = np.meshgrid(xs, ys)
-        return np.stack((X.flat, Y.flat), axis=1)
-
 
 class LassoImageSelectionItem(ScaledImageSelectionItem):
     def __init__(
@@ -213,7 +216,6 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
         image: ScaledImageItem,
         modes: Dict[QtCore.Qt.Modifier, str] = None,
         pen: QtGui.QPen = None,
-        minimum_pixel_distance: int = 5,
         parent: QtWidgets.QGraphicsItem = None,
     ):
         super().__init__(image, parent=parent)
@@ -223,10 +225,8 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
 
         self.pen = pen
         self.pen.setCosmetic(True)
-        self.pixel_distance = minimum_pixel_distance
 
         self.poly = QtGui.QPolygonF()
-        self._last_sceen_pos: QtCore.QPoint = None
 
     def boundingRect(self) -> QtCore.QRectF:
         return self.poly.boundingRect()
@@ -238,9 +238,8 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         self.poly.clear()
-        self.poly.append(event.pos())
+        self.poly.append(self.snapPos(event.pos()))
 
-        self._last_sceen_pos = event.screenPos()
         self.prepareGeometryChange()
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
@@ -248,23 +247,36 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
             return
         if self.poly.size() == 0:
             return
-        if (
-            QtCore.QLineF(self._last_sceen_pos, event.screenPos()).length()
-            > self.pixel_distance
-        ):
-            self.poly.append(event.pos())
-            self._last_sceen_pos = event.screenPos()
+        pos = self.snapPos(event.pos())
+        if self.poly.last() != pos:
+            self.poly.append(pos)
             self.prepareGeometryChange()
 
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         modes = list(self.modifierModes(event.modifiers()))
+        pixel = self.pixelSize()
 
-        pixels = self.pixelPositions()
-        mask = polygon_contains_points(self.poly, pixels).reshape(
-            self.size[1], self.size[0]
-        )
+        array = polygonf_to_array(self.poly)
+        x1, x2 = np.amin(array[:, 0]), np.amax(array[:, 0])
+        y1, y2 = np.amin(array[:, 1]), np.amax(array[:, 1])
+        x1, y1 = max(x1, 0), max(y1, 0)
+        x2, y2 = min(x2, self.rect.width()), min(y2, self.rect.height())
+
+        xs = np.arange(x1, x2, pixel.width()) + pixel.width() / 2.0
+        ys = np.arange(y1, y2, pixel.height()) + pixel.height() / 2.0
+        X, Y = np.meshgrid(xs, ys)
+
+        pixels = np.stack((X.flat, Y.flat), axis=1)
+
+        ix1, ix2 = int(x1 / pixel.width()), int(x2 / pixel.width())
+        iy1, iy2 = int(y1 / pixel.height()), int(y2 / pixel.height())
+        mask = np.zeros(self.image_shape, dtype=np.bool)
+        polymask = polygonf_contains_points(self.poly, pixels).reshape(ys.size, xs.size)
+        mask[iy1:iy2, ix1:ix2] = polymask
+
         self.updateMask(mask, modes)
 
+        # self.poly.append(self.poly.first())
         self.poly.clear()
         self.prepareGeometryChange()
 
@@ -326,8 +338,8 @@ class RectImageSelectionItem(ScaledImageSelectionItem):
         modes = list(self.modifierModes(event.modifiers()))
 
         px, py = (
-            self.rect.width() / self.size[0],
-            self.rect.height() / self.size[1],
+            self.rect.width() / self.image_shape[1],
+            self.rect.height() / self.image_shape[0],
         )  # pixel size
 
         x1, y1, x2, y2 = self._rect.normalized().getCoords()
@@ -336,7 +348,7 @@ class RectImageSelectionItem(ScaledImageSelectionItem):
         y1 = np.round(y1 / py).astype(int)
         y2 = np.round(y2 / py).astype(int)
 
-        mask = np.zeros((self.size[1], self.size[0]), dtype=np.bool)
+        mask = np.zeros(self.image_shape, dtype=np.bool)
         mask[y1:y2, x1:x2] = True
 
         self.updateMask(mask, modes)

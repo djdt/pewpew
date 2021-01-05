@@ -35,6 +35,13 @@ def array_to_image(
     return image
 
 
+def polygon_to_array(polygon: QtGui.QPolygon) -> np.ndarray:
+    buf = (ctypes.c_int * 2 * polygon.length()).from_address(
+        shiboken2.getCppPointer(polygon.data())[0]
+    )
+    return np.frombuffer(buf, dtype=np.int32).reshape(-1, 2)
+
+
 def polygonf_to_array(polygon: QtGui.QPolygonF) -> np.ndarray:
     buf = (ctypes.c_double * 2 * polygon.length()).from_address(
         shiboken2.getCppPointer(polygon.data())[0]
