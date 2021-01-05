@@ -204,22 +204,8 @@ class StandardsTool(ToolWidget):
         self.graphics.updateForeground()
         self.graphics.invalidateScene()
 
-        # extent = self.widget.laser.config.data_extent(data.shape)
-        # self.graphics.drawData(data, extent)
-        # # Update view limits
-        # self.canvas.view_limits = self.canvas.extentForAspect(extent)
-        # # Redraw guides if number of levels change
         if len(self.graphics.levels) != self.spinbox_levels.value():
             self.graphics.drawLevels(self.table.ROW_LABELS, self.spinbox_levels.value())
-        # # Draw vert guides after so they get pick priority
-        # if len(self.canvas.edge_guides) == 0:
-        #     w = extent[1] - extent[0]
-        #     px = w / data.shape[1]
-        #     x0, x1 = px * np.round(np.array([0.05, 0.95]) * w / px)
-        #     self.canvas.drawEdgeGuides((x0, x1))
-
-        # self.canvas.guides_need_draw = True
-        # self.canvas.draw()
 
         self.updateCounts()
 
@@ -228,14 +214,16 @@ class StandardsTool(ToolWidget):
         wstr = self.combo_weighting.currentText()
         if wstr == "1/σ²":
             if self.calibration[isotope].x.size > 0:
-                data = self.graphics.image.get_array()
-                trim_left, trim_right = self.graphics.getCurrentTrim()
-                data = data[:, trim_left:trim_right]
-                levels = self.graphics.getCurrentLevels()
-                order = np.argsort(levels)
-                buckets = np.split(data, levels[order], axis=0)
+                shape = self.graphics.data.shape
+                levels = self.graphics.currentLevelDataCoords()
+                buckets = []
+                for i, (x1, y1, x2, y2) in enumerate(levels):
+                    x1, y1 = max(x1, 0), max(y1, 0)
+                    x2, y2 = min(x2, shape[1]), min(y2, shape[0])
+                    bucket = self.graphics.data[y1:y2, x1:x2]
+                    buckets.append(bucket)
                 weights = 1.0 / np.square(
-                    np.array([np.nanstd(buckets[i + 1]) for i in order])
+                    np.array([np.nanstd(bucket) for bucket in buckets])
                 )
             else:
                 weights = np.empty(0, dtype=np.float64)
@@ -484,7 +472,6 @@ class StandardsTable(BasicTableView):
 
 
 class CalibrationRectItem(ResizeableRectItem):
-
     def __init__(
         self,
         rect: QtCore.QRectF,
@@ -533,14 +520,6 @@ class CalibrationRectItem(ResizeableRectItem):
         painter.drawText(pos.x() + 5, pos.y() + fm.ascent(), self.label)
         painter.restore()
 
-    def rectChanged(self) -> None:
-        # Snap to pixel
-        x1, y1, x2, y2 = self.rect().getCoords()
-        self.rect().setCoords(
-            x1 - x1 % self.px, y1 - y1 % self.py, x2 - x2 % self.px, y2 - y2 % self.py
-        )
-        self.changed = True
-
     def itemChange(
         self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
     ) -> Any:
@@ -560,11 +539,14 @@ class CalibrationRectItem(ResizeableRectItem):
         ]
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        eventpos = self.itemChange(
+            QtWidgets.QGraphicsItem.ItemPositionChange, event.pos()
+        )
         if self.selectedEdge is None:
             super().mouseMoveEvent(event)
         else:
             for item in self.selectedSiblings():
-                pos = item.mapFromItem(self, event.pos())
+                pos = item.mapFromItem(self, eventpos)
                 rect = item.rect()
                 if self.selectedEdge == "left" and pos.x() < rect.right():
                     rect.setLeft(pos.x() - pos.x() % self.px)
@@ -577,4 +559,3 @@ class CalibrationRectItem(ResizeableRectItem):
 
                 item.setRect(rect)
                 item.prepareGeometryChange()
-                item.rectChanged()

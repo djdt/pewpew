@@ -55,9 +55,6 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         else:
             return None
 
-    def rectChanged(self) -> None:
-        pass
-
     def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if self.isSelected():
             edge = self.edgeAt(event.pos())
@@ -77,22 +74,22 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        pos = self.itemChange(QtWidgets.QGraphicsItem.ItemPositionChange, event.pos())
         if self.selectedEdge is None:
             super().mouseMoveEvent(event)
         else:
             rect = self.rect()
-            if self.selectedEdge == "left" and event.pos().x() < rect.right():
-                rect.setLeft(event.pos().x())
-            elif self.selectedEdge == "right" and event.pos().x() > rect.left():
-                rect.setRight(event.pos().x())
-            elif self.selectedEdge == "top" and event.pos().y() < rect.bottom():
-                rect.setTop(event.pos().y())
-            elif self.selectedEdge == "bottom" and event.pos().y() > rect.top():
-                rect.setBottom(event.pos().y())
+            if self.selectedEdge == "left" and pos.x() < rect.right():
+                rect.setLeft(pos.x())
+            elif self.selectedEdge == "right" and pos.x() > rect.left():
+                rect.setRight(pos.x())
+            elif self.selectedEdge == "top" and pos.y() < rect.bottom():
+                rect.setTop(pos.y())
+            elif self.selectedEdge == "bottom" and pos.y() > rect.top():
+                rect.setBottom(pos.y())
 
             self.prepareGeometryChange()
             self.setRect(rect)
-            self.rectChanged()
 
 
 class ScaledImageItem(QtWidgets.QGraphicsItem):
