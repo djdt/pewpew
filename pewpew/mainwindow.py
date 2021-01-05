@@ -86,7 +86,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_export_all.setShortcut("Ctrl+Shift+X")
 
         self.action_fontsize = qAction(
-            "insert-text", "Fontsize", "Set size of fonts.", self.actionFontsize
+            "insert-text",
+            "Fontsize",
+            "Set the font size in points.",
+            self.actionFontsize,
         )
         self.action_group_colortable = qActionGroup(
             self,
@@ -99,7 +102,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "smooth",
             "&Smooth",
             "Smooth images with bilinear interpolation.",
-            self.actionSmooth
+            self.actionSmooth,
         )
         self.action_smooth.setCheckable(True)
         self.action_smooth.setChecked(self.viewspace.options.smoothing)
