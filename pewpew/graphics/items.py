@@ -9,6 +9,92 @@ from pewpew.lib.numpyqt import array_to_image
 from typing import Dict, Generator, List
 
 
+class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
+    cursors = {
+        "left": QtCore.Qt.SizeHorCursor,
+        "right": QtCore.Qt.SizeHorCursor,
+        "top": QtCore.Qt.SizeVerCursor,
+        "bottom": QtCore.Qt.SizeVerCursor,
+    }
+
+    def __init__(
+        self,
+        rect: QtCore.QRectF,
+        selection_dist: int,
+        parent: QtWidgets.QGraphicsItem = None,
+    ):
+        super().__init__(rect, parent)
+        self.setFlags(
+            QtWidgets.QGraphicsItem.ItemIsMovable
+            | QtWidgets.QGraphicsItem.ItemIsSelectable
+            | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges
+        )
+        self.setAcceptHoverEvents(True)
+
+        self.selection_dist = selection_dist
+        self.selectedEdge: str = None
+
+    def edgeAt(self, pos: QtCore.QPointF) -> str:
+        view = next(iter(self.scene().views()), None)
+        if view is None:
+            return None
+        dist = (
+            view.mapToScene(QtCore.QRect(0, 0, self.selection_dist, 1))
+            .boundingRect()
+            .width()
+        )
+
+        if pos.x() < self.rect().left() + dist:
+            return "left"
+        elif pos.x() > self.rect().right() - dist:
+            return "right"
+        elif pos.y() < self.rect().top() + dist:
+            return "top"
+        elif pos.y() > self.rect().bottom() - dist:
+            return "bottom"
+        else:
+            return None
+
+    def rectChanged(self) -> None:
+        pass
+
+    def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        if self.isSelected():
+            edge = self.edgeAt(event.pos())
+            if edge in self.cursors:
+                self.setCursor(self.cursors[edge])
+            else:
+                self.setCursor(QtCore.Qt.ArrowCursor)
+        super().hoverMoveEvent(event)
+
+    def hoverLeaveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        self.setCursor(QtCore.Qt.ArrowCursor)
+        super().hoverLeaveEvent(event)
+
+    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        if self.isSelected():
+            self.selectedEdge = self.edgeAt(event.pos())
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        if self.selectedEdge is None:
+            super().mouseMoveEvent(event)
+        else:
+            rect = self.rect()
+            if self.selectedEdge == "left" and event.pos().x() < rect.right():
+                rect.setLeft(event.pos().x())
+            elif self.selectedEdge == "right" and event.pos().x() > rect.left():
+                rect.setRight(event.pos().x())
+            elif self.selectedEdge == "top" and event.pos().y() < rect.bottom():
+                rect.setTop(event.pos().y())
+            elif self.selectedEdge == "bottom" and event.pos().y() > rect.top():
+                rect.setBottom(event.pos().y())
+
+            self.prepareGeometryChange()
+            self.setRect(rect)
+            self.rectChanged()
+
+
 class ScaledImageItem(QtWidgets.QGraphicsItem):
     def __init__(
         self,

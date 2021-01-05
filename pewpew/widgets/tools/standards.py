@@ -12,6 +12,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from pewlib import Calibration
 
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
+from pewpew.graphics.items import ResizeableRectItem
 from pewpew.graphics.options import GraphicsOptions
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
@@ -49,13 +50,17 @@ class StandardsGraphicsView(LaserGraphicsView):
         py = self.image.rect.height() / self.data.shape[0]
 
         x1 = self.image.rect.x() + 0.1 * self.image.rect.width()
+        x1 = x1 - x1 % px
         x2 = self.image.rect.x() + 0.9 * self.image.rect.width()
+        x2 = x2 - x2 % px
 
         height_per_level = self.image.rect.height() / n
 
         for i in range(n):
             y1 = self.image.rect.y() + i * height_per_level
+            y1 = y1 - y1 % py
             y2 = self.image.rect.y() + (i + 1) * height_per_level
+            y2 = y2 - y2 % py
 
             rect = QtCore.QRectF(x1, y1, x2 - x1, y2 - y1)
 
@@ -67,8 +72,8 @@ class StandardsGraphicsView(LaserGraphicsView):
     def currentLevelDataCoords(self) -> List[Tuple[int, int, int, int]]:
         levels = []
         for item in self.levels:
-            p1 = self.mapToData(item.mapToScene(item.rect.topLeft()))
-            p2 = self.mapToData(item.mapToScene(item.rect.bottomRight()))
+            p1 = self.mapToData(item.mapToScene(item.rect().topLeft()))
+            p2 = self.mapToData(item.mapToScene(item.rect().bottomRight()))
             levels.append((p1.x(), p1.y(), p2.x(), p2.y()))
         return levels
 
@@ -478,13 +483,7 @@ class StandardsTable(BasicTableView):
             self.model().removeRows(rows, current_rows - rows)
 
 
-class CalibrationRectItem(QtWidgets.QGraphicsItem):
-    cursors = {
-        "left": QtCore.Qt.SizeHorCursor,
-        "right": QtCore.Qt.SizeHorCursor,
-        "top": QtCore.Qt.SizeVerCursor,
-        "bottom": QtCore.Qt.SizeVerCursor,
-    }
+class CalibrationRectItem(ResizeableRectItem):
 
     def __init__(
         self,
@@ -495,18 +494,11 @@ class CalibrationRectItem(QtWidgets.QGraphicsItem):
         font: QtGui.QFont = None,
         parent: QtWidgets.QGraphicsItem = None,
     ):
-        super().__init__(parent=parent)
-        self.setFlags(
-            QtWidgets.QGraphicsItem.ItemIsFocusable
-            | QtWidgets.QGraphicsItem.ItemIsMovable
-            | QtWidgets.QGraphicsItem.ItemIsSelectable
-            | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges
-        )
-        self.setAcceptHoverEvents(True)
-        self.setFiltersChildEvents(True)
+        super().__init__(rect, 10, parent=parent)
 
-        self.pen = QtGui.QPen(QtCore.Qt.white, 2.0)
-        self.pen.setCosmetic(True)
+        pen = QtGui.QPen(QtCore.Qt.white, 2.0)
+        pen.setCosmetic(True)
+        self.setPen(pen)
 
         if font is None:
             font = QtGui.QFont()
@@ -514,17 +506,10 @@ class CalibrationRectItem(QtWidgets.QGraphicsItem):
         self.font = font
         self.label = label
 
-        self.rect = rect
-
         self.px = px
         self.py = py
-        self.max_dist = 10
 
-        self.selectedEdge: str = None
         self.changed = False
-
-    def boundingRect(self) -> QtCore.QRectF:
-        return self.rect
 
     def paint(
         self,
@@ -532,30 +517,38 @@ class CalibrationRectItem(QtWidgets.QGraphicsItem):
         option: QtWidgets.QStyleOptionGraphicsItem,
         widget: QtWidgets.QWidget = None,
     ):
-        painter.setPen(self.pen)
-        painter.drawRect(self.rect)
+        super().paint(painter, option, widget)
 
         if self.isSelected():
-            painter.fillRect(self.rect, QtGui.QBrush(QtGui.QColor(255, 255, 255, 32)))
+            painter.fillRect(self.rect(), QtGui.QBrush(QtGui.QColor(255, 255, 255, 32)))
 
         painter.setFont(self.font)
         fm = painter.fontMetrics()
 
-        pos = QtCore.QPointF(self.rect.left(), self.rect.top())
+        pos = QtCore.QPointF(self.rect().left(), self.rect().top())
         pos = painter.transform().map(pos)
         painter.save()
         painter.resetTransform()
+        painter.setPen(self.pen())
         painter.drawText(pos.x() + 5, pos.y() + fm.ascent(), self.label)
         painter.restore()
+
+    def rectChanged(self) -> None:
+        # Snap to pixel
+        x1, y1, x2, y2 = self.rect().getCoords()
+        self.rect().setCoords(
+            x1 - x1 % self.px, y1 - y1 % self.py, x2 - x2 % self.px, y2 - y2 % self.py
+        )
+        self.changed = True
 
     def itemChange(
         self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
     ) -> Any:
         if change == QtWidgets.QGraphicsItem.ItemPositionChange:
-            self.changed = True
             pos = QtCore.QPointF(value)
             pos.setX(pos.x() - pos.x() % self.px)
             pos.setY(pos.y() - pos.y() % self.py)
+            self.changed = True
             return pos
         return super().itemChange(change, value)
 
@@ -566,50 +559,13 @@ class CalibrationRectItem(QtWidgets.QGraphicsItem):
             if isinstance(item, CalibrationRectItem)
         ]
 
-    def edgeAt(self, pos: QtCore.QPointF) -> str:
-        view = next(iter(self.scene().views()), None)
-        if view is None:
-            return None
-        max_dist = view.mapToScene(
-            QtCore.QRect(0, 0, self.max_dist, self.max_dist)
-        ).boundingRect().width()
-
-        if pos.x() < self.rect.left() + max_dist:
-            return "left"
-        elif pos.x() > self.rect.right() - max_dist:
-            return "right"
-        elif pos.y() < self.rect.top() + max_dist:
-            return "top"
-        elif pos.y() > self.rect.bottom() - max_dist:
-            return "bottom"
-        else:
-            return None
-
-    def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        if self.isSelected():
-            edge = self.edgeAt(event.pos())
-            if edge in self.cursors:
-                self.setCursor(self.cursors[edge])
-            else:
-                self.setCursor(QtCore.Qt.ArrowCursor)
-        super().hoverMoveEvent(event)
-
-    def hoverLeaveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        self.setCursor(QtCore.Qt.ArrowCursor)
-        super().hoverLeaveEvent(event)
-
-    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        if self.isSelected():
-            self.selectedEdge = self.edgeAt(event.pos())
-        super().mousePressEvent(event)
-
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if self.selectedEdge is None:
             super().mouseMoveEvent(event)
         else:
             for item in self.selectedSiblings():
                 pos = item.mapFromItem(self, event.pos())
-                rect = item.rect
+                rect = item.rect()
                 if self.selectedEdge == "left" and pos.x() < rect.right():
                     rect.setLeft(pos.x() - pos.x() % self.px)
                 elif self.selectedEdge == "right" and pos.x() > rect.left() + self.px:
@@ -619,9 +575,6 @@ class CalibrationRectItem(QtWidgets.QGraphicsItem):
                 elif self.selectedEdge == "bottom" and pos.y() > rect.top() + self.py:
                     rect.setBottom(pos.y() - pos.y() % self.py)
 
+                item.setRect(rect)
                 item.prepareGeometryChange()
-                item.changed = True
-
-    def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        self.selectedEdge = None
-        super().mouseReleaseEvent(event)
+                item.rectChanged()
