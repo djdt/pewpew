@@ -108,7 +108,7 @@ class LaserGraphicsView(OverlayView):
 
         image = array_to_image(data)
         image.setColorTable(table)
-        self.image = ScaledImageItem(image, rect)
+        self.image = ScaledImageItem(image, rect, smooth=self.options.smoothing)
         self.scene().addItem(self.image)
 
         self.colorbar.updateTable(table, vmin, vmax)
