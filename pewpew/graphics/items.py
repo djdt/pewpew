@@ -97,14 +97,28 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
         self,
         image: QtGui.QImage,
         rect: QtCore.QRectF,
+        smooth: bool = False,
         parent: QtWidgets.QGraphicsItem = None,
     ):
         super().__init__(parent)
         self.setCacheMode(
             QtWidgets.QGraphicsItem.DeviceCoordinateCache
         )  # Speed up redraw of image
-        self.image = image
+        if smooth:
+            self.image = image.scaledToHeight(
+                image.height() * 2, QtCore.Qt.SmoothTransformation
+            )
+            self.scale = 2
+        else:
+            self.image = image
+            self.scale = 1
         self.rect = QtCore.QRectF(rect)  # copy the rect
+
+    def width(self) -> int:
+        return self.image.width() // self.scale
+
+    def height(self) -> int:
+        return self.image.height() // self.scale
 
     def boundingRect(self) -> QtCore.QRectF:
         return self.rect
@@ -123,13 +137,14 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
         array: np.ndarray,
         rect: QtCore.QRectF,
         colortable: np.ndarray = None,
+        scale: int = 1,
         parent: QtWidgets.QGraphicsItem = None,
     ) -> "ScaledImageItem":
         image = array_to_image(array)
         if colortable is not None:
             image.setColorTable(colortable)
             image.setColorCount(len(colortable))
-        item = cls(image, rect, parent=parent)
+        item = cls(image, rect, scale, parent=parent)
         return item
 
 
@@ -168,7 +183,7 @@ class ScaledImageSelectionItem(SelectionItem):
         super().__init__(modes=_modes, parent=parent)
 
         self.rect = QtCore.QRectF(image.rect)
-        self.image_shape = (image.image.height(), image.image.width())
+        self.image_shape = (image.height(), image.width())
 
         self.mask = np.zeros(self.image_shape, dtype=np.bool)
 

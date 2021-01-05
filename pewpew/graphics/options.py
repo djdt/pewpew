@@ -27,6 +27,8 @@ class GraphicsOptions(object):
         self._colorranges: Dict[str, Tuple[Union[float, str], Union[float, str]]] = {}
         self.colorrange_default = (0.0, "99%")
 
+        self.smoothing = False
+
         self.font = QtGui.QFont()
         self.font.setPointSize(16)
         self.font_color = QtCore.Qt.white

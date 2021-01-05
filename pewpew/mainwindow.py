@@ -1,7 +1,7 @@
 import sys
 import logging
 
-from PySide2 import QtWidgets
+from PySide2 import QtGui, QtWidgets
 
 from pewpew import __version__
 
@@ -95,12 +95,14 @@ class MainWindow(QtWidgets.QMainWindow):
             checked=self.viewspace.options.colortable,
             statuses=list(self.viewspace.options.colortables.values()),
         )
-        # self.action_group_interp = qActionGroup(
-        #     self,
-        #     list(self.viewspace.options.image.NTERPOLATIONS.keys()),
-        #     self.actionGroupInterp,
-        #     checked=self.viewspace.options.image.get_interpolation_name(),
-        # )
+        self.action_smooth = qAction(
+            "smooth",
+            "&Smooth",
+            "Smooth images with bilinear interpolation.",
+            self.actionSmooth
+        )
+        self.action_smooth.setCheckable(True)
+        self.action_smooth.setChecked(self.viewspace.options.smoothing)
         self.action_wizard_import = qAction(
             "",
             "Import Wizard",
@@ -281,10 +283,10 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg = QtWidgets.QInputDialog(self)
         dlg.setWindowTitle("Fontsize")
         dlg.setLabelText("Fontisze:")
-        dlg.setIntValue(self.viewspace.options.font.size)
-        dlg.setIntRange(0, 100)
+        dlg.setIntValue(self.viewspace.options.font.pointSize())
+        dlg.setIntRange(2, 96)
         dlg.setInputMode(QtWidgets.QInputDialog.IntInput)
-        dlg.intValueSelected.connect(self.viewspace.options.font.set_size)
+        dlg.intValueSelected.connect(self.viewspace.options.font.setPointSize)
         dlg.intValueSelected.connect(self.refresh)
         dlg.open()
         return dlg
@@ -292,6 +294,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def actionGroupColortable(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
         self.viewspace.options.colortable = text
+        self.refresh()
+
+    def actionSmooth(self, checked: bool) -> None:
+        self.viewspace.options.smoothing = checked
         self.refresh()
 
     def actionCropView(self) -> None:
@@ -477,14 +483,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # View
         menu_view = self.menuBar().addMenu("&View")
         menu_cmap = menu_view.addMenu("&Colortable")
+        menu_cmap.setIcon(QtGui.QIcon.fromTheme("color-management"))
         menu_cmap.setStatusTip("Colortable of displayed images.")
         menu_cmap.addActions(self.action_group_colortable.actions())
         menu_cmap.addAction(self.action_colortable_range)
 
         # View - interpolation
-        # menu_interp = menu_view.addMenu("&Interpolation")
-        # menu_interp.setStatusTip("Interpolation of displayed images.")
-        # menu_interp.addActions(self.action_group_interp.actions())
+        menu_view.addAction(self.action_smooth)
 
         menu_view.addAction(self.action_fontsize)
 
