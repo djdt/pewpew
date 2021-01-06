@@ -137,14 +137,14 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
         array: np.ndarray,
         rect: QtCore.QRectF,
         colortable: np.ndarray = None,
-        scale: int = 1,
+        smooth: bool = False,
         parent: QtWidgets.QGraphicsItem = None,
     ) -> "ScaledImageItem":
         image = array_to_image(array)
         if colortable is not None:
             image.setColorTable(colortable)
             image.setColorCount(len(colortable))
-        item = cls(image, rect, scale, parent=parent)
+        item = cls(image, rect, smooth, parent=parent)
         return item
 
 
