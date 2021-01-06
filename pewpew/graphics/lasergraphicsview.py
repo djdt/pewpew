@@ -117,14 +117,17 @@ class LaserGraphicsView(OverlayView):
             self.setSceneRect(rect)
             self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
 
-    def drawSelectionImage(self) -> None:
+    def drawSelectionImage(self, mask: np.ndarray) -> None:
+        self.mask = mask
         if self.selection_image is not None:
             self.scene().removeItem(self.selection_image)
 
         color = QtGui.QColor(255, 255, 255, a=128)
-        self.selection_image = self.selection_item.maskAsImage(color)
+
+        self.selection_image = ScaledImageItem.fromArray(
+            self.mask.astype(np.uint8), self.image.rect, colortable=[0, color.rgba()]
+        )
         self.selection_image.setZValue(self.image.zValue() + 1.0)
-        self.mask = self.selection_item.mask
         self.scene().addItem(self.selection_image)
 
     def drawLaser(self, laser: _Laser, name: str, layer: int = None) -> None:
