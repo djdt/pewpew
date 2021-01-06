@@ -13,7 +13,6 @@ from pewlib.srr import SRRConfig
 
 from pewpew.actions import qToolButton
 from pewpew.lib import kmeans
-from pewpew.widgets.canvases import BasicCanvas, SelectableImageCanvas
 from pewpew.validators import (
     DecimalValidator,
     DecimalValidatorNoZero,
@@ -22,6 +21,8 @@ from pewpew.validators import (
 
 from pewpew.charts.calibration import CalibrationChart
 from pewpew.charts.histogram import HistogramChart
+
+from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 
 from typing import Dict, List, Tuple, Union
 
@@ -331,7 +332,8 @@ class ColocalisationDialog(QtWidgets.QDialog):
             colors = [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0)]
         self.cmap = LinearSegmentedColormap.from_list("colocal_cmap", colors)
 
-        self.canvas = BasicCanvas(figsize=(5, 5))
+        # self.canvas = BasicCanvas(figsize=(5, 5))
+        self.canvas = None
         self.canvas.ax = self.canvas.figure.add_subplot(facecolor="black")
 
         self.combo_name1 = QtWidgets.QComboBox()
@@ -613,7 +615,7 @@ class NameEditDialog(QtWidgets.QDialog):
 
 
 class SelectionDialog(ApplyDialog):
-    maskSelected = QtCore.Signal(np.ndarray, str)
+    maskSelected = QtCore.Signal(np.ndarray, "QStringList")
 
     METHODS = {
         "Manual": (None, None),
@@ -624,11 +626,11 @@ class SelectionDialog(ApplyDialog):
     }
     COMPARISION = {">": np.greater, "<": np.less, "=": np.equal}
 
-    def __init__(self, canvas: SelectableImageCanvas, parent: QtWidgets.QWidget = None):
+    def __init__(self, graphics: LaserGraphicsView, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("Selection")
 
-        self.canvas = canvas
+        self.graphics = graphics
 
         self.threshold: float = 0.0
 
@@ -655,7 +657,7 @@ class SelectionDialog(ApplyDialog):
         self.lineedit_manual.textEdited.connect(self.refresh)
 
         self.check_limit_selection = QtWidgets.QCheckBox(
-            "Limit selection to current selection."
+            "Interscet selection with current selection."
         )
         self.check_limit_threshold = QtWidgets.QCheckBox(
             "Limit thresholding to selected values."
@@ -681,9 +683,9 @@ class SelectionDialog(ApplyDialog):
 
     def refresh(self) -> None:
         method = self.combo_method.currentText()
-        data = self.canvas.image.get_array()
-        if self.check_limit_threshold.isChecked() and self.canvas.selection is not None:
-            data = data[self.canvas.selection]
+        data = self.graphics.data
+        if self.check_limit_threshold.isChecked() and self.graphics.mask is not None:
+            data = data[self.graphics.mask]
 
         # Remove nans
         data = data[~np.isnan(data)]
@@ -705,6 +707,7 @@ class SelectionDialog(ApplyDialog):
                 self.spinbox_method.setEnabled(True)
                 self.spinbox_method.setPrefix(var[0])
                 self.spinbox_method.setRange(*var[2])
+                self.spinbox_method.setValue(var[1])
                 self.spinbox_comparison.setEnabled(True)
                 self.spinbox_comparison.setRange(1, self.spinbox_method.value() - 1)
 
@@ -720,9 +723,9 @@ class SelectionDialog(ApplyDialog):
 
     def apply(self) -> None:
         comparison = self.COMPARISION[self.combo_comparison.currentText()]
-        mask = comparison(self.canvas.image.get_array(), self.threshold)
+        mask = comparison(self.graphics.data, self.threshold)
         state = "intersect" if self.check_limit_selection.isChecked() else None
-        self.maskSelected.emit(mask, state)
+        self.maskSelected.emit(mask, [state])
 
 
 class StatsDialog(QtWidgets.QDialog):
