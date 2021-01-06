@@ -53,13 +53,15 @@ class ImportThread(QtCore.QThread):
             if path.suffix.lower() == ".b":
                 data, params = io.agilent.load(path, full=True)
                 config.scantime = params["scantime"]
-            # elif io.perkinelmer.is_valid_directory(path):
-            elif any([it.suffix.lower() == ".xl" for it in path.iterdir()]):
+            elif io.perkinelmer.is_valid_directory(path):
                 data, params = io.perkinelmer.load(path, full=True)
                 config.spotsize = params["spotsize"]
                 config.speed = params["speed"]
                 config.scantime = params["scantime"]
-            # elif io.nu.is_valid_directory(path):
+            elif io.csv.is_valid_directory(path):
+                data, params = io.csv.load(path, full=True)
+                for key, val in params.items():
+                    setattr(config, key, val)
         else:
             if path.suffix.lower() == ".npz":
                 laser = io.npz.load(path)
