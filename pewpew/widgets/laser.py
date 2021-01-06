@@ -669,7 +669,7 @@ class LaserWidget(_ViewWidget):
 
     def actionSelectDialog(self) -> QtWidgets.QDialog:
         dlg = dialogs.SelectionDialog(self.graphics, parent=self)
-        dlg.maskSelected.connect(self.graphics.updateAndDrawSelection)
+        dlg.maskSelected.connect(self.graphics.drawSelectionImage)
         self.refreshed.connect(dlg.refresh)
         dlg.show()
         return dlg

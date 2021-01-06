@@ -6,7 +6,7 @@ from pewpew.graphics.util import polygonf_contains_points
 
 from pewpew.lib.numpyqt import array_to_image, polygonf_to_array
 
-from typing import Dict, Generator, List
+from typing import Dict, Generator
 
 
 class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
@@ -149,7 +149,7 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
 
 
 class SelectionItem(QtWidgets.QGraphicsObject):
-    selectionChanged = QtCore.Signal(object)
+    selectionChanged = QtCore.Signal(np.ndarray, "QStringList")
 
     def __init__(
         self,
@@ -185,8 +185,6 @@ class ScaledImageSelectionItem(SelectionItem):
         self.rect = QtCore.QRectF(image.rect)
         self.image_shape = (image.height(), image.width())
 
-        self.mask = np.zeros(self.image_shape, dtype=np.bool)
-
     def pixelSize(self) -> QtCore.QSizeF:
         return QtCore.QSizeF(
             self.rect.width() / self.image_shape[1],
@@ -198,19 +196,6 @@ class ScaledImageSelectionItem(SelectionItem):
         x = round(pos.x() / pixel.width()) * pixel.width()
         y = round(pos.y() / pixel.height()) * pixel.height()
         return QtCore.QPointF(x, y)
-
-    def updateMask(self, mask: np.ndarray, modes: List[str]) -> None:
-        mask = mask.astype(np.bool)
-        if "add" in modes:
-            self.mask = np.logical_or(self.mask, mask)
-        elif "subtract" in modes:
-            self.mask = np.logical_and(self.mask, ~mask)
-        elif "intersect" in modes:
-            self.mask = np.logical_and(self.mask, mask)
-        elif "difference" in modes:
-            self.mask = np.logical_xor(self.mask, mask)
-        else:
-            self.mask = mask
 
 
 class LassoImageSelectionItem(ScaledImageSelectionItem):
@@ -280,13 +265,11 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
         ix, iy = int(x1 / pixel.width()), int(y1 / pixel.height())
         mask[iy : iy + ys.size, ix : ix + xs.size] = polymask
 
-        self.updateMask(mask, modes)
-
         # self.poly.append(self.poly.first())
         self.poly.clear()
         self.prepareGeometryChange()
 
-        self.selectionChanged.emit(self.mask)
+        self.selectionChanged.emit(mask, modes)
 
     def paint(
         self,
@@ -357,12 +340,10 @@ class RectImageSelectionItem(ScaledImageSelectionItem):
         mask = np.zeros(self.image_shape, dtype=np.bool)
         mask[y1:y2, x1:x2] = True
 
-        self.updateMask(mask, modes)
-
         self._rect = QtCore.QRectF()
         self.prepareGeometryChange()
 
-        self.selectionChanged.emit(self.mask)
+        self.selectionChanged.emit(mask, modes)
 
     def paint(
         self,

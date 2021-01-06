@@ -20,6 +20,8 @@ from pewpew.graphics.overlayitems import (
 
 from pewpew.lib.numpyqt import array_to_image
 
+from typing import List
+
 
 class LaserGraphicsView(OverlayView):
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
@@ -117,10 +119,22 @@ class LaserGraphicsView(OverlayView):
             self.setSceneRect(rect)
             self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
 
-    def drawSelectionImage(self, mask: np.ndarray) -> None:
-        self.mask = mask
+    def drawSelectionImage(self, mask: np.ndarray, modes: List[str] = None) -> None:
         if self.selection_image is not None:
             self.scene().removeItem(self.selection_image)
+
+        mask = mask.astype(np.bool)
+        if "add" in modes:
+            self.mask = np.logical_or(self.mask, mask)
+        elif "subtract" in modes:
+            self.mask = np.logical_and(self.mask, ~mask)
+        elif "intersect" in modes:
+            print("state intersect")
+            self.mask = np.logical_and(self.mask, mask)
+        elif "difference" in modes:
+            self.mask = np.logical_xor(self.mask, mask)
+        else:
+            self.mask = mask
 
         color = QtGui.QColor(255, 255, 255, a=128)
 
