@@ -149,7 +149,7 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
 
 
 class SelectionItem(QtWidgets.QGraphicsObject):
-    selectionChanged = QtCore.Signal()
+    selectionChanged = QtCore.Signal(object)
 
     def __init__(
         self,
@@ -186,18 +186,6 @@ class ScaledImageSelectionItem(SelectionItem):
         self.image_shape = (image.height(), image.width())
 
         self.mask = np.zeros(self.image_shape, dtype=np.bool)
-
-    def maskAsImage(self, color: QtGui.QColor = None) -> ScaledImageItem:
-        if color is None:
-            color = QtGui.QColor(QtCore.Qt.white)
-            color.setAlpha(255)
-        data = self.mask.astype(np.uint8)
-        item = ScaledImageItem.fromArray(
-            data,
-            self.rect,
-            colortable=[0, color.rgba()],
-        )
-        return item
 
     def pixelSize(self) -> QtCore.QSizeF:
         return QtCore.QSizeF(
@@ -272,22 +260,25 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
         pixel = self.pixelSize()
 
         array = polygonf_to_array(self.poly)
+        # Get start and end points of area
         x1, x2 = np.amin(array[:, 0]), np.amax(array[:, 0])
         y1, y2 = np.amin(array[:, 1]), np.amax(array[:, 1])
-        x1, y1 = max(x1, 0), max(y1, 0)
-        x2, y2 = min(x2, self.rect.width()), min(y2, self.rect.height())
-
+        # Bound to image area
+        x1, y1 = max(x1, 0.0), max(y1, 0.0)
+        x2 = min(x2, self.rect.width() - pixel.width() / 2.0)
+        y2 = min(y2, self.rect.height() - pixel.height() / 2.0)
+        # Generate pixel centers
         xs = np.arange(x1, x2, pixel.width()) + pixel.width() / 2.0
         ys = np.arange(y1, y2, pixel.height()) + pixel.height() / 2.0
         X, Y = np.meshgrid(xs, ys)
-
         pixels = np.stack((X.flat, Y.flat), axis=1)
 
-        ix1, ix2 = int(x1 / pixel.width()), int(x2 / pixel.width())
-        iy1, iy2 = int(y1 / pixel.height()), int(y2 / pixel.height())
+        # Get mask of selected area
         mask = np.zeros(self.image_shape, dtype=np.bool)
         polymask = polygonf_contains_points(self.poly, pixels).reshape(ys.size, xs.size)
-        mask[iy1:iy2, ix1:ix2] = polymask
+        # Insert
+        ix, iy = int(x1 / pixel.width()), int(y1 / pixel.height())
+        mask[iy : iy + ys.size, ix : ix + xs.size] = polymask
 
         self.updateMask(mask, modes)
 
@@ -295,7 +286,7 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
         self.poly.clear()
         self.prepareGeometryChange()
 
-        self.selectionChanged.emit()
+        self.selectionChanged.emit(self.mask)
 
     def paint(
         self,
@@ -371,7 +362,7 @@ class RectImageSelectionItem(ScaledImageSelectionItem):
         self._rect = QtCore.QRectF()
         self.prepareGeometryChange()
 
-        self.selectionChanged.emit()
+        self.selectionChanged.emit(self.mask)
 
     def paint(
         self,
