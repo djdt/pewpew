@@ -25,7 +25,9 @@ class DriftChart(BaseChart):
         self.chart().legend().hide()
 
         self.xaxis = QtCharts.QValueAxis()
+        self.xaxis.setLabelFormat("%d")
         self.yaxis = QtCharts.QValueAxis()
+        self.yaxis.setVisible(False)
 
         self.chart().addAxis(self.xaxis, QtCore.Qt.AlignBottom)
         self.chart().addAxis(self.yaxis, QtCore.Qt.AlignLeft)
@@ -87,7 +89,7 @@ class DriftGuideRectItem(ResizeableRectItem):
         parent: QtWidgets.QGraphicsItem = None,
     ):
         super().__init__(rect, 10, parent=parent)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
+        # self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
 
         pen = QtGui.QPen(QtCore.Qt.white, 2.0)
         pen.setCosmetic(True)
@@ -145,7 +147,7 @@ class DriftGuideRectItem(ResizeableRectItem):
         if change == QtWidgets.QGraphicsItem.ItemPositionChange:
             pos = QtCore.QPointF(value)
             pos.setX(pos.x() - pos.x() % self.px)
-            pos.setY(pos.y() - pos.y() % self.py)
+            pos.setY(self.rect().y())
             self.changed = True
             return pos
         return super().itemChange(change, value)
@@ -204,6 +206,7 @@ class DriftGraphicsView(LaserGraphicsView):
         rect = QtCore.QRectF(x1, self.image.rect.y(), x2 - x1, self.image.rect.height())
 
         self.guide = DriftGuideRectItem(rect, px, py, trim_enabled=trim)
+        self.guide.setZValue(self.image.zValue() + 1)
         self.scene().addItem(self.guide)
 
     def driftData(self) -> np.ndarray:
@@ -228,6 +231,7 @@ class DriftGraphicsView(LaserGraphicsView):
 
     def setTrim(self, trim: bool) -> None:
         self.guide.trim_enabled = trim
+        self.guide.update()
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
         super().mouseReleaseEvent(event)
@@ -275,8 +279,8 @@ class DriftTool(ToolWidget):
         self.check_apply_all = QtWidgets.QCheckBox("Apply to all elements.")
 
         layout_graphics = QtWidgets.QVBoxLayout()
-        layout_graphics.addWidget(self.graphics)
-        layout_graphics.addWidget(self.chart)
+        layout_graphics.addWidget(self.graphics, 2)
+        layout_graphics.addWidget(self.chart, 1)
         layout_graphics.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
         self.box_graphics.setLayout(layout_graphics)
 
@@ -357,7 +361,8 @@ class DriftTool(ToolWidget):
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
         self.graphics.drawImage(data, rect, isotope)
-        self.graphics.drawGuides()
+        if self.graphics.guide is None:
+            self.graphics.drawGuides()
         self.graphics.label.text = isotope
 
         self.graphics.setOverlayItemVisibility()
