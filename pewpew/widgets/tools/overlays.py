@@ -9,7 +9,7 @@ from matplotlib.offsetbox import AnchoredOffsetbox, TextArea, VPacker
 from matplotlib.patheffects import withStroke
 
 from pewlib import io
-from pewlib.process.calc import greyscale_to_rgb, normalise
+from pewlib.process.calc import normalise
 
 from pewpew.actions import qAction, qToolButton
 from pewpew.validators import PercentOrDecimalValidator
@@ -24,6 +24,17 @@ from pewpew.widgets.prompts import OverwriteFilePrompt
 from pewpew.widgets.tools import ToolWidget
 
 from typing import Iterator, Generator, List, Tuple, Union
+
+
+def greyscale_to_rgb(array: np.ndarray, rgb: np.ndarray) -> np.ndarray:
+    """Convert a gray scale image to a single color rgb(a).
+    The image should be a float type and is clipped to 0.0 to 1.0 before conversion.
+    Args:
+        array: image
+        rgb: rgb with optional alpha"""
+    array = np.clip(array, 0.0, 1.0)
+    return array[..., None] * np.array(rgb, dtype=np.float32)
+
 
 
 class OverlayTool(ToolWidget):
