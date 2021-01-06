@@ -1,4 +1,7 @@
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def kmeans_plus_plus(x: np.ndarray, k: int) -> np.ndarray:
@@ -120,8 +123,9 @@ def kmeans1d(
                 method=kwargs["method"],
             ).labels
         except ImportError:
+            logger.warning("Unable to use ckmeans1d as ckwrap package not found.")
             method = "kmeans"
-    elif method == "kmeans":
+    if method == "kmeans":
         idx = kmeans(
             x.ravel(),
             k,
