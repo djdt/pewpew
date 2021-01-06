@@ -34,6 +34,25 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         self.selection_dist = selection_dist
         self.selectedEdge: str = None
 
+    def boundingRect(self) -> QtCore.QRectF:
+        rect = super().boundingRect()
+        view = next(iter(self.scene().views()), None)
+        if view is None:
+            return rect
+
+        dist = (
+            view.mapToScene(QtCore.QRect(0, 0, self.selection_dist, 1))
+            .boundingRect()
+            .width()
+        )
+        return rect.marginsAdded(QtCore.QMarginsF(dist, dist, dist, dist))
+
+    def shape(self) -> QtGui.QPainterPath:
+        path = QtGui.QPainterPath()
+        rect = self.boundingRect()
+        path.addRect(rect)
+        return path
+
     def edgeAt(self, pos: QtCore.QPointF) -> str:
         view = next(iter(self.scene().views()), None)
         if view is None:
@@ -44,13 +63,13 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
             .width()
         )
 
-        if pos.x() < self.rect().left() + dist:
+        if abs(self.rect().left() - pos.x()) < dist:
             return "left"
-        elif pos.x() > self.rect().right() - dist:
+        elif abs(self.rect().right() - pos.x()) < dist:
             return "right"
-        elif pos.y() < self.rect().top() + dist:
+        elif abs(self.rect().top() - pos.y()) < dist:
             return "top"
-        elif pos.y() > self.rect().bottom() - dist:
+        elif abs(self.rect().bottom() - pos.y()) < dist:
             return "bottom"
         else:
             return None
@@ -90,6 +109,11 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
 
             self.prepareGeometryChange()
             self.setRect(rect)
+
+
+# class RulerItem(QtWidgets.QGraphicsItem):
+#     def __init__(self, parent: QtWidgets.QGraphicsItem = None):
+#         super().__init__(self, parent)
 
 
 class ScaledImageItem(QtWidgets.QGraphicsItem):

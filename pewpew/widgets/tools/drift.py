@@ -116,9 +116,9 @@ class DriftGuideRectItem(ResizeableRectItem):
             .width()
         )
 
-        if pos.x() < self.rect().left() + dist:
+        if abs(self.rect().left() - pos.x()) < dist:
             return "left"
-        elif pos.x() > self.rect().right() - dist:
+        elif abs(self.rect().right() - pos.x()) < dist:
             return "right"
         elif abs(pos.y() - self.top) < dist:
             return "top" if self.trim_enabled else None
