@@ -332,9 +332,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
             colors = [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0)]
         self.cmap = LinearSegmentedColormap.from_list("colocal_cmap", colors)
 
-        # self.canvas = BasicCanvas(figsize=(5, 5))
-        self.canvas = None
-        self.canvas.ax = self.canvas.figure.add_subplot(facecolor="black")
+        self.chart = ColocalisationChart()
 
         self.combo_name1 = QtWidgets.QComboBox()
         self.combo_name1.addItems(data.dtype.names)
