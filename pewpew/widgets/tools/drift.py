@@ -128,10 +128,10 @@ class DriftGuideRectItem(ResizeableRectItem):
             return None
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        if self.selectedEdge in ["top", "bottom"]:
-            if self.selectedEdge == "top" and event.pos().y() < self.bottom:
+        if self.selected_edge in ["top", "bottom"]:
+            if self.selected_edge == "top" and event.pos().y() < self.bottom:
                 self.top = event.pos().y() - event.pos().y() % self.py
-            elif self.selectedEdge == "bottom" and event.pos().y() > self.top:
+            elif self.selected_edge == "bottom" and event.pos().y() > self.top:
                 self.bottom = event.pos().y() - event.pos().y() % self.py
             self.changed = True
             self.update()

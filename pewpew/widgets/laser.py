@@ -5,27 +5,19 @@ import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-# from matplotlib.patheffects import Normal, SimpleLineShadow
-# from matplotlib.widgets import RectangleSelector
-
 from pewlib import io
 from pewlib.laser import Laser
 from pewlib.srr import SRRLaser, SRRConfig
 from pewlib.config import Config
 
 from pewpew.actions import qAction, qToolButton
-from pewpew.threads import ImportThread
 
-# from pewpew.lib.mplwidgets import (
-#     RectangleImageSelectionWidget,
-#     LassoImageSelectionWidget,
-#     RulerWidget,
-# )
-# from pewpew.lib.viewoptions import ViewOptions
-from pewpew.widgets import dialogs, exportdialogs
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
-# from pewpew.widgets.canvases import LaserImageCanvas
+
+from pewpew.threads import ImportThread
+
+from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.views import View, ViewSpace, _ViewWidget
 
 from typing import List, Set, Tuple, Union
@@ -366,14 +358,13 @@ class LaserWidget(_ViewWidget):
         )
 
         # Toolbar actions
-
         self.action_select_none = qAction(
             "transform-move",
             "Clear Selection",
             "Clear any selections.",
-            lambda: None,
-            # self.graphics.clear,
+            self.graphics.endSelection,
         )
+        self.action_select_none.setShortcut("Escape")
         self.action_select_rect = qAction(
             "draw-rectangle",
             "Rectangle Selector",
@@ -404,8 +395,7 @@ class LaserWidget(_ViewWidget):
             "tool-measure",
             "Measure",
             "Use a ruler to measure distance.",
-            lambda: None,
-            # self.graphics.startRuler,
+            self.graphics.startRulerWidget,
         )
         self.widgets_button = qToolButton("tool-measure", "Widgets")
         self.widgets_button.addAction(self.action_ruler)

@@ -32,7 +32,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         self.setAcceptHoverEvents(True)
 
         self.selection_dist = selection_dist
-        self.selectedEdge: str = None
+        self.selected_edge: str = None
 
     def boundingRect(self) -> QtCore.QRectF:
         rect = super().boundingRect()
@@ -89,31 +89,137 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if self.isSelected():
-            self.selectedEdge = self.edgeAt(event.pos())
+            self.selected_edge = self.edgeAt(event.pos())
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         pos = self.itemChange(QtWidgets.QGraphicsItem.ItemPositionChange, event.pos())
-        if self.selectedEdge is None:
+        if self.selected_edge is None:
             super().mouseMoveEvent(event)
         else:
             rect = self.rect()
-            if self.selectedEdge == "left" and pos.x() < rect.right():
+            if self.selected_edge == "left" and pos.x() < rect.right():
                 rect.setLeft(pos.x())
-            elif self.selectedEdge == "right" and pos.x() > rect.left():
+            elif self.selected_edge == "right" and pos.x() > rect.left():
                 rect.setRight(pos.x())
-            elif self.selectedEdge == "top" and pos.y() < rect.bottom():
+            elif self.selected_edge == "top" and pos.y() < rect.bottom():
                 rect.setTop(pos.y())
-            elif self.selectedEdge == "bottom" and pos.y() > rect.top():
+            elif self.selected_edge == "bottom" and pos.y() > rect.top():
                 rect.setBottom(pos.y())
 
             self.prepareGeometryChange()
             self.setRect(rect)
 
 
-# class RulerItem(QtWidgets.QGraphicsItem):
-#     def __init__(self, parent: QtWidgets.QGraphicsItem = None):
-#         super().__init__(self, parent)
+class RulerItem(QtWidgets.QGraphicsItem):
+    def __init__(
+        self,
+        pen: QtGui.QPen = None,
+        font: QtGui.QFont = None,
+        parent: QtWidgets.QGraphicsItem = None,
+    ):
+        super().__init__(parent)
+
+        if pen is None:
+            pen = QtGui.QPen(QtCore.Qt.white, 2.0)
+            pen.setCosmetic(True)
+            pen.setStyle(QtCore.Qt.DashLine)
+            pen.setCapStyle(QtCore.Qt.RoundCap)
+
+        if font is None:
+            font = QtGui.QFont()
+
+        self.pen = pen
+        self.font = font
+        self.text = ""
+
+        self.line = QtCore.QLineF()
+
+    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        if event.buttons() & QtCore.Qt.LeftButton:
+            self.line.setPoints(event.pos(), event.pos())
+            self.text = ""
+            self.prepareGeometryChange()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        if event.buttons() & QtCore.Qt.LeftButton:
+            self.line.setP2(event.pos())
+            self.text = f"{self.line.length():.2g} μm"
+            self.prepareGeometryChange()
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        if event.buttons() & QtCore.Qt.LeftButton:
+            self.line.setP2(event.pos())
+            self.text = f"{self.line.length():.2g} μm"
+            self.prepareGeometryChange()
+        super().mouseReleaseEvent(event)
+
+    def boundingRect(self) -> QtCore.QRectF:
+        rect = QtCore.QRectF(self.line.p1(), self.line.p2()).normalized()
+        fm = QtGui.QFontMetrics(self.font)
+        text = fm.boundingRect(self.text)
+        text.moveCenter(rect.cetner())
+
+        view = next(iter(self.scene().views()), None)
+        rect = rect.marginsAdded()
+        if view is None:
+            return rect.
+
+        w = view.mapToScene(QtCore.QRect(0, 0, 5, 1)).boundingRect().width()
+        return rect.marginsAdded(QtCore.QMarginsF(w, w, w, w))
+
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: QtWidgets.QWidget = None,
+    ):
+        view = next(iter(self.scene().views()), None)
+
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setFont(self.font)
+        painter.setPen(self.pen)
+
+        fm = painter.fontMetrics()
+
+        painter.drawLine(self.line)
+
+        if not self.line.p1().isNull():
+            pen = QtGui.QPen(self.pen)
+            pen.setWidth(10)
+            painter.setPen(pen)
+            painter.drawPoints([self.line.p1(), self.line.p2()])
+            painter.setPen(self.pen)
+
+        if view is not None and self.text != "":
+            angle = self.line.angle()
+            if 90 < angle < 270:
+                angle -= 180
+            center = view.mapFromScene(self.line.center())
+            length = self.line.length()
+            width = fm.width(self.text)
+
+            painter.save()
+            painter.resetTransform()
+            transform = QtGui.QTransform()
+            transform.translate(center.x(), center.y())
+            transform.rotate(-angle)
+            painter.setTransform(transform)
+
+            if width < length:
+                painter.drawText(-width / 2.0, -fm.descent(), self.text)
+
+            painter.restore()
+
+    # def hoverMoveEvent(seef, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+    #     edge = self.edgeAt(event.pos())
+    #     if edge in self.cursors:
+    #         self.setCursor(QtCore.Qt.MoveC)
+    #     else:
+    #         self.setCursor(QtCore.Qt.ArrowCursor)
+    #     super().hoverMoveEvent(event)
 
 
 class ScaledImageItem(QtWidgets.QGraphicsItem):

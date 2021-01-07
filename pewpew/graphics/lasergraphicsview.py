@@ -5,6 +5,7 @@ from pewlib.laser import _Laser
 
 from pewpew.graphics import colortable
 from pewpew.graphics.items import (
+    RulerItem,
     ScaledImageItem,
     ScaledImageSelectionItem,
     LassoImageSelectionItem,
@@ -38,6 +39,7 @@ class LaserGraphicsView(OverlayView):
         self.image: ScaledImageItem = None
         self.selection_item: ScaledImageSelectionItem = None
         self.selection_image: ScaledImageItem = None
+        self.widget: QtWidgets.QGraphicsItem = None
 
         self.label = LabelOverlay(
             "_", font=self.options.font, color=self.options.font_color
@@ -97,11 +99,31 @@ class LaserGraphicsView(OverlayView):
         self.selection_item.grabMouse()
         self.setInteractionMode("selection")
 
+    def endSelection(self) -> None:
+        if self.selection_item is not None:
+            self.selection_item = None
+            self.scene().removeItem(self.selection_item)
+        if self.selection_image is not None:
+            self.scene().removeItem(self.selection_image)
+            self.selection_image = None
+
+        self.mask = np.zeros(self.data.shape, dtype=np.bool)
+        self.setInteractionMode("navigate")
+
+    def startRulerWidget(self) -> None:
+        if self.widget is not None:
+            self.scene().removeItem(self.widget)
+        self.widget = RulerItem(font=self.options.font)
+        self.scene().addItem(self.widget)
+        self.widget.grabMouse()
+        self.setInteractionMode("widget")
+
     def drawImage(self, data: np.ndarray, rect: QtCore.QRectF, name: str) -> None:
         if self.image is not None:
             self.scene().removeItem(self.image)
 
         self.data = data
+
         vmin, vmax = self.options.get_colorrange_as_float(name, self.data)
         table = colortable.get_table(self.options.colortable)
 
@@ -122,6 +144,9 @@ class LaserGraphicsView(OverlayView):
     def drawSelectionImage(self, mask: np.ndarray, modes: List[str] = None) -> None:
         if self.selection_image is not None:
             self.scene().removeItem(self.selection_image)
+
+        if self.mask is None:
+            self.mask = np.zeros(self.data.shape, dtype=np.bool)
 
         mask = mask.astype(np.bool)
         if "add" in modes:
