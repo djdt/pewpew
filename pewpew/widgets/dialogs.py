@@ -20,6 +20,7 @@ from pewpew.validators import (
 )
 
 from pewpew.charts.calibration import CalibrationChart
+from pewpew.charts.colocal import ColocalisationChart
 from pewpew.charts.histogram import HistogramChart
 
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
@@ -328,9 +329,9 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.data = data
         self.mask = mask
 
-        if colors is None:
-            colors = [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0)]
-        self.cmap = LinearSegmentedColormap.from_list("colocal_cmap", colors)
+        # if colors is None:
+        #     colors = [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0)]
+        # self.cmap = LinearSegmentedColormap.from_list("colocal_cmap", colors)
 
         self.chart = ColocalisationChart()
 
@@ -390,7 +391,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
 
         layout_horz = QtWidgets.QHBoxLayout()
         layout_horz.addLayout(layout_vert)
-        layout_horz.addWidget(self.canvas, 1)
+        layout_horz.addWidget(self.chart, 1)
 
         layout_main = QtWidgets.QVBoxLayout()
         layout_main.addLayout(layout_horz)
@@ -429,7 +430,9 @@ class ColocalisationDialog(QtWidgets.QDialog):
 
         self.button_p.setEnabled(True)
 
-        self.plot(data1, data2, t1, t2, a, b)
+        self.chart.drawPoints(data1, data2)
+        self.chart.drawLine(a, b)
+        self.chart.drawThresholds(t1, t2)
 
     def calculatePearsonsProbablity(self) -> None:
         d1 = self.data[self.combo_name1.currentText()]
@@ -439,47 +442,6 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.label_p.setText(f"{p:.2f}")
 
         self.button_p.setEnabled(False)
-
-    def plot(
-        self,
-        data1: np.ndarray,
-        data2: np.ndarray,
-        t1: float,
-        t2: float,
-        a: float,
-        b: float,
-    ) -> None:
-        self.canvas.ax.clear()
-
-        x, y = data1.ravel(), data2.ravel()
-        if x.size > 10000:  # pragma: no cover
-            n = np.random.choice(x.size, 10000)
-            x, y = x[n], y[n]
-
-        # Line points
-        x1, y1 = (1, a + b) if a + b < 1 else ((1 - b) / a, 1)
-
-        self.canvas.ax.scatter(
-            x,
-            y,
-            s=1,
-            marker=",",
-            c=y - x,
-            vmin=-0.5,
-            vmax=0.5,
-            cmap="RdYlGn",
-            alpha=0.2,
-        )
-        self.canvas.ax.plot([0, x1], [b, y1], c="white", lw=1.0)
-        self.canvas.ax.axhline(t2, c="white", ls=":", lw=1.0)
-        self.canvas.ax.axvline(t1, c="white", ls=":", lw=1.0)
-
-        self.canvas.ax.set_xlim(-0.05, 1.05)
-        self.canvas.ax.set_ylim(-0.05, 1.05)
-        self.canvas.ax.set_xlabel(self.combo_name1.currentText())
-        self.canvas.ax.set_ylabel(self.combo_name2.currentText())
-
-        self.canvas.draw_idle()
 
 
 class ConfigDialog(ApplyDialog):
@@ -872,12 +834,6 @@ class StatsDialog(QtWidgets.QDialog):
 
     def isCalibrate(self) -> bool:
         return False  # pragma: no cover
-
-    # def plot(self, data: np.ndarray) -> None:
-    #     highlight = self.palette().color(QtGui.QPalette.Highlight).name()
-    #     self.canvas.ax.clear()
-    #     self.canvas.ax.hist(data.ravel(), bins="auto", color=highlight)
-    #     self.canvas.draw()
 
     def prepareData(self, structured: np.ndarray, mask: np.ndarray) -> np.ndarray:
         ix, iy = np.nonzero(mask)
