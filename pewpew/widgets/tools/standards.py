@@ -542,19 +542,19 @@ class CalibrationRectItem(ResizeableRectItem):
         eventpos = self.itemChange(
             QtWidgets.QGraphicsItem.ItemPositionChange, event.pos()
         )
-        if self.selectedEdge is None:
+        if self.selected_edge is None:
             super().mouseMoveEvent(event)
         else:
             for item in self.selectedSiblings():
                 pos = item.mapFromItem(self, eventpos)
                 rect = item.rect()
-                if self.selectedEdge == "left" and pos.x() < rect.right():
+                if self.selected_edge == "left" and pos.x() < rect.right():
                     rect.setLeft(pos.x() - pos.x() % self.px)
-                elif self.selectedEdge == "right" and pos.x() > rect.left() + self.px:
+                elif self.selected_edge == "right" and pos.x() > rect.left() + self.px:
                     rect.setRight(pos.x() - pos.x() % self.px)
-                elif self.selectedEdge == "top" and pos.y() < rect.bottom():
+                elif self.selected_edge == "top" and pos.y() < rect.bottom():
                     rect.setTop(pos.y() - pos.y() % self.py)
-                elif self.selectedEdge == "bottom" and pos.y() > rect.top() + self.py:
+                elif self.selected_edge == "bottom" and pos.y() > rect.top() + self.py:
                     rect.setBottom(pos.y() - pos.y() % self.py)
 
                 item.setRect(rect)
