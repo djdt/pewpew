@@ -9,7 +9,7 @@ from pewpew.lib.numpyqt import array_to_polygonf
 
 class CalibrationChart(BaseChart):
     def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
-        super().__init__(QtCharts.QChart(), parent)
+        super().__init__(QtCharts.QChart(), parent=parent)
         self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
         self.setMinimumSize(QtCore.QSize(640, 480))
         self.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -22,8 +22,8 @@ class CalibrationChart(BaseChart):
         self.xaxis = QtCharts.QValueAxis()
         self.yaxis = QtCharts.QValueAxis()
 
-        self.chart().addAxis(self.xaxis, QtCore.Qt.AlignBottom)
-        self.chart().addAxis(self.yaxis, QtCore.Qt.AlignLeft)
+        self.addAxis(self.xaxis, QtCore.Qt.AlignBottom)
+        self.addAxis(self.yaxis, QtCore.Qt.AlignLeft)
 
         self.label_series = QtCharts.QScatterSeries()
         self.label_series.append(0, 0)

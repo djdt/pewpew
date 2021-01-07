@@ -10,7 +10,7 @@ from typing import Union
 
 class HistogramChart(BaseChart):
     def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
-        super().__init__(QtCharts.QChart(), parent)
+        super().__init__(QtCharts.QChart(), parent=parent)
         self.setMinimumSize(QtCore.QSize(640, 320))
         self.setRenderHint(QtGui.QPainter.Antialiasing)
 
@@ -28,9 +28,9 @@ class HistogramChart(BaseChart):
         self.yaxis.setGridLineVisible(False)
         self.yaxis.setLabelFormat("%d")
 
-        self.chart().addAxis(self._xaxis, QtCore.Qt.AlignBottom)
-        self.chart().addAxis(self.xaxis, QtCore.Qt.AlignBottom)
-        self.chart().addAxis(self.yaxis, QtCore.Qt.AlignLeft)
+        self.addAxis(self._xaxis, QtCore.Qt.AlignBottom)
+        self.addAxis(self.xaxis, QtCore.Qt.AlignBottom)
+        self.addAxis(self.yaxis, QtCore.Qt.AlignLeft)
 
         self.series = QtCharts.QBarSeries()
         self.series.setBarWidth(1.0)
