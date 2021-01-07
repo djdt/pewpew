@@ -145,30 +145,35 @@ class RulerItem(QtWidgets.QGraphicsItem):
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if event.buttons() & QtCore.Qt.LeftButton:
             self.line.setP2(event.pos())
-            self.text = f"{self.line.length():.2g} μm"
+            self.text = f"{self.line.length():.4g} μm"
             self.prepareGeometryChange()
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if event.buttons() & QtCore.Qt.LeftButton:
             self.line.setP2(event.pos())
-            self.text = f"{self.line.length():.2g} μm"
+            self.text = f"{self.line.length():.4g} μm"
             self.prepareGeometryChange()
         super().mouseReleaseEvent(event)
 
     def boundingRect(self) -> QtCore.QRectF:
-        rect = QtCore.QRectF(self.line.p1(), self.line.p2()).normalized()
+        view = next(iter(self.scene().views()))
+        angle = self.line.angle()
+
         fm = QtGui.QFontMetrics(self.font)
         text = fm.boundingRect(self.text)
-        text.moveCenter(rect.cetner())
+        text = view.mapToScene(text).boundingRect()
 
-        view = next(iter(self.scene().views()), None)
-        rect = rect.marginsAdded()
-        if view is None:
-            return rect.
+        if 90 < angle < 270:
+            norm = QtCore.QLineF(self.line.center(), self.line.p1()).normalVector()
+        else:
+            norm = QtCore.QLineF(self.line.center(), self.line.p2()).normalVector()
+        norm.setLength(text.height())
+
+        poly = QtGui.QPolygonF([self.line.p1(), norm.p2(), self.line.p2()])
 
         w = view.mapToScene(QtCore.QRect(0, 0, 5, 1)).boundingRect().width()
-        return rect.marginsAdded(QtCore.QMarginsF(w, w, w, w))
+        return poly.boundingRect().marginsAdded(QtCore.QMarginsF(w, w, w, w))
 
     def paint(
         self,
@@ -198,28 +203,22 @@ class RulerItem(QtWidgets.QGraphicsItem):
             if 90 < angle < 270:
                 angle -= 180
             center = view.mapFromScene(self.line.center())
-            length = self.line.length()
+            length = (
+                view.mapFromScene(QtCore.QRectF(0, 0, self.line.length(), 1))
+                .boundingRect()
+                .width()
+            )
             width = fm.width(self.text)
 
-            painter.save()
-            painter.resetTransform()
-            transform = QtGui.QTransform()
-            transform.translate(center.x(), center.y())
-            transform.rotate(-angle)
-            painter.setTransform(transform)
-
             if width < length:
+                painter.save()
+                painter.resetTransform()
+                transform = QtGui.QTransform()
+                transform.translate(center.x(), center.y())
+                transform.rotate(-angle)
+                painter.setTransform(transform)
                 painter.drawText(-width / 2.0, -fm.descent(), self.text)
-
-            painter.restore()
-
-    # def hoverMoveEvent(seef, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-    #     edge = self.edgeAt(event.pos())
-    #     if edge in self.cursors:
-    #         self.setCursor(QtCore.Qt.MoveC)
-    #     else:
-    #         self.setCursor(QtCore.Qt.ArrowCursor)
-    #     super().hoverMoveEvent(event)
+                painter.restore()
 
 
 class ScaledImageItem(QtWidgets.QGraphicsItem):
