@@ -63,6 +63,12 @@ class OverlayItem(object):
 
         return pos
 
+    def contains(self, view_pos: QtCore.QPoint, view_rect: QtCore.QRect) -> bool:
+        rect = self.item.boundingRect()
+        rect.moveTo(self.pos() + self.anchorPos(view_rect))
+        print(rect)
+        return rect.contains(view_pos)
+
 
 class OverlayScene(QtWidgets.QGraphicsScene):
     def __init__(
@@ -123,6 +129,12 @@ class OverlayScene(QtWidgets.QGraphicsScene):
             # painter.setBrush(QtGui.QBrush(QtCore.Qt.red, QtCore.Qt.Dense7Pattern))
             # painter.drawRect(item.item.boundingRect())
 
+    def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        view_pos = event.widget().mapFromGlobal(event.screenPos())
+        for item in self.overlayitems:
+            if item.contains(view_pos, event.widget().rect()):
+                item.item.mouseDoubleClickEvent(event)
+
 
 class OverlayView(QtWidgets.QGraphicsView):
     viewScaleChanged = QtCore.Signal()
@@ -164,6 +176,7 @@ class OverlayView(QtWidgets.QGraphicsView):
 
     def copyToClipboard(self) -> None:
         QtWidgets.QApplication.clipboard().setPixmap(self.grab(self.viewport().rect()))
+
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
         if "zoom" in self.interaction_flags and event.button() == QtCore.Qt.LeftButton:
