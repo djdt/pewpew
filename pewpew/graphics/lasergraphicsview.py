@@ -211,3 +211,6 @@ class LaserGraphicsView(OverlayView):
         self.label.setVisible(label)
         self.scalebar.setVisible(scalebar)
         self.colorbar.setVisible(colorbar)
+
+    def zoomStart(self) -> None:
+        self.setInteractionFlag("zoom", True)

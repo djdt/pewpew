@@ -141,6 +141,7 @@ class OverlayView(QtWidgets.QGraphicsView):
         self.cursors = {
             "navigate": QtCore.Qt.ArrowCursor,
             "drag": QtCore.Qt.ClosedHandCursor,
+            "zoom": QtCore.Qt.ArrowCursor,
         }
         self.interaction_mode = "navigate"
         self.interaction_flags: Set[str] = set()
@@ -165,23 +166,28 @@ class OverlayView(QtWidgets.QGraphicsView):
         QtWidgets.QApplication.clipboard().setPixmap(self.grab(self.viewport().rect()))
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
-        if (
+        if "zoom" in self.interaction_flags and event.button() == QtCore.Qt.LeftButton:
+            self._last_pos = event.pos()
+            self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
+            super().mousePressEvent(event)
+        elif (
             self.interaction_mode == "navigate"
             and event.button() == QtCore.Qt.LeftButton
         ) or event.button() == QtCore.Qt.MiddleButton:
             self.setInteractionFlag("drag")
             self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)
-            self._last_pos = event.globalPos()
+            self._last_pos = event.pos()
         else:
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         if "drag" in self.interaction_flags:
-            dx = self._last_pos.x() - event.globalPos().x()
-            dy = self._last_pos.y() - event.globalPos().y()
+            last = self.mapToGlobal(self._last_pos)
+            dx = last.x() - event.globalPos().x()
+            dy = last.y() - event.globalPos().y()
             self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + dx)
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() + dy)
-            self._last_pos = event.globalPos()
+            self._last_pos = event.pos()
         else:
             super().mouseMoveEvent(event)
 
@@ -192,6 +198,13 @@ class OverlayView(QtWidgets.QGraphicsView):
             self.viewport().setCursor(
                 self.cursors.get(self.interaction_mode, QtCore.Qt.ArrowCursor)
             )
+        elif "zoom" in self.interaction_flags:
+            self.setInteractionFlag("zoom", False)
+            rect = QtCore.QRect(self._last_pos, event.pos())
+            rect = self.mapToScene(rect).boundingRect()
+            self.zoomToArea(rect)
+            self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
+            super().mouseReleaseEvent(event)
         else:
             super().mouseReleaseEvent(event)
 
@@ -256,3 +269,9 @@ class OverlayView(QtWidgets.QGraphicsView):
         self.viewScaleChanged.emit()
 
         self.setTransformationAnchor(anchor)
+
+    def zoomToArea(self, rect: QtCore.QRectF) -> None:
+        self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+
+    def zoomReset(self) -> None:
+        self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)

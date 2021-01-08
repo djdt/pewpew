@@ -322,15 +322,13 @@ class LaserWidget(_ViewWidget):
             "zoom-in",
             "Zoom to Area",
             "Start zoom area selection.",
-            lambda: None,
-            # self.graphics.startZoom,
+            self.graphics.zoomStart,
         )
         self.action_zoom_out = qAction(
             "zoom-original",
             "Reset Zoom",
-            "Reset zoom to full imgae extent.",
-            lambda: None,
-            # self.graphics.unzoom,
+            "Reset zoom to full image extent.",
+            self.graphics.zoomReset,
         )
         self.view_button = qToolButton("zoom", "Zoom")
         self.view_button.addAction(self.action_zoom_in)
