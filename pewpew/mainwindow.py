@@ -185,18 +185,18 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionToolOverlay,
         )
 
-        self.action_crop_view = qAction(
-            "transform-crop",
-            "Crop to View",
-            "Crop the image to the current view.",
-            self.actionCropView,
-        )
-        self.action_crop_selection = qAction(
-            "transform-crop",
-            "Crop to Selection",
-            "Crop the image to the current selection.",
-            self.actionCropSelection,
-        )
+        # self.action_crop_view = qAction(
+        #     "transform-crop",
+        #     "Crop to View",
+        #     "Crop the image to the current view.",
+        #     self.actionCropView,
+        # )
+        # self.action_crop_selection = qAction(
+        #     "transform-crop",
+        #     "Crop to Selection",
+        #     "Crop the image to the current selection.",
+        #     self.actionCropSelection,
+        # )
 
         self.action_transform_flip_horizontal = qAction(
             "object-flip-horizontal",
@@ -303,17 +303,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.viewspace.options.smoothing = checked
         self.refresh()
 
-    def actionCropView(self) -> None:
-        widget = self.viewspace.activeWidget()
-        if widget is None:
-            return
-        widget.crop()
+    # def actionCropView(self) -> None:
+    #     widget = self.viewspace.activeWidget()
+    #     if widget is None:
+    #         return
+    #     widget.crop()
 
-    def actionCropSelection(self) -> None:
-        widget = self.viewspace.activeWidget()
-        if widget is None:
-            return
-        widget.cropToSelection()
+    # def actionCropSelection(self) -> None:
+    #     widget = self.viewspace.activeWidget()
+    #     if widget is None:
+    #         return
+    #     widget.cropToSelection()
 
     # def actionGroupInterp(self, action: QtWidgets.QAction) -> None:
     #     text = action.text().replace("&", "")
@@ -466,10 +466,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu_edit.addSeparator()
 
-        menu_edit.addAction(self.action_crop_view)
-        menu_edit.addAction(self.action_crop_selection)
+        # menu_edit.addAction(self.action_crop_view)
+        # menu_edit.addAction(self.action_crop_selection)
 
-        menu_edit.addSeparator()
+        # menu_edit.addSeparator()
 
         menu_edit.addAction(self.action_transform_flip_horizontal)
         menu_edit.addAction(self.action_transform_flip_vertical)

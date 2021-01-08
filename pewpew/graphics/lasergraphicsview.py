@@ -110,6 +110,12 @@ class LaserGraphicsView(OverlayView):
         self.mask = np.zeros(self.data.shape, dtype=np.bool)
         self.setInteractionMode("navigate")
 
+    def posInSelection(self, pos: QtCore.QPointF) -> bool:
+        if self.mask is None:
+            return False
+        pos = self.mapToData(self.mapToScene(pos))
+        return self.mask[pos.y(), pos.x()]
+
     def startRulerWidget(self) -> None:
         if self.widget is not None:
             self.scene().removeItem(self.widget)

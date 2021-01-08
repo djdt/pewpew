@@ -153,113 +153,6 @@ class LaserView(View):
         return dlg
 
 
-# class LaserWidgetImageCanvas(LaserImageCanvas):
-#     def __init__(
-#         self, viewoptions: ViewOptions, parent: QtWidgets.QWidget = None
-#     ) -> None:
-#         shadow = (
-#             QtWidgets.QApplication.instance().palette().color(QtGui.QPalette.Shadow)
-#         )
-#         highlight = (
-#             QtWidgets.QApplication.instance().palette().color(QtGui.QPalette.Highlight)
-#         )
-#         lineshadow = SimpleLineShadow(
-#             offset=(0.5, -0.5), alpha=0.66, shadow_color=shadow.name()
-#         )
-#         rgba = (highlight.red(), highlight.green(), highlight.blue(), 200)
-#         super().__init__(
-#             viewoptions=viewoptions,
-#             move_button=1,
-#             widget_button=1,
-#             selection_rgba=rgba,
-#             parent=parent,
-#         )
-#         self.rectprops = {
-#             "edgecolor": highlight.name(),
-#             "facecolor": "none",
-#             "linestyle": "-",
-#             "linewidth": 1.1,
-#             "path_effects": [lineshadow, Normal()],
-#         }
-#         self.lineprops = {
-#             "color": highlight.name(),
-#             "linestyle": "--",
-#             "linewidth": 1.1,
-#             "path_effects": [lineshadow, Normal()],
-#         }
-
-#         self.drawFigure()
-
-#     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:  # pragma: no cover
-#         if event.key() == QtCore.Qt.Key_Escape:
-#             self.widget = None  # End any widget
-#         super().keyPressEvent(event)
-
-#     def startLassoSelection(self) -> None:
-#         self.state.add("selection")
-#         self.widget = LassoImageSelectionWidget(
-#             self.image,
-#             self.updateAndDrawSelection,
-#             useblit=True,
-#             button=self.widget_button,
-#             lineprops=self.lineprops,
-#         )
-#         self.widget.set_active(True)
-#         self.setFocus(QtCore.Qt.NoFocusReason)
-
-#     def startRectangleSelection(self) -> None:
-#         self.state.add("selection")
-#         self.widget = RectangleImageSelectionWidget(
-#             self.image,
-#             self.updateAndDrawSelection,
-#             useblit=True,
-#             button=self.widget_button,
-#             lineprops=self.lineprops,
-#         )
-#         self.widget.set_active(True)
-#         self.setFocus(QtCore.Qt.NoFocusReason)
-
-#     def startRuler(self) -> None:
-#         self.widget = RulerWidget(
-#             self.ax,
-#             lambda x: None,
-#             useblit=True,
-#             button=self.widget_button,
-#             lineprops=self.lineprops,
-#             drawtext=True,
-#             textprops=self.viewoptions.font.props(),
-#         )
-#         self.widget.set_active(True)
-#         self.setFocus(QtCore.Qt.NoFocusReason)
-
-#     def startZoom(self) -> None:
-#         self.widget = RectangleSelector(
-#             self.ax,
-#             self.zoom,
-#             useblit=True,
-#             drawtype="box",
-#             button=self.widget_button,
-#             rectprops=self.rectprops,
-#         )
-#         self.widget.set_active(True)
-
-#     def updateAndDrawSelection(self, mask: np.ndarray, state: set = None) -> None:
-#         if state is not None and self.selection is not None:
-#             if "add" in state:
-#                 self.selection = np.logical_or(self.selection, mask)
-#             elif "subtract" in state:
-#                 self.selection = np.logical_and(self.selection, ~mask)
-#             elif "intersect" in state:
-#                 self.selection = np.logical_and(self.selection, mask)
-#             else:  # pragma: no cover
-#                 self.selection = mask
-#         else:
-#             self.selection = mask
-
-#         self.drawSelection()
-#         self.draw_idle()
-
-
 class LaserComboBox(QtWidgets.QComboBox):
     namesSelected = QtCore.Signal(dict)
 
@@ -347,14 +240,26 @@ class LaserWidget(_ViewWidget):
         self.action_statistics = qAction(
             "dialog-information",
             "Statistics",
-            "Open statisitics dialog for selected data.",
+            "Open the statisitics dialog.",
             self.actionStatistics,
+        )
+        self.action_select_statistics = qAction(
+            "dialog-information",
+            "Selection Statistics",
+            "Open the statisitics dialog for the current selection.",
+            self.actionStatisticsSelection,
         )
         self.action_colocalisation = qAction(
             "dialog-information",
             "Colocalisation",
             "Open the colocalisation dialog.",
             self.actionColocal,
+        )
+        self.action_select_colocalisation = qAction(
+            "dialog-information",
+            "Selection Colocalisation",
+            "Open the colocalisation dialog for the current selection.",
+            self.actionColocalSelection,
         )
 
         # Toolbar actions
@@ -385,6 +290,19 @@ class LaserWidget(_ViewWidget):
             "Start the selection dialog.",
             self.actionSelectDialog,
         )
+        self.action_select_copy_text = qAction(
+            "insert-table",
+            "Copy Selection as Text",
+            "Copy the current selection to the clipboard as a column of text values.",
+            self.actionCopySelectionText,
+        )
+        self.action_select_crop = qAction(
+            "transform-crop",
+            "Crop to Selection",
+            "Crop the image to the current selection.",
+            self.actionCropSelection,
+        )
+
         self.selection_button = qToolButton("select", "Selection")
         self.selection_button.addAction(self.action_select_none)
         self.selection_button.addAction(self.action_select_rect)
@@ -634,6 +552,27 @@ class LaserWidget(_ViewWidget):
     def actionCopyImage(self) -> None:
         self.graphics.copyToClipboard()
 
+    def actionCopySelectionText(self) -> None:
+        data = self.graphics.data[self.graphics.mask].ravel()
+
+        html = (
+            '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
+            "<table>"
+        )
+        text = ""
+        for x in data:
+            html += f"<tr><td>{x:.10g}</td></tr>"
+            text += f"{x:.10g}\n"
+        html += "</table>"
+
+        mime = QtCore.QMimeData()
+        mime.setHtml(html)
+        mime.setText(text)
+        QtWidgets.QApplication.clipboard().setMimeData(mime)
+
+    def actionCropSelection(self) -> None:
+        self.cropToSelection()
+
     def actionDuplicate(self) -> None:
         self.view.addLaser(copy.deepcopy(self.laser))
 
@@ -664,11 +603,13 @@ class LaserWidget(_ViewWidget):
         dlg.show()
         return dlg
 
-    def actionStatistics(self) -> QtWidgets.QDialog:
+    def actionStatistics(self, crop_to_selection: bool = False) -> QtWidgets.QDialog:
         data = self.laser.get(calibrate=self.viewspace.options.calibrate, flat=True)
-        mask = self.graphics.mask
-        if mask is None:
-            mask = np.full(self.laser.shape, True, dtype=bool)
+        if crop_to_selection:
+            mask = self.graphics.mask
+        else:
+            mask = np.ones(data.shape, dtype=np.bool)
+
         units = {}
         if self.viewspace.options.calibrate:
             units = {k: v.unit for k, v in self.laser.calibration.items()}
@@ -688,26 +629,43 @@ class LaserWidget(_ViewWidget):
         dlg.open()
         return dlg
 
-    def actionColocal(self) -> QtWidgets.QDialog:
-        mask = self.graphics.mask
-        dlg = dialogs.ColocalisationDialog(self.laser.get(flat=True), mask, parent=self)
+    def actionStatisticsSelection(self) -> QtWidgets.QDialog:
+        return self.actionStatistics(True)
+
+    def actionColocal(self, crop_to_selection: bool = False) -> QtWidgets.QDialog:
+        data = self.laser.get(flat=True)
+        mask = self.graphics.mask if crop_to_selection else None
+
+        dlg = dialogs.ColocalisationDialog(data, mask, parent=self)
         dlg.open()
         return dlg
+
+    def actionColocalSelection(self) -> QtWidgets.QDialog:
+        return self.actionColocal(True)
 
     # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
         menu = QtWidgets.QMenu(self)
-        menu.addAction(self.action_duplicate)
+        # menu.addAction(self.action_duplicate)
         menu.addAction(self.action_copy_image)
         menu.addSeparator()
-        menu.addAction(self.view.action_open)
-        menu.addAction(self.action_save)
-        menu.addAction(self.action_export)
-        menu.addSeparator()
-        menu.addAction(self.action_config)
-        menu.addAction(self.action_calibration)
-        menu.addAction(self.action_statistics)
-        menu.addAction(self.action_colocalisation)
+
+        if self.graphics.posInSelection(event.pos()):
+            menu.addAction(self.action_select_copy_text)
+            menu.addAction(self.action_select_crop)
+            menu.addSeparator()
+            menu.addAction(self.action_select_statistics)
+            menu.addAction(self.action_select_colocalisation)
+        else:
+            menu.addAction(self.view.action_open)
+            menu.addAction(self.action_save)
+            menu.addAction(self.action_export)
+            menu.addSeparator()
+            menu.addAction(self.action_config)
+            menu.addAction(self.action_calibration)
+            menu.addSeparator()
+            menu.addAction(self.action_statistics)
+            menu.addAction(self.action_colocalisation)
         menu.popup(event.globalPos())
 
     def showEvent(self, event: QtGui.QShowEvent) -> None:
