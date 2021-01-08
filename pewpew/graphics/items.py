@@ -2,8 +2,9 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 import numpy as np
 
+from pewlib.process.calc import normalise
 
-from pewpew.lib.numpyqt import array_to_image
+from pewpew.lib.numpyqt import array_to_image, array_to_polygonf
 
 
 class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
@@ -145,14 +146,6 @@ class RulerItem(QtWidgets.QGraphicsItem):
             self.text = f"{self.line.length():.4g} μm"
             self.prepareGeometryChange()
         super().mouseMoveEvent(event)
-
-    # def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-    #     if event.buttons() & QtCore.Qt.LeftButton:
-    #         print("I am here")
-    #         self.line.setP2(event.pos())
-    #         self.text = f"{self.line.length():.4g} μm"
-    #         self.prepareGeometryChange()
-    #     super().mouseReleaseEvent(event)
 
     def boundingRect(self) -> QtCore.QRectF:
         view = next(iter(self.scene().views()))
@@ -303,9 +296,8 @@ class ScaledImageSliceItem(QtWidgets.QGraphicsItem):
         super().__init__(parent)
 
         if pen is None:
-            pen = QtGui.QPen(QtCore.Qt.white, 2.0)
+            pen = QtGui.QPen(QtCore.Qt.white, 2.0, QtCore.Qt.DotLine)
             pen.setCosmetic(True)
-            pen.setStyle(QtCore.Qt.DashLine)
             pen.setCapStyle(QtCore.Qt.RoundCap)
 
         if font is None:
@@ -317,7 +309,7 @@ class ScaledImageSliceItem(QtWidgets.QGraphicsItem):
         self.font = font
 
         self.line = QtCore.QLineF()
-        self.points = QtGui.QPolygonF()
+        self.poly = QtGui.QPolygonF()
 
     def slicePoly(self) -> QtGui.QPolygonF:
         def connect_nd(ends):
@@ -330,9 +322,26 @@ class ScaledImageSliceItem(QtWidgets.QGraphicsItem):
         p1 = self.image.mapToData(self.line.p1())
         p2 = self.image.mapToData(self.line.p2())
 
-        points = (connect_nd([[p1.x(), p1.y()], [p2.x(), p2.y()]])
+        view = next(iter(self.scene().views()))
+        height = view.mapToScene(QtCore.QRect(0, 0, 1, 100)).boundingRect().height()
 
-        return QtGui.QPolygonF()
+        points = connect_nd([[p1.x(), p1.y()], [p2.x(), p2.y()]])
+        if points.size > 2:
+            data = self.image.image._array[points[:, 1], points[:, 0]]
+
+            xs = np.linspace(0.0, self.line.length(), data.size)
+            ys = -1.0 * normalise(data, 0.0, height)
+
+            poly = array_to_polygonf(np.stack((xs, ys), axis=1))
+
+            angle = self.line.angle()
+            if 90 < angle < 270:
+                angle -= 180
+
+            transform = QtGui.QTransform()
+            transform.translate(self.line.p1().x(), self.line.p1().y())
+            transform.rotate(-angle)
+            self.poly = transform.map(poly)
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if event.buttons() & QtCore.Qt.LeftButton:
@@ -343,41 +352,16 @@ class ScaledImageSliceItem(QtWidgets.QGraphicsItem):
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if event.buttons() & QtCore.Qt.LeftButton:
             self.line.setP2(event.pos())
-            # self.text = f"{self.line.length():.4g} μm"
             self.slicePoly()
             self.prepareGeometryChange()
         super().mouseMoveEvent(event)
 
-    def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        if event.buttons() & QtCore.Qt.LeftButton:
-            self.line.setP2(event.pos())
-            print("I am here")
-            # self.text = f"{self.line.length():.4g} μm"
-            self.prepareGeometryChange()
-        super().mouseReleaseEvent(event)
-
     def boundingRect(self) -> QtCore.QRectF:
-        view = next(iter(self.scene().views()))
-        #     angle = self.line.angle()
-
-        #     fm = QtGui.QFontMetrics(self.font)
-        #     text = fm.boundingRect(self.text)
-        #     text = view.mapToScene(text).boundingRect()
-
-        #     # Corners above the text height
-        #     n1 = QtCore.QLineF(self.line.p2(), self.line.p1()).normalVector()
-        #     n2 = QtCore.QLineF(self.line.p1(), self.line.p2()).normalVector()
-        #     if 90 < angle < 270:
-        #         n1.setLength(text.height())
-        #         n2.setLength(-text.height())
-        #     else:
-        #         n1.setLength(-text.height())
-        #         n2.setLength(text.height())
-
-        poly = QtGui.QPolygonF([self.line.p1(), self.line.p2()])
-
-        w = view.mapToScene(QtCore.QRect(0, 0, 5, 1)).boundingRect().width()
-        return poly.boundingRect().marginsAdded(QtCore.QMarginsF(w, w, w, w))
+        view = next(iter(self.scene().views()), None)
+        p1r = view.mapToScene(QtCore.QRect(0, 0, 10, 10)).boundingRect()
+        p1r.moveCenter(self.line.p1())
+        p2r = p1r.translated(self.line.dx(), self.line.dy())
+        return self.poly.boundingRect().united(p1r).united(p2r)
 
     def paint(
         self,
@@ -385,41 +369,20 @@ class ScaledImageSliceItem(QtWidgets.QGraphicsItem):
         option: QtWidgets.QStyleOptionGraphicsItem,
         widget: QtWidgets.QWidget = None,
     ):
-        view = next(iter(self.scene().views()), None)
 
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.setFont(self.font)
         painter.setPen(self.pen)
 
-        fm = painter.fontMetrics()
-
         painter.drawLine(self.line)
 
+        pen = QtGui.QPen(self.pen)
+        pen.setStyle(QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+        painter.drawPolyline(self.poly)
+
         if not self.line.p1().isNull():
-            pen = QtGui.QPen(self.pen)
             pen.setWidth(10)
             painter.setPen(pen)
             painter.drawPoints([self.line.p1(), self.line.p2()])
             painter.setPen(self.pen)
-
-        # if view is not None and self.text != "":
-        #     angle = self.line.angle()
-        #     if 90 < angle < 270:
-        #         angle -= 180
-        #     center = view.mapFromScene(self.line.center())
-        #     length = (
-        #         view.mapFromScene(QtCore.QRectF(0, 0, self.line.length(), 1))
-        #         .boundingRect()
-        #         .width()
-        #     )
-        #     width = fm.width(self.text)
-
-        #     if width < length * 0.9:
-        #         painter.save()
-        #         painter.resetTransform()
-        #         transform = QtGui.QTransform()
-        #         transform.translate(center.x(), center.y())
-        #         transform.rotate(-angle)
-        #         painter.setTransform(transform)
-        #         painter.drawText(-width / 2.0, -fm.descent(), self.text)
-        #         painter.restore()
