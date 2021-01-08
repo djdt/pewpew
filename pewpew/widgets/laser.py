@@ -315,8 +315,15 @@ class LaserWidget(_ViewWidget):
             "Use a ruler to measure distance.",
             self.graphics.startRulerWidget,
         )
+        self.action_slice = qAction(
+            "tool-measure",
+            "1D Slice",
+            "Select and display a 1-dimensional slice of the image.",
+            self.graphics.startSliceWidget,
+        )
         self.widgets_button = qToolButton("tool-measure", "Widgets")
         self.widgets_button.addAction(self.action_ruler)
+        self.widgets_button.addAction(self.action_slice)
 
         self.action_zoom_in = qAction(
             "zoom-in",

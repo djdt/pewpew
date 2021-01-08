@@ -7,6 +7,7 @@ from pewpew.graphics import colortable
 from pewpew.graphics.items import (
     RulerItem,
     ScaledImageItem,
+    ScaledImageSliceItem,
 )
 from pewpew.graphics.selectionitems import (
     ScaledImageSelectionItem,
@@ -118,6 +119,14 @@ class LaserGraphicsView(OverlayView):
         if self.widget is not None:
             self.scene().removeItem(self.widget)
         self.widget = RulerItem(font=self.options.font)
+        self.scene().addItem(self.widget)
+        self.widget.grabMouse()
+        self.setInteractionMode("widget")
+
+    def startSliceWidget(self) -> None:
+        if self.widget is not None:
+            self.scene().removeItem(self.widget)
+        self.widget = ScaledImageSliceItem(self.image, font=self.options.font)
         self.scene().addItem(self.widget)
         self.widget.grabMouse()
         self.setInteractionMode("widget")
