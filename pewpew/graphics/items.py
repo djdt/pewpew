@@ -2,11 +2,10 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 import numpy as np
 
-from pewpew.graphics.util import polygonf_contains_points
 
-from pewpew.lib.numpyqt import array_to_image, polygonf_to_array
+from pewpew.lib.numpyqt import array_to_image
 
-from typing import Dict, Generator
+from typing import Dict
 
 
 class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
@@ -164,13 +163,17 @@ class RulerItem(QtWidgets.QGraphicsItem):
         text = fm.boundingRect(self.text)
         text = view.mapToScene(text).boundingRect()
 
+        # Corners above the text height
+        n1 = QtCore.QLineF(self.line.p2(), self.line.p1()).normalVector()
+        n2 = QtCore.QLineF(self.line.p1(), self.line.p2()).normalVector()
         if 90 < angle < 270:
-            norm = QtCore.QLineF(self.line.center(), self.line.p1()).normalVector()
+            n1.setLength(text.height())
+            n2.setLength(-text.height())
         else:
-            norm = QtCore.QLineF(self.line.center(), self.line.p2()).normalVector()
-        norm.setLength(text.height())
+            n1.setLength(-text.height())
+            n2.setLength(text.height())
 
-        poly = QtGui.QPolygonF([self.line.p1(), norm.p2(), self.line.p2()])
+        poly = QtGui.QPolygonF([self.line.p1(), n1.p2(), n2.p2(), self.line.p2()])
 
         w = view.mapToScene(QtCore.QRect(0, 0, 5, 1)).boundingRect().width()
         return poly.boundingRect().marginsAdded(QtCore.QMarginsF(w, w, w, w))
@@ -210,7 +213,7 @@ class RulerItem(QtWidgets.QGraphicsItem):
             )
             width = fm.width(self.text)
 
-            if width < length:
+            if width < length * 0.9:
                 painter.save()
                 painter.resetTransform()
                 transform = QtGui.QTransform()
@@ -252,6 +255,13 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
     def boundingRect(self) -> QtCore.QRectF:
         return self.rect
 
+    def mapToData(self, pos: QtCore.QPointF) -> QtCore.QPoint:
+        px = self.rect.width() / self.image.width()
+        py = self.rect.height() / self.image.height()
+
+        pos -= self.rect.topLeft()
+        return QtCore.QPoint(pos.x() / px, pos.y() / py)
+
     def paint(
         self,
         painter: QtGui.QPainter,
@@ -277,214 +287,76 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
         return item
 
 
-class SelectionItem(QtWidgets.QGraphicsObject):
-    selectionChanged = QtCore.Signal(np.ndarray, "QStringList")
-
+class ScaledImageSliceItem(QtWidgets.QGraphicsItem):
     def __init__(
         self,
-        modes: Dict[QtCore.Qt.KeyboardModifier, str] = None,
+        image: ScaledImageItem,
+        pen: QtGui.QPen = None,
+        font: QtGui.QFont = None,
         parent: QtWidgets.QGraphicsItem = None,
     ):
         super().__init__(parent)
-        self.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
-        self.setZValue(99)
-
-        self.modes = modes or {}
-
-    def modifierModes(
-        self, modifiers: QtCore.Qt.KeyboardModifier
-    ) -> Generator[str, None, None]:
-        for k, v in self.modes.items():
-            if k & modifiers:
-                yield v
-
-
-class ScaledImageSelectionItem(SelectionItem):
-    def __init__(
-        self,
-        image: ScaledImageItem = None,
-        modes: Dict[QtCore.Qt.KeyboardModifier, str] = None,
-        parent: QtWidgets.QGraphicsItem = None,
-    ):
-        _modes = {QtCore.Qt.ShiftModifier: "add", QtCore.Qt.ControlModifier: "subtract"}
-        if modes is not None:
-            _modes.update(modes)
-        super().__init__(modes=_modes, parent=parent)
-
-        self.rect = QtCore.QRectF(image.rect)
-        self.image_shape = (image.height(), image.width())
-
-    def pixelSize(self) -> QtCore.QSizeF:
-        return QtCore.QSizeF(
-            self.rect.width() / self.image_shape[1],
-            self.rect.height() / self.image_shape[0],
-        )
-
-    def snapPos(self, pos: QtCore.QPointF) -> QtCore.QPointF:
-        pixel = self.pixelSize()
-        x = round(pos.x() / pixel.width()) * pixel.width()
-        y = round(pos.y() / pixel.height()) * pixel.height()
-        return QtCore.QPointF(x, y)
-
-
-class LassoImageSelectionItem(ScaledImageSelectionItem):
-    def __init__(
-        self,
-        image: ScaledImageItem,
-        modes: Dict[QtCore.Qt.Modifier, str] = None,
-        pen: QtGui.QPen = None,
-        parent: QtWidgets.QGraphicsItem = None,
-    ):
-        super().__init__(image, parent=parent)
 
         if pen is None:
             pen = QtGui.QPen(QtCore.Qt.white, 2.0)
+            pen.setCosmetic(True)
+            pen.setStyle(QtCore.Qt.DashLine)
+            pen.setCapStyle(QtCore.Qt.RoundCap)
+
+        if font is None:
+            font = QtGui.QFont()
+
+        self.image = image
 
         self.pen = pen
-        self.pen.setCosmetic(True)
+        self.font = font
 
-        self.poly = QtGui.QPolygonF()
+        self.line = QtCore.QLineF()
 
-    def boundingRect(self) -> QtCore.QRectF:
-        return self.poly.boundingRect()
+    def slicePoly(self) -> QtGui.QPolygonF:
+        p1, p2 = self.line.p1(), self.line.p2()
 
-    def shape(self) -> QtGui.QPainterPath:
-        path = QtGui.QPainterPath()
-        path.addPolygon(self.poly)
-        return path
-
-    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        self.poly.clear()
-        self.poly.append(self.snapPos(event.pos()))
-
-        self.prepareGeometryChange()
-
-    def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        if not event.buttons() & QtCore.Qt.LeftButton:
-            return
-        if self.poly.size() == 0:
-            return
-        pos = self.snapPos(event.pos())
-        if self.poly.last() != pos:
-            self.poly.append(pos)
+    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        if event.buttons() & QtCore.Qt.LeftButton:
+            self.line.setPoints(event.pos(), event.pos())
+            self.text = ""
             self.prepareGeometryChange()
+        super().mousePressEvent(event)
 
-    def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        modes = list(self.modifierModes(event.modifiers()))
-        pixel = self.pixelSize()
+    def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        if event.buttons() & QtCore.Qt.LeftButton:
+            self.line.setP2(event.pos())
+            # self.text = f"{self.line.length():.4g} μm"
+            self.prepareGeometryChange()
+        super().mouseMoveEvent(event)
 
-        array = polygonf_to_array(self.poly)
-        # Get start and end points of area
-        x1, x2 = np.amin(array[:, 0]), np.amax(array[:, 0])
-        y1, y2 = np.amin(array[:, 1]), np.amax(array[:, 1])
-        # Bound to image area
-        x1, y1 = max(x1, 0.0), max(y1, 0.0)
-        x2 = min(x2, self.rect.width() - pixel.width() / 2.0)
-        y2 = min(y2, self.rect.height() - pixel.height() / 2.0)
-        # Generate pixel centers
-        xs = np.arange(x1, x2, pixel.width()) + pixel.width() / 2.0
-        ys = np.arange(y1, y2, pixel.height()) + pixel.height() / 2.0
-        X, Y = np.meshgrid(xs, ys)
-        pixels = np.stack((X.flat, Y.flat), axis=1)
-
-        # Get mask of selected area
-        mask = np.zeros(self.image_shape, dtype=np.bool)
-        polymask = polygonf_contains_points(self.poly, pixels).reshape(ys.size, xs.size)
-        # Insert
-        ix, iy = int(x1 / pixel.width()), int(y1 / pixel.height())
-        mask[iy : iy + ys.size, ix : ix + xs.size] = polymask
-
-        # self.poly.append(self.poly.first())
-        self.poly.clear()
-        self.prepareGeometryChange()
-
-        self.selectionChanged.emit(mask, modes)
-
-    def paint(
-        self,
-        painter: QtGui.QPainter,
-        options: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
-    ):
-        painter.save()
-
-        painter.setPen(self.pen)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-
-        painter.drawPolyline(self.poly)
-
-        painter.restore()
-
-
-class RectImageSelectionItem(ScaledImageSelectionItem):
-    def __init__(
-        self,
-        image: ScaledImageItem,
-        modes: Dict[QtCore.Qt.Modifier, str] = None,
-        pen: QtGui.QPen = None,
-        parent: QtWidgets.QGraphicsItem = None,
-    ):
-        super().__init__(image, parent=parent)
-
-        if pen is None:
-            pen = QtGui.QPen(QtCore.Qt.white, 2.0)
-
-        self.pen = pen
-        self.pen.setCosmetic(True)
-
-        self._rect = QtCore.QRectF()
+    def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        if event.buttons() & QtCore.Qt.LeftButton:
+            self.line.setP2(event.pos())
+            self.updateSlicePoly()
+            # self.text = f"{self.line.length():.4g} μm"
+            self.prepareGeometryChange()
+        super().mouseReleaseEvent(event)
 
     def boundingRect(self) -> QtCore.QRectF:
-        return self._rect.normalized()
+        view = next(iter(self.scene().views()))
+        angle = self.line.angle()
 
-    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        if not event.button() & QtCore.Qt.LeftButton:
-            return
-        self._rect.setTopLeft(event.pos())
-        self._rect.setBottomRight(event.pos())
-        self.prepareGeometryChange()
+        fm = QtGui.QFontMetrics(self.font)
+        text = fm.boundingRect(self.text)
+        text = view.mapToScene(text).boundingRect()
 
-    def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        if not event.buttons() & QtCore.Qt.LeftButton:
-            return
-        self._rect.setBottomRight(event.pos())
-        self.prepareGeometryChange()
+        # Corners above the text height
+        n1 = QtCore.QLineF(self.line.p2(), self.line.p1()).normalVector()
+        n2 = QtCore.QLineF(self.line.p1(), self.line.p2()).normalVector()
+        if 90 < angle < 270:
+            n1.setLength(text.height())
+            n2.setLength(-text.height())
+        else:
+            n1.setLength(-text.height())
+            n2.setLength(text.height())
 
-    def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        if not event.button() & QtCore.Qt.LeftButton:
-            return
-        modes = list(self.modifierModes(event.modifiers()))
+        poly = QtGui.QPolygonF([self.line.p1(), n1.p2(), n2.p2(), self.line.p2()])
 
-        px, py = (
-            self.rect.width() / self.image_shape[1],
-            self.rect.height() / self.image_shape[0],
-        )  # pixel size
-
-        x1, y1, x2, y2 = self._rect.normalized().getCoords()
-        x1 = np.round(x1 / px).astype(int)
-        x2 = np.round(x2 / px).astype(int)
-        y1 = np.round(y1 / py).astype(int)
-        y2 = np.round(y2 / py).astype(int)
-
-        mask = np.zeros(self.image_shape, dtype=np.bool)
-        mask[y1:y2, x1:x2] = True
-
-        self._rect = QtCore.QRectF()
-        self.prepareGeometryChange()
-
-        self.selectionChanged.emit(mask, modes)
-
-    def paint(
-        self,
-        painter: QtGui.QPainter,
-        options: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
-    ):
-        painter.save()
-
-        painter.setPen(self.pen)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-
-        painter.drawRect(self._rect)
-
-        painter.restore()
+        w = view.mapToScene(QtCore.QRect(0, 0, 5, 1)).boundingRect().width()
+        return poly.boundingRect().marginsAdded(QtCore.QMarginsF(w, w, w, w))

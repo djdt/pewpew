@@ -7,6 +7,8 @@ from pewpew.graphics import colortable
 from pewpew.graphics.items import (
     RulerItem,
     ScaledImageItem,
+)
+from pewpew.graphics.selectionitems import (
     ScaledImageSelectionItem,
     LassoImageSelectionItem,
     RectImageSelectionItem,
@@ -70,14 +72,10 @@ class LaserGraphicsView(OverlayView):
         )
 
     def mapToData(self, pos: QtCore.QPointF) -> QtCore.QPoint:
-        if self.image is None or self.data is None:
+        if self.image is None:
             return QtCore.QPoint(0, 0)
 
-        px = self.image.rect.width() / self.data.shape[1]
-        py = self.image.rect.height() / self.data.shape[0]
-
-        pos -= self.image.rect.topLeft()
-        return QtCore.QPoint(pos.x() / px, pos.y() / py)
+        return self.image.mapToData(pos)
 
     def startLassoSelection(self) -> None:
         if self.selection_item is not None:
