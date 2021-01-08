@@ -4,12 +4,14 @@ from PySide2.QtCharts import QtCharts
 import numpy as np
 
 from pewpew.charts.base import BaseChart
+from pewpew.charts.colors import light_theme, group1
+
 from pewpew.lib.numpyqt import array_to_polygonf
 
 
 class CalibrationChart(BaseChart):
     def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
-        super().__init__(QtCharts.QChart(), parent=parent)
+        super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
         self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
         self.setMinimumSize(QtCore.QSize(640, 480))
         self.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -29,12 +31,14 @@ class CalibrationChart(BaseChart):
         self.label_series.append(0, 0)
         self.label_series.setBrush(QtGui.QBrush(QtCore.Qt.black, QtCore.Qt.NoBrush))
         self.label_series.setPointLabelsFormat("(@xPoint, @yPoint)")
+        self.label_series.setPointLabelsColor(light_theme["text"])
 
         self.chart().addSeries(self.label_series)
         self.label_series.attachAxis(self.xaxis)
         self.label_series.attachAxis(self.yaxis)
 
         self.line = QtCharts.QLineSeries()
+        self.line.setPen(QtGui.QPen(group1[0][0], 1.5))
         # self.line.setColor(QtCore.Qt.red)
 
         self.chart().addSeries(self.line)
@@ -42,7 +46,8 @@ class CalibrationChart(BaseChart):
         self.line.attachAxis(self.yaxis)
 
         self.series = QtCharts.QScatterSeries()
-        # self.series.setColor(QtCore.Qt.black)
+        self.series.setPen(QtGui.QPen(group1[0][0], 1.5))
+        self.series.setBrush(group1[0][1])
         self.series.setMarkerSize(12)
 
         self.chart().addSeries(self.series)

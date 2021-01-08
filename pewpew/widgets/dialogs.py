@@ -401,25 +401,33 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.refresh()
 
     def refresh(self) -> None:
-        data1 = self.data[self.combo_name1.currentText()]
-        data2 = self.data[self.combo_name2.currentText()]
-        if self.mask is not None:
-            data1, data2 = data1[self.mask], data2[self.mask]
+        n1 = self.combo_name1.currentText()
+        n2 = self.combo_name2.currentText()
+        x = self.data[n1]
+        y = self.data[n2]
 
-        data1, data2 = normalise(data1), normalise(data2)
+        if self.mask is not None:
+            x, y = x[self.mask], y[self.mask]
+
+        x, y = normalise(x), normalise(y)
 
         # Pearson
-        r = colocal.pearsonr(data1, data2)
+        r = colocal.pearsonr(x, y)
 
         # Li
-        icq = colocal.li_icq(data1, data2)
+        icq = colocal.li_icq(x, y)
+
+        x, y = x.ravel(), y.ravel()
+        if x.size > 10000:  # pragma: no cover
+            n = np.random.choice(x.size, 10000)
+            x, y = x[n], y[n]
 
         # Choose a more approriate threshold?
         # TODO this is really slow, python loops?
-        t1, a, b = colocal.costes_threshold(data1, data2)
+        t1, a, b = colocal.costes_threshold(x, y)
         t2 = a * t1 + b
         m1, m2 = colocal.manders(
-            data1, data2, t2, t1
+            x, y, t2, t1
         )  # Pass thresholds backwards as per Costes
 
         self.label_r.setText(f"{r:.2f}")
@@ -430,15 +438,18 @@ class ColocalisationDialog(QtWidgets.QDialog):
 
         self.button_p.setEnabled(True)
 
-        self.chart.drawPoints(data1, data2)
+        self.chart.drawPoints(x, y)
         self.chart.drawLine(a, b)
         self.chart.drawThresholds(t1, t2)
 
-    def calculatePearsonsProbablity(self) -> None:
-        d1 = self.data[self.combo_name1.currentText()]
-        d2 = self.data[self.combo_name2.currentText()]
+        self.chart.xaxis.setTitleText(n1)
+        self.chart.yaxis.setTitleText(n2)
 
-        _r, p = colocal.pearsonr_probablity(d1, d2, mask=self.mask, n=500)
+    def calculatePearsonsProbablity(self) -> None:
+        x = self.data[self.combo_name1.currentText()]
+        y = self.data[self.combo_name2.currentText()]
+
+        _r, p = colocal.pearsonr_probablity(x, y, mask=self.mask, n=500)
         self.label_p.setText(f"{p:.2f}")
 
         self.button_p.setEnabled(False)

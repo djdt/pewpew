@@ -1,57 +1,34 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCharts import QtCharts
 
-colors = {
-    "light": {
-        "background": QtGui.QColor(0xFF, 0xFF, 0xFF),
-        "axis": QtGui.QColor(0x8D, 0x8D, 0x8D),
-        "grid": QtGui.QColor(0xE0, 0xE0, 0xE0),
-        "title": QtGui.QColor(0x16, 0x16, 0x16),
-        "text": QtGui.QColor(0x39, 0x39, 0x39),
-        "colors": [QtGui.QColor(0x69, 0x29, 0xc4), QtGui.QColor(0x01, 0x27, 0x49)]
-    },
-    "dark": {
-        "background": QtGui.QColor(0x16, 0x16, 0x16),
-        "axis": QtGui.QColor(0x6F, 0x6F, 0x6F),
-        "grid": QtGui.QColor(0x39, 0x39, 0x39),
-        "title": QtGui.QColor(0xF4, 0xF4, 0xF4),
-        "text": QtGui.QColor(0xC6, 0xC6, 0xC6),
-    },
-}
+from pewpew.charts import colors
+
+from typing import Dict
 
 
 class BaseChart(QtCharts.QChartView):
-    bgcolor = QtGui.QColor(0xF4, 0xF4, 0xF4)
-
-    u1color = QtGui.QColor(0xFF, 0xFF, 0xFF)
-    u2color = QtGui.QColor(0x39, 0x39, 0x39)
-
-    d1color = QtGui.QColor(0x52, 0x52, 0x52)
-
-    t1color = QtGui.QColor(0xF4, 0xF4, 0xF4)
-    t2color = QtGui.QColor(0xC6, 0xC6, 0xC6)
-
     def __init__(
         self,
         chart: QtCharts.QChart,
-        mode: str = "light",
+        theme: Dict[str, QtGui.QColor],
         parent: QtWidgets.QWidget = None,
     ):
-        self.mode = mode
+        self.theme = theme
 
-        chart.setBackgroundBrush(QtGui.QBrush(colors[self.mode]["background"]))
-        chart.setBackgroundPen(QtGui.QPen(colors[self.mode]["background"]))
-
+        chart.setBackgroundBrush(QtGui.QBrush(self.theme["background"]))
+        chart.setBackgroundPen(QtGui.QPen(self.theme["background"]))
         super().__init__(chart, parent)
 
     def addAxis(
         self, axis: QtCharts.QAbstractAxis, alignment: QtCore.Qt.Alignment
     ) -> None:
         axis.setMinorGridLineVisible(True)
-        axis.setTitleBrush(QtGui.QBrush(colors[self.mode]["title"]))
-        axis.setGridLinePen(QtGui.QPen(colors[self.mode]["grid"], 1.0))
-        axis.setLinePen(QtGui.QPen(colors[self.mode]["axis"], 2.0))
-        axis.setLabelsColor(colors[self.mode]["text"])
+        axis.setTitleBrush(QtGui.QBrush(self.theme["title"]))
+        axis.setGridLinePen(QtGui.QPen(self.theme["grid"], 1.0))
+        axis.setLinePen(QtGui.QPen(self.theme["axis"], 1.0))
+        axis.setLabelsColor(self.theme["text"])
+        if isinstance(axis, QtCharts.QValueAxis):
+            axis.setTickCount(6)
         # axis.setShadesColor(colors[self.mode]["title"])
         self.chart().addAxis(axis, alignment)
 

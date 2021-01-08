@@ -3,14 +3,17 @@ from PySide2.QtCharts import QtCharts
 
 import numpy as np
 
-from pewpew.lib.numpyqt import array_to_polygonf
 from pewpew.charts.base import BaseChart
+from pewpew.charts.colors import light_theme, group2
+
+from pewpew.lib.numpyqt import array_to_polygonf
 
 
 class ColocalisationChart(BaseChart):
     def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
-        super().__init__(QtCharts.QChart(), parent=parent)
-        self.setMinimumSize(QtCore.QSize(640, 320))
+        super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
+        self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
+        self.setMinimumSize(QtCore.QSize(640, 480))
         self.setRenderHint(QtGui.QPainter.Antialiasing)
 
         if title is not None:
@@ -26,29 +29,29 @@ class ColocalisationChart(BaseChart):
         self.addAxis(self.yaxis, QtCore.Qt.AlignLeft)
 
         self.scatter = QtCharts.QScatterSeries()
-        self.scatter.setColor(QtGui.QColor(0x8a, 0x3f, 0xfc))
+        self.scatter.setColor(group2[0][0])
         self.scatter.setUseOpenGL(True)
         self.scatter.setPen(QtGui.QPen(QtCore.Qt.NoPen))
-        self.scatter.setMarkerSize(5)
+        self.scatter.setMarkerSize(4)
         self.scatter.setMarkerShape(QtCharts.QScatterSeries.MarkerShapeRectangle)
         self.chart().addSeries(self.scatter)
         self.scatter.attachAxis(self.xaxis)
         self.scatter.attachAxis(self.yaxis)
 
         self.line = QtCharts.QLineSeries()
-        self.line.setColor(QtGui.QColor(0xff, 0x7e, 0xb6))
+        self.line.setPen(QtGui.QPen(QtCore.Qt.black, 1.5))
         self.chart().addSeries(self.line)
         self.line.attachAxis(self.xaxis)
         self.line.attachAxis(self.yaxis)
 
         self.t1 = QtCharts.QLineSeries()
-        self.t1.setColor(QtGui.QColor(0xff, 0xf1, 0xf1))
+        self.t1.setPen(QtGui.QPen(QtCore.Qt.black, 1.0, QtCore.Qt.DashLine))
         self.chart().addSeries(self.t1)
         self.t1.attachAxis(self.xaxis)
         self.t1.attachAxis(self.yaxis)
 
         self.t2 = QtCharts.QLineSeries()
-        self.t2.setColor(QtGui.QColor(0xff, 0xf1, 0xf1))
+        self.t2.setPen(QtGui.QPen(QtCore.Qt.black, 1.0, QtCore.Qt.DashLine))
         self.chart().addSeries(self.t2)
         self.t2.attachAxis(self.xaxis)
         self.t2.attachAxis(self.yaxis)

@@ -1,0 +1,37 @@
+from PySide2 import QtGui
+
+gray100 = QtGui.QColor(0x16, 0x16, 0x16)
+gray90 = QtGui.QColor(0x26, 0x26, 0x26)
+gray80 = QtGui.QColor(0x39, 0x39, 0x39)
+gray70 = QtGui.QColor(0x52, 0x52, 0x52)
+gray60 = QtGui.QColor(0x6f, 0x6f, 0x6f)
+gray50 = QtGui.QColor(0x8d, 0x8d, 0x8d)
+gray40 = QtGui.QColor(0xa8, 0xa8, 0xa8)
+gray30 = QtGui.QColor(0xc6, 0xc6, 0xc6)
+gray20 = QtGui.QColor(0xe0, 0xe0, 0xe0)
+gray10 = QtGui.QColor(0xf4, 0xf4, 0xf4)
+
+cyan20 = QtGui.QColor(0xd0, 0xe2, 0xff)
+cyan50 = QtGui.QColor(0x11, 0x92, 0xe8)
+
+magenta50 = QtGui.QColor(0xee, 0x53, 0x8b)
+
+purple40 = QtGui.QColor(0xbe, 0x95, 0xff)
+purple70 = QtGui.QColor(0x69, 0x29, 0xc4)
+
+teal70 = QtGui.QColor(0x00, 0x5d, 0x5d)
+
+white = QtGui.QColor(0xff, 0xff, 0xff)
+
+# group1 = [(purple70, purple40)]
+group1 = [(cyan50, cyan20)]
+group2 = [(cyan50, cyan20), teal70]
+group3 = [cyan50, magenta50, purple70]
+
+light_theme = {
+    "background": white,
+    "axis": gray50,
+    "grid": gray20,
+    "title": gray100,
+    "text": gray80,
+}

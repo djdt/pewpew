@@ -4,13 +4,14 @@ from PySide2.QtCharts import QtCharts
 import numpy as np
 
 from pewpew.charts.base import BaseChart
+from pewpew.charts.colors import light_theme, group1
 
 from typing import Union
 
 
 class HistogramChart(BaseChart):
     def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
-        super().__init__(QtCharts.QChart(), parent=parent)
+        super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
         self.setMinimumSize(QtCore.QSize(640, 320))
         self.setRenderHint(QtGui.QPainter.Antialiasing)
 
@@ -45,6 +46,8 @@ class HistogramChart(BaseChart):
         vmin, vmax = np.percentile(data, 5), np.percentile(data, 95)
 
         barset = QtCharts.QBarSet("histogram")
+        barset.setColor(group1[0][0])
+        barset.setLabelColor(light_theme["text"])
 
         bin_edges = np.histogram_bin_edges(data, bins=bins, range=(vmin, vmax))
         if bin_edges.size > max_bins:
