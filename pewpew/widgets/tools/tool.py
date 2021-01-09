@@ -58,6 +58,17 @@ class ToolWidget(_ViewWidget):
         layout.addWidget(self.button_box)
         self.setLayout(layout)
 
+    def contextMenuEvent(self, event: QtCore.QEvent) -> None:
+        action_copy_image = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("insert-image"), "Copy To Clipboard", self
+        )
+        action_copy_image.setStatusTip("Copy the graphics view to the clipboard.")
+        action_copy_image.triggered.connect(self.graphics.copyToClipboard)
+
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(action_copy_image)
+        menu.popup(event.globalPos())
+
     def accept(self) -> None:  # pragma: no cover
         self.restoreWidget()
 

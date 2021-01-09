@@ -186,7 +186,6 @@ class LaserWidget(_ViewWidget):
 
         self.graphics = LaserGraphicsView(options, parent=self)
         # We have our own ConnectionRefusedErrorxt menu so hide the normal one
-        self.graphics.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
         # self.canvas.cursorClear.connect(self.clearCursorStatus)
         # self.canvas.cursorMoved.connect(self.updateCursorStatus)
 
