@@ -4,6 +4,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCharts import QtCharts
 
 from pewpew.charts.base import BaseChart
+from pewpew.charts.colors import light_theme, sequential
 
 from pewpew.lib.numpyqt import array_to_polygonf
 
@@ -19,7 +20,7 @@ from typing import Any
 
 class DriftChart(BaseChart):
     def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__(QtCharts.QChart(), parent)
+        super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
         self.setRenderHint(QtGui.QPainter.Antialiasing)
 
         self.chart().legend().hide()
@@ -33,18 +34,19 @@ class DriftChart(BaseChart):
         self.chart().addAxis(self.yaxis, QtCore.Qt.AlignLeft)
 
         self.drift1 = QtCharts.QLineSeries()
+        self.drift1.setPen(QtGui.QPen(sequential[1], 1.0))
         self.chart().addSeries(self.drift1)
         self.drift1.attachAxis(self.xaxis)
         self.drift1.attachAxis(self.yaxis)
 
         self.drift2 = QtCharts.QLineSeries()
-        self.drift2.setPen(self.drift1.pen())
-        self.drift2.setColor(self.drift1.color())
+        self.drift2.setPen(QtGui.QPen(sequential[1], 1.0))
         self.chart().addSeries(self.drift2)
-        self.drift2.attachAxis(self.xaxis)
+        # self.drift2.attachAxis(self.xaxis)
         self.drift2.attachAxis(self.yaxis)
 
-        self.fit = QtCharts.QLineSeries()
+        self.fit = QtCharts.QSplineSeries()
+        self.fit.setPen(QtGui.QPen(sequential[2], 2.0))
         self.chart().addSeries(self.fit)
         self.fit.attachAxis(self.xaxis)
         self.fit.attachAxis(self.yaxis)
