@@ -4,7 +4,7 @@ from PySide2.QtCharts import QtCharts
 import numpy as np
 
 from pewpew.charts.base import BaseChart
-from pewpew.charts.colors import light_theme, group2
+from pewpew.charts.colors import light_theme, sequential
 
 from pewpew.lib.numpyqt import array_to_polygonf
 
@@ -29,11 +29,9 @@ class ColocalisationChart(BaseChart):
         self.addAxis(self.yaxis, QtCore.Qt.AlignLeft)
 
         self.scatter = QtCharts.QScatterSeries()
-        self.scatter.setColor(group2[0][0])
+        self.scatter.setColor(sequential[1])
+        self.scatter.setMarkerSize(5)
         self.scatter.setUseOpenGL(True)
-        self.scatter.setPen(QtGui.QPen(QtCore.Qt.NoPen))
-        self.scatter.setMarkerSize(4)
-        self.scatter.setMarkerShape(QtCharts.QScatterSeries.MarkerShapeRectangle)
         self.chart().addSeries(self.scatter)
         self.scatter.attachAxis(self.xaxis)
         self.scatter.attachAxis(self.yaxis)

@@ -1,8 +1,6 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCharts import QtCharts
 
-from pewpew.charts import colors
-
 from typing import Dict
 
 

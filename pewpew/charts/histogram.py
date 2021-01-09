@@ -4,7 +4,7 @@ from PySide2.QtCharts import QtCharts
 import numpy as np
 
 from pewpew.charts.base import BaseChart
-from pewpew.charts.colors import light_theme, group1
+from pewpew.charts.colors import light_theme, sequential
 
 from typing import Union
 
@@ -46,7 +46,7 @@ class HistogramChart(BaseChart):
         vmin, vmax = np.percentile(data, 5), np.percentile(data, 95)
 
         barset = QtCharts.QBarSet("histogram")
-        barset.setColor(group1[0][0])
+        barset.setColor(sequential[1])
         barset.setLabelColor(light_theme["text"])
 
         bin_edges = np.histogram_bin_edges(data, bins=bins, range=(vmin, vmax))

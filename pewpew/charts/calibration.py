@@ -4,7 +4,7 @@ from PySide2.QtCharts import QtCharts
 import numpy as np
 
 from pewpew.charts.base import BaseChart
-from pewpew.charts.colors import light_theme, group1
+from pewpew.charts.colors import light_theme, sequential, highlights
 
 from pewpew.lib.numpyqt import array_to_polygonf
 
@@ -38,7 +38,7 @@ class CalibrationChart(BaseChart):
         self.label_series.attachAxis(self.yaxis)
 
         self.line = QtCharts.QLineSeries()
-        self.line.setPen(QtGui.QPen(group1[0][0], 1.5))
+        self.line.setPen(QtGui.QPen(sequential[1], 1.5))
         # self.line.setColor(QtCore.Qt.red)
 
         self.chart().addSeries(self.line)
@@ -46,8 +46,8 @@ class CalibrationChart(BaseChart):
         self.line.attachAxis(self.yaxis)
 
         self.series = QtCharts.QScatterSeries()
-        self.series.setPen(QtGui.QPen(group1[0][0], 1.5))
-        self.series.setBrush(group1[0][1])
+        self.series.setPen(QtGui.QPen(sequential[1], 1.5))
+        self.series.setBrush(QtGui.QBrush(highlights[1]))
         self.series.setMarkerSize(12)
 
         self.chart().addSeries(self.series)
