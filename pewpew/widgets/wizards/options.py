@@ -1,6 +1,7 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from pathlib import Path
+import re
 
 from pewlib import io
 
@@ -144,6 +145,53 @@ class AgilentOptions(_OptionsBase):
         self.combo_dfile_method.setCurrentIndex(self.combo_dfile_method.count() - 1)
 
         self.countDatafiles()
+
+
+class CsvLinesOptions(_OptionsBase):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__("CSV Lines", "Directory", [""], parent)
+        self.datafiles = 0
+
+        self.option = io.csv.GenericOption()
+
+        self.lineedit_dfile = QtWidgets.QLineEdit("0")
+        self.lineedit_dfile.setReadOnly(True)
+
+        self.spinbox_header = QtWidgets.QSpinBox()
+        self.spinbox_footer = QtWidgets.QSpinBox()
+        self.lineedit_regex = QtWidgets.QLineEdit()
+        self.lineedit_regex.editingFinished.connect(self.regexChanged)
+        self.lineedit_regex.editingFinished.connect(self.optionsChanged)
+        self.combo_sortkey = QtWidgets.QComboBox()
+        self.combo_sortkey.addItems(["Alphabetical", "Numerical", "Regex Match"])
+
+        layout = QtWidgets.QFormLayout()
+        layout.addRow("Header Rows:", self.spinbox_header)
+        layout.addRow("Footer Rows:", self.spinbox_footer)
+        layout.addRow("File Regex:", self.lineedit_regex)
+        layout.addRow("Sorting:", self.combo_sortkey)
+        layout.addRow("Lines found:", self.lineedit_dfile)
+        self.setLayout(layout)
+
+    def kwargsChanged(self) -> None:
+        kws = {
+            "skip_header": self.spinbox_header.value(),
+            "skip_footer": self.spinbox_footer.value(),
+        }
+        self.option.kw_genfromtxt.update(kws)
+
+    def regexChanged(self) -> None:
+        regex = self.lineedit_regex.text()
+        if regex == "":
+            regex = ".*\\.csv"
+        self.datafiles = sum([re.match(regex, p.name) is not None for p in self.csvs])
+
+    def isComplete(self) -> bool:
+        return self.datafiles > 0
+
+    def updateForPath(self, path: Path) -> None:
+        self.csvs = list(path.glob("*.csv"))
+        # self.lineedit_dfile.setText(str(self.datafiles))
 
 
 class NumpyOptions(_OptionsBase):
@@ -517,6 +565,7 @@ class MultiplePathSelectWidget(_PathSelectBase):
 class PathAndOptionsPage(QtWidgets.QWizardPage):
     formats: Dict[str, Tuple[Tuple[str, List[str], str], Type]] = {
         "agilent": (("Agilent Batch", [".b"], "Directory"), AgilentOptions),
+        "csv": (("CSV Lines", [""], "Directory"), CsvLinesOptions),
         "numpy": (("Numpy Archive", [".npz"], "File"), NumpyOptions),
         "perkinelmer": (("Perkin-Elmer 'XL'", [""], "Directory"), PerkinElmerOptions),
         "text": (("Text Image", [".csv", ".text", ".txt"], "File"), TextOptions),
