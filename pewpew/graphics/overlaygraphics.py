@@ -163,18 +163,6 @@ class OverlayView(QtWidgets.QGraphicsView):
         self.viewSizeChanged.connect(self.updateForeground)
         self.viewScaleChanged.connect(self.updateForeground)
 
-    # def contextMenuEvent(self, event: QtCore.QEvent) -> None:
-    #     print("MENU")
-    #     action_copy_image = QtWidgets.QAction(
-    #         QtGui.QIcon.fromTheme("insert-image"), "Copy To Clipboard", self
-    #     )
-    #     action_copy_image.setStatusTip("Copy the graphics view to the clipboard.")
-    #     action_copy_image.triggered.connect(self.copyToClipboard)
-
-    #     menu = QtWidgets.QMenu(self)
-    #     menu.addAction(action_copy_image)
-    #     menu.popup(event.globalPos())
-
     def copyToClipboard(self) -> None:
         QtWidgets.QApplication.clipboard().setPixmap(self.grab(self.viewport().rect()))
 
