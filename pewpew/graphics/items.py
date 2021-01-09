@@ -4,6 +4,8 @@ import numpy as np
 
 from pewlib.process.calc import normalise
 
+from pewpew.actions import qAction
+
 from pewpew.lib.numpyqt import array_to_image, array_to_polygonf
 
 
@@ -309,9 +311,36 @@ class ScaledImageSliceItem(QtWidgets.QGraphicsItem):
         self.font = font
 
         self.line = QtCore.QLineF()
+
+        self.data: np.ndarray = None
         self.poly = QtGui.QPolygonF()
 
-    def slicePoly(self) -> QtGui.QPolygonF:
+        self.action_copy_to_clipboard = qAction(
+            "copy-text",
+            "Copy To Clipboard",
+            "Copy slice values to the clipboard.",
+            self.actionCopyToClipboard,
+        )
+
+    def actionCopyToClipboard(self):
+        if self.data is None:
+            return
+        html = (
+            '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
+            "<table>"
+        )
+        text = ""
+        for x in self.data:
+            html += f"<tr><td>{x:.10g}</td></tr>"
+            text += f"{x:.10g}\n"
+        html += "</table>"
+
+        mime = QtCore.QMimeData()
+        mime.setHtml(html)
+        mime.setText(text)
+        QtWidgets.QApplication.clipboard().setMimeData(mime)
+
+    def createSlicePoly(self) -> QtGui.QPolygonF:
         def connect_nd(ends):
             d = np.diff(ends, axis=0)[0]
             j = np.argmax(np.abs(d))
@@ -322,15 +351,18 @@ class ScaledImageSliceItem(QtWidgets.QGraphicsItem):
         p1 = self.image.mapToData(self.line.p1())
         p2 = self.image.mapToData(self.line.p2())
 
+        if self.line.dx() < 0.0:
+            p1, p2 = p2, p1
+
         view = next(iter(self.scene().views()))
         height = view.mapToScene(QtCore.QRect(0, 0, 1, 100)).boundingRect().height()
 
         points = connect_nd([[p1.x(), p1.y()], [p2.x(), p2.y()]])
         if points.size > 2:
-            data = self.image.image._array[points[:, 1], points[:, 0]]
+            self.data = self.image.image._array[points[:, 1], points[:, 0]]
 
-            xs = np.linspace(0.0, self.line.length(), data.size)
-            ys = -1.0 * normalise(data, 0.0, height)
+            xs = np.linspace(0.0, self.line.length(), self.data.size)
+            ys = -1.0 * normalise(self.data, 0.0, height)
 
             poly = array_to_polygonf(np.stack((xs, ys), axis=1))
 
@@ -339,22 +371,13 @@ class ScaledImageSliceItem(QtWidgets.QGraphicsItem):
                 angle -= 180
 
             transform = QtGui.QTransform()
-            transform.translate(self.line.p1().x(), self.line.p1().y())
+            if self.line.dx() < 0.0:
+                transform.translate(self.line.p2().x(), self.line.p2().y())
+            else:
+                transform.translate(self.line.p1().x(), self.line.p1().y())
             transform.rotate(-angle)
+
             self.poly = transform.map(poly)
-
-    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        if event.buttons() & QtCore.Qt.LeftButton:
-            self.line.setPoints(event.pos(), event.pos())
-            self.prepareGeometryChange()
-        super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        if event.buttons() & QtCore.Qt.LeftButton:
-            self.line.setP2(event.pos())
-            self.slicePoly()
-            self.prepareGeometryChange()
-        super().mouseMoveEvent(event)
 
     def boundingRect(self) -> QtCore.QRectF:
         view = next(iter(self.scene().views()), None)
@@ -362,6 +385,18 @@ class ScaledImageSliceItem(QtWidgets.QGraphicsItem):
         p1r.moveCenter(self.line.p1())
         p2r = p1r.translated(self.line.dx(), self.line.dy())
         return self.poly.boundingRect().united(p1r).united(p2r)
+
+    def shape(self) -> QtGui.QPainterPath:
+        p1, p2 = self.line.p1(), self.line.p2()
+        if self.line.dx() < 0.0:
+            p1, p2 = p2, p1
+        path = QtGui.QPainterPath(p1)
+        path.lineTo(self.poly.first())
+        path.addPolygon(self.poly)
+        path.lineTo(p2)
+        path.lineTo(p1)
+        path.closeSubpath()
+        return path
 
     def paint(
         self,
@@ -375,6 +410,11 @@ class ScaledImageSliceItem(QtWidgets.QGraphicsItem):
         painter.setPen(self.pen)
 
         painter.drawLine(self.line)
+        p1, p2 = self.line.p1(), self.line.p2()
+        if self.line.dx() < 0.0:
+            p1, p2 = p2, p1
+        painter.drawLine(p1, self.poly.first())
+        painter.drawLine(p2, self.poly.last())
 
         pen = QtGui.QPen(self.pen)
         pen.setStyle(QtCore.Qt.SolidLine)
@@ -386,3 +426,23 @@ class ScaledImageSliceItem(QtWidgets.QGraphicsItem):
             painter.setPen(pen)
             painter.drawPoints([self.line.p1(), self.line.p2()])
             painter.setPen(self.pen)
+
+    def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
+        menu = QtWidgets.QMenu()
+        menu.addAction(self.action_copy_to_clipboard)
+        menu.exec_(event.screenPos())
+
+    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        if event.buttons() & QtCore.Qt.LeftButton:
+            self.line.setPoints(event.pos(), event.pos())
+            self.data = None
+            self.poly = QtGui.QPolygonF()
+            self.prepareGeometryChange()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        if event.buttons() & QtCore.Qt.LeftButton:
+            self.line.setP2(event.pos())
+            self.createSlicePoly()
+            self.prepareGeometryChange()
+        super().mouseMoveEvent(event)

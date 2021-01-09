@@ -42,7 +42,7 @@ class DriftChart(BaseChart):
         self.drift2 = QtCharts.QLineSeries()
         self.drift2.setPen(QtGui.QPen(sequential[1], 1.0))
         self.chart().addSeries(self.drift2)
-        # self.drift2.attachAxis(self.xaxis)
+        self.drift2.attachAxis(self.xaxis)
         self.drift2.attachAxis(self.yaxis)
 
         self.fit = QtCharts.QSplineSeries()
