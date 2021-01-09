@@ -4,10 +4,10 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from pewlib.laser import _Laser
 
 from pewpew.graphics import colortable
-from pewpew.graphics.items import (
-    RulerItem,
+from pewpew.graphics.imageitems import (
     ScaledImageItem,
-    ScaledImageSliceItem,
+    RulerWidgetItem,
+    ImageSliceWidgetItem,
 )
 from pewpew.graphics.selectionitems import (
     ScaledImageSelectionItem,
@@ -119,6 +119,7 @@ class LaserGraphicsView(OverlayView):
         if self.widget is not None:
             self.scene().removeItem(self.widget)
         self.widget = RulerItem(font=self.options.font)
+        self.widget.setZValue(1)
         self.scene().addItem(self.widget)
         self.widget.grabMouse()
         self.setInteractionMode("widget")
@@ -126,7 +127,10 @@ class LaserGraphicsView(OverlayView):
     def startSliceWidget(self) -> None:
         if self.widget is not None:
             self.scene().removeItem(self.widget)
-        self.widget = ScaledImageSliceItem(self.image, font=self.options.font)
+        self.widget = ScaledImageSliceItem(
+            self.image, self.data, font=self.options.font
+        )
+        self.widget.setZValue(1)
         self.scene().addItem(self.widget)
         self.widget.grabMouse()
         self.setInteractionMode("widget")

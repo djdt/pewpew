@@ -8,7 +8,7 @@ from pewlib.process.calc import normalise
 from pewpew.actions import qAction, qToolButton
 
 from pewpew.graphics.options import GraphicsOptions
-from pewpew.graphics.items import ScaledImageItem
+from pewpew.graphics.imageitems import ScaledImageItem
 from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
 from pewpew.graphics.overlayitems import MetricScaleBarOverlay
 

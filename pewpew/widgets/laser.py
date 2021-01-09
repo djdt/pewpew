@@ -374,10 +374,11 @@ class LaserWidget(_ViewWidget):
 
     # Virtual
     def refresh(self) -> None:
-        self.graphics.widget = None
         self.graphics.drawLaser(
             self.laser, self.current_isotope, layer=self.current_layer
         )
+        if self.graphics.widget is not None:
+            self.graphics.widget.
         self.graphics.invalidateScene()
         super().refresh()
 

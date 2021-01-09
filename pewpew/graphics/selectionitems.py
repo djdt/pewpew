@@ -2,7 +2,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 import numpy as np
 
-from pewpew.graphics.items import ScaledImageItem
+from pewpew.graphics.imageitems import ScaledImageItem
 from pewpew.graphics.util import polygonf_contains_points
 
 from pewpew.lib.numpyqt import polygonf_to_array
