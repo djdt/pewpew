@@ -118,7 +118,7 @@ class LaserGraphicsView(OverlayView):
     def startRulerWidget(self) -> None:
         if self.widget is not None:
             self.scene().removeItem(self.widget)
-        self.widget = RulerItem(font=self.options.font)
+        self.widget = RulerWidgetItem(self.image, font=self.options.font)
         self.widget.setZValue(1)
         self.scene().addItem(self.widget)
         self.widget.grabMouse()
@@ -127,7 +127,7 @@ class LaserGraphicsView(OverlayView):
     def startSliceWidget(self) -> None:
         if self.widget is not None:
             self.scene().removeItem(self.widget)
-        self.widget = ScaledImageSliceItem(
+        self.widget = ImageSliceWidgetItem(
             self.image, self.data, font=self.options.font
         )
         self.widget.setZValue(1)

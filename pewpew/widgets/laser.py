@@ -378,7 +378,7 @@ class LaserWidget(_ViewWidget):
             self.laser, self.current_isotope, layer=self.current_layer
         )
         if self.graphics.widget is not None:
-            self.graphics.widget.
+            self.graphics.widget.imageChanged(self.graphics.image, self.graphics.data)
         self.graphics.invalidateScene()
         super().refresh()
 
