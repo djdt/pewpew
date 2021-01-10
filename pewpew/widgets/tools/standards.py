@@ -548,14 +548,14 @@ class CalibrationRectItem(ResizeableRectItem):
             for item in self.selectedSiblings():
                 pos = item.mapFromItem(self, eventpos)
                 rect = item.rect()
-                if self.selected_edge == "left" and pos.x() < rect.right():
-                    rect.setLeft(pos.x() - pos.x() % self.px)
-                elif self.selected_edge == "right" and pos.x() > rect.left() + self.px:
-                    rect.setRight(pos.x() - pos.x() % self.px)
-                elif self.selected_edge == "top" and pos.y() < rect.bottom():
-                    rect.setTop(pos.y() - pos.y() % self.py)
-                elif self.selected_edge == "bottom" and pos.y() > rect.top() + self.py:
-                    rect.setBottom(pos.y() - pos.y() % self.py)
+                if self.selected_edge.startswith("top") and pos.y() < rect.bottom():
+                    rect.setTop(pos.y())
+                elif self.selected_edge.startswith("bottom") and pos.y() > rect.top():
+                    rect.setBottom(pos.y())
+                if self.selected_edge.endswith("left") and pos.x() < rect.right():
+                    rect.setLeft(pos.x())
+                elif self.selected_edge.endswith("right") and pos.x() > rect.left():
+                    rect.setRight(pos.x())
 
                 item.setRect(rect)
                 item.prepareGeometryChange()

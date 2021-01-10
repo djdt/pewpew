@@ -7,6 +7,10 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         "right": QtCore.Qt.SizeHorCursor,
         "top": QtCore.Qt.SizeVerCursor,
         "bottom": QtCore.Qt.SizeVerCursor,
+        "topleft" : QtCore.Qt.SizeFDiagCursor,
+        "topright": QtCore.Qt.SizeBDiagCursor,
+        "bottomleft": QtCore.Qt.SizeBDiagCursor,
+        "bottomright" : QtCore.Qt.SizeFDiagCursor,
     }
 
     def __init__(
@@ -55,16 +59,16 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
             .width()
         )
 
-        if abs(self.rect().left() - pos.x()) < dist:
-            return "left"
-        elif abs(self.rect().right() - pos.x()) < dist:
-            return "right"
-        elif abs(self.rect().top() - pos.y()) < dist:
-            return "top"
+        edge = ""
+        if abs(self.rect().top() - pos.y()) < dist:
+            edge += "top"
         elif abs(self.rect().bottom() - pos.y()) < dist:
-            return "bottom"
-        else:
-            return None
+            edge += "bottom"
+        if abs(self.rect().left() - pos.x()) < dist:
+            edge += "left"
+        elif abs(self.rect().right() - pos.x()) < dist:
+            edge += "right"
+        return edge
 
     def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if self.isSelected():
@@ -90,14 +94,14 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
             super().mouseMoveEvent(event)
         else:
             rect = self.rect()
-            if self.selected_edge == "left" and pos.x() < rect.right():
-                rect.setLeft(pos.x())
-            elif self.selected_edge == "right" and pos.x() > rect.left():
-                rect.setRight(pos.x())
-            elif self.selected_edge == "top" and pos.y() < rect.bottom():
+            if self.selected_edge.startswith("top") and pos.y() < rect.bottom():
                 rect.setTop(pos.y())
-            elif self.selected_edge == "bottom" and pos.y() > rect.top():
+            elif self.selected_edge.startswith("bottom") and pos.y() > rect.top():
                 rect.setBottom(pos.y())
+            if self.selected_edge.endswith("left") and pos.x() < rect.right():
+                rect.setLeft(pos.x())
+            elif self.selected_edge.endswith("right") and pos.x() > rect.left():
+                rect.setRight(pos.x())
 
             self.prepareGeometryChange()
             self.setRect(rect)
