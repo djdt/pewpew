@@ -481,7 +481,7 @@ class CalibrationRectItem(ResizeableRectItem):
         font: QtGui.QFont = None,
         parent: QtWidgets.QGraphicsItem = None,
     ):
-        super().__init__(rect, 10, parent=parent)
+        super().__init__(rect, parent=parent)
 
         pen = QtGui.QPen(QtCore.Qt.white, 2.0)
         pen.setCosmetic(True)

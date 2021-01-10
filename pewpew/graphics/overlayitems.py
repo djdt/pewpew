@@ -112,7 +112,7 @@ class ColorBarOverlay(QtWidgets.QGraphicsItem):
         if self.scene() is None:
             return QtCore.QRectF(0, 0, 100, self.height + fm.height())
 
-        view = self.scene().views()[0]
+        view = next(iter(self.scene().views()))
         rect = QtCore.QRectF(0, 0, view.viewport().width(), self.height + fm.height())
         return rect
 
@@ -128,11 +128,17 @@ class ColorBarOverlay(QtWidgets.QGraphicsItem):
         option: QtWidgets.QStyleOptionGraphicsItem,
         widget: QtWidgets.QWidget = None,
     ):
-        view = self.scene().views()[0]
-        width = view.viewport().width()
+        width = painter.viewport().width()
+
+        fm = QtGui.QFontMetrics(self.font, painter.device())
+
+        rect = QtCore.QRect(0, fm.height(), width, self.height)
+        painter.drawPixmap(rect, self.pixmap)
+        painter.setPen(QtGui.QPen(QtCore.Qt.black, 2.0))
+        painter.setBrush(QtGui.QBrush(QtCore.Qt.white, QtCore.Qt.NoBrush))
+        painter.drawRect(rect)
 
         path = QtGui.QPainterPath()
-        fm = QtGui.QFontMetrics(self.font, painter.device())
         # Todo: find a better pad value
         path.addText(
             width - fm.boundingRect(self.unit).width() - 10,
@@ -140,9 +146,13 @@ class ColorBarOverlay(QtWidgets.QGraphicsItem):
             self.font,
             self.unit,
         )
+        vrange = self.vmax - self.vmin
+        if vrange == 0.0:
+            return
+
         for value in np.linspace(self.vmin, self.vmax, 7)[1:-1]:
             value = self.formatValue(value, 2)
-            x = width * value / (self.vmax - self.vmin)
+            x = width * value / vrange
             text = f"{value:.6g}"
             path.addText(
                 x - fm.boundingRect(text).width() / 2.0,
@@ -153,12 +163,6 @@ class ColorBarOverlay(QtWidgets.QGraphicsItem):
 
         painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
         painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
-
-        rect = QtCore.QRect(0, fm.height(), width, self.height)
-        painter.drawPixmap(rect, self.pixmap)
-        painter.setPen(QtGui.QPen(QtCore.Qt.black, 2.0))
-        painter.setBrush(QtGui.QBrush(QtCore.Qt.white, QtCore.Qt.NoBrush))
-        painter.drawRect(rect)
 
 
 class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):

@@ -165,7 +165,7 @@ class RulerWidgetItem(ImageWidgetItem):
         option: QtWidgets.QStyleOptionGraphicsItem,
         widget: QtWidgets.QWidget = None,
     ):
-        view = next(iter(self.scene().views()), None)
+        view = next(iter(self.scene().views()))
 
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.setFont(self.font)
@@ -302,7 +302,7 @@ class ImageSliceWidgetItem(ImageWidgetItem):
             self.poly = transform.map(poly)
 
     def boundingRect(self) -> QtCore.QRectF:
-        view = next(iter(self.scene().views()), None)
+        view = next(iter(self.scene().views()))
         p1r = view.mapToScene(QtCore.QRect(0, 0, 10, 10)).boundingRect()
         p1r.moveCenter(self.line.p1())
         p2r = p1r.translated(self.line.dx(), self.line.dy())

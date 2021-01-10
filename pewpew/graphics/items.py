@@ -7,16 +7,15 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         "right": QtCore.Qt.SizeHorCursor,
         "top": QtCore.Qt.SizeVerCursor,
         "bottom": QtCore.Qt.SizeVerCursor,
-        "topleft" : QtCore.Qt.SizeFDiagCursor,
+        "topleft": QtCore.Qt.SizeFDiagCursor,
         "topright": QtCore.Qt.SizeBDiagCursor,
         "bottomleft": QtCore.Qt.SizeBDiagCursor,
-        "bottomright" : QtCore.Qt.SizeFDiagCursor,
+        "bottomright": QtCore.Qt.SizeFDiagCursor,
     }
 
     def __init__(
         self,
         rect: QtCore.QRectF,
-        selection_dist: int,
         parent: QtWidgets.QGraphicsItem = None,
     ):
         super().__init__(rect, parent)
@@ -27,7 +26,6 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         )
         self.setAcceptHoverEvents(True)
 
-        self.selection_dist = selection_dist
         self.selected_edge: str = None
 
     def boundingRect(self) -> QtCore.QRectF:
@@ -36,11 +34,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         if view is None:
             return rect
 
-        dist = (
-            view.mapToScene(QtCore.QRect(0, 0, self.selection_dist, 1))
-            .boundingRect()
-            .width()
-        )
+        dist = view.mapToScene(QtCore.QRect(0, 0, 10, 1)).boundingRect().width()
         return rect.marginsAdded(QtCore.QMarginsF(dist, dist, dist, dist))
 
     def shape(self) -> QtGui.QPainterPath:
@@ -50,14 +44,8 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         return path
 
     def edgeAt(self, pos: QtCore.QPointF) -> str:
-        view = next(iter(self.scene().views()), None)
-        if view is None:
-            return None
-        dist = (
-            view.mapToScene(QtCore.QRect(0, 0, self.selection_dist, 1))
-            .boundingRect()
-            .width()
-        )
+        view = next(iter(self.scene().views()))
+        dist = view.mapToScene(QtCore.QRect(0, 0, 10, 1)).boundingRect().width()
 
         edge = ""
         if abs(self.rect().top() - pos.y()) < dist:
