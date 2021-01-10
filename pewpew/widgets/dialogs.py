@@ -695,6 +695,7 @@ class SelectionDialog(ApplyDialog):
         mask = comparison(self.graphics.data, self.threshold)
         state = "intersect" if self.check_limit_selection.isChecked() else None
         self.maskSelected.emit(mask, [state])
+        self.refresh()
 
 
 class StatsDialog(QtWidgets.QDialog):

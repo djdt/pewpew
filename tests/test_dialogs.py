@@ -8,6 +8,7 @@ from pewlib.config import Config
 from pewlib.calibration import Calibration
 from pewlib.srr.config import SRRConfig
 
+from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.widgets import dialogs
 
@@ -227,8 +228,8 @@ def test_name_edit_dialog(qtbot: QtBot):
 
 def test_selection_dialog(qtbot: QtBot):
     x = np.random.random((10, 10))
-    graphics = LaserGraphicsView()
-    graphics.drawImage(x, QtCore.QRectF(0, 0, 10, 10))
+    graphics = LaserGraphicsView(GraphicsOptions())
+    graphics.drawImage(x, QtCore.QRectF(0, 0, 10, 10), "x")
 
     dialog = dialogs.SelectionDialog(graphics)
     qtbot.addWidget(dialog)
@@ -244,10 +245,11 @@ def test_selection_dialog(qtbot: QtBot):
     assert not dialog.lineedit_manual.isEnabled()
     assert dialog.spinbox_method.isEnabled()
     assert dialog.spinbox_comparison.isEnabled()
-    assert dialog.spinbox_method.value() == 2
+    assert dialog.spinbox_method.value() == 3
     assert dialog.spinbox_comparison.value() == 1
 
     dialog.combo_method.setCurrentText("Mean")
+    dialog.check_limit_selection.setChecked(True)
     dialog.refresh()
     assert not dialog.spinbox_method.isEnabled()
     assert not dialog.spinbox_comparison.isEnabled()
@@ -256,9 +258,9 @@ def test_selection_dialog(qtbot: QtBot):
     with qtbot.wait_signal(dialog.maskSelected) as emitted:
         dialog.apply()
     assert np.all(emitted.args[0] == (x > x.mean()))
-    assert emitted.args[1] == ""
+    assert emitted.args[1] == ["intersect"]
 
-    dialog.check_limit_selection.setChecked(True)
+    dialog.check_limit_selection.setChecked(False)
     dialog.combo_method.setCurrentText("Manual")
     dialog.lineedit_manual.setText("0.9")
     dialog.refresh()
@@ -266,19 +268,20 @@ def test_selection_dialog(qtbot: QtBot):
     with qtbot.wait_signal(dialog.maskSelected) as emitted:
         dialog.apply()
     assert np.all(emitted.args[0] == (x > 0.9))
-    assert emitted.args[1] == "intersect"
+    assert emitted.args[1] == [""]
 
     dialog.graphics.selection = emitted.args[0]
 
     # Test limit threshold
     dialog.combo_method.setCurrentText("Mean")
-    dialog.check_limit_selection.setChecked(False)
     dialog.check_limit_threshold.setChecked(True)
+    graphics.mask = x > 0.9
     dialog.refresh()
 
     with qtbot.wait_signal(dialog.maskSelected) as emitted:
         dialog.apply()
     assert np.all(emitted.args[0] == (x > np.mean(x[x > 0.9])))
+    assert emitted.args[1] == [""]
 
 
 def test_stats_dialog(qtbot: QtBot):

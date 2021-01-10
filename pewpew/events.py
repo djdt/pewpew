@@ -1,7 +1,7 @@
 from PySide2 import QtCore
 
 
-class DragDropRedirectFilter(QtCore.QObject):
+class DragDropRedirectFilter(QtCore.QObject):  # pragma: no cover
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if event.type() == QtCore.QEvent.DragEnter:
             self.parent().dragEnterEvent(event)
