@@ -5,10 +5,24 @@ from pytestqt.qtbot import QtBot
 
 from pewlib.laser import Laser
 
-from pewpew.widgets.exportdialogs import ExportDialog, ExportAllDialog
+from pewpew.widgets.exportdialogs import ExportDialog, ExportAllDialog, PngOptionsBox, VtiOptionsBox
 from pewpew.widgets.laser import LaserViewSpace
 
 from testing import rand_data
+
+
+def test_export_options(qtbot: QtBot):
+    png = PngOptionsBox()
+    assert not png.raw
+    png.check_raw.setChecked(True)
+    assert png.raw
+
+    vti = VtiOptionsBox(("10.0, 20.0, 30.0"))
+    assert vti.spacing == ("10.0, 20.0, 30.0")
+    assert vti.isComplete()
+
+    vti.lineedits[0].setText("10.0a")
+    assert not vti.isComplete()
 
 
 def test_export_dialog(qtbot: QtBot):

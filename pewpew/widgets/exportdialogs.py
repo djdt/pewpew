@@ -30,7 +30,6 @@ class OptionsBox(QtWidgets.QGroupBox):
         self.ext = ext
         self.visible = visible
 
-    # Because you can't hook up signals with different no. of params
     def isComplete(self) -> bool:
         return True
 
@@ -109,7 +108,7 @@ class ExportOptions(QtWidgets.QWidget):
         layout_form = QtWidgets.QFormLayout()
         if self.count() < 2:
             self.combo.setVisible(False)
-        else:
+        else:  # pragma: no cover
             layout_form.addRow("Type:", self.combo)
 
         layout = QtWidgets.QVBoxLayout()
@@ -234,10 +233,7 @@ class _ExportDialogBase(QtWidgets.QDialog):
         self.lineedit_preview.setText(self.lineedit_filename.text())
 
     def filenameChanged(self, filename: str) -> None:
-        index = self.options.indexForExt(Path(filename).suffix.lower())
-        if index == -1:
-            return
-        self.options.setCurrentIndex(index)
+        self.options.setCurrentExt(Path(filename).suffix.lower())
         self.updatePreview()
 
     def typeChanged(self, index: int) -> None:
