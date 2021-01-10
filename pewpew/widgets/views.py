@@ -411,6 +411,7 @@ class ViewTitleBar(QtWidgets.QWidget):
 
 class _ViewWidget(QtWidgets.QWidget):
     refreshed = QtCore.Signal()
+
     def __init__(self, view: View, editable: bool = True):
         super().__init__(view)
         self.view = view

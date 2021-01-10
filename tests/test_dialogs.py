@@ -8,9 +8,8 @@ from pewlib.config import Config
 from pewlib.calibration import Calibration
 from pewlib.srr.config import SRRConfig
 
-from pewpew.lib.viewoptions import ViewOptions
+from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.widgets import dialogs
-from pewpew.widgets.canvases import SelectableImageCanvas
 
 
 def test_apply_dialog(qtbot: QtBot):
@@ -56,14 +55,10 @@ def test_calibration_dialog(qtbot: QtBot):
 
 def test_calibration_curve_dialog(qtbot: QtBot):
     dialog = dialogs.CalibrationCurveDialog(
-        Calibration.from_points([[0, 1], [1, 2], [2, 3], [4, 4]])
+        "A", Calibration.from_points([[0, 1], [1, 2], [2, 3], [4, 4]])
     )
     qtbot.addWidget(dialog)
     dialog.open()
-
-    dialog.contextMenuEvent(
-        QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
-    )
 
 
 def test_colocalisation_dialog(qtbot: QtBot):
@@ -102,11 +97,10 @@ def test_colocalisation_dialog(qtbot: QtBot):
 
 
 def test_colorrange_dialog(qtbot: QtBot):
-    viewoptions = ViewOptions()
-    viewoptions.colors.default_range = (0.0, 1.0)
-    viewoptions.colors._ranges = {"A": (1.0, 2.0), "B": ("2%", 3.0)}
+    default_range = (0.0, 1.0)
+    ranges = {"A": (1.0, 2.0), "B": ("2%", 3.0)}
 
-    dialog = dialogs.ColorRangeDialog(viewoptions, ["A", "B", "C"], "C")
+    dialog = dialogs.ColorRangeDialog(ranges, default_range, ["A", "B", "C"], "C")
     qtbot.addWidget(dialog)
     dialog.open()
 
@@ -233,11 +227,10 @@ def test_name_edit_dialog(qtbot: QtBot):
 
 def test_selection_dialog(qtbot: QtBot):
     x = np.random.random((10, 10))
-    canvas = SelectableImageCanvas()
-    canvas.drawFigure()
-    canvas.image = canvas.ax.imshow(x)
+    graphics = LaserGraphicsView()
+    graphics.drawImage(x, QtCore.QRectF(0, 0, 10, 10))
 
-    dialog = dialogs.SelectionDialog(canvas)
+    dialog = dialogs.SelectionDialog(graphics)
     qtbot.addWidget(dialog)
     dialog.open()
 
@@ -275,7 +268,7 @@ def test_selection_dialog(qtbot: QtBot):
     assert np.all(emitted.args[0] == (x > 0.9))
     assert emitted.args[1] == "intersect"
 
-    dialog.canvas.selection = emitted.args[0]
+    dialog.graphics.selection = emitted.args[0]
 
     # Test limit threshold
     dialog.combo_method.setCurrentText("Mean")

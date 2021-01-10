@@ -6,7 +6,6 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from pewlib import io
 from pewlib.laser import Laser
 
-from pewpew.widgets.canvases import LaserImageCanvas
 from pewpew.widgets.prompts import OverwriteFilePrompt
 from pewpew.widgets.views import _ViewWidget
 
@@ -392,25 +391,28 @@ class ExportDialog(_ExportDialogBase):
                 io.textimage.save(path, data)
 
         elif option.ext == ".png":
-            canvas = LaserImageCanvas(widget.canvas.viewoptions, parent=self)
-            canvas.drawFigure()
             if isotope in widget.laser.isotopes:
-                canvas.drawLaser(widget.laser, isotope)
+
+                self.widget.graphics.drawLaser(
+                    self.widget.laser,
+                    isotope,
+                    layer=self.widget.current_layer,
+                )
+                if self.widget.graphics.widget is not None:
+                    self.widet.graphics.widget.imageChanged(
+                        self.widget.graphics.image, self.widget.graphics.data
+                    )
+
+                self.widget.graphics.updateForeground()
+                self.widget.graphics.invalidateScene()
                 if option.raw():
-                    canvas.saveRawImage(str(path.resolve()))
+                    self.widget.graphics.image.image.save(str(path.absolute()))
                 else:
-                    canvas.view_limits = widget.canvas.view_limits
-                    canvas.figure.set_size_inches(
-                        widget.canvas.figure.get_size_inches()
-                    )
-                    canvas.figure.savefig(
-                        path,
-                        dpi=300,
-                        bbox_inches="tight",
-                        transparent=False,
-                        facecolor="black",
-                    )
-            canvas.close()
+                    pixmap = QtGui.QPixmap(self.widget.graphics.viewport().size())
+                    painter = QtGui.QPainter(pixmap)
+                    self.widget.graphics.render(painter)
+                    painter.end()
+                    pixmap.save(str(path.absolute()))
 
         elif option.ext == ".vti":
             spacing = option.spacing()
@@ -443,6 +445,7 @@ class ExportDialog(_ExportDialogBase):
             QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
             return
 
+        self.widget.refresh()
         super().accept()
 
 

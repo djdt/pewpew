@@ -251,7 +251,8 @@ class OverlayTool(ToolWidget):
 
         # Normalise to range
         img = np.clip(img, vmin, vmax)
-        img = (img - vmin) / (vmax - vmin)
+        if vmin != vmax:
+            img = (img - vmin) / (vmax - vmin)
         # Convert to separate rgb channels
         img = (img[:, :, None] * np.array([r, g, b])).astype(np.uint8)
 

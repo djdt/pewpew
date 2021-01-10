@@ -3,12 +3,6 @@ import numpy as np
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-# from matplotlib.artist import Artist
-# from matplotlib.backend_bases import PickEvent, MouseEvent
-# from matplotlib.lines import Line2D
-# from matplotlib.patheffects import withStroke
-# from matplotlib.transforms import blended_transform_factory
-
 from pewlib import Calibration
 
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
@@ -17,11 +11,8 @@ from pewpew.graphics.options import GraphicsOptions
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 
-# from pewpew.lib.viewoptions import ViewOptions
-# from pewpew.lib.mpltools import LabeledLine2D
 from pewpew.validators import DoubleSignificantFiguresDelegate
 
-# from pewpew.widgets.canvases import InteractiveImageCanvas
 from pewpew.widgets.dialogs import CalibrationCurveDialog
 from pewpew.widgets.modelviews import BasicTable, BasicTableView
 from pewpew.widgets.laser import LaserWidget

@@ -10,7 +10,6 @@ from pewlib.laser import Laser
 from pewlib.srr import SRRLaser, SRRConfig
 
 from pewpew.validators import DecimalValidator, DecimalValidatorNoZero
-from pewpew.widgets.canvases import BasicCanvas
 
 from pewpew.widgets.wizards.import_ import FormatPage
 from pewpew.widgets.wizards.options import PathAndOptionsPage
@@ -173,39 +172,39 @@ class SpotImportWizard(QtWidgets.QWizard):
 #             return super().nextId()
 
 
-class SpotImportCanvas(BasicCanvas):
-    def __init__(
-        self,
-        figsize: Tuple[float, float] = (5.0, 5.0),
-        parent: QtWidgets.QWidget = None,
-    ):
-        super().__init__(figsize, parent)
-        self.drawFigure()
+# class SpotImportCanvas(BasicCanvas):
+#     def __init__(
+#         self,
+#         figsize: Tuple[float, float] = (5.0, 5.0),
+#         parent: QtWidgets.QWidget = None,
+#     ):
+#         super().__init__(figsize, parent)
+#         self.drawFigure()
 
-    def drawFigure(self) -> None:
-        self.figure.clear()
-        self.ax = self.figure.add_subplot()
+#     def drawFigure(self) -> None:
+#         self.figure.clear()
+#         self.ax = self.figure.add_subplot()
 
-    def drawPeaks(self, data: np.ndarray, peaks: np.ndarray) -> None:
-        self.ax.clear()
-        self.ax.plot(data, color="black")
+#     def drawPeaks(self, data: np.ndarray, peaks: np.ndarray) -> None:
+#         self.ax.clear()
+#         self.ax.plot(data, color="black")
 
-        for peak in peaks:
-            xs = np.arange(peak["left"], peak["right"])
-            self.ax.fill_between(
-                xs, data[xs], peak["base"], color="red", alpha=0.5, lw=0.5
-            )
+#         for peak in peaks:
+#             xs = np.arange(peak["left"], peak["right"])
+#             self.ax.fill_between(
+#                 xs, data[xs], peak["base"], color="red", alpha=0.5, lw=0.5
+#             )
 
-        self.ax.text(
-            0.05,
-            0.95,
-            str(len(peaks)),
-            ha="left",
-            va="top",
-            transform=self.ax.transAxes,
-        )
+#         self.ax.text(
+#             0.05,
+#             0.95,
+#             str(len(peaks)),
+#             ha="left",
+#             va="top",
+#             transform=self.ax.transAxes,
+#         )
 
-        self.draw_idle()
+#         self.draw_idle()
 
 
 class SpotPeakFindingPage(QtWidgets.QWizardPage):
@@ -253,7 +252,7 @@ class SpotPeakFindingPage(QtWidgets.QWizardPage):
         self.combo_height_method.addItems(["cwt", "maxima"])
         self.combo_height_method.activated.connect(self.updateCanvas)
 
-        self.canvas = SpotImportCanvas(parent=self)
+        # self.canvas = SpotImportCanvas(parent=self)
 
         self.spinbox_line = QtWidgets.QSpinBox()
         self.spinbox_line.setPrefix("line:")
