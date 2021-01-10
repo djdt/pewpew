@@ -3,8 +3,6 @@ import numpy as np
 
 from PySide2 import QtCore, QtWidgets
 
-from matplotlib.colors import LinearSegmentedColormap
-
 from pewlib import Calibration, Config
 from pewlib.process import colocal
 from pewlib.process.calc import normalise

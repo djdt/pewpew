@@ -1,7 +1,5 @@
 import numpy as np
 
-from matplotlib.axes import Axes
-
 from typing import List, Union
 
 
@@ -23,40 +21,3 @@ def rand_data(names: Union[str, List[str]]) -> np.ndarray:
     for name in names:
         data[name] = np.random.random((10, 10))
     return data
-
-
-class FakeEvent(object):
-    def __init__(
-        self,
-        ax: Axes,
-        xdata: float,
-        ydata: float,
-        key: str = None,
-        button: int = 1,
-        step: int = 0,
-    ):
-        self.inaxes = ax
-        self.canvas = ax.figure.canvas
-        self.xdata, self.ydata = xdata, ydata
-        self.x, self.y = ax.transData.transform((xdata, ydata))
-        self.key = key
-        self.button = button
-        self.step = step
-
-        self.guiEvent = None
-        self.name = "none"
-        self.artist = None
-
-
-class FakePick(FakeEvent):
-    def __init__(
-        self,
-        ax: Axes,
-        xdata: float,
-        ydata: float,
-        key: str = None,
-        button: int = 1,
-        step: int = 0,
-    ):
-        super().__init__(ax, xdata, ydata, key, button, step)
-        self.mouseevent = FakeEvent(ax, xdata, ydata, key, button, step)
