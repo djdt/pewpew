@@ -66,7 +66,6 @@ class OverlayItem(object):
     def contains(self, view_pos: QtCore.QPoint, view_rect: QtCore.QRect) -> bool:
         rect = self.item.boundingRect()
         rect.moveTo(self.pos() + self.anchorPos(view_rect))
-        print(rect)
         return rect.contains(view_pos)
 
 

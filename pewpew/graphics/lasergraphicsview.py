@@ -171,7 +171,6 @@ class LaserGraphicsView(OverlayView):
         elif "subtract" in modes:
             self.mask = np.logical_and(self.mask, ~mask)
         elif "intersect" in modes:
-            print("state intersect")
             self.mask = np.logical_and(self.mask, mask)
         elif "difference" in modes:
             self.mask = np.logical_xor(self.mask, mask)
