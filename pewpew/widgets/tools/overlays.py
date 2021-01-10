@@ -49,7 +49,9 @@ class RGBLabelItem(QtWidgets.QGraphicsItem):
 
     def boundingRect(self):
         fm = QtGui.QFontMetrics(self.font)
-        width = max((fm.width(text) for text in self._texts), default=0.0)
+        width = max(
+            (fm.boundingRect(text).width() for text in self._texts), default=0.0
+        )
         return QtCore.QRectF(0, 0, width, fm.height() * len(self._texts))
 
     def paint(

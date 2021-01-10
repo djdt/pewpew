@@ -43,7 +43,7 @@ class LabelOverlay(QtWidgets.QGraphicsItem):
 
     def boundingRect(self):
         fm = QtGui.QFontMetrics(self.font)
-        return QtCore.QRectF(0, 0, fm.width(self._text), fm.height())
+        return QtCore.QRectF(0, 0, fm.boundingRect(self._text).width(), fm.height())
 
     def paint(
         self,
@@ -135,14 +135,17 @@ class ColorBarOverlay(QtWidgets.QGraphicsItem):
         fm = QtGui.QFontMetrics(self.font, painter.device())
         # Todo: find a better pad value
         path.addText(
-            width - fm.width(self.unit) - 10, fm.ascent(), self.font, self.unit
+            width - fm.boundingRect(self.unit).width() - 10,
+            fm.ascent(),
+            self.font,
+            self.unit,
         )
         for value in np.linspace(self.vmin, self.vmax, 7)[1:-1]:
             value = self.formatValue(value, 2)
             x = width * value / (self.vmax - self.vmin)
             text = f"{value:.6g}"
             path.addText(
-                x - fm.width(text) / 2.0,
+                x - fm.boundingRect(text).width() / 2.0,
                 fm.ascent(),
                 self.font,
                 text,
@@ -226,7 +229,10 @@ class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):
         fm = QtGui.QFontMetrics(self.font, painter.device())
         path = QtGui.QPainterPath()
         path.addText(
-            self.width / 2.0 - fm.width(text) / 2.0, fm.ascent(), self.font, text
+            self.width / 2.0 - fm.boundingRect(text).width() / 2.0,
+            fm.ascent(),
+            self.font,
+            text,
         )
 
         painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
