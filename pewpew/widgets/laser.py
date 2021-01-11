@@ -267,7 +267,12 @@ class LaserWidget(_ViewWidget):
             "Clear any selections.",
             self.graphics.endSelection,
         )
-        self.action_select_none.setShortcut("Escape")
+        self.action_widget_none = qAction(
+            "transform-move",
+            "Clear Widgets",
+            "Closes any open widgets.",
+            self.graphics.endWidget,
+        )
         self.action_select_rect = qAction(
             "draw-rectangle",
             "Rectangle Selector",
@@ -320,6 +325,7 @@ class LaserWidget(_ViewWidget):
             self.graphics.startSliceWidget,
         )
         self.widgets_button = qToolButton("tool-measure", "Widgets")
+        self.widgets_button.addAction(self.action_widget_none)
         self.widgets_button.addAction(self.action_ruler)
         self.widgets_button.addAction(self.action_slice)
 
@@ -627,6 +633,12 @@ class LaserWidget(_ViewWidget):
             menu.addAction(self.action_statistics)
             menu.addAction(self.action_colocalisation)
         menu.popup(event.globalPos())
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.matches(QtGui.QKeySequence.Cancel):
+            self.graphics.endSelection()
+            self.graphics.endWidget()
+        super().keyPressEvent(event)
 
     def showEvent(self, event: QtGui.QShowEvent) -> None:
         self.refresh()
