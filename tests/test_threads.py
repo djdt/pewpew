@@ -10,9 +10,11 @@ def test_import_thread(qtbot: QtBot):
     path = Path(__file__).parent.joinpath("data", "io")
     paths = [
         path.joinpath("agilent", "test_ms.b"),
+        path.joinpath("csv", "generic"),
         path.joinpath("npz", "test.npz"),
         path.joinpath("perkinelmer", "perkinelmer"),
         path.joinpath("textimage", "csv.csv"),
+        path.joinpath("textimage", "text.text"),
         path.joinpath("thermo", "icap_columns.csv"),
     ]
     thread = ImportThread(paths, Config())

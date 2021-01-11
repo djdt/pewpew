@@ -27,7 +27,7 @@ def test_main_window_actions_empty(qtbot: QtBot):
     dlg.close()
     dlg = window.actionConfig()
     dlg.close()
-    dlg = window.actionColormapRange()
+    dlg = window.actionColortableRange()
     dlg.close()
     dlg = window.actionFontsize()
     dlg.close()
@@ -40,20 +40,9 @@ def test_main_window_actions_empty(qtbot: QtBot):
     window.actionToggleScalebar(False)
 
     assert not window.viewspace.options.calibrate
-    assert not window.viewspace.options.canvas.colorbar
-    assert not window.viewspace.options.canvas.label
-    assert not window.viewspace.options.canvas.scalebar
-
-    window.actionGroupColormap(window.action_group_colormap.actions()[1])
-    assert (
-        window.viewspace.options.image.cmap
-        == list(window.viewspace.options.image.COLORMAPS.values())[1]
-    )
-    window.actionGroupInterp(window.action_group_interp.actions()[1])
-    assert (
-        window.viewspace.options.image.interpolation
-        == list(window.viewspace.options.image.INTERPOLATIONS.values())[1]
-    )
+    assert not window.viewspace.options.items["colorbar"]
+    assert not window.viewspace.options.items["label"]
+    assert not window.viewspace.options.items["scalebar"]
 
     window.button_status_row.toggle()
     assert window.viewspace.options.units == "row"
@@ -84,8 +73,6 @@ def test_main_window_actions_widget(qtbot: QtBot):
     window.actionTransformFlipVert()
     window.actionTransformRotateLeft()
     window.actionTransformRotateRight()
-    window.actionCropSelection()
-    window.actionCropView()
 
     window.actionExportAll()
     window.actionToolCalculator()
@@ -104,10 +91,10 @@ def test_main_window_apply_dialogs(qtbot: QtBot):
     dlg = window.actionConfig()
     dlg.applyPressed.emit(dlg)
     dlg.close()
-    dlg = window.actionColormapRange()
+    dlg = window.actionColortableRange()
     dlg.applyPressed.emit(dlg)
     dlg.close()
     dlg = window.actionFontsize()
     dlg.intValueSelected.emit(5)
     dlg.close()
-    assert window.viewspace.options.font.size == 5
+    assert window.viewspace.options.font.pointSize() == 5

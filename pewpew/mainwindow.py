@@ -185,19 +185,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionToolOverlay,
         )
 
-        # self.action_crop_view = qAction(
-        #     "transform-crop",
-        #     "Crop to View",
-        #     "Crop the image to the current view.",
-        #     self.actionCropView,
-        # )
-        # self.action_crop_selection = qAction(
-        #     "transform-crop",
-        #     "Crop to Selection",
-        #     "Crop the image to the current selection.",
-        #     self.actionCropSelection,
-        # )
-
         self.action_transform_flip_horizontal = qAction(
             "object-flip-horizontal",
             "Flip Horizontal",
@@ -302,24 +289,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def actionSmooth(self, checked: bool) -> None:
         self.viewspace.options.smoothing = checked
         self.refresh()
-
-    # def actionCropView(self) -> None:
-    #     widget = self.viewspace.activeWidget()
-    #     if widget is None:
-    #         return
-    #     widget.crop()
-
-    # def actionCropSelection(self) -> None:
-    #     widget = self.viewspace.activeWidget()
-    #     if widget is None:
-    #         return
-    #     widget.cropToSelection()
-
-    # def actionGroupInterp(self, action: QtWidgets.QAction) -> None:
-    #     text = action.text().replace("&", "")
-    #     interp = self.viewspace.options.image.INTERPOLATIONS[text]
-    #     self.viewspace.options.image.interpolation = interp
-    #     self.refresh()
 
     def actionWizardImport(self) -> QtWidgets.QWizard:
         wiz = ImportWizard(config=self.viewspace.config, parent=self)
@@ -465,11 +434,6 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_edit.addAction(self.action_toggle_calibrate)
 
         menu_edit.addSeparator()
-
-        # menu_edit.addAction(self.action_crop_view)
-        # menu_edit.addAction(self.action_crop_selection)
-
-        # menu_edit.addSeparator()
 
         menu_edit.addAction(self.action_transform_flip_horizontal)
         menu_edit.addAction(self.action_transform_flip_vertical)

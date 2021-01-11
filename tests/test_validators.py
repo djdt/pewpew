@@ -40,6 +40,13 @@ def test_limit_validator():
     assert validator.validate("1.1", 0)[0] == QtGui.QValidator.Intermediate
 
 
+def test_condition_limit_validator():
+    validator = validators.ConditionalLimitValidator(0.0, 1.0, 3)
+    validator.setCondition(lambda x: x != 0.5)
+    assert validator.validate("0.5", 0)[0] == QtGui.QValidator.Intermediate
+    assert validator.validate("0.51", 0)[0] == QtGui.QValidator.Acceptable
+
+
 def test_odd_int_validator():
     validator = validators.OddIntValidator(0, 10)
     assert validator.validate("2", 0)[0] == QtGui.QValidator.Intermediate

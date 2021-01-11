@@ -28,6 +28,8 @@ from typing import List
 
 
 class LaserGraphicsView(OverlayView):
+    cursorValueChanged = QtCore.Signal(float, float, float)
+
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
         self.options = options
         self.data: np.ndarray = None
@@ -77,6 +79,17 @@ class LaserGraphicsView(OverlayView):
             return QtCore.QPoint(0, 0)
 
         return self.image.mapToData(pos)
+
+    def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
+        super().mouseMoveEvent(event)
+        pos = self.mapToScene(event.pos())
+        if self.image is not None and self.image.rect.contains(pos):
+            dpos = self.mapToData(pos)
+            self.cursorValueChanged.emit(
+                pos.x(), pos.y(), self.data[dpos.y(), dpos.x()]
+            )
+        else:
+            self.cursorValueChanged.emit(pos.x(), pos.y(), np.nan)
 
     def startLassoSelection(self) -> None:
         if self.selection_item is not None:

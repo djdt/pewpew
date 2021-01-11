@@ -20,7 +20,7 @@ from pewpew.threads import ImportThread
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.views import View, ViewSpace, _ViewWidget
 
-from typing import List, Set, Tuple, Union
+from typing import List, Set, Union
 
 
 logger = logging.getLogger(__name__)
@@ -185,9 +185,8 @@ class LaserWidget(_ViewWidget):
         self.is_srr = isinstance(laser, SRRLaser)
 
         self.graphics = LaserGraphicsView(options, parent=self)
-        # We have our own ConnectionRefusedErrorxt menu so hide the normal one
-        # self.canvas.cursorClear.connect(self.clearCursorStatus)
-        # self.canvas.cursorMoved.connect(self.updateCursorStatus)
+        self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
+        self.graphics.setMouseTracking(True)
 
         self.combo_layers = QtWidgets.QComboBox()
         self.combo_layers.addItem("*")
@@ -405,22 +404,10 @@ class LaserWidget(_ViewWidget):
         status_bar = self.viewspace.window().statusBar()
         if status_bar is None:  # pragma: no cover
             return
-        unit = self.graphics.options.units
 
-        layer = self.current_layer
-        if layer is None:
-            px = self.laser.config.get_pixel_width()
-            py = self.laser.config.get_pixel_height()
-        else:  # pragma: no cover
-            px = self.laser.config.get_pixel_width(layer)
-            py = self.laser.config.get_pixel_height(layer)
-
-        if unit == "row":
-            x, y = self.laser.shape[0] - int(y / py) - 1, int(x / px)
-        elif unit == "second":
-            x = x / self.laser.config.speed
-            y = 0
-        if np.isfinite(v):
+        if v is None:
+            status_bar.clearMessage()
+        elif np.isfinite(v):
             status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
         else:
             status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
@@ -433,38 +420,6 @@ class LaserWidget(_ViewWidget):
         self.current_isotope = current
 
     # Transformations
-    def crop(self, new_extent: Tuple[float, float, float, float] = None) -> None:
-        if self.is_srr:  # pragma: no cover
-            QtWidgets.QMessageBox.information(
-                self, "Transform", "Unable to transform SRR data."
-            )
-            return
-        if new_extent is None:  # pragma: no cover
-            # Default is to crop to current view limits.
-            new_extent = self.graphics.view_limits
-        if new_extent == self.graphics.extent:  # pragma: no cover
-            # Extent is same
-            return
-        extent = self.graphics.extent
-        w, h = extent[1] - extent[0], extent[3] - extent[2]
-        sy, sx = self.laser.data.shape
-        data = self.laser.data[
-            int(new_extent[2] / h * sy) : int(new_extent[3] / h * sy),
-            int(new_extent[0] / w * sx) : int(new_extent[1] / w * sx),
-        ]
-
-        path = self.laser.path
-        new_widget = self.view.addLaser(
-            Laser(
-                data.copy(),
-                calibration=self.laser.calibration,
-                config=self.laser.config,
-                name=self.laser.name + "_cropped",
-                path=path.parent.joinpath(self.laser.name + "_cropped" + path.suffix),
-            )
-        )
-        new_widget.setActive()
-
     def cropToSelection(self) -> None:
         if self.is_srr:  # pragma: no cover
             QtWidgets.QMessageBox.information(

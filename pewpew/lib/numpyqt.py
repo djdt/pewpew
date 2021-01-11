@@ -7,9 +7,7 @@ import shiboken2
 from typing import Any
 
 
-def array_to_image(
-    array: np.ndarray, vmin: float = None, vmax: float = None
-) -> QtGui.QImage:
+def array_to_image(array: np.ndarray) -> QtGui.QImage:
     array = np.atleast_2d(array)
 
     # Clip float arrays to 0.0 - 1.0 then convert to uint8
@@ -33,13 +31,6 @@ def array_to_image(
     )
     image._array = array
     return image
-
-
-def polygon_to_array(polygon: QtGui.QPolygon) -> np.ndarray:
-    buf = (ctypes.c_int * 2 * polygon.length()).from_address(
-        shiboken2.getCppPointer(polygon.data())[0]
-    )
-    return np.frombuffer(buf, dtype=np.int32).reshape(-1, 2)
 
 
 def polygonf_to_array(polygon: QtGui.QPolygonF) -> np.ndarray:
@@ -144,7 +135,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
             value = self.array[index.row(), index.column()]
             return str(value)
-        else:
+        else:  # pragma: no cover
             return None
 
     def setData(
@@ -175,7 +166,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         orientation: QtCore.Qt.Orientation,
         role: QtCore.Qt.ItemDataRole,
     ) -> str:
-        if role != QtCore.Qt.DisplayRole:
+        if role != QtCore.Qt.DisplayRole:  # pragma: no cover
             return None
 
         return str(section)

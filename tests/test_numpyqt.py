@@ -1,10 +1,70 @@
 import numpy as np
 
-from PySide2 import QtCore
+from PySide2 import QtCore, QtGui
 
 from pytestqt.qtbot import QtBot
 
-from pewpew.lib.numpyqt import NumpyArrayTableModel
+from pewpew.lib.numpyqt import (
+    array_to_image,
+    array_to_polygonf,
+    polygonf_to_array,
+    NumpyArrayTableModel,
+)
+
+
+def test_array_to_image():
+    # Float image
+    x = np.linspace(0.0, 1.0, 100, endpoint=True).reshape(10, 10).astype(np.float64)
+    i = array_to_image(x)
+    i.setColorTable(np.arange(256))
+    assert i.format() == QtGui.QImage.Format_Indexed8
+    assert i.width() == 10
+    assert i.height() == 10
+    assert i.pixel(0, 0) == 0
+    assert i.pixel(9, 9) == 255
+
+    # Uint8 image
+    x = np.arange(100).reshape(10, 10).astype(np.uint8)
+    i = array_to_image(x)
+    i.setColorTable(np.arange(256))
+    assert i.format() == QtGui.QImage.Format_Indexed8
+    assert i.pixel(0, 0) == 0
+    assert i.pixel(9, 9) == 99
+
+    # Float RGB image
+    x = np.linspace(0.0, 1.0, 100, endpoint=True).reshape(10, 10).astype(np.float64)
+    x = np.stack((x, x, x), axis=2)
+    i = array_to_image(x)
+    assert i.format() == QtGui.QImage.Format_RGB32
+    assert i.pixel(0, 0) == (255 << 24)
+    assert i.pixel(9, 9) == (255 << 24) + (255 << 16) + (255 << 8) + 255
+
+    # RGB image
+    x = np.arange(100).reshape(10, 10).astype(np.uint8)
+    x = np.stack((x, x, x), axis=2)
+    i = array_to_image(x)
+    assert i.format() == QtGui.QImage.Format_RGB32
+    assert i.pixel(0, 0) == (255 << 24)
+    assert i.pixel(9, 9) == (255 << 24) + (99 << 16) + (99 << 8) + 99
+
+
+def test_array_to_polygonf():
+    x = np.stack((np.arange(10), np.arange(10)), axis=1)
+    poly = array_to_polygonf(x)
+    assert poly.size() == 10
+    for i in range(poly.size()):
+        assert poly[i].x() == i
+        assert poly[i].y() == i
+
+
+def test_polygonf_to_array():
+    poly = QtGui.QPolygonF()
+    for i in range(10):
+        poly.append(QtCore.QPointF(i, i))
+    x = polygonf_to_array(poly)
+
+    assert np.all(x[:, 0] == np.arange(10))
+    assert np.all(x[:, 1] == np.arange(10))
 
 
 def test_numpy_array_table_model(qtbot: QtBot):

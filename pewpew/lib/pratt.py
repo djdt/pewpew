@@ -322,7 +322,7 @@ class Reducer(object):
                 arg_tokens = tokens[:nargs]
                 args = [self.reduceExpr(tokens) for i in range(nargs)]
                 return op(*args)
-            except (AttributeError, KeyError, ValueError):
+            except (AttributeError, KeyError, ValueError):  # pragma: no cover
                 raise ReducerException(f"Invalid args '{arg_tokens}' for '{token}'.")
         elif token in self.variables:
             return self.variables[token]

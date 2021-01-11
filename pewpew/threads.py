@@ -65,7 +65,7 @@ class ImportThread(QtCore.QThread):
         else:
             if path.suffix.lower() == ".npz":
                 laser = io.npz.load(path)
-                if laser.name == "":
+                if laser.name == "":  # pragma: no cover
                     laser.name = path.stem
                 return laser
             if path.suffix.lower() == ".csv":
