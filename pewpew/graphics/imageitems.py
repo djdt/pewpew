@@ -282,11 +282,16 @@ class ImageSliceWidgetItem(ImageWidgetItem):
         height = view.mapToScene(QtCore.QRect(0, 0, 1, 100)).boundingRect().height()
 
         points = connect_nd([[p1.x(), p1.y()], [p2.x(), p2.y()]])
-        if points.size > 2:
+        if points.size > 3:
             self.sliced = self.data[points[:, 1], points[:, 0]]
 
             xs = np.linspace(0.0, self.line.length(), self.sliced.size)
-            ys = -1.0 * normalise(self.sliced, 0.0, height)
+            try:
+                ys = -1.0 * normalise(self.sliced, 0.0, height)
+            except ValueError:
+                self.sliced = None
+                self.poly.clear()
+                return
 
             poly = array_to_polygonf(np.stack((xs, ys), axis=1))
 
@@ -360,7 +365,8 @@ class ImageSliceWidgetItem(ImageWidgetItem):
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if event.buttons() & QtCore.Qt.LeftButton:
-            self.line.setPoints(event.pos(), event.pos())
+            if self.image.rect.contains(event.pos()):
+                self.line.setPoints(event.pos(), event.pos())
             self.sliced = None
             self.poly = QtGui.QPolygonF()
             self.prepareGeometryChange()
