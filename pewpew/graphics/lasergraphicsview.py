@@ -83,7 +83,11 @@ class LaserGraphicsView(OverlayView):
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         super().mouseMoveEvent(event)
         pos = self.mapToScene(event.pos())
-        if self.image is not None and self.image.rect.contains(pos):
+        if (
+            self.image is not None
+            and self.image.rect.left() < pos.x() < self.image.rect.right()
+            and self.image.rect.top() < pos.y() < self.image.rect.bottom()
+        ):
             dpos = self.mapToData(pos)
             self.cursorValueChanged.emit(
                 pos.x(), pos.y(), self.data[dpos.y(), dpos.x()]
