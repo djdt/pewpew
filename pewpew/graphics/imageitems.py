@@ -280,7 +280,6 @@ class ImageSliceWidgetItem(ImageWidgetItem):
         height = view.mapToScene(QtCore.QRect(0, 0, 1, 100)).boundingRect().height()
 
         points = connect_nd([[p1.x(), p1.y()], [p2.x(), p2.y()]])
-        print(points)
         if points.size > 3:
             self.sliced = self.data[points[:, 1], points[:, 0]]
 
