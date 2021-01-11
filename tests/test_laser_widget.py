@@ -205,10 +205,69 @@ def test_laser_widget_actions(qtbot: QtBot):
     )
 
 
-# def test_laser_widget_selection(qtbot: QtBot):
-#     viewspace = LaserViewSpace()
-#     qtbot.addWidget(viewspace)
-#     viewspace.show()
-#     view = viewspace.activeView()
-#     view.addLaser(Laser(rand_data(["a", "b"]), path=Path("/home/pewpew/real.npz")))
-#     widget = view.activeWidget()
+def test_laser_widget_selection(qtbot: QtBot):
+    main = QtWidgets.QMainWindow()
+    qtbot.addWidget(main)
+    main.statusBar()  # Create bar
+    viewspace = LaserViewSpace()
+    main.setCentralWidget(viewspace)
+    view = viewspace.activeView()
+    view.addLaser(Laser(rand_data(["a", "b"]), path=Path("/home/pewpew/real.npz")))
+    widget = view.activeWidget()
+
+    # Make actually have a size
+    widget.graphics.viewport().resize(100, 100)
+    widget.refresh()
+    qtbot.waitForWindowShown(widget)
+
+    graphics = widget.graphics
+
+    # Test rectangle selector and center pixel selecting
+    graphics.startRectangleSelection()
+
+    event = QtGui.QMouseEvent(
+        QtCore.QEvent.MouseButtonPress,
+        graphics.mapFromScene(QtCore.QPointF(15, 15)),
+        QtCore.Qt.LeftButton,
+        QtCore.Qt.LeftButton,
+        QtCore.Qt.NoModifier,
+    )
+
+    graphics.mousePressEvent(event)
+    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(20, 20)))
+    graphics.mouseMoveEvent(event)
+    graphics.mouseReleaseEvent(event)
+
+    assert graphics.mask[0][0]
+    assert np.all(graphics.mask[1:, :] == 0)
+    assert np.all(graphics.mask[:, 1:] == 0)
+
+    graphics.endSelection()
+    assert np.all(graphics.mask == 0)
+
+    graphics.startLassoSelection()
+
+    event = QtGui.QMouseEvent(
+        QtCore.QEvent.MouseButtonPress,
+        graphics.mapFromScene(QtCore.QPointF(5, 5)),
+        QtCore.Qt.LeftButton,
+        QtCore.Qt.LeftButton,
+        QtCore.Qt.NoModifier,
+    )
+
+    graphics.mousePressEvent(event)
+    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(345, 5)))
+    graphics.mouseMoveEvent(event)
+    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(345, 345)))
+    graphics.mouseMoveEvent(event)
+    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(320, 345)))
+    graphics.mouseMoveEvent(event)
+    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(320, 35)))
+    graphics.mouseMoveEvent(event)
+    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(5, 35)))
+    graphics.mouseMoveEvent(event)
+    graphics.mouseReleaseEvent(event)
+
+    assert np.all(graphics.mask[0, :])
+    assert np.all(graphics.mask[:, -1])
+    assert np.all(graphics.mask[1:, :-1] == 0)
