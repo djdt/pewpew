@@ -272,6 +272,8 @@ class ImageSliceWidgetItem(ImageWidgetItem):
 
         p1 = self.image.mapToData(self.line.p1())
         p2 = self.image.mapToData(self.line.p2())
+        p2.setX(p2.x() - 1)
+        p2.setY(p2.y() - 1)
 
         if self.line.dx() < 0.0:
             p1, p2 = p2, p1
@@ -366,7 +368,17 @@ class ImageSliceWidgetItem(ImageWidgetItem):
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if event.buttons() & QtCore.Qt.LeftButton:
-            self.line.setP2(event.pos())
+            pos = QtCore.QPointF(
+                min(
+                    max(self.image.rect.left(), event.pos().x()),
+                    self.image.rect.right(),
+                ),
+                min(
+                    max(self.image.rect.top(), event.pos().y()),
+                    self.image.rect.bottom(),
+                ),
+            )
+            self.line.setP2(pos)
             self.createSlicePoly()
             self.prepareGeometryChange()
         super().mouseMoveEvent(event)
