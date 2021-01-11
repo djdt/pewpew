@@ -252,7 +252,7 @@ class ImageSliceWidgetItem(ImageWidgetItem):
             "<table>"
         )
         text = ""
-        for x in self.data:
+        for x in self.sliced:
             html += f"<tr><td>{x:.10g}</td></tr>"
             text += f"{x:.10g}\n"
         html += "</table>"
