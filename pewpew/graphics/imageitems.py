@@ -272,8 +272,6 @@ class ImageSliceWidgetItem(ImageWidgetItem):
 
         p1 = self.image.mapToData(self.line.p1())
         p2 = self.image.mapToData(self.line.p2())
-        p2.setX(p2.x() - 1)
-        p2.setY(p2.y() - 1)
 
         if self.line.dx() < 0.0:
             p1, p2 = p2, p1
@@ -282,6 +280,7 @@ class ImageSliceWidgetItem(ImageWidgetItem):
         height = view.mapToScene(QtCore.QRect(0, 0, 1, 100)).boundingRect().height()
 
         points = connect_nd([[p1.x(), p1.y()], [p2.x(), p2.y()]])
+        print(points)
         if points.size > 3:
             self.sliced = self.data[points[:, 1], points[:, 0]]
 
@@ -365,7 +364,10 @@ class ImageSliceWidgetItem(ImageWidgetItem):
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if event.buttons() & QtCore.Qt.LeftButton:
-            if self.image.rect.contains(event.pos()):
+            if (
+                self.image.rect.left() < event.pos().x() < self.image.rect.right()
+                and self.image.rect.top() < event.pos().y() < self.image.rect.bottom()
+            ):
                 self.line.setPoints(event.pos(), event.pos())
             self.sliced = None
             self.poly = QtGui.QPolygonF()
@@ -374,16 +376,11 @@ class ImageSliceWidgetItem(ImageWidgetItem):
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if event.buttons() & QtCore.Qt.LeftButton:
-            pos = QtCore.QPointF(
-                min(
-                    max(self.image.rect.left(), event.pos().x()),
-                    self.image.rect.right(),
-                ),
-                min(
-                    max(self.image.rect.top(), event.pos().y()),
-                    self.image.rect.bottom(),
-                ),
-            )
+            pos = self.line.p2()
+            if self.image.rect.left() < event.pos().x() < self.image.rect.right():
+                pos.setX(event.pos().x())
+            if self.image.rect.top() < event.pos().y() < self.image.rect.bottom():
+                pos.setY(event.pos().y())
             self.line.setP2(pos)
             self.createSlicePoly()
             self.prepareGeometryChange()
