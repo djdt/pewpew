@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
 from pytestqt.qtbot import QtBot
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui
 
 from pewlib.laser import Laser
 from pewlib.config import Config
@@ -156,25 +156,6 @@ def test_laser_widget_combo(qtbot: QtBot):
     )
 
 
-def test_laser_widget_cursor(qtbot: QtBot):
-    main = QtWidgets.QMainWindow()
-    qtbot.addWidget(main)
-    main.statusBar()  # Create bar
-    viewspace = LaserViewSpace()
-    main.setCentralWidget(viewspace)
-
-    view = viewspace.activeView()
-    view.addLaser(Laser(rand_data(["A1"])))
-    widget = view.activeWidget()
-    qtbot.waitForWindowShown(widget)
-
-    widget.updateCursorStatus(2.0, 2.0, 1.0)
-    assert main.statusBar().currentMessage() == "2,2 [1]"
-
-    widget.updateCursorStatus(1.0, 3.0, np.nan)
-    assert main.statusBar().currentMessage() == "1,3 [nan]"
-
-
 def test_laser_widget_actions(qtbot: QtBot):
     viewspace = LaserViewSpace()
     qtbot.addWidget(viewspace)
@@ -204,70 +185,18 @@ def test_laser_widget_actions(qtbot: QtBot):
         QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
     )
 
-
-def test_laser_widget_selection(qtbot: QtBot):
-    main = QtWidgets.QMainWindow()
-    qtbot.addWidget(main)
-    main.statusBar()  # Create bar
-    viewspace = LaserViewSpace()
-    main.setCentralWidget(viewspace)
-    view = viewspace.activeView()
-    view.addLaser(Laser(rand_data(["a", "b"]), path=Path("/home/pewpew/real.npz")))
-    widget = view.activeWidget()
-
-    # Make actually have a size
-    widget.graphics.viewport().resize(100, 100)
-    widget.refresh()
-    qtbot.waitForWindowShown(widget)
-
-    graphics = widget.graphics
-
-    # Test rectangle selector and center pixel selecting
-    graphics.startRectangleSelection()
-
-    event = QtGui.QMouseEvent(
-        QtCore.QEvent.MouseButtonPress,
-        graphics.mapFromScene(QtCore.QPointF(15, 15)),
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.NoModifier,
+    # Test contextmenu
+    widget.graphics.mask = np.ones((10, 10), dtype=np.bool)
+    widget.contextMenuEvent(
+        QtGui.QContextMenuEvent(
+            QtGui.QContextMenuEvent.Mouse,
+            widget.graphics.mapFromScene(QtCore.QPointF(0, 0)),
+        )
     )
 
-    graphics.mousePressEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(20, 20)))
-    graphics.mouseMoveEvent(event)
-    graphics.mouseReleaseEvent(event)
-
-    assert graphics.mask[0][0]
-    assert np.all(graphics.mask[1:, :] == 0)
-    assert np.all(graphics.mask[:, 1:] == 0)
-
-    graphics.endSelection()
-    assert np.all(graphics.mask == 0)
-
-    graphics.startLassoSelection()
-
-    event = QtGui.QMouseEvent(
-        QtCore.QEvent.MouseButtonPress,
-        graphics.mapFromScene(QtCore.QPointF(5, 5)),
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.NoModifier,
-    )
-
-    graphics.mousePressEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(345, 5)))
-    graphics.mouseMoveEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(345, 345)))
-    graphics.mouseMoveEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(320, 345)))
-    graphics.mouseMoveEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(320, 35)))
-    graphics.mouseMoveEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(5, 35)))
-    graphics.mouseMoveEvent(event)
-    graphics.mouseReleaseEvent(event)
-
-    assert np.all(graphics.mask[0, :])
-    assert np.all(graphics.mask[:, -1])
-    assert np.all(graphics.mask[1:, :-1] == 0)
+    widget.actionCopySelectionText()
+    widget.actionCropSelection()
+    dlg = widget.actionStatisticsSelection()
+    dlg.close()
+    dlg = widget.actionColocalSelection()
+    dlg.close()
