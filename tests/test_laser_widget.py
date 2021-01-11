@@ -1,7 +1,7 @@
 import numpy as np
 from pathlib import Path
 from pytestqt.qtbot import QtBot
-from PySide2 import QtCore, QtGui
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewlib.laser import Laser
 from pewlib.config import Config
@@ -200,3 +200,22 @@ def test_laser_widget_actions(qtbot: QtBot):
     dlg.close()
     dlg = widget.actionColocalSelection()
     dlg.close()
+
+
+def test_laser_widget_cursor(qtbot: QtBot):
+    main = QtWidgets.QMainWindow()
+    qtbot.addWidget(main)
+    main.statusBar()  # Create bar
+    viewspace = LaserViewSpace()
+    main.setCentralWidget(viewspace)
+
+    view = viewspace.activeView()
+    view.addLaser(Laser(rand_data(["a"])))
+    widget = view.activeWidget()
+
+    # Cursor
+    widget.updateCursorStatus(2.0, 2.0, 1.0)
+    assert main.statusBar().currentMessage() == "2,2 [1]"
+
+    widget.updateCursorStatus(1.0, 3.0, np.nan)
+    assert main.statusBar().currentMessage() == "1,3 [nan]"
