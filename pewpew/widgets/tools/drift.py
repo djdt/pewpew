@@ -90,8 +90,7 @@ class DriftGuideRectItem(ResizeableRectItem):
         trim_enabled: bool = False,
         parent: QtWidgets.QGraphicsItem = None,
     ):
-        super().__init__(rect, 10, parent=parent)
-        # self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
+        super().__init__(rect, parent=parent)
 
         pen = QtGui.QPen(QtCore.Qt.white, 2.0)
         pen.setCosmetic(True)
