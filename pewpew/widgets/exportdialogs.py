@@ -436,7 +436,7 @@ class ExportDialog(_ExportDialogBase):
         try:
             for path, isotope, layer in paths:
                 self.export(path, isotope, layer, self.widget)
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             logger.exception(e)
             QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
             return
@@ -548,7 +548,7 @@ class ExportAllDialog(ExportDialog):
                         break
                     self.export(path, isotope, layer, widget)
                     exported += 1
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             logger.exception(e)
             QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
             dlg.cancel()
