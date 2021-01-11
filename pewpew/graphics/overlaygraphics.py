@@ -172,7 +172,6 @@ class OverlayView(QtWidgets.QGraphicsView):
             len(self.interaction_flags) == 0 and event.button() == QtCore.Qt.LeftButton
         ) or event.button() == QtCore.Qt.MiddleButton:
             self.setInteractionFlag("drag")
-            self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)
             self._last_pos = event.pos()
         else:
             super().mousePressEvent(event)
@@ -190,7 +189,6 @@ class OverlayView(QtWidgets.QGraphicsView):
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         if "drag" in self.interaction_flags:
             self.setInteractionFlag("drag", False)
-            return
         if "zoom" in self.interaction_flags:
             self.setInteractionFlag("zoom", False)
             rect = QtCore.QRect(self._last_pos, event.pos())
@@ -226,16 +224,13 @@ class OverlayView(QtWidgets.QGraphicsView):
         else:
             self.interaction_flags.discard(flag)
 
-        # if len(self.interaction_flags) == 0:
-        #     self.setCursor(QtCore.Qt.ArrowCursor)
-        #     for flag in self.interaction_flags:
-        #         if flag in self.cursors:
-        #             self.setCursor(self.cursors[flag])
-        #             break
-
-    # def setInteractionMode(self, mode: str) -> None:
-    #     self.viewport().setCursor(self.cursors.get(mode, QtCore.Qt.ArrowCursor))
-    #     self.interaction_mode = mode
+        if len(self.interaction_flags) == 0:
+            self.viewport().setCursor(QtCore.Qt.ArrowCursor)
+        else:
+            for flag in self.interaction_flags:
+                if flag in self.cursors:
+                    self.viewport().setCursor(self.cursors[flag])
+                    break
 
     def scrollContentsBy(self, dx: int, dy: int) -> None:
         super().scrollContentsBy(dx, dy)
