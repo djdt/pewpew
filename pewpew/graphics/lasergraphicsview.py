@@ -103,7 +103,7 @@ class LaserGraphicsView(OverlayView):
         self.selection_item.selectionChanged.connect(self.drawSelectionImage)
         self.scene().addItem(self.selection_item)
         self.selection_item.grabMouse()
-        self.setInteractionMode("selection")
+        self.setInteractionFlag("selection")
 
     def startRectangleSelection(self) -> None:
         if self.selection_item is not None:
@@ -113,7 +113,7 @@ class LaserGraphicsView(OverlayView):
         self.selection_item.selectionChanged.connect(self.drawSelectionImage)
         self.scene().addItem(self.selection_item)
         self.selection_item.grabMouse()
-        self.setInteractionMode("selection")
+        self.setInteractionFlag("selection")
 
     def endSelection(self) -> None:
         if self.selection_item is not None:
@@ -124,7 +124,7 @@ class LaserGraphicsView(OverlayView):
             self.selection_image = None
 
         self.mask = np.zeros(self.data.shape, dtype=np.bool)
-        self.setInteractionMode("navigate")
+        self.setInteractionFlag("selection", False)
 
     def posInSelection(self, pos: QtCore.QPointF) -> bool:
         if self.mask is None:
@@ -139,7 +139,7 @@ class LaserGraphicsView(OverlayView):
         self.widget.setZValue(1)
         self.scene().addItem(self.widget)
         self.widget.grabMouse()
-        self.setInteractionMode("widget")
+        self.setInteractionFlag("widget")
 
     def startSliceWidget(self) -> None:
         if self.widget is not None:
@@ -150,7 +150,13 @@ class LaserGraphicsView(OverlayView):
         self.widget.setZValue(1)
         self.scene().addItem(self.widget)
         self.widget.grabMouse()
-        self.setInteractionMode("widget")
+        self.setInteractionFlag("widget")
+
+    def endWidget(self) -> None:
+        if self.widget is not None:
+            self.scene().removeItem(self.widget)
+        self.widget = None
+        self.setInteractionFlag("widget", False)
 
     def drawImage(self, data: np.ndarray, rect: QtCore.QRectF, name: str) -> None:
         if self.image is not None:

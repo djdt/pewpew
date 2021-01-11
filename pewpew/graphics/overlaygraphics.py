@@ -150,12 +150,10 @@ class OverlayView(QtWidgets.QGraphicsView):
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
         self.cursors = {
-            "navigate": QtCore.Qt.ArrowCursor,
             "drag": QtCore.Qt.ClosedHandCursor,
             "zoom": QtCore.Qt.ArrowCursor,
         }
-        self.interaction_mode = "navigate"
-        self.interaction_flags: Set[str] = set()
+        self.interaction_flags: Set[str] = set()  # Deafult is navigate when empty
         self._last_pos = QtCore.QPoint(0, 0)  # Used for mouse events
 
         # Only redraw the ForegroundLayer when needed
@@ -171,8 +169,7 @@ class OverlayView(QtWidgets.QGraphicsView):
             self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
             super().mousePressEvent(event)
         elif (
-            self.interaction_mode == "navigate"
-            and event.button() == QtCore.Qt.LeftButton
+            len(self.interaction_flags) == 0 and event.button() == QtCore.Qt.LeftButton
         ) or event.button() == QtCore.Qt.MiddleButton:
             self.setInteractionFlag("drag")
             self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)
@@ -182,31 +179,25 @@ class OverlayView(QtWidgets.QGraphicsView):
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         if "drag" in self.interaction_flags:
-            last = self.mapToGlobal(self._last_pos)
-            dx = last.x() - event.globalPos().x()
-            dy = last.y() - event.globalPos().y()
+            dx = self._last_pos.x() - event.pos().x()
+            dy = self._last_pos.y() - event.pos().y()
             self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + dx)
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() + dy)
             self._last_pos = event.pos()
-        else:
-            super().mouseMoveEvent(event)
+            return
+        super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         if "drag" in self.interaction_flags:
             self.setInteractionFlag("drag", False)
-            # Restore cursor
-            self.viewport().setCursor(
-                self.cursors.get(self.interaction_mode, QtCore.Qt.ArrowCursor)
-            )
-        elif "zoom" in self.interaction_flags:
+            return
+        if "zoom" in self.interaction_flags:
             self.setInteractionFlag("zoom", False)
             rect = QtCore.QRect(self._last_pos, event.pos())
             rect = self.mapToScene(rect).boundingRect()
             self.zoomToArea(rect)
             self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
-            super().mouseReleaseEvent(event)
-        else:
-            super().mouseReleaseEvent(event)
+        super().mouseReleaseEvent(event)
 
     def resizeEvent(self, event: QtGui.QResizeEvent):
         super().resizeEvent(event)
@@ -235,9 +226,16 @@ class OverlayView(QtWidgets.QGraphicsView):
         else:
             self.interaction_flags.discard(flag)
 
-    def setInteractionMode(self, mode: str) -> None:
-        self.viewport().setCursor(self.cursors.get(mode, QtCore.Qt.ArrowCursor))
-        self.interaction_mode = mode
+        # if len(self.interaction_flags) == 0:
+        #     self.setCursor(QtCore.Qt.ArrowCursor)
+        #     for flag in self.interaction_flags:
+        #         if flag in self.cursors:
+        #             self.setCursor(self.cursors[flag])
+        #             break
+
+    # def setInteractionMode(self, mode: str) -> None:
+    #     self.viewport().setCursor(self.cursors.get(mode, QtCore.Qt.ArrowCursor))
+    #     self.interaction_mode = mode
 
     def scrollContentsBy(self, dx: int, dy: int) -> None:
         super().scrollContentsBy(dx, dy)
