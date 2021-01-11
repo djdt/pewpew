@@ -29,25 +29,29 @@ def test_overlay_tool(qtbot: QtBot):
     # Test rgb mode
     assert tool.rows.color_model == "rgb"
     tool.comboAdd(1)  # r
-    assert np.all(tool.canvas.image.get_array() == (1.0, 0.0, 0.0))
+    assert np.all(tool.graphics.data[0, 0] == (255 << 24) + (255 << 16))
 
     tool.comboAdd(2)  # g
-    assert np.all(tool.canvas.image.get_array()[:10] == (1.0, 1.0, 0.0))
-    assert np.all(tool.canvas.image.get_array()[10:] == (1.0, 0.0, 0.0))
+    assert np.all(tool.graphics.data[:10] == (255 << 24) + (255 << 16) + (255 << 8))
+    assert np.all(tool.graphics.data[10:] == (255 << 24) + (255 << 16))
 
     tool.comboAdd(3)  # g
-    assert np.all(tool.canvas.image.get_array()[:10, :10] == (1.0, 1.0, 1.0))
-    assert np.all(tool.canvas.image.get_array()[10:, :10] == (1.0, 0.0, 1.0))
-    assert np.all(tool.canvas.image.get_array()[10:, 10:] == (1.0, 1.0, 0.0))
-    assert np.all(tool.canvas.image.get_array()[10:, 10:] == (1.0, 0.0, 0.0))
+    assert np.all(
+        tool.graphics.data[:10, :10] == (255 << 24) + (255 << 16) + (255 << 8) + 255
+    )
+    assert np.all(tool.graphics.data[10:, :10] == (255 << 24) + (255 << 16))
+    assert np.all(
+        tool.graphics.data[10:, 10:] == (255 << 24) + (255 << 16) + (255 << 8)
+    )
+    assert np.all(tool.graphics.data[10:, 10:] == (255 << 24) + (255 << 16))
 
     # Test cmyk mode
     tool.radio_cmyk.toggle()
     assert tool.rows.color_model == "cmyk"
-    assert np.all(tool.canvas.image.get_array()[:10, :10] == (0.0, 0.0, 0.0))
-    assert np.all(tool.canvas.image.get_array()[10:, :10] == (0.0, 1.0, 0.0))
-    assert np.all(tool.canvas.image.get_array()[10:, 10:] == (0.0, 0.0, 1.0))
-    assert np.all(tool.canvas.image.get_array()[10:, 10:] == (0.0, 1.0, 1.0))
+    assert np.all(tool.graphics.data[:10, :10] == (255 << 24))
+    assert np.all(tool.graphics.data[10:, :10] == (255 << 24) + (255 << 8))
+    assert np.all(tool.graphics.data[10:, 10:] == (255 << 25) + 255)
+    assert np.all(tool.graphics.data[10:, 10:] == (255 << 24) + (255 << 8) + 255)
 
     # Check that the rows are limited to 3
     assert tool.rows.max_rows == 3
@@ -65,6 +69,7 @@ def test_overlay_tool(qtbot: QtBot):
     tool.radio_custom.toggle()
     assert tool.rows.color_model == "any"
     assert tool.combo_add.isEnabled()
+    assert tool.check_normalise.isEnabled()
     for row in tool.rows.rows:
         assert row.button_color.isEnabled()
     tool.addRow("g")
@@ -72,10 +77,10 @@ def test_overlay_tool(qtbot: QtBot):
     assert tool.rows.rowCount() == 4
 
     # Test normalise
-    assert np.amin(tool.canvas.image.get_array()) > 0.0
+    assert np.amin(tool.graphics.data) > (255 << 24)
     tool.check_normalise.setChecked(True)
     tool.refresh()
-    assert tool.canvas.image.get_array().data.min() == 0.0
+    assert tool.graphics.data.min() == (255 << 24) + (255 << 8) + 255  # No red
     tool.check_normalise.setChecked(False)
 
     # Test export
@@ -85,7 +90,7 @@ def test_overlay_tool(qtbot: QtBot):
     dlg2.close()
 
     with tempfile.NamedTemporaryFile() as tf:
-        dlg.export(tf)
+        dlg.export(Path(tf.name))
         assert Path(tf.name).exists()
 
     with tempfile.TemporaryDirectory() as td:
@@ -107,10 +112,7 @@ def test_overlay_tool(qtbot: QtBot):
     tool.radio_rgb.toggle()
     with qtbot.wait_signal(tool.rows.rows[0].itemChanged):
         tool.rows.rows[0].button_hide.click()
-    assert np.all(tool.canvas.image.get_array()[:10, :10] == (0.0, 1.0, 1.0))
-    assert np.all(tool.canvas.image.get_array()[10:, :10] == (0.0, 0.0, 1.0))
-    assert np.all(tool.canvas.image.get_array()[10:, 10:] == (0.0, 1.0, 0.0))
-    assert np.all(tool.canvas.image.get_array()[10:, 10:] == (0.0, 0.0, 0.0))
+    assert np.all(tool.graphics.data <= ((255 << 24) + (255 << 8) + 255))
 
     dlg = tool.rows[0].selectColor()
     dlg.close()

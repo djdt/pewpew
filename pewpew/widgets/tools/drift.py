@@ -186,7 +186,7 @@ class DriftGraphicsView(LaserGraphicsView):
 
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
         super().__init__(options, parent=parent)
-        self.setInteractionMode("selection")
+        self.setInteractionFlag("tool")
 
         self.guide: DriftGuideRectItem = None
 
