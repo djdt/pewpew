@@ -139,12 +139,12 @@ class LaserGraphicsView(OverlayView):
         if self.image is not None:
             self.scene().removeItem(self.image)
 
-        self.data = data
+        self.data = np.ascontiguousarray(data)
 
         vmin, vmax = self.options.get_colorrange_as_float(name, self.data)
         table = colortable.get_table(self.options.colortable)
 
-        data = np.clip(data, vmin, vmax)
+        data = np.clip(self.data, vmin, vmax)
         data = (data - vmin) / (vmax - vmin)
 
         image = array_to_image(data)
