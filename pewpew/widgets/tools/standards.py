@@ -27,7 +27,7 @@ class StandardsGraphicsView(LaserGraphicsView):
 
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
         super().__init__(options, parent)
-        self.setInteractionMode("selection")
+        self.setInteractionFlag("tool")
         self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
 
         self.levels: List[CalibrationRectItem] = []

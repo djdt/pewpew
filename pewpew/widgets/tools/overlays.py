@@ -124,6 +124,7 @@ class RGBOverlayView(OverlayView):
         if self.image is not None:
             self.scene().removeItem(self.image)
 
+        self.data = data
         self.image = ScaledImageItem.fromArray(
             data, rect, smooth=self.options.smoothing
         )
