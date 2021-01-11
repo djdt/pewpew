@@ -150,48 +150,78 @@ class AgilentOptions(_OptionsBase):
 class CsvLinesOptions(_OptionsBase):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__("CSV Lines", "Directory", [""], parent)
-        self.datafiles = 0
+        self.csvs: List[Path] = []
+        self.lines = 0
 
         self.option = io.csv.GenericOption()
 
-        self.lineedit_dfile = QtWidgets.QLineEdit("0")
-        self.lineedit_dfile.setReadOnly(True)
-
+        # Kwargs
+        self.combo_delimiter = QtWidgets.QComboBox()
+        self.combo_delimiter.addItems([",", ";", "Tab", "Space"])
         self.spinbox_header = QtWidgets.QSpinBox()
         self.spinbox_footer = QtWidgets.QSpinBox()
-        self.lineedit_regex = QtWidgets.QLineEdit()
+
+        self.lineedit_regex = QtWidgets.QLineEdit(".*\\.csv")
         self.lineedit_regex.editingFinished.connect(self.regexChanged)
         self.lineedit_regex.editingFinished.connect(self.optionsChanged)
         self.combo_sortkey = QtWidgets.QComboBox()
-        self.combo_sortkey.addItems(["Alphabetical", "Numerical", "Regex Match"])
+        self.combo_sortkey.addItems(
+            ["Alphabetical", "Numerical", "Timestamp"]  # , "Regex Match"]
+        )
+        self.combo_sortkey.currentIndexChanged.connect(self.sortingChanged)
+        self.lineedit_sortkey = QtWidgets.QLineEdit()
+        self.lineedit_sortkey.textChanged.connect(self.optionsChanged)
+
+        self.lineedit_nlines = QtWidgets.QLineEdit("0")
+        self.lineedit_nlines.setReadOnly(True)
 
         layout = QtWidgets.QFormLayout()
+        layout.addRow("Delimiter:", self.combo_delimiter)
         layout.addRow("Header Rows:", self.spinbox_header)
         layout.addRow("Footer Rows:", self.spinbox_footer)
         layout.addRow("File Regex:", self.lineedit_regex)
+        layout.addRow("Matching files:", self.lineedit_nlines)
         layout.addRow("Sorting:", self.combo_sortkey)
-        layout.addRow("Lines found:", self.lineedit_dfile)
+        layout.addRow("Sort key:", self.lineedit_sortkey)
         self.setLayout(layout)
 
-    def kwargsChanged(self) -> None:
-        kws = {
-            "skip_header": self.spinbox_header.value(),
-            "skip_footer": self.spinbox_footer.value(),
-        }
-        self.option.kw_genfromtxt.update(kws)
+    def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
+        return [
+            ("skipHeader", self.spinbox_header, "value", "valueChanged"),
+            ("skipFooter", self.spinbox_footer, "value", "valueChanged"),
+            ("delimiter", self.combo_delimiter, "currentText", "currentTextChanged"),
+            ("regex", self.lineedit_regex, "text", "textChanged"),
+            ("sorting", self.combo_sortkey, "currentText", "currentTextChanged"),
+            ("sortKey", self.combo_sortkey, "currentText", "currentTextChanged"),
+        ]
+
+    def isComplete(self) -> bool:
+        if (
+            self.combo_sortkey.currentText() == "Timestamp"
+            and "%" not in self.lineedit_sortkey.text()
+        ):
+            return False
+        return self.lines > 1
 
     def regexChanged(self) -> None:
         regex = self.lineedit_regex.text()
         if regex == "":
             regex = ".*\\.csv"
-        self.datafiles = sum([re.match(regex, p.name) is not None for p in self.csvs])
+        self.lines = sum([re.match(regex, p.name) is not None for p in self.csvs])
+        self.lineedit_nlines.setText(f"{self.lines}")
 
-    def isComplete(self) -> bool:
-        return self.datafiles > 0
+    def sortingChanged(self) -> None:
+        sorting = self.combo_sortkey.currentText()
+        if sorting == "Timestamp":
+            self.lineedit_sortkey.setEnabled(True)
+            self.lineedit_sortkey.setText("%Y-%m-%d %H:%M:%S")
+        else:
+            self.lineedit_sortkey.setEnabled(False)
+            self.lineedit_sortkey.setText("")
 
     def updateForPath(self, path: Path) -> None:
         self.csvs = list(path.glob("*.csv"))
-        # self.lineedit_dfile.setText(str(self.datafiles))
+        self.regexChanged()
 
 
 class NumpyOptions(_OptionsBase):

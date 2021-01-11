@@ -1,6 +1,8 @@
 import numpy as np
 import numpy.lib.recfunctions as rfn
 import logging
+import re
+import time
 
 from pathlib import Path
 
@@ -23,10 +25,11 @@ logger = logging.getLogger(__name__)
 class ImportWizard(QtWidgets.QWizard):
     page_format = 0
     page_agilent = 1
-    page_perkinelmer = 2
-    page_text = 3
-    page_thermo = 4
-    page_config = 5
+    page_csv = 2
+    page_perkinelmer = 3
+    page_text = 4
+    page_thermo = 5
+    page_config = 6
 
     laserImported = QtCore.Signal(Laser)
 
@@ -54,6 +57,7 @@ class ImportWizard(QtWidgets.QWizard):
             overview,
             page_id_dict={
                 "agilent": self.page_agilent,
+                "csv": self.page_csv,
                 "numpy": -1,
                 "perkinelmer": self.page_perkinelmer,
                 "text": self.page_text,
@@ -68,6 +72,10 @@ class ImportWizard(QtWidgets.QWizard):
         self.setPage(
             self.page_agilent,
             PathAndOptionsPage([path], "agilent", nextid=self.page_config, parent=self),
+        )
+        self.setPage(
+            self.page_csv,
+            PathAndOptionsPage([path], "csv", nextid=self.page_config, parent=self),
         )
         self.setPage(
             self.page_perkinelmer,
@@ -89,6 +97,8 @@ class ImportWizard(QtWidgets.QWizard):
     def accept(self) -> None:
         if self.field("agilent"):
             path = Path(self.field("agilent.path"))
+        elif self.field("csv"):
+            path = Path(self.field("csv.path"))
         elif self.field("perkinelmer"):
             path = Path(self.field("perkinelmer.path"))
         elif self.field("text"):
@@ -125,6 +135,7 @@ class FormatPage(QtWidgets.QWizardPage):
 
         self.radio_agilent = QtWidgets.QRadioButton("&Agilent Batches")
         self.radio_agilent.setChecked(True)
+        self.radio_csv = QtWidgets.QRadioButton("&CSV Lines")
         self.radio_numpy = QtWidgets.QRadioButton("&Numpy Archives")
         self.radio_perkinelmer = QtWidgets.QRadioButton("&Perkin-Elmer 'XL'")
         self.radio_text = QtWidgets.QRadioButton("Text and &CSV Images")
@@ -133,6 +144,7 @@ class FormatPage(QtWidgets.QWizardPage):
         format_box = QtWidgets.QGroupBox("File Format")
         layout_format = QtWidgets.QVBoxLayout()
         layout_format.addWidget(self.radio_agilent)
+        layout_format.addWidget(self.radio_csv)
         layout_format.addWidget(self.radio_numpy)
         layout_format.addWidget(self.radio_perkinelmer)
         layout_format.addWidget(self.radio_text)
@@ -145,6 +157,7 @@ class FormatPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
         self.registerField("agilent", self.radio_agilent)
+        self.registerField("csv", self.radio_csv)
         self.registerField("perkinelmer", self.radio_perkinelmer)
         self.registerField("numpy", self.radio_numpy)
         self.registerField("text", self.radio_text)
@@ -154,16 +167,10 @@ class FormatPage(QtWidgets.QWizardPage):
         if self.page_id_dict is None:  # pragma: no cover
             return super().nextId()
 
-        if self.field("agilent"):
-            return self.page_id_dict["agilent"]
-        if self.field("perkinelmer"):
-            return self.page_id_dict["perkinelmer"]
-        elif self.field("numpy"):  # pragma: no cover
-            return self.page_id_dict["numpy"]
-        elif self.field("text"):
-            return self.page_id_dict["text"]
-        elif self.field("thermo"):
-            return self.page_id_dict["thermo"]
+        for field, page_id in self.page_id_dict.items():
+            if self.field(field):
+                return page_id
+
         return 0  # pragma: no cover
 
 
@@ -237,6 +244,8 @@ class ConfigPage(QtWidgets.QWizardPage):
     def initializePage(self) -> None:
         if self.field("agilent"):
             data, params = self.readAgilent(Path(self.field("agilent.path")))
+        elif self.field("csv"):
+            data, params = self.readCsv(Path(self.field("csv.path")))
         elif self.field("perkinelmer"):
             data, params = self.readPerkinElmer(Path(self.field("perkinelmer.path")))
         elif self.field("text"):
@@ -299,6 +308,41 @@ class ConfigPage(QtWidgets.QWizardPage):
             use_acq_for_names=self.field("agilent.useAcqNames"),
             full=True,
         )
+        return data, params
+
+    def readCsv(self, path: Path) -> Tuple[np.ndarray, dict]:
+        delimiter = self.field("csv.delimiter")
+        if delimiter == "Tab":
+            delimiter = "\t"
+        elif delimiter == "Space":
+            delimiter = " "
+
+        option = io.csv.GenericOption(
+            kw_genfromtxt={
+                "delimiter": delimiter,
+                "skip_header": self.field("csv.skipHeader"),
+                "skip_footer": self.field("csv.skipFooter"),
+            },
+            regex=self.field("csv.regex"),
+        )
+        sorting = self.field("csv.sorting")
+        if sorting == "Numerical":
+            option.sortkey = lambda p: int("".join(filter(str.isdigit, p.stem)))
+        elif sorting == "Timestamp":
+            regex = re.sub(r"%\w", r"\d+", self.field("csv.sortKey"))
+            retime = re.compile(regex)
+
+            def sortTimestamp(path: Path) -> float:
+                match = retime.search(path.name)
+                if match is None:
+                    return -1
+                return time.mktime(
+                    time.strptime(match.group(0), self.field("csv.sortKey"))
+                )
+
+            option.sortkey = sortTimestamp
+
+        data, params = io.csv.load(path, option=option, full=True)
         return data, params
 
     def readPerkinElmer(self, path: Path) -> Tuple[np.ndarray, dict]:
