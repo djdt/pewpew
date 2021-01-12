@@ -31,7 +31,7 @@ setup(
         # "Documentation": "https://djdt.github.io/pewlib",
         "Source": "https://gtihub.com/djdt/pewpew",
     },
-    packages=find_packages("pewpew"),
+    packages=find_packages(include=["pewpew", "pewpew.*"]),
     install_requires=[
         "numpy!=1.19.4",
         "pewlib>=0.6.5",
