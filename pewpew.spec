@@ -15,7 +15,6 @@ a = Analysis(
     hiddenimports=[],
     hookspath=None,
     runtime_hooks=None,
-    excludes=["FixTk", "tcl", "tk", "_tkinter", "tkinter", "Tkinter"],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
