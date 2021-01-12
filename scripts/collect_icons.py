@@ -22,7 +22,7 @@ def write_qrc(qrc: Path, icons: Path, reroot: Path, icon_names: List[str]):
         fp.write("<qresource>\n")
 
         theme = list(icons.glob("**/index.theme"))[0]
-        fp.write(f'\t<file alias="{theme.name}">{theme}</file>\n')
+        fp.write(f'\t<file alias="{theme.relative_to(reroot)}">{theme}</file>\n')
 
         for path in sorted(icons.glob("**/*.svg")):
             if path.stem in icon_names or path.name == "index.theme":
