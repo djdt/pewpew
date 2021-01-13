@@ -11,6 +11,7 @@ from pewlib.srr import SRRLaser, SRRConfig
 from pewlib.config import Config
 
 from pewpew.actions import qAction, qToolButton
+from pewpew.events import DragDropRedirectFilter
 
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
@@ -345,7 +346,7 @@ class LaserWidget(_ViewWidget):
         self.view_button.addAction(self.action_zoom_in)
         self.view_button.addAction(self.action_zoom_out)
 
-        self.graphics.installEventFilter(self)
+        self.graphics.viewport().installEventFilter(DragDropRedirectFilter(self))
         self.combo_isotope.installEventFilter(self)
         self.selection_button.installEventFilter(self)
         self.view_button.installEventFilter(self)
