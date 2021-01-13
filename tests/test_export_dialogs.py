@@ -87,7 +87,7 @@ def test_export_dialog(qtbot: QtBot):
         dlg.lineedit_directory.setText(tempdir)
         dlg.lineedit_filename.setText("temp.vti")
         dlg.accept()
-        assert Path(tempdir, "temp_A1.vti").exists()
+        assert Path(tempdir, "temp.vti").exists()
 
     dlg.close()
 
