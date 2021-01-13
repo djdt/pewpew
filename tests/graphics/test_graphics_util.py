@@ -7,6 +7,7 @@ import numpy as np
 def test_polygonf_contains_points():
     X, Y = np.mgrid[:3, :3]
     a = np.stack((X.flat, Y.flat), axis=1)
+    a = a.astype(np.float64)
 
     p = QtGui.QPolygonF()
     p.append(QtCore.QPointF(0.5, 0.5))
