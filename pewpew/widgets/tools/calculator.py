@@ -254,7 +254,7 @@ class CalculatorTool(ToolWidget):
 
         self.graphics.drawImage(data, rect, self.lineedit_name.text())
 
-        self.graphics.label.text = self.lineedit_name.text()
+        self.graphics.label.setText(self.lineedit_name.text())
 
         self.graphics.setOverlayItemVisibility()
         self.graphics.updateForeground()

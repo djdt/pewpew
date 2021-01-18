@@ -189,7 +189,7 @@ class StandardsTool(ToolWidget):
 
         self.graphics.drawImage(data, rect, self.combo_isotope.currentText())
 
-        self.graphics.label.text = self.combo_isotope.currentText()
+        self.graphics.label.setText(self.combo_isotope.currentText())
 
         self.graphics.setOverlayItemVisibility()
         self.graphics.updateForeground()

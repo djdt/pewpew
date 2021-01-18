@@ -364,7 +364,7 @@ class DriftTool(ToolWidget):
         self.graphics.drawImage(data, rect, isotope)
         if self.graphics.guide is None:
             self.graphics.drawGuides()
-        self.graphics.label.text = isotope
+        self.graphics.label.setText(isotope)
 
         self.graphics.setOverlayItemVisibility()
         self.graphics.updateForeground()

@@ -222,7 +222,7 @@ class LaserGraphicsView(OverlayView):
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
         # Update overlay items
-        self.label.text = name
+        self.label.setText(name)
         self.colorbar.unit = unit
 
         # Set overlay items visibility
