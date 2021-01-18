@@ -236,6 +236,10 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
             calibration.gradient,
             calibration.intercept,
         )
+        text = f"{calibration.gradient:.4f} × x + {calibration.intercept:.4f}"
+        if calibration.rsq is not None:
+            text += f"\nr² = {calibration.rsq:.4f}"
+        self.chart.setText(text)
 
 
 class ColorRangeDialog(ApplyDialog):
