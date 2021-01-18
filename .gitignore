@@ -1,6 +1,9 @@
 .ccls-cache
+.eggs
 .mypy_cache
 __pycache__
-venv/
 build/
 dist/
+docs/_build/
+pewpew.egg-info/
+venv/
