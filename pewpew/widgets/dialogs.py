@@ -146,12 +146,19 @@ class CalibrationDialog(ApplyDialog):
     def copy(self) -> None:
         name = self.combo_isotope.currentText()
         self.updateCalibration(name)
-        mime = QtCore.QMimeData()
-        mime.setText(
-            f"gradient\t{self.config.spotsize}\n"
-            f"intercept\t{self.config.speed}\n"
-            f"unit\t{self.config.scantime}\n"
+
+        text = (
+            f"gradient\t{self.calibrations[name].gradient}\n"
+            f"intercept\t{self.calibrations[name].intercept}\n"
+            f"unit\t{self.calibrations[name].unit}\n"
         )
+        if self.calibrations[name].points.size > 0:
+            x = '\t'.join(self.calibrations[name].x)
+            y = '\t'.join(self.calibrations[name].y)
+            text += f"points\nx\t{x}\ny\t{y}\n"
+
+        mime = QtCore.QMimeData()
+        mime.setText()
         with io.BytesIO() as fp:
             np.save(fp, {k: v.to_array() for k, v in self.calibrations.items()})
             mime.setData("application/x-pew2calibration", fp.getvalue())
