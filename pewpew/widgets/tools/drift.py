@@ -112,7 +112,7 @@ class DriftGuideRectItem(ResizeableRectItem):
         if view is None:
             return None
         dist = (
-            view.mapToScene(QtCore.QRect(0, 0, self.selection_dist, 1))
+            view.mapToScene(QtCore.QRect(0, 0, 10, 1))
             .boundingRect()
             .width()
         )
