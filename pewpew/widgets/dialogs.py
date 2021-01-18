@@ -90,6 +90,14 @@ class CalibrationDialog(ApplyDialog):
         self.setWindowTitle("Calibration")
         self.calibrations = copy.deepcopy(calibrations)
 
+        self.action_copy = qAction(
+            "edit-paste",
+            "Copy to Clipboard",
+            "Copy the current configuration to the system clipboard.",
+            self.copy,
+        )
+        self.button_copy = qToolButton(action=self.action_copy)
+
         # LIne edits
         self.lineedit_gradient = QtWidgets.QLineEdit()
         self.lineedit_gradient.setValidator(DecimalValidatorNoZero(-1e10, 1e10, 4))
@@ -125,11 +133,29 @@ class CalibrationDialog(ApplyDialog):
         layout_form.addRow("Intercept:", self.lineedit_intercept)
         layout_form.addRow("Unit:", self.lineedit_unit)
 
+        layout_options = QtWidgets.QHBoxLayout()
+        layout_options.addWidget(self.check_all, 1)
+        layout_options.addWidget(self.button_copy, 0, QtCore.Qt.AlignRight)
+
         self.layout_main.addLayout(layout_form)
         self.layout_main.addLayout(layout_isotopes)
-        self.layout_main.addWidget(self.check_all)
+        self.layout_main.addLayout(layout_options)
 
         self.updateLineEdits()
+
+    def copy(self) -> None:
+        name = self.combo_isotope.currentText()
+        self.updateCalibration(name)
+        mime = QtCore.QMimeData()
+        mime.setText(
+            f"gradient\t{self.config.spotsize}\n"
+            f"intercept\t{self.config.speed}\n"
+            f"unit\t{self.config.scantime}\n"
+        )
+        with io.BytesIO() as fp:
+            np.save(fp, {k: v.to_array() for k, v in self.calibrations.items()})
+            mime.setData("application/x-pew2calibration", fp.getvalue())
+        QtWidgets.QApplication.clipboard().setMimeData(mime)
 
     def updateLineEdits(self) -> None:
         name = self.combo_isotope.currentText()
