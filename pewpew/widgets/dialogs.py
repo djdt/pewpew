@@ -1,4 +1,5 @@
 import copy
+import io
 import numpy as np
 
 from PySide2 import QtCore, QtWidgets
@@ -9,7 +10,7 @@ from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
 from pewlib.srr import SRRConfig
 
-from pewpew.actions import qToolButton
+from pewpew.actions import qAction, qToolButton
 from pewpew.lib import kmeans
 from pewpew.validators import (
     DecimalValidator,
@@ -462,6 +463,14 @@ class ConfigDialog(ApplyDialog):
         self.setWindowTitle("Configuration")
         self.config = copy.copy(config)
 
+        self.action_copy = qAction(
+            "edit-paste",
+            "Copy to Clipboard",
+            "Copy the current configuration to the system clipboard.",
+            self.copy,
+        )
+        self.button_copy = qToolButton(action=self.action_copy)
+
         # Line edits
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setText(str(self.config.spotsize))
@@ -496,8 +505,12 @@ class ConfigDialog(ApplyDialog):
             layout_form.addRow("Warmup (s):", self.lineedit_warmup)
             layout_form.addRow("Subpixel width:", self.spinbox_offsets)
 
+        layout_options = QtWidgets.QHBoxLayout()
+        layout_options.addWidget(self.check_all, 1)
+        layout_options.addWidget(self.button_copy, 0, QtCore.Qt.AlignRight)
+
         self.layout_main.addLayout(layout_form)
-        self.layout_main.addWidget(self.check_all)
+        self.layout_main.addLayout(layout_options)
 
     def updateConfig(self) -> None:
         self.config.spotsize = float(self.lineedit_spotsize.text())
@@ -513,6 +526,19 @@ class ConfigDialog(ApplyDialog):
             self.configApplyAll.emit(self.config)
         else:
             self.configSelected.emit(self.config)
+
+    def copy(self) -> None:
+        self.updateConfig()
+        mime = QtCore.QMimeData()
+        mime.setText(
+            f"spotsize\t{self.config.spotsize}\n"
+            f"speed\t{self.config.speed}\n"
+            f"scantime\t{self.config.scantime}\n"
+        )
+        with io.BytesIO() as fp:
+            np.save(fp, self.config.to_array())
+            mime.setData("application/x-pew2config", fp.getvalue())
+        QtWidgets.QApplication.clipboard().setMimeData(mime)
 
     def isComplete(self) -> bool:
         if not self.lineedit_spotsize.hasAcceptableInput():

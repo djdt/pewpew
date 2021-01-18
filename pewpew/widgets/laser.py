@@ -1,4 +1,5 @@
 import copy
+from io import BytesIO
 import numpy as np
 from pathlib import Path
 import logging
@@ -638,6 +639,13 @@ class LaserWidget(_ViewWidget):
         if event.matches(QtGui.QKeySequence.Cancel):
             self.graphics.endSelection()
             self.graphics.endWidget()
+        elif event.matches(QtGui.QKeySequence.Paste):
+            mime = QtWidgets.QApplication.clipboard().mimeData()
+            if mime.hasFormat("application/x-pew2config"):
+                with BytesIO(mime.data("application/x-pew2config")) as fp:
+                    array = np.load(fp)
+                self.laser.config = Config.from_array(array)
+                self.refresh()
         super().keyPressEvent(event)
 
     def showEvent(self, event: QtGui.QShowEvent) -> None:
