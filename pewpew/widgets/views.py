@@ -354,7 +354,7 @@ class ViewTabBar(QtWidgets.QTabBar):
 
         mime_data = QtCore.QMimeData()
         mime_data.setData(
-            "application/x-pewpewtabbar", QtCore.QByteArray().number(index)
+            "application/x-pew2tabbar", QtCore.QByteArray().number(index)
         )
 
         drag = QtGui.QDrag(self)
@@ -366,12 +366,12 @@ class ViewTabBar(QtWidgets.QTabBar):
         drag.exec_(QtCore.Qt.MoveAction)
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:  # pragma: no cover
-        if event.mimeData().hasFormat("application/x-pewpewtabbar"):
+        if event.mimeData().hasFormat("application/x-pew2tabbar"):
             event.acceptProposedAction()
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:  # pragma: no cover
         dest = self.tabAt(event.pos())
-        src, ok = event.mimeData().data("application/x-pewpewtabbar").toInt()
+        src, ok = event.mimeData().data("application/x-pew2tabbar").toInt()
         if ok and event.source() == self:
             self.moveTab(src, dest)
         elif ok and isinstance(event.source(), ViewTabBar):
