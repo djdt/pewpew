@@ -168,7 +168,8 @@ class LaserGraphicsView(OverlayView):
         table = colortable.get_table(self.options.colortable)
 
         data = np.clip(self.data, vmin, vmax)
-        data = (data - vmin) / (vmax - vmin)
+        if vmin != vmax:  # Avoid div 0
+            data = (data - vmin) / (vmax - vmin)
 
         image = array_to_image(data)
         image.setColorTable(table)
