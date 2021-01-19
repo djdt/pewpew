@@ -1,5 +1,5 @@
 import copy
-import io
+from io import BytesIO
 import numpy as np
 
 from PySide2 import QtCore, QtWidgets
@@ -148,19 +148,20 @@ class CalibrationDialog(ApplyDialog):
         self.updateCalibration(name)
 
         text = (
+            f"{name}\n"
             f"gradient\t{self.calibrations[name].gradient}\n"
             f"intercept\t{self.calibrations[name].intercept}\n"
             f"unit\t{self.calibrations[name].unit}\n"
         )
         if self.calibrations[name].points.size > 0:
-            x = '\t'.join(self.calibrations[name].x)
-            y = '\t'.join(self.calibrations[name].y)
+            x = '\t'.join(str(x) for x in self.calibrations[name].x)
+            y = '\t'.join(str(y) for y in self.calibrations[name].y)
             text += f"points\nx\t{x}\ny\t{y}\n"
 
         mime = QtCore.QMimeData()
-        mime.setText()
-        with io.BytesIO() as fp:
-            np.save(fp, {k: v.to_array() for k, v in self.calibrations.items()})
+        mime.setText(text)
+        with BytesIO() as fp:
+            np.savez(fp, **{k: v.to_array() for k, v in self.calibrations.items()})
             mime.setData("application/x-pew2calibration", fp.getvalue())
         QtWidgets.QApplication.clipboard().setMimeData(mime)
 
@@ -577,7 +578,7 @@ class ConfigDialog(ApplyDialog):
 
         mime = QtCore.QMimeData()
         mime.setText(text)
-        with io.BytesIO() as fp:
+        with BytesIO() as fp:
             np.save(fp, self.config.to_array())
             mime.setData("application/x-pew2config", fp.getvalue())
         QtWidgets.QApplication.clipboard().setMimeData(mime)

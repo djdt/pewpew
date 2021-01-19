@@ -9,6 +9,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from pewlib import io
 from pewlib.laser import Laser
 from pewlib.srr import SRRLaser, SRRConfig
+from pewlib.calibration import Calibration
 from pewlib.config import Config
 
 from pewpew.actions import qAction, qToolButton
@@ -22,7 +23,7 @@ from pewpew.threads import ImportThread
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.views import View, ViewSpace, _ViewWidget
 
-from typing import List, Set, Union
+from typing import Dict, List, Set, Union
 
 
 logger = logging.getLogger(__name__)
@@ -63,7 +64,7 @@ class LaserViewSpace(ViewSpace):
         for view in self.views:
             view.setCurrentIsotope(isotope)
 
-    def applyCalibration(self, calibration: dict) -> None:
+    def applyCalibration(self, calibration: Dict[str, Calibration]) -> None:
         for view in self.views:
             view.applyCalibration(calibration)
 
@@ -133,7 +134,7 @@ class LaserView(View):
 
         thread.start()
 
-    def applyCalibration(self, calibration: dict) -> None:
+    def applyCalibration(self, calibration: Dict[str, Calibration]) -> None:
         for widget in self.widgets():
             if isinstance(widget, LaserWidget):
                 widget.applyCalibration(calibration)
@@ -501,7 +502,7 @@ class LaserWidget(_ViewWidget):
         self.refresh()
 
     # Callbacks
-    def applyCalibration(self, calibrations: dict) -> None:
+    def applyCalibration(self, calibrations: Dict[str, Calibration]) -> None:
         modified = False
         for isotope in calibrations:
             if isotope in self.laser.calibration:
@@ -670,8 +671,16 @@ class LaserWidget(_ViewWidget):
             if mime.hasFormat("application/x-pew2config"):
                 with BytesIO(mime.data("application/x-pew2config")) as fp:
                     array = np.load(fp)
-                self.laser.config = Config.from_array(array)
-                self.refresh()
+                if self.is_srr:
+                    config = SRRConfig.from_array(array)
+                else:
+                    config = Config.from_array(array)
+                self.applyConfig(config)
+            elif mime.hasFormat("application/x-pew2calibration"):
+                with BytesIO(mime.data("application/x-pew2calibration")) as fp:
+                    npy = np.load(fp)
+                    calibrations = {k: Calibration.from_array(npy[k]) for k in npy}
+                self.applyCalibration(calibrations)
         super().keyPressEvent(event)
 
     def showEvent(self, event: QtGui.QShowEvent) -> None:
