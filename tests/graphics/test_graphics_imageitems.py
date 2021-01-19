@@ -92,7 +92,7 @@ def test_ruler_widget_item(qtbot: QtBot):
 
     assert item.line.length() == np.sqrt(50 ** 2 + 50 ** 2)
 
-    # Draw eveything
+    # Draw everything
     window.show()
     qtbot.waitForWindowShown(window)
 
@@ -124,7 +124,8 @@ def test_image_slice_item(qtbot: QtBot):
     assert np.all(item.sliced == array[:, 0])
 
     item.actionCopyToClipboard()
+    item.shape()  # For redraw
 
-    # Draw eveything
+    # Draw everything
     window.show()
     qtbot.waitForWindowShown(window)
