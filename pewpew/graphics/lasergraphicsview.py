@@ -168,7 +168,8 @@ class LaserGraphicsView(OverlayView):
         table = colortable.get_table(self.options.colortable)
 
         data = np.clip(self.data, vmin, vmax)
-        data = (data - vmin) / (vmax - vmin)
+        if vmin != vmax:  # Avoid div 0
+            data = (data - vmin) / (vmax - vmin)
 
         image = array_to_image(data)
         image.setColorTable(table)
@@ -222,7 +223,7 @@ class LaserGraphicsView(OverlayView):
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
         # Update overlay items
-        self.label.text = name
+        self.label.setText(name)
         self.colorbar.unit = unit
 
         # Set overlay items visibility

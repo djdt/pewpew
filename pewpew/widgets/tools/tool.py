@@ -103,6 +103,9 @@ class ToolWidget(_ViewWidget):
         return True
 
     def onFirstShow(self) -> None:
+        if self.graphics is None:
+            return
+
         rect = self.widget.graphics.mapToScene(
             self.widget.graphics.viewport().rect()
         ).boundingRect()

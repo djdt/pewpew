@@ -114,9 +114,12 @@ class LaserView(View):
 
     # Callbacks
     def openDocument(self, paths: List[Path]) -> None:
+        paths = [Path(path) for path in paths]  # Ensure Path
+
         progress = QtWidgets.QProgressDialog(
             "Importing...", "Cancel", 0, 0, parent=self
         )
+        progress.setWindowTitle("Importing...")
         progress.setMinimumDuration(2000)
         thread = ImportThread(paths, config=self.viewspace.config, parent=self)
 
@@ -188,6 +191,7 @@ class LaserWidget(_ViewWidget):
 
         self.graphics = LaserGraphicsView(options, parent=self)
         self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
+        self.graphics.label.editRequested.connect(self.labelEditDialog)
         self.graphics.setMouseTracking(True)
 
         self.combo_layers = QtWidgets.QComboBox()
@@ -394,6 +398,25 @@ class LaserWidget(_ViewWidget):
         self.modified = True
 
     # Other
+    def labelEditDialog(self, name: str) -> QtWidgets.QInputDialog:
+        dlg = QtWidgets.QInputDialog(self)
+        dlg.setWindowTitle("Edit Name")
+        dlg.setInputMode(QtWidgets.QInputDialog.TextInput)
+        dlg.setTextValue(name)
+        dlg.setLabelText("Rename:")
+        dlg.textValueSelected.connect(
+            lambda s: self.renameIsotope(self.current_isotope, s)
+        )
+        dlg.open()
+        return dlg
+
+    def renameIsotope(self, old: str, new: str) -> None:
+        self.laser.rename({old: new})
+        self.modified = True
+        self.populateIsotopes()
+        self.current_isotope = new
+        self.refresh()
+
     def laserFilePath(self, ext: str = ".npz") -> Path:
         return self.laser.path.parent.joinpath(self.laser.name + ext)
 
@@ -426,6 +449,8 @@ class LaserWidget(_ViewWidget):
         self.populateIsotopes()
         current = rename[current]
         self.current_isotope = current
+
+        self.modified = True
 
     # Transformations
     def cropToSelection(self) -> None:

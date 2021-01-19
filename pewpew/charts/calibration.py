@@ -32,6 +32,7 @@ class CalibrationChart(BaseChart):
         self.label_series.setBrush(QtGui.QBrush(QtCore.Qt.black, QtCore.Qt.NoBrush))
         self.label_series.setPointLabelsFormat("(@xPoint, @yPoint)")
         self.label_series.setPointLabelsColor(light_theme["text"])
+        self.label_series.setVisible(False)
 
         self.chart().addSeries(self.label_series)
         self.label_series.attachAxis(self.xaxis)
@@ -56,8 +57,17 @@ class CalibrationChart(BaseChart):
 
         self.series.hovered.connect(self.showPointPosition)
 
+        self.label = QtWidgets.QGraphicsTextItem()
+        self.label.setPlainText("hats")
+        self.label.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
+        self.chart().scene().addItem(self.label)
+        self.chart().plotAreaChanged.connect(self.moveLabel)
+
+    def moveLabel(self, rect: QtCore.QRectF) -> None:
+        self.label.setPos(rect.topLeft())
+
     def setPoints(self, points: np.ndarray) -> None:
-        if not (points.ndim == 2 and points.shape[1] == 2):
+        if not (points.ndim == 2 and points.shape[1] == 2):  # pragma: no cover
             raise ValueError("points must have shape (n, 2).")
 
         xmin, xmax = np.amin(points[:, 0]), np.amax(points[:, 0])
@@ -79,6 +89,9 @@ class CalibrationChart(BaseChart):
                 QtCore.QPointF(x1, gradient * x1 + intercept),
             ]
         )
+
+    def setText(self, text: str) -> None:
+        self.label.setPlainText(text)
 
     def showPointPosition(self, point: QtCore.QPointF, state: bool):
         self.label_series.setVisible(state)

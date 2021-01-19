@@ -181,7 +181,7 @@ class FilteringTool(ToolWidget):
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
         self.graphics.drawImage(data, rect, isotope)
-        self.graphics.label.text = isotope
+        self.graphics.label.setText(isotope)
 
         self.graphics.setOverlayItemVisibility()
         self.graphics.updateForeground()

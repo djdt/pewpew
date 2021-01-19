@@ -39,19 +39,18 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
 
     def pixelSize(self) -> QtCore.QSizeF:
         return QtCore.QSizeF(
-            self.rect.width() / self.image.width(),
-            self.rect.height() / self.image.height(),
+            self.rect.width() / self.width(),
+            self.rect.height() / self.height(),
         )
 
     def boundingRect(self) -> QtCore.QRectF:
         return self.rect
 
     def mapToData(self, pos: QtCore.QPointF) -> QtCore.QPoint:
-        px = self.rect.width() / self.image.width()
-        py = self.rect.height() / self.image.height()
+        pixel = self.pixelSize()
 
         pos -= self.rect.topLeft()
-        return QtCore.QPoint(pos.x() / px, pos.y() / py)
+        return QtCore.QPoint(pos.x() / pixel.width(), pos.y() / pixel.height())
 
     def paint(
         self,
@@ -120,7 +119,7 @@ class RulerWidgetItem(ImageWidgetItem):
         self.line = QtCore.QLineF()
 
     def imageChanged(self, image: ScaledImageItem, data: np.ndarray) -> None:
-        pass
+        pass  # pragma: no cover
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if event.buttons() & QtCore.Qt.LeftButton:
@@ -192,7 +191,7 @@ class RulerWidgetItem(ImageWidgetItem):
                 .boundingRect()
                 .width()
             )
-            width = fm.width(self.text)
+            width = fm.boundingRect(self.text).width()
 
             if width < length * 0.9:
                 painter.save()

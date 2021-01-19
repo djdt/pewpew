@@ -41,7 +41,11 @@ class HistogramChart(BaseChart):
         self.series.attachAxis(self.yaxis)
 
     def setHistogram(
-        self, data: np.ndarray, bins: Union[int, str] = "auto", max_bins: int = 128
+        self,
+        data: np.ndarray,
+        bins: Union[int, str] = "auto",
+        min_bins: int = 16,
+        max_bins: int = 128,
     ) -> None:
         vmin, vmax = np.percentile(data, 5), np.percentile(data, 95)
 
@@ -52,8 +56,8 @@ class HistogramChart(BaseChart):
         bin_edges = np.histogram_bin_edges(data, bins=bins, range=(vmin, vmax))
         if bin_edges.size > max_bins:
             bin_edges = np.histogram_bin_edges(data, bins=max_bins, range=(vmin, vmax))
-        elif bin_edges.size < 16:
-            bin_edges = np.histogram_bin_edges(data, bins=10, range=(vmin, vmax))
+        elif bin_edges.size < min_bins:
+            bin_edges = np.histogram_bin_edges(data, bins=min_bins, range=(vmin, vmax))
 
         hist, edges = np.histogram(data, bins=bin_edges)
         barset.append(list(hist))

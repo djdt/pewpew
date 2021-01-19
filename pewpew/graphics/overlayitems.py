@@ -11,7 +11,8 @@ import numpy as np
 from typing import Tuple
 
 
-class LabelOverlay(QtWidgets.QGraphicsItem):
+class LabelOverlay(QtWidgets.QGraphicsObject):
+    editRequested = QtCore.Signal(str)
     """Draws the label with an outline for increased visibility."""
 
     def __init__(
@@ -32,12 +33,10 @@ class LabelOverlay(QtWidgets.QGraphicsItem):
         self.font = font
         self.color = color
 
-    @property
     def text(self) -> str:
         return self._text
 
-    @text.setter
-    def text(self, text: str) -> None:
+    def setText(self, text: str) -> None:
         self._text = text
         self.prepareGeometryChange()
 
@@ -54,10 +53,14 @@ class LabelOverlay(QtWidgets.QGraphicsItem):
 
         fm = QtGui.QFontMetrics(self.font, painter.device())
         path = QtGui.QPainterPath()
-        path.addText(0, fm.ascent(), self.font, self._text)
+        path.addText(0, fm.ascent(), self.font, self.text())
 
         painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
         painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
+
+    def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        self.editRequested.emit(self.text())
+        super().mouseDoubleClickEvent(event)
 
 
 class ColorBarOverlay(QtWidgets.QGraphicsItem):

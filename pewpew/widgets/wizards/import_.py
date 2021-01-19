@@ -327,7 +327,7 @@ class ConfigPage(QtWidgets.QWizardPage):
         )
         sorting = self.field("csv.sorting")
         if sorting == "Numerical":
-            option.sortkey = lambda p: int("".join(filter(str.isdigit, p.stem)))
+            option.sortkey = lambda p: int("".join(filter(str.isdigit, p.stem)) or -1)
         elif sorting == "Timestamp":
             regex = re.sub(r"%\w", r"\d+", self.field("csv.sortKey"))
             retime = re.compile(regex)
