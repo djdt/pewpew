@@ -161,7 +161,11 @@ class OverlayView(QtWidgets.QGraphicsView):
         self.viewScaleChanged.connect(self.updateForeground)
 
     def copyToClipboard(self) -> None:
-        QtWidgets.QApplication.clipboard().setPixmap(self.grab(self.viewport().rect()))
+        pixmap = QtGui.QPixmap(self.viewport().size())
+        painter = QtGui.QPainter(pixmap)
+        self.render(painter)
+        painter.end()
+        QtWidgets.QApplication.clipboard().setPixmap(pixmap)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
         if "zoom" in self.interaction_flags and event.button() == QtCore.Qt.LeftButton:
