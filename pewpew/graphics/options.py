@@ -10,7 +10,7 @@ class GraphicsOptions(object):
         "grey": "Simple black to white gradient.",
         "magma": "Perceptually uniform colormap.",
         "inferno": "Perceptually uniform colormap.",
-        # "PewPew": "Custom colormap based on colorbrewers Spectral.",
+        "pew2": "Custom colormap based on ColorBrewer's Spectral.",
         "turbo": "Google's improved version of rainbow colormap jet.",
         "viridis": "Perceptually uniform colormap.",
     }
@@ -23,7 +23,7 @@ class GraphicsOptions(object):
             "colorbar": True,
         }
 
-        self.colortable = "viridis"
+        self.colortable = "pew2"
         self._colorranges: Dict[str, Tuple[Union[float, str], Union[float, str]]] = {}
         self.colorrange_default = (0.0, "99%")
 
