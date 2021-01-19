@@ -437,6 +437,10 @@ class LaserWidget(_ViewWidget):
         if status_bar is None:  # pragma: no cover
             return
 
+        if self.viewspace.options.units == "index":  # convert to indices
+            p = self.graphics.mapToData(QtCore.QPointF(x, y))
+            x, y = p.x(), p.y()
+
         if v is None:
             status_bar.clearMessage()
         elif np.isfinite(v):
@@ -668,7 +672,7 @@ class LaserWidget(_ViewWidget):
             self.graphics.endWidget()
         elif event.matches(QtGui.QKeySequence.Paste):
             mime = QtWidgets.QApplication.clipboard().mimeData()
-            if mime.hasFormat("application/x-pew2config"):
+            if mime.hasFormat("arplication/x-pew2config"):
                 with BytesIO(mime.data("application/x-pew2config")) as fp:
                     array = np.load(fp)
                 if self.is_srr:

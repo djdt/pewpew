@@ -41,15 +41,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.createMenus()
         self.statusBar().showMessage(f"Welcome to pew² version {__version__}.")
         self.button_status_um = QtWidgets.QRadioButton("μ")
-        self.button_status_row = QtWidgets.QRadioButton("r")
-        self.button_status_s = QtWidgets.QRadioButton("s")
+        self.button_status_index = QtWidgets.QRadioButton("i")
+        # self.button_status_s = QtWidgets.QRadioButton("s")
         self.button_status_um.setChecked(True)
         self.button_status_um.toggled.connect(self.buttonStatusUnit)
-        self.button_status_row.toggled.connect(self.buttonStatusUnit)
-        self.button_status_s.toggled.connect(self.buttonStatusUnit)
+        self.button_status_index.toggled.connect(self.buttonStatusUnit)
+        # self.button_status_s.toggled.connect(self.buttonStatusUnit)
         self.statusBar().addPermanentWidget(self.button_status_um)
-        self.statusBar().addPermanentWidget(self.button_status_row)
-        self.statusBar().addPermanentWidget(self.button_status_s)
+        self.statusBar().addPermanentWidget(self.button_status_index)
+        # self.statusBar().addPermanentWidget(self.button_status_s)
 
         self.updateActionAvailablity()
 
@@ -478,10 +478,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def buttonStatusUnit(self, toggled: bool) -> None:
         if self.button_status_um.isChecked():
             self.viewspace.options.units = "μm"
-        elif self.button_status_row.isChecked():
-            self.viewspace.options.units = "row"
-        else:  # seconds
-            self.viewspace.options.units = "second"
+        elif self.button_status_index.isChecked():
+            self.viewspace.options.units = "index"
 
     def refresh(self) -> None:
         self.viewspace.refresh()
