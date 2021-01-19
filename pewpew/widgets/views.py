@@ -1,6 +1,6 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewpew.actions import qToolButton
+from pewpew.actions import qAction, qToolButton
 
 from typing import List
 
@@ -18,18 +18,21 @@ class ViewSpace(QtWidgets.QSplitter):
         self.active_view: "View" = None
         self.views: List[View] = []
 
-        self.action_split_horz = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("view-split-left-right"), "Split &Vertical"
+        self.action_split_horz = qAction(
+            "view-split-left-right",
+            "Split &Vertical",
+            "Split the viewspace vertically.",
+            self.splitActiveHorizontal,
         )
-        self.action_split_horz.triggered.connect(self.splitActiveHorizontal)
-        self.action_split_vert = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("view-split-top-bottom"), "Split &Horizontal"
+        self.action_split_vert = qAction(
+            "view-split-top-bottom",
+            "Split &Horizontal",
+            "Split the viewspace horizontally.",
+            self.splitActiveVertical,
         )
-        self.action_split_vert.triggered.connect(self.splitActiveVertical)
-        self.action_close_view = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("view-close"), "Close View"
+        self.action_close_view = qAction(
+            "view-close", "Close View", "Closes the current view.", self.closeActiveView
         )
-        self.action_close_view.triggered.connect(self.closeActiveView)
         # self.action_close_others = QtWidgets.QAction(
         #     QtGui.QIcon.fromTheme("view-right-close"), "Close Other Views"
         # )
@@ -309,7 +312,28 @@ class ViewTabBar(QtWidgets.QTabBar):
         self.setAcceptDrops(True)
         self.setMouseTracking(True)
 
-        self.tabBarDoubleClicked.connect(self.tabRenameDialog)
+        self.action_close_all = qAction(
+            "view-close",
+            "Close All Tabs",
+            "Closes all tabs open in this view.",
+            self.actionCloseAll,
+        )
+        self.action_close_others = qAction(
+            "view-right-close",
+            "Close Other Tabs",
+            "Close all tabs but this one.",
+            self.actionCloseOthers,
+        )
+
+    def actionCloseAll(self) -> None:
+        for i in range(self.count()):
+            self.tabCloseRequested.emit(0)
+
+    def actionCloseOthers(self) -> None:
+        index = self.action_close_others.data()
+        self.moveTab(index, 0)
+        for i in range(1, self.count()):
+            self.tabCloseRequested.emit(1)
 
     def setTabText(self, index: int, text: str) -> None:
         if text != "" and text != self.tabText(index):
@@ -353,9 +377,7 @@ class ViewTabBar(QtWidgets.QTabBar):
         self.render(pixmap, QtCore.QPoint(), QtGui.QRegion(rect))
 
         mime_data = QtCore.QMimeData()
-        mime_data.setData(
-            "application/x-pew2tabbar", QtCore.QByteArray().number(index)
-        )
+        mime_data.setData("application/x-pew2tabbar", QtCore.QByteArray().number(index))
 
         drag = QtGui.QDrag(self)
         drag.setMimeData(mime_data)
@@ -364,6 +386,22 @@ class ViewTabBar(QtWidgets.QTabBar):
             QtGui.QCursor(QtCore.Qt.DragMoveCursor).pixmap(), QtCore.Qt.MoveAction
         )
         drag.exec_(QtCore.Qt.MoveAction)
+
+    def mouseDoubleClickEvent(self, event: QtGui.QContextMenuEvent) -> None:
+        if event.button() == QtCore.Qt.LeftButton:
+            index = self.tabAt(event.pos())
+            self.tabRenameDialog(index)
+        else:
+            super().mouseDoubleClickEvent(event)
+
+    def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+        index = self.tabAt(event.pos())
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(self.action_close_all)
+        if index != -1:
+            self.action_close_others.setData(index)
+            menu.addAction(self.action_close_others)
+        menu.popup(event.globalPos())
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:  # pragma: no cover
         if event.mimeData().hasFormat("application/x-pew2tabbar"):
