@@ -117,6 +117,7 @@ class LaserView(View):
         progress = QtWidgets.QProgressDialog(
             "Importing...", "Cancel", 0, 0, parent=self
         )
+        progress.setWindowTitle("Importing...")
         progress.setMinimumDuration(2000)
         thread = ImportThread(paths, config=self.viewspace.config, parent=self)
 
