@@ -119,7 +119,7 @@ class RulerWidgetItem(ImageWidgetItem):
         self.line = QtCore.QLineF()
 
     def imageChanged(self, image: ScaledImageItem, data: np.ndarray) -> None:
-        pass
+        pass  # pragma: no cover
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if event.buttons() & QtCore.Qt.LeftButton:
@@ -191,7 +191,7 @@ class RulerWidgetItem(ImageWidgetItem):
                 .boundingRect()
                 .width()
             )
-            width = fm.width(self.text)
+            width = fm.boundingRect(self.text).width()
 
             if width < length * 0.9:
                 painter.save()
