@@ -23,11 +23,13 @@ class BaseChart(QtCharts.QChartView):
         axis.setMinorGridLineVisible(True)
         axis.setTitleBrush(QtGui.QBrush(self.theme["title"]))
         axis.setGridLinePen(QtGui.QPen(self.theme["grid"], 1.0))
+        axis.setMinorGridLinePen(QtGui.QPen(self.theme["grid"], 0.5))
         axis.setLinePen(QtGui.QPen(self.theme["axis"], 1.0))
         axis.setLabelsColor(self.theme["text"])
+        axis.setShadesColor(self.theme["title"])
+
         if isinstance(axis, QtCharts.QValueAxis):
             axis.setTickCount(6)
-        # axis.setShadesColor(colors[self.mode]["title"])
         self.chart().addAxis(axis, alignment)
 
     def contextMenuEvent(self, event: QtCore.QEvent) -> None:
@@ -43,10 +45,10 @@ class BaseChart(QtCharts.QChartView):
         action_reset_zoom.setStatusTip("Reset the chart to the orignal view.")
         action_reset_zoom.triggered.connect(self.chart().zoomReset)
 
-        context_menu = QtWidgets.QMenu(self.parent())
-        context_menu.addAction(action_copy_image)
-        context_menu.addAction(action_reset_zoom)
-        context_menu.popup(event.globalPos())
+        menu = QtWidgets.QMenu(self.parent())
+        menu.addAction(action_copy_image)
+        menu.addAction(action_reset_zoom)
+        menu.popup(event.globalPos())
 
     def copyToClipboard(self) -> None:
         QtWidgets.QApplication.clipboard().setPixmap(self.grab(self.viewport().rect()))

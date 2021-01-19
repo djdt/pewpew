@@ -32,6 +32,7 @@ class CalibrationChart(BaseChart):
         self.label_series.setBrush(QtGui.QBrush(QtCore.Qt.black, QtCore.Qt.NoBrush))
         self.label_series.setPointLabelsFormat("(@xPoint, @yPoint)")
         self.label_series.setPointLabelsColor(light_theme["text"])
+        self.label_series.setVisible(False)
 
         self.chart().addSeries(self.label_series)
         self.label_series.attachAxis(self.xaxis)
@@ -66,7 +67,7 @@ class CalibrationChart(BaseChart):
         self.label.setPos(rect.topLeft())
 
     def setPoints(self, points: np.ndarray) -> None:
-        if not (points.ndim == 2 and points.shape[1] == 2):
+        if not (points.ndim == 2 and points.shape[1] == 2):  # pragma: no cover
             raise ValueError("points must have shape (n, 2).")
 
         xmin, xmax = np.amin(points[:, 0]), np.amax(points[:, 0])
