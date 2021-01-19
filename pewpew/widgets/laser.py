@@ -114,6 +114,8 @@ class LaserView(View):
 
     # Callbacks
     def openDocument(self, paths: List[Path]) -> None:
+        paths = [Path(path) for path in paths]  # Ensure Path
+
         progress = QtWidgets.QProgressDialog(
             "Importing...", "Cancel", 0, 0, parent=self
         )
