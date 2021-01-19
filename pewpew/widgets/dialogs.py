@@ -559,12 +559,17 @@ class ConfigDialog(ApplyDialog):
 
     def copy(self) -> None:
         self.updateConfig()
-        mime = QtCore.QMimeData()
-        mime.setText(
+        text = (
             f"spotsize\t{self.config.spotsize}\n"
             f"speed\t{self.config.speed}\n"
             f"scantime\t{self.config.scantime}\n"
         )
+        if isinstance(self.config, SRRConfig):
+            text += f"warmup\t{self.config.warmup}\nsubpixel offsets\t"
+            text += "\t".join(str(o) for o in self.config.subpixel_offsets)
+
+        mime = QtCore.QMimeData()
+        mime.setText(text)
         with io.BytesIO() as fp:
             np.save(fp, self.config.to_array())
             mime.setData("application/x-pew2config", fp.getvalue())
