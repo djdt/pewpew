@@ -6,11 +6,12 @@ from typing import Dict, Tuple, Union
 
 class GraphicsOptions(object):
     colortables = {
+        "balance": "Blue to red diverging colormap from cmocean.",
         "cividis": "Perceptually uniform colormap.",
+        "curl": "Green to red diverging colormap from cmocean.",
         "grey": "Simple black to white gradient.",
         "magma": "Perceptually uniform colormap.",
         "inferno": "Perceptually uniform colormap.",
-        "pew2": "Custom colormap based on ColorBrewer's Spectral.",
         "turbo": "Google's improved version of rainbow colormap jet.",
         "viridis": "Perceptually uniform colormap.",
     }
@@ -23,7 +24,7 @@ class GraphicsOptions(object):
             "colorbar": True,
         }
 
-        self.colortable = "pew2"
+        self.colortable = "viridis"
         self._colorranges: Dict[str, Tuple[Union[float, str], Union[float, str]]] = {}
         self.colorrange_default = (0.0, "99%")
 
