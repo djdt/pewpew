@@ -160,6 +160,7 @@ class ExportOptions(QtWidgets.QWidget):
 
 class _ExportDialogBase(QtWidgets.QDialog):
     invalid_chars = '<>:"/\\|?*'
+    invalid_map = str.maketrans(invalid_chars, "_" * len(invalid_chars))
 
     def __init__(self, options: List[OptionsBox], parent: QtWidgets.QWidget = None):
         super().__init__(parent)
@@ -305,7 +306,7 @@ class ExportDialog(_ExportDialogBase):
             .resolve()
         )
         self.lineedit_directory.setText(str(path.parent))
-        self.lineedit_filename.setText(str(path.name).replace(self.invalid_chars, "_"))
+        self.lineedit_filename.setText(str(path.name).translate(self.invalid_map))
         self.typeChanged(0)
 
     def allowCalibrate(self) -> bool:
@@ -352,7 +353,7 @@ class ExportDialog(_ExportDialogBase):
 
     def getPathForIsotope(self, path: Path, isotope: str) -> Path:
         return path.with_name(
-            path.stem + "_" + isotope.replace(self.invalid_chars, "_") + path.suffix
+            path.stem + "_" + isotope.translate(self.invalid_map) + path.suffix
         )
 
     def getPathForLayer(self, path: Path, layer: int) -> Path:
