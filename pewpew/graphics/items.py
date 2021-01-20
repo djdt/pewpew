@@ -56,6 +56,8 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
             edge += "left"
         elif abs(self.rect().right() - pos.x()) < dist:
             edge += "right"
+        if edge == "":
+            return None
         return edge
 
     def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
@@ -68,13 +70,18 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         super().hoverMoveEvent(event)
 
     def hoverLeaveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        self.setCursor(QtCore.Qt.ArrowCursor)
+        if self.isSelected():
+            self.setCursor(QtCore.Qt.ArrowCursor)
         super().hoverLeaveEvent(event)
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if self.isSelected():
             self.selected_edge = self.edgeAt(event.pos())
         super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        self.selected_edge = None
+        super().mouseReleaseEvent(event)
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         pos = self.itemChange(QtWidgets.QGraphicsItem.ItemPositionChange, event.pos())
