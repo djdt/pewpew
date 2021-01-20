@@ -133,13 +133,13 @@ class CalibrationDialog(ApplyDialog):
         layout_form.addRow("Intercept:", self.lineedit_intercept)
         layout_form.addRow("Unit:", self.lineedit_unit)
 
-        layout_options = QtWidgets.QHBoxLayout()
-        layout_options.addWidget(self.check_all, 1)
-        layout_options.addWidget(self.button_copy, 0, QtCore.Qt.AlignRight)
+        layout_horz = QtWidgets.QHBoxLayout()
+        layout_horz.addLayout(layout_form, 1)
+        layout_horz.addWidget(self.button_copy, 0, QtCore.Qt.AlignTop)
 
-        self.layout_main.addLayout(layout_form)
+        self.layout_main.addLayout(layout_horz)
+        self.layout_main.addWidget(self.check_all)
         self.layout_main.addLayout(layout_isotopes)
-        self.layout_main.addLayout(layout_options)
 
         self.updateLineEdits()
 
@@ -543,12 +543,12 @@ class ConfigDialog(ApplyDialog):
             layout_form.addRow("Warmup (s):", self.lineedit_warmup)
             layout_form.addRow("Subpixel width:", self.spinbox_offsets)
 
-        layout_options = QtWidgets.QHBoxLayout()
-        layout_options.addWidget(self.check_all, 1)
-        layout_options.addWidget(self.button_copy, 0, QtCore.Qt.AlignRight)
+        layout_horz = QtWidgets.QHBoxLayout()
+        layout_horz.addLayout(layout_form, 1)
+        layout_horz.addWidget(self.button_copy, 0, QtCore.Qt.AlignTop)
 
-        self.layout_main.addLayout(layout_form)
-        self.layout_main.addLayout(layout_options)
+        self.layout_main.addLayout(layout_horz)
+        self.layout_main.addWidget(self.check_all)
 
     def updateConfig(self) -> None:
         self.config.spotsize = float(self.lineedit_spotsize.text())
