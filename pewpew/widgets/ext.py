@@ -3,6 +3,45 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from typing import List, Tuple
 
 
+class CollapsableWidget(QtWidgets.QWidget):
+    def __init__(self, title: str, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+        self.button = QtWidgets.QToolButton()
+        self.button.setArrowType(QtCore.Qt.RightArrow)
+        self.button.setAutoRaise(True)
+        self.button.setCheckable(True)
+        self.button.setChecked(False)
+        self.button.setText(title)
+        self.button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+
+        self.line = QtWidgets.QFrame()
+        self.line.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.line.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum
+        )
+
+        self.area = QtWidgets.QWidget()
+        self.area.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed
+        )
+        self.area.setMinimumHeight(0)
+        self.area.setMaximumHeight(0)
+        self.area.setVisible(False)
+
+        self.button.toggled.connect(self.area.setVisible)
+        # self.arra
+
+        layout_line = QtWidgets.QHBoxLayout()
+        layout_line.addWidget(self.button, 0, QtCore.Qt.AlignLeft)
+        layout_line.addWidget(self.line, 1)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addLayout(layout_line, 0)
+        layout.addWidget(self.area, 1)
+        self.setLayout(layout)
+
+
 class MultipleDirDialog(QtWidgets.QFileDialog):
     def __init__(self, parent: QtWidgets.QWidget, title: str, directory: str):
         super().__init__(parent, title, directory)

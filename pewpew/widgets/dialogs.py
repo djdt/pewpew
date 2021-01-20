@@ -24,6 +24,8 @@ from pewpew.charts.histogram import HistogramChart
 
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 
+from pewpew.widgets.ext import CollapsableWidget
+
 from typing import Dict, List, Tuple, Union
 
 
@@ -123,12 +125,13 @@ class CalibrationDialog(ApplyDialog):
         self.button_plot.setEnabled(self.calibrations[current_isotope].points.size > 0)
         self.button_plot.pressed.connect(self.showCurve)
 
-        self.button_points = QtWidgets.QPushButton("Points")
-        self.button_points.pressed.connect(self.editPoints)
+        self.points = CollapsableWidget("Points")
+        # self.button_points = QtWidgets.QPushButton("Points")
+        # self.button_points.pressed.connect(self.editPoints)
 
         layout_isotopes = QtWidgets.QHBoxLayout()
         layout_isotopes.addWidget(self.button_plot, 0, QtCore.Qt.AlignLeft)
-        layout_isotopes.addWidget(self.button_points, 0, QtCore.Qt.AlignLeft)
+        # layout_isotopes.addWidget(self.button_points, 0, QtCore.Qt.AlignLeft)
         layout_isotopes.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
 
         # Form layout for line edits
@@ -142,6 +145,7 @@ class CalibrationDialog(ApplyDialog):
         layout_horz.addWidget(self.button_copy, 0, QtCore.Qt.AlignTop)
 
         self.layout_main.addLayout(layout_horz)
+        self.layout_main.addWidget(self.points)
         self.layout_main.addWidget(self.check_all)
         self.layout_main.addLayout(layout_isotopes)
 
