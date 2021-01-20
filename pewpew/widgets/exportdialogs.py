@@ -217,6 +217,8 @@ class _ExportDialogBase(QtWidgets.QDialog):
     def isComplete(self) -> bool:
         if not Path(self.lineedit_directory.text()).exists():
             return False
+        if not self.lineedit_filename.hasAcceptableInput():
+            return False
         filename = self.lineedit_filename.text()
         if filename == "":
             return False
