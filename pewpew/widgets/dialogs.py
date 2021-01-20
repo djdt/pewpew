@@ -125,7 +125,7 @@ class CalibrationDialog(ApplyDialog):
         self.button_plot.setEnabled(self.calibrations[current_isotope].points.size > 0)
         self.button_plot.pressed.connect(self.showCurve)
 
-        self.points = CollapsableWidget("Points")
+        self.points = CollapsableWidget("Points", self)
         # self.button_points = QtWidgets.QPushButton("Points")
         # self.button_points.pressed.connect(self.editPoints)
 
