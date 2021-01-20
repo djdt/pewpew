@@ -123,8 +123,12 @@ class CalibrationDialog(ApplyDialog):
         self.button_plot.setEnabled(self.calibrations[current_isotope].points.size > 0)
         self.button_plot.pressed.connect(self.showCurve)
 
+        self.button_points = QtWidgets.QPushButton("Points")
+        self.button_points.pressed.connect(self.editPoints)
+
         layout_isotopes = QtWidgets.QHBoxLayout()
         layout_isotopes.addWidget(self.button_plot, 0, QtCore.Qt.AlignLeft)
+        layout_isotopes.addWidget(self.button_points, 0, QtCore.Qt.AlignLeft)
         layout_isotopes.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
 
         # Form layout for line edits
@@ -142,6 +146,13 @@ class CalibrationDialog(ApplyDialog):
         self.layout_main.addLayout(layout_isotopes)
 
         self.updateLineEdits()
+
+    def apply(self) -> None:
+        self.updateCalibration(self.combo_isotope.currentText())
+        if self.check_all.isChecked():
+            self.calibrationApplyAll.emit(self.calibrations)
+        else:
+            self.calibrationSelected.emit(self.calibrations)
 
     def copy(self) -> None:
         name = self.combo_isotope.currentText()
@@ -165,6 +176,38 @@ class CalibrationDialog(ApplyDialog):
             mime.setData("application/x-pew2calibration", fp.getvalue())
         QtWidgets.QApplication.clipboard().setMimeData(mime)
 
+    def comboChanged(self) -> None:
+        previous = self.combo_isotope.itemText(self.previous_index)
+        self.updateCalibration(previous)
+        self.updateLineEdits()
+        self.previous_index = self.combo_isotope.currentIndex()
+        self.button_plot.setEnabled(
+            self.calibrations[self.combo_isotope.currentText()].points.size > 0
+        )
+
+    def editPoints(self) -> None:
+        pass
+
+    def showCurve(self) -> None:
+        dlg = CalibrationCurveDialog(
+            self.combo_isotope.currentText(),
+            self.calibrations[self.combo_isotope.currentText()],
+            parent=self,
+        )
+        dlg.show()
+
+    def updateCalibration(self, name: str) -> None:
+        gradient = self.lineedit_gradient.text()
+        intercept = self.lineedit_intercept.text()
+        unit = self.lineedit_unit.text()
+
+        if gradient != "":
+            self.calibrations[name].gradient = float(gradient)
+        if intercept != "":
+            self.calibrations[name].intercept = float(intercept)
+        if unit != "":
+            self.calibrations[name].unit = unit
+
     def updateLineEdits(self) -> None:
         name = self.combo_isotope.currentText()
 
@@ -183,42 +226,6 @@ class CalibrationDialog(ApplyDialog):
             self.lineedit_unit.clear()
         else:
             self.lineedit_unit.setText(str(unit))
-
-    def updateCalibration(self, name: str) -> None:
-        gradient = self.lineedit_gradient.text()
-        intercept = self.lineedit_intercept.text()
-        unit = self.lineedit_unit.text()
-
-        if gradient != "":
-            self.calibrations[name].gradient = float(gradient)
-        if intercept != "":
-            self.calibrations[name].intercept = float(intercept)
-        if unit != "":
-            self.calibrations[name].unit = unit
-
-    def comboChanged(self) -> None:
-        previous = self.combo_isotope.itemText(self.previous_index)
-        self.updateCalibration(previous)
-        self.updateLineEdits()
-        self.previous_index = self.combo_isotope.currentIndex()
-        self.button_plot.setEnabled(
-            self.calibrations[self.combo_isotope.currentText()].points.size > 0
-        )
-
-    def showCurve(self) -> None:
-        dlg = CalibrationCurveDialog(
-            self.combo_isotope.currentText(),
-            self.calibrations[self.combo_isotope.currentText()],
-            parent=self,
-        )
-        dlg.show()
-
-    def apply(self) -> None:
-        self.updateCalibration(self.combo_isotope.currentText())
-        if self.check_all.isChecked():
-            self.calibrationApplyAll.emit(self.calibrations)
-        else:
-            self.calibrationSelected.emit(self.calibrations)
 
 
 class CalibrationCurveDialog(QtWidgets.QDialog):
