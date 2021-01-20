@@ -520,6 +520,12 @@ class CalibrationRectItem(ResizeableRectItem):
             pos.setY(pos.y() - pos.y() % self.py)
             self.changed = True
             return pos
+        elif change == QtWidgets.QGraphicsItem.ItemSelectedChange:
+            if value == 1:
+                self.setZValue(self.zValue() + 100)
+            else:
+                self.setZValue(self.zValue() - 100)
+            return value
         return super().itemChange(change, value)
 
     def selectedSiblings(self) -> List["CalibrationRectItem"]:
