@@ -92,6 +92,32 @@ def test_export_dialog(qtbot: QtBot):
     dlg.close()
 
 
+def test_export_dialog_names(qtbot: QtBot):
+    viewspace = LaserViewSpace()
+    qtbot.addWidget(viewspace)
+    view = viewspace.activeView()
+
+    widget = view.addLaser(
+        Laser(
+            rand_data(["A", "\\B", "C>_<"]),
+            name="inv@|d",
+            path=Path("/"),
+        )
+    )
+    dlg = ExportDialog(widget)
+    dlg.lineedit_directory.setText(str(Path(".")))
+    assert dlg.isComplete()
+    dlg.lineedit_filename.setText("invalid.csv")
+    assert dlg.isComplete()
+    dlg.check_export_all.setChecked(True)
+
+    paths = dlg.generatePaths(widget.laser)
+
+    assert paths[0][0].name == "invalid_A.csv"
+    assert paths[1][0].name == "invalid__B.csv"
+    assert paths[2][0].name == "invalid_C___.csv"
+
+
 def test_export_all_dialog(qtbot: QtBot):
     viewspace = LaserViewSpace()
     qtbot.addWidget(viewspace)
