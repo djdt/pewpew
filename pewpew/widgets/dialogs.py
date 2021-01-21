@@ -125,7 +125,8 @@ class CalibrationDialog(ApplyDialog):
         self.button_plot.setEnabled(self.calibrations[current_isotope].points.size > 0)
         self.button_plot.pressed.connect(self.showCurve)
 
-        self.points = CollapsableWidget("Points", self)
+        self.points_collapse = CollapsableWidget("Points", self)
+        # self.points_table =Bas
         # self.button_points = QtWidgets.QPushButton("Points")
         # self.button_points.pressed.connect(self.editPoints)
 
@@ -145,7 +146,7 @@ class CalibrationDialog(ApplyDialog):
         layout_horz.addWidget(self.button_copy, 0, QtCore.Qt.AlignTop)
 
         self.layout_main.addLayout(layout_horz)
-        self.layout_main.addWidget(self.points)
+        self.layout_main.addWidget(self.points_collapse)
         self.layout_main.addWidget(self.check_all)
         self.layout_main.addLayout(layout_isotopes)
 
@@ -248,7 +249,9 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
 
     def updateChart(self, calibration: Calibration) -> None:
         self.chart.xaxis.setTitleText(calibration.unit)
-        self.chart.setPoints(calibration.points)
+        no_nans = ~np.isnan(calibration.points).any(axis=1)
+        points = calibration.points[no_nans]
+        self.chart.setPoints(points)
         self.chart.setLine(
             0.0,
             np.nanmax(calibration.x) * 1.1,
