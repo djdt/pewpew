@@ -84,20 +84,27 @@ class ApplyDialog(QtWidgets.QDialog):
 
 
 class CalibrationPointsWidget(CollapsableWidget):
+    levelsChanged = QtCore.Signal(int)
+
     def __init__(self, parent: QtWidgets.QWidget):
         super().__init__("Points", parent)
 
         self.model = CalibrationPointsTableModel(
             Calibration(),
             axes=(1, 0),
+            counts_editable=True,
             parent=self,
         )
         self.table = BasicTableView()
         self.table.setItemDelegate(DoubleSignificantFiguresDelegate(4))
+        self.table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+        self.table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.table.setMaximumWidth(800)
+        self.table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.table.setModel(self.model)
-        self.table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        self.table.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-
+        self.table.horizontalHeader().setSectionResizeMode(
+            QtWidgets.QHeaderView.ResizeToContents
+        )
         self.action_add_level = qAction(
             "list-add",
             "Add Level",
@@ -115,8 +122,9 @@ class CalibrationPointsWidget(CollapsableWidget):
         self.button_remove = qToolButton(action=self.action_remove_level)
 
         layout_buttons = QtWidgets.QHBoxLayout()
-        layout_buttons.addWidget(self.button_remove, 0, QtCore.Qt.AlignRight)
-        layout_buttons.addWidget(self.button_add, 0, QtCore.Qt.AlignRight)
+        layout_buttons.addWidget(self.button_remove, 0, QtCore.Qt.AlignLeft)
+        layout_buttons.addWidget(self.button_add, 0, QtCore.Qt.AlignLeft)
+        layout_buttons.addStretch(1)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addLayout(layout_buttons)
@@ -124,10 +132,16 @@ class CalibrationPointsWidget(CollapsableWidget):
         self.area.setLayout(layout)
 
     def addCalibrationLevel(self) -> None:
-        pass
+        columns = self.model.columnCount()
+        self.model.insertColumn(columns)
+        self.button_remove.setEnabled(columns + 1 > 0)
+        self.levelsChanged.emit(columns + 1)
 
     def removeCalibrationLevel(self) -> None:
-        pass
+        columns = self.model.columnCount() - 1
+        self.model.removeColumn(columns)
+        self.button_remove.setEnabled(columns > 0)
+        self.levelsChanged.emit(columns)
 
 
 class CalibrationDialog(ApplyDialog):
@@ -142,6 +156,7 @@ class CalibrationDialog(ApplyDialog):
     ):
         super().__init__(parent)
         self.setWindowTitle("Calibration")
+        self.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.calibrations = copy.deepcopy(calibrations)
 
         self.action_copy = qAction(
@@ -178,13 +193,12 @@ class CalibrationDialog(ApplyDialog):
         self.button_plot.pressed.connect(self.showCurve)
 
         self.points = CalibrationPointsWidget(self)
-
-        # self.button_points = QtWidgets.QPushButton("Points")
-        # self.button_points.pressed.connect(self.editPoints)
+        self.points.levelsChanged.connect(self.updatePlotEnabled)
+        self.points.model.dataChanged.connect(self.updateLineEdits)
+        self.points.model.dataChanged.connect(self.updatePlotEnabled)
 
         layout_isotopes = QtWidgets.QHBoxLayout()
         layout_isotopes.addWidget(self.button_plot, 0, QtCore.Qt.AlignLeft)
-        # layout_isotopes.addWidget(self.button_points, 0, QtCore.Qt.AlignLeft)
         layout_isotopes.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
 
         # Form layout for line edits
@@ -203,6 +217,7 @@ class CalibrationDialog(ApplyDialog):
         self.layout_main.addLayout(layout_isotopes)
 
         self.updateLineEdits()
+        self.updatePoints()
 
     def apply(self) -> None:
         self.updateCalibration(self.combo_isotope.currentText())
@@ -237,13 +252,14 @@ class CalibrationDialog(ApplyDialog):
         previous = self.combo_isotope.itemText(self.previous_index)
         self.updateCalibration(previous)
         self.updateLineEdits()
+        self.updatePoints()
         self.previous_index = self.combo_isotope.currentIndex()
-        self.button_plot.setEnabled(
-            self.calibrations[self.combo_isotope.currentText()].points.size > 0
-        )
+        self.updatePlotEnabled()
 
-    def editPoints(self) -> None:
-        pass
+    def updatePlotEnabled(self) -> None:
+        points = self.calibrations[self.combo_isotope.currentText()].points
+        no_nans = ~np.isnan(points).any(axis=1)
+        self.button_plot.setEnabled(no_nans.size > 2)
 
     def showCurve(self) -> None:
         dlg = CalibrationCurveDialog(
@@ -284,6 +300,8 @@ class CalibrationDialog(ApplyDialog):
         else:
             self.lineedit_unit.setText(str(unit))
 
+    def updatePoints(self) -> None:
+        name = self.combo_isotope.currentText()
         self.points.model.setCalibration(self.calibrations[name])
 
 

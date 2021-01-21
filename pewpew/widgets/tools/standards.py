@@ -250,7 +250,7 @@ class StandardsTool(ToolWidget):
             return
         else:
             isotope = self.combo_isotope.currentText()
-            self.calibration[isotope].update_linreg()
+            # self.calibration[isotope].update_linreg()
             self.results.updateResults(self.calibration[isotope])
             self.button_plot.setEnabled(True)
             if self.dlg is not None:
@@ -343,9 +343,6 @@ class StandardsTable(BasicTableView):
 
     def __init__(self, calibration: Calibration, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        # self.setSizePolicy(
-        #     QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding
-        # )
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         model = CalibrationPointsTableModel(calibration, parent=self)
         self.setModel(model)

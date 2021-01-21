@@ -16,11 +16,11 @@ class CollapsableWidget(QtWidgets.QWidget):
         self.button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
 
         self.line = QtWidgets.QFrame()
+        self.line.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum
+        )
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
-        # self.line.setSizePolicy(
-        #     QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum
-        # )
 
         self.area = QtWidgets.QWidget()
 
@@ -32,6 +32,7 @@ class CollapsableWidget(QtWidgets.QWidget):
         layout_line.setAlignment(QtCore.Qt.AlignTop)
 
         layout = QtWidgets.QVBoxLayout()
+        # layout.setContentsMargins(0, 0, 0, 0)
         layout.addLayout(layout_line, 0)
         layout.addWidget(self.area, 1)
         self.setLayout(layout)
@@ -43,7 +44,6 @@ class CollapsableWidget(QtWidgets.QWidget):
     def collapse(self, down: bool) -> None:
         self.button.setArrowType(QtCore.Qt.DownArrow if down else QtCore.Qt.RightArrow)
         self.area.setVisible(down)
-        self.parent().adjustSize()
 
 
 class MultipleDirDialog(QtWidgets.QFileDialog):
