@@ -9,12 +9,14 @@ from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.items import ResizeableRectItem
 from pewpew.graphics.options import GraphicsOptions
 
-from pewpew.lib.numpyqt import NumpyArrayTableModel
-
 from pewpew.validators import DoubleSignificantFiguresDelegate
 
 from pewpew.widgets.dialogs import CalibrationCurveDialog
-from pewpew.widgets.modelviews import BasicTable, BasicTableView
+from pewpew.models import CalibrationPointsTableModel
+from pewpew.widgets.modelviews import (
+    BasicTable,
+    BasicTableView,
+)
 from pewpew.widgets.laser import LaserWidget
 
 from .tool import ToolWidget
@@ -122,7 +124,7 @@ class StandardsTool(ToolWidget):
         self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
 
         self.table = StandardsTable(Calibration(), self)
-        self.table.setRowCount(6)
+        self.table.model().setRowCount(6)
         self.table.model().dataChanged.connect(self.completeChanged)
         self.table.model().dataChanged.connect(self.updateResults)
 
@@ -138,7 +140,7 @@ class StandardsTool(ToolWidget):
         isotope = self.combo_isotope.currentText()
         self.combo_weighting.setCurrentText(self.calibration[isotope].weighting)
         self.lineedit_units.setText(self.calibration[isotope].unit)
-        self.table.model().setCalibration(self.calibration[isotope])
+        self.table.model().setCalibration(self.calibration[isotope], resize=False)
 
         layout_cal_form = QtWidgets.QFormLayout()
         layout_cal_form.addRow("Levels:", self.spinbox_levels)
@@ -257,7 +259,7 @@ class StandardsTool(ToolWidget):
     # Widget callbacks
     def comboIsotope(self, text: str) -> None:
         isotope = self.combo_isotope.currentText()
-        self.table.model().setCalibration(self.calibration[isotope])
+        self.table.model().setCalibration(self.calibration[isotope], resize=False)
 
         self.lineedit_units.setText(self.calibration[isotope].unit)
 
@@ -292,7 +294,7 @@ class StandardsTool(ToolWidget):
         self.dlg = None
 
     def spinBoxLevels(self) -> None:
-        self.table.setRowCount(self.spinbox_levels.value())
+        self.table.model().setRowCount(self.spinbox_levels.value())
         self.table.updateGeometry()
         self.refresh()
 
@@ -333,83 +335,6 @@ class StandardsResultsTable(BasicTable):
             item.setText(f"{v:.4f}")
 
 
-class CalibrationPointsTableModel(NumpyArrayTableModel):
-    def __init__(self, calibration: Calibration, parent: QtCore.QObject = None):
-        self.calibration = calibration
-        if self.calibration.points.size == 0:
-            array = np.array([[np.nan, np.nan]], dtype=np.float64)
-        else:
-            array = self.calibration.points
-        super().__init__(array, parent)
-
-        self.alphabet_rows = True
-        self.fill_value = np.nan
-
-        self.dataChanged.connect(self.updateCalibration)
-        self.rowsInserted.connect(self.updateCalibration)
-        self.rowsRemoved.connect(self.updateCalibration)
-        self.modelReset.connect(self.updateCalibration)
-
-    def setCalibration(self, calibration: Calibration) -> None:
-        self.beginResetModel()
-        self.calibration = calibration
-        new_array = np.full_like(self.array, np.nan)
-        if self.calibration.points.size > 0:
-            min_row = np.min((new_array.shape[0], self.calibration.points.shape[0]))
-            new_array[:min_row, :2] = self.calibration.points[:min_row]
-        self.array = new_array
-        self.endResetModel()
-
-    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole) -> str:
-        value = super().data(index, role)
-        if value == "nan":
-            return ""
-        return value
-
-    def setData(
-        self, index: QtCore.QModelIndex, value: Any, role: int = QtCore.Qt.EditRole
-    ) -> bool:
-        return super().setData(index, np.nan if value == "" else value, role)
-
-    def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlags:
-        if not index.isValid():
-            return QtCore.Qt.ItemIsEnabled
-
-        flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
-        if index.column() == 0:
-            flags = QtCore.Qt.ItemIsEditable | flags
-        return flags
-
-    def headerData(
-        self, section: int, orientation: QtCore.Qt.Orientation, role: int
-    ) -> str:
-        if role != QtCore.Qt.DisplayRole:
-            return None
-
-        if orientation == QtCore.Qt.Horizontal:
-            return ("Concentration", "Counts")[section]
-        else:
-            if self.alphabet_rows:
-                return "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[section]
-            return str(section)
-
-    def insertColumns(
-        self, position: int, columns: int, parent: QtCore.QModelIndex = None
-    ) -> bool:
-        return False
-
-    def removeColumns(
-        self, position: int, columns: int, parent: QtCore.QModelIndex = None
-    ) -> bool:
-        return False
-
-    def updateCalibration(self, *args) -> None:
-        if np.count_nonzero(np.nan_to_num(self.array[:, 0])) < 2:
-            self.calibration._points = np.empty((0, 2), dtype=np.float64)
-        else:
-            self.calibration.points = self.array[:, :2]
-
-
 class StandardsTable(BasicTableView):
     ROW_LABELS = [c for c in "ABCDEFGHIJKLMNOPQRST"]
     COLUMN_CONC = 0
@@ -422,7 +347,7 @@ class StandardsTable(BasicTableView):
         #     QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.MinimumExpanding
         # )
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        model = CalibrationPointsTableModel(calibration, self)
+        model = CalibrationPointsTableModel(calibration, parent=self)
         self.setModel(model)
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
@@ -453,13 +378,6 @@ class StandardsTable(BasicTableView):
         self.model().dataChanged.emit(
             QtCore.QModelIndex(), QtCore.QModelIndex(), [QtCore.Qt.EditRole]
         )
-
-    def setRowCount(self, rows: int) -> None:
-        current_rows = self.model().rowCount()
-        if current_rows < rows:
-            self.model().insertRows(current_rows, rows - current_rows)
-        elif current_rows > rows:
-            self.model().removeRows(rows, current_rows - rows)
 
 
 class CalibrationRectItem(ResizeableRectItem):

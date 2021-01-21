@@ -1,0 +1,89 @@
+from PySide2 import QtCore
+
+import numpy as np
+
+from pewlib.calibration import Calibration
+
+from pewpew.lib.numpyqt import NumpyArrayTableModel
+
+from typing import Any, Tuple
+
+
+class CalibrationPointsTableModel(NumpyArrayTableModel):
+    def __init__(
+        self,
+        calibration: Calibration,
+        axes: Tuple[int, int] = (0, 1),
+        parent: QtCore.QObject = None,
+    ):
+        self.calibration = calibration
+        if self.calibration.points.size == 0:
+            array = np.array([[np.nan, np.nan]], dtype=np.float64)
+        else:
+            array = self.calibration.points
+        super().__init__(array, axes=axes, fill_value=np.nan, parent=parent)
+
+        self.dataChanged.connect(self.updateCalibration)
+        self.rowsInserted.connect(self.updateCalibration)
+        self.rowsRemoved.connect(self.updateCalibration)
+        self.modelReset.connect(self.updateCalibration)
+
+    def setCalibration(self, calibration: Calibration, resize: bool = True) -> None:
+        self.calibration = calibration
+        shape = self.calibration.points.shape
+        if resize:
+            self.setColumnCount(shape[self.axes[1]])
+            self.setRowCount(shape[self.axes[0]])
+
+        self.beginResetModel()
+
+        new_array = np.full(self.array.shape, np.nan)
+        if self.calibration.points.size > 0:
+            min_row = np.min((new_array.shape[0], shape[0]))
+            new_array[:min_row, :2] = self.calibration.points[:min_row]
+
+        self.array = new_array
+
+        self.endResetModel()
+
+    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole) -> str:
+        value = super().data(index, role)
+        if value == "nan":
+            return ""
+        return value
+
+    def setData(
+        self, index: QtCore.QModelIndex, value: Any, role: int = QtCore.Qt.EditRole
+    ) -> bool:
+        return super().setData(index, np.nan if value == "" else value, role)
+
+    def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlags:
+        if not index.isValid():
+            return QtCore.Qt.ItemIsEnabled
+
+        flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
+        if index.column() == 0:
+            flags = QtCore.Qt.ItemIsEditable | flags
+        return flags
+
+    def headerData(
+        self, section: int, orientation: QtCore.Qt.Orientation, role: int
+    ) -> str:
+        if role != QtCore.Qt.DisplayRole:
+            return None
+
+        labels = [("Concentration", "Counts"), "ABCDEFGHIJKLMNOPQRSTUVWXYZ"]
+
+        if orientation == QtCore.Qt.Horizontal:
+            return labels[self.axes[0]][section]
+        else:
+            return labels[self.axes[1]][section]
+
+    def updateCalibration(self, *args) -> None:
+        if (
+            self.array.size == 0
+            or np.count_nonzero(np.nan_to_num(self.array[:, 0])) < 2
+        ):
+            self.calibration._points = np.empty((0, 2), dtype=np.float64)
+        else:
+            self.calibration.points = self.array[:, :2]

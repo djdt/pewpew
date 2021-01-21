@@ -24,7 +24,12 @@ from pewpew.charts.histogram import HistogramChart
 
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 
+from pewpew.models import CalibrationPointsTableModel
+
 from pewpew.widgets.ext import CollapsableWidget
+from pewpew.widgets.modelviews import BasicTableView
+
+from pewpew.validators import DoubleSignificantFiguresDelegate
 
 from typing import Dict, List, Tuple, Union
 
@@ -78,6 +83,53 @@ class ApplyDialog(QtWidgets.QDialog):
         self.button_box.button(QtWidgets.QDialogButtonBox.Apply).setEnabled(enabled)
 
 
+class CalibrationPointsWidget(CollapsableWidget):
+    def __init__(self, parent: QtWidgets.QWidget):
+        super().__init__("Points", parent)
+
+        self.model = CalibrationPointsTableModel(
+            Calibration(),
+            axes=(1, 0),
+            parent=self,
+        )
+        self.table = BasicTableView()
+        self.table.setItemDelegate(DoubleSignificantFiguresDelegate(4))
+        self.table.setModel(self.model)
+        self.table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.table.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+
+        self.action_add_level = qAction(
+            "list-add",
+            "Add Level",
+            "Adds a level to the calibraiton.",
+            self.addCalibrationLevel,
+        )
+        self.action_remove_level = qAction(
+            "list-remove",
+            "Remove Level",
+            "Removes a level to the calibraiton.",
+            self.removeCalibrationLevel,
+        )
+
+        self.button_add = qToolButton(action=self.action_add_level)
+        self.button_remove = qToolButton(action=self.action_remove_level)
+
+        layout_buttons = QtWidgets.QHBoxLayout()
+        layout_buttons.addWidget(self.button_remove, 0, QtCore.Qt.AlignRight)
+        layout_buttons.addWidget(self.button_add, 0, QtCore.Qt.AlignRight)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addLayout(layout_buttons)
+        layout.addWidget(self.table)
+        self.area.setLayout(layout)
+
+    def addCalibrationLevel(self) -> None:
+        pass
+
+    def removeCalibrationLevel(self) -> None:
+        pass
+
+
 class CalibrationDialog(ApplyDialog):
     calibrationSelected = QtCore.Signal(dict)
     calibrationApplyAll = QtCore.Signal(dict)
@@ -125,8 +177,8 @@ class CalibrationDialog(ApplyDialog):
         self.button_plot.setEnabled(self.calibrations[current_isotope].points.size > 0)
         self.button_plot.pressed.connect(self.showCurve)
 
-        self.points_collapse = CollapsableWidget("Points", self)
-        # self.points_table =Bas
+        self.points = CalibrationPointsWidget(self)
+
         # self.button_points = QtWidgets.QPushButton("Points")
         # self.button_points.pressed.connect(self.editPoints)
 
@@ -146,7 +198,7 @@ class CalibrationDialog(ApplyDialog):
         layout_horz.addWidget(self.button_copy, 0, QtCore.Qt.AlignTop)
 
         self.layout_main.addLayout(layout_horz)
-        self.layout_main.addWidget(self.points_collapse)
+        self.layout_main.addWidget(self.points)
         self.layout_main.addWidget(self.check_all)
         self.layout_main.addLayout(layout_isotopes)
 
@@ -170,8 +222,8 @@ class CalibrationDialog(ApplyDialog):
             f"unit\t{self.calibrations[name].unit}\n"
         )
         if self.calibrations[name].points.size > 0:
-            x = '\t'.join(str(x) for x in self.calibrations[name].x)
-            y = '\t'.join(str(y) for y in self.calibrations[name].y)
+            x = "\t".join(str(x) for x in self.calibrations[name].x)
+            y = "\t".join(str(y) for y in self.calibrations[name].y)
             text += f"points\nx\t{x}\ny\t{y}\n"
 
         mime = QtCore.QMimeData()
@@ -231,6 +283,8 @@ class CalibrationDialog(ApplyDialog):
             self.lineedit_unit.clear()
         else:
             self.lineedit_unit.setText(str(unit))
+
+        self.points.model.setCalibration(self.calibrations[name])
 
 
 class CalibrationCurveDialog(QtWidgets.QDialog):

@@ -18,9 +18,9 @@ class CollapsableWidget(QtWidgets.QWidget):
         self.line = QtWidgets.QFrame()
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
-        self.line.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum
-        )
+        # self.line.setSizePolicy(
+        #     QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum
+        # )
 
         self.area = QtWidgets.QWidget()
 

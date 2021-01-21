@@ -4,7 +4,7 @@ import ctypes
 import numpy as np
 import shiboken2
 
-from typing import Any
+from typing import Any, Tuple
 
 
 def array_to_image(array: np.ndarray) -> QtGui.QImage:
@@ -56,20 +56,26 @@ def array_to_polygonf(array: np.ndarray) -> QtGui.QPolygonF:
 
 
 class NumpyArrayTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, array: np.ndarray, parent: QtCore.QObject = None):
+    def __init__(
+        self,
+        array: np.ndarray,
+        axes: Tuple[int, int] = (0, 1),
+        fill_value: float = 0.0,
+        parent: QtCore.QObject = None,
+    ):
+        assert array.ndim == 2
+
         super().__init__(parent)
+        self.axes = axes
         self.array = array
-        self.fill_value = 0.0
+        self.fill_value = fill_value
 
     # Rows and Columns
     def columnCount(self, parent: QtCore.QModelIndex = None) -> int:
-        if self.array.ndim > 1:
-            return self.array.shape[1]
-        else:
-            return 1
+        return self.array.shape[self.axes[1]]
 
     def rowCount(self, parent: QtCore.QModelIndex = None) -> int:
-        return self.array.shape[0]
+        return self.array.shape[self.axes[0]]
 
     def insertRows(
         self,
@@ -82,7 +88,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
             self.array,
             position,
             np.full((rows, 1), self.fill_value, dtype=self.array.dtype),
-            axis=0,
+            axis=self.axes[0],
         )
         self.endInsertRows()
         return True
@@ -98,7 +104,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
             self.array,
             position,
             np.full((columns, 1), self.fill_value, dtype=self.array.dtype),
-            axis=1,
+            axis=self.axes[1],
         )
         self.endInsertColumns()
         return True
@@ -110,7 +116,9 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         parent: QtCore.QModelIndex = QtCore.QModelIndex(),
     ) -> bool:
         self.beginRemoveRows(parent, position, position + rows - 1)
-        self.array = np.delete(self.array, np.arange(position, position + rows), axis=0)
+        self.array = np.delete(
+            self.array, np.arange(position, position + rows), axis=self.axes[0]
+        )
         self.endRemoveRows()
         return True
 
@@ -122,10 +130,24 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
     ) -> bool:
         self.beginRemoveColumns(parent, position, position + columns - 1)
         self.array = np.delete(
-            self.array, np.arange(position, position + columns), axis=1
+            self.array, np.arange(position, position + columns), axis=self.axes[1]
         )
         self.endRemoveColumns()
         return True
+
+    def setColumnCount(self, columns: int) -> None:
+        current_columns = self.columnCount()
+        if current_columns < columns:
+            self.insertColumns(current_columns, columns - current_columns)
+        elif current_columns > columns:
+            self.removeColumns(columns, current_columns - columns)
+
+    def setRowCount(self, rows: int) -> None:
+        current_rows = self.rowCount()
+        if current_rows < rows:
+            self.insertRows(current_rows, rows - current_rows)
+        elif current_rows > rows:
+            self.removeRows(rows, current_rows - rows)
 
     # Data
     def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole) -> str:
@@ -133,7 +155,8 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
             return None
 
         if role in (QtCore.Qt.DisplayRole, QtCore.Qt.EditRole):
-            value = self.array[index.row(), index.column()]
+            pos = [index.row(), index.column()]
+            value = self.array[pos[self.axes[0]], pos[self.axes[1]]]
             return str(value)
         else:  # pragma: no cover
             return None
@@ -146,7 +169,8 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
 
         if role == QtCore.Qt.EditRole:
             try:
-                self.array[index.row(), index.column()] = value
+                pos = [index.row(), index.column()]
+                self.array[pos[self.axes[0]], pos[self.axes[1]]] = value
                 self.dataChanged.emit(index, index, [role])
                 return True
             except ValueError:
