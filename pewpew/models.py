@@ -14,6 +14,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         self,
         calibration: Calibration,
         axes: Tuple[int, int] = (0, 1),
+        counts_editable: bool = False,
         parent: QtCore.QObject = None,
     ):
         self.calibration = calibration
@@ -21,7 +22,9 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
             array = np.array([[np.nan, np.nan]], dtype=np.float64)
         else:
             array = self.calibration.points
+
         super().__init__(array, axes=axes, fill_value=np.nan, parent=parent)
+        self.counts_editable = counts_editable
 
         self.dataChanged.connect(self.updateCalibration)
         self.rowsInserted.connect(self.updateCalibration)
@@ -61,9 +64,12 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         if not index.isValid():
             return QtCore.Qt.ItemIsEnabled
 
+        pos = (index.row(), index.column())
+
         flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
-        if index.column() == 0:
-            flags = QtCore.Qt.ItemIsEditable | flags
+        if self.counts_editable or pos[self.axes[1]] == 0:
+            flags = flags | QtCore.Qt.ItemIsEditable
+
         return flags
 
     def headerData(
