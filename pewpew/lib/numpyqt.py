@@ -63,6 +63,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         fill_value: float = 0.0,
         parent: QtCore.QObject = None,
     ):
+        array = np.atleast_2d(array)
         assert array.ndim == 2
 
         super().__init__(parent)

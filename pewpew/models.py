@@ -36,6 +36,10 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
     def setCalibration(self, calibration: Calibration, resize: bool = True) -> None:
         self.calibration = calibration
         shape = self.calibration.points.shape
+
+        if shape[1] != 2:
+            raise ValueError("Calibration points must have shape (n, 2).")
+
         if resize:
             self.blockSignals(True)
             self.setColumnCount(shape[self.axes[1]])

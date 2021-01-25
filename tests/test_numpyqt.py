@@ -68,7 +68,7 @@ def test_polygonf_to_array():
 
 
 def test_numpy_array_table_model(qtbot: QtBot):
-    model = NumpyArrayTableModel(np.random.random([5, 3]))
+    model = NumpyArrayTableModel(np.random.random((5, 3)))
     qtbot.addWidget(model)
 
     assert model.columnCount() == 3
@@ -113,7 +113,25 @@ def test_numpy_array_table_model(qtbot: QtBot):
     assert model.headerData(0, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == "0"
 
 
+def test_numpy_array_table_model_flipped(qtbot: QtBot):
+    model = NumpyArrayTableModel(np.random.random((5, 3)), axes=(1, 0))
+    qtbot.addWidget(model)
+
+    assert model.columnCount() == 5
+    assert model.rowCount() == 3
+
+    model.setRowCount(10)
+    model.setColumnCount(10)
+    assert model.rowCount() == 10
+    assert model.columnCount() == 10
+
+    model.setRowCount(2)
+    model.setColumnCount(2)
+    assert model.rowCount() == 2
+    assert model.columnCount() == 2
+
+
 def test_numpy_array_table_model_empty(qtbot: QtBot):
     model = NumpyArrayTableModel(np.random.random(5))
     qtbot.addWidget(model)
-    assert model.columnCount() == 1
+    assert model.rowCount() == 1
