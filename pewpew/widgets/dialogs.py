@@ -259,7 +259,7 @@ class CalibrationDialog(ApplyDialog):
     def updatePlotEnabled(self) -> None:
         points = self.calibrations[self.combo_isotope.currentText()].points
         no_nans = ~np.isnan(points).any(axis=1)
-        self.button_plot.setEnabled(no_nans.size > 2)
+        self.button_plot.setEnabled(no_nans.size >= 2)
 
     def showCurve(self) -> None:
         dlg = CalibrationCurveDialog(
