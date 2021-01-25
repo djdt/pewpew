@@ -35,22 +35,21 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
 
     def setCalibration(self, calibration: Calibration, resize: bool = True) -> None:
         self.calibration = calibration
-        shape = self.calibration.points.shape
 
-        if shape[1] != 2:  # pragma: no cover
+        if calibration.points.shape[1] != 2:  # pragma: no cover
             raise ValueError("Calibration points must have shape (n, 2).")
 
         if resize:
             self.blockSignals(True)
-            self.setColumnCount(shape[self.axes[1]])
-            self.setRowCount(shape[self.axes[0]])
+            self.setColumnCount(calibration.points.shape[self.axes[1]])
+            self.setRowCount(calibration.points.shape[self.axes[0]])
             self.blockSignals(False)
 
         self.beginResetModel()
 
         new_array = np.full(self.array.shape, np.nan)
         if self.calibration.points.size > 0:
-            min_row = np.min((new_array.shape[0], shape[0]))
+            min_row = np.min((new_array.shape[0], calibration.points.shape[0]))
             new_array[:min_row, :2] = self.calibration.points[:min_row]
 
         self.array = new_array
@@ -94,10 +93,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
             return labels[self.axes[1]][section]
 
     def updateCalibration(self, *args) -> None:
-        if (
-            self.array.size == 0
-            or np.count_nonzero(np.nan_to_num(self.array[:, 0])) < 2
-        ):
+        if self.array.size == 0:
             self.calibration._points = np.empty((0, 2), dtype=np.float64)
         else:
             self.calibration.points = self.array[:, :2]

@@ -44,10 +44,8 @@ def test_main_window_actions_empty(qtbot: QtBot):
     assert not window.viewspace.options.items["label"]
     assert not window.viewspace.options.items["scalebar"]
 
-    window.button_status_row.toggle()
-    assert window.viewspace.options.units == "row"
-    window.button_status_s.toggle()
-    assert window.viewspace.options.units == "second"
+    window.button_status_index.toggle()
+    assert window.viewspace.options.units == "index"
     window.button_status_um.toggle()
     assert window.viewspace.options.units == "μm"
 
