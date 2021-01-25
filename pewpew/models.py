@@ -37,7 +37,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         self.calibration = calibration
         shape = self.calibration.points.shape
 
-        if shape[1] != 2:
+        if shape[1] != 2:  # pragma: no cover
             raise ValueError("Calibration points must have shape (n, 2).")
 
         if resize:
@@ -69,7 +69,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         return super().setData(index, np.nan if value == "" else value, role)
 
     def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlags:
-        if not index.isValid():
+        if not index.isValid():  # pragma: no cover
             return QtCore.Qt.ItemIsEnabled
 
         pos = (index.row(), index.column())
@@ -83,7 +83,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
     def headerData(
         self, section: int, orientation: QtCore.Qt.Orientation, role: int
     ) -> str:
-        if role != QtCore.Qt.DisplayRole:
+        if role != QtCore.Qt.DisplayRole:  # pragma: no cover
             return None
 
         labels = [("Concentration", "Counts"), "ABCDEFGHIJKLMNOPQRSTUVWXYZ"]
