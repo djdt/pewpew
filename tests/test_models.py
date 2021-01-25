@@ -1,91 +1,68 @@
 import numpy as np
 from pytestqt.qtbot import QtBot
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from pewlib.calibration import Calibration
 
-from pewpew.lib.numpyqt import NumpyArrayTableModel
-from pewpew.widgets.modelviews import BasicTableView, BasicTable
-
-
-def test_basic_table_view(qtbot: QtBot):
-    view = BasicTableView()
-    qtbot.addWidget(view)
-
-    x = np.random.random((5, 5))
-    model = NumpyArrayTableModel(x)
-    view.setModel(model)
-
-    view.setCurrentIndex(view.indexAt(QtCore.QPoint(0, 0)))
-    assert view.currentIndex().row() == 0
-    view._advance()
-    assert view.currentIndex().row() == 1
-    view.selectionModel().select(
-        view.indexAt(QtCore.QPoint(0, 0)), QtCore.QItemSelectionModel.Select
-    )
-    view._copy()
-    mime_data = QtWidgets.QApplication.clipboard().mimeData()
-    assert mime_data.text() == str(x[0, 0]) + "\n" + str(x[1, 0])
-    view._cut()  # Same as _copy, _delete
-    view._delete()
-    assert not np.isnan(x[0, 0])  # Can't delete out of a numpy array
-    QtWidgets.QApplication.clipboard().setText("2.0")
-    view._paste()
-    assert x[0, 0] == 2.0
-
-    view.contextMenuEvent(
-        QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
-    )
+from pewpew.models import CalibrationPointsTableModel
 
 
-def test_basic_table(qtbot: QtBot):
-    table = BasicTable()
-    qtbot.addWidget(table)
+def test_calibration_points_table_model(qtbot: QtBot):
+    calibration = Calibration()
+    model = CalibrationPointsTableModel(calibration, axes=(0, 1))
+    qtbot.addWidget(model)
 
-    table.setRowCount(2)
-    table.setColumnCount(2)
+    assert model.columnCount() == 2
+    assert model.rowCount() == 1
+    assert np.all(np.isnan(model.array))
 
-    table.setItem(0, 0, QtWidgets.QTableWidgetItem("0"))
-    table.setItem(0, 1, QtWidgets.QTableWidgetItem("0"))
-    table.setItem(1, 0, QtWidgets.QTableWidgetItem("0"))
-    table.setItem(1, 1, QtWidgets.QTableWidgetItem("d"))
+    model.setRowCount(3)
+    assert model.rowCount() == 3
+    assert calibration.points.shape == (0, 2)
 
-    table.setColumnText(0, ["a", "c"])
-    table.setRowText(0, ["a", "b"])
+    model.setData(model.index(0, 0), "0.0")
+    model.setData(model.index(0, 1), "1.0")
+    model.setData(model.index(1, 0), "1.0")
+    model.setData(model.index(1, 1), "2.0")
+    model.setData(model.index(2, 0), "2.0")
+    model.setData(model.index(2, 1), "3.0")
 
-    assert table.columnText(0) == ["a", "c"]
-    assert table.rowText(0) == ["a", "b"]
+    assert calibration.points.shape == (3, 2)
+    assert np.all(calibration.points == [[0.0, 1.0], [1.0, 2.0], [2.0, 3.0]])
+    assert np.isclose(calibration.intercept, 1.0)
+    assert np.isclose(calibration.gradient, 1.0)
 
-    table.setCurrentCell(0, 0)
-    assert table.currentRow() == 0
-    table._advance()
-    assert table.currentRow() == 1
+    model.setCalibration(Calibration.from_points([[0.0, 0.0], [2.0, 4.0]]))
 
-    table.clearSelection()
-    table.setRangeSelected(QtWidgets.QTableWidgetSelectionRange(0, 0, 0, 1), True)
-    table._copy()
-    mime_data = QtWidgets.QApplication.clipboard().mimeData()
-    assert mime_data.text() == "a\tb"
+    assert model.columnCount() == 2
+    assert model.rowCount() == 2
 
-    table.clearSelection()
-    table.setRangeSelected(QtWidgets.QTableWidgetSelectionRange(1, 0, 1, 1), True)
-    table._cut()  # Same as _copy, _delete
-    mime_data = QtWidgets.QApplication.clipboard().mimeData()
-    assert mime_data.text() == "c\td"
-    assert table.item(1, 0).text() == ""
-    assert table.item(1, 1).text() == ""
 
-    table.setRangeSelected(QtWidgets.QTableWidgetSelectionRange(0, 0, 1, 1), True)
-    table._delete()
-    assert table.item(0, 0).text() == ""
-    assert table.item(0, 1).text() == ""
+def test_calibration_points_table_model_flipped(qtbot: QtBot):
+    calibration = Calibration()
+    model = CalibrationPointsTableModel(calibration, axes=(1, 0))
+    qtbot.addWidget(model)
 
-    QtWidgets.QApplication.clipboard().setText("1\t2\n3\t4")
-    table._paste()
-    assert table.item(0, 0).text() == "1"
-    assert table.item(0, 1).text() == "2"
-    assert table.item(1, 0).text() == "3"
-    assert table.item(1, 1).text() == "4"
+    assert model.columnCount() == 1
+    assert model.rowCount() == 2
+    assert np.all(np.isnan(model.array))
 
-    table.contextMenuEvent(
-        QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
-    )
+    model.setColumnCount(3)
+    assert model.columnCount() == 3
+    assert calibration.points.shape == (0, 2)
+
+    model.setData(model.index(0, 0), "0.0")
+    model.setData(model.index(1, 0), "1.0")
+    model.setData(model.index(0, 1), "1.0")
+    model.setData(model.index(1, 1), "2.0")
+    model.setData(model.index(0, 2), "2.0")
+    model.setData(model.index(1, 2), "3.0")
+
+    assert calibration.points.shape == (3, 2)
+    assert np.all(calibration.points == [[0.0, 1.0], [1.0, 2.0], [2.0, 3.0]])
+    assert np.isclose(calibration.intercept, 1.0)
+    assert np.isclose(calibration.gradient, 1.0)
+
+    model.setCalibration(Calibration.from_points([[0.0, 0.0], [2.0, 4.0]]))
+
+    assert model.columnCount() == 2
+    assert model.rowCount() == 2
