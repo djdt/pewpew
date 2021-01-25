@@ -1,8 +1,10 @@
 import numpy as np
 
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewlib.process import filters
+
+from pewpew.actions import qAction, qToolButton
 
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.widgets.ext import ValidColorLineEdit
@@ -76,8 +78,18 @@ class FilteringTool(ToolWidget):
         super().__init__(widget, graphics_label="Preview")
 
         self.graphics = LaserGraphicsView(self.viewspace.options, parent=self)
-        # self.graphics.cursorClear.connect(self.widget.clearCursorStatus)
-        # self.graphics.cursorMoved.connect(self.widget.updateCursorStatus)
+        self.graphics.cursorValueChanged.connect(self.widget.updateCursorStatus)
+        self.graphics.setMouseTracking(True)
+
+        self.action_toggle_filter = qAction(
+            "visibility",
+            "Filter Visible",
+            "Toggle visibility of the filtering.",
+            self.toggleFilter,
+        )
+        self.action_toggle_filter.setCheckable(True)
+        self.button_hide_filter = qToolButton(action=self.action_toggle_filter)
+        self.button_hide_filter.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
 
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.activated.connect(self.completeChanged)
@@ -107,6 +119,7 @@ class FilteringTool(ToolWidget):
         layout_controls.addWidget(self.combo_filter)
         for i in range(len(self.label_fparams)):
             layout_controls.addRow(self.label_fparams[i], self.lineedit_fparams[i])
+        layout_controls.addWidget(self.button_hide_filter)
 
         self.box_controls.setLayout(layout_controls)
 
@@ -115,7 +128,12 @@ class FilteringTool(ToolWidget):
     def apply(self) -> None:
         self.modified = True
         name = self.combo_isotope.currentText()
-        self.widget.laser.data[name] = self.graphics.data
+        if self.button_hide_filter.isChecked():
+            self.widget.laser.data[name] = self.previewData(
+                self.widget.laser.data[name]
+            )
+        else:
+            self.widget.laser.data[name] = self.graphics.data
 
         self.initialise()
 
@@ -172,11 +190,12 @@ class FilteringTool(ToolWidget):
 
         isotope = self.combo_isotope.currentText()
 
-        data = self.previewData(
-            self.widget.laser.get(isotope, flat=True, calibrated=False)
-        )
+        data = self.widget.laser.get(isotope, flat=True, calibrated=False)
+        if not self.button_hide_filter.isChecked():
+            data = self.previewData(data)
         if data is None:
             return
+
         x0, x1, y0, y1 = self.widget.laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
@@ -186,3 +205,11 @@ class FilteringTool(ToolWidget):
         self.graphics.setOverlayItemVisibility()
         self.graphics.updateForeground()
         self.graphics.invalidateScene()
+
+    def toggleFilter(self, hide: bool) -> None:
+        if hide:
+            self.button_hide_filter.setIcon(QtGui.QIcon.fromTheme("hint"))
+        else:
+            self.button_hide_filter.setIcon(QtGui.QIcon.fromTheme("visibility"))
+
+        self.refresh()

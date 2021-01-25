@@ -119,8 +119,8 @@ class CalculatorTool(ToolWidget):
         super().__init__(widget, graphics_label="Preview")
 
         self.graphics = LaserGraphicsView(self.viewspace.options, parent=self)
-        # self.graphics.cursorClear.connect(self.widget.clearCursorStatus)
-        # self.graphics.cursorMoved.connect(self.widget.updateCursorStatus)
+        self.graphics.cursorValueChanged.connect(self.widget.updateCursorStatus)
+        self.graphics.setMouseTracking(True)
 
         self.output = QtWidgets.QLineEdit("Result")
         self.output.setEnabled(False)
