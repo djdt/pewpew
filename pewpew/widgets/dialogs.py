@@ -250,11 +250,13 @@ class CalibrationDialog(ApplyDialog):
 
     def comboChanged(self) -> None:
         previous = self.combo_isotope.itemText(self.previous_index)
+
         self.updateCalibration(previous)
         self.updateLineEdits()
         self.updatePoints()
-        self.previous_index = self.combo_isotope.currentIndex()
         self.updatePlotEnabled()
+
+        self.previous_index = self.combo_isotope.currentIndex()
 
     def updatePlotEnabled(self) -> None:
         points = self.calibrations[self.combo_isotope.currentText()].points
@@ -302,7 +304,7 @@ class CalibrationDialog(ApplyDialog):
 
     def updatePoints(self) -> None:
         name = self.combo_isotope.currentText()
-        self.points.model.setCalibration(self.calibrations[name])
+        self.points.model.setCalibration(self.calibrations[name], resize=True)
 
 
 class CalibrationCurveDialog(QtWidgets.QDialog):
