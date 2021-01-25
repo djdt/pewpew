@@ -29,14 +29,18 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         self.dataChanged.connect(self.updateCalibration)
         self.rowsInserted.connect(self.updateCalibration)
         self.rowsRemoved.connect(self.updateCalibration)
+        self.columnsInserted.connect(self.updateCalibration)
+        self.columnsRemoved.connect(self.updateCalibration)
         self.modelReset.connect(self.updateCalibration)
 
     def setCalibration(self, calibration: Calibration, resize: bool = True) -> None:
         self.calibration = calibration
         shape = self.calibration.points.shape
         if resize:
+            self.blockSignals(True)
             self.setColumnCount(shape[self.axes[1]])
             self.setRowCount(shape[self.axes[0]])
+            self.blockSignals(False)
 
         self.beginResetModel()
 
