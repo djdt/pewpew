@@ -72,7 +72,7 @@ def test_calibration_points_table_model_flipped(qtbot: QtBot):
 
     model.setColumnCount(3)
     assert model.columnCount() == 3
-    assert calibration.points.shape == (0, 2)
+    assert calibration.points.shape == (3, 2)
 
     # Add data
     model.setData(model.index(0, 0), "0.0")
