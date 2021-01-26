@@ -26,8 +26,6 @@ def test_standards_tool(qtbot: QtBot):
     tool.lineedit_units.editingFinished.emit()
     tool.combo_weighting.setCurrentIndex(2)
 
-    # Trim
-
     # Table
     tool.spinbox_levels.setValue(5)
 
@@ -35,7 +33,7 @@ def test_standards_tool(qtbot: QtBot):
     assert not tool.button_plot.isEnabled()
     for i in range(0, tool.table.model().rowCount()):
         index = tool.table.model().index(i, 0)
-        tool.table.model().setData(index, 0)
+        tool.table.model().setData(index, "")
     assert not tool.table.isComplete()
     for i in range(0, tool.table.model().rowCount()):
         index = tool.table.model().index(i, 0)
