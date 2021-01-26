@@ -1,8 +1,10 @@
 import numpy as np
 
+from io import BytesIO
+
 from pytestqt.qtbot import QtBot
 
-from PySide2 import QtCore, QtGui
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewlib.config import Config
 from pewlib.calibration import Calibration
@@ -60,6 +62,10 @@ def test_calibration_dialog(qtbot: QtBot):
     assert dialog.calibrations["B"].gradient == 1.0
     assert dialog.calibrations["B"].intercept == 2.0
     assert dialog.calibrations["B"].unit == "ppm"
+
+    # Just run code as can't test clipboard
+    dialog.copyToClipboard()
+    dialog.copyAllToClipboard()
 
     dialog.combo_isotope.setCurrentIndex(0)
     dialog.showCurve()
@@ -181,6 +187,9 @@ def test_laser_config_dialog(qtbot: QtBot):
     assert not dialog.isComplete()
     dialog.lineedit_spotsize.setText("-1")
     assert not dialog.isComplete()
+
+    # Just run code as can't test clipboard
+    dialog.copyToClipboard()
 
     dialog.apply()
     dialog.check_all.setChecked(True)
