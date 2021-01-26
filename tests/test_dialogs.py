@@ -33,7 +33,9 @@ def test_calibration_dialog(qtbot: QtBot):
     dialog.open()
 
     assert dialog.combo_isotope.currentText() == "B"
+    assert dialog.points.model.array.size == 0
     assert not dialog.button_plot.isEnabled()
+    assert not dialog.points.button_remove.isEnabled()
 
     dialog.lineedit_gradient.setText("1")
     dialog.lineedit_intercept.setText("2")
@@ -41,12 +43,25 @@ def test_calibration_dialog(qtbot: QtBot):
 
     dialog.combo_isotope.setCurrentIndex(0)
     assert dialog.combo_isotope.currentText() == "A"
+    assert dialog.points.model.array.size == 4
     assert dialog.button_plot.isEnabled()
 
+    # Points enabled on remove / add
+    dialog.points.removeCalibrationLevel()
+    assert not dialog.button_plot.isEnabled()
+    dialog.points.addCalibrationLevel()
+    assert not dialog.button_plot.isEnabled()
+    dialog.points.model.setData(dialog.points.model.index(0, 1), 1.0)
+    dialog.points.model.setData(dialog.points.model.index(1, 1), 6.0)
+    assert dialog.button_plot.isEnabled()
+    assert np.isclose(dialog.calibrations["A"].gradient, 4.0)
+
+    # Restored on change
     assert dialog.calibrations["B"].gradient == 1.0
     assert dialog.calibrations["B"].intercept == 2.0
     assert dialog.calibrations["B"].unit == "ppm"
 
+    dialog.combo_isotope.setCurrentIndex(0)
     dialog.showCurve()
 
     dialog.apply()

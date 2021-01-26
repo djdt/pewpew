@@ -95,6 +95,10 @@ class CalibrationPointsWidget(CollapsableWidget):
             counts_editable=True,
             parent=self,
         )
+
+        self.levelsChanged.connect(self.updateButtonRemoveEnabled)
+        self.model.modelReset.connect(self.updateButtonRemoveEnabled)
+
         self.table = BasicTableView()
         self.table.setItemDelegate(DoubleSignificantFiguresDelegate(4))
         self.table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
@@ -131,16 +135,18 @@ class CalibrationPointsWidget(CollapsableWidget):
         layout.addWidget(self.table)
         self.area.setLayout(layout)
 
+    def updateButtonRemoveEnabled(self) -> None:
+        columns = self.model.columnCount()
+        self.button_remove.setEnabled(columns > 0)
+
     def addCalibrationLevel(self) -> None:
         columns = self.model.columnCount()
         self.model.insertColumn(columns)
-        self.button_remove.setEnabled(columns + 1 > 0)
         self.levelsChanged.emit(columns + 1)
 
     def removeCalibrationLevel(self) -> None:
         columns = self.model.columnCount() - 1
         self.model.removeColumn(columns)
-        self.button_remove.setEnabled(columns > 0)
         self.levelsChanged.emit(columns)
 
 
@@ -261,7 +267,7 @@ class CalibrationDialog(ApplyDialog):
     def updatePlotEnabled(self) -> None:
         points = self.calibrations[self.combo_isotope.currentText()].points
         no_nans = ~np.isnan(points).any(axis=1)
-        self.button_plot.setEnabled(no_nans.size >= 2)
+        self.button_plot.setEnabled(np.count_nonzero(no_nans) >= 2)
 
     def showCurve(self) -> None:
         dlg = CalibrationCurveDialog(
