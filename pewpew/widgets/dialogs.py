@@ -168,10 +168,17 @@ class CalibrationDialog(ApplyDialog):
         self.action_copy = qAction(
             "edit-paste",
             "Copy to Clipboard",
-            "Copy the current configuration to the system clipboard.",
-            self.copy,
+            "Copy the current calibration to the system clipboard.",
+            self.copyToClipboard,
+        )
+        self.action_copy_all = qAction(
+            "edit-paste",
+            "Copy All to Clipboard",
+            "Copy the all calibrations to the system clipboard.",
+            self.copyAllToClipboard,
         )
         self.button_copy = qToolButton(action=self.action_copy)
+        self.button_copy.addAction(self.action_copy_all)
 
         # LIne edits
         self.lineedit_gradient = QtWidgets.QLineEdit()
@@ -232,7 +239,7 @@ class CalibrationDialog(ApplyDialog):
         else:
             self.calibrationSelected.emit(self.calibrations)
 
-    def copy(self) -> None:
+    def copyToClipboard(self) -> None:
         name = self.combo_isotope.currentText()
         self.updateCalibration(name)
 
@@ -246,6 +253,29 @@ class CalibrationDialog(ApplyDialog):
             x = "\t".join(str(x) for x in self.calibrations[name].x)
             y = "\t".join(str(y) for y in self.calibrations[name].y)
             text += f"points\nx\t{x}\ny\t{y}\n"
+
+        mime = QtCore.QMimeData()
+        mime.setText(text)
+        with BytesIO() as fp:
+            np.savez(fp, name=self.calibrations[name].to_array())
+            mime.setData("application/x-pew2calibration", fp.getvalue())
+        QtWidgets.QApplication.clipboard().setMimeData(mime)
+
+    def copyAllToClipboard(self) -> None:
+        name = self.combo_isotope.currentText()
+        self.updateCalibration(name)
+
+        names = "\t".join(name for name in self.calibrations)
+        gradients = "\t".join(str(c.gradient) for c in self.calibrations.values())
+        intercepts = "\t".join(str(c.intercept) for c in self.calibrations.values())
+        units = "\t".join(c.unit for c in self.calibrations.values())
+
+        text = (
+            f"\t{names}\n"
+            f"gradient\t{gradients}\n"
+            f"intercept\t{intercepts}\n"
+            f"unit\t{units}\n"
+        )
 
         mime = QtCore.QMimeData()
         mime.setText(text)
@@ -599,7 +629,7 @@ class ConfigDialog(ApplyDialog):
             "edit-paste",
             "Copy to Clipboard",
             "Copy the current configuration to the system clipboard.",
-            self.copy,
+            self.copyToClipboard,
         )
         self.button_copy = qToolButton(action=self.action_copy)
 
@@ -659,7 +689,7 @@ class ConfigDialog(ApplyDialog):
         else:
             self.configSelected.emit(self.config)
 
-    def copy(self) -> None:
+    def copyToClipboard(self) -> None:
         self.updateConfig()
         text = (
             f"spotsize\t{self.config.spotsize}\n"
