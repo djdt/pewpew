@@ -6,6 +6,7 @@ from typing import Callable, List
 def qAction(icon: str, label: str, status: str, func: Callable) -> QtWidgets.QAction:
     action = QtWidgets.QAction(QtGui.QIcon.fromTheme(icon), label)
     action.setStatusTip(status)
+    action.setToolTip(status)
     action.triggered.connect(func)
     return action
 
