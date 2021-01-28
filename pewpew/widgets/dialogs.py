@@ -249,6 +249,10 @@ class CalibrationDialog(ApplyDialog):
             f"intercept\t{self.calibrations[name].intercept}\n"
             f"unit\t{self.calibrations[name].unit}\n"
         )
+        if self.calibrations[name].rsq is not None:
+            text += f"rsq\t{self.calibrations[name].rsq}\n"
+        if self.calibrations[name].error is not None:
+            text += f"error\t{self.calibrations[name].error}\n"
         if self.calibrations[name].points.size > 0:
             x = "\t".join(str(x) for x in self.calibrations[name].x)
             y = "\t".join(str(y) for y in self.calibrations[name].y)
@@ -269,12 +273,16 @@ class CalibrationDialog(ApplyDialog):
         gradients = "\t".join(str(c.gradient) for c in self.calibrations.values())
         intercepts = "\t".join(str(c.intercept) for c in self.calibrations.values())
         units = "\t".join(c.unit for c in self.calibrations.values())
+        rsqs = "\t".join(str(c.rsq or "") for c in self.calibrations.values())
+        errs = "\t".join(str(c.error or "") for c in self.calibrations.values())
 
         text = (
             f"\t{names}\n"
             f"gradient\t{gradients}\n"
             f"intercept\t{intercepts}\n"
             f"unit\t{units}\n"
+            f"rsq\t{rsqs}\n"
+            f"error\t{errs}\n"
         )
 
         mime = QtCore.QMimeData()
