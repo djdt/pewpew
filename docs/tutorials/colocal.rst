@@ -1,7 +1,8 @@
 Colocalisation
 ==============
 
-* ** Image Context Menu -> Colocalisation **
+* **Image Context Menu -> Colocalisation**
+* **Selection Context Menu -> Statistics**
 
 Colcalisation can be used to quantify the spatial relationship between two elements.
 The `Colocalisation` dialog provides numerical and graphical representations of colocalisation using the Costes_ method.

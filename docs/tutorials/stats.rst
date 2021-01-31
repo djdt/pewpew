@@ -1,7 +1,8 @@
 Statistics
 ==========
 
-* ** Image Context Menu -> Statistics **
+* **Image Context Menu -> Statistics**
+* **Selection Context Menu -> Statistics**
 
 Basic statistical data is available in the `Statistics` dialog, accessible by right clicking an image.
 If a region is selected (see :ref:`Region Selection`) then the dialog will only process
