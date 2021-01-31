@@ -32,7 +32,7 @@ Example: Compensating Laser Drift
     (`Show drift trim controls.`) to remove the sample area.
 
 2. Select the degree of fit.
-    The red line in the drift preview shows the fitted polynomial.
+    The second line in the drift preview shows the fitted polynomial.
     A degree of 0 will use the raw data.
 
 3. Select normalisation method.
