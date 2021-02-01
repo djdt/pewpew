@@ -1,7 +1,7 @@
 Calibration
 ===========
 
-.. figure:: ../images/tutorial_calibration_example_label.png
+.. figure:: ../images/tutorial_calibration_tool.png
     :align: center
 
     Calibration standards loaded into the `Standards Tool`_.
@@ -57,7 +57,7 @@ Both the `Calibration Dialog`_ and `Standards Tool`_ have a button `Button Plot`
 a window with the current calibration plotted.
 
 .. figure:: ../images/tutorial_calibration_plot.png
-    :width: 240px
+    :width: 400px
     :align: center
 
     Calibration curve, right clicking the plot allows copying the image to the clipboard.

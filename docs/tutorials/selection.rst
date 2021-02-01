@@ -13,7 +13,7 @@ Manual Selection
 ----------------
 
 .. figure:: ../images/tutorial_selection_lasso.png
-    :width: 200px
+    :width: 400px
     :align: center
 
     A series of regions selected using the `Lasso Selector` tool.
@@ -31,7 +31,7 @@ Selection Dialog
 ----------------
 
 .. figure:: ../images/tutorial_selection_otsu.png
-    :width: 200px
+    :width: 400px
     :align: center
 
     Extraction of tissue from background using the `Selection Dialog` and Otsu's method.
