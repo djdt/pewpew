@@ -60,9 +60,7 @@ class ColocalisationChart(BaseChart):
         self.scatter.replace(poly)
 
     def drawLine(self, a: float, b: float) -> None:
-        x, y = (1.0, a + b) if a + b < 1.0 else ((1.0 - b) / a, 1.0)
-
-        self.line.replace([QtCore.QPointF(0.0, b), QtCore.QPointF(1.0, y)])
+        self.line.replace([QtCore.QPointF(b, 0.0), QtCore.QPointF(1.0, a + b)])
 
     def drawThresholds(self, t1: float, t2: float) -> None:
         self.t1.replace([QtCore.QPointF(t1, 0.0), QtCore.QPointF(t1, 1.0)])
