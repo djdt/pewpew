@@ -98,5 +98,4 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         else:
             self.calibration.points = self.array[:, :2]
 
-        print(self.array)
         self.calibration.update_linreg()
