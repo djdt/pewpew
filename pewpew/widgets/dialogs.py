@@ -85,9 +85,31 @@ class ApplyDialog(QtWidgets.QDialog):
 
 class CalibrationPointsWidget(CollapsableWidget):
     levelsChanged = QtCore.Signal(int)
+    weightingChanged = QtCore.Signal(str)
 
     def __init__(self, parent: QtWidgets.QWidget):
         super().__init__("Points", parent)
+
+        self.action_add_level = qAction(
+            "list-add",
+            "Add Level",
+            "Adds a level to the calibraiton.",
+            self.addCalibrationLevel,
+        )
+        self.action_remove_level = qAction(
+            "list-remove",
+            "Remove Level",
+            "Removes a level to the calibraiton.",
+            self.removeCalibrationLevel,
+        )
+
+        self.button_add = qToolButton(action=self.action_add_level)
+        self.button_remove = qToolButton(action=self.action_remove_level)
+
+        self.combo_weighting = QtWidgets.QComboBox()
+        self.combo_weighting.setPrefix("Weighting: ")
+        self.combo_weighting.addItems(Calibration.KNOWN_WEIGHTING)
+        self.combo_weighting.currentTextChanged.connect(self.weightingChanged)
 
         self.model = CalibrationPointsTableModel(
             Calibration(),
@@ -109,21 +131,6 @@ class CalibrationPointsWidget(CollapsableWidget):
         self.table.horizontalHeader().setSectionResizeMode(
             QtWidgets.QHeaderView.ResizeToContents
         )
-        self.action_add_level = qAction(
-            "list-add",
-            "Add Level",
-            "Adds a level to the calibraiton.",
-            self.addCalibrationLevel,
-        )
-        self.action_remove_level = qAction(
-            "list-remove",
-            "Remove Level",
-            "Removes a level to the calibraiton.",
-            self.removeCalibrationLevel,
-        )
-
-        self.button_add = qToolButton(action=self.action_add_level)
-        self.button_remove = qToolButton(action=self.action_remove_level)
 
         layout_buttons = QtWidgets.QHBoxLayout()
         layout_buttons.addWidget(self.button_remove, 0, QtCore.Qt.AlignLeft)
@@ -133,6 +140,7 @@ class CalibrationPointsWidget(CollapsableWidget):
         layout = QtWidgets.QVBoxLayout()
         layout.addLayout(layout_buttons)
         layout.addWidget(self.table)
+        layout.addWidget(self.combo_weighting, 0, QtCore.Qt.AlignRight)
         self.area.setLayout(layout)
 
     def updateButtonRemoveEnabled(self) -> None:

@@ -81,7 +81,7 @@ class StandardsGraphicsView(LaserGraphicsView):
 
 
 class StandardsTool(ToolWidget):
-    WEIGHTINGS = ["Equal", "1/σ²", "x", "1/x", "1/x²"]
+    WEIGHTINGS = ["Equal", "1/σ²", "x", "1/x", "1/x²", "y", "1/y", "1/y²"]
 
     def __init__(self, widget: LaserWidget):
         super().__init__(widget, control_label="Calibration", apply_all=True)
@@ -224,6 +224,8 @@ class StandardsTool(ToolWidget):
         else:
             if wstr == "1/x²":
                 wstr = "1/(x^2)"
+            elif wstr == "1/y²":
+                wstr = "1/(y^2)"
             self.calibration[isotope].weights = wstr
 
     def updateCounts(self) -> None:
