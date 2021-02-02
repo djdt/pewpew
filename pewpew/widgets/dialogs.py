@@ -877,7 +877,6 @@ class SelectionDialog(ApplyDialog):
                 self.spinbox_method.setEnabled(True)
                 self.spinbox_method.setPrefix(var[0])
                 self.spinbox_method.setRange(*var[2])
-                self.spinbox_method.setValue(var[1])
                 self.spinbox_comparison.setEnabled(True)
                 self.spinbox_comparison.setRange(1, self.spinbox_method.value() - 1)
 
