@@ -249,10 +249,10 @@ class StandardsTool(ToolWidget):
         if not self.isComplete():
             self.results.clearResults()
             self.button_plot.setEnabled(False)
-            return
         else:
             isotope = self.combo_isotope.currentText()
-            # self.calibration[isotope].update_linreg()
+
+            self.calibration[isotope].update_linreg()
             self.results.updateResults(self.calibration[isotope])
             self.button_plot.setEnabled(True)
             if self.dlg is not None:
