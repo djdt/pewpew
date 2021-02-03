@@ -108,6 +108,7 @@ class CalibrationPointsWidget(CollapsableWidget):
 
         self.combo_weighting = QtWidgets.QComboBox()
         self.combo_weighting.addItems(Calibration.KNOWN_WEIGHTING)
+        self.combo_weighting.addItem("Custom")
         self.combo_weighting.currentTextChanged.connect(self.weightingChanged)
 
         label_weighting = QtWidgets.QLabel("Weighting:")
@@ -121,6 +122,7 @@ class CalibrationPointsWidget(CollapsableWidget):
 
         self.levelsChanged.connect(self.updateButtonRemoveEnabled)
         self.model.modelReset.connect(self.updateButtonRemoveEnabled)
+        self.combo_weighting.currentTextChanged.connect(self.updateWeighting)
 
         self.table = BasicTableView()
         self.table.setItemDelegate(DoubleSignificantFiguresDelegate(4))
@@ -148,6 +150,11 @@ class CalibrationPointsWidget(CollapsableWidget):
         layout.addWidget(self.table)
         layout.addLayout(layout_weighting)
         self.area.setLayout(layout)
+
+    def updateWeighting(self) -> None:
+        weighting = self.combo_weighting.currentText()
+        self.model.setWeighting(weighting)
+        self.weightingChanged.emit(weighting)
 
     def updateButtonRemoveEnabled(self) -> None:
         columns = self.model.columnCount()
@@ -221,6 +228,7 @@ class CalibrationDialog(ApplyDialog):
 
         self.points = CalibrationPointsWidget(self)
         self.points.levelsChanged.connect(self.updatePlotEnabled)
+        self.points.weightingChanged.connect(self.updateLineEdits)
         self.points.model.dataChanged.connect(self.updateLineEdits)
         self.points.model.dataChanged.connect(self.updatePlotEnabled)
 
