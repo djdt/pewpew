@@ -107,9 +107,10 @@ class CalibrationPointsWidget(CollapsableWidget):
         self.button_remove = qToolButton(action=self.action_remove_level)
 
         self.combo_weighting = QtWidgets.QComboBox()
-        self.combo_weighting.setPrefix("Weighting: ")
         self.combo_weighting.addItems(Calibration.KNOWN_WEIGHTING)
         self.combo_weighting.currentTextChanged.connect(self.weightingChanged)
+
+        label_weighting = QtWidgets.QLabel("Weighting:")
 
         self.model = CalibrationPointsTableModel(
             Calibration(),
@@ -137,10 +138,15 @@ class CalibrationPointsWidget(CollapsableWidget):
         layout_buttons.addWidget(self.button_add, 0, QtCore.Qt.AlignLeft)
         layout_buttons.addStretch(1)
 
+        layout_weighting = QtWidgets.QHBoxLayout()
+        layout_weighting.addStretch(1)
+        layout_weighting.addWidget(label_weighting, 0, QtCore.Qt.AlignRight)
+        layout_weighting.addWidget(self.combo_weighting, 0, QtCore.Qt.AlignRight)
+
         layout = QtWidgets.QVBoxLayout()
         layout.addLayout(layout_buttons)
         layout.addWidget(self.table)
-        layout.addWidget(self.combo_weighting, 0, QtCore.Qt.AlignRight)
+        layout.addLayout(layout_weighting)
         self.area.setLayout(layout)
 
     def updateButtonRemoveEnabled(self) -> None:
