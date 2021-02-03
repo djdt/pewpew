@@ -512,10 +512,6 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.data = data
         self.mask = mask
 
-        # if colors is None:
-        #     colors = [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0)]
-        # self.cmap = LinearSegmentedColormap.from_list("colocal_cmap", colors)
-
         self.chart = ColocalisationChart()
 
         self.combo_name1 = QtWidgets.QComboBox()
@@ -888,9 +884,12 @@ class SelectionDialog(ApplyDialog):
         else:
             self.lineedit_manual.setEnabled(False)
             if var is not None:
-                self.spinbox_method.setEnabled(True)
-                self.spinbox_method.setPrefix(var[0])
                 self.spinbox_method.setRange(*var[2])
+                if not self.spinbox_method.isEnabled():  # First show
+                    self.spinbox_method.setValue(var[1])
+                    self.spinbox_method.setEnabled(True)
+
+                self.spinbox_method.setPrefix(var[0])
                 self.spinbox_comparison.setEnabled(True)
                 self.spinbox_comparison.setRange(1, self.spinbox_method.value() - 1)
 

@@ -45,7 +45,7 @@ def test_calibration_dialog(qtbot: QtBot):
 
     dialog.combo_isotope.setCurrentIndex(0)
     assert dialog.combo_isotope.currentText() == "A"
-    assert dialog.points.model.array.size == 4
+    assert dialog.points.model.array.size == 6
     assert dialog.button_plot.isEnabled()
 
     # Points enabled on remove / add
@@ -57,6 +57,14 @@ def test_calibration_dialog(qtbot: QtBot):
     dialog.points.model.setData(dialog.points.model.index(1, 1), 6.0)
     assert dialog.button_plot.isEnabled()
     assert np.isclose(dialog.calibrations["A"].gradient, 4.0)
+
+    # Points weightings
+    assert dialog.calibrations["A"].weighting == "Equal"
+    assert np.all(dialog.calibrations["A"].weights == 1.0)
+
+    dialog.points.combo_weighting.setCurrentText("y")
+    assert dialog.calibrations["A"].weighting == "y"
+    assert np.all(dialog.calibrations["A"].weights == dialog.calibrations["A"].y)
 
     # Restored on change
     assert dialog.calibrations["B"].gradient == 1.0
