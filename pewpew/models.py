@@ -31,8 +31,8 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         if self.calibration.points.size == 0:
             array = np.full((1, 3), np.nan)
         else:
-            array = np.stack(
-                (self.calibration.points, self.calibration.weights), axis=1
+            array = np.concatenate(
+                (self.calibration.points, self.calibration.weights[:, None]), axis=1
             )
 
         super().__init__(array, axes=axes, fill_value=np.nan, parent=parent)
@@ -116,7 +116,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
             return labels[self.axes[1]][section]
 
     def updateCalibration(self, *args) -> None:
-        if self.array.size == 0:
+        if self.array.size == 0:  # pragma: no cover
             self.calibration._points = np.empty((0, 2), dtype=np.float64)
             self.calibration._weights = np.empty(0, dtype=np.float64)
         else:
