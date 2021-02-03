@@ -348,6 +348,8 @@ class StandardsTable(BasicTableView):
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         model = CalibrationPointsTableModel(calibration, parent=self)
         self.setModel(model)
+
+        self.hideColumn(2)  # Hide weights column
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         self.verticalHeader().setSectionResizeMode(
