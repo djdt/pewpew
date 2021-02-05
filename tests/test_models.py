@@ -14,9 +14,9 @@ def test_calibration_points_table_model(qtbot: QtBot):
     qtbot.addWidget(model)
 
     # Check starting shape
-    assert model.columnCount() == 2
+    assert model.columnCount() == 3
     assert model.rowCount() == 2
-    assert np.all(model.array == [[1.0, 1.0], [2.0, 2.0]])
+    assert np.all(model.array == [[1.0, 1.0, 1.0], [2.0, 2.0, 1.0]])
 
     model.setRowCount(3)
     assert model.rowCount() == 3
@@ -44,7 +44,7 @@ def test_calibration_points_table_model(qtbot: QtBot):
     # Change calibration
     model.setCalibration(Calibration.from_points([[0.0, 0.0], [2.0, 4.0]]))
 
-    assert model.columnCount() == 2
+    assert model.columnCount() == 3
     assert model.rowCount() == 2
 
     # Check header
@@ -52,7 +52,9 @@ def test_calibration_points_table_model(qtbot: QtBot):
         model.headerData(0, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole)
         == "Concentration"
     )
-    assert model.headerData(1, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole) == "Counts"
+    assert (
+        model.headerData(1, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole) == "Response"
+    )
     assert model.headerData(0, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == "A"
 
     assert model.flags(model.index(0, 0)) & QtCore.Qt.ItemIsEditable
@@ -67,7 +69,7 @@ def test_calibration_points_table_model_flipped(qtbot: QtBot):
 
     # Check starting shape
     assert model.columnCount() == 1
-    assert model.rowCount() == 2
+    assert model.rowCount() == 3
     assert np.all(np.isnan(model.array))
 
     model.setColumnCount(3)
@@ -91,15 +93,36 @@ def test_calibration_points_table_model_flipped(qtbot: QtBot):
     model.setCalibration(Calibration.from_points([[0.0, 0.0], [2.0, 4.0]]))
 
     assert model.columnCount() == 2
-    assert model.rowCount() == 2
+    assert model.rowCount() == 3
 
     # Check header
     assert (
         model.headerData(0, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole)
         == "Concentration"
     )
-    assert model.headerData(1, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == "Counts"
+    assert model.headerData(1, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == "Response"
     assert model.headerData(0, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole) == "A"
 
     assert model.flags(model.index(0, 0)) & QtCore.Qt.ItemIsEditable
     assert not model.flags(model.index(1, 0)) & QtCore.Qt.ItemIsEditable
+
+
+def test_calibration_points_table_model_weights(qtbot: QtBot):
+    calibration = Calibration.from_points(
+        [[1.0, 1.0], [2.0, 4.0], [3.0, 5.0]], weights=("test", [0.4, 0.4, 0.2])
+    )
+    model = CalibrationPointsTableModel(calibration, axes=(0, 1), counts_editable=False)
+    qtbot.addWidget(model)
+
+    assert np.all(model.array == [[1.0, 1.0, 0.4], [2.0, 4.0, 0.4], [3.0, 5.0, 0.2]])
+    assert model.flags(model.index(0, 2)) & QtCore.Qt.ItemIsEditable
+    model.setData(model.index(0, 2), "0.6")
+    assert calibration._weights[0] == 0.6
+
+    model.setWeighting("x")
+
+    assert np.all(model.array == [[1.0, 1.0, 1.0], [2.0, 4.0, 2.0], [3.0, 5.0, 3.0]])
+    assert not model.flags(model.index(0, 2)) & QtCore.Qt.ItemIsEditable
+
+    model.setWeighting("test")
+    assert model.flags(model.index(0, 2)) & QtCore.Qt.ItemIsEditable

@@ -3,14 +3,17 @@ Region Selection
 
 Most elemental images have small regions of interest contained within the bulk of the image.
 The selection tools in |pewpew| allow extraction of information from these regions.
-The :ref:`Statistics` and :ref:`Colocalisation` dialogs both limit their calculations to selected regions and
-a new image can be formed from the selection using **Edit -> Crop to Selection**.
+Right clicking a selected region will show a context menu allowing:
+    - A `Statistics Dialog` of the selection.
+    - A `Colocalisation Dialog` of the selection.
+    - Copying the selection as a column of text values.
+    - Cropping the image to the selection.
 
 Manual Selection
 ----------------
 
 .. figure:: ../images/tutorial_selection_lasso.png
-    :width: 200px
+    :width: 400px
     :align: center
 
     A series of regions selected using the `Lasso Selector` tool.
@@ -21,15 +24,14 @@ the `Rectangle Selector` and `Lasso Selector`.
 These tools function similarly to selection tools in other programs,
 with regions selected by clicking and dragging on the image.
 
-Holding **shift** will **add** to the currently selected region while holding **control**
-will **subtract** from it.
+Holding **Shift** will **add** to the currently selected region while holding **Ctrl** will **subtract** from it.
 
 
 Selection Dialog
 ----------------
 
 .. figure:: ../images/tutorial_selection_otsu.png
-    :width: 200px
+    :width: 400px
     :align: center
 
     Extraction of tissue from background using the `Selection Dialog` and Otsu's method.

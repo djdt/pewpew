@@ -190,7 +190,7 @@ class LeftIndex(Left):
 class Parser(object):
     function_token = "[a-z]+[a-zA-Z0-9_]*"
     null_token = "[\\[\\]\\(\\)\\,]|if|then|else"
-    number_token = "\\d+\\.?\\d*(?:[eE][+\\-]?\\d+)?|nan"
+    number_token = "\\d*\\.?\\d+(?:[eE][+\\-]?\\d+)?|nan"
     operator_token = "[+\\-\\*/^!=<>?:]+"
     base_tokens = "|".join([function_token, null_token, number_token, operator_token])
 

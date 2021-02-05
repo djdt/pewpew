@@ -26,7 +26,7 @@ Example: De-noising an image
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. figure:: ../images/tutorial_filter_pre.png
-    :width: 300px
+    :width: 400px
     :align: center
 
     Negative spikes (-33) are visible due the to instrument missing an acquisition
@@ -45,7 +45,7 @@ Example: De-noising an image
     An ideal threshold will change invalid data while leaving valid data untouched.
 
 .. figure:: ../images/tutorial_filter_post.png
-    :width: 300px
+    :width: 400px
     :align: center
 
-    A rolling mean filter replaces the invalid values with the local mean.
+    A rolling median filter replaces the invalid values with the local median.

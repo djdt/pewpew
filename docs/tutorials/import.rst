@@ -8,7 +8,7 @@ Importing Data
     +=============+=============+==============+================+
     | Agilent     | Mass Hunter | .b directory | 7500,7700,8900 |
     +-------------+-------------+--------------+----------------+
-    | PerkinElmer |             | directory    |                |
+    | PerkinElmer |             | .xl files    |                |
     +-------------+-------------+--------------+----------------+
     | Thermo      | Qtegra      | .csv         | iCAP RQ        |
     +-------------+-------------+--------------+----------------+
@@ -21,6 +21,7 @@ Import Wizard
 * **File -> Import -> Import Wizard**
 
 The `Import Wizard` allows users to provide specific options when importing data and consists of three pages.
+For programs that export lines as a directory of separate files the '.csv' import option should be used.
 
 1. Select the data format.
     The data format will affect whether the path is to a file or folder and the import options.

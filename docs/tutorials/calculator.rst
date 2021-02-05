@@ -83,14 +83,14 @@ In this example we use the calculator tool to simultaneously threshold and divid
 .. centered::
     |calc_img_div| = |calc_img_z66| / |calc_img_p31|
 
-.. |calc_img_z66| image:: ../images/tutorial_calc_Zn66.png
-    :width: 150px
+.. |calc_img_z66| image:: ../images/tutorial_calc_zn66.png
+    :width: 200px
 .. |calc_img_p31| image:: ../images/tutorial_calc_p31.png
-    :width: 150px
-.. |calc_img_div| image:: ../images/tutorial_calc_ZndivP.png
-    :width: 150px
+    :width: 200px
+.. |calc_img_div| image:: ../images/tutorial_calc_div.png
+    :width: 200px
 .. |calc_img_bad| image:: ../images/tutorial_calc_baddiv.png
-    :width: 150px
+    :width: 200px
 
 
 1. Determine the background value of the divisor image.

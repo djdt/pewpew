@@ -1,7 +1,7 @@
 Drift Compensation
 ==================
 
-.. figure:: ../images/tutorial_drift_label.png
+.. figure:: ../images/tutorial_drift_tool.png
     :align: center
 
     Important controls of the `Drift Compensation` tool.
@@ -20,7 +20,7 @@ Example: Compensating Laser Drift
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. figure:: ../images/tutorial_drift_pre.png
-    :width: 300px
+    :width: 400px
     :align: center
 
     An image with signal drift.
@@ -32,7 +32,7 @@ Example: Compensating Laser Drift
     (`Show drift trim controls.`) to remove the sample area.
 
 2. Select the degree of fit.
-    The red line in the drift preview shows the fitted polynomial.
+    The second line in the drift preview shows the fitted polynomial.
     A degree of 0 will use the raw data.
 
 3. Select normalisation method.
@@ -41,7 +41,7 @@ Example: Compensating Laser Drift
 
 
 .. figure:: ../images/tutorial_drift_post.png
-    :width: 300px
+    :width: 400px
     :align: center
 
     The same image after drift compensation.

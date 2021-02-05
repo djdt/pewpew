@@ -157,15 +157,45 @@ class RangeSlider(QtWidgets.QSlider):
                     handle.width(), handle.width(), handle.width(), handle.width()
                 )
             )
-            self.setValue2(value)
-            self.repaint(handle)
+            if self.hasTracking():
+                self.setValue2(value)
+                self.repaint(handle)
         else:
             super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
         if self._pressed:
             self._pressed = False
+            option = QtWidgets.QStyleOptionSlider()
+            self.initStyleOption(option)
+            groove = self.style().subControlRect(
+                QtWidgets.QStyle.CC_Slider,
+                option,
+                QtWidgets.QStyle.SC_SliderGroove,
+                self,
+            )
+            handle = self.style().subControlRect(
+                QtWidgets.QStyle.CC_Slider,
+                option,
+                QtWidgets.QStyle.SC_SliderHandle,
+                self,
+            )
+            value = self.style().sliderValueFromPosition(
+                self.minimum(), self.maximum(), event.pos().x(), groove.width()
+            )
+            handle.moveCenter(event.pos())
+            handle = handle.marginsAdded(
+                QtCore.QMargins(
+                    handle.width(), handle.width(), handle.width(), handle.width()
+                )
+            )
+            value = self.style().sliderValueFromPosition(
+                self.minimum(), self.maximum(), event.pos().x(), groove.width()
+            )
             self.setSliderDown(False)
+            self.setValue2(value)
+            self.update()
+
         super().mouseReleaseEvent(event)
 
     def paintEvent(

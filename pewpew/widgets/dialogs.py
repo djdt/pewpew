@@ -85,30 +85,11 @@ class ApplyDialog(QtWidgets.QDialog):
 
 class CalibrationPointsWidget(CollapsableWidget):
     levelsChanged = QtCore.Signal(int)
+    weightingChanged = QtCore.Signal(str)
 
     def __init__(self, parent: QtWidgets.QWidget):
         super().__init__("Points", parent)
 
-        self.model = CalibrationPointsTableModel(
-            Calibration(),
-            axes=(1, 0),
-            counts_editable=True,
-            parent=self,
-        )
-
-        self.levelsChanged.connect(self.updateButtonRemoveEnabled)
-        self.model.modelReset.connect(self.updateButtonRemoveEnabled)
-
-        self.table = BasicTableView()
-        self.table.setItemDelegate(DoubleSignificantFiguresDelegate(4))
-        self.table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
-        self.table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
-        self.table.setMaximumWidth(800)
-        self.table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.table.setModel(self.model)
-        self.table.horizontalHeader().setSectionResizeMode(
-            QtWidgets.QHeaderView.ResizeToContents
-        )
         self.action_add_level = qAction(
             "list-add",
             "Add Level",
@@ -125,15 +106,55 @@ class CalibrationPointsWidget(CollapsableWidget):
         self.button_add = qToolButton(action=self.action_add_level)
         self.button_remove = qToolButton(action=self.action_remove_level)
 
+        self.combo_weighting = QtWidgets.QComboBox()
+        self.combo_weighting.addItems(Calibration.KNOWN_WEIGHTING)
+        self.combo_weighting.addItem("Custom")
+        self.combo_weighting.currentTextChanged.connect(self.weightingChanged)
+
+        label_weighting = QtWidgets.QLabel("Weighting:")
+
+        self.model = CalibrationPointsTableModel(
+            Calibration(),
+            axes=(1, 0),
+            counts_editable=True,
+            parent=self,
+        )
+
+        self.levelsChanged.connect(self.updateButtonRemoveEnabled)
+        self.model.modelReset.connect(self.updateButtonRemoveEnabled)
+        self.combo_weighting.currentTextChanged.connect(self.updateWeighting)
+
+        self.table = BasicTableView()
+        self.table.setItemDelegate(DoubleSignificantFiguresDelegate(4))
+        self.table.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+        self.table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.table.setMaximumWidth(800)
+        self.table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.table.setModel(self.model)
+        self.table.horizontalHeader().setSectionResizeMode(
+            QtWidgets.QHeaderView.ResizeToContents
+        )
+
         layout_buttons = QtWidgets.QHBoxLayout()
         layout_buttons.addWidget(self.button_remove, 0, QtCore.Qt.AlignLeft)
         layout_buttons.addWidget(self.button_add, 0, QtCore.Qt.AlignLeft)
         layout_buttons.addStretch(1)
 
+        layout_weighting = QtWidgets.QHBoxLayout()
+        layout_weighting.addStretch(1)
+        layout_weighting.addWidget(label_weighting, 0, QtCore.Qt.AlignRight)
+        layout_weighting.addWidget(self.combo_weighting, 0, QtCore.Qt.AlignRight)
+
         layout = QtWidgets.QVBoxLayout()
         layout.addLayout(layout_buttons)
         layout.addWidget(self.table)
+        layout.addLayout(layout_weighting)
         self.area.setLayout(layout)
+
+    def updateWeighting(self) -> None:
+        weighting = self.combo_weighting.currentText()
+        self.model.setWeighting(weighting)
+        self.weightingChanged.emit(weighting)
 
     def updateButtonRemoveEnabled(self) -> None:
         columns = self.model.columnCount()
@@ -207,6 +228,7 @@ class CalibrationDialog(ApplyDialog):
 
         self.points = CalibrationPointsWidget(self)
         self.points.levelsChanged.connect(self.updatePlotEnabled)
+        self.points.weightingChanged.connect(self.updateLineEdits)
         self.points.model.dataChanged.connect(self.updateLineEdits)
         self.points.model.dataChanged.connect(self.updatePlotEnabled)
 
@@ -497,10 +519,6 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.setWindowTitle("Colocalisation")
         self.data = data
         self.mask = mask
-
-        # if colors is None:
-        #     colors = [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0)]
-        # self.cmap = LinearSegmentedColormap.from_list("colocal_cmap", colors)
 
         self.chart = ColocalisationChart()
 
@@ -874,10 +892,12 @@ class SelectionDialog(ApplyDialog):
         else:
             self.lineedit_manual.setEnabled(False)
             if var is not None:
-                self.spinbox_method.setEnabled(True)
-                self.spinbox_method.setPrefix(var[0])
                 self.spinbox_method.setRange(*var[2])
-                self.spinbox_method.setValue(var[1])
+                if not self.spinbox_method.isEnabled():  # First show
+                    self.spinbox_method.setValue(var[1])
+                    self.spinbox_method.setEnabled(True)
+
+                self.spinbox_method.setPrefix(var[0])
                 self.spinbox_comparison.setEnabled(True)
                 self.spinbox_comparison.setRange(1, self.spinbox_method.value() - 1)
 

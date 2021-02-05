@@ -81,7 +81,7 @@ class StandardsGraphicsView(LaserGraphicsView):
 
 
 class StandardsTool(ToolWidget):
-    WEIGHTINGS = ["Equal", "1/σ²", "x", "1/x", "1/x²"]
+    WEIGHTINGS = ["Equal", "1/σ²", "x", "1/x", "1/x²", "y", "1/y", "1/y²"]
 
     def __init__(self, widget: LaserWidget):
         super().__init__(widget, control_label="Calibration", apply_all=True)
@@ -224,6 +224,8 @@ class StandardsTool(ToolWidget):
         else:
             if wstr == "1/x²":
                 wstr = "1/(x^2)"
+            elif wstr == "1/y²":
+                wstr = "1/(y^2)"
             self.calibration[isotope].weights = wstr
 
     def updateCounts(self) -> None:
@@ -247,10 +249,10 @@ class StandardsTool(ToolWidget):
         if not self.isComplete():
             self.results.clearResults()
             self.button_plot.setEnabled(False)
-            return
         else:
             isotope = self.combo_isotope.currentText()
-            # self.calibration[isotope].update_linreg()
+
+            self.calibration[isotope].update_linreg()
             self.results.updateResults(self.calibration[isotope])
             self.button_plot.setEnabled(True)
             if self.dlg is not None:
@@ -346,6 +348,8 @@ class StandardsTable(BasicTableView):
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         model = CalibrationPointsTableModel(calibration, parent=self)
         self.setModel(model)
+
+        self.hideColumn(2)  # Hide weights column
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
         self.verticalHeader().setSectionResizeMode(

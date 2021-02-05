@@ -1,7 +1,7 @@
 Calibration
 ===========
 
-.. figure:: ../images/tutorial_calibration_example_label.png
+.. figure:: ../images/tutorial_calibration_tool.png
     :align: center
 
     Calibration standards loaded into the `Standards Tool`_.
@@ -14,7 +14,9 @@ Calibration Dialog
 * **Right Click -> Calibration**
 
 The calibration dialog allows manual entry of the gradient, intercept and unit for each isotope.
+Entry of specific concentrations and responses is possible using the points table and will automatically update the gradient, intercept and unit.
 To apply the current calibration to all other open images check the `Apply calibration to all images.` box and then click `Apply`.
+The current (or all) calibrations can be copied to the clipboard and pasted in open images using **Ctrl+V**.
 
 
 Standards Tool
@@ -28,12 +30,11 @@ Data should be collected line-by-line with all similar calibration levels in adj
 
 
 1. Select isotope and number of calibration levels.
-    If your data has a gap (i.e. missing line) add a calibration level and leave it blank in step 3.
+    |
 
 2. Isolate calibration area using guides.
-    The white guides over the image can be moved by dragging with the mouse.
-    The two vertical guides indicate the start and end of the calibration area while the horizontal guides
-    separate the individual levels.
+    The white guides define the area for each calibration level and can be moved or resized using the mouse.
+    Multiple levels can be moved at once be first selecting using **Shift** or **Ctrl** and dragging or clicking levels.
 
 3. Fill in concentrations.
     The concentration table supports copy and paste of data from spreadsheet programs but may also be filled in manually.
@@ -54,10 +55,9 @@ Calibration Curve
 
 Both the `Calibration Dialog`_ and `Standards Tool`_ have a button `Button Plot` that will open
 a window with the current calibration plotted.
-*Note that the y-axis title will always read* Counts *!*
 
 .. figure:: ../images/tutorial_calibration_plot.png
-    :width: 240px
+    :width: 400px
     :align: center
 
     Calibration curve, right clicking the plot allows copying the image to the clipboard.
