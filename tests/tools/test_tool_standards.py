@@ -34,7 +34,7 @@ def test_standards_tool(qtbot: QtBot):
     assert not tool.button_plot.isEnabled()
     for i in range(0, tool.table.model().rowCount()):
         index = tool.table.model().index(i, 0)
-        tool.table.model().setData(index, "")
+        tool.table.model().setData(index, i)
 
     # Change isotope, check weighting
     tool.combo_isotope.setCurrentIndex(1)
@@ -57,7 +57,7 @@ def test_standards_tool(qtbot: QtBot):
 
     # Change isotope back, check weighting, unit, table restored
     tool.combo_isotope.setCurrentIndex(0)
-    assert not tool.isComplete()
+    assert tool.isComplete()
     assert tool.lineedit_units.text() == "unit"
     assert tool.combo_weighting.currentIndex() == 2
 
