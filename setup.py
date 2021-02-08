@@ -28,13 +28,13 @@ setup(
     author_email="thomas.lockwood@uts.edu.au",
     url="https://github.com/djdt/pewpew",
     project_urls={
-        # "Documentation": "https://djdt.github.io/pewlib",
+        "Documentation": "https://djdt.github.io/pewpew",
         "Source": "https://gtihub.com/djdt/pewpew",
     },
     packages=find_packages(include=["pewpew", "pewpew.*"]),
     install_requires=[
         "numpy!=1.19.4",
-        "pewlib>=0.6.5",
+        "pewlib>=0.6.6",
         "PySide2",
     ],
     entry_points={"console_scripts": ["pewpew=pewpew.__main__:main"]},
