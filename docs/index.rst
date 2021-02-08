@@ -11,7 +11,7 @@ Welcome to |pewpew|'s documentation!
 pewlib_.
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
     install
 

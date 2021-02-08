@@ -7,6 +7,7 @@ Via Pip
 -------
 
 To install |pewpew| as a local python package first clone the repository.
+This requires you have C build tools installed on your system.
 
 .. code-block:: bash
 
