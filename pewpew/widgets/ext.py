@@ -273,6 +273,10 @@ class ValidColorLineEdit(QtWidgets.QLineEdit):
         self.color_good = self.palette().color(QtGui.QPalette.Base)
         self.color_bad = QtGui.QColor.fromRgb(255, 172, 172)
 
+    def setValidator(self, validator: QtGui.QValidator) -> None:
+        super().setValidator(validator)
+        self.revalidate()
+
     def revalidate(self) -> None:
         self.setValid(self.hasAcceptableInput())
 
