@@ -14,3 +14,6 @@ git clone https://github.com/djdt/pewpew
 cd pewpew
 pip install -e .
 ```
+## Documentation
+
+Documentation is available at https://djdt.github.io.pewpew
