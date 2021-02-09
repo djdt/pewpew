@@ -1,7 +1,7 @@
 import sys
 import logging
 
-from PySide2 import QtGui, QtWidgets
+from PySide2 import QtHelp, QtGui, QtWidgets
 
 from pewpew import __version__
 

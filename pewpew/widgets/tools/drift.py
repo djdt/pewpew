@@ -251,6 +251,7 @@ class DriftTool(ToolWidget):
 
         self.graphics = DriftGraphicsView(self.viewspace.options, parent=self)
         self.graphics.driftChanged.connect(self.updateDrift)
+        self.graphics.driftChanged.connect(self.updateNormalise)
 
         self.chart = DriftChart(parent=self)
 

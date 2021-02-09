@@ -1,23 +1,7 @@
-Drift Compensation
-==================
+Compensating Laser Drift
+========================
 
-.. figure:: ../images/tutorial_drift_tool.png
-    :align: center
-
-    Important controls of the `Drift Compensation` tool.
-
-* **Tools -> Drift Compensation**
-
-Changes in laser, plasma or mass-spec conditions cause signal drift and
-should be minimised by using short runs and correctly 'warming up' the ICP-MS.
-In cases where quantification is not required then drift can be compensated using the
-`Drift Compensation` tool.
-This tool fits a polynomial to a section of the image and then normalises with
-respect to the fit.
-
-
-Example: Compensating Laser Drift
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+See also :ref:`Drift Compensation Tool`.
 
 .. figure:: ../images/tutorial_drift_pre.png
     :width: 400px
