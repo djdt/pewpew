@@ -17,17 +17,28 @@ pewlib_.
 
 .. toctree::
     :maxdepth: 1
-    :caption: Tutorials
+    :caption: Dialogs and Wizards
+
+    dialogs/import
+    
+.. toctree::
+    :maxdepth: 1
+    :caption: Tools
+    
+    tools/calculator
+    tools/drift
+    tools/filter
+    tools/standards
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Examples
     :numbered:
 
-    tutorials/import
-    tutorials/calibration
-    tutorials/selection
-    tutorials/calculator
-    tutorials/drift
-    tutorials/filter
-    tutorials/stats
-    tutorials/colocal
+    examples/calculator
+    examples/drift
+    examples/filter
+    examples/standards
 
 
 .. _pewlib: https://github.com/djdt/pewlib

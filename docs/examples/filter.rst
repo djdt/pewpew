@@ -1,6 +1,7 @@
-Filtering: De-noising an image
-==============================
+Example: De-noising an image
+============================
 
+In this example we remove instrument noise from an image.
 See also :ref:`Filtering Tool`.
 
 .. figure:: ../images/tutorial_filter_pre.png

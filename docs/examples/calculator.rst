@@ -1,10 +1,9 @@
-Calculator: Thresholded division of elements
-============================================
-
-See also :ref:`Calculator`.
+Example: Thresholded division of elements
+=========================================
 
 Division of two elements is commonly used to normalise one element to another.
 Without thresholding of low background values this can produce a rather unattractive image.
+See also :ref:`Calculator`.
 
 .. centered::
     |calc_img_bad| = |calc_img_z66| / |calc_img_p31|

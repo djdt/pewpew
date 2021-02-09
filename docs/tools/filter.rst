@@ -30,3 +30,5 @@ Available Filters
     +----------------+---+--------------------------------------------+
     | Rolling Median | M | Distance in medians from the local median. |
     +----------------+---+--------------------------------------------+
+
+See also :ref:`Example: De-noising an image`.

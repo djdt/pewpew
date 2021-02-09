@@ -20,3 +20,5 @@ To use the raw image data instead of a polynomial fit set the `Degree of fit` to
     :align: center
 
     Important controls of the `Drift Compensation` tool.
+
+See also :ref:`Example: Compensating Laser Drift`.
