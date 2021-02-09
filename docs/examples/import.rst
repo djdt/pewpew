@@ -1,57 +1,72 @@
-Importing Data
-==============
+Example: Importing File-Per-Line Data
+=====================================
 
-.. table:: Vendor formats supported by |pewpew|.
+The `Import Wizard` allows users to provide specific options when importing data.
+In this example demonstrates import of a modified TOFWERK instrument export with the file names in :ref:`table_tofwerkdata`.
+The process will be similar for other programs that export lines as a directory of separate files.
+The directory to be imported contains the files in :ref:`table_tofwerkdata`.
+See also :ref:`Import Wizard`.
 
-    +-------------+-------------+--------------+----------------+
-    | Vendor      | Software    | Format       | Tested With    |
-    +=============+=============+==============+================+
-    | Agilent     | Mass Hunter | .b directory | 7500,7700,8900 |
-    +-------------+-------------+--------------+----------------+
-    | PerkinElmer |             | .xl files    |                |
-    +-------------+-------------+--------------+----------------+
-    | Thermo      | Qtegra      | .csv         | iCAP RQ        |
-    +-------------+-------------+--------------+----------------+
 
-For the majority of users importing data consists of dragging-and-dropping of files into |pewpew|.
+.. table:: Export filenames.
+   :name: table_tofwerkdata
+   :align: center
 
-Import Wizard
--------------
+   +------------------------------------------------------------+
+   | .../TOFWERK data/TW_Image3_25um2018.12.05-12h17m15s_AS.csv |
+   +------------------------------------------------------------+
+   | .../TOFWERK data/TW_Image3_25um2018.12.05-12h17m49s_AS.csv |
+   +------------------------------------------------------------+
+   | .../TOFWERK data/TW_Image3_25um2018.12.05-12h18m19s_AS.csv |
+   +------------------------------------------------------------+
+   | 474 more files...                                          |
+   +------------------------------------------------------------+
+   | .../TOFWERK data/TW_Image3_25um2018.12.05-16h23m13s_AS.csv |
+   +------------------------------------------------------------+
+   | .../TOFWERK data/dummy_file.csv                            |
+   +------------------------------------------------------------+
 
-* **File -> Import -> Import Wizard**
+.. table:: Export structure.
+   :name: table_tofwerkstruct
+   :align: center
 
-The `Import Wizard` allows users to provide specific options when importing data and consists of three pages.
-For programs that export lines as a directory of separate files the '.csv' import option should be used.
+   +---------------+-----------+-----------+-----+
+   | t_elapsed_Buf | '[23Na]+' | '[24Mg]+' | ... |
+   +===============+===========+===========+=====+
+   | 0             | 1287.785  | 13.095236 | ... |
+   +---------------+-----------+-----------+-----+
+   | 0.10057113011 | 1664.5214 | 52.331398 | ... |
+   +---------------+-----------+-----------+-----+
+   | ...           | ...       | ...       | ... |
+   +---------------+-----------+-----------+-----+
+   | 25.9500810667 | 202654.8  | 1448.4713 | ... |
+   +---------------+-----------+-----------+-----+
+   | End of file.                                |
+   +---------------+-----------+-----------+-----+
 
-1. Select the data format.
-    The data format will affect whether the path is to a file or folder and the import options.
+1. Select the `CSV Lines` format.
+    This sets up the import wizard for CSV-as-lines import.
 
-2. Select the path to the data and format specific import options.
-    Path selection uses the file dialog `Open File` or `Open Directory` or drag-and-drop of files into the wizard.
-    Default import options are automatically filled in on path selection.
+2. Select the path to the data.
+    Either drag-and-drop or use the `Open Directiory` dialog to select the *TOFWERK data* directory.
+    The number of `Matching files` is now 479, one more than the 478 lines.
+
+2. Select import options.
+    The file delimiter is ','.
+    Looking at the :ref:`table_tofwerkstruct` we can see the is no header and one footer line,
+    the `Footer Rows` should be set to 1.
+
+3. Select the `File Regex`.
+    The default regex ``.*\.csv`` will import all files ending with '.csv'.
+    In our example there is a dummy file ``dummy_file.csv`` we do not want to import,
+    we can set the regex to also look for 'TW_Image3' at the start of the filenames, ``TW_Image3.*\.csv``.
+    The number of `Matching files` is now 478.
+
+3. Select the `Sorting`.
+    The exports in this example are marked with a timestamp,
+    in most cases simple alphabetical sorting will work but we can also use the 'Timestamp option'.
+    Set `Sorting` to timestamp and the sort key to ``%Y.%m.%d-%Hh%Mm%Ss``.
 
 3. Select laser parameters and isotopes for import.
-    If available, laser parameters will be read from the data.
-    Isotopes names are editable by pressing the `Edit Names` button.
-
-
-Kriss-Kross Import Wizard
--------------------------
-
-* **File -> Import -> Kriss-Kross Import Wizard**
-
-Import of Kriss-Kross_ collected Super-Resolution-Reconstruction images is performed
-using the `Kriss-Kross Import Wizard`. This will guide users through import of the data
-in a simliar manner to the :ref:`Import Wizard`.
-
-1. Select the data format.
-    The data format will affect whether the path is to a file or folder and the import options.
-
-2. Select the path to the data and format specific import options.
-    Paths are selected as in the :ref:`Import Wizard`, with the first path being the top layer of the 3D array.
-    Selected paths can be reordered by dragging and a minimum of two paths must be selected.
-
-3. Select laser parameters and isotopes for import.
-    The wizard can only be completed once a valid configuration is input.
-
- .. _Kriss-Kross: https://doi.org/10.1021/acs.analchem.9b02380
+    Input the laser parameters.
+    Non data names such as 't_elapsed_Buf' can be removed by pressing the `Edit Names` button.

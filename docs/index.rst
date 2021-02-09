@@ -35,6 +35,7 @@ pewlib_.
     :caption: Examples
     :numbered:
 
+    examples/import
     examples/calculator
     examples/drift
     examples/filter
