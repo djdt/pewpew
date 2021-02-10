@@ -9,9 +9,18 @@ regions of extremely low or high signal resulting from instrument noise.
 These can be removed by applying a local filter at the position of each spike.
 The `Filtering Tool` removes spikes by comparing pixel values to a locally defined threshold,
 outlying values are then replaced with the local mean or median.
+A visual example is provided in :ref:`filter_image`.
 
 The parameters of the filters in :ref:`Available Filters` are set using the inputs directly below the filter selection box.
 To toggle visibility of a filter (for comparison) click the `Filter Visible` button.
+
+.. figure:: ../images/filtering_image.png
+   :align: center
+   :name: filter_image
+   :width: 600 px
+
+   Application of a rolling median filter.
+
 
 Available Filters
 -----------------
