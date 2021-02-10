@@ -1,8 +1,6 @@
 Drift Compensation Tool
 =======================
-
-.. meta::
-   :keywords: drift, compensation
+.. index:: Drift Compensation Tool
 
 * **Tools -> Drift Compensation**
 
@@ -21,4 +19,6 @@ To use the raw image data instead of a polynomial fit set the `Degree of fit` to
 
     Important controls of the `Drift Compensation` tool.
 
-See also :ref:`Example: Compensating Laser Drift`.
+.. seealso::
+   :ref:`Example: Compensating laser drift`.
+    Example using the drift tool.

@@ -1,8 +1,6 @@
 Filtering Tool
 ==============
-
-.. meta::
-   :keywords: filter, filtering, rolling
+.. index:: Filtering Tool
 
 * **Tools -> Filtering**
 
@@ -17,6 +15,7 @@ To toggle visibility of a filter (for comparison) click the `Filter Visible` but
 
 Available Filters
 -----------------
+.. index:: Filtering Tool Filters
 
 .. table:: Filters implemented in |pewpew|.
     :name: filter_methods
@@ -31,4 +30,6 @@ Available Filters
     | Rolling Median | M | Distance in medians from the local median. |
     +----------------+---+--------------------------------------------+
 
-See also :ref:`Example: De-noising an image`.
+.. seealso::
+    :ref:`Example: De-noising an image`.
+     Example using the filtering tool.

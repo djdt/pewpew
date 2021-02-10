@@ -1,5 +1,6 @@
 Installation
 ============
+.. index:: Installation
 
 Executables for major |pewpew| releases are available on the `github <https://github.com/djdt/pewpew/releases>`_.
 

@@ -1,8 +1,6 @@
 Statistics Dialog
 =================
-
-.. meta::
-   :keywords: stats, statistics, math, histogram
+.. index:: Statistics Dialog
 
 * **Image Context Menu -> Statistics**
 * **Selection Context Menu -> Statistics**
@@ -18,4 +16,6 @@ To copy the statistics for all available elements click the `Copy to Clipboard` 
     The Statistics dialog. A histogram of the data is shown in the top part of the
     dialog and a few basic statistics in the bottom.
 
-See also :ref:`Example: Mean of a region`.
+.. seealso::
+   :ref:`Example: Mean of a region`.
+    Example using selections.

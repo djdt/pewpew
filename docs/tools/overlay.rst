@@ -6,7 +6,8 @@ Overlay Tool
 
 The `Overlay Tool` allows overlaying of up to three elements using the RGB or CMYK modes,
 or any number using the 'any' mode.
-If using the 'any' mode take care to to over-saturate the image.
+If using the 'any' mode take care to to over-saturate the image,
+while the `Renormalise` button will fix this the result is purely aesthetic.
 
 Elements can be added using the `Add Isotope` combo box,
 the color of each layer is automatically assigned.

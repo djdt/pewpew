@@ -1,8 +1,6 @@
 Import Wizard
 =============
-
-.. meta::
-   :keywords: load, import, read
+.. index:: Import Wizard
 
 * **File -> Import -> Import Wizard**
 
@@ -71,6 +69,7 @@ For programs that export lines as a directory of separate files the '.csv' impor
 
 Kriss-Kross Import Wizard
 -------------------------
+.. index:: Kriss-Kross Import Wizard
 
 * **File -> Import -> Kriss-Kross Import Wizard**
 
@@ -78,4 +77,6 @@ Import of Kriss-Kross_ collected Super-Resolution-Reconstruction images is perfo
 using the `Kriss-Kross Import Wizard`. This will guide users through import of the data
 in a simliar manner to the :ref:`Import Wizard`.
 
-See also :ref:`Example: Importing File-Per-Line Data`.
+.. seealso::
+    :ref:`Example: Importing file-per-line data`.
+     Example showing how to use the import wizard.

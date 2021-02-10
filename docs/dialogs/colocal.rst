@@ -1,8 +1,6 @@
 Colocalisation Dialog
 =====================
-
-.. meta::
-   :keywords: colocal, colocalisation, Pearson, overlap
+.. index:: Colocalisation Dialog
 
 * **Image Context Menu -> Colocalisation**
 * **Selection Context Menu -> Colocalisation**
@@ -15,7 +13,6 @@ This is calculated by comparing the R value to those of random shuffles of the i
 
 The `Colocalisation Dialog` can also be opened from the context menu of a selected region.
 This will limit the inputs to that region.
-See also :ref:`Overlay Tool`.
 
 .. figure:: ../images/tutorial_colocal_plot.png
     :name: colocal_dialog
@@ -25,3 +22,8 @@ See also :ref:`Overlay Tool`.
 
 
 .. _Costes: https://doi.org/10.1529/biophysj.103.038422
+
+
+.. seealso::
+   :ref:`Overlay Tool`
+    Tool for creating RGB overlays of images.

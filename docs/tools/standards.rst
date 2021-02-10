@@ -1,8 +1,6 @@
 Standards Tool
 ==============
-
-.. meta::
-   :keywords: standards, calibrate, calibration, quantification
+.. index:: Standards Tool
 
 * **Tools -> Standards Tool**
 
@@ -21,3 +19,10 @@ Clicking `Apply` will apply the calibration to the current image while `Apply to
 
     Calibration standards loaded into the `Standards Tool`_.
     Red highlights indicate important controls.
+
+.. seealso::
+   :ref:`Calibration Dialog`
+    Dialog for modifying calibrations.
+
+   :ref:`Calibration Curve`
+    Dialog for displaying calibration curves.

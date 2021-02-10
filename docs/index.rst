@@ -4,8 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to |pewpew|'s documentation!
-
-===============================
+====================================
 
 |pewpew| is an open-source LA-ICP-MS data import and processing application, based on the python library
 pewlib_.
@@ -20,6 +19,7 @@ pewlib_.
     :caption: Dialogs and Wizards
 
     dialogs/import
+    dialogs/calibration
     dialogs/colocal
     dialogs/stats
     dialogs/selection
@@ -52,5 +52,5 @@ Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
+.. * :ref:`modindex`
 * :ref:`search`

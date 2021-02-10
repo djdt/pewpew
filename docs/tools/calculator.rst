@@ -1,8 +1,6 @@
 Calculator
 ==========
-
-.. meta::
-   :keywords: calculator, calculation, parser, formula
+.. index:: Calculator
 
 * **Tools -> Calculator**
 
@@ -18,6 +16,7 @@ Non image results (e.g. the mean of an image) are displayed in the `Results` tex
 
 Supported Input
 ---------------
+.. index:: Calculator Input
 
 .. table:: Supported `Formula` inputs with examples.
     :name: calc_input
@@ -45,8 +44,9 @@ Supported Input
     |                    |``if P31 > kmeans(P31, 3)[2] then P31 else nan``|
     +--------------------+------------------------------------------------+
 
-Supported Formulas
-------------------
+Supported Functions
+-------------------
+.. index:: Calculator Functions
 
 .. table:: Calculator functions.
     :name: calc_functions

@@ -1,8 +1,6 @@
 Selection Dialog
 ================
-
-.. meta::
-   :keywords: select, selection. threshold
+.. index:: Selection Dialog
 
 The `Selection Dialog` selects a region based on a given threshold value or method.
 The `Method` and `Comparison` combo-boxes selects the method for creating the thresholding value and
@@ -22,4 +20,6 @@ to the thresholding method.
 
     Extraction of tissue from background using the `Selection Dialog` and Otsu's method.
 
-See also :ref:`Example: Mean of a region`.
+.. seealso::
+   :ref:`Example: Mean of a region`.
+    Example using selections.
