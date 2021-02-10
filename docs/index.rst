@@ -20,6 +20,9 @@ pewlib_.
     :caption: Dialogs and Wizards
 
     dialogs/import
+    dialogs/colocal
+    dialogs/stats
+    dialogs/selection
     
 .. toctree::
     :maxdepth: 1
@@ -40,6 +43,7 @@ pewlib_.
     examples/drift
     examples/filter
     examples/standards
+    examples/stats
 
 
 .. _pewlib: https://github.com/djdt/pewlib

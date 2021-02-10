@@ -1,37 +1,21 @@
-Overlays and Colocalisation
-===========================
+Colocalisation Dialog
+=====================
 
-It is often desired to analyse the spatial relationship of two or more elemental images.
-The `Overlay Tool` can do this visually while the `Colocalisation Dialog` provides a numerical representation.
-
-Overlays
---------
-
-* **Tools -> Overlay Tool**
-
-The `Overlay Tool` allows overlaying of up to three elements using the RGB or CMYK modes,
-or any number using the 'any' mode.
-If using the any mode take care to to over-saturate the image.
-
-
-.. figure:: ../images/tutorial_overlay_tool.png
-    :name: overlay_tool
-    :align: center
-
-    The Overlay Tool with three elements in RGB mode.
-
-
-Colocalisation
---------------
+.. meta::
+   :keywords: colocal, colocalisation, Pearson, overlap
 
 * **Image Context Menu -> Colocalisation**
-* **Selection Context Menu -> Statistics**
+* **Selection Context Menu -> Colocalisation**
 
 Colcalisation can be used to quantify the spatial relationship between two elements.
-The `Colocalisation` dialog provides numerical and graphical representations of colocalisation using the Costes_ method.
-This method automatically eliminates background values before performing colocalisation,
-however the image must have a large enough dynamic range.
+The left side of the dialogs show the calculated colocalisation coefficients.
+Both the 'Li ICQ' and 'Pearson R' coefficients are calculated over the entire image while 'Manders' are calculated using the Costes_ method.
+The probability (ρ) of the Pearson R can be calculated by clicking the button next to it.
+This is calculated by comparing the R value to those of random shuffles of the input.
 
+The `Colocalisation Dialog` can also be opened from the context menu of a selected region.
+This will limit the inputs to that region.
+See also :ref:`Overlay Tool`.
 
 .. figure:: ../images/tutorial_colocal_plot.png
     :name: colocal_dialog

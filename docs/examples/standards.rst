@@ -1,4 +1,4 @@
-Example: Quantifying A Sample
+Example: Quantifying a sample
 =============================
 
 One of the most common uses of |pewpew| is quantifying collected data.

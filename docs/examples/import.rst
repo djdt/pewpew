@@ -1,4 +1,4 @@
-Example: Importing File-Per-Line Data
+Example: Importing file-per-line data
 =====================================
 
 The `Import Wizard` allows users to provide specific options when importing data.

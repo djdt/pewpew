@@ -1,4 +1,4 @@
-Example: Compensating Laser Drift
+Example: Compensating laser drift
 =================================
 
 In this example we compensate for changes in laser power during ablation of a sample.
