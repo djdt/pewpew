@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to |pewpew|'s documentation!
+|pewpew|'s documentation
 ====================================
 
 |pewpew| is an open-source LA-ICP-MS data import and processing application, based on the python library
@@ -13,6 +13,7 @@ pewlib_.
     :maxdepth: 1
 
     install
+    usage
 
 .. toctree::
     :maxdepth: 1
@@ -23,14 +24,15 @@ pewlib_.
     dialogs/colocal
     dialogs/stats
     dialogs/selection
-    
+
 .. toctree::
     :maxdepth: 1
     :caption: Tools
-    
+
     tools/calculator
     tools/drift
     tools/filter
+    tools/overlay
     tools/standards
 
 .. toctree::
@@ -52,5 +54,7 @@ Indices and tables
 ==================
 
 * :ref:`genindex`
-.. * :ref:`modindex`
+
 * :ref:`search`
+
+.. * :ref:`modindex`
