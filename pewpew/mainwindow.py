@@ -1,9 +1,9 @@
 import sys
 import logging
 
-from PySide2 import QtHelp, QtGui, QtWidgets
+from PySide2 import QtGui, QtWidgets
 
-from pewpew import __version__
+from pewpew import __version__, help
 
 from pewpew.actions import qAction, qActionGroup
 from pewpew.log import LoggingDialog
@@ -56,6 +56,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def createActions(self) -> None:
         self.action_about = qAction(
             "help-about", "&About", "About pew².", self.actionAbout
+        )
+        self.action_help = qAction(
+            "help", "&Help", "Show the help files.", self.actionHelp
         )
         self.action_colortable_range = qAction(
             "",
@@ -231,6 +234,9 @@ class MainWindow(QtWidgets.QMainWindow):
             dlg.setIconPixmap(self.windowIcon().pixmap(64, 64))
         dlg.open()
         return dlg
+
+    def actionHelp(self) -> QtWidgets.QWidget:
+        widget = help.createHelpWindow()
 
     def actionColortableRange(self) -> QtWidgets.QDialog:
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
@@ -473,6 +479,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Help
         menu_help = self.menuBar().addMenu("&Help")
         menu_help.addAction(self.action_log)
+        menu_help.addAction(self.action_help)
         menu_help.addAction(self.action_about)
 
     def buttonStatusUnit(self, toggled: bool) -> None:
