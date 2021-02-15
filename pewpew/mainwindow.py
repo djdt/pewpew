@@ -60,7 +60,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "help-about", "&About", "About pew².", self.actionAbout
         )
         self.action_help = qAction(
-            "help", "&Help", "Show the help files.", self.actionHelp
+            "help-contents", "&Help", "Show the help contents.", self.actionHelp
         )
         self.action_colortable_range = qAction(
             "",

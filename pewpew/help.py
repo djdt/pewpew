@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtHelp, QtWidgets
+from PySide2 import QtCore, QtGui, QtHelp, QtWidgets
 import logging
 from pathlib import Path
 
@@ -47,15 +47,50 @@ class HelpDialog(QtWidgets.QDialog):
         super().__init__(parent)
 
         self.engine = createHelpEngine()
+        self.engine.searchEngine().reindexDocumentation()
+
         self.browser = HelpBrowser(self.engine)
         self.browser.setSource(QtCore.QUrl("qthelp://org.sphinx.pewpew/doc/index.html"))
 
         self.engine.contentWidget().linkActivated.connect(self.browser.setSource)
         self.engine.indexWidget().linkActivated.connect(self.browser.setSource)
+        self.engine.searchEngine().resultWidget().requestShowLink.connect(
+            self.browser.setSource
+        )
+        self.engine.searchEngine().queryWidget().search.connect(self.search)
+
+        self.button_back = QtWidgets.QToolButton()
+        self.button_back.setIcon(QtGui.QIcon.fromTheme("arrow-left"))
+        self.button_back.pressed.connect(self.browser.backward)
+
+        self.button_forward = QtWidgets.QToolButton()
+        self.button_forward.setIcon(QtGui.QIcon.fromTheme("arrow-right"))
+        self.button_forward.pressed.connect(self.browser.forward)
+
+        search = QtWidgets.QWidget()
+        search.setLayout(QtWidgets.QVBoxLayout())
+        search.layout().addWidget(self.engine.searchEngine().queryWidget(), 0)
+        search.layout().addWidget(self.engine.searchEngine().resultWidget(), 1)
+
+        tabs = QtWidgets.QTabWidget()
+        tabs.addTab(self.engine.contentWidget(), "Content")
+        tabs.addTab(self.engine.indexWidget(), "Index")
+        tabs.addTab(search, "Search")
+        tabs.setCurrentIndex(1)
+
+        layout_buttons = QtWidgets.QHBoxLayout()
+        layout_buttons.addStretch(1)
+        layout_buttons.addWidget(self.button_back, 0, QtCore.Qt.AlignRight)
+        layout_buttons.addWidget(self.button_forward, 0, QtCore.Qt.AlignRight)
+
+        container = QtWidgets.QWidget()
+        container.setLayout(QtWidgets.QVBoxLayout())
+        container.layout().addLayout(layout_buttons, 0)
+        container.layout().addWidget(self.browser, 1)
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        splitter.insertWidget(0, self.engine.contentWidget())
-        splitter.insertWidget(1, self.browser)
+        splitter.insertWidget(0, tabs)
+        splitter.insertWidget(1, container)
 
         splitter.widget(0).setSizePolicy(
             QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
@@ -66,3 +101,7 @@ class HelpDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(splitter)
         self.setLayout(layout)
+
+    def search(self) -> None:
+        input = self.engine.searchEngine().queryWidget().searchInput()
+        self.engine.searchEngine().search(input)
