@@ -10,8 +10,7 @@ import pewlib
 from pewpew import __version__
 
 from pewpew.mainwindow import MainWindow
-from pewpew.resources import app_icon  # noqa: F401
-from pewpew.resources import icons  # noqa: F401
+from pewpew import resources  # noqa: F401
 
 from typing import List
 

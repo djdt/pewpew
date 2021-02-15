@@ -7,6 +7,7 @@ from pewpew import __version__, help
 
 from pewpew.actions import qAction, qActionGroup
 from pewpew.log import LoggingDialog
+from pewpew.help import HelpDialog
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.laser import LaserWidget, LaserViewSpace
@@ -32,6 +33,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.resize(1280, 800)
 
         self.log = LoggingDialog()
+        self.help = HelpDialog()
 
         self.viewspace = LaserViewSpace()
         self.viewspace.numTabsChanged.connect(self.updateActionAvailablity)
@@ -236,7 +238,7 @@ class MainWindow(QtWidgets.QMainWindow):
         return dlg
 
     def actionHelp(self) -> QtWidgets.QWidget:
-        widget = help.createHelpWindow()
+        self.help.show()
 
     def actionColortableRange(self) -> QtWidgets.QDialog:
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
