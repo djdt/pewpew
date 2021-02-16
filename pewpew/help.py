@@ -14,7 +14,7 @@ def createHelpEngine() -> QtHelp.QHelpEngine:
     )
     if not cache.exists():
         logger.info(f"Creating cache at '{cache}'.")
-        cache.mkdir()
+        cache.mkdir(parents=True)
     engine = QtHelp.QHelpEngine(str(cache.joinpath("qthelp.qhc")))
     engine.setupData()
 
