@@ -1,0 +1,342 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Calculator &mdash; pewpew  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Drift Compensation Tool" href="drift.html" />
+    <link rel="prev" title="Selection Dialog" href="../dialogs/selection.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> pewpew
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Basic Usage</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Dialogs and Wizards</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../dialogs/import.html">Import Wizard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dialogs/calibration.html">Calibration Dialog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dialogs/colocal.html">Colocalisation Dialog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dialogs/stats.html">Statistics Dialog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dialogs/selection.html">Selection Dialog</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tools</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Calculator</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#supported-input">Supported Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#supported-functions">Supported Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="drift.html">Drift Compensation Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filter.html">Filtering Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overlay.html">Overlay Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="standards.html">Standards Tool</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../examples/import.html">1. Example: Importing file-per-line data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/calculator.html">2. Example: Thresholded division of elements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/drift.html">3. Example: Compensating laser drift</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/filter.html">4. Example: De-noising an image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/standards.html">5. Example: Quantifying a sample</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/stats.html">6. Example: Mean of a region</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pewpew</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Calculator</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/tools/calculator.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="calculator">
+<h1>Calculator<a class="headerlink" href="#calculator" title="Permalink to this headline">¶</a></h1>
+<ul class="simple" id="index-0">
+<li><p><strong>Tools -&gt; Calculator</strong></p></li>
+</ul>
+<p>The built in <cite>Calculator</cite> can perform simple calculations on image data by
+entering the desired formula into the <cite>Formula</cite> text box.
+For types of supported input and examples see <a class="reference internal" href="#calc-input"><span class="std std-ref">Supported Formula inputs with examples.</span></a> and for
+supported functions see <a class="reference internal" href="#calc-functions"><span class="std std-ref">Calculator functions.</span></a>.
+These functions are also available for insert via the <cite>Functions</cite> combo box.</p>
+<p>Clicking apply will create a new image with the name given in <cite>Name</cite>,
+if the name already exists then the image data will be overwritten.
+Non image results (e.g. the mean of an image) are displayed in the <cite>Results</cite> text box.</p>
+<div class="section" id="supported-input">
+<h2>Supported Input<a class="headerlink" href="#supported-input" title="Permalink to this headline">¶</a></h2>
+<span id="index-1"></span><table class="docutils align-center" id="calc-input">
+<caption><span class="caption-text">Supported <cite>Formula</cite> inputs with examples.</span><a class="headerlink" href="#calc-input" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col style="width: 29%" />
+<col style="width: 71%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Image names</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">P31</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">153Eu/31P</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Mathematical Symbols</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">+</span>&#160; <span class="pre">-</span>&#160; <span class="pre">*</span>&#160; <span class="pre">/</span>&#160; <span class="pre">^</span>&#160; <span class="pre">(</span>&#160; <span class="pre">)</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">a</span> <span class="pre">/</span> <span class="pre">(b</span> <span class="pre">+</span> <span class="pre">1)</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">1e3</span> <span class="pre">+</span> <span class="pre">P31</span></code></p>
+</td>
+</tr>
+<tr class="row-even"><td><p>If / then / else</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">P31</span> <span class="pre">&gt;</span> <span class="pre">1e3</span> <span class="pre">then</span> <span class="pre">P31</span> <span class="pre">else</span> <span class="pre">0</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">Eu153</span> <span class="pre">&gt;</span> <span class="pre">P31</span> <span class="pre">?</span> <span class="pre">Eu153</span> <span class="pre">:</span> <span class="pre">P31</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Functions</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">threshold(P31,</span> <span class="pre">median(P31))</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">P31</span> <span class="pre">&gt;</span> <span class="pre">kmeans(P31,</span> <span class="pre">3)[2]</span> <span class="pre">then</span> <span class="pre">P31</span> <span class="pre">else</span> <span class="pre">nan</span></code></p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="supported-functions">
+<h2>Supported Functions<a class="headerlink" href="#supported-functions" title="Permalink to this headline">¶</a></h2>
+<span id="index-2"></span><table class="docutils align-center" id="calc-functions">
+<caption><span class="caption-text">Calculator functions.</span><a class="headerlink" href="#calc-functions" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 27%" />
+<col style="width: 57%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Function</p></th>
+<th class="head"><p>Arguments</p></th>
+<th class="head"><p>Result</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>abs</p></td>
+<td><p>image</p></td>
+<td><p>absolute values of image</p></td>
+</tr>
+<tr class="row-odd"><td><p>kmeans</p></td>
+<td><p>image, k</p></td>
+<td><p>array of lower k-means bounds</p></td>
+</tr>
+<tr class="row-even"><td><p>mean</p></td>
+<td><p>image</p></td>
+<td><p>mean value of the image</p></td>
+</tr>
+<tr class="row-odd"><td><p>median</p></td>
+<td><p>image</p></td>
+<td><p>median value of the image</p></td>
+</tr>
+<tr class="row-even"><td><p>nantonum</p></td>
+<td><p>image</p></td>
+<td><p>sets image NaN values to zero</p></td>
+</tr>
+<tr class="row-odd"><td><p>normalise</p></td>
+<td><p>image, min, max</p></td>
+<td><p>image normalised to <cite>min</cite>, <cite>max</cite></p></td>
+</tr>
+<tr class="row-even"><td><p>otsu</p></td>
+<td><p>image</p></td>
+<td><p>Otsu’s method of image</p></td>
+</tr>
+<tr class="row-odd"><td><p>percentile</p></td>
+<td><p>image, percentile</p></td>
+<td><p>the <cite>percentile</cite>’th value of image</p></td>
+</tr>
+<tr class="row-even"><td><p>threshold</p></td>
+<td><p>image, value</p></td>
+<td><p>sets all pxiels below <cite>value</cite> to nan</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="drift.html" class="btn btn-neutral float-right" title="Drift Compensation Tool" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../dialogs/selection.html" class="btn btn-neutral float-left" title="Selection Dialog" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020, djdt.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

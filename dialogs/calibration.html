@@ -1,0 +1,261 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Calibration Dialog &mdash; pewpew  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Colocalisation Dialog" href="colocal.html" />
+    <link rel="prev" title="Import Wizard" href="import.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> pewpew
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Basic Usage</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Dialogs and Wizards</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="import.html">Import Wizard</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Calibration Dialog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#calibration-curve">Calibration Curve</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="colocal.html">Colocalisation Dialog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stats.html">Statistics Dialog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="selection.html">Selection Dialog</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Tools</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tools/calculator.html">Calculator</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/drift.html">Drift Compensation Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/filter.html">Filtering Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/overlay.html">Overlay Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tools/standards.html">Standards Tool</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../examples/import.html">1. Example: Importing file-per-line data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/calculator.html">2. Example: Thresholded division of elements</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/drift.html">3. Example: Compensating laser drift</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/filter.html">4. Example: De-noising an image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/standards.html">5. Example: Quantifying a sample</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/stats.html">6. Example: Mean of a region</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pewpew</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Calibration Dialog</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/dialogs/calibration.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="calibration-dialog">
+<h1>Calibration Dialog<a class="headerlink" href="#calibration-dialog" title="Permalink to this headline">¶</a></h1>
+<ul class="simple" id="index-0">
+<li><p><strong>Right Click -&gt; Calibration</strong></p></li>
+</ul>
+<p>The calibration dialog allows manual entry of the gradient, intercept and unit for each isotope.
+Entry of specific concentrations, responses and weights is possible using the points table.
+Changing points will automatically update the gradient, intercept and other coefficients.
+To apply the current calibration to all other open images check the <cite>Apply calibration to all images.</cite> box and then click <cite>Apply</cite>.
+The current (or all) calibrations can be copied to the clipboard and pasted in open images using <strong>Ctrl+V</strong>.</p>
+<div class="section" id="calibration-curve">
+<h2>Calibration Curve<a class="headerlink" href="#calibration-curve" title="Permalink to this headline">¶</a></h2>
+<p id="index-1">Both the <cite>Calibration Dialog</cite> and <a class="reference internal" href="../tools/standards.html#standards-tool"><span class="std std-ref">Standards Tool</span></a> have a button <cite>Button Plot</cite> that will open
+a window with the current calibration plotted.</p>
+<div class="figure align-center" id="id1">
+<a class="reference internal image-reference" href="../_images/tutorial_calibration_plot.png"><img alt="../_images/tutorial_calibration_plot.png" src="../_images/tutorial_calibration_plot.png" style="width: 400px;" /></a>
+<p class="caption"><span class="caption-text">Calibration curve, right clicking the plot allows copying the image to the clipboard.</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="../tools/standards.html#standards-tool"><span class="std std-ref">Standards Tool</span></a></dt><dd><p>Tool for the creation of calibrations from standards.</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="colocal.html" class="btn btn-neutral float-right" title="Colocalisation Dialog" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="import.html" class="btn btn-neutral float-left" title="Import Wizard" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020, djdt.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
