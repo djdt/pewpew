@@ -51,22 +51,22 @@ See also :ref:`Import Wizard`.
     Either drag-and-drop or use the `Open Directiory` dialog to select the *TOFWERK data* directory.
     The number of `Matching files` is now 479, one more than the 478 lines.
 
-2. Select import options.
+3. Select import options.
     The file delimiter is ','.
     Looking at the :ref:`table_tofwerkstruct` we can see the is no header and one footer line,
     the `Footer Rows` should be set to 1.
 
-3. Select the `File Regex`.
+4. Select the `File Regex`.
     The default regex ``.*\.csv`` will import all files ending with '.csv'.
     In our example there is a dummy file ``dummy_file.csv`` we do not want to import,
     we can set the regex to also look for 'TW_Image3' at the start of the filenames, ``TW_Image3.*\.csv``.
     The number of `Matching files` is now 478.
 
-3. Select the `Sorting`.
+5. Select the `Sorting`.
     The exports in this example are marked with a timestamp,
     in most cases simple alphabetical sorting will work but we can also use the 'Timestamp option'.
     Set `Sorting` to timestamp and the sort key to ``%Y.%m.%d-%Hh%Mm%Ss``.
 
-3. Select laser parameters and isotopes for import.
+6. Select laser parameters and isotopes for import.
     Input the laser parameters.
     Non data names such as 't_elapsed_Buf' can be removed by pressing the `Edit Names` button.

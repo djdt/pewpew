@@ -24,8 +24,7 @@ def createHelpEngine() -> QtHelp.QHelpEngine:
     if namespace not in engine.registeredDocumentations():
         logger.info("Registering help documentation.")
         if not engine.registerDocumentation(qhc_path):
-            logger.info("Help registration failed!.")
-            return None
+            logger.warning("Help registration failed!")
 
     return engine
 
