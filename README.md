@@ -16,4 +16,4 @@ pip install -e .
 ```
 ## Documentation
 
-Documentation is available at https://djdt.github.io.pewpew
+Documentation is available at https://djdt.github.io/pewpew
