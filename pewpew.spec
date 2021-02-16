@@ -11,7 +11,7 @@ block_cipher = None
 a = Analysis(
     [Path("pewpew", "__main__.py")],
     binaries=None,
-    datas=None,
+    datas=[('pewpew/resources/pewpew.qch', 'pewpew/resources')],
     hiddenimports=[],
     hookspath=None,
     runtime_hooks=None,
