@@ -4,7 +4,7 @@ Example: De-noising an image
 In this example we remove instrument noise from an image.
 See also :ref:`Filtering Tool`.
 
-.. figure:: ../images/tutorial_filter_pre.png
+.. figure:: ../images/tutorial_filter_pre.jpg
     :width: 400px
     :align: center
 
@@ -21,7 +21,7 @@ See also :ref:`Filtering Tool`.
 3. Select the appropriate filter threshold.
     An ideal threshold will change invalid data while leaving valid data untouched.
 
-.. figure:: ../images/tutorial_filter_post.png
+.. figure:: ../images/tutorial_filter_post.jpg
     :width: 400px
     :align: center
 

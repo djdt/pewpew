@@ -13,7 +13,7 @@ For an example of using the import wizard see :ref:`Example: Importing file-per-
 The image can be navigated by click and dragging with either the left or middle mouse button and using the scroll wheel.
 The layout of images is able to be customised using the View controls (2).
 
-.. figure:: ./images/usage_view_controls.png
+.. figure:: ./images/usage_view_controls.jpg
    :align: center
    :width: 300 px
     
