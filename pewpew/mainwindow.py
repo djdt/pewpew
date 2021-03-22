@@ -3,7 +3,7 @@ import logging
 
 from PySide2 import QtGui, QtWidgets
 
-from pewpew import __version__, help
+from pewpew import __version__
 
 from pewpew.actions import qAction, qActionGroup
 from pewpew.log import LoggingDialog

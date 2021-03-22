@@ -36,3 +36,12 @@ These tools function similarly to selection tools in other programs,
 with regions selected by clicking and dragging on the image.
 
 Holding **Shift** will **add** to the currently selected region while holding **Ctrl** will **subtract** from it.
+
+
+Saving and Exporting
+~~~~~~~~~~~~~~~~~~~~
+
+Files can be saved as a numpy archive via the right click context menu **Right Click -> Save**.
+This archive will also include any calibration and configurations applied to the image.
+To export use either the `Export Dialog` **Right Click -> Export** or the batch `Export All Dialog` **File -> Expotr All**.
+These dialogs export the current or all images in a range of formats.

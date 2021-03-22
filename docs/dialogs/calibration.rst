@@ -8,7 +8,7 @@ The calibration dialog allows manual entry of the gradient, intercept and unit f
 Entry of specific concentrations, responses and weights is possible using the points table.
 Changing points will automatically update the gradient, intercept and other coefficients.
 To apply the current calibration to all other open images check the `Apply calibration to all images.` box and then click `Apply`.
-The current (or all) calibrations can be copied to the clipboard and pasted in open images using **Ctrl+V**.
+The current (or all) calibrations can be copied to the clipboard using the copy button and pasted in open images using **Ctrl+V**.
 
 Calibration Curve
 -----------------
