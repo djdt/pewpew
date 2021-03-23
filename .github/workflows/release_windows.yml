@@ -1,12 +1,11 @@
-name: Release macOS Exec
+name: Release Windows Exec
 on:
-  workflow_dispatch:
-  # release:
-  #   types: [created]
+  release:
+    types: [created]
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python 3.8
@@ -25,19 +24,13 @@ jobs:
       run: |
         pyinstaller --clean --noupx -y pewpew.spec
         echo "::set-output name=version::$(python setup.py --version)"
-    # - name: Upload binary
-    #   id: upload-release-asset
-    #   uses: actions/upload-release-asset@v1
-    #   env:
-    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #   with:
-    #     upload_url: ${{ github.event.release.upload_url }}
-    #     asset_path: ./dist/pewpew_${{ steps.build-exec.outputs.version }}.app
-    #     asset_name: pewpew_${{ steps.build-exec.outputs.version }}.app
-    #     asset_content_type: application/octet-stream
-
-
-    - uses: actions/upload-artifact@v2
+    - name: Upload binary
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: pyinstaller_build
-        path: ./dist/
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./dist/pewpew_${{ steps.build-exec.outputs.version }}.exe
+        asset_name: pewpew_${{ steps.build-exec.outputs.version }}.exe
+        asset_content_type: application/octet-stream

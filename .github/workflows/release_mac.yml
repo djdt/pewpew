@@ -1,0 +1,43 @@
+name: Release macOS Exec
+on:
+  workflow_dispatch:
+  # release:
+  #   types: [created]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
+    - name: Install dependencies
+      run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements.txt
+          python setup.py build_ext --inplace
+          pip install .
+    - name: Build exec
+      id: build-exec
+      run: |
+        pyinstaller --clean --noupx -y pewpew.spec
+        echo "::set-output name=version::$(python setup.py --version)"
+    # - name: Upload binary
+    #   id: upload-release-asset
+    #   uses: actions/upload-release-asset@v1
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #   with:
+    #     upload_url: ${{ github.event.release.upload_url }}
+    #     asset_path: ./dist/pewpew_${{ steps.build-exec.outputs.version }}.app
+    #     asset_name: pewpew_${{ steps.build-exec.outputs.version }}.app
+    #     asset_content_type: application/octet-stream
+
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: pyinstaller_build
+        path: ./dist/
