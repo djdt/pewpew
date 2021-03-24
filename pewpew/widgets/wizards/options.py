@@ -594,12 +594,51 @@ class MultiplePathSelectWidget(_PathSelectBase):
 
 class PathAndOptionsPage(QtWidgets.QWizardPage):
     formats: Dict[str, Tuple[Tuple[str, List[str], str], Type]] = {
-        "agilent": (("Agilent Batch", [".b"], "Directory"), AgilentOptions),
-        "csv": (("CSV Lines", [""], "Directory"), CsvLinesOptions),
-        "numpy": (("Numpy Archive", [".npz"], "File"), NumpyOptions),
-        "perkinelmer": (("Perkin-Elmer 'XL'", [""], "Directory"), PerkinElmerOptions),
-        "text": (("Text Image", [".csv", ".text", ".txt"], "File"), TextOptions),
-        "thermo": (("Thermo iCap Data", [".csv"], "File"), ThermoOptions),
+        "agilent": (
+            (
+                "Agilent Batch",
+                [".b"],
+                "Directory",
+                "Select the batch directory.",
+            ),
+            AgilentOptions,
+        ),
+        "csv": (
+            (
+                "CSV Lines",
+                [""],
+                "Directory",
+                "Select the directory containing exported files.\n"
+                "Files should have elemental data in columns.",
+            ),
+            CsvLinesOptions,
+        ),
+        "numpy": (
+            ("Numpy Archive", [".npz"], "File", "Select Pew² export."),
+            NumpyOptions,
+        ),
+        "perkinelmer": (
+            (
+                "Perkin-Elmer 'XL'",
+                [""],
+                "Directory",
+                "Select export directory containing '.xl' files.\n",
+            ),
+            PerkinElmerOptions,
+        ),
+        "text": (
+            (
+                "Text Image",
+                [".csv", ".text", ".txt"],
+                "File",
+                "Import a 2D delimited text file.",
+            ),
+            TextOptions,
+        ),
+        "thermo": (
+            ("Thermo iCap Data", [".csv"], "File", "Select the Qtegra '.csv' export."),
+            ThermoOptions,
+        ),
     }
 
     def __init__(
@@ -611,7 +650,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
-        (ftype, exts, fmode), otype = self.formats[format]
+        (ftype, exts, fmode, fdesc), otype = self.formats[format]
         self.setTitle(ftype + " Import")
         self.nextid = nextid
 
@@ -628,6 +667,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         self.installEventFilter(DragDropRedirectFilter(self.path))
 
         layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(QtWidgets.QLabel(fdesc), 0)
         layout.addWidget(self.path, 0)
         layout.addWidget(self.options, 1)
         self.setLayout(layout)
