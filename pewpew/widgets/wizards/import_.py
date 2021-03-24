@@ -219,6 +219,9 @@ class ConfigPage(QtWidgets.QWizardPage):
         config_box.setLayout(layout_config)
 
         layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(
+            QtWidgets.QLabel("Edit imported elements and laser configuration."), 0
+        )
         layout.addLayout(layout_isotopes)
         layout.addWidget(config_box)
 
