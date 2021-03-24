@@ -1,7 +1,10 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
+import numpy as np
+
 from pathlib import Path
 import re
+import time
 
 from pewlib import io
 
@@ -698,3 +701,116 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             self.options.updateForPath(self.path.path)
         else:
             self.options.setEnabled(False)
+
+    def validatePage(self) -> bool:
+        try:
+            if self.field("agilent"):
+                data, params = self.readAgilent(Path(self.field("agilent.path")))
+            elif self.field("csv"):
+                data, params = self.readCsv(Path(self.field("csv.path")))
+            elif self.field("perkinelmer"):
+                data, params = self.readPerkinElmer(
+                    Path(self.field("perkinelmer.path"))
+                )
+            elif self.field("text"):
+                data, params = self.readText(Path(self.field("text.path")))
+            elif self.field("thermo"):
+                data, params = self.readThermo(Path(self.field("thermo.path")))
+
+        except ValueError as e:
+            QtWidgets.QMessageBox.critical(self, "Import Error", str(e))
+            return False
+
+        if "spotsize" in params:
+            self.setField("spotsize", f"{params['spotsize']:.6g}")
+        if "speed" in params:
+            self.setField("speed", f"{params['speed']:.6g}")
+        if "scantime" in params:
+            self.setField("scantime", f"{params['scantime']:.6g}")
+
+        self.setField("laserdata", data)
+
+        return True
+
+    def readAgilent(self, path: Path) -> Tuple[np.ndarray, dict]:
+        agilent_method = self.field("agilent.method")
+        if agilent_method == "Alphabetical Order":  # pragma: no cover
+            method = []  # Fallback to alphabetical
+        elif agilent_method == "Acquistion Method":  # pragma: no cover
+            method = ["acq_method_xml"]
+        elif agilent_method == "Batch Log CSV":  # pragma: no cover
+            method = ["batch_csv"]
+        elif agilent_method == "Batch Log XML":
+            method = ["batch_xml"]
+        else:  # pragma: no cover
+            raise ValueError("Unknown data file collection method.")
+
+        data, params = io.agilent.load(
+            path,
+            collection_methods=method,
+            use_acq_for_names=self.field("agilent.useAcqNames"),
+            full=True,
+        )
+        return data, params
+
+    def readCsv(self, path: Path) -> Tuple[np.ndarray, dict]:
+        delimiter = self.field("csv.delimiter")
+        if delimiter == "Tab":
+            delimiter = "\t"
+        elif delimiter == "Space":
+            delimiter = " "
+
+        option = io.csv.GenericOption(
+            kw_genfromtxt={
+                "delimiter": delimiter,
+                "skip_header": self.field("csv.skipHeader"),
+                "skip_footer": self.field("csv.skipFooter"),
+            },
+            regex=self.field("csv.regex"),
+        )
+        sorting = self.field("csv.sorting")
+        if sorting == "Numerical":
+            option.sortkey = lambda p: int("".join(filter(str.isdigit, p.stem)) or -1)
+        elif sorting == "Timestamp":
+            regex = re.sub(r"%\w", r"\d+", self.field("csv.sortKey"))
+            retime = re.compile(regex)
+
+            def sortTimestamp(path: Path) -> float:
+                match = retime.search(path.name)
+                if match is None:
+                    return -1
+                return time.mktime(
+                    time.strptime(match.group(0), self.field("csv.sortKey"))
+                )
+
+            option.sortkey = sortTimestamp
+
+        data, params = io.csv.load(path, option=option, full=True)
+        return data, params
+
+    def readPerkinElmer(self, path: Path) -> Tuple[np.ndarray, dict]:
+        data, params = io.perkinelmer.load(path, full=True)
+        return data, params
+
+    def readText(self, path: Path) -> Tuple[np.ndarray, dict]:
+        data = io.textimage.load(path, name=self.field("text.name"))
+        return data, {}
+
+    def readThermo(self, path: Path) -> Tuple[np.ndarray, dict]:
+        kwargs = dict(
+            delimiter=self.field("thermo.delimiter"),
+            comma_decimal=self.field("thermo.decimal") == ",",
+        )
+        use_analog = self.field("thermo.useAnalog")
+
+        if self.field("thermo.sampleRows"):  # pragma: no cover
+            data = io.thermo.icap_csv_rows_read_data(
+                path, use_analog=use_analog, **kwargs
+            )
+            params = io.thermo.icap_csv_rows_read_params(path, **kwargs)
+        else:
+            data = io.thermo.icap_csv_columns_read_data(
+                path, use_analog=use_analog, **kwargs
+            )
+            params = io.thermo.icap_csv_columns_read_params(path, **kwargs)
+        return data, params
