@@ -4,7 +4,8 @@ Bugs
 Misc
 ----
 
-Overlay tool could use a colorbar scale.
+> Overlay tool could use a colorbar scale.
+Cant make a 3 color color scale.
 
 Colocal is slow (coastes has many python loop).
 
@@ -12,16 +13,15 @@ Edit tool needs indicator for what is getting updated (single / multiple isotope
 
 Edit Tool
 ---------
-_The transform tool is hard to use for trimming, draggable would help here._
-
-Transform tool:
-    * Draggable / sliding trim
-    * Shifting data (mirror / edge / reflect) for isotope alignment
 
 
 Draw Tool
 ---------
 _Implement a tool for drawing_
+
+Image Export Tool
+-----------------
+_tool for composition of images_
 
 
 Info Dialog Rebuild
