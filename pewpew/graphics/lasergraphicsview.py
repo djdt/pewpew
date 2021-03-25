@@ -221,6 +221,8 @@ class LaserGraphicsView(OverlayView):
         else:
             x0, x1, y0, y1 = laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
+        # Recoordinate the top left to 0,0 for correct updating
+        rect.moveTopLeft(QtCore.QPointF(0.0, 0.0))
 
         # Update overlay items
         self.label.setText(name)

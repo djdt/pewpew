@@ -94,6 +94,7 @@ class LaserView(View):
 
     # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+        event.accept()
         menu = QtWidgets.QMenu(self)
         menu.addAction(self.action_open)
         menu.popup(event.globalPos())
@@ -179,6 +180,7 @@ class LaserComboBox(QtWidgets.QComboBox):
         return dlg
 
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
+        event.accept()
         menu = QtWidgets.QMenu(self)
         menu.addAction(self.action_edit_names)
         menu.popup(event.globalPos())
