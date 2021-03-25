@@ -125,7 +125,7 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
         pixels = np.stack((X.flat, Y.flat), axis=1)
 
         # Get mask of selected area
-        mask = np.zeros(self.image_shape, dtype=np.bool)
+        mask = np.zeros(self.image_shape, dtype=bool)
         polymask = polygonf_contains_points(self.poly, pixels).reshape(ys.size, xs.size)
         # Insert
         ix, iy = int(x1 / pixel.width()), int(y1 / pixel.height())
@@ -203,7 +203,7 @@ class RectImageSelectionItem(ScaledImageSelectionItem):
         y1 = np.round(y1 / py).astype(int)
         y2 = np.round(y2 / py).astype(int)
 
-        mask = np.zeros(self.image_shape, dtype=np.bool)
+        mask = np.zeros(self.image_shape, dtype=bool)
         mask[y1:y2, x1:x2] = True
 
         self._rect = QtCore.QRectF()
