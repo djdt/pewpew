@@ -1,8 +1,6 @@
-import numpy as np
-import numpy.lib.recfunctions as rfn
 from pathlib import Path
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtWidgets
 
 from pewlib import io
 from pewlib.config import Config
@@ -13,7 +11,7 @@ from pewpew.validators import DecimalValidator
 from pewpew.widgets.wizards.import_ import ConfigPage, FormatPage
 from pewpew.widgets.wizards.options import PathAndOptionsPage
 
-from typing import List, Tuple
+from typing import List
 
 
 class SRRImportWizard(QtWidgets.QWizard):
@@ -98,7 +96,7 @@ class SRRImportWizard(QtWidgets.QWizard):
         else:  # pragma: no cover
             raise ValueError("Invalid filetype selection.")
 
-        data = self.field("laserdata")
+        datas = self.field("laserdatas")
         config = SRRConfig(
             spotsize=float(self.field("spotsize")),
             scantime=float(self.field("scantime")),
@@ -108,7 +106,7 @@ class SRRImportWizard(QtWidgets.QWizard):
         config.set_equal_subpixel_offsets(self.field("subpixelWidth"))
         self.laserImported.emit(
             SRRLaser(
-                data,
+                datas,
                 calibration=calibration,
                 config=config,
                 name=path.stem,
@@ -119,11 +117,8 @@ class SRRImportWizard(QtWidgets.QWizard):
 
 
 class SRRConfigPage(ConfigPage):
-    dataChanged = QtCore.Signal()
-
     def __init__(self, config: SRRConfig, parent: QtWidgets.QWidget = None):
         super().__init__(config, parent)
-        self._srrdata: List[np.ndarray] = []
 
         # Krisskross params
         self.lineedit_warmup = QtWidgets.QLineEdit()
@@ -149,40 +144,9 @@ class SRRConfigPage(ConfigPage):
         self.registerField("warmup", self.lineedit_warmup)
         self.registerField("subpixelWidth", self.spinbox_offsets)
 
-    def getData(self) -> np.ndarray:
-        return self._srrdata
-
-    def setData(self, data: np.ndarray) -> None:
-        self._srrdata = data
-        self.dataChanged.emit()
-
-    def initializePage(self) -> None:
-        if self.field("agilent"):
-            paths = [Path(p) for p in self.field("agilent.paths")]
-            data, params = self.readSRRAgilent(paths)
-        elif self.field("numpy"):
-            paths = [Path(p) for p in self.field("numpy.paths")]
-            data, params = self.readSRRNumpy(paths)
-        elif self.field("text"):
-            paths = [Path(p) for p in self.field("text.paths")]
-            data, params = self.readSRRText(paths)
-        elif self.field("thermo"):
-            paths = [Path(p) for p in self.field("thermo.paths")]
-            data, params = self.readSRRThermo(paths)
-
-        if "scantime" in params:
-            self.setField("scantime", f"{params['scantime']:.6g}")
-        if "speed" in params:
-            self.setField("speed", f"{params['speed']:.6g}")
-        if "spotsize" in params:
-            self.setField("spotsize", f"{params['spotsize']:.6g}")
-
-        self.setField("laserdata", data)
-        self.setElidedNames(data[0].dtype.names)
-
     def configValid(self) -> bool:
-        data = self.field("laserdata")
-        if len(data) < 2:
+        datas = self.field("laserdatas")
+        if len(datas) < 2:
             return False
         spotsize = float(self.field("spotsize"))
         speed = float(self.field("speed"))
@@ -191,11 +155,7 @@ class SRRConfigPage(ConfigPage):
         config = SRRConfig(
             spotsize=spotsize, speed=speed, scantime=scantime, warmup=warmup
         )
-        return config.valid_for_data(data)
-
-    def getNames(self) -> List[str]:
-        data = self.field("laserdata")[0]
-        return data.dtype.names if data is not None else []
+        return config.valid_for_data(datas)
 
     def isComplete(self) -> bool:
         if not super().isComplete():
@@ -203,60 +163,6 @@ class SRRConfigPage(ConfigPage):
         if not self.lineedit_warmup.hasAcceptableInput():
             return False
         return self.configValid()
-
-    def readSRRAgilent(self, paths: List[Path]) -> Tuple[List[np.ndarray], dict]:
-        data, param = self.readAgilent(paths[0])
-        datas = [data]
-        for path in paths[1:]:
-            data, _ = self.readAgilent(path)
-            datas.append(data)
-
-        return datas, param
-
-    def readSRRNumpy(self, paths: List[Path]) -> Tuple[List[np.ndarray], dict]:
-        lasers = [io.npz.load(path) for path in paths]
-        param = dict(
-            scantime=lasers[0].config.scantime,
-            speed=lasers[0].config.speed,
-            spotsize=lasers[0].config.spotsize,
-        )
-        return [laser.data for laser in lasers], param
-
-    def readSRRText(self, paths: List[Path]) -> Tuple[np.ndarray, dict]:
-        data, param = self.readText(paths[0])
-        datas = [data]
-        for path in paths[1:]:
-            data, _ = self.readText(path)
-            datas.append(data)
-
-        return datas, param
-
-    def readSRRThermo(self, paths: List[Path]) -> Tuple[np.ndarray, dict]:
-        data, param = self.readThermo(paths[0])
-        datas = [data]
-        for path in paths[1:]:
-            data, _ = self.readThermo(path)
-            datas.append(data)
-
-        return datas, param
-
-    def setElidedNames(self, names: List[str]) -> None:
-        text = ", ".join(name for name in names)
-        fm = QtGui.QFontMetrics(self.label_isotopes.font())
-        text = fm.elidedText(text, QtCore.Qt.ElideRight, self.label_isotopes.width())
-        self.label_isotopes.setText(text)
-
-    def updateNames(self, rename: dict) -> None:
-        datas = self.field("laserdata")
-        for i in range(len(datas)):
-            remove = [name for name in datas[i].dtype.names if name not in rename]
-            datas[i] = rfn.drop_fields(datas[i], remove, usemask=False)
-            datas[i] = rfn.rename_fields(datas[i], rename)
-
-        self.setField("laserdata", datas)
-        self.setElidedNames(datas[0].dtype.names)
-
-    data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
 
 
 class SRRPathAndOptionsPage(PathAndOptionsPage):

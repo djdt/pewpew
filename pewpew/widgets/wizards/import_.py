@@ -93,25 +93,29 @@ class ImportWizard(QtWidgets.QWizard):
 
     def accept(self) -> None:
         if self.field("agilent"):
-            path = Path(self.field("agilent.path"))
+            paths = [Path(p) for p in self.field("agilent.paths")]
         elif self.field("csv"):
-            path = Path(self.field("csv.path"))
+            paths = [Path(p) for p in self.field("csv.paths")]
         elif self.field("perkinelmer"):
-            path = Path(self.field("perkinelmer.path"))
+            paths = [Path(p) for p in self.field("perkinelmer.paths")]
         elif self.field("text"):
-            path = Path(self.field("text.path"))
+            paths = [Path(p) for p in self.field("text.paths")]
         elif self.field("thermo"):
-            path = Path(self.field("thermo.path"))
+            paths = [Path(p) for p in self.field("thermo.paths")]
         else:  # pragma: no cover
             raise ValueError("Invalid filetype selection.")
 
-        data = self.field("laserdata")
-        config = Config(
-            spotsize=float(self.field("spotsize")),
-            scantime=float(self.field("scantime")),
-            speed=float(self.field("speed")),
-        )
-        self.laserImported.emit(Laser(data, config=config, name=path.stem, path=path))
+        datas = self.field("laserdatas")
+        print(paths, datas)
+        for path, data in zip(paths, datas):
+            config = Config(
+                spotsize=float(self.field("spotsize")),
+                scantime=float(self.field("scantime")),
+                speed=float(self.field("speed")),
+            )
+            self.laserImported.emit(
+                Laser(data, config=config, name=path.stem, path=path)
+            )
         super().accept()
 
 
@@ -178,7 +182,7 @@ class ConfigPage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.setTitle("Isotopes and Config")
 
-        self._data: np.ndarray = None
+        self._datas: List[np.ndarray] = []
         self.label_isotopes = QtWidgets.QLabel()
         self.button_isotopes = QtWidgets.QPushButton("Edit Names")
         self.button_isotopes.pressed.connect(self.buttonNamesPressed)
@@ -228,21 +232,21 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.registerField("speed", self.lineedit_speed)
         self.registerField("scantime", self.lineedit_scantime)
 
-        self.registerField("laserdata", self, "data_prop")
+        self.registerField("laserdatas", self, "data_prop")
 
-    def getData(self) -> np.ndarray:
-        return self._data
+    def getData(self) -> List[np.ndarray]:
+        return self._datas
 
-    def setData(self, data: np.ndarray) -> None:
-        self._data = data
+    def setData(self, datas: List[np.ndarray]) -> None:
+        self._datas = datas
         self.dataChanged.emit()
 
     def getNames(self) -> List[str]:
-        data = self.field("laserdata")
+        data = self.field("laserdatas")[0]
         return data.dtype.names if data is not None else []
 
     def initializePage(self) -> None:
-        data = self.field("laserdata")
+        data = self.field("laserdatas")[0]
         self.setElidedNames(data.dtype.names)
 
     def aspectChanged(self) -> None:
@@ -278,12 +282,13 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.label_isotopes.setText(text)
 
     def updateNames(self, rename: dict) -> None:
-        data = self.field("laserdata")
-        remove = [name for name in data.dtype.names if name not in rename]
-        data = rfn.drop_fields(data, remove, usemask=False)
-        data = rfn.rename_fields(data, rename)
+        datas = self.field("laserdatas")
+        for i in range(len(datas)):
+            remove = [name for name in datas[i].dtype.names if name not in rename]
+            datas[i] = rfn.drop_fields(datas[i], remove, usemask=False)
+            datas[i] = rfn.rename_fields(datas[i], rename)
 
-        self.setField("laserdata", data)
-        self.setElidedNames(data.dtype.names)
+        self.setField("laserdatas", datas)
+        self.setElidedNames(datas[0].dtype.names)
 
     data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
