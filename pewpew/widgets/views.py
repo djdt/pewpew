@@ -395,6 +395,7 @@ class ViewTabBar(QtWidgets.QTabBar):
             super().mouseDoubleClickEvent(event)
 
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+        event.accept()
         index = self.tabAt(event.pos())
         menu = QtWidgets.QMenu(self)
         menu.addAction(self.action_close_all)

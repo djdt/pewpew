@@ -59,6 +59,7 @@ class ToolWidget(_ViewWidget):
         self.setLayout(layout)
 
     def contextMenuEvent(self, event: QtCore.QEvent) -> None:
+        event.accept()
         action_copy_image = QtWidgets.QAction(
             QtGui.QIcon.fromTheme("insert-image"), "Copy To Clipboard", self
         )

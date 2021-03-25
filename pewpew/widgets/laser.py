@@ -643,6 +643,7 @@ class LaserWidget(_ViewWidget):
 
     # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
+        event.accept()
         menu = QtWidgets.QMenu(self)
         # menu.addAction(self.action_duplicate)
         menu.addAction(self.action_copy_image)

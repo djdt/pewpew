@@ -5,6 +5,7 @@ from typing import List
 
 class BasicTableView(QtWidgets.QTableView):
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+        event.accept()
         menu = QtWidgets.QMenu(self)
         cut_action = QtWidgets.QAction(QtGui.QIcon.fromTheme("edit-cut"), "Cut", self)
         cut_action.triggered.connect(self._cut)
@@ -96,6 +97,7 @@ class BasicTableView(QtWidgets.QTableView):
 
 class BasicTable(QtWidgets.QTableWidget):
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+        event.accept()
         menu = QtWidgets.QMenu(self)
         cut_action = QtWidgets.QAction(QtGui.QIcon.fromTheme("edit-cut"), "Cut", self)
         cut_action.triggered.connect(self._cut)
