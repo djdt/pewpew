@@ -710,6 +710,9 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             elif self.field("csv"):
                 paths = [Path(p) for p in self.field("csv.paths")]
                 datas, params = self.readMultiple(self.readCsv, paths)
+            elif self.field("numpy"):
+                paths = [Path(p) for p in self.field("numpy.paths")]
+                datas, params = self.readMultiple(self.readNumpy, paths)
             elif self.field("perkinelmer"):
                 paths = [Path(p) for p in self.field("perkinelmer.paths")]
                 datas, params = self.readMultiple(self.readPerkinElmer, paths)
@@ -799,6 +802,15 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
 
         data, params = io.csv.load(path, option=option, full=True)
         return data, params
+
+    def readNumpy(self, path: Path) -> Tuple[np.ndarray, dict]:
+        laser = io.npz.load(path)
+        param = dict(
+            scantime=laser.config.scantime,
+            speed=laser.config.speed,
+            spotsize=laser.config.spotsize,
+        )
+        return laser.data, param
 
     def readPerkinElmer(self, path: Path) -> Tuple[np.ndarray, dict]:
         data, params = io.perkinelmer.load(path, full=True)
