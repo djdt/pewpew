@@ -87,6 +87,8 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
         return path
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        if not event.button() & QtCore.Qt.LeftButton:
+            return
         self.poly.clear()
         self.poly.append(self.snapPos(event.pos()))
 
@@ -103,6 +105,8 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
             self.prepareGeometryChange()
 
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        if not event.button() & QtCore.Qt.LeftButton:
+            return
         modes = list(self.modifierModes(event.modifiers()))
         pixel = self.pixelSize()
 
