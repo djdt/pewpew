@@ -106,7 +106,6 @@ class ImportWizard(QtWidgets.QWizard):
             raise ValueError("Invalid filetype selection.")
 
         datas = self.field("laserdatas")
-        print(paths, datas)
         for path, data in zip(paths, datas):
             config = Config(
                 spotsize=float(self.field("spotsize")),
