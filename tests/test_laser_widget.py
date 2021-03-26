@@ -186,7 +186,7 @@ def test_laser_widget_actions(qtbot: QtBot):
     )
 
     # Test contextmenu
-    widget.graphics.mask = np.ones((10, 10), dtype=np.bool)
+    widget.graphics.mask = np.ones((10, 10), dtype=bool)
     widget.contextMenuEvent(
         QtGui.QContextMenuEvent(
             QtGui.QContextMenuEvent.Mouse,

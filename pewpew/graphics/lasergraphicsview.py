@@ -123,7 +123,7 @@ class LaserGraphicsView(OverlayView):
             self.scene().removeItem(self.selection_image)
             self.selection_image = None
 
-        self.mask = np.zeros(self.data.shape, dtype=np.bool)
+        self.mask = np.zeros(self.data.shape, dtype=bool)
         self.setInteractionFlag("selection", False)
 
     def posInSelection(self, pos: QtCore.QPointF) -> bool:
@@ -187,9 +187,9 @@ class LaserGraphicsView(OverlayView):
             self.scene().removeItem(self.selection_image)
 
         if self.mask is None:
-            self.mask = np.zeros(self.data.shape, dtype=np.bool)
+            self.mask = np.zeros(self.data.shape, dtype=bool)
 
-        mask = mask.astype(np.bool)
+        mask = mask.astype(bool)
         if "add" in modes:
             self.mask = np.logical_or(self.mask, mask)
         elif "subtract" in modes:

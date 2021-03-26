@@ -11,7 +11,7 @@ from pewlib import io
 from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog
 
-from typing import Dict, List, Tuple, Type, Union
+from typing import Callable, Dict, List, Tuple, Type, Union
 
 
 class _OptionsBase(QtWidgets.QGroupBox):  # pragma: no cover
@@ -705,17 +705,23 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
     def validatePage(self) -> bool:
         try:
             if self.field("agilent"):
-                data, params = self.readAgilent(Path(self.field("agilent.path")))
+                paths = [Path(p) for p in self.field("agilent.paths")]
+                datas, params = self.readMultiple(self.readAgilent, paths)
             elif self.field("csv"):
-                data, params = self.readCsv(Path(self.field("csv.path")))
+                paths = [Path(p) for p in self.field("csv.paths")]
+                datas, params = self.readMultiple(self.readCsv, paths)
+            elif self.field("numpy"):
+                paths = [Path(p) for p in self.field("numpy.paths")]
+                datas, params = self.readMultiple(self.readNumpy, paths)
             elif self.field("perkinelmer"):
-                data, params = self.readPerkinElmer(
-                    Path(self.field("perkinelmer.path"))
-                )
+                paths = [Path(p) for p in self.field("perkinelmer.paths")]
+                datas, params = self.readMultiple(self.readPerkinElmer, paths)
             elif self.field("text"):
-                data, params = self.readText(Path(self.field("text.path")))
+                paths = [Path(p) for p in self.field("text.paths")]
+                datas, params = self.readMultiple(self.readText, paths)
             elif self.field("thermo"):
-                data, params = self.readThermo(Path(self.field("thermo.path")))
+                paths = [Path(p) for p in self.field("thermo.paths")]
+                datas, params = self.readMultiple(self.readThermo, paths)
 
         except ValueError as e:
             QtWidgets.QMessageBox.critical(self, "Import Error", str(e))
@@ -728,9 +734,18 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         if "scantime" in params:
             self.setField("scantime", f"{params['scantime']:.6g}")
 
-        self.setField("laserdata", data)
-
+        self.setField("laserdatas", datas)
         return True
+
+    def readMultiple(
+        self, func: Callable[[Path], Tuple[np.ndarray, dict]], paths: List[Path]
+    ) -> Tuple[List[np.ndarray], dict]:
+        data, params = func(paths[0])
+        datas = [data]
+        for path in paths[1:]:
+            data, _ = func(path)
+            datas.append(data)
+        return datas, params
 
     def readAgilent(self, path: Path) -> Tuple[np.ndarray, dict]:
         agilent_method = self.field("agilent.method")
@@ -787,6 +802,15 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
 
         data, params = io.csv.load(path, option=option, full=True)
         return data, params
+
+    def readNumpy(self, path: Path) -> Tuple[np.ndarray, dict]:
+        laser = io.npz.load(path)
+        param = dict(
+            scantime=laser.config.scantime,
+            speed=laser.config.speed,
+            spotsize=laser.config.spotsize,
+        )
+        return laser.data, param
 
     def readPerkinElmer(self, path: Path) -> Tuple[np.ndarray, dict]:
         data, params = io.perkinelmer.load(path, full=True)

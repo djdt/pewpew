@@ -608,7 +608,7 @@ class LaserWidget(_ViewWidget):
         if crop_to_selection:
             mask = self.graphics.mask
         else:
-            mask = np.ones(data.shape, dtype=np.bool)
+            mask = np.ones(data.shape, dtype=bool)
 
         units = {}
         if self.viewspace.options.calibrate:
