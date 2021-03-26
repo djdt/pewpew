@@ -735,7 +735,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
     def readAgilent(self, path: Path) -> Tuple[np.ndarray, dict]:
         agilent_method = self.field("agilent.method")
         if agilent_method == "Alphabetical Order":  # pragma: no cover
-            method = []  # Fallback to alphabetical
+            method = ["alphabetical"]  # Fallback to alphabetical
         elif agilent_method == "Acquistion Method":  # pragma: no cover
             method = ["acq_method_xml"]
         elif agilent_method == "Batch Log CSV":  # pragma: no cover
