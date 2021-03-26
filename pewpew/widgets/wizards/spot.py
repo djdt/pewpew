@@ -67,8 +67,6 @@ class SpotImportWizard(QtWidgets.QWizard):
             },
             parent=self,
         )
-        format_page.radio_numpy.setEnabled(False)
-        format_page.radio_numpy.setVisible(False)
 
         self.setPage(self.page_format, format_page)
         self.setPage(
@@ -107,26 +105,26 @@ class SpotImportWizard(QtWidgets.QWizard):
         self.setPage(self.page_spot_peaks, SpotPeaksPage(parent=self))
 
     def accept(self) -> None:
-        if self.field("agilent"):
-            path = Path(self.field("agilent.path"))
-        elif self.field("csv"):
-            path = Path(self.field("csv.path"))
-        elif self.field("perkinelmer"):
-            path = Path(self.field("perkinelmer.path"))
-        elif self.field("text"):
-            path = Path(self.field("text.path"))
-        elif self.field("thermo"):
-            path = Path(self.field("thermo.path"))
-        else:  # pragma: no cover
-            raise ValueError("Invalid filetype selection.")
+        # if self.field("agilent"):
+        #     path = Path(self.field("agilent.path"))
+        # elif self.field("csv"):
+        #     path = Path(self.field("csv.path"))
+        # elif self.field("perkinelmer"):
+        #     path = Path(self.field("perkinelmer.path"))
+        # elif self.field("text"):
+        #     path = Path(self.field("text.path"))
+        # elif self.field("thermo"):
+        #     path = Path(self.field("thermo.path"))
+        # else:  # pragma: no cover
+        #     raise ValueError("Invalid filetype selection.")
 
-        data = self.field("laserdata")
-        config = Config(
-            spotsize=float(self.field("spotsize")),
-            scantime=float(self.field("scantime")),
-            speed=float(self.field("speed")),
-        )
-        self.laserImported.emit(Laser(data, config=config, name=path.stem, path=path))
+        # data = self.field("laserdata")
+        # config = Config(
+        #     spotsize=float(self.field("spotsize")),
+        #     scantime=float(self.field("scantime")),
+        #     speed=float(self.field("speed")),
+        # )
+        # self.laserImported.emit(Laser(data, config=config, name=path.stem, path=path))
         super().accept()
 
 
@@ -276,8 +274,12 @@ class WindowedPeakOptions(SpotPeakOptions):
 
 
 class SpotPeaksPage(QtWidgets.QWizardPage):
+    dataChanged = QtCore.Signal()
+
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
+
+        self._datas: List[np.ndarray] = []
 
         self.check_single_spot = QtWidgets.QCheckBox("One spot per line.")
         self.check_single_spot.clicked.connect(self.completeChanged)
@@ -316,18 +318,70 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         layout_controls.addLayout(layout_form_controls)
 
         layout_chart = QtWidgets.QVBoxLayout()
-        layout_chart.addWidget(self.chart)
+        layout_chart.addWidget(self.chart, 1)
+        layout_chart.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(layout_controls)
         layout.addLayout(layout_chart)
         self.setLayout(layout)
 
+        self.registerField("laserdatas", self, "data_prop")
+
+    def getData(self) -> List[np.ndarray]:
+        return self._datas
+
+    def setData(self, datas: List[np.ndarray]) -> None:
+        self._datas = datas
+        self.dataChanged.emit()
+
     def initializePage(self) -> None:
         datas = self.field("laserdatas")
-        print(datas)
-        self.chart.setSignal(datas[0])
-        pass
+        self.combo_isotope.clear()
+        self.combo_isotope.addItems(datas[0].dtype.names)
+
+        for signal in self.chart.signals.values():
+            self.chart.removeSeries(signal)
+        self.chart.signals.clear()
+
+        data = datas[0][self.combo_isotope.currentText()].ravel()
+        self.options.widget(0).lineedit_minimum.setText(f"{data.min():.2f}")
+        self.options.widget(0).lineedit_maximum.setText(f"{data.max():.2f}")
+
+        self.drawThresholds()
+
+        self.chart.addSignal(
+            "signal", data
+        )
+        self.chart.yaxis.setRange(0, np.amax(data))
+        self.chart.xaxis.setRange(0, data.size)
+        self.chart.yaxis.applyNiceNumbers()
+
+    def drawThresholds(self) -> None:
+        method = self.combo_peak_method.currentText()
+        args = self.options.widget(self.options.currentIndex()).args()
+        data = self.field("laserdatas")[0][self.combo_isotope.currentText()].ravel()
+
+        if method == "Constant":
+            if "min" not in self.chart.signals:
+                self.chart.addSignal(
+                    "min", np.full(data.size, args["minimum"]), QtGui.QColor(0, 0, 255)
+                )
+            else:
+                self.chart.setSignal("min", np.full(data.size, ))
+            if "max" not in self.chart.signals:
+                self.chart.addSignal(
+                    "max", np.full(data.size, args["maximum"]), QtGui.QColor(255, 0, 0)
+                )
+            else:
+                self.chart.setSignal("max", np.full(data.size, data.max()))
+            pass
+        elif method == "CWT":
+            pass
+        elif method == "Moving window":
+            pass
+
+    data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
 
 
 if __name__ == "__main__":
@@ -338,4 +392,6 @@ if __name__ == "__main__":
         ]
     )
     spot.open()
+    spot.next()
+    spot.next()
     app.exec_()

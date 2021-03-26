@@ -27,25 +27,30 @@ class SignalChart(BaseChart):
         self.addAxis(self.xaxis, QtCore.Qt.AlignBottom)
         self.addAxis(self.yaxis, QtCore.Qt.AlignLeft)
 
-        self.signal = QtCharts.QLineSeries()
-        self.signal.setPen(QtGui.QPen(QtCore.Qt.black, 1.0))
-        self.signal.setUseOpenGL(True)  # Speed for many line?
+        self.signals = {}
 
-        self.chart().addSeries(self.signal)
-        self.signal.attachAxis(self.xaxis)
-        self.signal.attachAxis(self.yaxis)
-
-    def setSignal(self, ys: np.ndarray) -> None:
+    def setSignal(self, name: str, ys: np.ndarray) -> None:
         xs = np.arange(ys.size)
-        self.yvalues = ys
         data = np.stack((xs, ys), axis=1)
         poly = array_to_polygonf(data)
-        self.signal.replace(poly)
+        self.signals[name].replace(poly)
+
+    def addSignal(
+        self, name: str, ys: np.ndarray, color: QtGui.QColor = QtCore.Qt.black
+    ) -> None:
+        series = QtCharts.QLineSeries()
+        series.setPen(QtGui.QPen(color, 1.0))
+        series.setUseOpenGL(True)  # Speed for many line?
+        self.chart().addSeries(series)
+        series.attachAxis(self.xaxis)
+        series.attachAxis(self.yaxis)
+        self.signals[name] = series
+
+        self.setSignal(name, ys)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         if event.button() == QtCore.Qt.RightButton:
             self.chart().zoomReset()
         else:
             super().mouseReleaseEvent(event)
-        self.xaxis.applyNiceNumbers()
         self.yaxis.applyNiceNumbers()
