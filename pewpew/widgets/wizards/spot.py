@@ -141,6 +141,9 @@ class SpotPeakOptions(QtWidgets.QGroupBox):
     def isComplete(self) -> bool:
         return True
 
+    def generateThresholds(self) -> dict:
+        raise NotImplementedError
+
     # def setEnabled(self, enabled: bool) -> None:
     #     pass
 
@@ -260,17 +263,17 @@ class WindowedPeakOptions(SpotPeakOptions):
 
     def args(self) -> dict:
         return {
-            "minimum": float(self.lineedit_minimum.text()),
-            "maximum": float(self.lineedit_maximum.text()),
+            "size": int(self.lineedit_window_size.text()),
+            "sigma": float(self.lineedit_sigma.text()),
         }
 
     def isComplete(self) -> bool:
         if (
-            not self.lineedit_minimum.hasAcceptableInput()
-            or not self.lineedit_maximum.hasAcceptableInput()
+            not self.lineedit_window_size.hasAcceptableInput()
+            or not self.lineedit_sigma.hasAcceptableInput()
         ):
             return False
-        return float(self.lineedit_minimum.text()) < float(self.lineedit_maximum.text())
+        return True
 
 
 class SpotPeaksPage(QtWidgets.QWizardPage):
@@ -280,20 +283,28 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         super().__init__(parent)
 
         self._datas: List[np.ndarray] = []
+        self.options = {
+            "Constant": ConstantPeakOptions(self),
+            "CWT": CWTPeakOptions(self),
+            "Moving window": WindowedPeakOptions(self),
+        }
 
         self.check_single_spot = QtWidgets.QCheckBox("One spot per line.")
         self.check_single_spot.clicked.connect(self.completeChanged)
 
         self.combo_peak_method = QtWidgets.QComboBox()
-        self.combo_peak_method.addItems(["Constant", "CWT", "Moving window"])
+        self.combo_peak_method.addItems(list(self.options.keys()))
 
         self.combo_isotope = QtWidgets.QComboBox()
 
-        self.options = QtWidgets.QStackedWidget()
-        self.options.addWidget(ConstantPeakOptions(self))
-        self.options.addWidget(CWTPeakOptions(self))
-        self.options.addWidget(WindowedPeakOptions(self))
-        self.combo_peak_method.currentIndexChanged.connect(self.options.setCurrentIndex)
+        self.stack = QtWidgets.QStackedWidget()
+        for option in self.options.values():
+            self.stack.addWidget(option)
+            option.optionsChanged.connect(self.completeChanged)
+            option.optionsChanged.connect(self.drawThresholds)
+
+        self.combo_peak_method.currentIndexChanged.connect(self.stack.setCurrentIndex)
+        self.combo_peak_method.currentIndexChanged.connect(self.drawThresholds)
 
         self.chart = SignalChart(parent=self)
 
@@ -314,7 +325,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         layout_controls = QtWidgets.QVBoxLayout()
         layout_controls.addWidget(self.check_single_spot)
         layout_controls.addWidget(self.combo_peak_method)
-        layout_controls.addWidget(self.options)
+        layout_controls.addWidget(self.stack)
         layout_controls.addLayout(layout_form_controls)
 
         layout_chart = QtWidgets.QVBoxLayout()
@@ -327,6 +338,9 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
         self.registerField("laserdatas", self, "data_prop")
+
+    def completeChanged(self) -> None:
+        pass
 
     def getData(self) -> List[np.ndarray]:
         return self._datas
@@ -345,21 +359,19 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.chart.signals.clear()
 
         data = datas[0][self.combo_isotope.currentText()].ravel()
-        self.options.widget(0).lineedit_minimum.setText(f"{data.min():.2f}")
-        self.options.widget(0).lineedit_maximum.setText(f"{data.max():.2f}")
+        self.options["Constant"].lineedit_minimum.setText(f"{data.min():.2f}")
+        self.options["Constant"].lineedit_maximum.setText(f"{data.max():.2f}")
 
         self.drawThresholds()
 
-        self.chart.addSignal(
-            "signal", data
-        )
+        self.chart.addSignal("signal", data)
         self.chart.yaxis.setRange(0, np.amax(data))
         self.chart.xaxis.setRange(0, data.size)
         self.chart.yaxis.applyNiceNumbers()
 
     def drawThresholds(self) -> None:
         method = self.combo_peak_method.currentText()
-        args = self.options.widget(self.options.currentIndex()).args()
+        args = self.options[method].args()
         data = self.field("laserdatas")[0][self.combo_isotope.currentText()].ravel()
 
         if method == "Constant":
@@ -368,14 +380,13 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
                     "min", np.full(data.size, args["minimum"]), QtGui.QColor(0, 0, 255)
                 )
             else:
-                self.chart.setSignal("min", np.full(data.size, ))
+                self.chart.setSignal("min", np.full(data.size, args["minimum"]))
             if "max" not in self.chart.signals:
                 self.chart.addSignal(
                     "max", np.full(data.size, args["maximum"]), QtGui.QColor(255, 0, 0)
                 )
             else:
-                self.chart.setSignal("max", np.full(data.size, data.max()))
-            pass
+                self.chart.setSignal("max", np.full(data.size, args["maximum"]))
         elif method == "CWT":
             pass
         elif method == "Moving window":
