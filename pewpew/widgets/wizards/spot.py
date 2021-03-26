@@ -1,42 +1,51 @@
-import os
 import numpy as np
+import numpy.lib.recfunctions as rfn
+import logging
+
+from pathlib import Path
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewlib import io
-from pewlib.process import peakfinding
 from pewlib.config import Config
 from pewlib.laser import Laser
-from pewlib.srr import SRRLaser, SRRConfig
+from pewlib.process import peakfinding
 
-from pewpew.validators import DecimalValidator, DecimalValidatorNoZero
+from pewpew.charts.signal import SignalChart
+from pewpew.validators import DecimalValidator, OddIntValidator
 
 from pewpew.widgets.wizards.import_ import FormatPage
 from pewpew.widgets.wizards.options import PathAndOptionsPage
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Union
+
+
+logger = logging.getLogger(__name__)
 
 
 class SpotImportWizard(QtWidgets.QWizard):
     page_format = 0
-    page_files = 1
-    page_agilent = 2
+    page_agilent = 1
+    page_csv = 2
     page_numpy = 3
-    page_text = 4
-    page_thermo = 5
-    page_spot_format = 6
-    page_config = 7
+    page_perkinelmer = 4
+    page_text = 5
+    page_thermo = 6
+    page_spot_peaks = 7
 
     laserImported = QtCore.Signal(Laser)
 
     def __init__(
         self,
-        paths: List[str] = [],
+        paths: Union[List[str], List[Path]] = [],
         config: Config = None,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
-        self.setWindowTitle("Import Wizard")
+        self.setWindowTitle("Spot Import Wizard")
+
+        for i in enumerate(paths):
+            if isinstance(paths[0], str):  # pragma: no cover
+                paths[0] = Path(paths[0])
 
         config = config or Config()
 
@@ -50,55 +59,65 @@ class SpotImportWizard(QtWidgets.QWizard):
             overview,
             page_id_dict={
                 "agilent": self.page_agilent,
-                # "numpy": self.page_numpy,
+                "csv": self.page_csv,
+                "numpy": self.page_numpy,
+                "perkinelmer": self.page_perkinelmer,
                 "text": self.page_text,
                 "thermo": self.page_thermo,
             },
             parent=self,
         )
         format_page.radio_numpy.setEnabled(False)
+        format_page.radio_numpy.setVisible(False)
 
         self.setPage(self.page_format, format_page)
         self.setPage(
             self.page_agilent,
             PathAndOptionsPage(
-                paths,
-                "agilent",
-                multiplepaths=True,
-                nextid=self.page_spot_format,
-                parent=self,
+                paths, "agilent", nextid=self.page_spot_peaks, parent=self
+            ),
+        )
+        self.setPage(
+            self.page_csv,
+            PathAndOptionsPage(paths, "csv", nextid=self.page_spot_peaks, parent=self),
+        )
+        self.setPage(
+            self.page_numpy,
+            PathAndOptionsPage(
+                paths, "numpy", nextid=self.page_spot_peaks, parent=self
+            ),
+        )
+        self.setPage(
+            self.page_perkinelmer,
+            PathAndOptionsPage(
+                paths, "perkinelmer", nextid=self.page_spot_peaks, parent=self
             ),
         )
         self.setPage(
             self.page_text,
-            PathAndOptionsPage(
-                paths,
-                "text",
-                multiplepaths=True,
-                nextid=self.page_spot_format,
-                parent=self,
-            ),
+            PathAndOptionsPage(paths, "text", nextid=self.page_spot_peaks, parent=self),
         )
         self.setPage(
             self.page_thermo,
             PathAndOptionsPage(
-                paths,
-                "thermo",
-                multiplepaths=True,
-                nextid=self.page_spot_format,
-                parent=self,
+                paths, "thermo", nextid=self.page_spot_peaks, parent=self
             ),
         )
-        self.setPage(self.page_spot_format, SpotPeakFindingPage(parent=self))
+
+        self.setPage(self.page_spot_peaks, SpotPeaksPage(parent=self))
 
     def accept(self) -> None:
         if self.field("agilent"):
-            path = self.field("agilent.path")
+            path = Path(self.field("agilent.path"))
+        elif self.field("csv"):
+            path = Path(self.field("csv.path"))
+        elif self.field("perkinelmer"):
+            path = Path(self.field("perkinelmer.path"))
         elif self.field("text"):
-            path = self.field("text.path")
+            path = Path(self.field("text.path"))
         elif self.field("thermo"):
-            path = self.field("thermo.path")
-        else:
+            path = Path(self.field("thermo.path"))
+        else:  # pragma: no cover
             raise ValueError("Invalid filetype selection.")
 
         data = self.field("laserdata")
@@ -107,309 +126,216 @@ class SpotImportWizard(QtWidgets.QWizard):
             scantime=float(self.field("scantime")),
             speed=float(self.field("speed")),
         )
-        base, ext = os.path.splitext(path)
-        self.laserImported.emit(
-            Laser(data, config=config, path=path, name=os.path.basename(base))
-        )
+        self.laserImported.emit(Laser(data, config=config, name=path.stem, path=path))
         super().accept()
 
 
-# class SpotFormatPage(QtWidgets.QWizardPage):
-#     def __init__(
-#         self, parent: QtWidgets.QWidget = None,
-#     ):
-#         super().__init__(parent)
-#         self.radio_single_line = QtWidgets.QRadioButton("Single acquistion.")
-#         self.radio_multi_line = QtWidgets.QRadioButton("Multiple acquistions.")
-#         self.radio_spot_per_line = QtWidgets.QRadioButton("One spot per acquistion.")
+class SpotPeakOptions(QtWidgets.QGroupBox):
+    optionsChanged = QtCore.Signal()
 
-#         self.lineedit_shape_x = QtWidgets.QLineEdit("1")
-#         self.lineedit_shape_x.setValidator(QtGui.QIntValidator(1, 9999))
-#         self.lineedit_shape_x.textEdited.connect(self.completeChanged)
-#         self.lineedit_shape_y = QtWidgets.QLineEdit("1")
-#         self.lineedit_shape_y.setValidator(QtGui.QIntValidator(1, 9999))
-#         self.lineedit_shape_y.textEdited.connect(self.completeChanged)
+    def __init__(self, name: str, parent: QtWidgets.QWidget = None):
+        super().__init__(name, parent=parent)
+        self.setLayout(QtWidgets.QFormLayout())
 
-#         self.check_rastered = QtWidgets.QCheckBox("Data is rastered.")
+    # def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
+    #     return []
 
-#         spot_box = QtWidgets.QGroupBox("Spot Format")
-#         layout_spot = QtWidgets.QVBoxLayout()
-#         layout_spot.addWidget(self.radio_single_line)
-#         layout_spot.addWidget(self.radio_multi_line)
-#         layout_spot.addWidget(self.radio_spot_per_line)
-#         spot_box.setLayout(layout_spot)
+    def isComplete(self) -> bool:
+        return True
 
-#         layout_shape = QtWidgets.QHBoxLayout()
-#         layout_shape.addWidget(self.lineedit_shape_x)
-#         layout_shape.addWidget(QtWidgets.QLabel("x"))
-#         layout_shape.addWidget(self.lineedit_shape_y)
+    # def setEnabled(self, enabled: bool) -> None:
+    #     pass
 
-#         layout_options = QtWidgets.QFormLayout()
-#         layout_options.addRow("Shape:", layout_shape)
-#         layout_options.addRow(self.check_rastered)
-
-#         layout = QtWidgets.QVBoxLayout()
-#         layout.addWidget(spot_box)
-#         layout.addLayout(layout_options)
-#         self.setLayout(layout)
-
-#         self.registerField("singleLine", self.radio_single_line)
-#         self.registerField("multiLine", self.radio_multi_line)
-#         self.registerField("spotPerLine", self.radio_spot_per_line)
-
-#         self.registerField("shapeX", self.lineedit_shape_x)
-#         self.registerField("shapeY", self.lineedit_shape_y)
-#         self.registerField("rastered", self.check_rastered)
-
-#     def nextId(self) -> int:
-#         if self.field("singleLine"):
-#             return SpotImportWizard.page_single_line
-#         elif self.field("multiLine"):
-#             return SpotImportWizard.page_multi_line
-#         elif self.field("spotPerLine"):
-#             return SpotImportWizard.page_spot_per_line
-#         else:
-#             return super().nextId()
+    # def updateForPath(self, path: Path) -> None:
+    #     pass
 
 
-# class SpotImportCanvas(BasicCanvas):
-#     def __init__(
-#         self,
-#         figsize: Tuple[float, float] = (5.0, 5.0),
-#         parent: QtWidgets.QWidget = None,
-#     ):
-#         super().__init__(figsize, parent)
-#         self.drawFigure()
+class ConstantPeakOptions(SpotPeakOptions):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__("Constant Options", parent)
 
-#     def drawFigure(self) -> None:
-#         self.figure.clear()
-#         self.ax = self.figure.add_subplot()
+        self.lineedit_minimum = QtWidgets.QLineEdit("0.0")
+        self.lineedit_minimum.setValidator(DecimalValidator(-1e99, 1e99, 4))
+        self.lineedit_minimum.textChanged.connect(self.optionsChanged)
+        self.lineedit_maximum = QtWidgets.QLineEdit("1.0")
+        self.lineedit_maximum.setValidator(DecimalValidator(-1e99, 1e99, 4))
+        self.lineedit_maximum.textChanged.connect(self.optionsChanged)
 
-#     def drawPeaks(self, data: np.ndarray, peaks: np.ndarray) -> None:
-#         self.ax.clear()
-#         self.ax.plot(data, color="black")
+        self.layout().addRow("Minimum value:", self.lineedit_minimum)
+        self.layout().addRow("Maximum value:", self.lineedit_maximum)
 
-#         for peak in peaks:
-#             xs = np.arange(peak["left"], peak["right"])
-#             self.ax.fill_between(
-#                 xs, data[xs], peak["base"], color="red", alpha=0.5, lw=0.5
-#             )
+    def args(self) -> dict:
+        return {
+            "minimum": float(self.lineedit_minimum.text()),
+            "maximum": float(self.lineedit_maximum.text()),
+        }
 
-#         self.ax.text(
-#             0.05,
-#             0.95,
-#             str(len(peaks)),
-#             ha="left",
-#             va="top",
-#             transform=self.ax.transAxes,
-#         )
-
-#         self.draw_idle()
+    def isComplete(self) -> bool:
+        if (
+            not self.lineedit_minimum.hasAcceptableInput()
+            or not self.lineedit_maximum.hasAcceptableInput()
+        ):
+            return False
+        return float(self.lineedit_minimum.text()) < float(self.lineedit_maximum.text())
 
 
-class SpotPeakFindingPage(QtWidgets.QWizardPage):
+class CWTPeakOptions(SpotPeakOptions):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__("CWT Options", parent)
+        self.lineedit_minwidth = QtWidgets.QLineEdit("10.0")
+        self.lineedit_minwidth.setValidator(DecimalValidator(0, 1e9, 2))
+        self.lineedit_minwidth.textChanged.connect(self.optionsChanged)
+        self.lineedit_maxwidth = QtWidgets.QLineEdit("30.0")
+        self.lineedit_maxwidth.setValidator(DecimalValidator(1, 1e9, 2))
+        self.lineedit_maxwidth.textChanged.connect(self.optionsChanged)
+
+        self.lineedit_minsnr = QtWidgets.QLineEdit("9.0")
+        self.lineedit_minsnr.setValidator(DecimalValidator(0, 100, 1))
+        self.lineedit_minsnr.textChanged.connect(self.optionsChanged)
+        self.lineedit_width_factor = QtWidgets.QLineEdit("2.5")
+        self.lineedit_width_factor.setValidator(DecimalValidator(0, 10, 1))
+        self.lineedit_width_factor.textChanged.connect(self.optionsChanged)
+
+        self.combo_base_method = QtWidgets.QComboBox()
+        self.combo_base_method.addItems(
+            ["baseline", "edge", "prominence", "minima", "zero"]
+        )
+        self.combo_base_method.currentTextChanged.connect(self.optionsChanged)
+        self.combo_height_method = QtWidgets.QComboBox()
+        self.combo_height_method.addItems(["cwt", "maxima"])
+        self.combo_height_method.currentTextChanged.connect(self.optionsChanged)
+
+        self.layout().addRow("Minimum width:", self.lineedit_minwidth)
+        self.layout().addRow("Maximum width:", self.lineedit_maxwidth)
+        self.layout().addRow("Width factor:", self.lineedit_width_factor)
+        self.layout().addRow("Minimum ridge SNR:", self.lineedit_minsnr)
+        self.layout().addRow("Peak base:", self.combo_base_method)
+        self.layout().addRow("Peak height:", self.combo_height_method)
+
+    def args(self) -> dict:
+        return {
+            "width": (
+                float(self.lineedit_minwidth.text()),
+                float(self.lineedit_maxwidth.text()),
+            ),
+            "snr": float(self.lineedit_minsnr.text()),
+            "width_factor": float(self.lineedit_width_factor.text()),
+            "base_method": self.combo_base_method.currentText(),
+            "height_method": self.combo_height_method.currentText(),
+        }
+
+    def isComplete(self) -> bool:
+        if not all(
+            x.hasAcceptableInput()
+            for x in [
+                self.lineedit_minwidth,
+                self.lineedit_maxwidth,
+                self.lineedit_minarea,
+                self.lineedit_minheight,
+                self.lineedit_minsnr,
+                self.lineedit_width_factor,
+            ]
+        ):
+            return False
+        return True
+
+
+class WindowedPeakOptions(SpotPeakOptions):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__("Window Options", parent)
+
+        self.lineedit_window_size = QtWidgets.QLineEdit("9")
+        self.lineedit_window_size.setValidator(OddIntValidator(3, 999))
+        self.lineedit_window_size.textChanged.connect(self.optionsChanged)
+
+        self.combo_filter_method = QtWidgets.QComboBox()
+        self.combo_filter_method.addItems(["Guassian Mean", "Guassian Median"])
+        self.combo_filter_method.currentTextChanged.connect(self.optionsChanged)
+
+        self.lineedit_sigma = QtWidgets.QLineEdit("3.0")
+        self.lineedit_sigma.setValidator(DecimalValidator(0.0, 100.0, 2))
+        self.lineedit_sigma.textChanged.connect(self.optionsChanged)
+
+        self.layout().addRow("Window size:", self.lineedit_window_size)
+        self.layout().addRow("Window filter:", self.combo_filter_method)
+        self.layout().addRow("Sigma:", self.lineedit_sigma)
+
+    def args(self) -> dict:
+        return {
+            "minimum": float(self.lineedit_minimum.text()),
+            "maximum": float(self.lineedit_maximum.text()),
+        }
+
+    def isComplete(self) -> bool:
+        if (
+            not self.lineedit_minimum.hasAcceptableInput()
+            or not self.lineedit_maximum.hasAcceptableInput()
+        ):
+            return False
+        return float(self.lineedit_minimum.text()) < float(self.lineedit_maximum.text())
+
+
+class SpotPeaksPage(QtWidgets.QWizardPage):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         self.check_single_spot = QtWidgets.QCheckBox("One spot per line.")
         self.check_single_spot.clicked.connect(self.completeChanged)
 
-        self.lineedit_shape_x = QtWidgets.QLineEdit("1")
-        self.lineedit_shape_x.setValidator(QtGui.QIntValidator(1, 9999))
-        self.lineedit_shape_x.textEdited.connect(self.completeChanged)
-        self.lineedit_shape_y = QtWidgets.QLineEdit("1")
-        self.lineedit_shape_y.setValidator(QtGui.QIntValidator(1, 9999))
-        self.lineedit_shape_y.textEdited.connect(self.completeChanged)
+        self.combo_peak_method = QtWidgets.QComboBox()
+        self.combo_peak_method.addItems(["Constant", "CWT", "Moving window"])
 
-        self.lineedit_minwidth = QtWidgets.QLineEdit("10.0")
-        self.lineedit_minwidth.setValidator(DecimalValidator(0, 1e9, 2))
-        self.lineedit_minwidth.editingFinished.connect(self.updateCanvas)
-        self.lineedit_maxwidth = QtWidgets.QLineEdit("30.0")
-        self.lineedit_maxwidth.setValidator(DecimalValidator(1, 1e9, 2))
-        self.lineedit_maxwidth.editingFinished.connect(self.updateCanvas)
+        self.combo_isotope = QtWidgets.QComboBox()
 
-        box_params = QtWidgets.QGroupBox("Peak Finding")
+        self.options = QtWidgets.QStackedWidget()
+        self.options.addWidget(ConstantPeakOptions(self))
+        self.options.addWidget(CWTPeakOptions(self))
+        self.options.addWidget(WindowedPeakOptions(self))
+        self.combo_peak_method.currentIndexChanged.connect(self.options.setCurrentIndex)
+
+        self.chart = SignalChart(parent=self)
 
         self.lineedit_minarea = QtWidgets.QLineEdit("0.0")
         self.lineedit_minarea.setValidator(DecimalValidator(0, 1e9, 2))
-        self.lineedit_minarea.editingFinished.connect(self.updateCanvas)
         self.lineedit_minheight = QtWidgets.QLineEdit("0.0")
         self.lineedit_minheight.setValidator(DecimalValidator(0, 1e9, 2))
-        self.lineedit_minheight.editingFinished.connect(self.updateCanvas)
-        self.lineedit_minsnr = QtWidgets.QLineEdit("9.0")
-        self.lineedit_minsnr.setValidator(DecimalValidator(0, 100, 1))
-        self.lineedit_minsnr.editingFinished.connect(self.updateCanvas)
-        self.lineedit_width_factor = QtWidgets.QLineEdit("2.5")
-        self.lineedit_width_factor.setValidator(DecimalValidator(0, 10, 1))
-        self.lineedit_width_factor.editingFinished.connect(self.updateCanvas)
 
-        self.combo_base_method = QtWidgets.QComboBox()
-        self.combo_base_method.addItems(
-            ["baseline", "edge", "prominence", "minima", "zero"]
-        )
-        self.combo_base_method.activated.connect(self.updateCanvas)
-        self.combo_height_method = QtWidgets.QComboBox()
-        self.combo_height_method.addItems(["cwt", "maxima"])
-        self.combo_height_method.activated.connect(self.updateCanvas)
+        # self.spinbox_line = QtWidgets.QSpinBox()
+        # self.spinbox_line.setPrefix("line:")
+        # self.spinbox_line.setValue(1)
+        # self.spinbox_line.valueChanged.connect(self.updateCanvas)
 
-        # self.canvas = SpotImportCanvas(parent=self)
-
-        self.spinbox_line = QtWidgets.QSpinBox()
-        self.spinbox_line.setPrefix("line:")
-        self.spinbox_line.setValue(1)
-        self.spinbox_line.valueChanged.connect(self.updateCanvas)
-
-        self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.activated.connect(self.updateCanvas)
-
-        layout_shape = QtWidgets.QHBoxLayout()
-        layout_shape.addWidget(QtWidgets.QLabel("Shape:"))
-        layout_shape.addWidget(self.lineedit_shape_x)
-        layout_shape.addWidget(QtWidgets.QLabel("x"))
-        layout_shape.addWidget(self.lineedit_shape_y)
-
-        layout_width = QtWidgets.QHBoxLayout()
-        layout_width.addWidget(QtWidgets.QLabel("Width:"))
-        layout_width.addWidget(self.lineedit_minwidth)
-        layout_width.addWidget(QtWidgets.QLabel("-"))
-        layout_width.addWidget(self.lineedit_maxwidth)
-
-        box_layout = QtWidgets.QFormLayout()
-        box_layout.addRow("Minimum ridge SNR:", self.lineedit_minsnr)
-        box_layout.addRow("Minimum area:", self.lineedit_minarea)
-        box_layout.addRow("Minimum height:", self.lineedit_minheight)
-        box_layout.addRow("Peak base:", self.combo_base_method)
-        box_layout.addRow("Peak height:", self.combo_height_method)
-        box_layout.addRow("Width factor:", self.lineedit_width_factor)
-        box_params.setLayout(box_layout)
+        layout_form_controls = QtWidgets.QFormLayout()
+        layout_form_controls.addRow("Minimum area:", self.lineedit_minarea)
+        layout_form_controls.addRow("Minimum height:", self.lineedit_minheight)
 
         layout_controls = QtWidgets.QVBoxLayout()
         layout_controls.addWidget(self.check_single_spot)
-        layout_controls.addLayout(layout_shape)
-        layout_controls.addLayout(layout_width)
-        layout_controls.addWidget(box_params)
+        layout_controls.addWidget(self.combo_peak_method)
+        layout_controls.addWidget(self.options)
+        layout_controls.addLayout(layout_form_controls)
 
-        layout_combos = QtWidgets.QHBoxLayout()
-        layout_combos.addWidget(self.spinbox_line, 0, QtCore.Qt.AlignLeft)
-        layout_combos.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+        layout_chart = QtWidgets.QVBoxLayout()
+        layout_chart.addWidget(self.chart)
 
-        layout_canvas = QtWidgets.QVBoxLayout()
-        layout_canvas.addWidget(self.canvas)
-        layout_canvas.addLayout(layout_combos)
-
-        layout_main = QtWidgets.QHBoxLayout()
-        layout_main.addLayout(layout_controls)
-        layout_main.addLayout(layout_canvas)
-        self.setLayout(layout_main)
+        layout = QtWidgets.QHBoxLayout()
+        layout.addLayout(layout_controls)
+        layout.addLayout(layout_chart)
+        self.setLayout(layout)
 
     def initializePage(self) -> None:
-        # self.paths = self.field("paths")
-        # if len(self.paths) == 1:
-        #     self.check_single_spot.setChecked(True)
-
-        self.updateData(0)
-
-        self.spinbox_line.setRange(1, self.data.shape[0])
-        self.combo_isotope.addItems(self.data.dtype.names)
-
-        self.updateCanvas()
-
-    def isComplete(self) -> bool:
-        if self.check_single_spot.isChecked():
-            return int(self.lineedit_shape_x.text()) * int(
-                self.lineedit_shape_y.text()
-            ) == len(self.paths)
-        return True
-
-    @QtCore.Property(dict)
-    def peakParams(self) -> dict:
-        return {
-            "peak_base_method": self.combo_base_method.currentText(),
-            "peak_height_method": self.combo_height_method.currentText(),
-            "peak_width_factor": float(self.lineedit_width_factor.text()),
-            "peak_min_area": float(self.lineedit_minarea.text()),
-            "peak_min_height": float(self.lineedit_minheight.text()),
-            "ridge_min_snr": float(self.lineedit_minsnr.text()),
-        }
-
-    def readAgilent(self, paths: List[str]) -> List[np.ndarray]:
-        data = []
-        for path in paths:
-            agilent_method = self.field("agilent.method")
-            if agilent_method == "Alphabetical Order":
-                method = None
-            elif agilent_method == "Acquistion Method":
-                method = ["acq_method_xml"]
-            elif agilent_method == "Batch Log CSV":
-                method = ["batch_csv"]
-            elif agilent_method == "Batch Log XML":
-                method = ["batch_xml"]
-            else:
-                raise ValueError("Unknown data file collection method.")
-
-            data.append(
-                io.agilent.load(
-                    path,
-                    collection_methods=method,
-                    use_acq_for_names=self.field("agilent.useAcqNames"),
-                )
-            )
-        return data
-
-    def readText(self, paths: List[str]) -> List[np.ndarray]:
-        data = []
-        for path in paths:
-            data.append(io.csv.load(path, isotope=self.field("text.name")))
-        return data
-
-    def readThermo(self, paths: List[str]) -> List[np.ndarray]:
-        data = []
-        for path in paths:
-            kwargs = dict(
-                delimiter=self.field("thermo.delimiter"),
-                comma_decimal=self.field("thermo.decimal") == ",",
-            )
-            use_analog = self.field("thermo.useAnalog")
-
-            if self.field("thermo.sampleRows"):
-                data.append(
-                    io.thermo.icap_csv_rows_read_data(
-                        path, use_analog=use_analog, **kwargs
-                    )
-                )
-            else:
-                data.append(
-                    io.thermo.icap_csv_columns_read_data(
-                        path, use_analog=use_analog, **kwargs
-                    )
-                )
-        return data
-
-    def updateCanvas(self) -> None:
-        data = self.data[self.combo_isotope.currentText()][
-            self.spinbox_line.value() - 1
-        ]
-        min_width = float(self.lineedit_minwidth.text())
-        max_width = float(self.lineedit_maxwidth.text())
-        peaks = peakfinding.find_peaks(
-            data, int(min_width), int(max_width), **self.peakParams
-        )
-        self.canvas.drawPeaks(data, peaks)
-
-    def updateData(self, idx: int = 0) -> None:
-        path = self.paths[0]
-        if self.field("radio_numpy"):
-            self.data = io.npz.load(path).get(calibrated=None, flat=True)
-        elif self.field("radio_agilent"):
-            self.data = io.agilent.load(path)
-        elif self.field("radio_thermo"):
-            self.data = io.thermo.load(path)
-        else:
-            raise ValueError("No radio selected!")
+        datas = self.field("laserdatas")
+        print(datas)
+        self.chart.setSignal(datas[0])
+        pass
 
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication()
-    w = SpotImportWizard(["/home/tom/Downloads/spotty boy.b"])
-    w.show()
+    spot = SpotImportWizard(
+        [
+            "/home/tom/MEGA/Uni/Experimental/LAICPMS/Standards/IDA agar/20200815_gel_ida_iso_brain_spot_63x54.b"
+        ]
+    )
+    spot.open()
     app.exec_()

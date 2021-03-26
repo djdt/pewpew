@@ -1,7 +1,42 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCharts import QtCharts
 
+import numpy as np
+
 from typing import Dict
+
+
+class NiceValueAxis(QtCharts.QValueAxis):
+    nicenums = [1.0, 1.5, 2.0, 2.5, 3.0, 5.0, 7.5]
+
+    def __init__(self, nticks: int = 6, parent: QtCore.QObject = None):
+        super().__init__(parent)
+        self.nticks = nticks
+
+        self.setLabelFormat("%.4g")
+        self.setTickType(QtCharts.QValueAxis.TicksDynamic)
+        self.setTickAnchor(0.0)
+        self.setTickInterval(1e3)
+
+    def setRange(self, amin: float, amax: float) -> None:
+        self.fixValues(amin, amax)
+        super().setRange(amin, amax)
+
+    def fixValues(self, amin: float, amax: float) -> None:
+        delta = amax - amin
+
+        interval = delta / self.nticks
+        pwr = 10 ** int(np.log10(interval) - (1 if interval < 1.0 else 0))
+        interval = interval / pwr
+
+        idx = np.searchsorted(NiceValueAxis.nicenums, interval)
+        idx = min(idx, len(NiceValueAxis.nicenums) - 1)
+
+        interval = NiceValueAxis.nicenums[idx] * pwr
+        anchor = int(amin / interval) * interval
+
+        self.setTickAnchor(anchor)
+        self.setTickInterval(interval)
 
 
 class BaseChart(QtCharts.QChartView):
