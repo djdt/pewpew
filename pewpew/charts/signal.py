@@ -4,7 +4,7 @@ from PySide2.QtCharts import QtCharts
 import numpy as np
 
 from pewpew.charts.base import BaseChart
-from pewpew.charts.colors import light_theme, sequential, highlights
+from pewpew.charts.colors import light_theme, sequential
 
 from pewpew.lib.numpyqt import array_to_polygonf
 
@@ -27,26 +27,32 @@ class SignalChart(BaseChart):
         self.addAxis(self.xaxis, QtCore.Qt.AlignBottom)
         self.addAxis(self.yaxis, QtCore.Qt.AlignLeft)
 
-        self.signals = {}
+        self.series = {}
 
-    def setSignal(self, name: str, ys: np.ndarray) -> None:
-        xs = np.arange(ys.size)
+    def setSeries(self, name: str, ys: np.ndarray, xs: np.ndarray = None) -> None:
+        if xs is None:
+            xs = np.arange(ys.size)
         data = np.stack((xs, ys), axis=1)
         poly = array_to_polygonf(data)
-        self.signals[name].replace(poly)
+        self.series[name].replace(poly)
 
-    def addSignal(
-        self, name: str, ys: np.ndarray, color: QtGui.QColor = QtCore.Qt.black
+    def addSeries(
+        self,
+        name: str,
+        ys: np.ndarray,
+        xs: np.ndarray = None,
+        series_type: QtCharts.QAbstractSeries = QtCharts.QLineSeries,
+        color: QtGui.QColor = QtCore.Qt.black,
     ) -> None:
-        series = QtCharts.QLineSeries()
+        series = series_type()
         series.setPen(QtGui.QPen(color, 1.0))
         series.setUseOpenGL(True)  # Speed for many line?
         self.chart().addSeries(series)
         series.attachAxis(self.xaxis)
         series.attachAxis(self.yaxis)
-        self.signals[name] = series
+        self.series[name] = series
 
-        self.setSignal(name, ys)
+        self.setSeries(name, ys, xs=xs)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         if event.button() == QtCore.Qt.RightButton:
