@@ -416,6 +416,16 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             if name not in ["signal", "peaks"]:
                 self.chart.chart().removeSeries(self.chart.series.pop(name))
 
+    def drawThresholds(self, thresholds: dict) -> None:
+        colors = iter(
+            [QtGui.QColor(0, 0, 255), QtGui.QColor(255, 0, 0), QtGui.QColor(0, 255, 0)]
+        )
+        for name, value in thresholds.items():
+            if name in self.chart.series:
+                self.chart.setSeries(name, value)
+            else:
+                self.chart.addSeries(name, value, color=next(colors))
+
     def updatePeaks(self) -> None:
         if not self.isComplete():
             self.clearThresholds()
@@ -482,15 +492,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             elif lefts.size > rights.size:
                 lefts = lefts[:-1]
 
-        colors = iter(
-            [QtGui.QColor(0, 0, 255), QtGui.QColor(255, 0, 0), QtGui.QColor(0, 255, 0)]
-        )
-
-        for name, value in thresholds.items():
-            if name in self.chart.series:
-                self.chart.setSeries(name, value)
-            else:
-                self.chart.addSeries(name, value, color=next(colors))
+        self.drawThresholds(thresholds)
 
         if lefts.size == 0 or rights.size == 0:
             self.peaks = None
