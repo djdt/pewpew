@@ -467,20 +467,20 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             elif args["method"] == "Median":
                 baseline = np.median(view, axis=1)
 
-            if args["threshold"] == "Std":
+            if args["thresh"] == "Std":
                 threshold = np.std(view, axis=1) * args["value"]
-            elif args["threshold"] == "Constant":
-                threshold = args["value"]
+            elif args["thresh"] == "Constant":
+                threshold = np.full(data.size, args["value"])
 
-            thresholds = {"baseline": baseline, "threshold": threshold}
+            thresholds = {"baseline": baseline, "threshold": baseline + threshold}
 
             diff = np.diff((data > (baseline + threshold)).astype(np.int8), prepend=0)
             lefts = np.flatnonzero(diff == 1)
             rights = np.flatnonzero(diff == -1)
             if rights.size > lefts.size:
-                rights = rights[:-1]
+                rights = rights[1:]
             elif lefts.size > rights.size:
-                lefts = lefts[1:]
+                lefts = lefts[:-1]
 
         colors = iter(
             [QtGui.QColor(0, 0, 255), QtGui.QColor(255, 0, 0), QtGui.QColor(0, 255, 0)]
