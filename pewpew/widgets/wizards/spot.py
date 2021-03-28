@@ -141,7 +141,7 @@ class SpotPeakOptions(QtWidgets.QGroupBox):
     def isComplete(self) -> bool:
         return True
 
-    def generateThresholds(self) -> dict:
+    def generateThresholds(self, data: np.ndarray) -> dict:
         raise NotImplementedError
 
     # def setEnabled(self, enabled: bool) -> None:
@@ -158,26 +158,19 @@ class ConstantPeakOptions(SpotPeakOptions):
         self.lineedit_minimum = QtWidgets.QLineEdit("0.0")
         self.lineedit_minimum.setValidator(DecimalValidator(-1e99, 1e99, 4))
         self.lineedit_minimum.textChanged.connect(self.optionsChanged)
-        self.lineedit_maximum = QtWidgets.QLineEdit("1.0")
-        self.lineedit_maximum.setValidator(DecimalValidator(-1e99, 1e99, 4))
-        self.lineedit_maximum.textChanged.connect(self.optionsChanged)
 
         self.layout().addRow("Minimum value:", self.lineedit_minimum)
-        self.layout().addRow("Maximum value:", self.lineedit_maximum)
 
     def args(self) -> dict:
         return {
             "minimum": float(self.lineedit_minimum.text()),
-            "maximum": float(self.lineedit_maximum.text()),
         }
 
+    def generateThresholds(self, data: np.ndarray) -> dict:
+        return {k: np.full(data.size, v) for k, v in self.args().items()}
+
     def isComplete(self) -> bool:
-        if (
-            not self.lineedit_minimum.hasAcceptableInput()
-            or not self.lineedit_maximum.hasAcceptableInput()
-        ):
-            return False
-        return float(self.lineedit_minimum.text()) < float(self.lineedit_maximum.text())
+        return self.lineedit_minimum.hasAcceptableInput()
 
 
 class CWTPeakOptions(SpotPeakOptions):
@@ -197,21 +190,10 @@ class CWTPeakOptions(SpotPeakOptions):
         self.lineedit_width_factor.setValidator(DecimalValidator(0, 10, 1))
         self.lineedit_width_factor.textChanged.connect(self.optionsChanged)
 
-        self.combo_base_method = QtWidgets.QComboBox()
-        self.combo_base_method.addItems(
-            ["baseline", "edge", "prominence", "minima", "zero"]
-        )
-        self.combo_base_method.currentTextChanged.connect(self.optionsChanged)
-        self.combo_height_method = QtWidgets.QComboBox()
-        self.combo_height_method.addItems(["cwt", "maxima"])
-        self.combo_height_method.currentTextChanged.connect(self.optionsChanged)
-
         self.layout().addRow("Minimum width:", self.lineedit_minwidth)
         self.layout().addRow("Maximum width:", self.lineedit_maxwidth)
         self.layout().addRow("Width factor:", self.lineedit_width_factor)
         self.layout().addRow("Minimum ridge SNR:", self.lineedit_minsnr)
-        self.layout().addRow("Peak base:", self.combo_base_method)
-        self.layout().addRow("Peak height:", self.combo_height_method)
 
     def args(self) -> dict:
         return {
@@ -221,9 +203,11 @@ class CWTPeakOptions(SpotPeakOptions):
             ),
             "snr": float(self.lineedit_minsnr.text()),
             "width_factor": float(self.lineedit_width_factor.text()),
-            "base_method": self.combo_base_method.currentText(),
-            "height_method": self.combo_height_method.currentText(),
         }
+
+    def generateThresholds(self, data: np.ndarray) -> dict:
+        # Nothing to draw?
+        return {}
 
     def isComplete(self) -> bool:
         if not all(
@@ -231,8 +215,6 @@ class CWTPeakOptions(SpotPeakOptions):
             for x in [
                 self.lineedit_minwidth,
                 self.lineedit_maxwidth,
-                self.lineedit_minarea,
-                self.lineedit_minheight,
                 self.lineedit_minsnr,
                 self.lineedit_width_factor,
             ]
@@ -250,7 +232,7 @@ class WindowedPeakOptions(SpotPeakOptions):
         self.lineedit_window_size.textChanged.connect(self.optionsChanged)
 
         self.combo_filter_method = QtWidgets.QComboBox()
-        self.combo_filter_method.addItems(["Guassian Mean", "Guassian Median"])
+        self.combo_filter_method.addItems(["Gaussian mean", "Gaussian median"])
         self.combo_filter_method.currentTextChanged.connect(self.optionsChanged)
 
         self.lineedit_sigma = QtWidgets.QLineEdit("3.0")
@@ -263,9 +245,24 @@ class WindowedPeakOptions(SpotPeakOptions):
 
     def args(self) -> dict:
         return {
+            "method": self.combo_filter_method.currentText(),
             "size": int(self.lineedit_window_size.text()),
             "sigma": float(self.lineedit_sigma.text()),
         }
+
+    def generateThresholds(self, data: np.ndarray) -> dict:
+        args = self.args()
+        view = np.lib.stride_tricks.sliding_window_view(
+            np.pad(data, [args["size"] // 2, args["size"] // 2], mode="edge"),
+            args["size"],
+        )
+        if self.combo_filter_method.currentText() == "Gaussian mean":
+            base = np.mean(view, axis=1)
+        else:
+            base = np.median(view, axis=1)
+
+        std = base + np.std(view, axis=1) * args["sigma"]
+        return {"base": base, "std": std}
 
     def isComplete(self) -> bool:
         if (
@@ -288,6 +285,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             "CWT": CWTPeakOptions(self),
             "Moving window": WindowedPeakOptions(self),
         }
+        self.peaks: np.ndarray = None
 
         self.check_single_spot = QtWidgets.QCheckBox("One spot per line.")
         self.check_single_spot.clicked.connect(self.completeChanged)
@@ -296,6 +294,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.combo_peak_method.addItems(list(self.options.keys()))
 
         self.combo_isotope = QtWidgets.QComboBox()
+        self.combo_isotope.currentIndexChanged.connect(self.onIsotopeChanged)
 
         self.stack = QtWidgets.QStackedWidget()
         for option in self.options.values():
@@ -304,14 +303,26 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             option.optionsChanged.connect(self.drawThresholds)
 
         self.combo_peak_method.currentIndexChanged.connect(self.stack.setCurrentIndex)
-        self.combo_peak_method.currentIndexChanged.connect(self.drawThresholds)
+        self.combo_peak_method.currentIndexChanged.connect(self.onMethodChanged)
 
         self.chart = SignalChart(parent=self)
+
+        self.combo_base_method = QtWidgets.QComboBox()
+        self.combo_base_method.addItems(
+            ["baseline", "edge", "prominence", "minima", "zero"]
+        )
+        # self.combo_base_method.currentTextChanged.connect(self.drawThresholds)
+        self.combo_height_method = QtWidgets.QComboBox()
+        self.combo_height_method.addItems(["center", "maxima"])
+        self.combo_height_method.setCurrentText("maxima")
+        # self.combo_height_method.currentTextChanged.connect(self.optionsChanged)
 
         self.lineedit_minarea = QtWidgets.QLineEdit("0.0")
         self.lineedit_minarea.setValidator(DecimalValidator(0, 1e9, 2))
         self.lineedit_minheight = QtWidgets.QLineEdit("0.0")
         self.lineedit_minheight.setValidator(DecimalValidator(0, 1e9, 2))
+        self.lineedit_minwidth = QtWidgets.QLineEdit("0.0")
+        self.lineedit_minwidth.setValidator(DecimalValidator(0, 1e9, 2))
 
         # self.spinbox_line = QtWidgets.QSpinBox()
         # self.spinbox_line.setPrefix("line:")
@@ -319,8 +330,11 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         # self.spinbox_line.valueChanged.connect(self.updateCanvas)
 
         layout_form_controls = QtWidgets.QFormLayout()
+        layout_form_controls.addRow("Peak base:", self.combo_base_method)
+        layout_form_controls.addRow("Peak height:", self.combo_height_method)
         layout_form_controls.addRow("Minimum area:", self.lineedit_minarea)
         layout_form_controls.addRow("Minimum height:", self.lineedit_minheight)
+        layout_form_controls.addRow("Minimum width:", self.lineedit_minwidth)
 
         layout_controls = QtWidgets.QVBoxLayout()
         layout_controls.addWidget(self.check_single_spot)
@@ -342,6 +356,20 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
     def completeChanged(self) -> None:
         pass
 
+    def isComplete(self) -> None:
+        if not self.stack.widget(self.stack.currentIndex()).isComplete():
+            return False
+        if not all(
+            x.hasAcceptableInput()
+            for x in [
+                self.lineedit_minarea,
+                self.lineedit_minheight,
+                self.lineedit_minwidth,
+            ]
+        ):
+            return False
+        return True
+
     def getData(self) -> List[np.ndarray]:
         return self._datas
 
@@ -354,43 +382,89 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.combo_isotope.clear()
         self.combo_isotope.addItems(datas[0].dtype.names)
 
-        for signal in self.chart.signals.values():
-            self.chart.removeSeries(signal)
-        self.chart.signals.clear()
-
         data = datas[0][self.combo_isotope.currentText()].ravel()
         self.options["Constant"].lineedit_minimum.setText(f"{data.min():.2f}")
-        self.options["Constant"].lineedit_maximum.setText(f"{data.max():.2f}")
 
+        self.drawSignal(data)
+        self.clearThresholds()
         self.drawThresholds()
 
-        self.chart.addSignal("signal", data)
-        self.chart.yaxis.setRange(0, np.amax(data))
-        self.chart.xaxis.setRange(0, data.size)
-        self.chart.yaxis.applyNiceNumbers()
+    def drawSignal(self, data: np.ndarray) -> None:
+        if "signal" in self.chart.signals:
+            self.chart.setSignal("signal", data)
+        else:
+            self.chart.addSignal("signal", data)
+            self.chart.yaxis.setRange(0, np.amax(data))
+            self.chart.xaxis.setRange(0, data.size)
+            self.chart.yaxis.applyNiceNumbers()
+
+    def onIsotopeChanged(self) -> None:
+        data = self.field("laserdatas")[0][self.combo_isotope.currentText()].ravel()
+        self.drawSignal(data)
+        self.drawThresholds()
+
+    def onMethodChanged(self) -> None:
+        self.clearThresholds()
+        self.drawThresholds()
+
+    def clearThresholds(self) -> None:
+        for name in list(self.chart.signals.keys()):
+            if name != "signal":
+                self.chart.chart().removeSeries(self.chart.signals.pop(name))
 
     def drawThresholds(self) -> None:
+        if not self.isComplete():
+            self.clearThresholds()
+            return
+
         method = self.combo_peak_method.currentText()
-        args = self.options[method].args()
         data = self.field("laserdatas")[0][self.combo_isotope.currentText()].ravel()
 
+        thresholds = self.options[method].generateThresholds(data)
+
+        colors = iter(
+            [QtGui.QColor(0, 0, 255), QtGui.QColor(255, 0, 0), QtGui.QColor(0, 255, 0)]
+        )
+
+        for name, value in thresholds.items():
+            if name in self.chart.signals:
+                self.chart.setSignal(name, value)
+            else:
+                self.chart.addSignal(name, value, next(colors))
+
+    def generatePeaks(self) -> None:
+        method = self.combo_peak_method.currentText()
+        data = self.field("laserdatas")[0][self.combo_isotope.currentText()].ravel()
+
+        args = self.options[method].args()
         if method == "Constant":
-            if "min" not in self.chart.signals:
-                self.chart.addSignal(
-                    "min", np.full(data.size, args["minimum"]), QtGui.QColor(0, 0, 255)
-                )
-            else:
-                self.chart.setSignal("min", np.full(data.size, args["minimum"]))
-            if "max" not in self.chart.signals:
-                self.chart.addSignal(
-                    "max", np.full(data.size, args["maximum"]), QtGui.QColor(255, 0, 0)
-                )
-            else:
-                self.chart.setSignal("max", np.full(data.size, args["maximum"]))
-        elif method == "CWT":
-            pass
-        elif method == "Moving window":
-            pass
+            diff = np.diff((data > args["minimum"]).astype(np.int8), prepend=0)
+            lefts = np.flatnonzero(diff == 1)
+            rights = np.flatnonzero(diff == -1)
+            peaks = peakfinding.peaks_from_edges(
+                data,
+                lefts,
+                rights,
+                base_method=self.combo_base_method.currentText(),
+                height_method=self.combo_height_method.currentText(),
+                baseline=np.full(data.size, args["minimum"]),
+            )
+        elif method == "Windowed":
+            def thresh(x, axis):
+                return np.std(x, axis=axis) * args["sigma"]
+
+            base = np.mean if args["method"] == "Gaussian mean" else np.median
+            peaks = peakfinding.find_peaks_windowed(
+                data,
+                args["size"],
+                base,
+                thresh,
+                peak_min_area=float(self.lineedit_minarea.text()),
+                peak_min_height=float(self.lineedit_minheight.text()),
+                peak_min_width=float(self.lineedit_minwidth.text()),
+            )
+
+        return peaks
 
     data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
 
