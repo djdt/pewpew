@@ -52,9 +52,10 @@ class SpotImportWizard(QtWidgets.QWizard):
         super().__init__(parent)
         self.setWindowTitle("Spot Import Wizard")
 
-        for i in enumerate(paths):
-            if isinstance(paths[0], str):  # pragma: no cover
-                paths[0] = Path(paths[0])
+        if len(paths) > 0:
+            for i in enumerate(paths):
+                if isinstance(paths[0], str):  # pragma: no cover
+                    paths[0] = Path(paths[0])
 
         config = config or SpotConfig()
 
@@ -81,33 +82,61 @@ class SpotImportWizard(QtWidgets.QWizard):
         self.setPage(
             self.page_agilent,
             PathAndOptionsPage(
-                paths, "agilent", nextid=self.page_spot_peaks, parent=self
+                paths,
+                "agilent",
+                nextid=self.page_spot_peaks,
+                multiplepaths=True,
+                parent=self,
             ),
         )
         self.setPage(
             self.page_csv,
-            PathAndOptionsPage(paths, "csv", nextid=self.page_spot_peaks, parent=self),
+            PathAndOptionsPage(
+                paths,
+                "csv",
+                nextid=self.page_spot_peaks,
+                multiplepaths=True,
+                parent=self,
+            ),
         )
         self.setPage(
             self.page_numpy,
             PathAndOptionsPage(
-                paths, "numpy", nextid=self.page_spot_peaks, parent=self
+                paths,
+                "numpy",
+                nextid=self.page_spot_peaks,
+                multiplepaths=True,
+                parent=self,
             ),
         )
         self.setPage(
             self.page_perkinelmer,
             PathAndOptionsPage(
-                paths, "perkinelmer", nextid=self.page_spot_peaks, parent=self
+                paths,
+                "perkinelmer",
+                nextid=self.page_spot_peaks,
+                multiplepaths=True,
+                parent=self,
             ),
         )
         self.setPage(
             self.page_text,
-            PathAndOptionsPage(paths, "text", nextid=self.page_spot_peaks, parent=self),
+            PathAndOptionsPage(
+                paths,
+                "text",
+                nextid=self.page_spot_peaks,
+                multiplepaths=True,
+                parent=self,
+            ),
         )
         self.setPage(
             self.page_thermo,
             PathAndOptionsPage(
-                paths, "thermo", nextid=self.page_spot_peaks, parent=self
+                paths,
+                "thermo",
+                nextid=self.page_spot_peaks,
+                multiplepaths=True,
+                parent=self,
             ),
         )
 
@@ -821,16 +850,3 @@ class SpotConfigPage(QtWidgets.QWizardPage):
 
         self.setField("peaks", peaks)
         self.setElidedNames(peaks.dtype.names)
-
-
-if __name__ == "__main__":
-    app = QtWidgets.QApplication()
-    spot = SpotImportWizard(
-        [
-            "/home/tom/MEGA/Uni/Experimental/LAICPMS/Standards/IDA agar/20200815_gel_ida_iso_brain_spot_63x54.b"
-        ]
-    )
-    spot.open()
-    spot.next()
-    spot.next()
-    app.exec_()
