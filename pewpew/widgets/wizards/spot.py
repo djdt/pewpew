@@ -1,5 +1,4 @@
 import numpy as np
-import numpy.lib.recfunctions as rfn
 import logging
 
 from pathlib import Path
@@ -20,7 +19,7 @@ from pewpew.validators import DecimalValidator, OddIntValidator
 from pewpew.widgets.wizards.import_ import FormatPage
 from pewpew.widgets.wizards.options import PathAndOptionsPage
 
-from typing import Dict, List, Union
+from typing import List, Union
 
 
 logger = logging.getLogger(__name__)
@@ -36,6 +35,7 @@ class SpotImportWizard(QtWidgets.QWizard):
     page_thermo = 6
     page_spot_peaks = 7
     page_spot_image = 8
+    page_spot_config = 9
 
     laserImported = QtCore.Signal(Laser)
 
@@ -627,8 +627,16 @@ class SpotImagePage(QtWidgets.QWizardPage):
         self.combo_integ.addItems(["area", "height"])
         self.combo_integ.currentTextChanged.connect(self.updateImage)
 
-        self.check_raster = QtWidgets.QCheckBox("Raster data")
+        self.check_raster = QtWidgets.QCheckBox("Alternate line raster direction.")
         self.check_raster.toggled.connect(self.updateImage)
+
+        # self.lineedit_spotsize_x = QtWidgets.QLineEdit("10.0")
+        # self.lineedit_spotsize_x.setValidator(DecimalValidator(0.0, 1e9, 4))
+        # self.lineedit_spotsize_x.textChanged.connect(self.updateImage)
+
+        # self.lineedit_spotsize_y = QtWidgets.QLineEdit("10.0")
+        # self.lineedit_spotsize_y.setValidator(DecimalValidator(0.0, 1e9, 4))
+        # self.lineedit_spotsize_y.textChanged.connect(self.updateImage)
 
         self.graphics = LaserGraphicsView(options)
 
@@ -641,24 +649,22 @@ class SpotImagePage(QtWidgets.QWizardPage):
         layout_shape.addWidget(self.lineedit_shape_y, 1)
 
         layout_form_controls = QtWidgets.QFormLayout()
-        layout_form_controls.addRow("Shape:", layout_shape)
+        layout_form_controls.addRow("Shape X:", self.lineedit_shape_x)
+        layout_form_controls.addRow("Shape Y:", self.lineedit_shape_y)
+        layout_form_controls.addRow(self.check_raster)
         layout_form_controls.addRow("Peak count:", self.lineedit_count)
         layout_form_controls.addRow("Difference:", self.lineedit_diff)
         layout_form_controls.addRow("Use peak:", self.combo_integ)
-        layout_form_controls.addRow(self.check_raster)
 
-        layout_controls = QtWidgets.QVBoxLayout()
-        # layout_controls.addWidget(self.check_single_spot)
-        # layout_controls.addWidget(self.combo_peak_method)
-        # layout_controls.addWidget(self.stack)
-        layout_controls.addLayout(layout_form_controls)
+        controls = QtWidgets.QGroupBox("Controls")
+        controls.setLayout(layout_form_controls)
 
         layout_chart = QtWidgets.QVBoxLayout()
         layout_chart.addWidget(self.graphics, 1)
         layout_chart.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QHBoxLayout()
-        layout.addLayout(layout_controls, 0)
+        layout.addWidget(controls, 0)
         layout.addLayout(layout_chart, 1)
         self.setLayout(layout)
 
@@ -715,6 +721,8 @@ class SpotImagePage(QtWidgets.QWizardPage):
             rect=QtCore.QRectF(0, 0, x, y),
             name="Peak Image",
         )
+        self.graphics.setOverlayItemVisibility(False, False, False)
+        self.graphics.fitInView(QtCore.QRectF(0, 0, x, y))
 
 
 if __name__ == "__main__":
