@@ -13,6 +13,8 @@ from pewlib.process import peakfinding
 from pewlib.process.calc import view_as_blocks
 
 from pewpew.charts.signal import SignalChart
+from pewpew.graphics.options import GraphicsOptions
+from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.validators import DecimalValidator, OddIntValidator
 
 from pewpew.widgets.wizards.import_ import FormatPage
@@ -33,6 +35,7 @@ class SpotImportWizard(QtWidgets.QWizard):
     page_text = 5
     page_thermo = 6
     page_spot_peaks = 7
+    page_spot_image = 8
 
     laserImported = QtCore.Signal(Laser)
 
@@ -40,6 +43,7 @@ class SpotImportWizard(QtWidgets.QWizard):
         self,
         paths: Union[List[str], List[Path]] = [],
         config: Config = None,
+        options: GraphicsOptions = None,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
@@ -105,6 +109,7 @@ class SpotImportWizard(QtWidgets.QWizard):
         )
 
         self.setPage(self.page_spot_peaks, SpotPeaksPage(parent=self))
+        self.setPage(self.page_spot_image, SpotImagePage(options, parent=self))
 
     def accept(self) -> None:
         # if self.field("agilent"):
@@ -310,14 +315,17 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.combo_height_method.setCurrentText("maxima")
         self.combo_height_method.currentTextChanged.connect(self.updatePeaks)
 
-        self.lineedit_minarea = QtWidgets.QLineEdit("0.0")
+        self.lineedit_minarea = QtWidgets.QLineEdit("0")
         self.lineedit_minarea.setValidator(DecimalValidator(0, 1e9, 2))
+        self.lineedit_minarea.textChanged.connect(self.completeChanged)
         self.lineedit_minarea.textChanged.connect(self.updatePeaks)
-        self.lineedit_minheight = QtWidgets.QLineEdit("0.0")
+        self.lineedit_minheight = QtWidgets.QLineEdit("0")
         self.lineedit_minheight.setValidator(DecimalValidator(0, 1e9, 2))
+        self.lineedit_minheight.textChanged.connect(self.completeChanged)
         self.lineedit_minheight.textChanged.connect(self.updatePeaks)
-        self.lineedit_minwidth = QtWidgets.QLineEdit("0.0")
+        self.lineedit_minwidth = QtWidgets.QLineEdit("0")
         self.lineedit_minwidth.setValidator(DecimalValidator(0, 1e9, 2))
+        self.lineedit_minwidth.textChanged.connect(self.completeChanged)
         self.lineedit_minwidth.textChanged.connect(self.updatePeaks)
 
         self.lineedit_count = QtWidgets.QLineEdit()
@@ -346,11 +354,9 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         layout.addLayout(layout_chart, 1)
         self.setLayout(layout)
 
-        self.registerField("laserdatas", self, "data_prop")
+        self.registerField("isotope", self.combo_isotope)
+        self.registerField("laserdata", self, "data_prop")
         self.registerField("peaks", self, "peaks_prop")
-
-    def completeChanged(self) -> None:
-        pass
 
     def isComplete(self) -> None:
         if not self.stack.widget(self.stack.currentIndex()).isComplete():
@@ -367,7 +373,9 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         return True
 
     def getData(self) -> List[np.ndarray]:
-        return self._datas
+        if len(self._datas) == 0:
+            return np.array([], dtype=[("", np.float64)])
+        return np.concatenate([d.ravel() for d in self._datas], axis=0)
 
     def setData(self, datas: List[np.ndarray]) -> None:
         self._datas = datas
@@ -381,11 +389,13 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.peaksChanged.emit()
 
     def initializePage(self) -> None:
-        datas = self.field("laserdatas")
+        data = self.field("laserdata")
+        self.combo_isotope.blockSignals(True)
         self.combo_isotope.clear()
-        self.combo_isotope.addItems(datas[0].dtype.names)
+        self.combo_isotope.addItems(data.dtype.names)
+        self.combo_isotope.blockSignals(False)
 
-        data = datas[0][self.combo_isotope.currentText()].ravel()
+        data = data[self.combo_isotope.currentText()]
         self.options["Constant"].lineedit_minimum.setText(
             f"{np.percentile(data, 25):.2f}"
         )
@@ -393,8 +403,13 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.drawSignal(data)
         self.updatePeaks()
 
+    def validatePage(self) -> bool:
+        if self.peaks is None or self.peaks.size == 0:
+            return False
+        return True
+
     def onIsotopeChanged(self) -> None:
-        data = self.field("laserdatas")[0][self.combo_isotope.currentText()].ravel()
+        data = self.field("laserdata")[self.combo_isotope.currentText()]
         self.drawSignal(data)
         self.updatePeaks()
 
@@ -468,7 +483,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
 
         method = self.combo_peak_method.currentText()
         args = self.options[method].args()
-        data = self.field("laserdatas")[0][self.combo_isotope.currentText()].ravel()
+        data = self.field("laserdata")[self.combo_isotope.currentText()]
 
         if method == "Constant":
             thresholds = {"baseline": np.full(data.size, args["minimum"])}
@@ -525,7 +540,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             elif lefts.size > rights.size:
                 lefts = lefts[:-1]
 
-        self.clearThresholds()
+        # self.clearThresholds()
         self.drawThresholds(thresholds)
 
         if lefts.size == 0 or rights.size == 0 or lefts.size != rights.size:
@@ -556,43 +571,80 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
 
 
 class SpotImagePage(QtWidgets.QWizardPage):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        self.options = {
-            "Constant": ConstantPeakOptions(self),
-            "CWT": CWTPeakOptions(self),
-            "Moving window": WindowedPeakOptions(self),
-        }
+        if options is None:
+            options = GraphicsOptions()
 
-        self.lineedit_minwidth.setValidator(DecimalValidator(0, 1e9, 2))
-        self.lineedit_minwidth.textChanged.connect(self.updatePeaks)
+        self.lineedit_shape_x = QtWidgets.QLineEdit("0")
+        self.lineedit_shape_x.setValidator(QtGui.QIntValidator(1, 99999))
+
+        self.lineedit_shape_y = QtWidgets.QLineEdit("0")
+        self.lineedit_shape_y.setValidator(QtGui.QIntValidator(1, 99999))
 
         self.lineedit_count = QtWidgets.QLineEdit()
         self.lineedit_count.setReadOnly(True)
+        self.lineedit_diff = QtWidgets.QLineEdit()
+        self.lineedit_diff.setReadOnly(True)
+
+        self.combo_integ = QtWidgets.QComboBox()
+        self.combo_integ.addItems(["area", "height"])
+
+        self.graphics = LaserGraphicsView(options)
+
+        self.combo_isotope = QtWidgets.QComboBox()
+
+        layout_shape = QtWidgets.QHBoxLayout()
+        layout_shape.addWidget(self.lineedit_shape_x, 1)
+        layout_shape.addWidget(QtWidgets.QLabel("x"), 0)
+        layout_shape.addWidget(self.lineedit_shape_y, 1)
 
         layout_form_controls = QtWidgets.QFormLayout()
-        layout_form_controls.addRow("Peak base:", self.combo_base_method)
-        layout_form_controls.addRow("Peak height:", self.combo_height_method)
-        layout_form_controls.addRow("Minimum area:", self.lineedit_minarea)
-        layout_form_controls.addRow("Minimum height:", self.lineedit_minheight)
-        layout_form_controls.addRow("Minimum width:", self.lineedit_minwidth)
+        layout_form_controls.addRow("Shape:", layout_shape)
         layout_form_controls.addRow("Peak count:", self.lineedit_count)
+        layout_form_controls.addRow("Difference:", self.lineedit_diff)
+        layout_form_controls.addRow("Use peak:", self.combo_integ)
 
         layout_controls = QtWidgets.QVBoxLayout()
-        layout_controls.addWidget(self.check_single_spot)
-        layout_controls.addWidget(self.combo_peak_method)
-        layout_controls.addWidget(self.stack)
+        # layout_controls.addWidget(self.check_single_spot)
+        # layout_controls.addWidget(self.combo_peak_method)
+        # layout_controls.addWidget(self.stack)
         layout_controls.addLayout(layout_form_controls)
 
         layout_chart = QtWidgets.QVBoxLayout()
-        layout_chart.addWidget(self.chart, 1)
+        layout_chart.addWidget(self.graphics, 1)
         layout_chart.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QHBoxLayout()
-        layout.addLayout(layout_controls)
+        layout.addLayout(layout_controls, 0)
         layout.addLayout(layout_chart, 1)
         self.setLayout(layout)
+
+    def initializePage(self) -> None:
+        data = self.field("laserdata")
+        self.combo_isotope.blockSignals(True)
+        self.combo_isotope.clear()
+        self.combo_isotope.addItems(data.dtype.names)
+        self.combo_isotope.setCurrentIndex(self.field("isotope"))
+        self.combo_isotope.blockSignals(False)
+
+        peaks = self.field("peaks")
+        x = int(np.sqrt(peaks.size))
+        y = int(peaks.size / x)
+
+        self.lineedit_shape_x.setText(f"{x}")
+        self.lineedit_shape_y.setText(f"{y}")
+
+        self.lineedit_count.setText(f"{peaks.size}")
+        self.lineedit_diff.setText(f"{peaks.size - x * y}")
+
+        image = np.full((x, y), np.nan, dtype=data.dtype)
+        image[self.field("isotope")] = peaks["area"]
+
+        self.graphics.drawImage(
+            image, rect=QtCore.QRectF(0, 0, x, y), name=self.field("isotope")
+        )
 
 
 if __name__ == "__main__":
