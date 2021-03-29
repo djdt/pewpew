@@ -150,7 +150,9 @@ class SpotImportWizard(QtWidgets.QWizard):
         x = int(self.field("shape_x"))
         y = int(self.field("shape_y"))
 
-        data = np.full((y, x), np.nan, dtype=peaks.dtype)
+        data = np.full(
+            (y, x), np.nan, dtype=[(name, np.float64) for name in peaks.dtype.names]
+        )
         for name in data.dtype.names:
             data[name].flat = peaks[name][self.field("integration")]
 
@@ -850,3 +852,18 @@ class SpotConfigPage(QtWidgets.QWizardPage):
 
         self.setField("peaks", peaks)
         self.setElidedNames(peaks.dtype.names)
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication()
+    spot = SpotImportWizard(
+        [
+            "/home/tom/MEGA/Uni/Experimental/LAICPMS/Standards/IDA agar/20200815_gel_ida_iso_brain_spot_63x54.b"
+        ]
+    )
+    spot.open()
+    spot.next()
+    spot.next()
+    spot.next()
+    spot.next()
+    app.exec_()
