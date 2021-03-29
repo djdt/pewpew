@@ -44,13 +44,18 @@ class BaseChart(QtCharts.QChartView):
         self,
         chart: QtCharts.QChart,
         theme: Dict[str, QtGui.QColor],
+        allow_navigation: bool = False,
         parent: QtWidgets.QWidget = None,
     ):
         self.theme = theme
+        self.allow_navigation = allow_navigation
+
+        self.nav_pos: QtCore.QPointF = None
 
         chart.setBackgroundBrush(QtGui.QBrush(self.theme["background"]))
         chart.setBackgroundPen(QtGui.QPen(self.theme["background"]))
         super().__init__(chart, parent)
+        # self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
 
     def addAxis(
         self, axis: QtCharts.QAbstractAxis, alignment: QtCore.Qt.Alignment
@@ -66,6 +71,31 @@ class BaseChart(QtCharts.QChartView):
         if isinstance(axis, QtCharts.QValueAxis):
             axis.setTickCount(6)
         self.chart().addAxis(axis, alignment)
+
+    def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+        if event.button() == QtCore.Qt.MiddleButton and self.allow_navigation:
+            self.nav_pos = event.pos()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
+        if self.nav_pos is not None and self.allow_navigation:
+            pos = event.pos()
+            offset = self.nav_pos - pos
+            self.chart().scroll(offset.x(), -offset.y())
+            self.nav_pos = event.pos()
+        else:
+            super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
+        self.nav_pos = None
+        super().mouseReleaseEvent(event)
+
+    def wheelEvent(self, event: QtGui.QMouseEvent) -> None:
+        if self.allow_navigation:
+            scale = pow(2, event.angleDelta().y() / 360.0)
+            self.chart().zoom(scale)
+        super().wheelEvent(event)
 
     def contextMenuEvent(self, event: QtCore.QEvent) -> None:
         action_copy_image = QtWidgets.QAction(

@@ -11,7 +11,9 @@ from pewpew.lib.numpyqt import array_to_polygonf
 
 class SignalChart(BaseChart):
     def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
-        super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
+        super().__init__(
+            QtCharts.QChart(), theme=light_theme, allow_navigation=True, parent=parent
+        )
         self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
         self.setMinimumSize(QtCore.QSize(640, 480))
         self.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -45,6 +47,7 @@ class SignalChart(BaseChart):
         color: QtGui.QColor = QtCore.Qt.black,
     ) -> None:
         series = series_type()
+        series.setColor(color)
         series.setPen(QtGui.QPen(color, 1.0))
         series.setUseOpenGL(True)  # Speed for many line?
         self.chart().addSeries(series)
@@ -53,10 +56,3 @@ class SignalChart(BaseChart):
         self.series[name] = series
 
         self.setSeries(name, ys, xs=xs)
-
-    def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
-        if event.button() == QtCore.Qt.RightButton:
-            self.chart().zoomReset()
-        else:
-            super().mouseReleaseEvent(event)
-        self.yaxis.applyNiceNumbers()

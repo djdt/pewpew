@@ -266,17 +266,18 @@ class WindowedPeakOptions(SpotPeakOptions):
 
 class SpotPeaksPage(QtWidgets.QWizardPage):
     dataChanged = QtCore.Signal()
+    peaksChanged = QtCore.Signal()
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         self._datas: List[np.ndarray] = []
+        self.peaks: np.ndarray = None
         self.options = {
             "Constant": ConstantPeakOptions(self),
             "CWT": CWTPeakOptions(self),
             "Moving window": WindowedPeakOptions(self),
         }
-        self.peaks: np.ndarray = None
 
         self.check_single_spot = QtWidgets.QCheckBox("One spot per line.")
         self.check_single_spot.clicked.connect(self.completeChanged)
@@ -302,23 +303,25 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.combo_base_method.addItems(
             ["baseline", "edge", "prominence", "minima", "zero"]
         )
+        self.combo_base_method.currentTextChanged.connect(self.updatePeaks)
         # self.combo_base_method.currentTextChanged.connect(self.drawThresholds)
         self.combo_height_method = QtWidgets.QComboBox()
         self.combo_height_method.addItems(["center", "maxima"])
         self.combo_height_method.setCurrentText("maxima")
-        # self.combo_height_method.currentTextChanged.connect(self.optionsChanged)
+        self.combo_height_method.currentTextChanged.connect(self.updatePeaks)
 
         self.lineedit_minarea = QtWidgets.QLineEdit("0.0")
         self.lineedit_minarea.setValidator(DecimalValidator(0, 1e9, 2))
+        self.lineedit_minarea.textChanged.connect(self.updatePeaks)
         self.lineedit_minheight = QtWidgets.QLineEdit("0.0")
         self.lineedit_minheight.setValidator(DecimalValidator(0, 1e9, 2))
+        self.lineedit_minheight.textChanged.connect(self.updatePeaks)
         self.lineedit_minwidth = QtWidgets.QLineEdit("0.0")
         self.lineedit_minwidth.setValidator(DecimalValidator(0, 1e9, 2))
+        self.lineedit_minwidth.textChanged.connect(self.updatePeaks)
 
-        # self.spinbox_line = QtWidgets.QSpinBox()
-        # self.spinbox_line.setPrefix("line:")
-        # self.spinbox_line.setValue(1)
-        # self.spinbox_line.valueChanged.connect(self.updateCanvas)
+        self.lineedit_count = QtWidgets.QLineEdit()
+        self.lineedit_count.setReadOnly(True)
 
         layout_form_controls = QtWidgets.QFormLayout()
         layout_form_controls.addRow("Peak base:", self.combo_base_method)
@@ -326,6 +329,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         layout_form_controls.addRow("Minimum area:", self.lineedit_minarea)
         layout_form_controls.addRow("Minimum height:", self.lineedit_minheight)
         layout_form_controls.addRow("Minimum width:", self.lineedit_minwidth)
+        layout_form_controls.addRow("Peak count:", self.lineedit_count)
 
         layout_controls = QtWidgets.QVBoxLayout()
         layout_controls.addWidget(self.check_single_spot)
@@ -343,6 +347,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
         self.registerField("laserdatas", self, "data_prop")
+        self.registerField("peaks", self, "peaks_prop")
 
     def completeChanged(self) -> None:
         pass
@@ -368,6 +373,13 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self._datas = datas
         self.dataChanged.emit()
 
+    def getPeaks(self) -> np.ndarray:
+        return self.peaks
+
+    def setPeaks(self, peaks: np.ndarray) -> None:
+        self.peaks = peaks
+        self.peaksChanged.emit()
+
     def initializePage(self) -> None:
         datas = self.field("laserdatas")
         self.combo_isotope.clear()
@@ -391,17 +403,23 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             self.chart.setSeries("signal", data)
         else:
             self.chart.addSeries("signal", data)
-            self.chart.yaxis.setRange(0, np.amax(data))
-            self.chart.xaxis.setRange(0, data.size)
-            self.chart.yaxis.applyNiceNumbers()
+        self.chart.yaxis.setRange(0, np.amax(data))
+        self.chart.xaxis.setRange(0, data.size)
+        self.chart.yaxis.applyNiceNumbers()
 
     def clearPeaks(self) -> None:
+        self.peaks = None
+        self.lineedit_count.setText("0")
         if "peaks" in self.chart.series:
             self.chart.series.pop("peaks").clear()
+            self.chart.series.pop("lefts").clear()
+            self.chart.series.pop("rights").clear()
 
     def drawPeaks(self, peaks: np.ndarray) -> None:
         if "peaks" in self.chart.series:
             self.chart.setSeries("peaks", peaks["height"] + peaks["base"], peaks["top"])
+            self.chart.setSeries("lefts", peaks["base"], peaks["left"])
+            self.chart.setSeries("rights", peaks["base"], peaks["right"])
         else:
             self.chart.addSeries(
                 "peaks",
@@ -410,10 +428,24 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
                 series_type=QtCharts.QScatterSeries,
                 color=QtGui.QColor(255, 0, 0),
             )
+            self.chart.addSeries(
+                "lefts",
+                peaks["base"],
+                peaks["left"],
+                series_type=QtCharts.QScatterSeries,
+                color=QtGui.QColor(0, 255, 0),
+            )
+            self.chart.addSeries(
+                "rights",
+                peaks["base"],
+                peaks["right"],
+                series_type=QtCharts.QScatterSeries,
+                color=QtGui.QColor(0, 0, 255),
+            )
 
     def clearThresholds(self) -> None:
         for name in list(self.chart.series.keys()):
-            if name not in ["signal", "peaks"]:
+            if name not in ["signal", "peaks", "lefts", "rights"]:
                 self.chart.chart().removeSeries(self.chart.series.pop(name))
 
     def drawThresholds(self, thresholds: dict) -> None:
@@ -427,6 +459,8 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
                 self.chart.addSeries(name, value, color=next(colors))
 
     def updatePeaks(self) -> None:
+        self.peaksChanged.emit()
+
         if not self.isComplete():
             self.clearThresholds()
             self.clearPeaks()
@@ -437,8 +471,8 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         data = self.field("laserdatas")[0][self.combo_isotope.currentText()].ravel()
 
         if method == "Constant":
-            thresholds = {"minimum": np.full(data.size, args["minimum"])}
-            diff = np.diff((data > thresholds["minimum"]).astype(np.int8), prepend=0)
+            thresholds = {"baseline": np.full(data.size, args["minimum"])}
+            diff = np.diff((data > thresholds["baseline"]).astype(np.int8), prepend=0)
             lefts = np.flatnonzero(diff == 1)
             rights = np.flatnonzero(diff == -1)
 
@@ -458,7 +492,6 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             )
 
             if ridges.size == 0:
-                self.peaks = None
                 self.clearPeaks()
                 return
 
@@ -492,10 +525,10 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             elif lefts.size > rights.size:
                 lefts = lefts[:-1]
 
+        self.clearThresholds()
         self.drawThresholds(thresholds)
 
-        if lefts.size == 0 or rights.size == 0:
-            self.peaks = None
+        if lefts.size == 0 or rights.size == 0 or lefts.size != rights.size:
             self.clearPeaks()
             return
 
@@ -505,6 +538,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             rights,
             base_method=self.combo_base_method.currentText(),
             height_method=self.combo_height_method.currentText(),
+            baseline=thresholds.get("baseline", None),
         )
 
         self.peaks = peakfinding.filter_peaks(
@@ -515,8 +549,50 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         )
 
         self.drawPeaks(self.peaks)
+        self.lineedit_count.setText(f"{self.peaks.size}")
 
     data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
+    peaks_prop = QtCore.Property("QVariant", getPeaks, setPeaks, notify=peaksChanged)
+
+
+class SpotImagePage(QtWidgets.QWizardPage):
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+
+        self.options = {
+            "Constant": ConstantPeakOptions(self),
+            "CWT": CWTPeakOptions(self),
+            "Moving window": WindowedPeakOptions(self),
+        }
+
+        self.lineedit_minwidth.setValidator(DecimalValidator(0, 1e9, 2))
+        self.lineedit_minwidth.textChanged.connect(self.updatePeaks)
+
+        self.lineedit_count = QtWidgets.QLineEdit()
+        self.lineedit_count.setReadOnly(True)
+
+        layout_form_controls = QtWidgets.QFormLayout()
+        layout_form_controls.addRow("Peak base:", self.combo_base_method)
+        layout_form_controls.addRow("Peak height:", self.combo_height_method)
+        layout_form_controls.addRow("Minimum area:", self.lineedit_minarea)
+        layout_form_controls.addRow("Minimum height:", self.lineedit_minheight)
+        layout_form_controls.addRow("Minimum width:", self.lineedit_minwidth)
+        layout_form_controls.addRow("Peak count:", self.lineedit_count)
+
+        layout_controls = QtWidgets.QVBoxLayout()
+        layout_controls.addWidget(self.check_single_spot)
+        layout_controls.addWidget(self.combo_peak_method)
+        layout_controls.addWidget(self.stack)
+        layout_controls.addLayout(layout_form_controls)
+
+        layout_chart = QtWidgets.QVBoxLayout()
+        layout_chart.addWidget(self.chart, 1)
+        layout_chart.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.addLayout(layout_controls)
+        layout.addLayout(layout_chart, 1)
+        self.setLayout(layout)
 
 
 if __name__ == "__main__":
