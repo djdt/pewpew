@@ -734,7 +734,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         if "scantime" in params:
             self.setField("scantime", f"{params['scantime']:.6g}")
 
-        self.setField("laserdatas", datas)
+        self.setField("laserdata", datas)
         return True
 
     def readMultiple(

@@ -105,7 +105,7 @@ class ImportWizard(QtWidgets.QWizard):
         else:  # pragma: no cover
             raise ValueError("Invalid filetype selection.")
 
-        datas = self.field("laserdatas")
+        datas = self.field("laserdata")
         for path, data in zip(paths, datas):
             config = Config(
                 spotsize=float(self.field("spotsize")),
@@ -231,7 +231,7 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.registerField("speed", self.lineedit_speed)
         self.registerField("scantime", self.lineedit_scantime)
 
-        self.registerField("laserdatas", self, "data_prop")
+        self.registerField("laserdata", self, "data_prop")
 
     def getData(self) -> List[np.ndarray]:
         return self._datas
@@ -241,11 +241,11 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.dataChanged.emit()
 
     def getNames(self) -> List[str]:
-        data = self.field("laserdatas")[0]
+        data = self.field("laserdata")[0]
         return data.dtype.names if data is not None else []
 
     def initializePage(self) -> None:
-        data = self.field("laserdatas")[0]
+        data = self.field("laserdata")[0]
         self.setElidedNames(data.dtype.names)
 
     def aspectChanged(self) -> None:
@@ -281,13 +281,13 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.label_isotopes.setText(text)
 
     def updateNames(self, rename: dict) -> None:
-        datas = self.field("laserdatas")
+        datas = self.field("laserdata")
         for i in range(len(datas)):
             remove = [name for name in datas[i].dtype.names if name not in rename]
             datas[i] = rfn.drop_fields(datas[i], remove, usemask=False)
             datas[i] = rfn.rename_fields(datas[i], rename)
 
-        self.setField("laserdatas", datas)
+        self.setField("laserdata", datas)
         self.setElidedNames(datas[0].dtype.names)
 
     data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)

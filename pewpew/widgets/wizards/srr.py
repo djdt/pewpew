@@ -96,7 +96,7 @@ class SRRImportWizard(QtWidgets.QWizard):
         else:  # pragma: no cover
             raise ValueError("Invalid filetype selection.")
 
-        datas = self.field("laserdatas")
+        datas = self.field("laserdata")
         config = SRRConfig(
             spotsize=float(self.field("spotsize")),
             scantime=float(self.field("scantime")),
@@ -145,7 +145,7 @@ class SRRConfigPage(ConfigPage):
         self.registerField("subpixelWidth", self.spinbox_offsets)
 
     def configValid(self) -> bool:
-        datas = self.field("laserdatas")
+        datas = self.field("laserdata")
         if len(datas) < 2:
             return False
         spotsize = float(self.field("spotsize"))
