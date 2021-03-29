@@ -354,7 +354,18 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         layout.addLayout(layout_chart, 1)
         self.setLayout(layout)
 
-        self.registerField("isotope", self.combo_isotope)
+        self.registerField(
+            "isotope", self.combo_isotope, "currentText", "currentTextChanged"
+        )
+        self.registerField(
+            "base_method", self.combo_base_method, "currentText", "currentTextChanged"
+        )
+        self.registerField(
+            "height_method",
+            self.combo_height_method,
+            "currentText",
+            "currentTextChanged",
+        )
         self.registerField("laserdata", self, "data_prop")
         self.registerField("peaks", self, "peaks_prop")
 
@@ -402,11 +413,6 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
 
         self.drawSignal(data)
         self.updatePeaks()
-
-    def validatePage(self) -> bool:
-        if self.peaks is None or self.peaks.size == 0:
-            return False
-        return True
 
     def onIsotopeChanged(self) -> None:
         data = self.field("laserdata")[self.combo_isotope.currentText()]
@@ -566,6 +572,31 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.drawPeaks(self.peaks)
         self.lineedit_count.setText(f"{self.peaks.size}")
 
+    def validatePage(self) -> bool:
+        if self.peaks is None or self.peaks.size == 0:
+            return False
+
+        data = self.field("laserdata")
+        peaks = self.field("peaks")
+
+        peakdata = np.empty(
+            peaks.size,
+            dtype=[(name, peakfinding.PEAK_DTYPE) for name in data.dtype.names],
+        )
+        for name in data.dtype.names:
+            if name == self.field("isotope"):
+                peakdata[name] = peaks
+            else:
+                peakdata[name] = peakfinding.peaks_from_edges(
+                    data[name],
+                    peaks["left"],
+                    peaks["right"],
+                    self.field("base_method"),
+                    self.field("height_method"),
+                )
+        self.peaks = peakdata
+        return True
+
     data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
     peaks_prop = QtCore.Property("QVariant", getPeaks, setPeaks, notify=peaksChanged)
 
@@ -576,12 +607,16 @@ class SpotImagePage(QtWidgets.QWizardPage):
 
         if options is None:
             options = GraphicsOptions()
+            for item in options.items:
+                options.items[item] = False
 
         self.lineedit_shape_x = QtWidgets.QLineEdit("0")
         self.lineedit_shape_x.setValidator(QtGui.QIntValidator(1, 99999))
+        self.lineedit_shape_x.textChanged.connect(self.updateImage)
 
         self.lineedit_shape_y = QtWidgets.QLineEdit("0")
         self.lineedit_shape_y.setValidator(QtGui.QIntValidator(1, 99999))
+        self.lineedit_shape_y.textChanged.connect(self.updateImage)
 
         self.lineedit_count = QtWidgets.QLineEdit()
         self.lineedit_count.setReadOnly(True)
@@ -590,10 +625,15 @@ class SpotImagePage(QtWidgets.QWizardPage):
 
         self.combo_integ = QtWidgets.QComboBox()
         self.combo_integ.addItems(["area", "height"])
+        self.combo_integ.currentTextChanged.connect(self.updateImage)
+
+        self.check_raster = QtWidgets.QCheckBox("Raster data")
+        self.check_raster.toggled.connect(self.updateImage)
 
         self.graphics = LaserGraphicsView(options)
 
         self.combo_isotope = QtWidgets.QComboBox()
+        self.combo_isotope.currentIndexChanged.connect(self.updateImage)
 
         layout_shape = QtWidgets.QHBoxLayout()
         layout_shape.addWidget(self.lineedit_shape_x, 1)
@@ -605,6 +645,7 @@ class SpotImagePage(QtWidgets.QWizardPage):
         layout_form_controls.addRow("Peak count:", self.lineedit_count)
         layout_form_controls.addRow("Difference:", self.lineedit_diff)
         layout_form_controls.addRow("Use peak:", self.combo_integ)
+        layout_form_controls.addRow(self.check_raster)
 
         layout_controls = QtWidgets.QVBoxLayout()
         # layout_controls.addWidget(self.check_single_spot)
@@ -621,29 +662,58 @@ class SpotImagePage(QtWidgets.QWizardPage):
         layout.addLayout(layout_chart, 1)
         self.setLayout(layout)
 
+        self.registerField("shape_x", self.lineedit_shape_x)
+        self.registerField("shape_y", self.lineedit_shape_y)
+        self.registerField("raster", self.check_raster)
+        self.registerField(
+            "integration", self.combo_integ, "currentText", "currentTextChanged"
+        )
+
     def initializePage(self) -> None:
         data = self.field("laserdata")
         self.combo_isotope.blockSignals(True)
         self.combo_isotope.clear()
         self.combo_isotope.addItems(data.dtype.names)
-        self.combo_isotope.setCurrentIndex(self.field("isotope"))
+        self.combo_isotope.setCurrentText(self.field("isotope"))
         self.combo_isotope.blockSignals(False)
 
         peaks = self.field("peaks")
         x = int(np.sqrt(peaks.size))
         y = int(peaks.size / x)
 
-        self.lineedit_shape_x.setText(f"{x}")
-        self.lineedit_shape_y.setText(f"{y}")
+        if self.lineedit_shape_x.text() == "0":
+            self.lineedit_shape_x.setText(f"{x}")
+            self.lineedit_shape_y.setText(f"{y}")
 
         self.lineedit_count.setText(f"{peaks.size}")
         self.lineedit_diff.setText(f"{peaks.size - x * y}")
 
-        image = np.full((x, y), np.nan, dtype=data.dtype)
-        image[self.field("isotope")] = peaks["area"]
+        self.updateImage()
+
+    def cleanupPage(self) -> None:
+        self.setField("peaks", self.field("peaks")[self.field("isotope")])
+
+    def updateImage(self) -> None:
+        peaks = self.field("peaks")
+
+        x = int(self.lineedit_shape_x.text() or 0)
+        y = int(self.lineedit_shape_y.text() or 0)
+
+        if x == 0 or y == 0:
+            return
+
+        image = np.full((y, x), np.nan)
+        image.flat = peaks[self.combo_isotope.currentText()][
+            self.combo_integ.currentText()
+        ]
+
+        if self.check_raster.isChecked():
+            image[::2, :] = image[::2, ::-1]
 
         self.graphics.drawImage(
-            image, rect=QtCore.QRectF(0, 0, x, y), name=self.field("isotope")
+            image,
+            rect=QtCore.QRectF(0, 0, x, y),
+            name="Peak Image",
         )
 
 
