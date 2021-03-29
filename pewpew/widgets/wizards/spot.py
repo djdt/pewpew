@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.lib.recfunctions as rfn
 import logging
 
 from pathlib import Path
@@ -6,7 +7,7 @@ from pathlib import Path
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCharts import QtCharts
 
-from pewlib.config import Config
+from pewlib.config import SpotConfig
 from pewlib.laser import Laser
 from pewlib.process import peakfinding
 from pewlib.process.calc import view_as_blocks
@@ -14,7 +15,9 @@ from pewlib.process.calc import view_as_blocks
 from pewpew.charts.signal import SignalChart
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
-from pewpew.validators import DecimalValidator, OddIntValidator
+from pewpew.validators import DecimalValidator, DecimalValidatorNoZero, OddIntValidator
+
+from pewpew.widgets.dialogs import NameEditDialog
 
 from pewpew.widgets.wizards.import_ import FormatPage
 from pewpew.widgets.wizards.options import PathAndOptionsPage
@@ -42,7 +45,7 @@ class SpotImportWizard(QtWidgets.QWizard):
     def __init__(
         self,
         paths: Union[List[str], List[Path]] = [],
-        config: Config = None,
+        config: SpotConfig = None,
         options: GraphicsOptions = None,
         parent: QtWidgets.QWidget = None,
     ):
@@ -53,7 +56,7 @@ class SpotImportWizard(QtWidgets.QWizard):
             if isinstance(paths[0], str):  # pragma: no cover
                 paths[0] = Path(paths[0])
 
-        config = config or Config()
+        config = config or SpotConfig()
 
         overview = (
             "The wizard will guide you through importing LA-ICP-MS data "
@@ -110,28 +113,42 @@ class SpotImportWizard(QtWidgets.QWizard):
 
         self.setPage(self.page_spot_peaks, SpotPeaksPage(parent=self))
         self.setPage(self.page_spot_image, SpotImagePage(options, parent=self))
+        self.setPage(self.page_spot_config, SpotConfigPage(config, parent=self))
 
     def accept(self) -> None:
-        # if self.field("agilent"):
-        #     path = Path(self.field("agilent.path"))
-        # elif self.field("csv"):
-        #     path = Path(self.field("csv.path"))
-        # elif self.field("perkinelmer"):
-        #     path = Path(self.field("perkinelmer.path"))
-        # elif self.field("text"):
-        #     path = Path(self.field("text.path"))
-        # elif self.field("thermo"):
-        #     path = Path(self.field("thermo.path"))
-        # else:  # pragma: no cover
-        #     raise ValueError("Invalid filetype selection.")
+        peaks = self.field("peaks")
 
-        # data = self.field("laserdata")
-        # config = Config(
-        #     spotsize=float(self.field("spotsize")),
-        #     scantime=float(self.field("scantime")),
-        #     speed=float(self.field("speed")),
-        # )
-        # self.laserImported.emit(Laser(data, config=config, name=path.stem, path=path))
+        x = int(self.field("shape_x"))
+        y = int(self.field("shape_y"))
+
+        data = np.full((y, x), np.nan, dtype=peaks.dtype)
+        for name in data.dtype.names:
+            data[name].flat = peaks[name][self.field("integration")]
+
+        if self.field("raster"):
+            data[::2, :] = data[::2, ::-1]
+
+        config = SpotConfig(
+            (float(self.field("spotsize_x")), float(self.field("spotsize_y")))
+        )
+
+        if self.field("agilent"):
+            paths = [Path(p) for p in self.field("agilent.paths")]
+        elif self.field("csv"):
+            paths = [Path(p) for p in self.field("csv.paths")]
+        elif self.field("numpy"):
+            paths = [Path(p) for p in self.field("numpy.paths")]
+        elif self.field("perkinelmer"):
+            paths = [Path(p) for p in self.field("perkinelmer.paths")]
+        elif self.field("text"):
+            paths = [Path(p) for p in self.field("text.paths")]
+        elif self.field("thermo"):
+            paths = [Path(p) for p in self.field("thermo.paths")]
+        else:  # pragma: no cover
+            raise ValueError("Invalid filetype selection.")
+        path = paths[0]
+
+        self.laserImported.emit(Laser(data, config=config, name=path.stem, path=path))
         super().accept()
 
 
@@ -142,17 +159,11 @@ class SpotPeakOptions(QtWidgets.QGroupBox):
         super().__init__(name, parent=parent)
         self.setLayout(QtWidgets.QFormLayout())
 
-    # def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
-    #     return []
+    def args(self) -> dict:
+        raise NotImplementedError
 
     def isComplete(self) -> bool:
         return True
-
-    # def setEnabled(self, enabled: bool) -> None:
-    #     pass
-
-    # def updateForPath(self, path: Path) -> None:
-    #     pass
 
 
 class ConstantPeakOptions(SpotPeakOptions):
@@ -188,10 +199,10 @@ class CWTPeakOptions(SpotPeakOptions):
         self.lineedit_minlen.setValidator(QtGui.QIntValidator(1, 20))
         self.lineedit_minlen.textChanged.connect(self.optionsChanged)
         self.lineedit_minsnr = QtWidgets.QLineEdit("3.3")
-        self.lineedit_minsnr.setValidator(DecimalValidator(0, 100, 1))
+        self.lineedit_minsnr.setValidator(DecimalValidatorNoZero(0, 100, 1))
         self.lineedit_minsnr.textChanged.connect(self.optionsChanged)
         self.lineedit_width_factor = QtWidgets.QLineEdit("2.5")
-        self.lineedit_width_factor.setValidator(DecimalValidator(0, 10, 1))
+        self.lineedit_width_factor.setValidator(DecimalValidatorNoZero(0, 10, 1))
         self.lineedit_width_factor.textChanged.connect(self.optionsChanged)
 
         self.layout().addRow("Minimum width:", self.lineedit_minwidth)
@@ -630,14 +641,6 @@ class SpotImagePage(QtWidgets.QWizardPage):
         self.check_raster = QtWidgets.QCheckBox("Alternate line raster direction.")
         self.check_raster.toggled.connect(self.updateImage)
 
-        # self.lineedit_spotsize_x = QtWidgets.QLineEdit("10.0")
-        # self.lineedit_spotsize_x.setValidator(DecimalValidator(0.0, 1e9, 4))
-        # self.lineedit_spotsize_x.textChanged.connect(self.updateImage)
-
-        # self.lineedit_spotsize_y = QtWidgets.QLineEdit("10.0")
-        # self.lineedit_spotsize_y.setValidator(DecimalValidator(0.0, 1e9, 4))
-        # self.lineedit_spotsize_y.textChanged.connect(self.updateImage)
-
         self.graphics = LaserGraphicsView(options)
 
         self.combo_isotope = QtWidgets.QComboBox()
@@ -723,6 +726,101 @@ class SpotImagePage(QtWidgets.QWizardPage):
         )
         self.graphics.setOverlayItemVisibility(False, False, False)
         self.graphics.fitInView(QtCore.QRectF(0, 0, x, y))
+
+
+class SpotConfigPage(QtWidgets.QWizardPage):
+    dataChanged = QtCore.Signal()
+
+    def __init__(self, config: SpotConfig, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+        self.setTitle("Isotopes and Config")
+
+        self._datas: List[np.ndarray] = []
+        self.label_isotopes = QtWidgets.QLabel()
+        self.button_isotopes = QtWidgets.QPushButton("Edit Names")
+        self.button_isotopes.pressed.connect(self.buttonNamesPressed)
+
+        self.lineedit_spotsize_x = QtWidgets.QLineEdit()
+        self.lineedit_spotsize_x.setText(str(config.spotsize[0]))
+        self.lineedit_spotsize_x.setValidator(DecimalValidatorNoZero(0, 1e9, 4))
+        self.lineedit_spotsize_x.textChanged.connect(self.aspectChanged)
+        self.lineedit_spotsize_x.textChanged.connect(self.completeChanged)
+
+        self.lineedit_spotsize_y = QtWidgets.QLineEdit()
+        self.lineedit_spotsize_y.setText(str(config.spotsize[1]))
+        self.lineedit_spotsize_y.setValidator(DecimalValidatorNoZero(0, 1e9, 4))
+        self.lineedit_spotsize_y.textChanged.connect(self.aspectChanged)
+        self.lineedit_spotsize_y.textChanged.connect(self.completeChanged)
+
+        self.lineedit_aspect = QtWidgets.QLineEdit()
+        self.lineedit_aspect.setEnabled(False)
+
+        layout_isotopes = QtWidgets.QHBoxLayout()
+        layout_isotopes.addWidget(QtWidgets.QLabel("Isotopes:"), 0, QtCore.Qt.AlignLeft)
+        layout_isotopes.addWidget(self.label_isotopes, 1)
+        layout_isotopes.addWidget(self.button_isotopes, 0, QtCore.Qt.AlignRight)
+
+        config_box = QtWidgets.QGroupBox("Config")
+        layout_config = QtWidgets.QFormLayout()
+        layout_config.addRow("Spotsize X (μm):", self.lineedit_spotsize_x)
+        layout_config.addRow("Spotsize Y (μm):", self.lineedit_spotsize_y)
+        layout_config.addRow("Aspect:", self.lineedit_aspect)
+        config_box.setLayout(layout_config)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(
+            QtWidgets.QLabel("Edit imported elements and laser configuration."), 0
+        )
+        layout.addLayout(layout_isotopes)
+        layout.addWidget(config_box)
+
+        self.setLayout(layout)
+
+        self.registerField("spotsize_x", self.lineedit_spotsize_x)
+        self.registerField("spotsize_y", self.lineedit_spotsize_y)
+
+    def getNames(self) -> List[str]:
+        data = self.field("peaks")
+        return data.dtype.names
+
+    def initializePage(self) -> None:
+        data = self.field("peaks")
+        self.setElidedNames(data.dtype.names)
+
+    def aspectChanged(self) -> None:
+        try:
+            aspect = float(self.field("spotsize_x")) / float(self.field("spotsize_y"))
+            self.lineedit_aspect.setText(f"{aspect:.2f}")
+        except (ValueError, ZeroDivisionError):
+            self.lineedit_aspect.clear()
+
+    def buttonNamesPressed(self) -> QtWidgets.QDialog:
+        dlg = NameEditDialog(self.getNames(), allow_remove=True, parent=self)
+        dlg.namesSelected.connect(self.updateNames)
+        dlg.open()
+        return dlg
+
+    def isComplete(self) -> bool:
+        if not self.lineedit_spotsize_x.hasAcceptableInput():
+            return False
+        if not self.lineedit_spotsize_y.hasAcceptableInput():
+            return False
+        return True
+
+    def setElidedNames(self, names: List[str]) -> None:
+        text = ", ".join(name for name in names)
+        fm = QtGui.QFontMetrics(self.label_isotopes.font())
+        text = fm.elidedText(text, QtCore.Qt.ElideRight, self.label_isotopes.width())
+        self.label_isotopes.setText(text)
+
+    def updateNames(self, rename: dict) -> None:
+        peaks = self.field("laserdata")
+        remove = [name for name in peaks.dtype.names if name not in rename]
+        peaks = rfn.drop_fields(peaks, remove, usemask=False)
+        peaks = rfn.rename_fields(peaks, rename)
+
+        self.setField("peaks", peaks)
+        self.setElidedNames(peaks.dtype.names)
 
 
 if __name__ == "__main__":
