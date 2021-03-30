@@ -537,13 +537,14 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             diff = np.diff((data > (baseline + threshold)).astype(np.int8), prepend=0)
             lefts = np.flatnonzero(diff == 1)
             rights = np.flatnonzero(diff == -1)
-            if rights.size > lefts.size:
-                rights = rights[1:]
-            elif lefts.size > rights.size:
-                lefts = lefts[:-1]
 
         self.clearThresholds()
         self.drawThresholds(thresholds)
+
+        if rights.size > lefts.size:
+            rights = rights[1:]
+        elif lefts.size > rights.size:
+            lefts = lefts[:-1]
 
         if lefts.size == 0 or rights.size == 0 or lefts.size != rights.size:
             self.clearPeaks()

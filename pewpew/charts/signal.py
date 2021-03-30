@@ -4,7 +4,7 @@ from PySide2.QtCharts import QtCharts
 import numpy as np
 
 from pewpew.charts.base import BaseChart
-from pewpew.charts.colors import light_theme, sequential
+from pewpew.charts.colors import light_theme
 
 from pewpew.lib.numpyqt import array_to_polygonf
 
@@ -25,6 +25,7 @@ class SignalChart(BaseChart):
 
         self.xaxis = QtCharts.QValueAxis()
         self.yaxis = QtCharts.QValueAxis()
+        self.xaxis.setVisible(False)
 
         self.addAxis(self.xaxis, QtCore.Qt.AlignBottom)
         self.addAxis(self.yaxis, QtCore.Qt.AlignLeft)
@@ -38,18 +39,41 @@ class SignalChart(BaseChart):
         poly = array_to_polygonf(data)
         self.series[name].replace(poly)
 
-    def addSeries(
+    def addLineSeries(
         self,
         name: str,
         ys: np.ndarray,
         xs: np.ndarray = None,
-        series_type: QtCharts.QAbstractSeries = QtCharts.QLineSeries,
         color: QtGui.QColor = QtCore.Qt.black,
+        linewidth: float = 1.0,
     ) -> None:
-        series = series_type()
+        series = QtCharts.QLineSeries()
+        series.setColor(color)
+        series.setPen(QtGui.QPen(color, linewidth))
+        series.setUseOpenGL(True)  # Speed for many line?
+
+        self.chart().addSeries(series)
+        series.attachAxis(self.xaxis)
+        series.attachAxis(self.yaxis)
+        self.series[name] = series
+
+        self.setSeries(name, ys, xs=xs)
+
+    def addScatterSeries(
+        self,
+        name: str,
+        ys: np.ndarray,
+        xs: np.ndarray = None,
+        color: QtGui.QColor = QtCore.Qt.black,
+        markersize: float = 20.0,
+    ) -> None:
+        series = QtCharts.QScatterSeries()
         series.setColor(color)
         series.setPen(QtGui.QPen(color, 1.0))
+        series.setBrush(QtGui.QBrush(color))
+        series.setMarkerSize(markersize)
         series.setUseOpenGL(True)  # Speed for many line?
+
         self.chart().addSeries(series)
         series.attachAxis(self.xaxis)
         series.attachAxis(self.yaxis)
