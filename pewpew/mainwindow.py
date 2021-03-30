@@ -3,6 +3,8 @@ import logging
 
 from PySide2 import QtGui, QtWidgets
 
+from pewlib.config import SpotConfig
+
 from pewpew import __version__
 
 from pewpew.actions import qAction, qActionGroup
@@ -123,7 +125,6 @@ class MainWindow(QtWidgets.QMainWindow):
             "Start the import wizard for data collected spot-wise.",
             self.actionWizardSpot,
         )
-        self.action_wizard_spot.setEnabled(False)
         self.action_wizard_srr = qAction(
             "",
             "Kriss Kross Wizard",
@@ -305,7 +306,12 @@ class MainWindow(QtWidgets.QMainWindow):
         return wiz
 
     def actionWizardSpot(self) -> QtWidgets.QWizard:
-        wiz = SpotImportWizard(config=self.viewspace.config, parent=self)
+        config = SpotConfig(
+            (self.viewspace.config.spotsize, self.viewspace.config.spotsize)
+        )
+        wiz = SpotImportWizard(
+            config=config, options=self.viewspace.options, parent=self
+        )
         wiz.laserImported.connect(self.viewspace.activeView().addLaser)
         wiz.open()
         return wiz
