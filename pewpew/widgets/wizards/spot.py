@@ -4,13 +4,13 @@ import logging
 from pathlib import Path
 
 from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtCharts import QtCharts
 
 from pewlib.config import Config
 from pewlib.laser import Laser
 from pewlib.process import peakfinding
 from pewlib.process.calc import view_as_blocks
 
+from pewpew.charts.colors import sequential
 from pewpew.charts.signal import SignalChart
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
@@ -423,7 +423,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         if "signal" in self.chart.series:
             self.chart.setSeries("signal", data)
         else:
-            self.chart.addSeries("signal", data)
+            self.chart.addLineSeries("signal", data)
         self.chart.yaxis.setRange(0, np.amax(data))
         self.chart.xaxis.setRange(0, data.size)
         self.chart.yaxis.applyNiceNumbers()
@@ -442,26 +442,23 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             self.chart.setSeries("lefts", peaks["base"], peaks["left"])
             self.chart.setSeries("rights", peaks["base"], peaks["right"])
         else:
-            self.chart.addSeries(
+            self.chart.addScatterSeries(
                 "peaks",
                 peaks["height"] + peaks["base"],
                 peaks["top"],
-                series_type=QtCharts.QScatterSeries,
-                color=QtGui.QColor(255, 0, 0),
+                color=sequential[4]
             )
-            self.chart.addSeries(
+            self.chart.addScatterSeries(
                 "lefts",
                 peaks["base"],
                 peaks["left"],
-                series_type=QtCharts.QScatterSeries,
-                color=QtGui.QColor(0, 255, 0),
+                color=sequential[1]
             )
-            self.chart.addSeries(
+            self.chart.addScatterSeries(
                 "rights",
                 peaks["base"],
                 peaks["right"],
-                series_type=QtCharts.QScatterSeries,
-                color=QtGui.QColor(0, 0, 255),
+                color=sequential[2]
             )
 
     def clearThresholds(self) -> None:
@@ -470,14 +467,13 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
                 self.chart.chart().removeSeries(self.chart.series.pop(name))
 
     def drawThresholds(self, thresholds: dict) -> None:
-        colors = iter(
-            [QtGui.QColor(0, 0, 255), QtGui.QColor(255, 0, 0), QtGui.QColor(0, 255, 0)]
-        )
+        colors = iter(sequential)
         for name, value in thresholds.items():
+            color = next(colors)
             if name in self.chart.series:
                 self.chart.setSeries(name, value)
             else:
-                self.chart.addSeries(name, value, color=next(colors))
+                self.chart.addLineSeries(name, value, color=color, linewidth=2.0)
 
     def updatePeaks(self) -> None:
         self.peaksChanged.emit()
@@ -546,7 +542,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             elif lefts.size > rights.size:
                 lefts = lefts[:-1]
 
-        # self.clearThresholds()
+        self.clearThresholds()
         self.drawThresholds(thresholds)
 
         if lefts.size == 0 or rights.size == 0 or lefts.size != rights.size:
