@@ -520,7 +520,7 @@ class LaserWidget(_ViewWidget):
 
     def applyConfig(self, config: Config) -> None:
         # Only apply if the type of config is correct
-        if isinstance(config, SRRConfig) == self.is_srr:
+        if type(config) is type(self.laser.config):  # noqa
             self.laser.config = copy.copy(config)
             self.modified = True
             self.refresh()

@@ -5,6 +5,7 @@ import numpy as np
 from PySide2 import QtCore, QtWidgets
 
 from pewlib import Calibration, Config
+from pewlib.config import SpotConfig
 from pewlib.process import colocal
 from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
@@ -664,10 +665,18 @@ class ConfigDialog(ApplyDialog):
         self.lineedit_spotsize.setText(str(self.config.spotsize))
         self.lineedit_spotsize.setValidator(DecimalValidator(0, 1e9, 4))
         self.lineedit_spotsize.textChanged.connect(self.completeChanged)
+
+        if isinstance(config, SpotConfig):
+            self.lineedit_spotsize_y = QtWidgets.QLineEdit()
+            self.lineedit_spotsize_y.setText(str(self.config.spotsize_y))
+            self.lineedit_spotsize_y.setValidator(DecimalValidator(0, 1e9, 4))
+            self.lineedit_spotsize_y.textChanged.connect(self.completeChanged)
+
         self.lineedit_speed = QtWidgets.QLineEdit()
         self.lineedit_speed.setText(str(self.config.speed))
         self.lineedit_speed.setValidator(DecimalValidator(0, 1e9, 4))
         self.lineedit_speed.textChanged.connect(self.completeChanged)
+
         self.lineedit_scantime = QtWidgets.QLineEdit()
         self.lineedit_scantime.setText(str(self.config.scantime))
         self.lineedit_scantime.setValidator(DecimalValidator(0, 1e9, 4))
@@ -687,8 +696,11 @@ class ConfigDialog(ApplyDialog):
         # Form layout for line edits
         layout_form = QtWidgets.QFormLayout()
         layout_form.addRow("Spotsize (μm):", self.lineedit_spotsize)
-        layout_form.addRow("Speed (μm):", self.lineedit_speed)
-        layout_form.addRow("Scantime (s):", self.lineedit_scantime)
+        if isinstance(config, SpotConfig):
+            layout_form.addRow("Spotsize Y (μm):", self.lineedit_spotsize_y)
+        else:
+            layout_form.addRow("Speed (μm):", self.lineedit_speed)
+            layout_form.addRow("Scantime (s):", self.lineedit_scantime)
         if isinstance(config, SRRConfig):
             layout_form.addRow("Warmup (s):", self.lineedit_warmup)
             layout_form.addRow("Subpixel width:", self.spinbox_offsets)
@@ -704,6 +716,8 @@ class ConfigDialog(ApplyDialog):
         self.config.spotsize = float(self.lineedit_spotsize.text())
         self.config.speed = float(self.lineedit_speed.text())
         self.config.scantime = float(self.lineedit_scantime.text())
+        if isinstance(self.config, SpotConfig):
+            self.config.spotsize_y = float(self.lineedit_spotsize_y.text())
         if isinstance(self.config, SRRConfig):
             self.config.warmup = float(self.lineedit_warmup.text())
             self.config.set_equal_subpixel_offsets(self.spinbox_offsets.value())
