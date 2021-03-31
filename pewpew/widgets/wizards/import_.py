@@ -45,7 +45,7 @@ class ImportWizard(QtWidgets.QWizard):
         config = config or Config()
 
         overview = (
-            "The wizard will guide you through importing LA-ICP-MS data "
+            "This wizard will guide you through importing LA-ICP-MS data "
             "and provides a higher level to control than the standard import. "
             "To begin select the format of the file being imported."
         )

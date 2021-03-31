@@ -60,9 +60,8 @@ class SpotImportWizard(QtWidgets.QWizard):
         config = config or SpotConfig()
 
         overview = (
-            "The wizard will guide you through importing LA-ICP-MS data "
-            "and provides a higher level to control than the standard import. "
-            "To begin select the format of the file being imported."
+            "This wizard is for importing spotwise collected data."
+            "To begin select the format of the file(s) being imported."
         )
 
         format_page = FormatPage(
@@ -317,6 +316,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
+        self.setWindowTitle("Spot Peak Detection")
 
         self._datas: List[np.ndarray] = []
         self.peaks: np.ndarray = None
@@ -637,6 +637,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
 class SpotImagePage(QtWidgets.QWizardPage):
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
+        self.setWindowTitle("Spot Image Preview")
 
         if options is None:
             options = GraphicsOptions()
