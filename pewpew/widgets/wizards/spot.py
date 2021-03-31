@@ -160,7 +160,7 @@ class SpotImportWizard(QtWidgets.QWizard):
             data[::2, :] = data[::2, ::-1]
 
         config = SpotConfig(
-            (float(self.field("spotsize_x")), float(self.field("spotsize_y")))
+            float(self.field("spotsize")), float(self.field("spotsize_y"))
         )
 
         if self.field("agilent"):
@@ -488,19 +488,13 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
                 "peaks",
                 peaks["height"] + peaks["base"],
                 peaks["top"],
-                color=sequential[4]
+                color=sequential[4],
             )
             self.chart.addScatterSeries(
-                "lefts",
-                peaks["base"],
-                peaks["left"],
-                color=sequential[1]
+                "lefts", peaks["base"], peaks["left"], color=sequential[1]
             )
             self.chart.addScatterSeries(
-                "rights",
-                peaks["base"],
-                peaks["right"],
-                color=sequential[2]
+                "rights", peaks["base"], peaks["right"], color=sequential[2]
             )
 
     def clearThresholds(self) -> None:
@@ -804,7 +798,7 @@ class SpotConfigPage(QtWidgets.QWizardPage):
 
         self.setLayout(layout)
 
-        self.registerField("spotsize_x", self.lineedit_spotsize_x)
+        self.registerField("spotsize", self.lineedit_spotsize_x)
         self.registerField("spotsize_y", self.lineedit_spotsize_y)
 
     def getNames(self) -> List[str]:
@@ -817,7 +811,7 @@ class SpotConfigPage(QtWidgets.QWizardPage):
 
     def aspectChanged(self) -> None:
         try:
-            aspect = float(self.field("spotsize_x")) / float(self.field("spotsize_y"))
+            aspect = float(self.field("spotsize")) / float(self.field("spotsize_y"))
             self.lineedit_aspect.setText(f"{aspect:.2f}")
         except (ValueError, ZeroDivisionError):
             self.lineedit_aspect.clear()
