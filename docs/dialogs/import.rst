@@ -67,6 +67,48 @@ For programs that export lines as a directory of separate files the '.csv' impor
    +-------------+----------------------+-------------------------------------------------+
 
 
+Spot-wise Import Wizard
+-----------------------
+.. index:: Spot-wise Import Wizard
+
+* **File -> Import -> Spotwise Import Wizard**
+
+This wizard allows the import data collected in a spot-wise manner.
+Imported data files are joined into a single continuous signal which is then used to find
+and integrate peaks. Peaks can be detected using the algorithms in :ref:`peak_detection`.
+
+
+.. table:: Peak detection algorithms and parameters.
+   :align: center
+   :name: peak_detection
+
+   +----------------+-------------------+-----------------------------------------------------------------------------+
+   | Algorithm      | Parameter         | Description                                                                 |
+   +================+===================+=============================================================================+
+   | Constant Value | Minimum value     | Continuous signals above this value are considered peaks.                   |
+   +----------------+-------------------+-----------------------------------------------------------------------------+
+   | CWT            | Min. / Max. width | CWT widths, should cover the expected peak width / 2.                       |
+   +                +                   +                                                                             +
+   |                | Width factor      | Peak width multiplier.                                                      |
+   +                +                   +                                                                             +
+   |                | Min. ridge SNR    | The minimum SNR for a CWT ridge to be considered a peak.                    |
+   +                +                   +                                                                             +
+   |                | Min. ridge length | The minimum continuous CWT ridge length.                                    |
+   +----------------+-------------------+-----------------------------------------------------------------------------+
+   | Moving window  | Window size       | Size of the rolling window.                                                 |
+   +                +                   +                                                                             +
+   |                | Window baseline   | Method for determining the signal baseline.                                 |
+   +                +                   +                                                                             +
+   |                | Window threshold  | Method for determining signal threshold.                                    |
+   +                +                   +                                                                             +
+   |                | Threshold         | Value used for thresholding.                                                |
+   |                |                   |                                                                             |
+   |                |                   | If method is 'Constant' the threshold is set to baseline + `Threshold`.     |
+   |                |                   |                                                                             |
+   |                |                   | If method is 'Std' the threshold is set to baseline + `Threshold` * stddev. |
+   +----------------+-------------------+-----------------------------------------------------------------------------+
+
+
 Kriss-Kross Import Wizard
 -------------------------
 .. index:: Kriss-Kross Import Wizard
