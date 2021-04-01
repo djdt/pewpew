@@ -21,7 +21,7 @@ class SignalChart(BaseChart):
         if title is not None:
             self.chart().setTitle(title)
 
-        self.chart().legend().hide()
+        # self.chart().legend().hide()
 
         self.xaxis = QtCharts.QValueAxis()
         self.yaxis = QtCharts.QValueAxis()
@@ -46,13 +46,19 @@ class SignalChart(BaseChart):
         xs: np.ndarray = None,
         color: QtGui.QColor = QtCore.Qt.black,
         linewidth: float = 1.0,
+        label: str = None,
     ) -> None:
         series = QtCharts.QLineSeries()
+        self.chart().addSeries(series)
         series.setColor(color)
         series.setPen(QtGui.QPen(color, linewidth))
         series.setUseOpenGL(True)  # Speed for many line?
 
-        self.chart().addSeries(series)
+        if label is not None:
+            series.setName(label)
+        else:
+            self.chart().legend().markers(series)[0].setVisible(False)
+
         series.attachAxis(self.xaxis)
         series.attachAxis(self.yaxis)
         self.series[name] = series
@@ -66,15 +72,22 @@ class SignalChart(BaseChart):
         xs: np.ndarray = None,
         color: QtGui.QColor = QtCore.Qt.black,
         markersize: float = 20.0,
+        label: str = None,
     ) -> None:
         series = QtCharts.QScatterSeries()
+        self.chart().addSeries(series)
+
         series.setColor(color)
         series.setPen(QtGui.QPen(color, 1.0))
         series.setBrush(QtGui.QBrush(color))
         series.setMarkerSize(markersize)
         series.setUseOpenGL(True)  # Speed for many line?
 
-        self.chart().addSeries(series)
+        if label is not None:
+            series.setName(label)
+        else:
+            self.chart().legend().markers(series)[0].setVisible(False)
+
         series.attachAxis(self.xaxis)
         series.attachAxis(self.yaxis)
         self.series[name] = series

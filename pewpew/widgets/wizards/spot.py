@@ -849,16 +849,3 @@ class SpotConfigPage(QtWidgets.QWizardPage):
 
         self.setField("peaks", peaks)
         self.setElidedNames(peaks.dtype.names)
-
-
-if __name__ == "__main__":
-    app = QtWidgets.QApplication()
-    spot = SpotImportWizard(
-        [
-            "/home/tom/MEGA/Uni/Experimental/LAICPMS/Standards/IDA agar/20200815_gel_ida_iso_brain_spot_63x54.b"
-        ]
-    )
-    spot.open()
-    spot.next()
-    spot.next()
-    app.exec_()
