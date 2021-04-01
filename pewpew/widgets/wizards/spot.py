@@ -474,9 +474,9 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.peaks = None
         self.lineedit_count.setText("0")
         if "peaks" in self.chart.series:
-            self.chart.series.pop("peaks").clear()
-            self.chart.series.pop("lefts").clear()
-            self.chart.series.pop("rights").clear()
+            self.chart.series["peaks"].clear()
+            self.chart.series["lefts"].clear()
+            self.chart.series["rights"].clear()
 
     def drawPeaks(self, peaks: np.ndarray) -> None:
         if "peaks" in self.chart.series:
@@ -489,12 +489,17 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
                 peaks["height"] + peaks["base"],
                 peaks["top"],
                 color=sequential[4],
+                label="Peaks",
             )
             self.chart.addScatterSeries(
-                "lefts", peaks["base"], peaks["left"], color=sequential[1]
+                "lefts", peaks["base"], peaks["left"], color=sequential[1], label="Left"
             )
             self.chart.addScatterSeries(
-                "rights", peaks["base"], peaks["right"], color=sequential[2]
+                "rights",
+                peaks["base"],
+                peaks["right"],
+                color=sequential[2],
+                label="Right",
             )
 
     def clearThresholds(self) -> None:
@@ -764,13 +769,13 @@ class SpotConfigPage(QtWidgets.QWizardPage):
         self.button_isotopes.pressed.connect(self.buttonNamesPressed)
 
         self.lineedit_spotsize_x = QtWidgets.QLineEdit()
-        self.lineedit_spotsize_x.setText(str(config.spotsize[0]))
+        self.lineedit_spotsize_x.setText(str(config.spotsize))
         self.lineedit_spotsize_x.setValidator(DecimalValidatorNoZero(0, 1e9, 4))
         self.lineedit_spotsize_x.textChanged.connect(self.aspectChanged)
         self.lineedit_spotsize_x.textChanged.connect(self.completeChanged)
 
         self.lineedit_spotsize_y = QtWidgets.QLineEdit()
-        self.lineedit_spotsize_y.setText(str(config.spotsize[1]))
+        self.lineedit_spotsize_y.setText(str(config.spotsize_y))
         self.lineedit_spotsize_y.setValidator(DecimalValidatorNoZero(0, 1e9, 4))
         self.lineedit_spotsize_y.textChanged.connect(self.aspectChanged)
         self.lineedit_spotsize_y.textChanged.connect(self.completeChanged)
@@ -844,3 +849,16 @@ class SpotConfigPage(QtWidgets.QWizardPage):
 
         self.setField("peaks", peaks)
         self.setElidedNames(peaks.dtype.names)
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication()
+    spot = SpotImportWizard(
+        [
+            "/home/tom/MEGA/Uni/Experimental/LAICPMS/Standards/IDA agar/20200815_gel_ida_iso_brain_spot_63x54.b"
+        ]
+    )
+    spot.open()
+    spot.next()
+    spot.next()
+    app.exec_()
