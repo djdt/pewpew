@@ -108,6 +108,8 @@ and integrate peaks. Peaks can be detected using the algorithms in :ref:`peak_de
    |                |                   | If method is 'Std' the threshold is set to baseline + `Threshold` * stddev. |
    +----------------+-------------------+-----------------------------------------------------------------------------+
 
+The signal display shows the currently loaded signal with peak positions (top, left, right) marked.
+The view can be navigated using the scroll-wheel and middle mouse button.
 
 Kriss-Kross Import Wizard
 -------------------------
