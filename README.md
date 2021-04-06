@@ -1,7 +1,6 @@
 # pew²
 
-Pew² is a GUI for importing and processing line-by-line collected LA-ICP-MS data
-using the python liibrary [pewlib](https://github.com/djdt/pewlib).
+Pew² is a GUI for importing and processing line-by-line and spot-wise collected LA-ICP-MS data using the python liibrary [pewlib](https://github.com/djdt/pewlib).
 
 ## Installation
 
