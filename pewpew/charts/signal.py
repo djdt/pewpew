@@ -71,7 +71,7 @@ class SignalChart(BaseChart):
         ys: np.ndarray,
         xs: np.ndarray = None,
         color: QtGui.QColor = QtCore.Qt.black,
-        markersize: float = 20.0,
+        markersize: float = 10.0,
         label: str = None,
     ) -> None:
         series = QtCharts.QScatterSeries()
