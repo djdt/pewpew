@@ -76,40 +76,90 @@ Spot-wise Import Wizard
 This wizard allows the import data collected in a spot-wise manner.
 Imported data files are joined into a single continuous signal which is then used to find
 and integrate peaks. Peaks can be detected using the algorithms in :ref:`peak_detection`.
+Peak detection is only perform on one element, all other elements will be integrated using the previously detected positions.
 
 
 .. table:: Peak detection algorithms and parameters.
    :align: center
    :name: peak_detection
 
-   +----------------+-------------------+-----------------------------------------------------------------------------+
-   | Algorithm      | Parameter         | Description                                                                 |
-   +================+===================+=============================================================================+
-   | Constant Value | Minimum value     | Continuous signals above this value are considered peaks.                   |
-   +----------------+-------------------+-----------------------------------------------------------------------------+
-   | CWT            | Min. / Max. width | CWT widths, should cover the expected peak width / 2.                       |
-   +                +                   +                                                                             +
-   |                | Width factor      | Peak width multiplier.                                                      |
-   +                +                   +                                                                             +
-   |                | Min. ridge SNR    | The minimum SNR for a CWT ridge to be considered a peak.                    |
-   +                +                   +                                                                             +
-   |                | Min. ridge length | The minimum continuous CWT ridge length.                                    |
-   +----------------+-------------------+-----------------------------------------------------------------------------+
-   | Moving window  | Window size       | Size of the rolling window.                                                 |
-   +                +                   +                                                                             +
-   |                | Window baseline   | Method for determining the signal baseline.                                 |
-   +                +                   +                                                                             +
-   |                | Window threshold  | Method for determining signal threshold.                                    |
-   +                +                   +                                                                             +
-   |                | Threshold         | Value used for thresholding.                                                |
-   |                |                   |                                                                             |
-   |                |                   | If method is 'Constant' the threshold is set to baseline + `Threshold`.     |
-   |                |                   |                                                                             |
-   |                |                   | If method is 'Std' the threshold is set to baseline + `Threshold` * stddev. |
-   +----------------+-------------------+-----------------------------------------------------------------------------+
+   +----------------+-------------------+-------------------------------------------------------------------+
+   | Algorithm      | Parameter         | Description                                                       |
+   +================+===================+===================================================================+
+   | Constant Value | Minimum value     | Continuous signals above this value are considered peaks.         |
+   +----------------+-------------------+-------------------------------------------------------------------+
+   | CWT            | Min. / Max. width | CWT widths, should cover the expected peak width / 2.             |
+   +                +-------------------+-------------------------------------------------------------------+
+   |                | Width factor      | Peak width multiplier.                                            |
+   +                +-------------------+-------------------------------------------------------------------+
+   |                | Min. ridge SNR    | The minimum SNR for a CWT ridge to be considered a peak.          |
+   +                +-------------------+-------------------------------------------------------------------+
+   |                | Min. ridge length | The minimum continuous CWT ridge length.                          |
+   +----------------+-------------------+-------------------------------------------------------------------+
+   | Moving window  | Window size       | Size of the rolling window.                                       |
+   +                +-------------------+-------------------------------------------------------------------+
+   |                | Window baseline   | Method for determining the signal baseline.                       |
+   +                +-------------------+-------------------------------------------------------------------+
+   |                | Window threshold  | Method for determining signal threshold.                          |
+   +                +-------------------+-------------------------------------------------------------------+
+   |                | Threshold         | Value used for thresholding.                                      |
+   |                |                   |                                                                   |
+   |                |                   | If 'Constant' the threshold is set to baseline + `Threshold`.     |
+   |                |                   |                                                                   |
+   |                |                   | If 'Std' the threshold is set to baseline + `Threshold` * stddev. |
+   +----------------+-------------------+-------------------------------------------------------------------+
+
+
+.. figure:: ../images/dialog_spot_signal.png
+    :width: 480px
+    :align: center
+    :name: spot_signal
+
+    The Spotwise Wizard signal / peak detection chart.
 
 The signal display shows the currently loaded signal with peak positions (top, left, right) marked.
 The view can be navigated using the scroll-wheel and middle mouse button.
+Peak bases and heights can be set to the algorithms in :ref:`peak_base_height` using the `Peak base` and `Peak height` combo boxes.
+Peak base is used to determine the peak area while peak heights are directly set by the `Peak height` method.
+Peaks can be filtered using the `Minimum area`, `Minimum height` and `Minimum width` inputs.
+Once the correct number of peaks are obtained continue onto :ref:`spot_preview`.
+
+.. table:: Peak base and height algorithms.
+   :align: center
+   :name: peak_base_height
+
+   +--------+------------+------------------------------------------------------+
+   | Target | Method     | Description                                          |
+   +========+============+======================================================+
+   | Base   | baseline   | A baseline is computed using the 25th percentile     |
+   |        |            |                                                      |
+   |        |            | of the area surrounding the peak.                    |
+   +        +------------+------------------------------------------------------+
+   |        | edge       | The lower of the two edge points.                    |
+   +        +------------+------------------------------------------------------+
+   |        | prominence | The higher of the two edge points.                   |
+   +        +------------+------------------------------------------------------+
+   |        | minima     | The lowest point within the peak.                    |
+   +        +------------+------------------------------------------------------+
+   |        | zero       | Set the baseline to zero.                            |
+   +--------+------------+------------------------------------------------------+
+   | Height | center     | Height is taken as the centermost point of the peak. |
+   +        +------------+------------------------------------------------------+
+   |        | maxima     | The maximum value of the peak.                       |
+   +--------+------------+------------------------------------------------------+
+
+
+.. figure:: ../images/dialog_spot_preview.png
+    :width: 480px
+    :align: center
+    :name: spot_preview
+
+    The Spotwise Wizard import preview page.
+
+The preview page allows you to set the expected shape of the final image.
+The `Difference` output will show the difference in the shape to the current peak detection count.
+Rastered collections should enabled the alternating raster option.
+Once the image is correct the spotsize can be entered on the following page.
 
 Kriss-Kross Import Wizard
 -------------------------

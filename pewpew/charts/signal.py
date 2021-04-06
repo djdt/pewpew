@@ -3,7 +3,7 @@ from PySide2.QtCharts import QtCharts
 
 import numpy as np
 
-from pewpew.charts.base import BaseChart
+from pewpew.charts.base import BaseChart, NiceValueAxis
 from pewpew.charts.colors import light_theme
 
 from pewpew.lib.numpyqt import array_to_polygonf
@@ -24,7 +24,7 @@ class SignalChart(BaseChart):
         # self.chart().legend().hide()
 
         self.xaxis = QtCharts.QValueAxis()
-        self.yaxis = QtCharts.QValueAxis()
+        self.yaxis = NiceValueAxis()
         self.xaxis.setVisible(False)
 
         self.addAxis(self.xaxis, QtCore.Qt.AlignBottom)
