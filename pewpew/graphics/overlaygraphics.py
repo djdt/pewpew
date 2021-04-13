@@ -100,7 +100,7 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         self.addItem(item)
         self.overlayitems.append(OverlayItem(item, anchor, alignment))
 
-    def drawForeground(self, painter: QtGui.QPainter, rect: QtCore.QRect):
+    def drawForeground(self, painter: QtGui.QPainter, rect: QtCore.QRectF):
         if self.foreground_pixmap is None:
             self.updateForeground(rect)
 
@@ -110,7 +110,7 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         painter.drawPixmap(0, 0, self.foreground_pixmap)
         painter.restore()
 
-    def updateForeground(self, rect: QtCore.QRect) -> None:
+    def updateForeground(self, rect: QtCore.QRectF) -> None:
         self.foreground_pixmap = QtGui.QPixmap(rect.size())
         self.foreground_pixmap.fill(QtCore.Qt.transparent)
         painter = QtGui.QPainter(self.foreground_pixmap)
