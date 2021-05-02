@@ -217,13 +217,9 @@ class _ExportDialogBase(QtWidgets.QDialog):
     def isComplete(self) -> bool:
         if not Path(self.lineedit_directory.text()).exists():
             return False
-        if not self.lineedit_filename.hasAcceptableInput():
-            return False
-        filename = self.lineedit_filename.text()
-        if filename == "":
-            return False
-        if self.options.indexForExt(Path(filename).suffix) == -1:
-            return False
+        # if self.options.indexForExt(Path(self.lineedit_filename.text()).suffix) == -1:
+        #     print("indexForExt")
+        #     return False
         if not self.options.isComplete():
             return False
         return True
@@ -332,12 +328,21 @@ class ExportDialog(_ExportDialogBase):
             and self.check_export_layers.isEnabled()
         )
 
+    def isComplete(self) -> bool:
+        suffix = Path(self.lineedit_filename.text()).suffix
+        if suffix != "" and self.options.indexForExt(suffix) == -1:
+            return False
+        return super().isComplete()
+
     def updatePreview(self) -> None:
         path = Path(self.lineedit_filename.text())
         if self.isExportAll():
-            path = path.with_name(path.stem + "_<isotope>" + path.suffix)
+            path = path.with_name(path.stem + "_<isotope>")
         if self.isExportLayers():
-            path = path.with_name(path.stem + "_<layer#>" + path.suffix)
+            path = path.with_name(path.stem + "_<layer#>")
+
+        if path.suffix == "":
+            path = path.with_suffix(self.options.currentExt())
         self.lineedit_preview.setText(str(path))
 
     def typeChanged(self, index: int) -> None:
@@ -349,9 +354,10 @@ class ExportDialog(_ExportDialogBase):
         self.updatePreview()
 
     def getPath(self) -> Path:
-        return Path(self.lineedit_directory.text()).joinpath(
-            self.lineedit_filename.text()
-        )
+        path = Path(self.lineedit_filename.text())
+        if path.suffix == "":
+            path = path.with_suffix(self.options.currentExt())
+        return Path(self.lineedit_directory.text()).joinpath(path)
 
     def getPathForIsotope(self, path: Path, isotope: str) -> Path:
         return path.with_name(

@@ -51,6 +51,11 @@ def test_export_dialog(qtbot: QtBot):
     assert not dlg.check_calibrate.isEnabled()
 
     dlg.lineedit_filename.setText("laser.png")
+    assert dlg.lineedit_preview.text() == "laser.png"
+    assert dlg.options.currentExt() == ".png"
+
+    dlg.lineedit_filename.setText("laser")
+    assert dlg.lineedit_preview.text() == "laser.png"
     assert dlg.options.currentExt() == ".png"
 
     dlg.check_export_all.click()
@@ -61,10 +66,14 @@ def test_export_dialog(qtbot: QtBot):
     assert not dlg.check_export_all.isEnabled()
     assert dlg.lineedit_preview.text() == "laser.npz"
 
+    dlg.lineedit_filename.setText("laser.abc")
+    assert not dlg.isComplete()
+    dlg.lineedit_filename.setText("laser.npz")
+
     dir_dlg = dlg.selectDirectory()
     dir_dlg.close()
 
-    dlg.lineedit_filename.setText("")
+    dlg.lineedit_filename.setText("/fake/directory")
     assert not dlg.isComplete()
 
     with tempfile.TemporaryDirectory() as tempdir:
@@ -124,11 +133,13 @@ def test_export_all_dialog(qtbot: QtBot):
     view = viewspace.activeView()
 
     lasers = [
-        Laser(rand_data("A1"), name="laser1", path=Path("/home/user/laser1.npz")),
-        Laser(rand_data("B2"), name="laser2", path=Path("/home/user/laser2.npz")),
-        Laser(rand_data("C3"), name="laser3", path=Path("/home/user/laser3.npz")),
+        Laser(rand_data("A1"), name="laser1", path=Path("/fake/directory/laser1.npz")),
+        Laser(rand_data("B2"), name="laser2", path=Path("/fake/directory/laser2.npz")),
+        Laser(rand_data("C3"), name="laser3", path=Path("/fake/directory/laser3.npz")),
         Laser(
-            rand_data(["B2", "C3"]), name="laser4", path=Path("/home/user/laser4.npz")
+            rand_data(["B2", "C3"]),
+            name="laser4",
+            path=Path("/fake/directory/laser4.npz"),
         ),
     ]
     widgets = [view.addLaser(laser) for laser in lasers]
@@ -136,9 +147,10 @@ def test_export_all_dialog(qtbot: QtBot):
     dlg = ExportAllDialog(widgets)
     dlg.open()
 
-    assert dlg.lineedit_directory.text() == "/home/user"
+    assert dlg.lineedit_directory.text() == "/fake/directory"
     assert dlg.lineedit_filename.text() == "<name>.npz"
     assert dlg.lineedit_preview.text() == "<name>.npz"
+    assert not dlg.isComplete()
 
     dlg.lineedit_prefix.setText("01")
 
@@ -159,7 +171,9 @@ def test_export_all_dialog(qtbot: QtBot):
 
     with tempfile.TemporaryDirectory() as tempdir:
         dlg.lineedit_directory.setText(tempdir)
+        assert dlg.isComplete()
         dlg.accept()
+
         assert Path(tempdir, "01_laser1_A1.csv").exists()
         assert Path(tempdir, "01_laser2_B2.csv").exists()
         assert Path(tempdir, "01_laser3_C3.csv").exists()
