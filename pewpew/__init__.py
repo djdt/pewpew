@@ -2,7 +2,7 @@ import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-__version__ = "1.2.5"
+__version__ = "1.2.6"
 __loglevel__ = logging.INFO
 
 logging.captureWarnings(True)
