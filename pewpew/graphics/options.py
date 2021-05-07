@@ -44,6 +44,9 @@ class GraphicsOptions(object):
         self, name: str, data: np.ndarray
     ) -> Tuple[float, float]:
         vmin, vmax = self.get_colorrange(name)
+        if data.dtype == bool:
+            return 0, 1
+
         if isinstance(vmin, str):
             vmin = np.nanpercentile(data, float(vmin.rstrip("%")))
         if isinstance(vmax, str):

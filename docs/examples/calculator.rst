@@ -34,3 +34,41 @@ In this example we use the calculator tool to simultaneously threshold and divid
 
 3. Enter the new name, and click `Apply`.
     Choose a unique name to prevent overwriting data.
+
+Example: Image Segmentation
+===========================
+
+Selection of a region of interest of structural feature can be performed using segmentation.
+In this example we will use multi-level kmeans to select certain features from Fe56 of a
+tissue-micro-array core.
+
+.. centered::
+   |calc_img_k_og|
+
+1. Create the segmented image mask.
+    Enter ``segment(Fe56, kmeans(Fe56, 3))`` into the `Formula` box.
+    Here we are using 3 level kmeans clustering.
+
+.. centered::
+    |calc_img_k_mask|
+
+2. Enter ``masked`` into the `Name` box, and click `Apply`.
+    You can choose any name will work.
+
+3. Select data from the original.
+    Enter ``mask(Fe56, masked == 3)`` into the `Formula` box.
+    The selected data is limited to regions where k==3.
+
+.. centered::
+    |calc_img_k_select|
+
+3. Enter the new name, and click `Apply`.
+    Choose a unique name to prevent overwriting data.
+
+
+.. |calc_img_k_og| image:: ../images/tutorial_calc_kmean_fe.png
+    :width: 300px
+.. |calc_img_k_mask| image:: ../images/tutorial_calc_kmean_mask.png
+    :width: 300px
+.. |calc_img_k_select| image:: ../images/tutorial_calc_kmeans_selected.png
+    :width: 300px

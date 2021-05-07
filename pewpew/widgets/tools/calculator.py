@@ -19,6 +19,13 @@ from pewpew.widgets.tools import ToolWidget
 from typing import List
 
 
+def segment_image(x: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
+    mask = np.zeros(x.shape, dtype=int)
+    for i, t in enumerate(np.atleast_1d(thresholds)):
+        mask[x > t] = i + 1
+    return mask
+
+
 class CalculatorName(ValidColorLineEdit):
     def __init__(
         self,
@@ -75,6 +82,11 @@ class CalculatorTool(ToolWidget):
             "(<x>, <k>)",
             "Returns lower bounds of 1 to <k> kmeans clusters.",
         ),
+        "mask": (
+            BinaryFunction("mask"),
+            "(<x>, <mask>)",
+            "Selects <x> where <mask>, otherwise NaN.",
+        ),
         "mean": (UnaryFunction("mean"), "(<x>)", "Returns the mean of <x>."),
         "median": (
             UnaryFunction("median"),
@@ -97,6 +109,11 @@ class CalculatorTool(ToolWidget):
             "(<x>, <percent>)",
             "Returns the <percent> percentile of <x>.",
         ),
+        "segment": (
+            BinaryFunction("segment"),
+            "(<x>, <threshold(s)>)",
+            "Create a masking image from the given thrshold(s).",
+        ),
         "threshold": (
             BinaryFunction("threshold"),
             "(<x>, <value>)",
@@ -106,12 +123,14 @@ class CalculatorTool(ToolWidget):
     reducer_functions = {
         "abs": (np.abs, 1),
         "kmeans": (kmeans.thresholds, 2),
+        "mask": (lambda x, m: np.where(m, x, np.nan), 2),
         "mean": (np.nanmean, 1),
         "median": (np.nanmedian, 1),
         "nantonum": (np.nan_to_num, 1),
         "normalise": (normalise, 3),
         "otsu": (otsu, 1),
         "percentile": (np.nanpercentile, 2),
+        "segment": (segment_image, 2),
         "threshold": (lambda x, a: np.where(x > a, x, np.nan), 2),
     }
 
