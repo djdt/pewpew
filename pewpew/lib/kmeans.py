@@ -124,8 +124,8 @@ def kmeans1d(
             ).labels
         except ImportError:
             logger.warning("Unable to use ckmeans1d as ckwrap package not found.")
-            method = "kmeans"
-    if method == "kmeans":
+            return kmeans1d(x, k, method="kmeans", method_kws=method_kws)
+    elif method == "kmeans":
         idx = kmeans(
             x.ravel(),
             k,
