@@ -215,6 +215,7 @@ class Parser(object):
             ">": LeftBinary(">", 10),
             ">=": LeftBinary(">=", 10),
             "=": LeftBinary("=", 10),
+            "==": LeftBinary("=", 10),
             "!=": LeftBinary("!=", 10),
             "+": LeftBinary("+", 20),
             "-": LeftBinary("-", 20),
