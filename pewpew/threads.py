@@ -51,6 +51,7 @@ class ImportThread(QtCore.QThread):
             "import_version_pewlib": pewlib_version,
             "import_version_pew2": pewpew_version,
             "import_path": str(path.resolve()),
+            "path": str(path.resolve())
         }
 
         if not path.exists():
@@ -89,6 +90,5 @@ class ImportThread(QtCore.QThread):
                 raise ValueError(f"{path.name}: Unknown extention '{path.suffix}'.")
 
         info["name"] = info.get("aquistion_name", path.stem)
-        info["path"] = str(path.resolve())
 
         return Laser(data=data, config=config, info=info)
