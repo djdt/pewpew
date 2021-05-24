@@ -51,6 +51,7 @@ class ImportThread(QtCore.QThread):
             "import_version_pewlib": pewlib_version,
             "import_version_pew2": pewpew_version,
             "import_path": str(path.resolve()),
+            "name": path.stem,
             "path": str(path.resolve())
         }
 
@@ -88,7 +89,5 @@ class ImportThread(QtCore.QThread):
                 data = io.textimage.load(path, name="_isotope_")
             else:  # pragma: no cover
                 raise ValueError(f"{path.name}: Unknown extention '{path.suffix}'.")
-
-        info["name"] = info.get("aquistion_name", path.stem)
 
         return Laser(data=data, config=config, info=info)
