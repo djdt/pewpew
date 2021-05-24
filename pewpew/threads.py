@@ -2,6 +2,8 @@ from PySide2 import QtCore
 from pathlib import Path
 import logging
 
+from pewpew import __version__ as pewpew_version
+from pewlib import __version__ as pewlib_version
 from pewlib import io
 from pewlib import Config, Laser
 
@@ -45,7 +47,11 @@ class ImportThread(QtCore.QThread):
             speed=self.config.speed,
             scantime=self.config.scantime,
         )
-        info = {}
+        info = {
+            "import_version_pewlib": pewlib_version,
+            "import_version_pew2": pewpew_version,
+            "import_path": str(path.resolve()),
+        }
 
         if not path.exists():
             raise FileNotFoundError(f"{path.name} not found.")
