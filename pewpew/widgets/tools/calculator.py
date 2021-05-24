@@ -1,6 +1,6 @@
 import numpy as np
 
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
@@ -9,7 +9,6 @@ from pewpew.lib import kmeans
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
-# from pewpew.widgets.graphicses import LaserImagegraphics
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 
 from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
@@ -55,9 +54,15 @@ class CalculatorName(ValidColorLineEdit):
 
 class CalculatorFormula(ValidColorTextEdit):
     def __init__(
-        self, text: str, variables: List[str], parent: QtWidgets.QWidget = None
+        self,
+        text: str,
+        variables: List[str],
+        parent: QtWidgets.QWidget = None,
     ):
         super().__init__(text, parent)
+
+        self.completer: QtWidgets.QCompleter = None
+
         self.textChanged.disconnect(self.revalidate)
         self.textChanged.connect(self.calculate)
         self.parser = Parser(variables)
@@ -72,6 +77,62 @@ class CalculatorFormula(ValidColorTextEdit):
         except ParserException:
             self.expr = ""
         self.revalidate()
+
+    def setCompleter(self, completer: QtWidgets.QCompleter) -> None:
+        if self.completer is not None:
+            self.completer.disconnect(self)
+
+        self.completer = completer
+        self.completer.setWidget(self)
+        self.completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.completer.activated.connect(self.insertCompletion)
+
+    def insertCompletion(self, completion: str) -> None:
+        tc = self.textCursor()
+        for i in range(len(self.completer.completionPrefix())):
+            tc.deletePreviousChar()
+        tc.insertText(completion)
+        self.setTextCursor(tc)
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if self.completer is not None and self.completer.popup().isVisible():
+            if event.key() in [  # Ignore keys when popup is present
+                QtCore.Qt.Key_Enter,
+                QtCore.Qt.Key_Return,
+                QtCore.Qt.Key_Escape,
+                QtCore.Qt.Key_Tab,
+                QtCore.Qt.Key_Down,
+                QtCore.Qt.Key_Up,
+            ]:
+                event.ignore()
+                return
+
+        super().keyPressEvent(event)
+
+        eow = "~!@#$%^&*()+{}|:\"<>?,./;'[]\\-="
+        tc = self.textCursor()
+        tc.select(QtGui.QTextCursor.WordUnderCursor)
+        prefix = tc.selectedText()
+        if prefix != self.completer.completionPrefix():
+            self.completer.setCompletionPrefix(prefix)
+            self.completer.popup().setCurrentIndex(
+                self.completer.completionModel().index(0, 0)
+            )
+
+        if (
+            len(prefix) < 2
+            or event.text() == ""
+            or event.text()[-1] in eow
+            or prefix == self.completer.currentCompletion()
+        ):
+            self.completer.popup().hide()
+        else:
+            rect = self.cursorRect()
+            rect.setWidth(
+                self.completer.popup().sizeHintForColumn(0)
+                + self.completer.popup().verticalScrollBar().sizeHint().width()
+            )
+            self.completer.complete(rect)
 
 
 class CalculatorTool(ToolWidget):
@@ -218,6 +279,12 @@ class CalculatorTool(ToolWidget):
             i += 1
         self.lineedit_name.setText(name)
         self.formula.parser.variables = isotopes
+        self.formula.setCompleter(
+            QtWidgets.QCompleter(
+                list(self.formula.parser.variables)
+                + [k + "(" for k in CalculatorTool.parser_functions.keys()]
+            )
+        )
         self.formula.valid = True
         self.formula.setText(self.widget.combo_isotope.currentText())  # refreshes
 
