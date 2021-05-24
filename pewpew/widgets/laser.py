@@ -83,7 +83,7 @@ class LaserView(View):
 
     def addLaser(self, laser: Laser) -> "LaserWidget":
         widget = LaserWidget(laser, self.viewspace.options, self)
-        name = laser.name if laser.name != "" else laser.path.stem
+        name = laser.info["name"]
         self.addTab(name, widget)
         return widget
 
@@ -397,7 +397,7 @@ class LaserWidget(_ViewWidget):
         super().refresh()
 
     def rename(self, text: str) -> None:
-        self.laser.name = text
+        self.laser.info["name"] = text
         self.modified = True
 
     # Other
@@ -421,7 +421,8 @@ class LaserWidget(_ViewWidget):
         self.refresh()
 
     def laserFilePath(self, ext: str = ".npz") -> Path:
-        return self.laser.path.parent.joinpath(self.laser.name + ext)
+        path = Path(self.laser.info["path"])
+        return path.with_name(self.laser.info.get("name", path.stem) + ext)
 
     def populateIsotopes(self) -> None:
         self.combo_isotope.blockSignals(True)
@@ -480,14 +481,15 @@ class LaserWidget(_ViewWidget):
                 mask[x0:x1, y0:y1], data[name][x0:x1, y0:y1], np.nan
             )
 
-        path = self.laser.path
+        info = self.laser.info.copy()
+        info["name"] += "_cropped"
+        info["path"] = Path(info["path"]).with_stem(info["name"])
         new_widget = self.view.addLaser(
             Laser(
                 new_data,
                 calibration=self.laser.calibration,
                 config=self.laser.config,
-                name=self.laser.name + "_cropped",
-                path=path.parent.joinpath(self.laser.name + "_cropped" + path.suffix),
+                info=info,
             )
         )
         new_widget.setActive()
@@ -530,7 +532,7 @@ class LaserWidget(_ViewWidget):
             path = Path(path)
 
         io.npz.save(path, self.laser)
-        self.laser.path = path
+        self.laser.info["path"] = str(path.resolve())
         self.modified = False
 
     def actionCalibration(self) -> QtWidgets.QDialog:
@@ -582,7 +584,7 @@ class LaserWidget(_ViewWidget):
         return dlg
 
     def actionSave(self) -> QtWidgets.QDialog:
-        path = self.laser.path
+        path = Path(self.laser.info["path"])
         if path.suffix.lower() == ".npz" and path.exists():
             self.saveDocument(path)
             return None

@@ -45,6 +45,7 @@ class ImportThread(QtCore.QThread):
             speed=self.config.speed,
             scantime=self.config.scantime,
         )
+        info = {}
 
         if not path.exists():
             raise FileNotFoundError(f"{path.name} not found.")
@@ -53,11 +54,13 @@ class ImportThread(QtCore.QThread):
             if path.suffix.lower() == ".b":
                 data, params = io.agilent.load(path, full=True)
                 config.scantime = params["scantime"]
+                info.update(io.agilent.load_info(path))
             elif io.perkinelmer.is_valid_directory(path):
                 data, params = io.perkinelmer.load(path, full=True)
                 config.spotsize = params["spotsize"]
                 config.speed = params["speed"]
                 config.scantime = params["scantime"]
+                info["instrument_vendor"] = "PerkinElemer"
             elif io.csv.is_valid_directory(path):
                 data, params = io.csv.load(path, full=True)
                 for key, val in params.items():
@@ -65,14 +68,13 @@ class ImportThread(QtCore.QThread):
         else:
             if path.suffix.lower() == ".npz":
                 laser = io.npz.load(path)
-                if laser.name == "":  # pragma: no cover
-                    laser.name = path.stem
                 return laser
             if path.suffix.lower() == ".csv":
                 sample_format = io.thermo.icap_csv_sample_format(path)
                 if sample_format in ["columns", "rows"]:
                     data, params = io.thermo.load(path, full=True)
                     config.scantime = params["scantime"]
+                    info["instrument_vendor"] = "Thermo"
                 else:
                     data = io.textimage.load(path, name="_isotope_")
             elif path.suffix.lower() in [".txt", ".text"]:
@@ -80,4 +82,7 @@ class ImportThread(QtCore.QThread):
             else:  # pragma: no cover
                 raise ValueError(f"{path.name}: Unknown extention '{path.suffix}'.")
 
-        return Laser(data=data, config=config, name=path.stem, path=path.resolve())
+        info["name"] = info.get("aquistion_name", path.stem)
+        info["path"] = str(path.resolve())
+
+        return Laser(data=data, config=config, info=info)
