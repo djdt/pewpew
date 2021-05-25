@@ -83,7 +83,7 @@ class LaserView(View):
 
     def addLaser(self, laser: Laser) -> "LaserWidget":
         widget = LaserWidget(laser, self.viewspace.options, self)
-        name = laser.info["name"]
+        name = laser.info["Name"]
         self.addTab(name, widget)
         return widget
 
@@ -397,7 +397,7 @@ class LaserWidget(_ViewWidget):
         super().refresh()
 
     def rename(self, text: str) -> None:
-        self.laser.info["name"] = text
+        self.laser.info["Name"] = text
         self.modified = True
 
     # Other
@@ -420,9 +420,12 @@ class LaserWidget(_ViewWidget):
         self.current_isotope = new
         self.refresh()
 
+    def laserName(self) -> str:
+        return self.laser.info.get("Name", "<No Name>")
+
     def laserFilePath(self, ext: str = ".npz") -> Path:
-        path = Path(self.laser.info["path"])
-        return path.with_name(self.laser.info.get("name", path.stem) + ext)
+        path = Path(self.laser.info.get("File Path", ""))
+        return path.with_name(self.laserName() + ext)
 
     def populateIsotopes(self) -> None:
         self.combo_isotope.blockSignals(True)
@@ -482,8 +485,8 @@ class LaserWidget(_ViewWidget):
             )
 
         info = self.laser.info.copy()
-        info["name"] += "_cropped"
-        info["path"] = Path(info["path"]).with_stem(info["name"])
+        info["Name"] += "_cropped"
+        info["File Path"] = Path(info["File Path"]).with_stem(info["Name"])
         new_widget = self.view.addLaser(
             Laser(
                 new_data,
@@ -532,7 +535,7 @@ class LaserWidget(_ViewWidget):
             path = Path(path)
 
         io.npz.save(path, self.laser)
-        self.laser.info["path"] = str(path.resolve())
+        self.laser.info["File Path"] = str(path.resolve())
         self.modified = False
 
     def actionCalibration(self) -> QtWidgets.QDialog:
@@ -584,7 +587,7 @@ class LaserWidget(_ViewWidget):
         return dlg
 
     def actionSave(self) -> QtWidgets.QDialog:
-        path = Path(self.laser.info["path"])
+        path = Path(self.laser.info["File Path"])
         if path.suffix.lower() == ".npz" and path.exists():
             self.saveDocument(path)
             return None

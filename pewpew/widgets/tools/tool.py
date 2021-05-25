@@ -119,7 +119,7 @@ class ToolWidget(_ViewWidget):
         self.restoreWidget()
 
     def restoreWidget(self) -> None:
-        self.view.insertTab(self.index, self.widget.laser.info["name"], self.widget)
+        self.view.insertTab(self.index, self.widget.laserName(), self.widget)
         self.view.removeTab(self.index)
         self.widget.modified = self.modified
         self.widget.setActive()

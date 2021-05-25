@@ -74,7 +74,7 @@ def test_laser_view(qtbot: QtBot):
     qtbot.waitForWindowShown(laser)
 
     view.tabs.setTabText(0, "newname")
-    assert view.stack.widget(0).laser.info["name"] == "newname"
+    assert view.stack.widget(0).laserName() == "newname"
 
     view.contextMenuEvent(
         QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))

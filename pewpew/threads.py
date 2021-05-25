@@ -48,11 +48,11 @@ class ImportThread(QtCore.QThread):
             scantime=self.config.scantime,
         )
         info = {
-            "import_version_pewlib": pewlib_version,
-            "import_version_pew2": pewpew_version,
-            "import_path": str(path.resolve()),
-            "name": path.stem,
-            "path": str(path.resolve())
+            "Name": path.stem,
+            "File Path": str(path.resolve()),
+            "Import Version pewlib": pewlib_version,
+            "Import Version pew2": pewpew_version,
+            "Import Path": str(path.resolve()),
         }
 
         if not path.exists():
@@ -68,7 +68,7 @@ class ImportThread(QtCore.QThread):
                 config.spotsize = params["spotsize"]
                 config.speed = params["speed"]
                 config.scantime = params["scantime"]
-                info["instrument_vendor"] = "PerkinElemer"
+                info["Instrument Vendor"] = "PerkinElemer"
             elif io.csv.is_valid_directory(path):
                 data, params = io.csv.load(path, full=True)
                 for key, val in params.items():
@@ -82,7 +82,7 @@ class ImportThread(QtCore.QThread):
                 if sample_format in ["columns", "rows"]:
                     data, params = io.thermo.load(path, full=True)
                     config.scantime = params["scantime"]
-                    info["instrument_vendor"] = "Thermo"
+                    info["Instrument Vendor"] = "Thermo"
                 else:
                     data = io.textimage.load(path, name="_isotope_")
             elif path.suffix.lower() in [".txt", ".text"]:

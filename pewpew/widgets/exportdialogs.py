@@ -509,7 +509,7 @@ class ExportAllDialog(ExportDialog):
     def generatePaths(self, laser: Laser) -> List[Tuple[Path, str, int]]:
         paths: List[Tuple[Path, str, int]] = [
             (
-                self.getPath(laser.info["name"]),
+                self.getPath(laser.info["Name"]),
                 self.widget.combo_isotope.currentText(),
                 None,
             )
