@@ -428,7 +428,7 @@ class ExportDialog(_ExportDialogBase):
         else:
             raise ValueError(f"Unable to export file as '{option.ext}'.")
 
-        logger.info(f"Exported {widget.laser.info['name']} to {path.name}.")
+        logger.info(f"Exported {widget.laser.info['Name']} to {path.name}.")
 
     def accept(self) -> None:
         paths = self.generatePaths(self.widget.laser)
