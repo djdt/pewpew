@@ -162,7 +162,11 @@ class CsvLinesOptions(_OptionsBase):
         self.combo_delimiter = QtWidgets.QComboBox()
         self.combo_delimiter.addItems([",", ";", "Tab", "Space"])
         self.spinbox_header = QtWidgets.QSpinBox()
+        self.spinbox_header.valueChanged.connect(self.updateHeaderPreview)
         self.spinbox_footer = QtWidgets.QSpinBox()
+
+        self.lineedit_header_preview = QtWidgets.QLineEdit()
+        self.lineedit_header_preview.setReadOnly(True)
 
         self.lineedit_regex = QtWidgets.QLineEdit(".*\\.csv")
         self.lineedit_regex.editingFinished.connect(self.regexChanged)
@@ -178,14 +182,25 @@ class CsvLinesOptions(_OptionsBase):
         self.lineedit_nlines = QtWidgets.QLineEdit("0")
         self.lineedit_nlines.setReadOnly(True)
 
+        self.check_remove_empty_cols = QtWidgets.QCheckBox("Remove empty columns.")
+        self.check_remove_empty_cols.setChecked(True)
+        self.check_remove_empty_rows = QtWidgets.QCheckBox("Remove empty rows.")
+        self.check_remove_empty_rows.setChecked(True)
+
+        layout_header = QtWidgets.QHBoxLayout()
+        layout_header.addWidget(self.spinbox_header, 0)
+        layout_header.addWidget(self.lineedit_header_preview)
+
         layout = QtWidgets.QFormLayout()
         layout.addRow("Delimiter:", self.combo_delimiter)
-        layout.addRow("Header Rows:", self.spinbox_header)
+        layout.addRow("Header Rows:", layout_header)
         layout.addRow("Footer Rows:", self.spinbox_footer)
         layout.addRow("File Regex:", self.lineedit_regex)
         layout.addRow("Matching files:", self.lineedit_nlines)
         layout.addRow("Sorting:", self.combo_sortkey)
         layout.addRow("Sort key:", self.lineedit_sortkey)
+        layout.addRow(self.check_remove_empty_cols)
+        layout.addRow(self.check_remove_empty_rows)
         self.setLayout(layout)
 
     def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
@@ -196,6 +211,8 @@ class CsvLinesOptions(_OptionsBase):
             ("regex", self.lineedit_regex, "text", "textChanged"),
             ("sorting", self.combo_sortkey, "currentText", "currentTextChanged"),
             ("sortKey", self.combo_sortkey, "currentText", "currentTextChanged"),
+            ("removeEmptyCols", self.check_remove_empty_cols, "checked", "toggled"),
+            ("removeEmptyRows", self.check_remove_empty_rows, "checked", "toggled"),
         ]
 
     def isComplete(self) -> bool:
@@ -222,9 +239,19 @@ class CsvLinesOptions(_OptionsBase):
             self.lineedit_sortkey.setEnabled(False)
             self.lineedit_sortkey.setText("")
 
+    def updateHeaderPreview(self, header: int) -> None:
+        try:
+            with open(self.csvs[0], "r") as fp:
+                for i in range(header + 1):
+                    line = fp.readline()
+            self.lineedit_header_preview.setText(line)
+        except (IndexError, ValueError):
+            self.lineedit_header_preview.setText("")
+
     def updateForPath(self, path: Path) -> None:
         self.csvs = list(path.glob("*.csv"))
         self.regexChanged()
+        self.updateHeaderPreview(self.spinbox_header.value())
 
 
 class NumpyOptions(_OptionsBase):
@@ -786,6 +813,8 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
                 "skip_footer": self.field("csv.skipFooter"),
             },
             regex=self.field("csv.regex"),
+            drop_nan_columns=self.field("csv.removeEmptyCols"),
+            drop_nan_rows=self.field("csv.removeEmptyRows"),
         )
         sorting = self.field("csv.sorting")
         if sorting == "Numerical":
@@ -803,6 +832,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
                 )
 
             option.sortkey = sortTimestamp
+        print(option.drop_nan_columns, option.drop_nan_rows)
 
         data, params = io.csv.load(path, option=option, full=True)
         return data, params, {}
