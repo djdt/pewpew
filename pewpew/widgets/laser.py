@@ -536,6 +536,13 @@ class LaserWidget(_ViewWidget):
             self.modified = True
             self.refresh()
 
+    def applyInformation(self, info: Dict[str, str]) -> None:
+        # if self.laser.info["Name"] != info["Name"]:  # pragma: ignore
+        #     self.view.tabs.setTabText(self.index(), info["Name"])
+        if self.laser.info != info:
+            self.laser.info = info
+            self.modified = True
+
     def saveDocument(self, path: Union[str, Path]) -> None:
         if isinstance(path, str):
             path = Path(path)
@@ -594,6 +601,7 @@ class LaserWidget(_ViewWidget):
 
     def actionInformation(self) -> QtWidgets.QDialog:
         dlg = dialogs.InformationDialog(self.laser.info, parent=self)
+        dlg.infoChanged.connect(self.applyInformation)
         dlg.open()
         return dlg
 
