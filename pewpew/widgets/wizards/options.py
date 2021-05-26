@@ -706,22 +706,22 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         try:
             if self.field("agilent"):
                 paths = [Path(p) for p in self.field("agilent.paths")]
-                datas, params = self.readMultiple(self.readAgilent, paths)
+                datas, params, infos = self.readMultiple(self.readAgilent, paths)
             elif self.field("csv"):
                 paths = [Path(p) for p in self.field("csv.paths")]
-                datas, params = self.readMultiple(self.readCsv, paths)
+                datas, params, infos = self.readMultiple(self.readCsv, paths)
             elif self.field("numpy"):
                 paths = [Path(p) for p in self.field("numpy.paths")]
-                datas, params = self.readMultiple(self.readNumpy, paths)
+                datas, params, infos = self.readMultiple(self.readNumpy, paths)
             elif self.field("perkinelmer"):
                 paths = [Path(p) for p in self.field("perkinelmer.paths")]
-                datas, params = self.readMultiple(self.readPerkinElmer, paths)
+                datas, params, infos = self.readMultiple(self.readPerkinElmer, paths)
             elif self.field("text"):
                 paths = [Path(p) for p in self.field("text.paths")]
-                datas, params = self.readMultiple(self.readText, paths)
+                datas, params, infos = self.readMultiple(self.readText, paths)
             elif self.field("thermo"):
                 paths = [Path(p) for p in self.field("thermo.paths")]
-                datas, params = self.readMultiple(self.readThermo, paths)
+                datas, params, infos = self.readMultiple(self.readThermo, paths)
 
         except ValueError as e:
             QtWidgets.QMessageBox.critical(self, "Import Error", str(e))
@@ -735,17 +735,20 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             self.setField("scantime", f"{params['scantime']:.6g}")
 
         self.setField("laserdata", datas)
+        self.setField("laserinfo", infos)
         return True
 
     def readMultiple(
         self, func: Callable[[Path], Tuple[np.ndarray, dict]], paths: List[Path]
     ) -> Tuple[List[np.ndarray], dict]:
-        data, params = func(paths[0])
+        data, params, info = func(paths[0])
         datas = [data]
+        infos = [info]
         for path in paths[1:]:
-            data, _ = func(path)
+            data, _, info = func(path)
             datas.append(data)
-        return datas, params
+            infos.append(info)
+        return datas, params, infos
 
     def readAgilent(self, path: Path) -> Tuple[np.ndarray, dict]:
         agilent_method = self.field("agilent.method")
@@ -766,7 +769,8 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             use_acq_for_names=self.field("agilent.useAcqNames"),
             full=True,
         )
-        return data, params
+        info = io.agilent.load_info(path)
+        return data, params, info
 
     def readCsv(self, path: Path) -> Tuple[np.ndarray, dict]:
         delimiter = self.field("csv.delimiter")
@@ -801,7 +805,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             option.sortkey = sortTimestamp
 
         data, params = io.csv.load(path, option=option, full=True)
-        return data, params
+        return data, params, {}
 
     def readNumpy(self, path: Path) -> Tuple[np.ndarray, dict]:
         laser = io.npz.load(path)
@@ -810,15 +814,15 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             speed=laser.config.speed,
             spotsize=laser.config.spotsize,
         )
-        return laser.data, param
+        return laser.data, param, laser.info
 
     def readPerkinElmer(self, path: Path) -> Tuple[np.ndarray, dict]:
         data, params = io.perkinelmer.load(path, full=True)
-        return data, params
+        return data, params, {"Instrument Vendor": "PerkinElemer"}
 
     def readText(self, path: Path) -> Tuple[np.ndarray, dict]:
         data = io.textimage.load(path, name=self.field("text.name"))
-        return data, {}
+        return data, {}, {}
 
     def readThermo(self, path: Path) -> Tuple[np.ndarray, dict]:
         kwargs = dict(
@@ -837,4 +841,4 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
                 path, use_analog=use_analog, **kwargs
             )
             params = io.thermo.icap_csv_columns_read_params(path, **kwargs)
-        return data, params
+        return data, params, {"Instrument Vendor": "Thermo"}
