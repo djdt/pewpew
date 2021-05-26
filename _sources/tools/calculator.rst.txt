@@ -59,6 +59,8 @@ Supported Functions
     +----------+-----------------+------------------------------------+
     |kmeans    |image, k         |array of lower k-means bounds       |
     +----------+-----------------+------------------------------------+
+    |mask      |image, mask      |selects from image using `mask`     |
+    +----------+-----------------+------------------------------------+
     |mean      |image            |mean value of the image             |
     +----------+-----------------+------------------------------------+
     |median    |image            |median value of the image           |
@@ -70,6 +72,8 @@ Supported Functions
     |otsu      |image            |Otsu's method of image              |
     +----------+-----------------+------------------------------------+
     |percentile|image, percentile|the `percentile`'th value of image  |
+    +----------+-----------------+------------------------------------+
+    |segment   |image, threshold |creates a mask image of `thesholds` |
     +----------+-----------------+------------------------------------+
     |threshold |image, value     |sets all pxiels below `value` to nan|
     +----------+-----------------+------------------------------------+

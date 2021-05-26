@@ -13,6 +13,8 @@
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
 
   
   
@@ -29,6 +31,7 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
@@ -38,7 +41,7 @@
     
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="3. Example: Compensating laser drift" href="drift.html" />
+    <link rel="next" title="4. Example: Compensating laser drift" href="drift.html" />
     <link rel="prev" title="1. Example: Importing file-per-line data" href="import.html" /> 
 </head>
 
@@ -108,10 +111,11 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="import.html">1. Example: Importing file-per-line data</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">2. Example: Thresholded division of elements</a></li>
-<li class="toctree-l1"><a class="reference internal" href="drift.html">3. Example: Compensating laser drift</a></li>
-<li class="toctree-l1"><a class="reference internal" href="filter.html">4. Example: De-noising an image</a></li>
-<li class="toctree-l1"><a class="reference internal" href="standards.html">5. Example: Quantifying a sample</a></li>
-<li class="toctree-l1"><a class="reference internal" href="stats.html">6. Example: Mean of a region</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#example-image-segmentation">3. Example: Image Segmentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="drift.html">4. Example: Compensating laser drift</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filter.html">5. Example: De-noising an image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="standards.html">6. Example: Quantifying a sample</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stats.html">7. Example: Mean of a region</a></li>
 </ul>
 
             
@@ -207,6 +211,43 @@ operated on. The second part performs the division while the last part sets unma
 </li>
 </ol>
 </div>
+<div class="section" id="example-image-segmentation">
+<h1><span class="section-number">3. </span>Example: Image Segmentation<a class="headerlink" href="#example-image-segmentation" title="Permalink to this headline">¶</a></h1>
+<p>Selection of a region of interest of structural feature can be performed using segmentation.
+In this example we will use multi-level kmeans to select certain features from Fe56 of a
+tissue-micro-array core.</p>
+<p class="centered">
+<strong><a class="reference internal" href="../_images/tutorial_calc_kmean_fe.png"><img alt="calc_img_k_og" src="../_images/tutorial_calc_kmean_fe.png" style="width: 300px;" /></a></strong></p><ol class="arabic simple">
+<li><dl class="simple">
+<dt>Create the segmented image mask.</dt><dd><p>Enter <code class="docutils literal notranslate"><span class="pre">segment(Fe56,</span> <span class="pre">kmeans(Fe56,</span> <span class="pre">3))</span></code> into the <cite>Formula</cite> box.
+Here we are using 3 level kmeans clustering.</p>
+</dd>
+</dl>
+</li>
+</ol>
+<p class="centered">
+<strong><a class="reference internal" href="../_images/tutorial_calc_kmean_mask.png"><img alt="calc_img_k_mask" src="../_images/tutorial_calc_kmean_mask.png" style="width: 300px;" /></a></strong></p><ol class="arabic simple" start="2">
+<li><dl class="simple">
+<dt>Enter <code class="docutils literal notranslate"><span class="pre">masked</span></code> into the <cite>Name</cite> box, and click <cite>Apply</cite>.</dt><dd><p>You can choose any name will work.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Select data from the original.</dt><dd><p>Enter <code class="docutils literal notranslate"><span class="pre">mask(Fe56,</span> <span class="pre">masked</span> <span class="pre">==</span> <span class="pre">3)</span></code> into the <cite>Formula</cite> box.
+The selected data is limited to regions where k==3.</p>
+</dd>
+</dl>
+</li>
+</ol>
+<p class="centered">
+<strong><a class="reference internal" href="../_images/tutorial_calc_kmeans_selected.png"><img alt="calc_img_k_select" src="../_images/tutorial_calc_kmeans_selected.png" style="width: 300px;" /></a></strong></p><ol class="arabic simple" start="3">
+<li><dl class="simple">
+<dt>Enter the new name, and click <cite>Apply</cite>.</dt><dd><p>Choose a unique name to prevent overwriting data.</p>
+</dd>
+</dl>
+</li>
+</ol>
+</div>
 
 
            </div>
@@ -214,7 +255,7 @@ operated on. The second part performs the division while the last part sets unma
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="drift.html" class="btn btn-neutral float-right" title="3. Example: Compensating laser drift" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="drift.html" class="btn btn-neutral float-right" title="4. Example: Compensating laser drift" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
         <a href="import.html" class="btn btn-neutral float-left" title="1. Example: Importing file-per-line data" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 

@@ -13,6 +13,8 @@
   
   <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
 
   
   
@@ -29,6 +31,7 @@
   
     
       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
         <script src="../_static/jquery.js"></script>
         <script src="../_static/underscore.js"></script>
         <script src="../_static/doctools.js"></script>
@@ -112,10 +115,11 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../examples/import.html">1. Example: Importing file-per-line data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../examples/calculator.html">2. Example: Thresholded division of elements</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/drift.html">3. Example: Compensating laser drift</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/filter.html">4. Example: De-noising an image</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/standards.html">5. Example: Quantifying a sample</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/stats.html">6. Example: Mean of a region</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/calculator.html#example-image-segmentation">3. Example: Image Segmentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/drift.html">4. Example: Compensating laser drift</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/filter.html">5. Example: De-noising an image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/standards.html">6. Example: Quantifying a sample</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/stats.html">7. Example: Mean of a region</a></li>
 </ul>
 
             
@@ -258,29 +262,37 @@ Non image results (e.g. the mean of an image) are displayed in the <cite>Results
 <td><p>image, k</p></td>
 <td><p>array of lower k-means bounds</p></td>
 </tr>
-<tr class="row-even"><td><p>mean</p></td>
+<tr class="row-even"><td><p>mask</p></td>
+<td><p>image, mask</p></td>
+<td><p>selects from image using <cite>mask</cite></p></td>
+</tr>
+<tr class="row-odd"><td><p>mean</p></td>
 <td><p>image</p></td>
 <td><p>mean value of the image</p></td>
 </tr>
-<tr class="row-odd"><td><p>median</p></td>
+<tr class="row-even"><td><p>median</p></td>
 <td><p>image</p></td>
 <td><p>median value of the image</p></td>
 </tr>
-<tr class="row-even"><td><p>nantonum</p></td>
+<tr class="row-odd"><td><p>nantonum</p></td>
 <td><p>image</p></td>
 <td><p>sets image NaN values to zero</p></td>
 </tr>
-<tr class="row-odd"><td><p>normalise</p></td>
+<tr class="row-even"><td><p>normalise</p></td>
 <td><p>image, min, max</p></td>
 <td><p>image normalised to <cite>min</cite>, <cite>max</cite></p></td>
 </tr>
-<tr class="row-even"><td><p>otsu</p></td>
+<tr class="row-odd"><td><p>otsu</p></td>
 <td><p>image</p></td>
 <td><p>Otsu’s method of image</p></td>
 </tr>
-<tr class="row-odd"><td><p>percentile</p></td>
+<tr class="row-even"><td><p>percentile</p></td>
 <td><p>image, percentile</p></td>
 <td><p>the <cite>percentile</cite>’th value of image</p></td>
+</tr>
+<tr class="row-odd"><td><p>segment</p></td>
+<td><p>image, threshold</p></td>
+<td><p>creates a mask image of <cite>thesholds</cite></p></td>
 </tr>
 <tr class="row-even"><td><p>threshold</p></td>
 <td><p>image, value</p></td>
