@@ -83,7 +83,7 @@ class LaserView(View):
 
     def addLaser(self, laser: Laser) -> "LaserWidget":
         widget = LaserWidget(laser, self.viewspace.options, self)
-        name = laser.info["Name"]
+        name = laser.info.get("Name", "<No Name>")
         self.addTab(name, widget)
         return widget
 
@@ -491,8 +491,8 @@ class LaserWidget(_ViewWidget):
             )
 
         info = self.laser.info.copy()
-        info["Name"] += "_cropped"
-        info["File Path"] = Path(info["File Path"]).with_stem(info["Name"])
+        info["Name"] = self.laserName() + "_cropped"
+        info["File Path"] = Path(info.get("File Path", "")).with_stem(info["Name"])
         new_widget = self.view.addLaser(
             Laser(
                 new_data,

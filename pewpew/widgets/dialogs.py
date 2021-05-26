@@ -765,7 +765,7 @@ class InformationDialog(QtWidgets.QDialog):
 
     read_only_items = ["Name", "File Path"]
 
-    def __init__(self, info: Dict[str, str], parent: QtWidgets.QWidget):
+    def __init__(self, info: Dict[str, str], parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
         self.setMinimumSize(400, 400)

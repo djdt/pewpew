@@ -82,8 +82,10 @@ class ImportThread(QtCore.QThread):
                     info["Instrument Vendor"] = "Thermo"
                 else:
                     data = io.textimage.load(path, name="_isotope_")
+                    params = {}
             elif path.suffix.lower() in [".txt", ".text"]:
                 data = io.textimage.load(path, name="_isotope_")
+                params = {}
             else:  # pragma: no cover
                 raise ValueError(f"{path.name}: Unknown extention '{path.suffix}'.")
 

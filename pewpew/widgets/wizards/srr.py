@@ -109,8 +109,7 @@ class SRRImportWizard(QtWidgets.QWizard):
                 datas,
                 calibration=calibration,
                 config=config,
-                name=path.stem,
-                path=path,
+                info={"Name": path.stem, "File Path": str(path.resolve())}
             )
         )
         super().accept()
