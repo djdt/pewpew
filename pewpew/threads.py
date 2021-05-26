@@ -65,18 +65,12 @@ class ImportThread(QtCore.QThread):
         if path.is_dir():
             if path.suffix.lower() == ".b":
                 data, params = io.agilent.load(path, full=True)
-                config.scantime = params["scantime"]
                 info.update(io.agilent.load_info(path))
             elif io.perkinelmer.is_valid_directory(path):
                 data, params = io.perkinelmer.load(path, full=True)
-                config.spotsize = params["spotsize"]
-                config.speed = params["speed"]
-                config.scantime = params["scantime"]
                 info["Instrument Vendor"] = "PerkinElemer"
             elif io.csv.is_valid_directory(path):
                 data, params = io.csv.load(path, full=True)
-                for key, val in params.items():
-                    setattr(config, key, val)
         else:
             if path.suffix.lower() == ".npz":
                 laser = io.npz.load(path)
@@ -85,7 +79,6 @@ class ImportThread(QtCore.QThread):
                 sample_format = io.thermo.icap_csv_sample_format(path)
                 if sample_format in ["columns", "rows"]:
                     data, params = io.thermo.load(path, full=True)
-                    config.scantime = params["scantime"]
                     info["Instrument Vendor"] = "Thermo"
                 else:
                     data = io.textimage.load(path, name="_isotope_")
@@ -93,5 +86,12 @@ class ImportThread(QtCore.QThread):
                 data = io.textimage.load(path, name="_isotope_")
             else:  # pragma: no cover
                 raise ValueError(f"{path.name}: Unknown extention '{path.suffix}'.")
+
+        if "spotsize" in params:
+            config.spotsize = params["spotsize"]
+        if "speed" in params:
+            config.speed = params["speed"]
+        if "scantime" in params:
+            config.scantime = params["scantime"]
 
         return Laser(data=data, config=config, info=info)
