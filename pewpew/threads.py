@@ -1,6 +1,7 @@
 from PySide2 import QtCore
 from pathlib import Path
 import logging
+import time
 
 from pewpew import __version__ as pewpew_version
 from pewlib import __version__ as pewlib_version
@@ -50,9 +51,12 @@ class ImportThread(QtCore.QThread):
         info = {
             "Name": path.stem,
             "File Path": str(path.resolve()),
+            "Import Date": time.strftime(
+                "%Y-%m-%dT%H:%M:%S%z", time.localtime(time.time())
+            ),
+            "Import Path": str(path.resolve()),
             "Import Version pewlib": pewlib_version,
             "Import Version pew2": pewpew_version,
-            "Import Path": str(path.resolve()),
         }
 
         if not path.exists():

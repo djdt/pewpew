@@ -760,6 +760,45 @@ class ConfigDialog(ApplyDialog):
         return True
 
 
+class InformationDialog(QtWidgets.QDialog):
+    infoChanged = QtCore.Signal(dict)
+
+    read_only_items = ["Name", "File Path"]
+
+    def __init__(self, info: Dict[str, str], parent: QtWidgets.QWidget):
+        super().__init__(parent)
+
+        self.setMinimumSize(400, 200)
+        self.setWindowTitle("Information")
+
+        self.layout_info = QtWidgets.QVBoxLayout()
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        self.table = QtWidgets.QTableWidget(len(info), 2)
+        self.table.setHorizontalHeaderLabels(["Key", "Value"])
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setSectionResizeMode(
+            QtWidgets.QHeaderView.ResizeToContents
+        )
+
+        for i, (key, val) in enumerate(info.items()):
+            items = QtWidgets.QTableWidgetItem(key), QtWidgets.QTableWidgetItem(val)
+            if key in InformationDialog.read_only_items:
+                [i.setFlags(i.flags() & ~QtCore.Qt.ItemIsEditable) for i in items]
+            self.table.setItem(i, 0, items[0])
+            self.table.setItem(i, 1, items[1])
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.table)
+        layout.addWidget(self.button_box)
+        self.setLayout(layout)
+
+
 class NameEditDialog(QtWidgets.QDialog):
     originalNameRole = QtCore.Qt.UserRole + 1
     namesSelected = QtCore.Signal(dict)

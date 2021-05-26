@@ -238,6 +238,12 @@ class LaserWidget(_ViewWidget):
         self.action_export.setShortcut("Ctrl+X")
         # Add the export action so we can use it via shortcut
         self.addAction(self.action_export)
+        self.action_information = qAction(
+            "documentinfo",
+            "In&formation",
+            "View and edit image information.",
+            self.actionInformation,
+        )
         self.action_save = qAction(
             "document-save", "&Save", "Save document to numpy archive.", self.actionSave
         )
@@ -586,6 +592,11 @@ class LaserWidget(_ViewWidget):
         dlg.open()
         return dlg
 
+    def actionInformation(self) -> QtWidgets.QDialog:
+        dlg = dialogs.InformationDialog(self.laser.info, parent=self)
+        dlg.open()
+        return dlg
+
     def actionSave(self) -> QtWidgets.QDialog:
         path = Path(self.laser.info["File Path"])
         if path.suffix.lower() == ".npz" and path.exists():
@@ -669,6 +680,7 @@ class LaserWidget(_ViewWidget):
             menu.addSeparator()
             menu.addAction(self.action_config)
             menu.addAction(self.action_calibration)
+            menu.addAction(self.action_information)
             menu.addSeparator()
             menu.addAction(self.action_statistics)
             menu.addAction(self.action_colocalisation)
