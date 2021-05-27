@@ -162,7 +162,11 @@ class CsvLinesOptions(_OptionsBase):
         self.combo_delimiter = QtWidgets.QComboBox()
         self.combo_delimiter.addItems([",", ";", "Tab", "Space"])
         self.spinbox_header = QtWidgets.QSpinBox()
+        self.spinbox_header.valueChanged.connect(self.updateHeaderPreview)
         self.spinbox_footer = QtWidgets.QSpinBox()
+
+        self.lineedit_header_preview = QtWidgets.QLineEdit()
+        self.lineedit_header_preview.setReadOnly(True)
 
         self.lineedit_regex = QtWidgets.QLineEdit(".*\\.csv")
         self.lineedit_regex.editingFinished.connect(self.regexChanged)
@@ -178,14 +182,25 @@ class CsvLinesOptions(_OptionsBase):
         self.lineedit_nlines = QtWidgets.QLineEdit("0")
         self.lineedit_nlines.setReadOnly(True)
 
+        self.check_remove_empty_cols = QtWidgets.QCheckBox("Remove empty columns.")
+        self.check_remove_empty_cols.setChecked(True)
+        self.check_remove_empty_rows = QtWidgets.QCheckBox("Remove empty rows.")
+        self.check_remove_empty_rows.setChecked(True)
+
+        layout_header = QtWidgets.QHBoxLayout()
+        layout_header.addWidget(self.spinbox_header, 0)
+        layout_header.addWidget(self.lineedit_header_preview)
+
         layout = QtWidgets.QFormLayout()
         layout.addRow("Delimiter:", self.combo_delimiter)
-        layout.addRow("Header Rows:", self.spinbox_header)
+        layout.addRow("Header Rows:", layout_header)
         layout.addRow("Footer Rows:", self.spinbox_footer)
         layout.addRow("File Regex:", self.lineedit_regex)
         layout.addRow("Matching files:", self.lineedit_nlines)
         layout.addRow("Sorting:", self.combo_sortkey)
         layout.addRow("Sort key:", self.lineedit_sortkey)
+        layout.addRow(self.check_remove_empty_cols)
+        layout.addRow(self.check_remove_empty_rows)
         self.setLayout(layout)
 
     def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
@@ -196,6 +211,8 @@ class CsvLinesOptions(_OptionsBase):
             ("regex", self.lineedit_regex, "text", "textChanged"),
             ("sorting", self.combo_sortkey, "currentText", "currentTextChanged"),
             ("sortKey", self.combo_sortkey, "currentText", "currentTextChanged"),
+            ("removeEmptyCols", self.check_remove_empty_cols, "checked", "toggled"),
+            ("removeEmptyRows", self.check_remove_empty_rows, "checked", "toggled"),
         ]
 
     def isComplete(self) -> bool:
@@ -222,9 +239,19 @@ class CsvLinesOptions(_OptionsBase):
             self.lineedit_sortkey.setEnabled(False)
             self.lineedit_sortkey.setText("")
 
+    def updateHeaderPreview(self, header: int) -> None:
+        try:
+            with open(self.csvs[0], "r") as fp:
+                for i in range(header + 1):
+                    line = fp.readline()
+            self.lineedit_header_preview.setText(line)
+        except (IndexError, ValueError):
+            self.lineedit_header_preview.setText("")
+
     def updateForPath(self, path: Path) -> None:
         self.csvs = list(path.glob("*.csv"))
         self.regexChanged()
+        self.updateHeaderPreview(self.spinbox_header.value())
 
 
 class NumpyOptions(_OptionsBase):
@@ -706,22 +733,22 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         try:
             if self.field("agilent"):
                 paths = [Path(p) for p in self.field("agilent.paths")]
-                datas, params = self.readMultiple(self.readAgilent, paths)
+                datas, params, infos = self.readMultiple(self.readAgilent, paths)
             elif self.field("csv"):
                 paths = [Path(p) for p in self.field("csv.paths")]
-                datas, params = self.readMultiple(self.readCsv, paths)
+                datas, params, infos = self.readMultiple(self.readCsv, paths)
             elif self.field("numpy"):
                 paths = [Path(p) for p in self.field("numpy.paths")]
-                datas, params = self.readMultiple(self.readNumpy, paths)
+                datas, params, infos = self.readMultiple(self.readNumpy, paths)
             elif self.field("perkinelmer"):
                 paths = [Path(p) for p in self.field("perkinelmer.paths")]
-                datas, params = self.readMultiple(self.readPerkinElmer, paths)
+                datas, params, infos = self.readMultiple(self.readPerkinElmer, paths)
             elif self.field("text"):
                 paths = [Path(p) for p in self.field("text.paths")]
-                datas, params = self.readMultiple(self.readText, paths)
+                datas, params, infos = self.readMultiple(self.readText, paths)
             elif self.field("thermo"):
                 paths = [Path(p) for p in self.field("thermo.paths")]
-                datas, params = self.readMultiple(self.readThermo, paths)
+                datas, params, infos = self.readMultiple(self.readThermo, paths)
 
         except ValueError as e:
             QtWidgets.QMessageBox.critical(self, "Import Error", str(e))
@@ -735,17 +762,20 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             self.setField("scantime", f"{params['scantime']:.6g}")
 
         self.setField("laserdata", datas)
+        self.setField("laserinfo", infos)
         return True
 
     def readMultiple(
         self, func: Callable[[Path], Tuple[np.ndarray, dict]], paths: List[Path]
     ) -> Tuple[List[np.ndarray], dict]:
-        data, params = func(paths[0])
+        data, params, info = func(paths[0])
         datas = [data]
+        infos = [info]
         for path in paths[1:]:
-            data, _ = func(path)
+            data, _, info = func(path)
             datas.append(data)
-        return datas, params
+            infos.append(info)
+        return datas, params, infos
 
     def readAgilent(self, path: Path) -> Tuple[np.ndarray, dict]:
         agilent_method = self.field("agilent.method")
@@ -766,7 +796,8 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             use_acq_for_names=self.field("agilent.useAcqNames"),
             full=True,
         )
-        return data, params
+        info = io.agilent.load_info(path)
+        return data, params, info
 
     def readCsv(self, path: Path) -> Tuple[np.ndarray, dict]:
         delimiter = self.field("csv.delimiter")
@@ -782,6 +813,8 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
                 "skip_footer": self.field("csv.skipFooter"),
             },
             regex=self.field("csv.regex"),
+            drop_nan_columns=self.field("csv.removeEmptyCols"),
+            drop_nan_rows=self.field("csv.removeEmptyRows"),
         )
         sorting = self.field("csv.sorting")
         if sorting == "Numerical":
@@ -799,9 +832,10 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
                 )
 
             option.sortkey = sortTimestamp
+        print(option.drop_nan_columns, option.drop_nan_rows)
 
         data, params = io.csv.load(path, option=option, full=True)
-        return data, params
+        return data, params, {}
 
     def readNumpy(self, path: Path) -> Tuple[np.ndarray, dict]:
         laser = io.npz.load(path)
@@ -810,15 +844,15 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             speed=laser.config.speed,
             spotsize=laser.config.spotsize,
         )
-        return laser.data, param
+        return laser.data, param, laser.info
 
     def readPerkinElmer(self, path: Path) -> Tuple[np.ndarray, dict]:
         data, params = io.perkinelmer.load(path, full=True)
-        return data, params
+        return data, params, {"Instrument Vendor": "PerkinElemer"}
 
     def readText(self, path: Path) -> Tuple[np.ndarray, dict]:
         data = io.textimage.load(path, name=self.field("text.name"))
-        return data, {}
+        return data, {}, {}
 
     def readThermo(self, path: Path) -> Tuple[np.ndarray, dict]:
         kwargs = dict(
@@ -837,4 +871,4 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
                 path, use_analog=use_analog, **kwargs
             )
             params = io.thermo.icap_csv_columns_read_params(path, **kwargs)
-        return data, params
+        return data, params, {"Instrument Vendor": "Thermo"}

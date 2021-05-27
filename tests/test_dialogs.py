@@ -166,7 +166,7 @@ def test_colorrange_dialog(qtbot: QtBot):
     assert dialog.ranges == {}
 
 
-def test_laser_config_dialog(qtbot: QtBot):
+def test_config_dialog(qtbot: QtBot):
     config = Config()
 
     dialog = dialogs.ConfigDialog(config)
@@ -227,6 +227,26 @@ def test_config_dialog_krisskross(qtbot: QtBot):
     dialog.apply()
     dialog.check_all.setChecked(True)
     dialog.apply()
+
+
+def test_info_dialog(qtbot: QtBot):
+    dialog = dialogs.InformationDialog({"a": "A", "b": "B"})
+    qtbot.addWidget(dialog)
+    dialog.open()
+
+    assert dialog.table.rowCount() == 3
+    dialog.table.item(2, 0).setText("b")
+    assert dialog.table.rowCount() == 4
+    assert not dialog.isComplete()
+    dialog.table.item(2, 0).setText("c")
+    assert dialog.isComplete()
+    dialog.table.item(2, 1).setText("C")
+    assert dialog.table.rowCount() == 4
+
+    with qtbot.waitSignal(dialog.infoChanged) as emit:
+        dialog.accept()
+
+    assert emit.args[0] == {"a": "A", "b": "B", "c": "C"}
 
 
 def test_name_edit_dialog(qtbot: QtBot):

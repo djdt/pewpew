@@ -161,7 +161,9 @@ def test_laser_widget_actions(qtbot: QtBot):
     qtbot.addWidget(viewspace)
     viewspace.show()
     view = viewspace.activeView()
-    view.addLaser(Laser(rand_data(["a", "b"]), path=Path("/home/pewpew/real.npz")))
+    view.addLaser(
+        Laser(rand_data(["a", "b"]), info={"File Path": "/home/pewpew/real.npz"})
+    )
     widget = view.activeWidget()
 
     dlg = widget.actionCalibration()

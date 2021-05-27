@@ -37,7 +37,9 @@ def test_export_dialog(qtbot: QtBot):
     view = viewspace.activeView()
 
     widget = view.addLaser(
-        Laser(rand_data("A1"), name="laser", path=Path("/home/user/laser.npz"))
+        Laser(
+            rand_data("A1"), info={"Name": "laser", "File Path": "/home/user/laser.npz"}
+        )
     )
     dlg = ExportDialog(widget)
     dlg.open()
@@ -109,8 +111,7 @@ def test_export_dialog_names(qtbot: QtBot):
     widget = view.addLaser(
         Laser(
             rand_data(["A", "\\B", "C>_<"]),
-            name="inv@|d",
-            path=Path("/"),
+            info={"Name": "inv@|d", "File Path": "/invalid.npz"},
         )
     )
     dlg = ExportDialog(widget)
@@ -133,13 +134,21 @@ def test_export_all_dialog(qtbot: QtBot):
     view = viewspace.activeView()
 
     lasers = [
-        Laser(rand_data("A1"), name="laser1", path=Path("/fake/directory/laser1.npz")),
-        Laser(rand_data("B2"), name="laser2", path=Path("/fake/directory/laser2.npz")),
-        Laser(rand_data("C3"), name="laser3", path=Path("/fake/directory/laser3.npz")),
+        Laser(
+            rand_data("A1"),
+            info={"Name": "laser1", "File Path": "/fake/directory/laser1.npz"},
+        ),
+        Laser(
+            rand_data("B2"),
+            info={"Name": "laser2", "File Path": "/fake/directory/laser2.npz"},
+        ),
+        Laser(
+            rand_data("C3"),
+            info={"Name": "laser3", "File Path": "/fake/directory/laser3.npz"},
+        ),
         Laser(
             rand_data(["B2", "C3"]),
-            name="laser4",
-            path=Path("/fake/directory/laser4.npz"),
+            info={"Name": "laser4", "File Path": "/fake/directory/laser4.npz"},
         ),
     ]
     widgets = [view.addLaser(laser) for laser in lasers]

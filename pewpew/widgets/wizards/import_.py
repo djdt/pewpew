@@ -1,14 +1,17 @@
 import numpy as np
 import numpy.lib.recfunctions as rfn
 import logging
+import time
 
 from pathlib import Path
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from pewlib import __version__ as pewlib_version
 from pewlib.config import Config
 from pewlib.laser import Laser
 
+from pewpew import __version__ as pewpew_version
 from pewpew.validators import DecimalValidatorNoZero
 from pewpew.widgets.dialogs import NameEditDialog
 from pewpew.widgets.wizards.options import PathAndOptionsPage
@@ -106,15 +109,27 @@ class ImportWizard(QtWidgets.QWizard):
             raise ValueError("Invalid filetype selection.")
 
         datas = self.field("laserdata")
-        for path, data in zip(paths, datas):
+        infos = self.field("laserinfo")
+
+        for path, data, info in zip(paths, datas, infos):
             config = Config(
                 spotsize=float(self.field("spotsize")),
                 scantime=float(self.field("scantime")),
                 speed=float(self.field("speed")),
             )
-            self.laserImported.emit(
-                Laser(data, config=config, name=path.stem, path=path)
+            info.update(
+                {
+                    "Name": path.stem,
+                    "File Path": str(path.resolve()),
+                    "Import Date": time.strftime(
+                        "%Y-%m-%dT%H:%M:%S%z", time.localtime(time.time())
+                    ),
+                    "Import Path": str(path.resolve()),
+                    "Import Version pewlib": pewlib_version,
+                    "Import Version pew2": pewpew_version,
+                }
             )
+            self.laserImported.emit(Laser(data, config=config, info=info))
         super().accept()
 
 
@@ -176,12 +191,15 @@ class FormatPage(QtWidgets.QWizardPage):
 
 class ConfigPage(QtWidgets.QWizardPage):
     dataChanged = QtCore.Signal()
+    infoChanged = QtCore.Signal()
 
     def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setTitle("Isotopes and Config")
 
         self._datas: List[np.ndarray] = []
+        self._infos: List[dict] = []
+
         self.label_isotopes = QtWidgets.QLabel()
         self.button_isotopes = QtWidgets.QPushButton("Edit Names")
         self.button_isotopes.pressed.connect(self.buttonNamesPressed)
@@ -232,6 +250,7 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.registerField("scantime", self.lineedit_scantime)
 
         self.registerField("laserdata", self, "data_prop")
+        self.registerField("laserinfo", self, "info_prop")
 
     def getData(self) -> List[np.ndarray]:
         return self._datas
@@ -239,6 +258,13 @@ class ConfigPage(QtWidgets.QWizardPage):
     def setData(self, datas: List[np.ndarray]) -> None:
         self._datas = datas
         self.dataChanged.emit()
+
+    def getInfo(self) -> List[dict]:
+        return self._infos
+
+    def setInfo(self, infos: List[dict]) -> None:
+        self._infos = infos
+        self.infoChanged.emit()
 
     def getNames(self) -> List[str]:
         data = self.field("laserdata")[0]
@@ -291,3 +317,4 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.setElidedNames(datas[0].dtype.names)
 
     data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
+    info_prop = QtCore.Property("QVariant", getInfo, setInfo, notify=infoChanged)

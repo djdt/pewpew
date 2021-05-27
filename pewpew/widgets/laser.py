@@ -83,7 +83,7 @@ class LaserView(View):
 
     def addLaser(self, laser: Laser) -> "LaserWidget":
         widget = LaserWidget(laser, self.viewspace.options, self)
-        name = laser.info["Name"]
+        name = laser.info.get("Name", "<No Name>")
         self.addTab(name, widget)
         return widget
 
@@ -238,6 +238,12 @@ class LaserWidget(_ViewWidget):
         self.action_export.setShortcut("Ctrl+X")
         # Add the export action so we can use it via shortcut
         self.addAction(self.action_export)
+        self.action_information = qAction(
+            "documentinfo",
+            "In&formation",
+            "View and edit image information.",
+            self.actionInformation,
+        )
         self.action_save = qAction(
             "document-save", "&Save", "Save document to numpy archive.", self.actionSave
         )
@@ -485,8 +491,8 @@ class LaserWidget(_ViewWidget):
             )
 
         info = self.laser.info.copy()
-        info["Name"] += "_cropped"
-        info["File Path"] = Path(info["File Path"]).with_stem(info["Name"])
+        info["Name"] = self.laserName() + "_cropped"
+        info["File Path"] = Path(info.get("File Path", "")).with_stem(info["Name"])
         new_widget = self.view.addLaser(
             Laser(
                 new_data,
@@ -529,6 +535,13 @@ class LaserWidget(_ViewWidget):
             self.laser.config = copy.copy(config)
             self.modified = True
             self.refresh()
+
+    def applyInformation(self, info: Dict[str, str]) -> None:
+        # if self.laser.info["Name"] != info["Name"]:  # pragma: ignore
+        #     self.view.tabs.setTabText(self.index(), info["Name"])
+        if self.laser.info != info:
+            self.laser.info = info
+            self.modified = True
 
     def saveDocument(self, path: Union[str, Path]) -> None:
         if isinstance(path, str):
@@ -583,6 +596,12 @@ class LaserWidget(_ViewWidget):
 
     def actionExport(self) -> QtWidgets.QDialog:
         dlg = exportdialogs.ExportDialog(self, parent=self)
+        dlg.open()
+        return dlg
+
+    def actionInformation(self) -> QtWidgets.QDialog:
+        dlg = dialogs.InformationDialog(self.laser.info, parent=self)
+        dlg.infoChanged.connect(self.applyInformation)
         dlg.open()
         return dlg
 
@@ -669,6 +688,7 @@ class LaserWidget(_ViewWidget):
             menu.addSeparator()
             menu.addAction(self.action_config)
             menu.addAction(self.action_calibration)
+            menu.addAction(self.action_information)
             menu.addSeparator()
             menu.addAction(self.action_statistics)
             menu.addAction(self.action_colocalisation)

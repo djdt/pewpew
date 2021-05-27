@@ -19,8 +19,8 @@ def test_import_thread(qtbot: QtBot):
     ]
     thread = ImportThread(paths, Config())
 
-    signals = [thread.importFinished] * len(paths)
-    signals.extend([thread.progressChanged] * len(paths))
+    signals = [(thread.importFinished, path.name) for path in paths]
+    signals.extend([(thread.progressChanged, path.name) for path in paths])
     with qtbot.waitSignals(signals):
         thread.run()
 
