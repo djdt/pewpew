@@ -64,6 +64,8 @@ class LabelOverlay(QtWidgets.QGraphicsObject):
 
 
 class ColorBarOverlay(QtWidgets.QGraphicsItem):
+    nicenums = [1.0, 1.5, 2.0, 2.5, 3.0, 5.0, 7.5]
+
     def __init__(
         self,
         colortable: np.ndarray,
@@ -119,11 +121,20 @@ class ColorBarOverlay(QtWidgets.QGraphicsItem):
         rect = QtCore.QRectF(0, 0, view.viewport().width(), self.height + fm.height())
         return rect
 
-    def formatValue(self, x: float, sf: int = 2) -> float:
-        x = np.asarray(x)
-        x_positive = np.where(np.isfinite(x) & (x != 0), np.abs(x), 10 ** (sf - 1))
-        mags = 10 ** (sf - 1 - np.floor(np.log10(x_positive)))
-        return np.round(x * mags) / mags
+    def niceTextValues(self, n: int = 7, trim: int = 0) -> np.ndarray:
+        vrange = self.vmax - self.vmin
+        interval = vrange / (n + 2 * trim)
+
+        pwr = 10 ** int(np.log10(interval) - (1 if interval < 1.0 else 0))
+        interval = interval / pwr
+
+        idx = np.searchsorted(self.nicenums, interval)
+        idx = min(idx, len(self.nicenums) - 1)
+
+        interval = self.nicenums[idx] * pwr
+        return np.arange(
+            int(self.vmin / interval) * interval, self.vmax, interval
+        )[trim:trim + n]
 
     def paint(
         self,
@@ -149,13 +160,13 @@ class ColorBarOverlay(QtWidgets.QGraphicsItem):
             self.font,
             self.unit,
         )
+
         vrange = self.vmax - self.vmin
-        if vrange == 0.0:
+        if vrange <= 0.0:
             return
 
-        for value in np.linspace(self.vmin, self.vmax, 7)[1:-1]:
-            value = self.formatValue(value, 2)
-            x = width * value / vrange
+        for value in self.niceTextValues(7, trim=1):
+            x = width * (value - self.vmin) / vrange
             text = f"{value:.6g}"
             path.addText(
                 x - fm.boundingRect(text).width() / 2.0,
