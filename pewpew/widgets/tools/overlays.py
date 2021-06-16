@@ -501,11 +501,7 @@ class OverlayExportDialog(_ExportDialogBase):
 
         self.layout.insertWidget(2, self.check_individual)
 
-        path = (
-            self.widget.widget.laser.path.with_name(self.widget.widget.laser.name)
-            .with_suffix(".png")
-            .resolve()
-        )
+        path = self.widget.widget.laserFilePath(ext=".png").resolve()
         self.lineedit_directory.setText(str(path.parent))
         self.lineedit_filename.setText(str(path.name))
         self.typeChanged(0)

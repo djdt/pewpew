@@ -298,11 +298,7 @@ class ExportDialog(_ExportDialogBase):
         self.layout.insertWidget(4, self.check_export_layers)
 
         # A default path
-        path = (
-            self.widget.laser.path.parent.joinpath(self.widget.laser.name)
-            .with_suffix(".npz")
-            .resolve()
-        )
+        path = self.widget.laserFilePath(ext=".npz").resolve()
         self.lineedit_directory.setText(str(path.parent))
         self.lineedit_filename.setText(str(path.name).translate(self.invalid_map))
         self.typeChanged(0)
@@ -432,7 +428,7 @@ class ExportDialog(_ExportDialogBase):
         else:
             raise ValueError(f"Unable to export file as '{option.ext}'.")
 
-        logger.info(f"Exported {widget.laser.name} to {path.name}.")
+        logger.info(f"Exported {widget.laser.info['Name']} to {path.name}.")
 
     def accept(self) -> None:
         paths = self.generatePaths(self.widget.laser)
@@ -512,7 +508,11 @@ class ExportAllDialog(ExportDialog):
 
     def generatePaths(self, laser: Laser) -> List[Tuple[Path, str, int]]:
         paths: List[Tuple[Path, str, int]] = [
-            (self.getPath(laser.name), self.widget.combo_isotope.currentText(), None)
+            (
+                self.getPath(laser.info["Name"]),
+                self.widget.combo_isotope.currentText(),
+                None,
+            )
         ]
         if self.isExportAll():
             paths = [

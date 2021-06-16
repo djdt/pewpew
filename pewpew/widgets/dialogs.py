@@ -760,6 +760,89 @@ class ConfigDialog(ApplyDialog):
         return True
 
 
+class InformationDialog(QtWidgets.QDialog):
+    infoChanged = QtCore.Signal(dict)
+
+    read_only_items = ["Name", "File Path"]
+
+    def __init__(self, info: Dict[str, str], parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+
+        self.setMinimumSize(400, 400)
+        self.setWindowTitle("Information")
+
+        self.layout_info = QtWidgets.QVBoxLayout()
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        self.table = QtWidgets.QTableWidget(len(info), 2)
+        self.table.setHorizontalHeaderLabels(["Key", "Value"])
+        self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setSectionResizeMode(
+            QtWidgets.QHeaderView.ResizeToContents
+        )
+
+        self.setInformation(info)
+        self.ensureEmptyRow()
+
+        self.table.resizeColumnsToContents()
+        self.table.itemChanged.connect(self.ensureEmptyRow)
+        self.table.itemChanged.connect(self.completeChanged)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.table)
+        layout.addWidget(self.button_box)
+        self.setLayout(layout)
+
+    def accept(self) -> None:
+        info = self.information()
+        self.infoChanged.emit(info)
+        super().accept()
+
+    @QtCore.Slot()
+    def completeChanged(self) -> None:
+        enabled = self.isComplete()
+        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(enabled)
+
+    @QtCore.Slot()
+    def ensureEmptyRow(self) -> None:
+        row = self.table.rowCount()
+        self.table.blockSignals(True)
+        if (
+            self.table.item(row - 1, 0).text() != ""
+            or self.table.item(row - 1, 1).text() != ""
+        ):
+            self.table.setRowCount(row + 1)
+            self.table.setItem(row, 0, QtWidgets.QTableWidgetItem(""))
+            self.table.setItem(row, 1, QtWidgets.QTableWidgetItem(""))
+        self.table.blockSignals(False)
+
+    def isComplete(self) -> bool:
+        keys = [self.table.item(i, 0).text() for i in range(self.table.rowCount())]
+        keys = list(filter("".__ne__, keys))  # Remove empty
+        return len(keys) == len(set(keys))  # Ensure all unqiue
+
+    def setInformation(self, info: Dict[str, str]) -> None:
+        for i, (key, val) in enumerate(info.items()):
+            items = QtWidgets.QTableWidgetItem(key), QtWidgets.QTableWidgetItem(val)
+            if key in InformationDialog.read_only_items:
+                [i.setFlags(i.flags() & ~QtCore.Qt.ItemIsEnabled) for i in items]
+            self.table.setItem(i, 0, items[0])
+            self.table.setItem(i, 1, items[1])
+
+    def information(self) -> Dict[str, str]:
+        info = {}
+        for i in range(self.table.rowCount()):
+            key = self.table.item(i, 0).text()
+            if key != "":
+                info[key] = self.table.item(i, 1).text()
+        return info
+
+
 class NameEditDialog(QtWidgets.QDialog):
     originalNameRole = QtCore.Qt.UserRole + 1
     namesSelected = QtCore.Signal(dict)

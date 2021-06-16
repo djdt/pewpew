@@ -74,7 +74,7 @@ def test_laser_view(qtbot: QtBot):
     qtbot.waitForWindowShown(laser)
 
     view.tabs.setTabText(0, "newname")
-    assert view.stack.widget(0).laser.name == "newname"
+    assert view.stack.widget(0).laserName() == "newname"
 
     view.contextMenuEvent(
         QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
@@ -161,7 +161,9 @@ def test_laser_widget_actions(qtbot: QtBot):
     qtbot.addWidget(viewspace)
     viewspace.show()
     view = viewspace.activeView()
-    view.addLaser(Laser(rand_data(["a", "b"]), path=Path("/home/pewpew/real.npz")))
+    view.addLaser(
+        Laser(rand_data(["a", "b"]), info={"File Path": "/home/pewpew/real.npz"})
+    )
     widget = view.activeWidget()
 
     dlg = widget.actionCalibration()

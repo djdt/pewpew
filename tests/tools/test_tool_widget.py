@@ -15,7 +15,7 @@ def test_tool_widget(qtbot: QtBot):
     viewspace.show()
 
     view = viewspace.activeView()
-    widget = view.addLaser(Laser(rand_data("A1"), name="Widget"))
+    widget = view.addLaser(Laser(rand_data("A1"), info={"Name": "Widget"}))
     tool = ToolWidget(widget, apply_all=True)
     index = widget.index
 

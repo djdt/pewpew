@@ -351,7 +351,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if isinstance(widget, ToolWidget):
             widget = widget.widget
         tool = CalculatorTool(widget)
-        name = f"Calculator: {widget.laser.name}"
+        name = f"Calculator: {widget.laserName()}"
         widget.view.removeTab(index)
         widget.view.insertTab(index, name, tool)
         tool.setActive()
@@ -362,7 +362,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if isinstance(widget, ToolWidget):
             widget = widget.widget
         tool = DriftTool(widget)
-        name = f"Drift: {widget.laser.name}"
+        name = f"Drift: {widget.laserName()}"
         widget.view.removeTab(index)
         widget.view.insertTab(index, name, tool)
         tool.setActive()
@@ -373,7 +373,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if isinstance(widget, ToolWidget):
             widget = widget.widget
         tool = FilteringTool(widget)
-        name = f"Filter: {widget.laser.name}"
+        name = f"Filter: {widget.laserName()}"
         widget.view.removeTab(index)
         widget.view.insertTab(index, name, tool)
         tool.setActive()
@@ -384,7 +384,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if isinstance(widget, ToolWidget):
             widget = widget.widget
         tool = StandardsTool(widget)
-        name = f"Standards: {widget.laser.name}"
+        name = f"Standards: {widget.laserName()}"
         widget.view.removeTab(index)
         widget.view.insertTab(index, name, tool)
         tool.setActive()
@@ -395,7 +395,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if isinstance(widget, ToolWidget):
             widget = widget.widget
         tool = OverlayTool(widget)
-        name = f"Overlay: {widget.laser.name}"
+        name = f"Overlay: {widget.laserName()}"
         widget.view.removeTab(index)
         widget.view.insertTab(index, name, tool)
         tool.setActive()

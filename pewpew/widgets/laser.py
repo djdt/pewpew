@@ -83,7 +83,7 @@ class LaserView(View):
 
     def addLaser(self, laser: Laser) -> "LaserWidget":
         widget = LaserWidget(laser, self.viewspace.options, self)
-        name = laser.name if laser.name != "" else laser.path.stem
+        name = laser.info.get("Name", "<No Name>")
         self.addTab(name, widget)
         return widget
 
@@ -238,6 +238,12 @@ class LaserWidget(_ViewWidget):
         self.action_export.setShortcut("Ctrl+X")
         # Add the export action so we can use it via shortcut
         self.addAction(self.action_export)
+        self.action_information = qAction(
+            "documentinfo",
+            "In&formation",
+            "View and edit image information.",
+            self.actionInformation,
+        )
         self.action_save = qAction(
             "document-save", "&Save", "Save document to numpy archive.", self.actionSave
         )
@@ -397,7 +403,7 @@ class LaserWidget(_ViewWidget):
         super().refresh()
 
     def rename(self, text: str) -> None:
-        self.laser.name = text
+        self.laser.info["Name"] = text
         self.modified = True
 
     # Other
@@ -420,8 +426,12 @@ class LaserWidget(_ViewWidget):
         self.current_isotope = new
         self.refresh()
 
+    def laserName(self) -> str:
+        return self.laser.info.get("Name", "<No Name>")
+
     def laserFilePath(self, ext: str = ".npz") -> Path:
-        return self.laser.path.parent.joinpath(self.laser.name + ext)
+        path = Path(self.laser.info.get("File Path", ""))
+        return path.with_name(self.laserName() + ext)
 
     def populateIsotopes(self) -> None:
         self.combo_isotope.blockSignals(True)
@@ -480,14 +490,15 @@ class LaserWidget(_ViewWidget):
                 mask[x0:x1, y0:y1], data[name][x0:x1, y0:y1], np.nan
             )
 
-        path = self.laser.path
+        info = self.laser.info.copy()
+        info["Name"] = self.laserName() + "_cropped"
+        info["File Path"] = Path(info.get("File Path", "")).with_stem(info["Name"])
         new_widget = self.view.addLaser(
             Laser(
                 new_data,
                 calibration=self.laser.calibration,
                 config=self.laser.config,
-                name=self.laser.name + "_cropped",
-                path=path.parent.joinpath(self.laser.name + "_cropped" + path.suffix),
+                info=info,
             )
         )
         new_widget.setActive()
@@ -525,12 +536,19 @@ class LaserWidget(_ViewWidget):
             self.modified = True
             self.refresh()
 
+    def applyInformation(self, info: Dict[str, str]) -> None:
+        # if self.laser.info["Name"] != info["Name"]:  # pragma: ignore
+        #     self.view.tabs.setTabText(self.index(), info["Name"])
+        if self.laser.info != info:
+            self.laser.info = info
+            self.modified = True
+
     def saveDocument(self, path: Union[str, Path]) -> None:
         if isinstance(path, str):
             path = Path(path)
 
         io.npz.save(path, self.laser)
-        self.laser.path = path
+        self.laser.info["File Path"] = str(path.resolve())
         self.modified = False
 
     def actionCalibration(self) -> QtWidgets.QDialog:
@@ -581,8 +599,14 @@ class LaserWidget(_ViewWidget):
         dlg.open()
         return dlg
 
+    def actionInformation(self) -> QtWidgets.QDialog:
+        dlg = dialogs.InformationDialog(self.laser.info, parent=self)
+        dlg.infoChanged.connect(self.applyInformation)
+        dlg.open()
+        return dlg
+
     def actionSave(self) -> QtWidgets.QDialog:
-        path = self.laser.path
+        path = Path(self.laser.info["File Path"])
         if path.suffix.lower() == ".npz" and path.exists():
             self.saveDocument(path)
             return None
@@ -664,6 +688,7 @@ class LaserWidget(_ViewWidget):
             menu.addSeparator()
             menu.addAction(self.action_config)
             menu.addAction(self.action_calibration)
+            menu.addAction(self.action_information)
             menu.addSeparator()
             menu.addAction(self.action_statistics)
             menu.addAction(self.action_colocalisation)

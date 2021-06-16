@@ -1,5 +1,4 @@
 from pytestqt.qtbot import QtBot
-from pathlib import Path
 
 from pewlib.laser import Laser
 
@@ -54,7 +53,7 @@ def test_main_window_actions_widget(qtbot: QtBot):
     window = MainWindow()
     qtbot.addWidget(window)
     window.viewspace.views[0].addLaser(
-        Laser(rand_data("A1"), path=Path("/home/pewpew/real.npz"))
+        Laser(rand_data("A1"), info={"File Path": "/home/pewpew/real.npz"})
     )
     window.viewspace.refresh()
 
