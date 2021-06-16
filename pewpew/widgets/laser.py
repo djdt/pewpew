@@ -195,6 +195,9 @@ class LaserWidget(_ViewWidget):
         self.graphics = LaserGraphicsView(options, parent=self)
         self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
         self.graphics.label.editRequested.connect(self.labelEditDialog)
+        self.graphics.colorbar.editRequested.connect(
+            self.viewspace.window().action_colortable_range.trigger
+        )
         self.graphics.setMouseTracking(True)
 
         self.combo_layers = QtWidgets.QComboBox()

@@ -63,8 +63,10 @@ class LabelOverlay(QtWidgets.QGraphicsObject):
         super().mouseDoubleClickEvent(event)
 
 
-class ColorBarOverlay(QtWidgets.QGraphicsItem):
+class ColorBarOverlay(QtWidgets.QGraphicsObject):
     nicenums = [1.0, 1.5, 2.0, 2.5, 3.0, 5.0, 7.5]
+    editRequested = QtCore.Signal()
+    mouseOverBar = QtCore.Signal(float)
 
     def __init__(
         self,
@@ -132,9 +134,8 @@ class ColorBarOverlay(QtWidgets.QGraphicsItem):
         idx = min(idx, len(self.nicenums) - 1)
 
         interval = self.nicenums[idx] * pwr
-        return np.arange(
-            int(self.vmin / interval) * interval, self.vmax, interval
-        )[trim:trim + n]
+        values = np.arange(int(self.vmin / interval) * interval, self.vmax, interval)
+        return values[trim : values.size - trim]
 
     def paint(
         self,
@@ -177,6 +178,10 @@ class ColorBarOverlay(QtWidgets.QGraphicsItem):
 
         painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
         painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
+
+    def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        self.editRequested.emit()
+        super().mouseDoubleClickEvent(event)
 
 
 class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):
