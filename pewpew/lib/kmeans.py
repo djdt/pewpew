@@ -4,6 +4,20 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class KMeansResult(object):
+    def __init__(self, k: int, x: np.ndarray, labels: np.ndarray, centers: np.ndarray):
+        self.k = k
+        self.data = x
+        self.labels = labels
+        self.centers = centers
+
+    def intra_cluster_error(self):
+        error = 0.0
+        for i in range(self.k):
+            error += np.sum((self.data[self.labels == i] - self.centers[i]) ** 2)
+        return error
+
+
 def kmeans_plus_plus(x: np.ndarray, k: int) -> np.ndarray:
     """Selects inital cluster positions using K-means++ algorithm.
 
@@ -19,11 +33,11 @@ def kmeans_plus_plus(x: np.ndarray, k: int) -> np.ndarray:
     centers[0] = x[np.random.choice(ix, 1)]
 
     for i in range(1, k):
-        distances = np.sqrt(np.sum((centers[:i, None] - x) ** 2, axis=2))
-        distances = np.amin(distances, axis=0) ** 2
+        distances = np.sum((centers[:i, None] - x) ** 2, axis=2)
+        distances = np.amin(distances, axis=0)
         centers[i] = x[np.random.choice(ix, 1, p=distances / distances.sum())]
 
-    return centers.copy()
+    return centers
 
 
 def kmeans(
@@ -31,7 +45,7 @@ def kmeans(
     k: int,
     init: str = "kmeans++",
     max_iterations: int = 1000,
-) -> np.ndarray:
+) -> KMeansResult:
     """N-dim k-means clustering
 
     Performs k-means clustering of `x`, minimising intra-cluster variation.
@@ -44,7 +58,7 @@ def kmeans(
        max_iterations: maximum iterations for clustering
 
     Returns:
-        array of labels mapping clusters to objects
+        KMeansResult, object containing k, labels, centers
 
     Raises:
         ValueError if loop exceeds `max_iterations`
@@ -78,8 +92,9 @@ def kmeans(
             new_centers[i] = np.mean(x[idx == i], axis=0)
 
         if np.allclose(centers, new_centers):
-            return idx
-        centers = new_centers
+            return KMeansResult(k, x, idx, centers)
+        else:
+            centers = new_centers
 
     raise ValueError("No convergance in allowed iterations.")  # pragma: no cover
 
@@ -131,7 +146,7 @@ def kmeans1d(
             k,
             init=kwargs["init"],  # type: ignore
             max_iterations=kwargs["max_iterations"],  # type: ignore
-        )
+        ).labels
     else:  # pragma: no cover
         raise ValueError(f"Unknown method {method}.")
     return np.reshape(idx, x.shape)
