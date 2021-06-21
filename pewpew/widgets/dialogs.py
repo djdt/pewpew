@@ -152,6 +152,14 @@ class CalibrationPointsWidget(CollapsableWidget):
         layout.addLayout(layout_weighting)
         self.area.setLayout(layout)
 
+    def setCurrentWeighting(self, weighting: str) -> None:
+        self.combo_weighting.blockSignals(True)
+        if weighting in Calibration.KNOWN_WEIGHTING:
+            self.combo_weighting.setCurrentText(weighting)
+        else:
+            self.combo_weighting.setCurrentText("Custom")
+        self.combo_weighting.blockSignals(False)
+
     def updateWeighting(self) -> None:
         weighting = self.combo_weighting.currentText()
         self.model.setWeighting(weighting)
@@ -372,6 +380,7 @@ class CalibrationDialog(ApplyDialog):
     def updatePoints(self) -> None:
         name = self.combo_isotope.currentText()
         self.points.model.setCalibration(self.calibrations[name], resize=True)
+        self.points.setCurrentWeighting(self.calibrations[name].weighting)
 
 
 class CalibrationCurveDialog(QtWidgets.QDialog):
