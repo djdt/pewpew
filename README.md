@@ -4,15 +4,23 @@ Pew² is a GUI for importing and processing line-by-line and spot-wise collected
 
 ## Installation
 
-Windows executables are available for each release.
+Windows executables are available for each [release](https://github.com/djdt/pewpew/releases).
 
 To install via pip first clone the repository then install as a local package.
 
 ```bash
 git clone https://github.com/djdt/pewpew
 cd pewpew
+pip install -r requirements.txt
 pip install -e .
 ```
+
+The program can then be run as a module.
+
+```bash
+python -m pewpew
+```
+
 ## Documentation
 
 Documentation is available at https://djdt.github.io/pewpew
