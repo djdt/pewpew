@@ -24,6 +24,12 @@ And install via pip.
 
 .. code-block:: bash
 
+    $ pip install -r requirements.txt
     $ pip install -e .
 
-You can then run |pewpew| from your terminal emulator using ``pewpew``.
+You can then run |pewpew| from your terminal emulator using ``pewpew`` or as a module from the |pewpew| root directory.
+
+.. code-block:: bash
+
+   $ cd pewpew
+   $ python -m pewpew
