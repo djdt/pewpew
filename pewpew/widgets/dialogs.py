@@ -664,6 +664,7 @@ class ConfigDialog(ApplyDialog):
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setText(str(self.config.spotsize))
         self.lineedit_spotsize.setValidator(DecimalValidator(0, 1e9, 4))
+        self.lineedit_spotsize.setToolTip("Diameter of the laser spot.")
         self.lineedit_spotsize.textChanged.connect(self.completeChanged)
 
         if isinstance(config, SpotConfig):
@@ -675,21 +676,30 @@ class ConfigDialog(ApplyDialog):
         self.lineedit_speed = QtWidgets.QLineEdit()
         self.lineedit_speed.setText(str(self.config.speed))
         self.lineedit_speed.setValidator(DecimalValidator(0, 1e9, 4))
+        self.lineedit_speed.setToolTip("Scanning speed of the laser.")
         self.lineedit_speed.textChanged.connect(self.completeChanged)
 
         self.lineedit_scantime = QtWidgets.QLineEdit()
         self.lineedit_scantime.setText(str(self.config.scantime))
         self.lineedit_scantime.setValidator(DecimalValidator(0, 1e9, 4))
+        self.lineedit_scantime.setToolTip("Total dwell time for one aquistion (pixel).")
         self.lineedit_scantime.textChanged.connect(self.completeChanged)
 
         if isinstance(config, SRRConfig):
             self.lineedit_warmup = QtWidgets.QLineEdit()
             self.lineedit_warmup.setText(str(self.config.warmup))
             self.lineedit_warmup.setValidator(DecimalValidator(0, 1e3, 1))
+            self.lineedit_warmup.setToolTip(
+                "Laser warmup time; delay before aquisition."
+            )
             self.lineedit_warmup.textChanged.connect(self.completeChanged)
             self.spinbox_offsets = QtWidgets.QSpinBox()
             self.spinbox_offsets.setRange(2, 10)
             self.spinbox_offsets.setValue(self.config._subpixel_size)
+            self.spinbox_offsets.setToolTip(
+                "Number of subpixels per pixel. "
+                "Offseting each layer by 50% will have a subpixel width of 2."
+            )
 
         self.check_all = QtWidgets.QCheckBox("Apply config to all images.")
 
@@ -699,7 +709,7 @@ class ConfigDialog(ApplyDialog):
         if isinstance(config, SpotConfig):
             layout_form.addRow("Spotsize Y (μm):", self.lineedit_spotsize_y)
         else:
-            layout_form.addRow("Speed (μm):", self.lineedit_speed)
+            layout_form.addRow("Speed (μm/s):", self.lineedit_speed)
             layout_form.addRow("Scantime (s):", self.lineedit_scantime)
         if isinstance(config, SRRConfig):
             layout_form.addRow("Warmup (s):", self.lineedit_warmup)
