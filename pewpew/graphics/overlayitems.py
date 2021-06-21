@@ -77,6 +77,7 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
         height: int = 16,
         font: QtGui.QFont = None,
         color: QtGui.QColor = None,
+        checkmarks: bool = False,
         parent: QtWidgets.QGraphicsItem = None,
     ):
         super().__init__(parent)
@@ -103,6 +104,7 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
 
         self.font = font
         self.color = color
+        self.checkmarks = checkmarks
 
     def updateTable(self, colortable: np.ndarray, vmin: float, vmax: float):
         self.vmin = vmin
@@ -175,7 +177,13 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
                 self.font,
                 text,
             )
-
+            if self.checkmarks:
+                path.addRect(
+                    x - fm.lineWidth() / 2.0,
+                    fm.ascent() + fm.underlinePos(),
+                    fm.lineWidth() * 2.0,
+                    fm.underlinePos(),
+                )
         painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
         painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
 
