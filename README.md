@@ -15,10 +15,10 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-The program can then be run as a module.
+The program can then be run from the command line.
 
 ```bash
-python -m pewpew
+pewpew
 ```
 
 ## Documentation
