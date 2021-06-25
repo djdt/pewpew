@@ -11,11 +11,16 @@ class KMeansResult(object):
         self.labels = labels
         self.centers = centers
 
-    def intra_cluster_error(self):
-        error = 0.0
-        for i in range(self.k):
-            error += np.sum((self.data[self.labels == i] - self.centers[i]) ** 2)
-        return error
+    def totalss(self) -> float:
+        return np.sum(self.withinss)
+
+    def withinss(self) -> np.ndarray:
+        return np.array(
+            [
+                np.sum((self.data[self.labels == i] - self.centers[i]) ** 2)
+                for i in range(self.k)
+            ]
+        )
 
 
 def kmeans_plus_plus(x: np.ndarray, k: int) -> np.ndarray:
@@ -78,23 +83,22 @@ def kmeans(
     else:  # pragma: no cover
         raise ValueError("'init' must be 'kmeans++' or 'random'.")
 
-    # Sort centers by the first attribute
-    centers = centers[np.argsort((centers[:, 0]))]
-
     while max_iterations > 0:
-        max_iterations -= 1
+        # Sort centers by the first attribute
+        centers = centers[np.argsort(centers[:, 0])]
 
         distances = np.sqrt(np.sum((centers[:, None] - x) ** 2, axis=2))
         idx = np.argmin(distances, axis=0)
 
         new_centers = centers.copy()
-        for i in np.unique(idx):
+        for i in range(k):
             new_centers[i] = np.mean(x[idx == i], axis=0)
 
         if np.allclose(centers, new_centers):
             return KMeansResult(k, x, idx, centers)
         else:
             centers = new_centers
+        max_iterations -= 1
 
     raise ValueError("No convergance in allowed iterations.")  # pragma: no cover
 
