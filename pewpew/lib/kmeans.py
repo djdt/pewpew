@@ -113,7 +113,7 @@ def kmeans1d(
     x: np.ndarray, k: int, method: str = "ckmeans1d", method_kws: dict = None
 ) -> np.ndarray:
     """1-dim k-means clustering.
-    Uses Ckmeans.1d.dp through ``ckwrap`` it is is installed and `method` is
+    Uses Ckmeans.1d.dp through ``ckwrap`` if it is installed and `method` is
     'ckmeans1d'.
 
     Args:
