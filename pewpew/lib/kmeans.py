@@ -11,16 +11,22 @@ class KMeansResult(object):
         self.labels = labels
         self.centers = centers
 
+        self._withinss: np.ndarray = None
+
+    @property
     def totalss(self) -> float:
         return np.sum(self.withinss)
 
+    @property
     def withinss(self) -> np.ndarray:
-        return np.array(
-            [
-                np.sum((self.data[self.labels == i] - self.centers[i]) ** 2)
-                for i in range(self.k)
-            ]
-        )
+        if self._withinss is None:
+            self._withinss = np.array(
+                [
+                    np.sum((self.data[self.labels == i] - self.centers[i]) ** 2)
+                    for i in range(self.k)
+                ]
+            )
+        return self._withinss
 
 
 def kmeans_plus_plus(x: np.ndarray, k: int) -> np.ndarray:
