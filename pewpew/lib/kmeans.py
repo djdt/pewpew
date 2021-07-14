@@ -1,6 +1,8 @@
 import numpy as np
 import logging
 
+from typing import Callable
+
 logger = logging.getLogger(__name__)
 
 
@@ -51,8 +53,9 @@ def kmeans_plus_plus(x: np.ndarray, k: int) -> np.ndarray:
     return centers
 
 
-def kmeans(
+def kcluster(
     x: np.ndarray,
+    func: Callable[[np.ndarray, int], np.ndarray],
     k: int,
     init: str = "kmeans++",
     max_iterations: int = 1000,
@@ -98,7 +101,7 @@ def kmeans(
 
         new_centers = centers.copy()
         for i in range(k):
-            new_centers[i] = np.mean(x[idx == i], axis=0)
+            new_centers[i] = func(x[idx == i], axis=0)
 
         if np.allclose(centers, new_centers):
             return KMeansResult(k, x, idx, centers)
@@ -107,6 +110,24 @@ def kmeans(
         max_iterations -= 1
 
     raise ValueError("No convergance in allowed iterations.")  # pragma: no cover
+
+
+def kmeans(
+    x: np.ndarray,
+    k: int,
+    init: str = "kmeans++",
+    max_iterations: int = 1000,
+) -> KMeansResult:
+    return kcluster(x, np.mean, k, init, max_iterations)
+
+
+def kmedians(
+    x: np.ndarray,
+    k: int,
+    init: str = "kmeans++",
+    max_iterations: int = 1000,
+) -> KMeansResult:
+    return kcluster(x, np.median, k, init, max_iterations)
 
 
 def kmeans1d(
