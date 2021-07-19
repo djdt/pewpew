@@ -6,7 +6,7 @@ from pewlib.calibration import Calibration
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 
-from typing import Any, Tuple
+from typing import Any, Optional, Tuple
 
 
 class CalibrationPointsTableModel(NumpyArrayTableModel):
@@ -101,7 +101,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
 
     def headerData(
         self, section: int, orientation: QtCore.Qt.Orientation, role: int
-    ) -> str:
+    ) -> Optional[str]:
         if role != QtCore.Qt.DisplayRole:  # pragma: no cover
             return None
 
@@ -115,7 +115,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         else:
             return labels[self.axes[1]][section]
 
-    def updateCalibration(self, *args) -> None:
+    def updateCalibration(self) -> None:
         if self.array.size == 0:  # pragma: no cover
             self.calibration._points = np.empty((0, 2), dtype=np.float64)
             self.calibration._weights = np.empty(0, dtype=np.float64)

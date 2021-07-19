@@ -68,7 +68,7 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
         pen: QtGui.QPen = None,
         parent: QtWidgets.QGraphicsItem = None,
     ):
-        super().__init__(image, parent=parent)
+        super().__init__(image, modes=modes, parent=parent)
 
         if pen is None:
             pen = QtGui.QPen(QtCore.Qt.white, 2.0)
@@ -161,7 +161,7 @@ class RectImageSelectionItem(ScaledImageSelectionItem):
         pen: QtGui.QPen = None,
         parent: QtWidgets.QGraphicsItem = None,
     ):
-        super().__init__(image, parent=parent)
+        super().__init__(image, modes=modes, parent=parent)
 
         if pen is None:
             pen = QtGui.QPen(QtCore.Qt.white, 2.0)

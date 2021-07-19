@@ -1,5 +1,7 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from typing import Optional
+
 
 class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
     cursors = {
@@ -26,7 +28,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         )
         self.setAcceptHoverEvents(True)
 
-        self.selected_edge: str = None
+        self.selected_edge: Optional[str] = None
 
     def boundingRect(self) -> QtCore.QRectF:
         rect = super().boundingRect()
@@ -43,7 +45,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         path.addRect(rect)
         return path
 
-    def edgeAt(self, pos: QtCore.QPointF) -> str:
+    def edgeAt(self, pos: QtCore.QPointF) -> Optional[str]:
         view = next(iter(self.scene().views()))
         dist = view.mapToScene(QtCore.QRect(0, 0, 10, 1)).boundingRect().width()
 
@@ -63,10 +65,10 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
     def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if self.isSelected():
             edge = self.edgeAt(event.pos())
-            if edge in self.cursors:
-                self.setCursor(self.cursors[edge])
-            else:
+            if edge is None:
                 self.setCursor(QtCore.Qt.ArrowCursor)
+            else:
+                self.setCursor(self.cursors[edge])
         super().hoverMoveEvent(event)
 
     def hoverLeaveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:

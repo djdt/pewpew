@@ -11,7 +11,7 @@ from pewlib import io
 from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog
 
-from typing import Callable, Dict, List, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 
 class _OptionsBase(QtWidgets.QGroupBox):  # pragma: no cover
@@ -242,7 +242,8 @@ class CsvLinesOptions(_OptionsBase):
     def updateHeaderPreview(self, header: int) -> None:
         try:
             with open(self.csvs[0], "r") as fp:
-                for i in range(header + 1):
+                line = None
+                for _ in range(header + 1):
                     line = fp.readline()
             self.lineedit_header_preview.setText(line)
         except (IndexError, ValueError):
@@ -346,7 +347,7 @@ class ThermoOptions(_OptionsBase):
         method = "unknown"
         has_analog = False
         with path.open("r", encoding="utf-8-sig") as fp:
-            lines = [next(fp) for i in range(3)]
+            lines = [next(fp) for _ in range(3)]
             delimiter = lines[0][0]
             if "MainRuns" in lines[0]:  # pragma: no cover
                 method = "rows"
@@ -623,7 +624,7 @@ class MultiplePathSelectWidget(_PathSelectBase):
 
 
 class PathAndOptionsPage(QtWidgets.QWizardPage):
-    formats: Dict[str, Tuple[Tuple[str, List[str], str], Type]] = {
+    formats = {
         "agilent": (
             (
                 "Agilent Batch",
@@ -749,6 +750,8 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             elif self.field("thermo"):
                 paths = [Path(p) for p in self.field("thermo.paths")]
                 datas, params, infos = self.readMultiple(self.readThermo, paths)
+            else:
+                raise ValueError
 
         except ValueError as e:
             QtWidgets.QMessageBox.critical(self, "Import Error", str(e))
@@ -766,8 +769,8 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         return True
 
     def readMultiple(
-        self, func: Callable[[Path], Tuple[np.ndarray, dict]], paths: List[Path]
-    ) -> Tuple[List[np.ndarray], dict]:
+        self, func: Callable[[Path], Tuple[np.ndarray, Dict[str, Any], Dict[str, str]]], paths: List[Path]
+    ) -> Tuple[List[np.ndarray], Dict[str, Any], List[Dict[str, str]]]:
         data, params, info = func(paths[0])
         datas = [data]
         infos = [info]
@@ -777,7 +780,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             infos.append(info)
         return datas, params, infos
 
-    def readAgilent(self, path: Path) -> Tuple[np.ndarray, dict]:
+    def readAgilent(self, path: Path) -> Tuple[np.ndarray, Dict[str, Any], Dict[str, str]]:
         agilent_method = self.field("agilent.method")
         if agilent_method == "Alphabetical Order":  # pragma: no cover
             method = ["alphabetical"]  # Fallback to alphabetical
@@ -799,7 +802,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         info = io.agilent.load_info(path)
         return data, params, info
 
-    def readCsv(self, path: Path) -> Tuple[np.ndarray, dict]:
+    def readCsv(self, path: Path) -> Tuple[np.ndarray, Dict[str, Any], Dict[str, str]]:
         delimiter = self.field("csv.delimiter")
         if delimiter == "Tab":
             delimiter = "\t"
@@ -837,7 +840,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         data, params = io.csv.load(path, option=option, full=True)
         return data, params, {}
 
-    def readNumpy(self, path: Path) -> Tuple[np.ndarray, dict]:
+    def readNumpy(self, path: Path) -> Tuple[np.ndarray, Dict[str, Any], Dict[str, str]]:
         laser = io.npz.load(path)
         param = dict(
             scantime=laser.config.scantime,
@@ -846,15 +849,15 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         )
         return laser.data, param, laser.info
 
-    def readPerkinElmer(self, path: Path) -> Tuple[np.ndarray, dict]:
+    def readPerkinElmer(self, path: Path) -> Tuple[np.ndarray, Dict[str, Any], Dict[str, str]]:
         data, params = io.perkinelmer.load(path, full=True)
         return data, params, {"Instrument Vendor": "PerkinElemer"}
 
-    def readText(self, path: Path) -> Tuple[np.ndarray, dict]:
+    def readText(self, path: Path) -> Tuple[np.ndarray, Dict[str, Any], Dict[str, str]]:
         data = io.textimage.load(path, name=self.field("text.name"))
         return data, {}, {}
 
-    def readThermo(self, path: Path) -> Tuple[np.ndarray, dict]:
+    def readThermo(self, path: Path) -> Tuple[np.ndarray, Dict[str, Any], Dict[str, str]]:
         kwargs = dict(
             delimiter=self.field("thermo.delimiter"),
             comma_decimal=self.field("thermo.decimal") == ",",

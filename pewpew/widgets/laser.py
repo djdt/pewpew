@@ -23,7 +23,7 @@ from pewpew.threads import ImportThread
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.views import View, ViewSpace, _ViewWidget
 
-from typing import Dict, List, Set, Union
+from typing import Dict, List, Optional, Set, Union
 
 
 logger = logging.getLogger(__name__)
@@ -54,7 +54,7 @@ class LaserViewSpace(ViewSpace):
         self.numViewsChanged.emit()
         return view
 
-    def currentIsotope(self) -> str:
+    def currentIsotope(self) -> Optional[str]:
         widget = self.activeWidget()
         if widget is None:
             return None
@@ -390,7 +390,7 @@ class LaserWidget(_ViewWidget):
         self.combo_isotope.setCurrentText(isotope)
 
     @property
-    def current_layer(self) -> int:
+    def current_layer(self) -> Optional[int]:
         if not self.is_srr or self.combo_layers.currentIndex() == 0:
             return None
         return int(self.combo_layers.currentText())
@@ -495,7 +495,7 @@ class LaserWidget(_ViewWidget):
 
         info = self.laser.info.copy()
         info["Name"] = self.laserName() + "_cropped"
-        info["File Path"] = Path(info.get("File Path", "")).with_stem(info["Name"])
+        info["File Path"] = str(Path(info.get("File Path", "")).with_stem(info["Name"]))
         new_widget = self.view.addLaser(
             Laser(
                 new_data,
@@ -632,9 +632,8 @@ class LaserWidget(_ViewWidget):
 
     def actionStatistics(self, crop_to_selection: bool = False) -> QtWidgets.QDialog:
         data = self.laser.get(calibrate=self.viewspace.options.calibrate, flat=True)
-        if crop_to_selection:
-            mask = self.graphics.mask
-        else:
+        mask = self.graphics.mask
+        if mask is None or crop_to_selection:
             mask = np.ones(data.shape, dtype=bool)
 
         units = {}

@@ -9,7 +9,7 @@ from pewlib.laser import Laser
 from pewpew.widgets.prompts import OverwriteFilePrompt
 from pewpew.widgets.views import _ViewWidget
 
-from typing import List, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 
 logger = logging.getLogger(__name__)
@@ -363,8 +363,8 @@ class ExportDialog(_ExportDialogBase):
     def getPathForLayer(self, path: Path, layer: int) -> Path:
         return path.with_name(path.stem + "_layer" + str(layer) + path.suffix)
 
-    def generatePaths(self, laser: Laser) -> List[Tuple[Path, str, int]]:
-        paths: List[Tuple[Path, str, int]] = [
+    def generatePaths(self, laser: Laser) -> List[Tuple[Path, str, Optional[int]]]:
+        paths: List[Tuple[Path, str, Optional[int]]] = [
             (self.getPath(), self.widget.combo_isotope.currentText(), None)
         ]
         if self.isExportAll():
@@ -382,7 +382,7 @@ class ExportDialog(_ExportDialogBase):
 
         return [p for p in paths if p[0] != ""]
 
-    def export(self, path: Path, isotope: str, layer: int, widget: _ViewWidget) -> None:
+    def export(self, path: Path, isotope: str, layer: Optional[int], widget: _ViewWidget) -> None:
         option = self.options.currentOption()
 
         if option.ext == ".csv":
@@ -495,7 +495,7 @@ class ExportAllDialog(ExportDialog):
             path = path.with_name(path.stem + "_<isotope>" + path.suffix)
         self.lineedit_preview.setText(str(path))
 
-    def getPath(self, name: str = None) -> Path:
+    def getPath(self, name: str) -> Path:
         path = (
             Path(self.lineedit_directory.text())
             .joinpath(name)
@@ -506,8 +506,8 @@ class ExportAllDialog(ExportDialog):
             path = path.with_name(prefix + "_" + path.name)
         return path
 
-    def generatePaths(self, laser: Laser) -> List[Tuple[Path, str, int]]:
-        paths: List[Tuple[Path, str, int]] = [
+    def generatePaths(self, laser: Laser) -> List[Tuple[Path, str, Optional[int]]]:
+        paths: List[Tuple[Path, str, Optional[int]]] = [
             (
                 self.getPath(laser.info["Name"]),
                 self.widget.combo_isotope.currentText(),

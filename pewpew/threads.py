@@ -6,7 +6,8 @@ import time
 from pewpew import __version__ as pewpew_version
 from pewlib import __version__ as pewlib_version
 from pewlib import io
-from pewlib import Config, Laser
+from pewlib import Config
+from pewlib.laser import _Laser, Laser
 
 from typing import List
 
@@ -42,7 +43,7 @@ class ImportThread(QtCore.QThread):
                 self.importFailed.emit(f"Unable to import {path.name}.")
         self.progressChanged.emit(len(self.paths))
 
-    def importPath(self, path: Path) -> Laser:
+    def importPath(self, path: Path) -> _Laser:
         config = Config(
             spotsize=self.config.spotsize,
             speed=self.config.speed,
@@ -71,6 +72,8 @@ class ImportThread(QtCore.QThread):
                 info["Instrument Vendor"] = "PerkinElemer"
             elif io.csv.is_valid_directory(path):
                 data, params = io.csv.load(path, full=True)
+            else:  # pragma: no cover
+                raise ValueError(f"{path.name}: Unknown extention '{path.suffix}'.")
         else:
             if path.suffix.lower() == ".npz":
                 laser = io.npz.load(path)

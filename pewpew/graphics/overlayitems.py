@@ -8,7 +8,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 import numpy as np
 
-from typing import Tuple
+from typing import List, Tuple
 
 
 class LabelOverlay(QtWidgets.QGraphicsObject):
@@ -70,7 +70,7 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
 
     def __init__(
         self,
-        colortable: np.ndarray,
+        colortable: List[int],
         vmin: float,
         vmax: float,
         unit: str = "",
@@ -106,7 +106,7 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
         self.color = color
         self.checkmarks = checkmarks
 
-    def updateTable(self, colortable: np.ndarray, vmin: float, vmax: float):
+    def updateTable(self, colortable: List[int], vmin: float, vmax: float):
         self.vmin = vmin
         self.vmax = vmax
 

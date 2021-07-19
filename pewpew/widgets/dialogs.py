@@ -494,7 +494,7 @@ class ColorRangeDialog(ApplyDialog):
 
     def updateRange(self, isotope: str = None) -> None:
         tmin, tmax = self.lineedit_min.text(), self.lineedit_max.text()
-        vmin, vmax = self.ranges.get(isotope, self.default_range)
+        vmin, vmax = self.ranges.get(isotope or "", self.default_range)
 
         if tmin != "":
             vmin = tmin if "%" in tmin else float(tmin)
@@ -521,7 +521,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self,
         data: np.ndarray,
         mask: np.ndarray = None,
-        colors: List[Tuple[float, ...]] = None,
+        # colors: List[Tuple[float, ...]] = None,
         parent: QtWidgets.QWidget = None,
     ):
         assert data.dtype.names is not None
@@ -646,7 +646,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         x = self.data[self.combo_name1.currentText()]
         y = self.data[self.combo_name2.currentText()]
 
-        _r, p = colocal.pearsonr_probablity(x, y, mask=self.mask, n=500)
+        _, p = colocal.pearsonr_probablity(x, y, mask=self.mask, n=500)
         self.label_p.setText(f"{p:.2f}")
 
         self.button_p.setEnabled(False)
@@ -676,7 +676,7 @@ class ConfigDialog(ApplyDialog):
         self.lineedit_spotsize.setToolTip("Diameter of the laser spot.")
         self.lineedit_spotsize.textChanged.connect(self.completeChanged)
 
-        if isinstance(config, SpotConfig):
+        if isinstance(self.config, SpotConfig):
             self.lineedit_spotsize_y = QtWidgets.QLineEdit()
             self.lineedit_spotsize_y.setText(str(self.config.spotsize_y))
             self.lineedit_spotsize_y.setValidator(DecimalValidator(0, 1e9, 4))
@@ -694,7 +694,7 @@ class ConfigDialog(ApplyDialog):
         self.lineedit_scantime.setToolTip("Total dwell time for one aquistion (pixel).")
         self.lineedit_scantime.textChanged.connect(self.completeChanged)
 
-        if isinstance(config, SRRConfig):
+        if isinstance(self.config, SRRConfig):
             self.lineedit_warmup = QtWidgets.QLineEdit()
             self.lineedit_warmup.setText(str(self.config.warmup))
             self.lineedit_warmup.setValidator(DecimalValidator(0, 1e3, 1))
@@ -988,6 +988,8 @@ class SelectionDialog(ApplyDialog):
     def refresh(self) -> None:
         method = self.combo_method.currentText()
         data = self.graphics.data
+        if data is None:
+            return
         if self.check_limit_threshold.isChecked() and self.graphics.mask is not None:
             data = data[self.graphics.mask]
 
@@ -1029,7 +1031,10 @@ class SelectionDialog(ApplyDialog):
 
     def apply(self) -> None:
         comparison = self.COMPARISION[self.combo_comparison.currentText()]
-        mask = comparison(self.graphics.data, self.threshold)
+        data = self.graphics.data
+        if data is None:
+            return
+        mask = comparison(data, self.threshold)
         state = "intersect" if self.check_limit_selection.isChecked() else None
         self.maskSelected.emit(mask, [state])
         self.refresh()
@@ -1131,7 +1136,7 @@ class StatsDialog(QtWidgets.QDialog):
 
         for name in self.data.dtype.names:
             nd = self.data[name]
-            unit = self.units.get(name, "")
+            unit = self.units.get(str(name), "")
             nd = nd[~np.isnan(nd)]
 
             data += f"<tr><td>{name}</td><td>{unit}</td><td>{np.min(nd)}</td>"

@@ -15,7 +15,7 @@ from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import ToolWidget
 
-from typing import List
+from typing import List, Optional
 
 
 def segment_image(x: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
@@ -89,7 +89,7 @@ class CalculatorFormula(ValidColorTextEdit):
 
     def insertCompletion(self, completion: str) -> None:
         tc = self.textCursor()
-        for i in range(len(self.completer.completionPrefix())):
+        for _ in range(len(self.completer.completionPrefix())):
             tc.deletePreviousChar()
         tc.insertText(completion)
         self.setTextCursor(tc)
@@ -311,19 +311,19 @@ class CalculatorTool(ToolWidget):
             return False
         return True
 
-    def previewData(self, data: np.ndarray) -> np.ndarray:
+    def previewData(self, data: np.ndarray) -> Optional[np.ndarray]:
         self.reducer.variables = {name: data[name] for name in data.dtype.names}
         try:
-            data = self.reducer.reduce(self.formula.expr)
-            if np.isscalar(data):
-                self.output.setText(f"{data:.10g}")
+            result = self.reducer.reduce(self.formula.expr)
+            if np.isscalar(result):
+                self.output.setText(f"{result:.10g}")
                 return None
-            elif isinstance(data, np.ndarray) and data.ndim == 1:
-                self.output.setText(f"{list(map('{:.4g}'.format, data))}")
+            elif isinstance(result, np.ndarray) and data.ndim == 1:
+                self.output.setText(f"{list(map('{:.4g}'.format, result))}")
                 return None
-            elif isinstance(data, np.ndarray):
-                self.output.setText(f"{data.dtype.name} array: {data.shape}")
-                return data
+            elif isinstance(result, np.ndarray):
+                self.output.setText(f"{result.dtype.name} array: {data.shape}")
+                return result
         except (ReducerException, ValueError) as e:
             self.output.setText(str(e))
             return None

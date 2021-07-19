@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 
-from typing import Callable
+from typing import Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ class KMeansResult(object):
         self.labels = labels
         self.centers = centers
 
-        self._withinss: np.ndarray = None
+        self._withinss: Optional[np.ndarray] = None
 
     @property
     def totalss(self) -> float:

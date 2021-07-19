@@ -1,8 +1,7 @@
-import numpy as np
 from typing import Dict, List
 
 
-colortables: Dict[str, np.ndarray] = {
+colortables: Dict[str, List[int]] = {
     "balance": [
         4279704642, 4279770437, 4279836488, 4279902283,
         4279968078, 4280034129, 4280099925, 4280165976,
@@ -604,5 +603,5 @@ def list_tables() -> List[str]:
     return list(colortables.keys())
 
 
-def get_table(name: str) -> np.ndarray:
+def get_table(name: str) -> List[int]:
     return colortables[name]

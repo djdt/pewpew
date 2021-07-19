@@ -2,6 +2,7 @@ import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewlib.laser import _Laser
+from pewlib.srr import SRRConfig
 
 from pewpew.graphics import colortable
 from pewpew.graphics.imageitems import (
@@ -24,7 +25,7 @@ from pewpew.graphics.overlayitems import (
 
 from pewpew.lib.numpyqt import array_to_image
 
-from typing import List
+from typing import Optional, List
 
 
 class LaserGraphicsView(OverlayView):
@@ -32,8 +33,8 @@ class LaserGraphicsView(OverlayView):
 
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
         self.options = options
-        self.data: np.ndarray = None
-        self.mask: np.ndarray = None
+        self.data: Optional[np.ndarray] = None
+        self.mask: Optional[np.ndarray] = None
 
         self._scene = OverlayScene(0, 0, 640, 480)
         self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
@@ -41,10 +42,10 @@ class LaserGraphicsView(OverlayView):
         super().__init__(self._scene, parent)
         self.cursors["selection"] = QtCore.Qt.ArrowCursor
 
-        self.image: ScaledImageItem = None
-        self.selection_item: ScaledImageSelectionItem = None
-        self.selection_image: ScaledImageItem = None
-        self.widget: QtWidgets.QGraphicsItem = None
+        self.image: Optional[ScaledImageItem] = None
+        self.selection_item: Optional[ScaledImageSelectionItem] = None
+        self.selection_image: Optional[ScaledImageItem] = None
+        self.widget: Optional[QtWidgets.QGraphicsItem] = None
 
         self.label = LabelOverlay(
             "_", font=self.options.font, color=self.options.font_color
@@ -96,6 +97,8 @@ class LaserGraphicsView(OverlayView):
             self.cursorValueChanged.emit(pos.x(), pos.y(), np.nan)
 
     def startLassoSelection(self) -> None:
+        if self.image is None:
+            return
         if self.selection_item is not None:
             self.scene().removeItem(self.selection_item)
 
@@ -106,6 +109,8 @@ class LaserGraphicsView(OverlayView):
         self.setInteractionFlag("selection")
 
     def startRectangleSelection(self) -> None:
+        if self.image is None:
+            return
         if self.selection_item is not None:
             self.scene().removeItem(self.selection_item)
 
@@ -133,6 +138,8 @@ class LaserGraphicsView(OverlayView):
         return self.mask[pos.y(), pos.x()]
 
     def startRulerWidget(self) -> None:
+        if self.image is None:
+            return
         if self.widget is not None:
             self.scene().removeItem(self.widget)
         self.widget = RulerWidgetItem(self.image, font=self.options.font)
@@ -142,6 +149,8 @@ class LaserGraphicsView(OverlayView):
         self.setInteractionFlag("widget")
 
     def startSliceWidget(self) -> None:
+        if self.image is None or self.data is None:
+            return
         if self.widget is not None:
             self.scene().removeItem(self.widget)
         self.widget = ImageSliceWidgetItem(
@@ -182,7 +191,7 @@ class LaserGraphicsView(OverlayView):
             self.setSceneRect(rect)
             self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
 
-    def drawSelectionImage(self, mask: np.ndarray, modes: List[str] = None) -> None:
+    def drawSelectionImage(self, mask: np.ndarray, modes: List[str]) -> None:
         if self.selection_image is not None:
             self.scene().removeItem(self.selection_image)
 
@@ -204,7 +213,7 @@ class LaserGraphicsView(OverlayView):
         color = QtGui.QColor(255, 255, 255, a=128)
 
         self.selection_image = ScaledImageItem.fromArray(
-            self.mask.astype(np.uint8), self.image.rect, colortable=[0, color.rgba()]
+            self.mask.astype(np.uint8), self.image.rect, colortable=[0, int(color.rgba())]
         )
         self.selection_image.setZValue(self.image.zValue() + 1.0)
         self.scene().addItem(self.selection_image)
@@ -216,7 +225,7 @@ class LaserGraphicsView(OverlayView):
         unit = laser.calibration[name].unit if self.options.calibrate else ""
 
         # Get extent
-        if laser.layers > 1:
+        if isinstance(laser.config, SRRConfig):
             x0, x1, y0, y1 = laser.config.data_extent(data.shape, layer=layer)
         else:
             x0, x1, y0, y1 = laser.config.data_extent(data.shape)

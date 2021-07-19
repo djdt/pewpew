@@ -103,8 +103,8 @@ class FilteringTool(ToolWidget):
         self.combo_filter.activated.connect(self.refresh)
 
         nparams = np.amax([len(f["params"]) for f in FilteringTool.methods.values()])
-        self.label_fparams = [QtWidgets.QLabel() for i in range(nparams)]
-        self.lineedit_fparams = [ValidColorLineEdit() for i in range(nparams)]
+        self.label_fparams = [QtWidgets.QLabel() for _ in range(nparams)]
+        self.lineedit_fparams = [ValidColorLineEdit() for _ in range(nparams)]
         for le in self.lineedit_fparams:
             le.textEdited.connect(self.completeChanged)
             le.editingFinished.connect(self.refresh)

@@ -5,8 +5,9 @@ import numpy as np
 from pewlib.process.calc import normalise
 
 from pewpew.actions import qAction
-
 from pewpew.lib.numpyqt import array_to_image, array_to_polygonf
+
+from typing import Optional, List
 
 
 class ScaledImageItem(QtWidgets.QGraphicsItem):
@@ -65,7 +66,7 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
         cls,
         array: np.ndarray,
         rect: QtCore.QRectF,
-        colortable: np.ndarray = None,
+        colortable: List[int] = None,
         smooth: bool = False,
         parent: QtWidgets.QGraphicsItem = None,
     ) -> "ScaledImageItem":
@@ -81,7 +82,7 @@ class ImageWidgetItem(QtWidgets.QGraphicsObject):
     def __init__(
         self,
         image: ScaledImageItem,
-        data: np.ndarray,
+        data: np.ndarray = None,
         parent: QtWidgets.QGraphicsItem = None,
     ):
         super().__init__(parent)
@@ -224,7 +225,7 @@ class ImageSliceWidgetItem(ImageWidgetItem):
             font = QtGui.QFont()
 
         self.data = data
-        self.sliced: np.ndarray = None
+        self.sliced: Optional[np.ndarray] = None
 
         self.pen = pen
         self.font = font

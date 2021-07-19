@@ -2,7 +2,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction, qToolButton
 
-from typing import List
+from typing import List, Optional
 
 
 class ViewSpace(QtWidgets.QSplitter):
@@ -15,7 +15,7 @@ class ViewSpace(QtWidgets.QSplitter):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(orientation, parent)
-        self.active_view: "View" = None
+        self.active_view: Optional["View"] = None
         self.views: List[View] = []
 
         self.action_split_horz = qAction(
@@ -222,7 +222,7 @@ class View(QtWidgets.QWidget):
         self.setLayout(layout)
 
     # Stack
-    def activeWidget(self) -> "_ViewWidget":
+    def activeWidget(self) -> Optional["_ViewWidget"]:
         if self.stack.count() == 0:
             return None
         return self.stack.widget(self.stack.currentIndex())
@@ -326,13 +326,13 @@ class ViewTabBar(QtWidgets.QTabBar):
         )
 
     def actionCloseAll(self) -> None:
-        for i in range(self.count()):
+        for _ in range(self.count()):
             self.tabCloseRequested.emit(0)
 
     def actionCloseOthers(self) -> None:
         index = self.action_close_others.data()
         self.moveTab(index, 0)
-        for i in range(1, self.count()):
+        for _ in range(1, self.count()):
             self.tabCloseRequested.emit(1)
 
     def setTabText(self, index: int, text: str) -> None:
@@ -451,7 +451,7 @@ class ViewTitleBar(QtWidgets.QWidget):
 class _ViewWidget(QtWidgets.QWidget):
     refreshed = QtCore.Signal()
 
-    def __init__(self, view: View, editable: bool = True):
+    def __init__(self, view: View = None, editable: bool = True):
         super().__init__(view)
         self.view = view
         self.viewspace = view.viewspace

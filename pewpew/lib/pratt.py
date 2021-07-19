@@ -316,15 +316,14 @@ class Reducer(object):
                 i = self.reduceExpr(tokens)
                 return n[int(i)]
             except (IndexError, TypeError, ValueError):
-                raise ReducerException(f"Invalid indexing of '{n}' using '{i}'.")
+                raise ReducerException(f"Invalid indexing of '{tokens}'.")
         elif token in self.operations:
             try:
                 op, nargs = self.operations[token]
-                arg_tokens = tokens[:nargs]
-                args = [self.reduceExpr(tokens) for i in range(nargs)]
+                args = [self.reduceExpr(tokens) for _ in range(nargs)]
                 return op(*args)
             except (AttributeError, KeyError, ValueError):  # pragma: no cover
-                raise ReducerException(f"Invalid args '{arg_tokens}' for '{token}'.")
+                raise ReducerException(f"Invalid args for '{token}'.")
         elif token in self.variables:
             return self.variables[token]
         else:  # is a number

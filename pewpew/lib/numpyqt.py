@@ -4,7 +4,7 @@ import ctypes
 import numpy as np
 import shiboken2
 
-from typing import Any, Tuple
+from typing import Any, Optional, Tuple
 
 
 def array_to_image(array: np.ndarray) -> QtGui.QImage:
@@ -25,6 +25,8 @@ def array_to_image(array: np.ndarray) -> QtGui.QImage:
         image_format = QtGui.QImage.Format_Indexed8
     elif array.dtype == np.uint32:
         image_format = QtGui.QImage.Format_RGB32
+    else:
+        raise ValueError(f"Unknown image format for {array.dtype}.")
 
     image = QtGui.QImage(
         array.data, array.shape[1], array.shape[0], array.strides[0], image_format
@@ -35,7 +37,7 @@ def array_to_image(array: np.ndarray) -> QtGui.QImage:
 
 def polygonf_to_array(polygon: QtGui.QPolygonF) -> np.ndarray:
     buf = (ctypes.c_double * 2 * polygon.length()).from_address(
-        shiboken2.getCppPointer(polygon.data())[0]
+            shiboken2.getCppPointer(polygon.data())[0]  # type: ignore
     )
     return np.frombuffer(buf, dtype=np.float64).reshape(-1, 2)
 
@@ -47,7 +49,7 @@ def array_to_polygonf(array: np.ndarray) -> QtGui.QPolygonF:
     polygon = QtGui.QPolygonF(array.shape[0])
 
     buf = (ctypes.c_double * array.size).from_address(
-        shiboken2.getCppPointer(polygon.data())[0]
+        shiboken2.getCppPointer(polygon.data())[0]  # type: ignore
     )
 
     memory = np.frombuffer(buf, np.float64)
@@ -151,7 +153,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
             self.removeRows(rows, current_rows - rows)
 
     # Data
-    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole) -> str:
+    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole) -> Optional[str]:
         if not index.isValid():
             return None
 
@@ -190,7 +192,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         section: int,
         orientation: QtCore.Qt.Orientation,
         role: QtCore.Qt.ItemDataRole,
-    ) -> str:
+    ) -> Optional[str]:
         if role != QtCore.Qt.DisplayRole:  # pragma: no cover
             return None
 

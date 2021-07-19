@@ -15,7 +15,7 @@ from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools.tool import ToolWidget
 
-from typing import Any
+from typing import Any, Optional
 
 
 class DriftChart(BaseChart):
@@ -107,7 +107,7 @@ class DriftGuideRectItem(ResizeableRectItem):
 
         self.changed = False
 
-    def edgeAt(self, pos: QtCore.QPointF) -> str:
+    def edgeAt(self, pos: QtCore.QPointF) -> Optional[str]:
         view = next(iter(self.scene().views()), None)
         if view is None:
             return None
@@ -188,7 +188,7 @@ class DriftGraphicsView(LaserGraphicsView):
         super().__init__(options, parent=parent)
         self.setInteractionFlag("tool")
 
-        self.guide: DriftGuideRectItem = None
+        self.guide: Optional[DriftGuideRectItem] = None
 
     def drawGuides(self) -> None:
         trim = False
@@ -210,9 +210,9 @@ class DriftGraphicsView(LaserGraphicsView):
         self.guide.setZValue(self.image.zValue() + 1)
         self.scene().addItem(self.guide)
 
-    def driftData(self) -> np.ndarray:
+    def driftData(self) -> Optional[np.ndarray]:
         if self.guide is None:
-            return []
+            return None
         rect = self.guide.rect()
         rect.setTop(self.guide.top)
         rect.setBottom(self.guide.bottom)
@@ -247,7 +247,7 @@ class DriftTool(ToolWidget):
     def __init__(self, widget: LaserWidget):
         super().__init__(widget, apply_all=False)
 
-        self.drift: np.ndarray = None
+        self.drift: Optional[np.ndarray] = None
 
         self.graphics = DriftGraphicsView(self.viewspace.options, parent=self)
         self.graphics.driftChanged.connect(self.updateDrift)
@@ -300,10 +300,14 @@ class DriftTool(ToolWidget):
         self.initialise()
 
     def apply(self) -> None:
+        if self.drift is None:
+            return
         if self.combo_normalise.currentText() == "Maximum":
             value = np.amax(self.drift)
         elif self.combo_normalise.currentText() == "Minimum":
             value = np.amin(self.drift)
+        else:
+            raise ValueError("Unknown normalisation method.")
 
         if self.check_apply_all.isChecked():
             names = self.widget.laser.isotopes
@@ -345,13 +349,19 @@ class DriftTool(ToolWidget):
         else:
             coef = np.polynomial.polynomial.polyfit(xs[~nans], ys[~nans], deg)
             self.drift = np.polynomial.polynomial.polyval(xs, coef)
-        self.chart.drawFit(xs, self.drift)
+
+        if self.drift is not None:
+            self.chart.drawFit(xs, self.drift)
 
     def updateNormalise(self) -> None:
+        if self.drift is None:
+            return
         if self.combo_normalise.currentText() == "Maximum":
             value = np.amax(self.drift)
         elif self.combo_normalise.currentText() == "Minimum":
             value = np.amin(self.drift)
+        else:
+            raise ValueError("Unknown normalisation method.")
         self.lineedit_normalise.setText(f"{value:.8g}")
 
     def refresh(self) -> None:

@@ -21,7 +21,7 @@ from pewpew.widgets.laser import LaserWidget
 
 from .tool import ToolWidget
 
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class StandardsGraphicsView(LaserGraphicsView):
@@ -87,9 +87,9 @@ class StandardsTool(ToolWidget):
         super().__init__(widget, control_label="Calibration", apply_all=True)
         self.setWindowTitle("Calibration Tool")
 
-        self.calibration: Dict[str, Calibration] = None
+        self.calibration: Dict[str, Calibration] = {}
         self.previous_isotope = ""
-        self.dlg: CalibrationCurveDialog = None
+        self.dlg: Optional[CalibrationCurveDialog] = None
 
         # Left side
         self.spinbox_levels = QtWidgets.QSpinBox()
@@ -210,7 +210,7 @@ class StandardsTool(ToolWidget):
                 shape = self.graphics.data.shape
                 levels = self.graphics.currentLevelDataCoords()
                 buckets = []
-                for i, (x1, y1, x2, y2) in enumerate(levels):
+                for (x1, y1, x2, y2) in levels:
                     x1, y1 = max(x1, 0), max(y1, 0)
                     x2, y2 = min(x2, shape[1]), min(y2, shape[0])
                     bucket = self.graphics.data[y1:y2, x1:x2]
@@ -235,12 +235,12 @@ class StandardsTool(ToolWidget):
         shape = self.graphics.data.shape
         levels = self.graphics.currentLevelDataCoords()
         buckets = []
-        for i, (x1, y1, x2, y2) in enumerate(levels):
+        for (x1, y1, x2, y2) in levels:
             x1, y1 = max(x1, 0), max(y1, 0)
             x2, y2 = min(x2, shape[1]), min(y2, shape[0])
             bucket = self.graphics.data[y1:y2, x1:x2]
             buckets.append(bucket)
-        self.table.setCounts([np.nanmean(bucket) for bucket in buckets])
+        self.table.setCounts(np.array([np.nanmean(bucket) for bucket in buckets]))
 
     def updateResults(self) -> None:
         # Make sure weights are up to date
@@ -324,13 +324,14 @@ class StandardsResultsTable(BasicTable):
             self.item(1, i).setText("")
 
     def updateResults(self, calibration: Calibration) -> None:
+        lod = 3.0 * calibration.error / calibration.gradient if calibration.error is not None else np.nan
         for i, v in enumerate(
             [
                 calibration.rsq,
                 calibration.gradient,
                 calibration.intercept,
                 calibration.error,
-                (3.0 * calibration.error / calibration.gradient),
+                lod,
             ]
         ):
             item = self.item(1, i)

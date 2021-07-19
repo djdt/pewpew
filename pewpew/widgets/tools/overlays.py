@@ -18,7 +18,7 @@ from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.prompts import OverwriteFilePrompt
 from pewpew.widgets.tools import ToolWidget
 
-from typing import Iterator, Generator, List, Tuple
+from typing import Iterator, Generator, List, Optional, Tuple
 
 
 class RGBLabelItem(QtWidgets.QGraphicsItem):
@@ -76,7 +76,7 @@ class RGBLabelItem(QtWidgets.QGraphicsItem):
 class RGBOverlayView(OverlayView):
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
         self.options = options
-        self.data: np.ndarray = None
+        self.data: Optional[np.ndarray] = None
 
         self._scene = OverlayScene(0, 0, 640, 480)
         self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
@@ -84,7 +84,7 @@ class RGBOverlayView(OverlayView):
         super().__init__(self._scene, parent)
         self.cursors["selection"] = QtCore.Qt.ArrowCursor
 
-        self.image: ScaledImageItem = None
+        self.image: Optional[ScaledImageItem] = None
 
         self.label = RGBLabelItem(
             ["_"], colors=[self.options.font_color], font=self.options.font
@@ -261,7 +261,7 @@ class OverlayTool(ToolWidget):
 
     def refresh(self) -> None:
         rows = [row for row in self.rows if not row.hidden]
-        datas = [self.processRow(row) for row in rows]
+        datas = np.array([self.processRow(row) for row in rows])
 
         if len(datas) == 0:
             img = np.zeros((*self.widget.laser.shape[:2], 3), dtype=np.uint32)
@@ -537,10 +537,10 @@ class OverlayExportDialog(_ExportDialogBase):
     def getPathForRow(self, row: int) -> Path:
         color_model = self.widget.rows.color_model
         if color_model == "rgb":
-            r, g, b, _a = self.widget.rows[row].getColor().getRgb()
+            r, g, b, _ = self.widget.rows[row].getColor().getRgb()
             suffix = "r" if r > 0 else "g" if g > 0 else "b"
         elif color_model == "cmyk":
-            c, m, y, _k, _a = self.widget.rows[row].getColor().getCmyk()
+            c, m, y, k, _ = self.widget.rows[row].getColor().getCmyk()
             suffix = "c" if c > 0 else "m" if m > 0 else "y"
         else:
             suffix = str(row)
@@ -611,15 +611,12 @@ class OverlayExportDialog(_ExportDialogBase):
             paths = [p for p in self.generateRowPaths() if prompt.promptOverwrite(p[0])]
             if len(paths) == 0:
                 return
-        else:
-            if not prompt.promptOverwrite(self.getPath()):
-                return
-
-        if self.isIndividual():
             for path, row in paths:
                 self.exportIndividual(path, row)
             self.widget.refresh()
         else:
+            if not prompt.promptOverwrite(self.getPath()):
+                return
             self.export(self.getPath())
 
         super().accept()

@@ -307,7 +307,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionWizardSpot(self) -> QtWidgets.QWizard:
         config = SpotConfig(
-            (self.viewspace.config.spotsize, self.viewspace.config.spotsize)
+            self.viewspace.config.spotsize, self.viewspace.config.spotsize
         )
         wiz = SpotImportWizard(
             config=config, options=self.viewspace.options, parent=self
