@@ -17,6 +17,19 @@ def test_laser_view_space(qtbot: QtBot):
     qtbot.addWidget(viewspace)
     viewspace.show()
 
+
+    viewspace.toggleCalibrate(False)
+    viewspace.toggleColorbar(False)
+    viewspace.toggleLabel(False)
+    viewspace.toggleScalebar(False)
+    viewspace.toggleSmooth(False)
+
+    assert not viewspace.options.calibrate
+    assert not viewspace.options.items["colorbar"]
+    assert not viewspace.options.items["label"]
+    assert not viewspace.options.items["scalebar"]
+    assert not viewspace.options.smoothing
+
     viewspace.splitActiveHorizontal()
 
     assert viewspace.currentIsotope() is None
@@ -63,6 +76,28 @@ def test_laser_view_space(qtbot: QtBot):
     for view in viewspace.views:
         for widget in view.widgets():
             widget.close()
+
+
+def test_laser_view_space_apply_dialogs(qtbot: QtBot):
+    viewspace = LaserViewSpace()
+    qtbot.addWidget(viewspace)
+    viewspace.show()
+
+    qtbot.addWidget(viewspace)
+    viewspace.views[0].addLaser(Laser(rand_data("A1")))
+    viewspace.refresh()
+
+    dlg = viewspace.configDialog()
+    dlg.applyPressed.emit(dlg)
+    dlg.close()
+    dlg = viewspace.colortableRangeDialog()
+    dlg.applyPressed.emit(dlg)
+    dlg.close()
+    dlg = viewspace.fontsizeDialog()
+    dlg.intValueSelected.emit(5)
+    dlg.close()
+
+    assert viewspace.options.font.pointSize() == 5
 
 
 def test_laser_view(qtbot: QtBot):

@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 
-from typing import Callable, Optional
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -9,26 +9,18 @@ logger = logging.getLogger(__name__)
 class KMeansResult(object):
     def __init__(self, k: int, x: np.ndarray, labels: np.ndarray, centers: np.ndarray):
         self.k = k
-        self.data = x
         self.labels = labels
         self.centers = centers
-
-        self._withinss: Optional[np.ndarray] = None
+        self.withinss = np.array(
+            [
+                np.sum((x[self.labels == i] - self.centers[i]) ** 2)
+                for i in range(self.k)
+            ]
+        )
 
     @property
     def totalss(self) -> float:
         return np.sum(self.withinss)
-
-    @property
-    def withinss(self) -> np.ndarray:
-        if self._withinss is None:
-            self._withinss = np.array(
-                [
-                    np.sum((self.data[self.labels == i] - self.centers[i]) ** 2)
-                    for i in range(self.k)
-                ]
-            )
-        return self._withinss
 
 
 def kmeans_plus_plus(x: np.ndarray, k: int) -> np.ndarray:

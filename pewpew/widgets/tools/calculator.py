@@ -318,11 +318,11 @@ class CalculatorTool(ToolWidget):
             if np.isscalar(result):
                 self.output.setText(f"{result:.10g}")
                 return None
-            elif isinstance(result, np.ndarray) and data.ndim == 1:
+            elif isinstance(result, np.ndarray) and result.ndim == 1:
                 self.output.setText(f"{list(map('{:.4g}'.format, result))}")
                 return None
             elif isinstance(result, np.ndarray):
-                self.output.setText(f"{result.dtype.name} array: {data.shape}")
+                self.output.setText(f"{result.dtype.name} array: {result.shape}")
                 return result
         except (ReducerException, ValueError) as e:
             self.output.setText(str(e))
@@ -335,6 +335,7 @@ class CalculatorTool(ToolWidget):
         data = self.previewData(self.widget.laser.get(flat=True, calibrated=False))
         if data is None:
             return
+        print(data.shape)
         x0, x1, y0, y1 = self.widget.laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 

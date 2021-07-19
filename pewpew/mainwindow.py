@@ -68,14 +68,14 @@ class MainWindow(QtWidgets.QMainWindow):
             "",
             "Set &Range",
             "Set the range of the colortable.",
-            self.actionColortableRange,
+            self.viewspace.colortableRangeDialog,
         )
         self.action_colortable_range.setShortcut("Ctrl+R")
         self.action_config = qAction(
             "document-edit",
             "Default Config",
             "Edit the default config.",
-            self.actionConfig,
+            self.viewspace.configDialog,
         )
         self.action_config.setShortcut("Ctrl+K")
 
@@ -96,7 +96,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "insert-text",
             "Fontsize",
             "Set the font size in points.",
-            self.actionFontsize,
+            self.viewspace.fontsizeDialog,
         )
         self.action_group_colortable = qActionGroup(
             self,
@@ -109,7 +109,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "smooth",
             "&Smooth",
             "Smooth images with bilinear interpolation.",
-            self.actionSmooth,
+            self.viewspace.toggleSmooth,
         )
         self.action_smooth.setCheckable(True)
         self.action_smooth.setChecked(self.viewspace.options.smoothing)
@@ -140,23 +140,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_open.setShortcut("Ctrl+O")
 
         self.action_toggle_calibrate = qAction(
-            "go-top", "Ca&librate", "Toggle calibration.", self.actionToggleCalibrate
+            "go-top", "Ca&librate", "Toggle calibration.", self.viewspace.toggleCalibrate
         )
         self.action_toggle_calibrate.setShortcut("Ctrl+L")
         self.action_toggle_calibrate.setCheckable(True)
         self.action_toggle_calibrate.setChecked(self.viewspace.options.calibrate)
         self.action_toggle_colorbar = qAction(
-            "", "Show Colorbar", "Toggle colorbars.", self.actionToggleColorbar
+            "", "Show Colorbar", "Toggle colorbars.", self.viewspace.toggleColorbar
         )
         self.action_toggle_colorbar.setCheckable(True)
         self.action_toggle_colorbar.setChecked(self.viewspace.options.items["colorbar"])
         self.action_toggle_label = qAction(
-            "", "Show Labels", "Toggle element labels.", self.actionToggleLabel
+            "", "Show Labels", "Toggle element labels.", self.viewspace.toggleLabel
         )
         self.action_toggle_label.setCheckable(True)
         self.action_toggle_label.setChecked(self.viewspace.options.items["label"])
         self.action_toggle_scalebar = qAction(
-            "", "Show Scalebar", "Toggle scalebar.", self.actionToggleScalebar
+            "", "Show Scalebar", "Toggle scalebar.", self.viewspace.toggleScalebar
         )
         self.action_toggle_scalebar.setCheckable(True)
         self.action_toggle_scalebar.setChecked(self.viewspace.options.items["scalebar"])
@@ -217,7 +217,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
         self.action_refresh = qAction(
-            "view-refresh", "Refresh", "Redraw documents.", self.refresh
+            "view-refresh", "Refresh", "Redraw documents.", self.viewspace.refresh
         )
         self.action_refresh.setShortcut("F5")
 
@@ -238,35 +238,6 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.open()
         return dlg
 
-    def actionHelp(self) -> QtWidgets.QWidget:
-        self.help.show()
-
-    def actionColortableRange(self) -> QtWidgets.QDialog:
-        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
-            self.viewspace.options._colorranges = dialog.ranges
-            self.viewspace.options.colorrange_default = dialog.default_range
-            self.refresh()
-
-        dlg = dialogs.ColorRangeDialog(
-            self.viewspace.options._colorranges,
-            self.viewspace.options.colorrange_default,
-            self.viewspace.uniqueIsotopes(),
-            current_isotope=self.viewspace.currentIsotope(),
-            parent=self,
-        )
-        dlg.combo_isotope.currentTextChanged.connect(self.viewspace.setCurrentIsotope)
-        dlg.applyPressed.connect(applyDialog)
-        dlg.open()
-        return dlg
-
-    def actionConfig(self) -> QtWidgets.QDialog:
-        dlg = dialogs.ConfigDialog(self.viewspace.config, parent=self)
-        dlg.check_all.setChecked(True)
-        dlg.check_all.setEnabled(False)
-        dlg.configApplyAll.connect(self.viewspace.applyConfig)
-        dlg.open()
-        return dlg
-
     def actionExportAll(self) -> QtWidgets.QDialog:
         widgets = [
             w
@@ -278,49 +249,13 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.open()
         return dlg
 
-    def actionFontsize(self) -> QtWidgets.QDialog:
-        dlg = QtWidgets.QInputDialog(self)
-        dlg.setWindowTitle("Fontsize")
-        dlg.setLabelText("Fontisze:")
-        dlg.setIntValue(self.viewspace.options.font.pointSize())
-        dlg.setIntRange(2, 96)
-        dlg.setInputMode(QtWidgets.QInputDialog.IntInput)
-        dlg.intValueSelected.connect(self.viewspace.options.font.setPointSize)
-        dlg.intValueSelected.connect(self.refresh)
-        dlg.open()
-        return dlg
-
     def actionGroupColortable(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
         self.viewspace.options.colortable = text
         self.refresh()
 
-    def actionSmooth(self, checked: bool) -> None:
-        self.viewspace.options.smoothing = checked
-        self.refresh()
-
-    def actionWizardImport(self) -> QtWidgets.QWizard:
-        wiz = ImportWizard(config=self.viewspace.config, parent=self)
-        wiz.laserImported.connect(self.viewspace.activeView().addLaser)
-        wiz.open()
-        return wiz
-
-    def actionWizardSpot(self) -> QtWidgets.QWizard:
-        config = SpotConfig(
-            self.viewspace.config.spotsize, self.viewspace.config.spotsize
-        )
-        wiz = SpotImportWizard(
-            config=config, options=self.viewspace.options, parent=self
-        )
-        wiz.laserImported.connect(self.viewspace.activeView().addLaser)
-        wiz.open()
-        return wiz
-
-    def actionWizardSRR(self) -> QtWidgets.QWizard:
-        wiz = SRRImportWizard(config=self.viewspace.config, parent=self)
-        wiz.laserImported.connect(self.viewspace.activeView().addLaser)
-        wiz.open()
-        return wiz
+    def actionHelp(self) -> QtWidgets.QWidget:
+        self.help.show()
 
     def actionLog(self) -> None:
         self.log.show()
@@ -328,22 +263,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def actionOpen(self) -> QtWidgets.QDialog:
         view = self.viewspace.activeView()
         return view.actionOpen()
-
-    def actionToggleCalibrate(self, checked: bool) -> None:
-        self.viewspace.options.calibrate = checked
-        self.refresh()
-
-    def actionToggleColorbar(self, checked: bool) -> None:
-        self.viewspace.options.items["colorbar"] = checked
-        self.refresh()
-
-    def actionToggleLabel(self, checked: bool) -> None:
-        self.viewspace.options.items["label"] = checked
-        self.refresh()
-
-    def actionToggleScalebar(self, checked: bool) -> None:
-        self.viewspace.options.items["scalebar"] = checked
-        self.refresh()
 
     def actionToolCalculator(self) -> None:
         widget = self.viewspace.activeWidget()
@@ -424,6 +343,30 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         widget.transform(rotate="right")
 
+    def actionWizardImport(self) -> QtWidgets.QWizard:
+        wiz = ImportWizard(config=self.viewspace.config, parent=self)
+        wiz.laserImported.connect(self.viewspace.activeView().addLaser)
+        wiz.open()
+        return wiz
+
+    def actionWizardSpot(self) -> QtWidgets.QWizard:
+        config = SpotConfig(
+            self.viewspace.config.spotsize, self.viewspace.config.spotsize
+        )
+        wiz = SpotImportWizard(
+            config=config, options=self.viewspace.options, parent=self
+        )
+        wiz.laserImported.connect(self.viewspace.activeView().addLaser)
+        wiz.open()
+        return wiz
+
+    def actionWizardSRR(self) -> QtWidgets.QWizard:
+        wiz = SRRImportWizard(config=self.viewspace.config, parent=self)
+        wiz.laserImported.connect(self.viewspace.activeView().addLaser)
+        wiz.open()
+        return wiz
+
+
     def createMenus(self) -> None:
         # File
         menu_file = self.menuBar().addMenu("&File")
@@ -495,9 +438,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.viewspace.options.units = "μm"
         elif self.button_status_index.isChecked():
             self.viewspace.options.units = "index"
-
-    def refresh(self) -> None:
-        self.viewspace.refresh()
 
     def updateActionAvailablity(self) -> None:
         enabled = self.viewspace.countViewTabs() > 0

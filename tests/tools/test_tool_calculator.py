@@ -47,6 +47,7 @@ def test_tool_calculator(qtbot: QtBot):
     viewspace = LaserViewSpace()
     qtbot.addWidget(viewspace)
     viewspace.show()
+
     view = viewspace.activeView()
     widget = view.addLaser(Laser(rand_data(["a", "b"])))
     tool = CalculatorTool(view.activeWidget())

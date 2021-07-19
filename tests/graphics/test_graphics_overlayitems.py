@@ -21,4 +21,4 @@ def test_color_bar_overlay(qtbot: QtBot):
     assert np.all(cb.niceTextValues(7) == [0, 1.5, 3, 4.5, 6, 7.5, 9])
     assert np.all(cb.niceTextValues(5, 1) == [1.5, 3, 4.5, 6, 7.5])
     cb.updateTable(table, 100.0, 10100.0)
-    assert np.all(cb.niceTextValues(5) == [0, 2000, 4000, 6000, 8000])
+    assert np.all(cb.niceTextValues(4) == [0, 2500, 5000, 7500, 10000])

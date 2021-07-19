@@ -73,6 +73,70 @@ class LaserViewSpace(ViewSpace):
         for view in self.views:
             view.applyConfig(self.config)
 
+    # Editing options
+    def colortableRangeDialog(self) -> QtWidgets.QDialog:
+        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
+            self.options._colorranges = dialog.ranges
+            self.options.colorrange_default = dialog.default_range
+            self.refresh()
+
+        dlg = dialogs.ColorRangeDialog(
+            self.options._colorranges,
+            self.options.colorrange_default,
+            self.uniqueIsotopes(),
+            current_isotope=self.currentIsotope(),
+            parent=self,
+        )
+        dlg.combo_isotope.currentTextChanged.connect(self.setCurrentIsotope)
+        dlg.applyPressed.connect(applyDialog)
+        dlg.open()
+        return dlg
+
+
+    def configDialog(self) -> QtWidgets.QDialog:
+        dlg = dialogs.ConfigDialog(self.config, parent=self)
+        dlg.check_all.setChecked(True)
+        dlg.check_all.setEnabled(False)
+        dlg.configApplyAll.connect(self.applyConfig)
+        dlg.open()
+        return dlg
+
+    def fontsizeDialog(self) -> QtWidgets.QDialog:
+        dlg = QtWidgets.QInputDialog(self)
+        dlg.setWindowTitle("Fontsize")
+        dlg.setLabelText("Fontisze:")
+        dlg.setIntValue(self.options.font.pointSize())
+        dlg.setIntRange(2, 96)
+        dlg.setInputMode(QtWidgets.QInputDialog.IntInput)
+        dlg.intValueSelected.connect(self.options.font.setPointSize)
+        dlg.intValueSelected.connect(self.refresh)
+        dlg.open()
+        return dlg
+
+    def setColortable(self, table: str) -> None:
+        self.options.colortable = table
+        self.refresh()
+
+    def toggleCalibrate(self, checked: bool) -> None:
+        self.options.calibrate = checked
+        self.refresh()
+
+    def toggleColorbar(self, checked: bool) -> None:
+        self.options.items["colorbar"] = checked
+        self.refresh()
+
+    def toggleLabel(self, checked: bool) -> None:
+        self.options.items["label"] = checked
+        self.refresh()
+
+    def toggleScalebar(self, checked: bool) -> None:
+        self.options.items["scalebar"] = checked
+        self.refresh()
+
+    def toggleSmooth(self, checked: bool) -> None:
+        self.options.smoothing = checked
+        self.refresh()
+
 
 class LaserView(View):
     def __init__(self, viewspace: LaserViewSpace):
@@ -196,7 +260,7 @@ class LaserWidget(_ViewWidget):
         self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
         self.graphics.label.editRequested.connect(self.labelEditDialog)
         self.graphics.colorbar.editRequested.connect(
-            self.viewspace.window().action_colortable_range.trigger
+            self.viewspace.colortableRangeDialog
         )
         self.graphics.setMouseTracking(True)
 
