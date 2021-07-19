@@ -1,11 +1,14 @@
 from pathlib import Path
+import time
 
 from PySide2 import QtCore, QtWidgets
 
+from pewlib import __version__ as pewlib_version
 from pewlib import io
 from pewlib.config import Config
 from pewlib.srr import SRRLaser, SRRConfig
 
+from pewpew import __version__ as pewpew_version
 from pewpew.validators import DecimalValidator
 
 from pewpew.widgets.wizards.import_ import ConfigPage, FormatPage
@@ -104,6 +107,20 @@ class SRRImportWizard(QtWidgets.QWizard):
             warmup=float(self.field("warmup")),
         )
         config.set_equal_subpixel_offsets(self.field("subpixelWidth"))
+
+        info = self.field("laserinfo")[0]
+        info.update(
+            {
+                "Name": path.stem,
+                "File Path": str(path.resolve()),
+                "Import Date": time.strftime(
+                    "%Y-%m-%dT%H:%M:%S%z", time.localtime(time.time())
+                ),
+                "Import Path": str(path.resolve()),
+                "Import Version pewlib": pewlib_version,
+                "Import Version pew2": pewpew_version,
+            }
+        )
         self.laserImported.emit(
             SRRLaser(
                 datas,
