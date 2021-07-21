@@ -632,16 +632,18 @@ class LaserWidget(_ViewWidget):
                 self, "Transform", "Unable to transform SRR data."
             )
             return
-        if flip in ["horizontal", "vertical"]:
-            axis = 1 if flip == "horizontal" else 0
-            self.laser.data = np.flip(self.laser.data, axis=axis)
-        else:
-            raise ValueError("flip must be 'horizontal', 'vertical'.")
-        if rotate in ["left", "right"]:
-            k = 1 if rotate == "right" else 3 if rotate == "left" else 2
-            self.laser.data = np.rot90(self.laser.data, k=k, axes=(1, 0))
-        else:
-            raise ValueError("rotate must be 'left', 'right'.")
+        if flip is not None:
+            if flip in ["horizontal", "vertical"]:
+                axis = 1 if flip == "horizontal" else 0
+                self.laser.data = np.flip(self.laser.data, axis=axis)
+            else:
+                raise ValueError("flip must be 'horizontal', 'vertical'.")
+        if rotate is not None:
+            if rotate in ["left", "right"]:
+                k = 1 if rotate == "right" else 3 if rotate == "left" else 2
+                self.laser.data = np.rot90(self.laser.data, k=k, axes=(1, 0))
+            else:
+                raise ValueError("rotate must be 'left', 'right'.")
         self.modified = True
         self.refresh()
 
@@ -800,7 +802,6 @@ class LaserWidget(_ViewWidget):
                 self.laser.config.get_pixel_width(),
                 self.laser.config.get_pixel_height(),
             ),
-            colorranges=None,
             parent=self,
         )
         dlg.open()
