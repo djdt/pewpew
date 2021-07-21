@@ -91,7 +91,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Basic Usage</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Dialogs and Wizards</span></p>
+<p class="caption" role="heading"><span class="caption-text">Dialogs and Wizards</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Import Wizard</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#spot-wise-import-wizard">Spot-wise Import Wizard</a></li>
@@ -103,7 +103,7 @@
 <li class="toctree-l1"><a class="reference internal" href="stats.html">Statistics Dialog</a></li>
 <li class="toctree-l1"><a class="reference internal" href="selection.html">Selection Dialog</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Tools</span></p>
+<p class="caption" role="heading"><span class="caption-text">Tools</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../tools/calculator.html">Calculator</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tools/drift.html">Drift Compensation Tool</a></li>
@@ -111,7 +111,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../tools/overlay.html">Overlay Tool</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tools/standards.html">Standards Tool</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../examples/import.html">1. Example: Importing file-per-line data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../examples/calculator.html">2. Example: Thresholded division of elements</a></li>
@@ -286,6 +286,29 @@ For programs that export lines as a directory of separate files the ‘.csv’ i
 </tr>
 <tr class="row-even"><td><p>Use Analog</p></td>
 <td><p>Import analog data instead of counts.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Parameters from <a class="reference internal" href="#laser-parameters"><span class="std std-ref">Laser configuration import parameters.</span></a> will be automatically read from imports if available but otherwise can be manually entered. Laser pixel aspect and sizes are defined by these parameters, with <cite>speed * scantime</cite> width and <cite>spotsize</cite> height.</p>
+<table class="docutils align-center" id="laser-parameters">
+<caption><span class="caption-text">Laser configuration import parameters.</span><a class="headerlink" href="#laser-parameters" title="Permalink to this table">¶</a></caption>
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 8%" />
+<col style="width: 80%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td colspan="2"><p>Parameter | Unit</p></td>
+<td><p>Description</p></td>
+</tr>
+<tr class="row-even"><td colspan="2"><p>Spotsize  | μm</p></td>
+<td><p>Diameter of the laser spot. Defines y-axis line spacing.</p></td>
+</tr>
+<tr class="row-odd"><td colspan="2"><p>Speed     | μm/s</p></td>
+<td><p>Scanning speed of the laser along the x-axis.</p></td>
+</tr>
+<tr class="row-even"><td colspan="2"><p>Scantime  | s</p></td>
+<td><p>Acquistion time for each pixel; Total dwell time for all elements.</p></td>
 </tr>
 </tbody>
 </table>

@@ -94,7 +94,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Basic Usage</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Dialogs and Wizards</span></p>
+<p class="caption" role="heading"><span class="caption-text">Dialogs and Wizards</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="dialogs/import.html">Import Wizard</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dialogs/calibration.html">Calibration Dialog</a></li>
@@ -102,7 +102,7 @@
 <li class="toctree-l1"><a class="reference internal" href="dialogs/stats.html">Statistics Dialog</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dialogs/selection.html">Selection Dialog</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Tools</span></p>
+<p class="caption" role="heading"><span class="caption-text">Tools</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tools/calculator.html">Calculator</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/drift.html">Drift Compensation Tool</a></li>
@@ -110,7 +110,7 @@
 <li class="toctree-l1"><a class="reference internal" href="tools/overlay.html">Overlay Tool</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/standards.html">Standards Tool</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Examples</span></p>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="examples/import.html">1. Example: Importing file-per-line data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/calculator.html">2. Example: Thresholded division of elements</a></li>
@@ -201,10 +201,15 @@ This requires you have C build tools installed on your system.</p>
 </pre></div>
 </div>
 <p>And install via pip.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install -e .
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ pip install -r requirements.txt
+$ pip install -e .
 </pre></div>
 </div>
-<p>You can then run pew² from your terminal emulator using <code class="docutils literal notranslate"><span class="pre">pewpew</span></code>.</p>
+<p>You can then run pew² from your terminal emulator using <code class="docutils literal notranslate"><span class="pre">pewpew</span></code> or as a module from the pew² root directory.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ <span class="nb">cd</span> pewpew
+$ python -m pewpew
+</pre></div>
+</div>
 </div>
 </div>
 

@@ -66,6 +66,21 @@ For programs that export lines as a directory of separate files the '.csv' impor
    |             | Use Analog           | Import analog data instead of counts.           |
    +-------------+----------------------+-------------------------------------------------+
 
+Parameters from :ref:`laser_parameters` will be automatically read from imports if available but otherwise can be manually entered. Laser pixel aspect and sizes are defined by these parameters, with `speed * scantime` width and `spotsize` height.
+
+.. table:: Laser configuration import parameters.
+   :align: center
+   :name: laser_parameters
+
+   +----------+-------+--------------------------------------------------------------------+
+   | Parameter | Unit | Description                                                        |
+   +----------+-------+--------------------------------------------------------------------+
+   | Spotsize  | μm   | Diameter of the laser spot. Defines y-axis line spacing.           |
+   +----------+-------+--------------------------------------------------------------------+
+   | Speed     | μm/s | Scanning speed of the laser along the x-axis.                      |
+   +----------+-------+--------------------------------------------------------------------+
+   | Scantime  | s    | Acquistion time for each pixel; Total dwell time for all elements. |
+   +----------+-------+--------------------------------------------------------------------+
 
 Spot-wise Import Wizard
 -----------------------
