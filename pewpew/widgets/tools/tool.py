@@ -4,6 +4,22 @@ from pewpew.widgets.views import _ViewWidget
 
 
 class ToolWidget(_ViewWidget):
+    """Base widget for pewpew tools.
+
+    Provides a layout with two group boxes, oriented as per `orientation`.
+    One contains controls for the tool, the other a graphical preview.
+
+    Args:
+        control_label: text over controls
+        graphics_label: text over graphics
+        orientation: layout of controls / graphics
+        apply_all: add an Apply All button
+
+    Parameters:
+        widget: widget being modified
+        box_controls: GroupBox for controls
+        box_graphics: GroupBox for graphics
+    """
     applyPressed = QtCore.Signal()
     applyAllPressed = QtCore.Signal()
 
@@ -119,6 +135,7 @@ class ToolWidget(_ViewWidget):
         self.restoreWidget()
 
     def restoreWidget(self) -> None:
+        """Remove the tool and replace with it's `widget`."""
         self.view.insertTab(self.index, self.widget.laserName(), self.widget)
         self.view.removeTab(self.index)
         self.widget.modified = self.modified

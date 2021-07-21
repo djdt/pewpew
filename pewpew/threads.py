@@ -16,6 +16,21 @@ logger = logging.getLogger(__name__)
 
 
 class ImportThread(QtCore.QThread):
+    """Threaded file importer.
+
+    To use connect importFinished and call 'run'.
+    
+    Args:
+        paths: list of paths to import
+        config: default config to apply
+
+    Signals:
+        importStarted: str, import started for path
+        importFinished: Laser, laser object imported
+        importFailed: str, import failed for path
+        progressChanged: int, number of paths completed
+    """
+
     importStarted = QtCore.Signal(str)
     importFinished = QtCore.Signal(object)
     importFailed = QtCore.Signal(str)
@@ -29,6 +44,7 @@ class ImportThread(QtCore.QThread):
         self.config = config
 
     def run(self) -> None:
+        """Start the import thread."""
         for i, path in enumerate(self.paths):
             if self.isInterruptionRequested():  # pragma: no cover
                 break

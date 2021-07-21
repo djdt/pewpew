@@ -10,6 +10,12 @@ from pewpew.lib.numpyqt import array_to_polygonf
 
 
 class CalibrationChart(BaseChart):
+    """BaseChart for displaying a calibration curve.
+
+    To use call setPoints, setLine and setText.
+    Hovering calibration points reveals their values.
+    """
+
     def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
         super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
         self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)

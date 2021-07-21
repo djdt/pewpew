@@ -22,6 +22,11 @@ class QtListHandler(logging.Handler):
 
 
 class LoggingTextEdit(QtWidgets.QPlainTextEdit):
+    """Display the python log in a QTextEdit.
+
+    Log is read only and levels are colored.
+    """
+
     COLORS = {
         logging.DEBUG: "black",
         logging.INFO: "blue",
@@ -46,8 +51,11 @@ class LoggingTextEdit(QtWidgets.QPlainTextEdit):
 
 
 class LoggingDialog(QtWidgets.QDialog):
+    """Display the python log in a dialog."""
+
     def __init__(
-        self, parent: QtWidgets.QWidget = None,
+        self,
+        parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
         self.handler = QtListHandler()
@@ -55,7 +63,8 @@ class LoggingDialog(QtWidgets.QDialog):
         self.handler.signal.new_record.connect(self.textedit.add_record)
         self.handler.setFormatter(
             logging.Formatter(
-                "[%(asctime)s] %(levelname)8s - %(name)s : %(message)s", datefmt="%H:%M:%S"
+                "[%(asctime)s] %(levelname)8s - %(name)s : %(message)s",
+                datefmt="%H:%M:%S",
             )
         )
 

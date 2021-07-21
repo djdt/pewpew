@@ -4,6 +4,8 @@ from typing import Callable, Tuple
 
 
 class DecimalValidator(QtGui.QDoubleValidator):
+    """Double validator that forbids scientific notation."""
+
     def __init__(
         self,
         bottom: float,
@@ -26,6 +28,8 @@ class DecimalValidator(QtGui.QDoubleValidator):
 
 
 class DecimalValidatorNoZero(DecimalValidator):
+    """DecimalValidator that also forbids zeros."""
+
     def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
         result = super().validate(input, pos)
         if result[0] == QtGui.QValidator.Acceptable and float(input) == 0.0:
@@ -34,6 +38,11 @@ class DecimalValidatorNoZero(DecimalValidator):
 
 
 class LimitValidator(QtGui.QDoubleValidator):
+    """QDoubleValidator that forbids top and bottom values.
+
+    A normal QDoubleValidator allows [bottom, top] while LimitValidator allows (bottom, top).
+    """
+
     def __init__(
         self,
         bottom: float,
@@ -58,6 +67,12 @@ class LimitValidator(QtGui.QDoubleValidator):
 
 
 class ConditionalLimitValidator(LimitValidator):
+    """QDoubleValidator that requires a condition to be filled.
+
+    e.g. to forbit even numbers pass 'lambda x: x % 2 != 0'.
+    If condition is None functions as a normal QDoubleValidator.
+    """
+
     def __init__(
         self,
         bottom: float,
@@ -70,6 +85,7 @@ class ConditionalLimitValidator(LimitValidator):
         self.condition = condition
 
     def setCondition(self, condition: Callable[[float], bool]) -> None:
+        """Set the valid condition."""
         self.condition = condition
 
     def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
@@ -85,6 +101,8 @@ class ConditionalLimitValidator(LimitValidator):
 
 
 class OddIntValidator(QtGui.QIntValidator):
+    """QIntValidator that only accepts odd numbers."""
+
     def __init__(self, bottom: int, top: int, parent: QtWidgets.QWidget = None):
         super().__init__(bottom, top, parent)
 
@@ -101,6 +119,19 @@ class OddIntValidator(QtGui.QIntValidator):
 
 
 class PercentOrDecimalValidator(DecimalValidator):
+    """DecimalValidator that accepts inputs as a percent.
+
+    Inputs that end with '%' are treated as a percentage input.
+
+    Args:
+        bottom: decimal lower bound
+        top: decimal upper bound
+        decimals: number of decimals allowed
+        percent_bottom: percent lower bound
+        percent_top: percent upper bound
+        parent: parent widget
+    """
+
     def __init__(
         self,
         bottom: float,
@@ -129,6 +160,11 @@ class PercentOrDecimalValidator(DecimalValidator):
 
 
 class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
+    """Delegate to display items with a certain number of decimals.
+
+    Item inputs are also validated using a QDoubleValidator.
+    """
+
     def __init__(self, decimals: int, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.decimals = decimals
@@ -144,6 +180,7 @@ class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
         return lineedit
 
     def displayText(self, value: str, locale: str) -> str:
+        """Attempts to display text as a float with 'decimal' places."""
         try:
             num = float(value)
             return f"{num:.{self.decimals}f}"
@@ -152,6 +189,10 @@ class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
 
 
 class DoubleSignificantFiguresDelegate(QtWidgets.QStyledItemDelegate):
+    """Delegate to display items with a certain number of significant figures.
+
+    Item inputs are also validated using a QDoubleValidator.
+    """
     def __init__(self, sigfigs: int, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.sigfigs = sigfigs
@@ -167,6 +208,7 @@ class DoubleSignificantFiguresDelegate(QtWidgets.QStyledItemDelegate):
         return lineedit
 
     def displayText(self, value: str, locale: str) -> str:
+        """Attempts to display text as a float with 'sigfigs' places."""
         try:
             num = float(value)
             return f"{num:#.{self.sigfigs}g}".rstrip(".").replace(".e", "e")

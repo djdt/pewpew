@@ -136,6 +136,8 @@ class RGBOverlayView(OverlayView):
 
 
 class OverlayTool(ToolWidget):
+    """Tool for displaying and exporting color overlays."""
+
     model_type = {"any": "additive", "cmyk": "subtractive", "rgb": "additive"}
 
     def __init__(self, widget: LaserWidget):
@@ -485,8 +487,8 @@ class OverlayRows(QtWidgets.QScrollArea):
                 row.setColorPickable(True)
 
 
-# Todo: this export isnt real!
 class OverlayExportDialog(_ExportDialogBase):
+    """Export dialog for the overlay tool."""
     def __init__(self, parent: OverlayTool):
         super().__init__([PngOptionsBox()], parent)
         self.setWindowTitle("Overlay Export")

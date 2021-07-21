@@ -29,6 +29,12 @@ from typing import Optional, List
 
 
 class LaserGraphicsView(OverlayView):
+    """The pewpew laser view.
+
+    Displays the image with correct scaling and an overlay label, sizebar and colorbar.
+    If a selection is made the 'mask' is updated and a highlight is applied to sselected pixels.
+    """
+
     cursorValueChanged = QtCore.Signal(float, float, float)
 
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
@@ -76,6 +82,7 @@ class LaserGraphicsView(OverlayView):
         )
 
     def mapToData(self, pos: QtCore.QPointF) -> QtCore.QPoint:
+        """Maps point to image pixel."""
         if self.image is None:
             return QtCore.QPoint(0, 0)
 
@@ -97,6 +104,7 @@ class LaserGraphicsView(OverlayView):
             self.cursorValueChanged.emit(pos.x(), pos.y(), np.nan)
 
     def startLassoSelection(self) -> None:
+        """Select image pixels using a lasso."""
         if self.image is None:
             return
         if self.selection_item is not None:
@@ -109,6 +117,7 @@ class LaserGraphicsView(OverlayView):
         self.setInteractionFlag("selection")
 
     def startRectangleSelection(self) -> None:
+        """Select image pixels using a rectangle."""
         if self.image is None:
             return
         if self.selection_item is not None:
@@ -121,6 +130,7 @@ class LaserGraphicsView(OverlayView):
         self.setInteractionFlag("selection")
 
     def endSelection(self) -> None:
+        """End selection and remove highlight."""
         if self.selection_item is not None:
             self.selection_item = None
             self.scene().removeItem(self.selection_item)
@@ -132,12 +142,14 @@ class LaserGraphicsView(OverlayView):
         self.setInteractionFlag("selection", False)
 
     def posInSelection(self, pos: QtCore.QPointF) -> bool:
+        """Is the pos in the selected area."""
         if self.mask is None:
             return False
         pos = self.mapToData(self.mapToScene(pos))
         return self.mask[pos.y(), pos.x()]
 
     def startRulerWidget(self) -> None:
+        """Measure distances using a ruler."""
         if self.image is None:
             return
         if self.widget is not None:
@@ -149,6 +161,7 @@ class LaserGraphicsView(OverlayView):
         self.setInteractionFlag("widget")
 
     def startSliceWidget(self) -> None:
+        """Display 1d slices in image."""
         if self.image is None or self.data is None:
             return
         if self.widget is not None:
@@ -162,12 +175,20 @@ class LaserGraphicsView(OverlayView):
         self.setInteractionFlag("widget")
 
     def endWidget(self) -> None:
+        """End and remove any widgets."""
         if self.widget is not None:
             self.scene().removeItem(self.widget)
         self.widget = None
         self.setInteractionFlag("widget", False)
 
     def drawImage(self, data: np.ndarray, rect: QtCore.QRectF, name: str) -> None:
+        """Draw 'data' into 'rect'.
+
+        Args:
+            data: image data
+            rect: image extent
+            name: label of data
+        """
         if self.image is not None:
             self.scene().removeItem(self.image)
 
@@ -192,6 +213,15 @@ class LaserGraphicsView(OverlayView):
             self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
 
     def drawSelectionImage(self, mask: np.ndarray, modes: List[str]) -> None:
+        """Highlight selected regions.
+
+        The mask can be added to, subtracted, intersected or differentiated from
+        the current selection using 'modes'.
+
+        Args:
+            mask: bool array of pixels to highlight
+            modes: operation, ['add', 'subtract', 'intersect', 'difference']
+        """
         if self.selection_image is not None:
             self.scene().removeItem(self.selection_image)
 
@@ -213,12 +243,21 @@ class LaserGraphicsView(OverlayView):
         color = QtGui.QColor(255, 255, 255, a=128)
 
         self.selection_image = ScaledImageItem.fromArray(
-            self.mask.astype(np.uint8), self.image.rect, colortable=[0, int(color.rgba())]
+            self.mask.astype(np.uint8),
+            self.image.rect,
+            colortable=[0, int(color.rgba())],
         )
         self.selection_image.setZValue(self.image.zValue() + 1.0)
         self.scene().addItem(self.selection_image)
 
     def drawLaser(self, laser: _Laser, name: str, layer: int = None) -> None:
+        """Draw image of laser.
+
+        Args:
+            laser: laser object
+            name: name of element to draw
+            layer: layer to draw (SRRLaser only)
+        """
         kwargs = {"calibrate": self.options.calibrate, "layer": layer, "flat": True}
 
         data = laser.get(name, **kwargs)
@@ -246,6 +285,7 @@ class LaserGraphicsView(OverlayView):
     def setOverlayItemVisibility(
         self, label: bool = None, scalebar: bool = None, colorbar: bool = None
     ):
+        """Set visibility of overlay items."""
         if label is None:
             label = self.options.items["label"]
         if scalebar is None:
@@ -258,4 +298,5 @@ class LaserGraphicsView(OverlayView):
         self.colorbar.setVisible(colorbar)
 
     def zoomStart(self) -> None:
+        """Start zoom interactions."""
         self.setInteractionFlag("zoom", True)

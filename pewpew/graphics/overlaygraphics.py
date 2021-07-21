@@ -1,5 +1,3 @@
-"""Contains classes used for drawing a static overlay over a view.
-"""
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from pathlib import Path
@@ -8,6 +6,16 @@ from typing import List, Set, Union
 
 
 class OverlayItem(object):
+    """Item to draw as an overlay.
+
+    Overlay items are a fixed sized and are anchored to a position.
+
+    Args:
+        item: item to overlay
+        anchor: side or corner to anchor item
+        alignment: how to align item relative to anchor
+    """
+
     def __init__(
         self,
         item: QtWidgets.QGraphicsItem,
@@ -70,6 +78,11 @@ class OverlayItem(object):
 
 
 class OverlayScene(QtWidgets.QGraphicsScene):
+    """A graphics scene that also draws OverlayItems in the foreground.
+
+    The forground is saved to a pixmap to limit redrawing.
+    """
+
     def __init__(
         self,
         x: float,
@@ -94,6 +107,7 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         anchor: QtCore.Qt.AnchorPoint,
         alignment: QtCore.Qt.Alignment = None,
     ):
+        """Adds an item to the overlay."""
         item.setFlag(
             QtWidgets.QGraphicsItem.ItemHasNoContents
         )  # Drawing handled manually
@@ -101,6 +115,7 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         self.overlayitems.append(OverlayItem(item, anchor, alignment))
 
     def drawForeground(self, painter: QtGui.QPainter, rect: QtCore.QRectF):
+        """Draw the foreground pixmap, updates if None."""
         if self.foreground_pixmap is None:
             self.updateForeground(rect)
 
@@ -111,6 +126,7 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         painter.restore()
 
     def updateForeground(self, rect: QtCore.QRectF) -> None:
+        """Update the forground pixmap, rect should equal display size."""
         self.foreground_pixmap = QtGui.QPixmap(rect.size())
         self.foreground_pixmap.fill(QtCore.Qt.transparent)
         painter = QtGui.QPainter(self.foreground_pixmap)
@@ -129,6 +145,7 @@ class OverlayScene(QtWidgets.QGraphicsScene):
             # painter.drawRect(item.item.boundingRect())
 
     def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        """Intercept events and pass to overlay."""
         view_pos = event.widget().mapFromGlobal(event.screenPos())
         for item in self.overlayitems:
             if item.contains(view_pos, event.widget().rect()):
@@ -136,6 +153,15 @@ class OverlayScene(QtWidgets.QGraphicsScene):
 
 
 class OverlayView(QtWidgets.QGraphicsView):
+    """A graphics view implementing an overlay scene and mouse navigation.
+
+    Updates the overlay pixmap on on view changes.
+
+    Parameters:
+        cursors: dict of cursors for interaction modes
+        interaction_flags: current interaction modes
+    """
+
     viewScaleChanged = QtCore.Signal()
     viewSizeChanged = QtCore.Signal(QtCore.QRect)
 
@@ -161,6 +187,7 @@ class OverlayView(QtWidgets.QGraphicsView):
         self.viewScaleChanged.connect(self.updateForeground)
 
     def copyToClipboard(self) -> None:
+        """Copy current view to system clipboard."""
         pixmap = QtGui.QPixmap(self.viewport().size())
         painter = QtGui.QPainter(pixmap)
         self.render(painter)
@@ -212,6 +239,7 @@ class OverlayView(QtWidgets.QGraphicsView):
         self.viewSizeChanged.emit(self.viewport().rect())
 
     def saveToFile(self, path: Union[str, Path]) -> None:
+        """Save the current view to a file."""
         if isinstance(path, str):
             path = Path(path)
 
@@ -223,6 +251,7 @@ class OverlayView(QtWidgets.QGraphicsView):
         painter.end()
 
     def setInteractionFlag(self, flag: str, on: bool = True) -> None:
+        """Update interaction modes and the cursor."""
         if on:
             self.interaction_flags.add(flag)
         else:

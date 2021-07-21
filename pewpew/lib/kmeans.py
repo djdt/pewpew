@@ -7,6 +7,19 @@ logger = logging.getLogger(__name__)
 
 
 class KMeansResult(object):
+    """Stores the result of k-means and k-medians clustering.
+
+    Args:
+        k: number of clusters
+        x: data that clustering was performed on
+        labels: cluster mapping indicies
+        centers: cluster centers
+
+    Parameters:
+        withinss: sum of square within cluster error
+        totalss: sum of `withinss`
+    """
+
     def __init__(self, k: int, x: np.ndarray, labels: np.ndarray, centers: np.ndarray):
         self.k = k
         self.labels = labels
@@ -27,7 +40,7 @@ def kmeans_plus_plus(x: np.ndarray, k: int) -> np.ndarray:
     """Selects inital cluster positions using K-means++ algorithm.
 
     Args:
-        x: nd array
+        x: data of shape (samples, features)
         k: number of clusters
 
     Returns:
@@ -52,25 +65,24 @@ def kcluster(
     init: str = "kmeans++",
     max_iterations: int = 1000,
 ) -> KMeansResult:
-    """N-dim k-means clustering
+    """N-dim k- clustering
 
-    Performs k-means clustering of `x`, minimising intra-cluster variation.
+    Performs k- clustering of `x`, minimising intra-cluster variation.
     Better cluster starting positions can found by passing 'kmeans++' to `init`.
 
     Args:
-       x: shape of (n, m) for n objects with m attributes
-       k: number of clusters
-       init: initial cluster method Can be 'kmeans++' or 'random'
-       max_iterations: maximum iterations for clustering
-
-    Returns:
-        KMeansResult, object containing k, labels, centers
+        x: data of shape (samples, features)
+        k: number of clusters
+        init: initial cluster method, can be 'kmeans++' or 'random'
+        max_iterations: maximum iterations for clustering
 
     Raises:
         ValueError if loop exceeds `max_iterations`
 
     See Also:
         :func:`pewpew.lib.kmeans.kmeans_plus_plus`
+        :func:`pewpew.lib.kmeans.kmeans`
+        :func:`pewpew.lib.kmeans.kmedians`
     """
     # Ensure at least 1 dim for variables
     if x.ndim == 1:
@@ -110,6 +122,24 @@ def kmeans(
     init: str = "kmeans++",
     max_iterations: int = 1000,
 ) -> KMeansResult:
+    """N-dim k-means clustering
+
+    Performs k-means clustering of `x`, minimising intra-cluster variation.
+    Better cluster starting positions can found by passing 'kmeans++' to `init`.
+
+    Args:
+        x: data of shape (samples, features)
+        k: number of clusters
+        init: initial cluster method, can be 'kmeans++' or 'random'
+        max_iterations: maximum iterations for clustering
+
+    Raises:
+        ValueError if loop exceeds `max_iterations`
+
+    See Also:
+        :func:`pewpew.lib.kmeans.kmeans_plus_plus`
+        :func:`pewpew.lib.kmeans.kmedians`
+    """
     return kcluster(x, np.mean, k, init, max_iterations)
 
 
@@ -119,6 +149,24 @@ def kmedians(
     init: str = "kmeans++",
     max_iterations: int = 1000,
 ) -> KMeansResult:
+    """N-dim k-medians clustering
+
+    Performs k-medians clustering of `x`, minimising intra-cluster variation.
+    Better cluster starting positions can found by passing 'kmeans++' to `init`.
+
+    Args:
+        x: data of shape (samples, features)
+        k: number of clusters
+        init: initial cluster method, can be 'kmeans++' or 'random'
+        max_iterations: maximum iterations for clustering
+
+    Raises:
+        ValueError if loop exceeds `max_iterations`
+
+    See Also:
+        :func:`pewpew.lib.kmeans.kmeans_plus_plus`
+        :func:`pewpew.lib.kmeans.kmeans`
+    """
     return kcluster(x, np.median, k, init, max_iterations)
 
 

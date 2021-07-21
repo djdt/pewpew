@@ -17,8 +17,11 @@ from pewpew.widgets.tools.tool import ToolWidget
 
 from typing import Any, Optional
 
+# TODO replace drift chart with a SignalChart
+
 
 class DriftChart(BaseChart):
+    """Display the drift data and fit."""
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
         self.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -82,6 +85,7 @@ class DriftChart(BaseChart):
 
 
 class DriftGuideRectItem(ResizeableRectItem):
+    """Rectangle for interactively selecting a drift region."""
     def __init__(
         self,
         rect: QtCore.QRectF,
@@ -182,6 +186,7 @@ class DriftGuideRectItem(ResizeableRectItem):
 
 
 class DriftGraphicsView(LaserGraphicsView):
+    """Graphics view with drift selection and display."""
     driftChanged = QtCore.Signal()
 
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
@@ -242,6 +247,7 @@ class DriftGraphicsView(LaserGraphicsView):
 
 
 class DriftTool(ToolWidget):
+    """Drift normalisation tool."""
     normalise_methods = ["Maximum", "Minimum"]
 
     def __init__(self, widget: LaserWidget):

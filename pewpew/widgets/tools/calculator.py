@@ -26,6 +26,11 @@ def segment_image(x: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
 
 
 class CalculatorName(ValidColorLineEdit):
+    """A lineedit that excludes invalid or existing element names.
+
+    Colors red on bad input.
+    """
+
     def __init__(
         self,
         text: str,
@@ -53,6 +58,12 @@ class CalculatorName(ValidColorLineEdit):
 
 
 class CalculatorFormula(ValidColorTextEdit):
+    """Input for the calculator.
+
+    Parsers input using a `:class:pewpew.lib.pratt.Parser` and
+    colors input red when invalid. Implements completion when `completer` is set.
+    """
+
     def __init__(
         self,
         text: str,
@@ -79,6 +90,7 @@ class CalculatorFormula(ValidColorTextEdit):
         self.revalidate()
 
     def setCompleter(self, completer: QtWidgets.QCompleter) -> None:
+        """Set the completer used."""
         if self.completer is not None:
             self.completer.disconnect(self)
 
@@ -136,63 +148,85 @@ class CalculatorFormula(ValidColorTextEdit):
 
 
 class CalculatorTool(ToolWidget):
-    parser_functions = {
-        "abs": (UnaryFunction("abs"), "(<x>)", "The absolute value of <x>."),
+    """Calculator for element data operations."""
+
+    functions = {
+        "abs": (
+            (UnaryFunction("abs"), "(<x>)", "The absolute value of <x>."),
+            (np.abs, 1),
+        ),
         "kmeans": (
-            BinaryFunction("kmeans"),
-            "(<x>, <k>)",
-            "Returns lower bounds of 1 to <k> kmeans clusters.",
+            (
+                BinaryFunction("kmeans"),
+                "(<x>, <k>)",
+                "Returns lower bounds of 1 to <k> kmeans clusters.",
+            ),
+            (kmeans.thresholds, 2),
         ),
         "mask": (
-            BinaryFunction("mask"),
-            "(<x>, <mask>)",
-            "Selects <x> where <mask>, otherwise NaN.",
+            (
+                BinaryFunction("mask"),
+                "(<x>, <mask>)",
+                "Selects <x> where <mask>, otherwise NaN.",
+            ),
+            (lambda x, m: np.where(m, x, np.nan), 2),
         ),
-        "mean": (UnaryFunction("mean"), "(<x>)", "Returns the mean of <x>."),
+        "mean": (
+            (UnaryFunction("mean"), "(<x>)", "Returns the mean of <x>."),
+            (np.nanmean, 1),
+        ),
         "median": (
-            UnaryFunction("median"),
-            "(<x>)",
-            "Returns the median of <x>.",
+            (
+                UnaryFunction("median"),
+                "(<x>)",
+                "Returns the median of <x>.",
+            ),
+            (np.nanmedian, 1),
         ),
-        "nantonum": (UnaryFunction("nantonum"), "(<x>)", "Sets nan values to 0."),
+        "nantonum": (
+            (UnaryFunction("nantonum"), "(<x>)", "Sets nan values to 0."),
+            (np.nan_to_num, 1),
+        ),
         "normalise": (
-            TernaryFunction("normalise"),
-            "(<x>, <min>, <max>)",
-            "Normalise <x> from from <min> to <max>.",
+            (
+                TernaryFunction("normalise"),
+                "(<x>, <min>, <max>)",
+                "Normalise <x> from from <min> to <max>.",
+            ),
+            (normalise, 3),
         ),
         "otsu": (
-            UnaryFunction("otsu"),
-            "(<x>)",
-            "Returns Otsu's threshold for <x>.",
+            (
+                UnaryFunction("otsu"),
+                "(<x>)",
+                "Returns Otsu's threshold for <x>.",
+            ),
+            (otsu, 1),
         ),
         "percentile": (
-            BinaryFunction("percentile"),
-            "(<x>, <percent>)",
-            "Returns the <percent> percentile of <x>.",
+            (
+                BinaryFunction("percentile"),
+                "(<x>, <percent>)",
+                "Returns the <percent> percentile of <x>.",
+            ),
+            (np.nanpercentile, 2),
         ),
         "segment": (
-            BinaryFunction("segment"),
-            "(<x>, <threshold(s)>)",
-            "Create a masking image from the given thrshold(s).",
+            (
+                BinaryFunction("segment"),
+                "(<x>, <threshold(s)>)",
+                "Create a masking image from the given thrshold(s).",
+            ),
+            (segment_image, 2),
         ),
         "threshold": (
-            BinaryFunction("threshold"),
-            "(<x>, <value>)",
-            "Sets <x> below <value> to NaN.",
+            (
+                BinaryFunction("threshold"),
+                "(<x>, <value>)",
+                "Sets <x> below <value> to NaN.",
+            ),
+            (lambda x, a: np.where(x > a, x, np.nan), 2),
         ),
-    }
-    reducer_functions = {
-        "abs": (np.abs, 1),
-        "kmeans": (kmeans.thresholds, 2),
-        "mask": (lambda x, m: np.where(m, x, np.nan), 2),
-        "mean": (np.nanmean, 1),
-        "median": (np.nanmedian, 1),
-        "nantonum": (np.nan_to_num, 1),
-        "normalise": (normalise, 3),
-        "otsu": (otsu, 1),
-        "percentile": (np.nanpercentile, 2),
-        "segment": (segment_image, 2),
-        "threshold": (lambda x, a: np.where(x > a, x, np.nan), 2),
     }
 
     def __init__(self, widget: LaserWidget):
@@ -208,7 +242,7 @@ class CalculatorTool(ToolWidget):
         self.lineedit_name = CalculatorName(
             "",
             badnames=[],
-            badparser=list(CalculatorTool.parser_functions.keys()),
+            badparser=list(CalculatorTool.functions.keys()),
         )
         self.lineedit_name.revalidate()
         self.lineedit_name.textEdited.connect(self.completeChanged)
@@ -217,8 +251,8 @@ class CalculatorTool(ToolWidget):
         self.combo_isotope = QtWidgets.QComboBox()
         self.combo_isotope.activated.connect(self.insertVariable)
 
-        functions = [k + v[1] for k, v in CalculatorTool.parser_functions.items()]
-        tooltips = [v[2] for v in CalculatorTool.parser_functions.values()]
+        functions = [k + v[0][1] for k, v in CalculatorTool.functions.items()]
+        tooltips = [v[0][2] for v in CalculatorTool.functions.values()]
         self.combo_function = QtWidgets.QComboBox()
         self.combo_function.addItem("Functions")
         self.combo_function.addItems(functions)
@@ -231,9 +265,11 @@ class CalculatorTool(ToolWidget):
         self.formula.textChanged.connect(self.completeChanged)
         self.formula.textChanged.connect(self.refresh)
 
-        self.reducer.operations.update(CalculatorTool.reducer_functions)
+        self.reducer.operations.update(
+            {k: v[1] for k, v in CalculatorTool.functions.items()}
+        )
         self.formula.parser.nulls.update(
-            {k: v[0] for k, v in CalculatorTool.parser_functions.items()}
+            {k: v[0][0] for k, v in CalculatorTool.functions.items()}
         )
 
         layout_combos = QtWidgets.QHBoxLayout()
@@ -282,7 +318,7 @@ class CalculatorTool(ToolWidget):
         self.formula.setCompleter(
             QtWidgets.QCompleter(
                 list(self.formula.parser.variables)
-                + [k + "(" for k in CalculatorTool.parser_functions.keys()]
+                + [k + "(" for k in CalculatorTool.functions.keys()]
             )
         )
         self.formula.valid = True

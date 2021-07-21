@@ -8,6 +8,8 @@ from typing import Any, Optional, Tuple
 
 
 def array_to_image(array: np.ndarray) -> QtGui.QImage:
+    """Converts a numpy array to a Qt image."""
+
     array = np.atleast_2d(array)
 
     # Clip float arrays to 0.0 - 1.0 then convert to uint8
@@ -36,13 +38,15 @@ def array_to_image(array: np.ndarray) -> QtGui.QImage:
 
 
 def polygonf_to_array(polygon: QtGui.QPolygonF) -> np.ndarray:
+    """Converts a Qt polygon to a numpy array of shape (n, 2)."""
     buf = (ctypes.c_double * 2 * polygon.length()).from_address(
-            shiboken2.getCppPointer(polygon.data())[0]  # type: ignore
+        shiboken2.getCppPointer(polygon.data())[0]  # type: ignore
     )
     return np.frombuffer(buf, dtype=np.float64).reshape(-1, 2)
 
 
 def array_to_polygonf(array: np.ndarray) -> QtGui.QPolygonF:
+    """Converts a numpy array of shape (n, 2) to a Qt polygon."""
     assert array.ndim == 2
     assert array.shape[1] == 2
 
@@ -58,6 +62,15 @@ def array_to_polygonf(array: np.ndarray) -> QtGui.QPolygonF:
 
 
 class NumpyArrayTableModel(QtCore.QAbstractTableModel):
+    """Access a numpy array through a table.
+
+    Args:
+        array: ndim > 2
+        axes: axes to view as (column, row)
+        fill_value: fill with this value on resize
+        parent: parent object
+    """
+
     def __init__(
         self,
         array: np.ndarray,
@@ -153,7 +166,9 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
             self.removeRows(rows, current_rows - rows)
 
     # Data
-    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole) -> Optional[str]:
+    def data(
+        self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole
+    ) -> Optional[str]:
         if not index.isValid():
             return None
 

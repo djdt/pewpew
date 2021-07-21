@@ -6,6 +6,13 @@ from typing import List, Optional
 
 
 class ViewSpace(QtWidgets.QSplitter):
+    """Splittable viewspace.
+
+    See Also:
+        `:class:pewpew.widgets.views.View`
+        `:class:pewpew.widgets.views._ViewWidget`
+    """
+
     numViewsChanged = QtCore.Signal()
     numTabsChanged = QtCore.Signal()
 
@@ -41,6 +48,7 @@ class ViewSpace(QtWidgets.QSplitter):
         self.addWidget(self.createView())
 
     def activeView(self) -> "View":
+        """Return the view last interacted with."""
         if self.active_view is None:
             view = self.views[0]
             self.active_view = view
@@ -48,11 +56,13 @@ class ViewSpace(QtWidgets.QSplitter):
         return self.active_view
 
     def activeWidget(self) -> QtWidgets.QWidget:
+        """Return the tabbed widget last interacted with."""
         view = self.activeView()
         widget = view.activeWidget()
         return widget
 
     def setActiveView(self, view: "View") -> None:
+        """Set the active view."""
         if self.active_view == view:
             return
         if self.active_view is not None:
@@ -62,12 +72,14 @@ class ViewSpace(QtWidgets.QSplitter):
         self.active_view = view
 
     def countViewTabs(self) -> int:
+        """Total number of tabbed widgets."""
         widgets = 0
         for view in self.views:
             widgets += view.tabs.count()
         return widgets
 
     def closeActiveView(self) -> None:
+        """Close the active view.."""
         self.closeView(self.activeView())
         self.active_view = None
 
@@ -78,6 +90,7 @@ class ViewSpace(QtWidgets.QSplitter):
     #             self.closeView(view)
 
     def closeView(self, view: "View") -> None:
+        """Closes the given `view` and collaspes splitters."""
         if view is None:
             return
 
@@ -117,6 +130,10 @@ class ViewSpace(QtWidgets.QSplitter):
             splitter.setSizes(sizes)
 
     def createView(self) -> "View":
+        """Create a new view.
+
+        Does not split! Use splitView.
+        """
         view = View(self)
         view.numTabsChanged.connect(self.numTabsChanged)
         self.views.append(view)
@@ -125,7 +142,7 @@ class ViewSpace(QtWidgets.QSplitter):
         return view
 
     def splitActiveHorizontal(self) -> None:
-        self.splitView()
+        self.splitView(None, QtCore.Qt.Horizontal)
 
     def splitActiveVertical(self) -> None:
         self.splitView(None, QtCore.Qt.Vertical)
@@ -135,6 +152,12 @@ class ViewSpace(QtWidgets.QSplitter):
         view: "View" = None,
         orientation: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
     ) -> None:
+        """Splits the view `view` in two.
+
+        Args:
+            view: view to split
+            orientation: direction of split
+        """
         if view is None:
             view = self.activeView()
 
@@ -184,6 +207,14 @@ class ViewSpace(QtWidgets.QSplitter):
 
 
 class View(QtWidgets.QWidget):
+    """Class to hold tabbed widgets in a ViewSpace.
+
+    See Also:
+        `:class:pewpew.widgets.views.ViewSpace`
+        `:class:pewpew.widgets.views.ViewTabBar`
+        `:class:pewpew.widgets.views._ViewWidget`
+    """
+
     numTabsChanged = QtCore.Signal()
 
     icon_modified = QtGui.QIcon.fromTheme("document-save")
@@ -223,21 +254,34 @@ class View(QtWidgets.QWidget):
 
     # Stack
     def activeWidget(self) -> Optional["_ViewWidget"]:
+        """The current visable tabbed widget."""
         if self.stack.count() == 0:
             return None
         return self.stack.widget(self.stack.currentIndex())
 
     def moveWidget(self, ifrom: int, ito: int) -> None:
+        """Move tab from index `ifrom` to `ito`."""
         self.stack.insertWidget(ito, self.stack.widget(ifrom))
 
     def renameWidget(self, index: int, text: str) -> None:
+        """Rename a tabbed widget."""
         self.stack.widget(index).rename(text)
 
     def widgets(self) -> List["_ViewWidget"]:
+        """List of all tabbed widgets."""
         return [self.stack.widget(i) for i in range(self.stack.count())]
 
     # Tabs
     def addTab(self, text: str, widget: "_ViewWidget") -> int:
+        """Add a new tabbed widget.
+
+        Args:
+            text: tab text
+            widget: widget to add
+
+        Returns:
+            index of new tab
+        """
         index = self.tabs.addTab(text)
         self.stack.insertWidget(index, widget)
         self.setTabModified(index, widget.modified)
@@ -245,6 +289,16 @@ class View(QtWidgets.QWidget):
         return index
 
     def insertTab(self, index: int, text: str, widget: "_ViewWidget") -> int:
+        """Add a new tabbed widget at index.
+
+        Args:
+            index: add at
+            text: tab text
+            widget: widget to add
+
+        Returns:
+            index of new tab
+        """
         index = self.tabs.insertTab(index, text)
         self.stack.insertWidget(index, widget)
         self.setTabModified(index, widget.modified)
@@ -252,15 +306,18 @@ class View(QtWidgets.QWidget):
         return index
 
     def removeTab(self, index: int) -> None:
+        """Remove tab and widget at index."""
         self.tabs.removeTab(index)
         self.stack.removeWidget(self.stack.widget(index))
         self.numTabsChanged.emit()
 
     def setTabModified(self, index: int, modified: bool = True) -> None:
+        """Shows a modified icon on tab at `index`."""
         icon = self.icon_modified if modified else QtGui.QIcon()
         self.tabs.setTabIcon(index, icon)
 
     def refresh(self, visible: bool = False) -> None:
+        """Resfresh all or `visible` widgets."""
         if visible:
             widget = self.activeWidget()
             if widget is not None:
@@ -270,30 +327,41 @@ class View(QtWidgets.QWidget):
                 widget.refresh()
 
     def requestClose(self, index: int) -> None:
+        """Try to close the widget at `index`.
+
+        Only closes if widget allows it."""
         if self.stack.widget(index).requestClose():
             self.removeTab(index)
 
     def setActive(self, active: bool) -> None:
+        """Set the view as the active view in it's viewspace."""
         if active:
             self.viewspace.setActiveView(self)
         self.active = active
 
     # Events
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:  # pragma: no cover
+        """Accepts tabbar drags."""
         if event.mimeData().hasFormat("application/x-pewpewtabbar"):
             event.acceptProposedAction()
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:  # pragma: no cover
+        """Accepts tabbar drops."""
         if event.mimeData().hasFormat("application/x-pewpewtabbar"):
             self.tabs.dropEvent(event)
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+        """Filter to set as active view on mouse interaction."""
         if obj and event.type() == QtCore.QEvent.MouseButtonPress:
             self.setActive(True)
         return False
 
 
 class ViewTabBar(QtWidgets.QTabBar):
+    """The tabbar for views.
+
+    Implements closing and drag-drop of tabs."""
+
     tabTextChanged = QtCore.Signal(int, str)
 
     def __init__(self, view: View, parent: QtWidgets.QWidget = None):
@@ -428,6 +496,8 @@ class ViewTabBar(QtWidgets.QTabBar):
 
 
 class ViewTitleBar(QtWidgets.QWidget):
+    """Titlebar with buttons for view."""
+
     def __init__(self, tabs: ViewTabBar, view: View):
         super().__init__(view)
         self.view = view
@@ -449,6 +519,13 @@ class ViewTitleBar(QtWidgets.QWidget):
 
 
 class _ViewWidget(QtWidgets.QWidget):
+    """Base class for widgets intending to be used in a view.
+
+    See Also:
+        `:class:pewpew.widgets.views.View`
+        `:class:pewpew.widgets.views.ViewSpace`
+    """
+
     refreshed = QtCore.Signal()
 
     def __init__(self, view: View = None, editable: bool = True):

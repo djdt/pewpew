@@ -10,6 +10,11 @@ from pewpew.lib.numpyqt import array_to_polygonf
 
 
 class SignalChart(BaseChart):
+    """BaseChart for drawing raw LAICPMS signals.
+
+    Series are stored in a dictionary variable 'series'.
+    """
+
     def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
         super().__init__(
             QtCharts.QChart(), theme=light_theme, allow_navigation=True, parent=parent
@@ -48,6 +53,16 @@ class SignalChart(BaseChart):
         linewidth: float = 1.0,
         label: str = None,
     ) -> None:
+        """Add a line plot to the chart.
+
+        Args:
+            name: key for series
+            ys: y data
+            xs: x data, defaults is range(ys.size)
+            color: color of lines
+            linewidth: width of lines
+            label: optional label in legend
+        """
         series = QtCharts.QLineSeries()
         self.chart().addSeries(series)
         series.setColor(color)
@@ -74,6 +89,16 @@ class SignalChart(BaseChart):
         markersize: float = 10.0,
         label: str = None,
     ) -> None:
+        """Add a scatter plot to the chart.
+
+        Args:
+            name: key for series
+            ys: y data
+            xs: x data, defaults is range(ys.size)
+            color: color of markers
+            markersize: size of markers
+            label: optional label in legend
+        """
         series = QtCharts.QScatterSeries()
         self.chart().addSeries(series)
 

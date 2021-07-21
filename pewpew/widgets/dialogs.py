@@ -1,3 +1,5 @@
+"""This module contains dialogs used in pewpew."""
+
 import copy
 from io import BytesIO
 import numpy as np
@@ -36,6 +38,13 @@ from typing import Dict, List, Tuple, Union
 
 
 class ApplyDialog(QtWidgets.QDialog):
+    """A dialog with Apply, Ok and Close buttons.
+
+    When Apply is pressed the signal `applyPressed` is emitted, with the dialog as an argument.
+    Implement `isComplete` and connect `completeChanged` to disable the Apply and Ok buttons
+    in specific circumstances.
+    Widgets should be added to the `layout_main` layout.
+    """
 
     applyPressed = QtCore.Signal(QtCore.QObject)
 
@@ -85,6 +94,12 @@ class ApplyDialog(QtWidgets.QDialog):
 
 
 class CalibrationPointsWidget(CollapsableWidget):
+    """Displays calibration points in a table.
+
+    Levels can be added or removed and the weighting set.
+    If 'Custom' weighting is used then the weights may be edited.
+    """
+
     levelsChanged = QtCore.Signal(int)
     weightingChanged = QtCore.Signal(str)
 
@@ -181,6 +196,8 @@ class CalibrationPointsWidget(CollapsableWidget):
 
 
 class CalibrationDialog(ApplyDialog):
+    """A dialog for displaying and editing calibrations."""
+
     calibrationSelected = QtCore.Signal(dict)
     calibrationApplyAll = QtCore.Signal(dict)
 
@@ -271,6 +288,7 @@ class CalibrationDialog(ApplyDialog):
             self.calibrationSelected.emit(self.calibrations)
 
     def copyToClipboard(self) -> None:
+        """Copy the current calibration to the system clipboard."""
         name = self.combo_isotope.currentText()
         self.updateCalibration(name)
 
@@ -297,6 +315,7 @@ class CalibrationDialog(ApplyDialog):
         QtWidgets.QApplication.clipboard().setMimeData(mime)
 
     def copyAllToClipboard(self) -> None:
+        """Copy all calibrations to the system clipboard."""
         name = self.combo_isotope.currentText()
         self.updateCalibration(name)
 
@@ -339,6 +358,7 @@ class CalibrationDialog(ApplyDialog):
         self.button_plot.setEnabled(np.count_nonzero(no_nans) >= 2)
 
     def showCurve(self) -> None:
+        """Plot the current calibration in a new dialog."""
         dlg = CalibrationCurveDialog(
             self.combo_isotope.currentText(),
             self.calibrations[self.combo_isotope.currentText()],
@@ -384,6 +404,8 @@ class CalibrationDialog(ApplyDialog):
 
 
 class CalibrationCurveDialog(QtWidgets.QDialog):
+    """Plots a calibration."""
+
     def __init__(
         self, title: str, calibration: Calibration, parent: QtWidgets.QWidget = None
     ):
@@ -415,6 +437,16 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
 
 
 class ColorRangeDialog(ApplyDialog):
+    """Dialog for selecting the colortable ranges of an element.
+
+    Args:
+        ranges: the current ranges
+        default_range: current default range
+        isotopes: availble elements
+        current_isotope: start dialog with this element
+        parent: aprent widget
+    """
+
     def __init__(
         self,
         ranges: Dict[str, Tuple[Union[float, str], Union[float, str]]],
@@ -517,6 +549,8 @@ class ColorRangeDialog(ApplyDialog):
 
 
 class ColocalisationDialog(QtWidgets.QDialog):
+    """Dialog with colocalisation information for data."""
+
     def __init__(
         self,
         data: np.ndarray,
@@ -653,6 +687,8 @@ class ColocalisationDialog(QtWidgets.QDialog):
 
 
 class ConfigDialog(ApplyDialog):
+    """Dialog view viewing and editing laser configurations."""
+
     configSelected = QtCore.Signal(Config)
     configApplyAll = QtCore.Signal(Config)
 
@@ -780,6 +816,8 @@ class ConfigDialog(ApplyDialog):
 
 
 class InformationDialog(QtWidgets.QDialog):
+    """Dialog for viewing and editing laser informations."""
+
     infoChanged = QtCore.Signal(dict)
 
     read_only_items = ["Name", "File Path"]
@@ -863,6 +901,8 @@ class InformationDialog(QtWidgets.QDialog):
 
 
 class NameEditDialog(QtWidgets.QDialog):
+    """Dialog for editing the current laser element names."""
+
     originalNameRole = QtCore.Qt.UserRole + 1
     namesSelected = QtCore.Signal(dict)
 
@@ -919,6 +959,8 @@ class NameEditDialog(QtWidgets.QDialog):
 
 
 class SelectionDialog(ApplyDialog):
+    """Dialog for theshold based selection of data."""
+
     maskSelected = QtCore.Signal(np.ndarray, "QStringList")
 
     METHODS = {
@@ -1041,6 +1083,17 @@ class SelectionDialog(ApplyDialog):
 
 
 class StatsDialog(QtWidgets.QDialog):
+    """Dialog for viewing data statistics.
+
+    Args:
+        data: structured array of elements
+        mask: mask for input, shape shape as `x`
+        units: dict mapping data names to a str
+        isotope: display this element at open
+        pixel_size: size of a pixel in μm, for area
+        parent: parent widget
+    """
+
     isotope_changed = QtCore.Signal(str)
 
     def __init__(
@@ -1050,7 +1103,6 @@ class StatsDialog(QtWidgets.QDialog):
         units: Dict[str, str],
         isotope: str,
         pixel_size: Tuple[float, float] = None,
-        colorranges: dict = None,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
@@ -1059,7 +1111,6 @@ class StatsDialog(QtWidgets.QDialog):
         self.data = self.prepareData(data, mask)
         self.units = units
         self.pixel_size = pixel_size
-        self.colorranges = colorranges
 
         self.chart = HistogramChart()
 

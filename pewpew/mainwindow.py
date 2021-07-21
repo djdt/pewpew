@@ -30,6 +30,9 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(QtWidgets.QMainWindow):
+    """Pewpew mainwindow, holding a LaserViewSpace.
+    Actions for the menu and status bars are created and stored here. 
+    """
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.resize(1280, 800)
@@ -46,14 +49,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar().showMessage(f"Welcome to pew² version {__version__}.")
         self.button_status_um = QtWidgets.QRadioButton("μ")
         self.button_status_index = QtWidgets.QRadioButton("i")
-        # self.button_status_s = QtWidgets.QRadioButton("s")
         self.button_status_um.setChecked(True)
         self.button_status_um.toggled.connect(self.buttonStatusUnit)
         self.button_status_index.toggled.connect(self.buttonStatusUnit)
-        # self.button_status_s.toggled.connect(self.buttonStatusUnit)
         self.statusBar().addPermanentWidget(self.button_status_um)
         self.statusBar().addPermanentWidget(self.button_status_index)
-        # self.statusBar().addPermanentWidget(self.button_status_s)
 
         self.updateActionAvailablity()
 
@@ -434,12 +434,14 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_help.addAction(self.action_about)
 
     def buttonStatusUnit(self, toggled: bool) -> None:
+        """Callback for 'button_status_um'."""
         if self.button_status_um.isChecked():
             self.viewspace.options.units = "μm"
         elif self.button_status_index.isChecked():
             self.viewspace.options.units = "index"
 
     def updateActionAvailablity(self) -> None:
+        """Enables tools if at least one view is present."""
         enabled = self.viewspace.countViewTabs() > 0
         self.action_export_all.setEnabled(enabled)
 
@@ -452,6 +454,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def exceptHook(
         self, etype: type, value: BaseException, tb: TracebackType
     ) -> None:  # pragma: no cover
+        """Redirect errors to the log."""
         if etype == KeyboardInterrupt:
             logger.info("Keyboard interrupt, exiting.")
             sys.exit(1)

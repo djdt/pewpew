@@ -11,6 +11,17 @@ from typing import Optional, List
 
 
 class ScaledImageItem(QtWidgets.QGraphicsItem):
+    """Item to draw image to a defined rect.
+
+    Images scan be bicubic smoothed using 'smooth'.
+
+    Args:
+        image: image
+        rect: extent of image
+        smooth: smooth image using 2x scaling
+        parent: parent item
+    """
+
     def __init__(
         self,
         image: QtGui.QImage,
@@ -33,12 +44,15 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
         self.rect = QtCore.QRectF(rect)  # copy the rect
 
     def width(self) -> int:
+        """Width of image, independant of smoothing."""
         return self.image.width() // self.scale
 
     def height(self) -> int:
+        """Height of image, independant of smoothing."""
         return self.image.height() // self.scale
 
     def pixelSize(self) -> QtCore.QSizeF:
+        """Size / scaling of an image pixel."""
         return QtCore.QSizeF(
             self.rect.width() / self.width(),
             self.rect.height() / self.height(),
@@ -48,6 +62,7 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
         return self.rect
 
     def mapToData(self, pos: QtCore.QPointF) -> QtCore.QPoint:
+        """Map a position to an image pixel coordinate."""
         pixel = self.pixelSize()
 
         pos -= self.rect.topLeft()
@@ -70,6 +85,15 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
         smooth: bool = False,
         parent: QtWidgets.QGraphicsItem = None,
     ) -> "ScaledImageItem":
+        """Create a ScaledImageItem from a numpy array.
+
+        Args:
+            array: 2d array
+            rect: image extent
+            colortable: map data using colortable
+            smooth: bicubic smoothing
+            parent: parent item
+        """
         image = array_to_image(array)
         if colortable is not None:
             image.setColorTable(colortable)
@@ -79,6 +103,8 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
 
 
 class ImageWidgetItem(QtWidgets.QGraphicsObject):
+    """Base class for items that act on a ScaledImageItem."""
+
     def __init__(
         self,
         image: ScaledImageItem,
@@ -95,11 +121,24 @@ class ImageWidgetItem(QtWidgets.QGraphicsObject):
 
 
 class RulerWidgetItem(ImageWidgetItem):
+    """Draws a ruler between two points of a ScaledImageItem.
+
+    Points are selected using the mouse and the length is displayed at the ruler's midpoint.
+
+    Args:
+        image: image to measure
+        pen: QPen, default to white dashed line
+        font: label font
+        unit: length unit
+        parent: parent item
+    """
+
     def __init__(
         self,
         image: ScaledImageItem,
         pen: QtGui.QPen = None,
         font: QtGui.QFont = None,
+        unit: str = "μm",
         parent: QtWidgets.QGraphicsItem = None,
     ):
         super().__init__(image, None, parent)
@@ -116,6 +155,7 @@ class RulerWidgetItem(ImageWidgetItem):
         self.pen = pen
         self.font = font
         self.text = ""
+        self.unit = unit
 
         self.line = QtCore.QLineF()
 
@@ -132,7 +172,7 @@ class RulerWidgetItem(ImageWidgetItem):
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if event.buttons() & QtCore.Qt.LeftButton:
             self.line.setP2(event.pos())
-            self.text = f"{self.line.length():.4g} μm"
+            self.text = f"{self.line.length():.4g} {self.unit}"
             self.prepareGeometryChange()
         super().mouseMoveEvent(event)
 
@@ -206,6 +246,18 @@ class RulerWidgetItem(ImageWidgetItem):
 
 
 class ImageSliceWidgetItem(ImageWidgetItem):
+    """Draws a 1d data slice between two points of a ScaledImageItem.
+
+    Points are selected using the mouse.
+    A context menu option can copy the slice data to the system clipboard.
+
+    Args:
+        image: image
+        data: image data
+        pen: QPen, default to white dotted line
+        font: label font
+        parent: parent item
+    """
     def __init__(
         self,
         image: ScaledImageItem,

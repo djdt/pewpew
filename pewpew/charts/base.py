@@ -7,6 +7,11 @@ from typing import Dict
 
 
 class NiceValueAxis(QtCharts.QValueAxis):
+    """A chart axis that uses easy to read tick intervals.
+
+    Uses *at least* 'nticks' ticks, may be more.
+    """
+
     nicenums = [1.0, 1.5, 2.0, 2.5, 3.0, 5.0, 7.5]
 
     def __init__(self, nticks: int = 6, parent: QtCore.QObject = None):
@@ -40,6 +45,18 @@ class NiceValueAxis(QtCharts.QValueAxis):
 
 
 class BaseChart(QtCharts.QChartView):
+    """QChartView with basic mouse naviagtion and styling.
+
+    Valid keys for 'theme' are "background", "axis", "grid", "title", "text".
+    A context menu implements copying the chart to the system clipboard and reseting the chart view.
+
+    Args:
+        chart: chart to display
+        theme: dict of theme keys and colors
+        allow_navigation: use mouse navigation
+        parent: parent widget
+    """
+
     def __init__(
         self,
         chart: QtCharts.QChart,
@@ -55,7 +72,6 @@ class BaseChart(QtCharts.QChartView):
         chart.setBackgroundBrush(QtGui.QBrush(self.theme["background"]))
         chart.setBackgroundPen(QtGui.QPen(self.theme["background"]))
         super().__init__(chart, parent)
-        # self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
 
     def addAxis(
         self, axis: QtCharts.QAbstractAxis, alignment: QtCore.Qt.Alignment
@@ -116,4 +132,5 @@ class BaseChart(QtCharts.QChartView):
         menu.popup(event.globalPos())
 
     def copyToClipboard(self) -> None:
+        """Copy image of the current chart to the system clipboard."""
         QtWidgets.QApplication.clipboard().setPixmap(self.grab(self.viewport().rect()))

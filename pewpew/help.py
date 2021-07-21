@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def createHelpEngine() -> QtHelp.QHelpEngine:
+    """Create the pewpew help engine."""
     cache = Path(
         QtCore.QStandardPaths.writableLocation(QtCore.QStandardPaths.CacheLocation)
     )
@@ -30,6 +31,7 @@ def createHelpEngine() -> QtHelp.QHelpEngine:
 
 
 class HelpBrowser(QtWidgets.QTextBrowser):
+    """Text browser for a QHelpEngine."""
     def __init__(self, engine: QtHelp.QHelpEngine, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.setMinimumSize(1000, 800)
@@ -42,6 +44,7 @@ class HelpBrowser(QtWidgets.QTextBrowser):
 
 
 class HelpDialog(QtWidgets.QDialog):
+    """Dialog to display the pewpew help files."""
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 

@@ -25,6 +25,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 
 class StandardsGraphicsView(LaserGraphicsView):
+    """Graphics view with rectangle selection of areas."""
+
     levelsChanged = QtCore.Signal()
 
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
@@ -81,6 +83,8 @@ class StandardsGraphicsView(LaserGraphicsView):
 
 
 class StandardsTool(ToolWidget):
+    """Tool for creating calibrations from a laser image."""
+
     WEIGHTINGS = ["Equal", "1/σ²", "x", "1/x", "1/x²", "y", "1/y", "1/y²"]
 
     def __init__(self, widget: LaserWidget):

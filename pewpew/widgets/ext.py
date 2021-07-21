@@ -4,6 +4,15 @@ from typing import List, Tuple
 
 
 class CollapsableWidget(QtWidgets.QWidget):
+    """A widget that can be hidden.
+
+    Clicking on the widget will show and resize it.
+
+    Args:
+        title: hide/show button text
+        parent: parent widget
+    """
+
     def __init__(self, title: str, parent: QtWidgets.QWidget):
         super().__init__(parent)
 
@@ -47,6 +56,14 @@ class CollapsableWidget(QtWidgets.QWidget):
 
 
 class MultipleDirDialog(QtWidgets.QFileDialog):
+    """Dialog for selecting multiple directories.
+
+    Args:
+        parent: parent widget
+        title: title of the dialog
+        directory: starting directory
+    """
+
     def __init__(self, parent: QtWidgets.QWidget, title: str, directory: str):
         super().__init__(parent, title, directory)
         self.setFileMode(QtWidgets.QFileDialog.Directory)
@@ -62,6 +79,9 @@ class MultipleDirDialog(QtWidgets.QFileDialog):
     def getExistingDirectories(
         parent: QtWidgets.QWidget, title: str, directory: str
     ) -> List[str]:
+        """Return a list of selected directories.
+
+        If the dialog is closed then an empty list is returned."""
         dlg = MultipleDirDialog(parent, title, directory)
         if dlg.exec():
             return list(dlg.selectedFiles())
@@ -70,6 +90,11 @@ class MultipleDirDialog(QtWidgets.QFileDialog):
 
 
 class RangeSlider(QtWidgets.QSlider):
+    """A QSlider with two inputs.
+
+    The slider is highlighted between the two selected values.
+    """
+
     value2Changed = QtCore.Signal(int)
 
     def __init__(self, parent: QtWidgets.QWidget = None):
@@ -80,34 +105,42 @@ class RangeSlider(QtWidgets.QSlider):
         self._pressed = False
 
     def left(self) -> int:
+        """The leftmost value."""
         return min(self.value(), self.value2())
 
     def setLeft(self, value: int) -> None:
+        """Set the leftmost value."""
         if self.value() < self._value2:
             self.setValue(value)
         else:
             self.setValue2(value)
 
     def right(self) -> int:
+        """The rightmost value."""
         return max(self.value(), self.value2())
 
     def setRight(self, value: int) -> None:
+        """Set the rightmost value."""
         if self.value() > self._value2:
             self.setValue(value)
         else:
             self.setValue2(value)
 
     def values(self) -> Tuple[int, int]:
-        return self.value(), self.value2()
+        """Returns the values (left, right)."""
+        return self.left(), self.right()
 
     def setValues(self, left: int, right: int) -> None:
+        """Set both values."""
         self.setValue(left)
         self.setValue2(right)
 
     def value2(self) -> int:
+        """Raw access to the second slider value."""
         return self._value2
 
     def setValue2(self, value: int) -> None:
+        """Raw setting of the second slider value."""
         self._value2 = value
         self.value2Changed.emit(self._value2)
 
@@ -267,6 +300,8 @@ class RangeSlider(QtWidgets.QSlider):
 
 
 class ValidColorLineEdit(QtWidgets.QLineEdit):
+    """Colors the QLineEdit red when there is non-acceptable input."""
+
     def __init__(self, text: str = "", parent: QtWidgets.QWidget = None):
         super().__init__(text, parent)
         self.textChanged.connect(self.revalidate)
@@ -291,6 +326,7 @@ class ValidColorLineEdit(QtWidgets.QLineEdit):
 
 
 class ValidColorTextEdit(QtWidgets.QTextEdit):
+    """Colors the QTextEdit red when there is non-acceptable input."""
     def __init__(self, text: str = "", parent: QtWidgets.QWidget = None):
         super().__init__(text, parent)
         self.textChanged.connect(self.revalidate)

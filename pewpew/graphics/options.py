@@ -5,6 +5,19 @@ from typing import Dict, Tuple, Union
 
 
 class GraphicsOptions(object):
+    """This object stores information used by pewpew to draw images.
+
+    Parameters:
+        items: dict of item visibilities
+        colortable: colortable to draw with, see colortables
+        colorrange_default: default colorrange to use
+        smoothing: whether to smooth images
+        calibrate: whether to calibrate images
+        font: font to use
+        font_color: color fo fonts
+        units: unit of image
+    """
+
     colortables = {
         "balance": "Blue to red diverging colormap from cmocean.",
         "cividis": "Perceptually uniform colormap.",
@@ -38,11 +51,16 @@ class GraphicsOptions(object):
         self.units = "μm"
 
     def get_colorrange(self, name: str) -> Tuple[Union[float, str], Union[float, str]]:
+        """Get colorrange for 'name' or a default."""
         return self._colorranges.get(name, self.colorrange_default)
 
     def get_colorrange_as_float(
         self, name: str, data: np.ndarray
     ) -> Tuple[float, float]:
+        """Get colorrange for 'name' or a default.
+
+        Converts percentile ranges to float values.
+        """
         vmin, vmax = self.get_colorrange(name)
         if data.dtype == bool:
             return 0, 1
@@ -56,6 +74,10 @@ class GraphicsOptions(object):
     def get_colorrange_as_percentile(
         self, name: str, data: np.ndarray
     ) -> Tuple[float, float]:
+        """Get colorrange for 'name' or a default.
+
+        Converts float values to percentile ranges.
+        """
         vmin, vmax = self.get_colorrange(name)
         if isinstance(vmin, str):
             vmin = float(vmin.rstrip("%"))
@@ -70,4 +92,5 @@ class GraphicsOptions(object):
     def set_colorrange(
         self, name: str, colorrange: Tuple[Union[float, str], Union[float, str]]
     ) -> None:
+        """Set colorrange for 'name'."""
         self._colorranges[name] = colorrange

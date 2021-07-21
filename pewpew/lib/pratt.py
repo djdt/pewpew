@@ -1,3 +1,7 @@
+"""Pratt parsing.
+
+Based on https://www.engr.mun.ca/~theo/Misc/pratt_parsing.htm
+"""
 import numpy as np
 import re
 
@@ -13,7 +17,9 @@ class ReducerException(Exception):
 
 
 class Expr(object):
-    def __init__(self, value: str, children: list = None):
+    """Stores expressions for conversion to string."""
+
+    def __init__(self, value: str, children: List["Expr"] = None):
         self.value = value
         self.children = children
 
@@ -26,13 +32,18 @@ class Expr(object):
 
 # Null Commands
 class Null(object):
+    """Base for non binding tokens."""
+
     rbp = -1
 
     def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
+        """Null denotation."""
         raise ParserException("Invalid token.")
 
 
 class Parens(Null):
+    """Parse input within parenthesis."""
+
     def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         expr = parser.parseExpr(tokens)
         if len(tokens) == 0 or tokens.pop(0) != ")":
@@ -41,6 +52,8 @@ class Parens(Null):
 
 
 class Value(Null):
+    """Any value."""
+
     def __init__(self, value: str):
         self.value = value
 
@@ -49,11 +62,15 @@ class Value(Null):
 
 
 class NaN(Null):
+    """NaN value."""
+
     def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
         return Expr("nan")
 
 
 class Unary(Null):
+    """Unary input."""
+
     def __init__(self, value: str, rbp: int):
         self.value = value
         self.rbp = rbp
@@ -64,6 +81,8 @@ class Unary(Null):
 
 
 class Binary(Null):
+    """Binary input separated by `div`."""
+
     def __init__(self, value: str, div: str, rbp: int):
         self.value = value
         self.div = div
@@ -78,6 +97,8 @@ class Binary(Null):
 
 
 class Ternary(Null):
+    """Ternary input separated by `div` and `div2`."""
+
     def __init__(self, value: str, div: str, div2: str, rbp: int):
         self.value = value
         self.div = div
@@ -96,6 +117,8 @@ class Ternary(Null):
 
 
 class UnaryFunction(Unary):
+    """Function with format 'func(<x>)'."""
+
     def __init__(self, value: str):
         super().__init__(value, 0)
 
@@ -109,6 +132,8 @@ class UnaryFunction(Unary):
 
 
 class BinaryFunction(Binary):
+    """Function with format 'func(<x>, <y>)'."""
+
     def __init__(self, value: str):
         super().__init__(value, ",", 0)
 
@@ -122,6 +147,8 @@ class BinaryFunction(Binary):
 
 
 class TernaryFunction(Ternary):
+    """Function with format 'func(<x>, <y>, <z>)'."""
+
     def __init__(self, value: str):
         super().__init__(value, ",", ",", 0)
 
@@ -136,17 +163,26 @@ class TernaryFunction(Ternary):
 
 # Left Commands
 class Left(object):
+    """Base class for left binding operations."""
+
     lbp = -1
 
     @property
     def rbp(self):
+        """The right binding power fo the token."""
         return self.lbp + 1
 
     def led(self, parser: "Parser", tokens: List[str], expr: Expr) -> Expr:
+        """Left denotation, uses the current `expr`."""
         raise ParserException("Invalid token.")  # pragma: no cover
 
 
 class LeftBinary(Left):
+    """Left binary operation.
+
+    Right binding if `right`.
+    """
+
     def __init__(self, value: str, lbp: int, right: bool = False):
         self.value = value
         self.lbp = lbp
@@ -162,6 +198,8 @@ class LeftBinary(Left):
 
 
 class LeftTernary(Left):
+    """Left ternary input separted by `div`."""
+
     def __init__(self, value: str, div: str, lbp: int):
         self.value = value
         self.div = div
@@ -176,6 +214,8 @@ class LeftTernary(Left):
 
 
 class LeftIndex(Left):
+    """Index value of left with '[]'."""
+
     def __init__(self, value: str, lbp: int):
         self.value = value
         self.lbp = lbp
@@ -188,6 +228,24 @@ class LeftIndex(Left):
 
 
 class Parser(object):
+    """Class for parsing inputs to an easily reduced string.
+
+    Uses a series of regular expressions to convert input into tokens.
+    These are then parsed using the tokens in `nulls` and `lefts`.
+    To add functionality add tokens to these variables.
+
+    Args:
+        variables: tokens to consider as values
+
+    Parameters:
+        variables: list of value tokens
+        nulls: dict of non-binding tokens
+        lefts: dict of left-binding tokens
+
+    See Also:
+        `:func:pewpew.lib.pratt.Reducer`
+    """
+
     function_token = "[a-z]+[a-zA-Z0-9_]*"
     null_token = "[\\[\\]\\(\\)\\,]|if|then|else"
     number_token = "\\d*\\.?\\d+(?:[eE][+\\-]?\\d+)?|nan"
@@ -265,6 +323,7 @@ class Parser(object):
         return expr
 
     def parse(self, string: str) -> str:
+        """Parse the input string."""
         tokens = self.regexp_tokenise.findall(string)
         result = self.parseExpr(tokens)
         if len(tokens) != 0:
@@ -273,6 +332,20 @@ class Parser(object):
 
 
 class Reducer(object):
+    """Class for reducing preivously parsed inputs.
+
+    Common operations are mapped to numpy ufuncs.
+
+    Args:
+        variables: dict mapping tokens to values
+
+    Parameters:
+        variables: dict of tokens and values
+        operations: dict of (operation, number of inputs)
+
+    See Also:
+        `:func:pewpew.lib.pratt.Reducer`
+    """
     def __init__(self, variables: dict = None):
         self._variables: Dict[str, Union[float, np.ndarray]] = {}
 
@@ -336,6 +409,7 @@ class Reducer(object):
                 raise ReducerException(f"Unexpected input '{token}'.")
 
     def reduce(self, string: str) -> Union[float, np.ndarray]:
+        """Reduce a parsed string to a value."""
         tokens = string.split(" ")
         result = self.reduceExpr(tokens)
         if len(tokens) != 0:

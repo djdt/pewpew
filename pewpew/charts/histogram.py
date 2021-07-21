@@ -10,6 +10,8 @@ from typing import Union
 
 
 class HistogramChart(BaseChart):
+    """BaseChart for drawing a histogram."""
+
     def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
         super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
         self.setMinimumSize(QtCore.QSize(640, 320))
@@ -47,6 +49,14 @@ class HistogramChart(BaseChart):
         min_bins: int = 16,
         max_bins: int = 128,
     ) -> None:
+        """Draw 'data' as a histogram.
+
+        Args:
+            data: hist data
+            bins: passed to np.histogram_bin_edges
+            min_bins: minimum number of bins
+            max_bins: maximum number of bins
+        """
         vmin, vmax = np.percentile(data, 5), np.percentile(data, 95)
 
         barset = QtCharts.QBarSet("histogram")

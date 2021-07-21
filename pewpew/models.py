@@ -10,6 +10,18 @@ from typing import Any, Optional, Tuple
 
 
 class CalibrationPointsTableModel(NumpyArrayTableModel):
+    """Model for calibration points and weights.
+
+    To allow edit of points y (counts / response) set `counts_editable`.
+    Weights are editable if not in 'Calibration.KNOWN_WEIGHTING'.
+
+    Args:
+        calibration
+        axes: (0, 1) for points in columns, (1, 0) for points in rows
+        counts_editable: allow edit of points y
+        parent: parent object
+    """
+
     def __init__(
         self,
         calibration: Calibration,
@@ -17,16 +29,6 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         counts_editable: bool = False,
         parent: QtCore.QObject = None,
     ):
-        """Model for calibration points and weights.
-
-        To suppress visibility of weights pass 'weights_editable' as None.
-
-        Args:
-            calibration
-            axes: (0, 1) for points in columns, (1, 0) for points in rows
-            counts_editable: allow edit of points y
-            weights_editable: allow edit of weights
-        """
         self.calibration = calibration
         if self.calibration.points.size == 0:
             array = np.full((1, 3), np.nan)
@@ -46,6 +48,14 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         self.modelReset.connect(self.updateCalibration)
 
     def setCalibration(self, calibration: Calibration, resize: bool = True) -> None:
+        """Update the model with a new calibration.
+
+        If not `resize` then the points will be padded or trimmed.
+
+        Args:
+            calibration
+            resize: resize the model
+        """
         self.calibration = calibration
 
         if calibration.points.shape[1] != 2:  # pragma: no cover
@@ -70,7 +80,8 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
 
         self.endResetModel()
 
-    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole) -> str:
+    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole) -> Optional[str]:
+        """Map np.nan to 'nan'."""
         value = super().data(index, role)
         if value == "nan":
             return ""
@@ -79,6 +90,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
     def setData(
         self, index: QtCore.QModelIndex, value: Any, role: int = QtCore.Qt.EditRole
     ) -> bool:
+        """Map 'nan' to np.nan."""
         return super().setData(index, np.nan if value == "" else value, role)
 
     def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlags:
@@ -116,6 +128,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
             return labels[self.axes[1]][section]
 
     def updateCalibration(self) -> None:
+        """Update the internal Calibration, called on model changes."""
         if self.array.size == 0:  # pragma: no cover
             self.calibration._points = np.empty((0, 2), dtype=np.float64)
             self.calibration._weights = np.empty(0, dtype=np.float64)
@@ -127,6 +140,10 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         self.calibration.update_linreg()
 
     def setWeighting(self, weighting: str) -> None:
+        """Sets weighting and updates weights.
+
+        If weighting in 'Calibration.KNOWN_WEIGHTING' then weights are calculated.
+        """
         if weighting in Calibration.KNOWN_WEIGHTING:
             self.calibration.weights = weighting
         else:

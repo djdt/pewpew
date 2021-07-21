@@ -30,6 +30,13 @@ logger = logging.getLogger(__name__)
 
 
 class LaserViewSpace(ViewSpace):
+    """A viewspace for displaying LaserWidget.
+
+    Parameters:
+        config: the default config
+        options: image drawing options
+    """
+
     def __init__(
         self,
         orientaion: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
@@ -40,6 +47,7 @@ class LaserViewSpace(ViewSpace):
         self.options = GraphicsOptions()
 
     def uniqueIsotopes(self) -> List[str]:
+        """Return set of unqiue elements from all open images."""
         isotopes: Set[str] = set()
         for view in self.views:
             for widget in view.widgets():
@@ -48,6 +56,7 @@ class LaserViewSpace(ViewSpace):
         return sorted(isotopes)
 
     def createView(self) -> "LaserView":
+        """Override for ViewSpace."""
         view = LaserView(self)
         view.numTabsChanged.connect(self.numTabsChanged)
         self.views.append(view)
@@ -55,26 +64,32 @@ class LaserViewSpace(ViewSpace):
         return view
 
     def currentIsotope(self) -> Optional[str]:
+        """The active element name from the active image."""
         widget = self.activeWidget()
         if widget is None:
             return None
         return widget.current_isotope
 
     def setCurrentIsotope(self, isotope: str) -> None:
+        """Set the active element name in all views."""
         for view in self.views:
             view.setCurrentIsotope(isotope)
 
     def applyCalibration(self, calibration: Dict[str, Calibration]) -> None:
+        """Set the calibration in all views."""
         for view in self.views:
             view.applyCalibration(calibration)
 
     def applyConfig(self, config: Config) -> None:
+        """Set the laser configuration in all views."""
         self.config = copy.copy(config)
         for view in self.views:
             view.applyConfig(self.config)
 
     # Editing options
     def colortableRangeDialog(self) -> QtWidgets.QDialog:
+        """Open a `:class:pewpew.widgets.dialogs.ColocalisationDialog` and apply result."""
+
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
             self.options._colorranges = dialog.ranges
             self.options.colorrange_default = dialog.default_range
@@ -92,8 +107,8 @@ class LaserViewSpace(ViewSpace):
         dlg.open()
         return dlg
 
-
     def configDialog(self) -> QtWidgets.QDialog:
+        """Open a `:class:pewpew.widgets.dialogs.ConfigDialog` and apply result."""
         dlg = dialogs.ConfigDialog(self.config, parent=self)
         dlg.check_all.setChecked(True)
         dlg.check_all.setEnabled(False)
@@ -102,6 +117,7 @@ class LaserViewSpace(ViewSpace):
         return dlg
 
     def fontsizeDialog(self) -> QtWidgets.QDialog:
+        """Simple dialog for editing image font size."""
         dlg = QtWidgets.QInputDialog(self)
         dlg.setWindowTitle("Fontsize")
         dlg.setLabelText("Fontisze:")
@@ -139,6 +155,8 @@ class LaserViewSpace(ViewSpace):
 
 
 class LaserView(View):
+    """Tabbed view for displaying laser images."""
+
     def __init__(self, viewspace: LaserViewSpace):
         super().__init__(viewspace)
         self.action_open = qAction(
@@ -146,12 +164,14 @@ class LaserView(View):
         )
 
     def addLaser(self, laser: Laser) -> "LaserWidget":
+        """Open image of  a laser in a new tab."""
         widget = LaserWidget(laser, self.viewspace.options, self)
         name = laser.info.get("Name", "<No Name>")
         self.addTab(name, widget)
         return widget
 
     def setCurrentIsotope(self, isotope: str) -> None:
+        """Set displayed element in all tabs."""
         for widget in self.widgets():
             if isotope in widget.laser.isotopes:
                 widget.current_isotope = isotope
@@ -180,6 +200,7 @@ class LaserView(View):
 
     # Callbacks
     def openDocument(self, paths: List[Path]) -> None:
+        """Open `paths` as new laser images."""
         paths = [Path(path) for path in paths]  # Ensure Path
 
         progress = QtWidgets.QProgressDialog(
@@ -200,17 +221,20 @@ class LaserView(View):
         thread.start()
 
     def applyCalibration(self, calibration: Dict[str, Calibration]) -> None:
+        """Set calibrations in all tabs."""
         for widget in self.widgets():
             if isinstance(widget, LaserWidget):
                 widget.applyCalibration(calibration)
 
     def applyConfig(self, config: Config) -> None:
+        """Set laser configurations in all tabs."""
         for widget in self.widgets():
             if isinstance(widget, LaserWidget):
                 widget.applyConfig(config)
 
     # Actions
     def actionOpen(self) -> QtWidgets.QDialog:
+        """Opens a file dialog for loading new lasers."""
         dlg = QtWidgets.QFileDialog(
             self,
             "Open File(s).",
@@ -225,6 +249,8 @@ class LaserView(View):
 
 
 class LaserComboBox(QtWidgets.QComboBox):
+    """Combo box with a context menu for editing names."""
+
     namesSelected = QtCore.Signal(dict)
 
     def __init__(self, parent: QtWidgets.QWidget = None):
@@ -251,6 +277,17 @@ class LaserComboBox(QtWidgets.QComboBox):
 
 
 class LaserWidget(_ViewWidget):
+    """Class that stores and displays a laser image.
+
+    Tracks modification of the data, config, calibration and information.
+    Create via `:func:pewpew.laser.LaserView.addLaser`.
+
+    Args:
+        laser: input
+        options: graphics options for this widget
+        view: parent view
+    """
+
     def __init__(self, laser: Laser, options: GraphicsOptions, view: LaserView = None):
         super().__init__(view)
         self.laser = laser
@@ -461,6 +498,7 @@ class LaserWidget(_ViewWidget):
 
     # Virtual
     def refresh(self) -> None:
+        """Redraw image."""
         self.graphics.drawLaser(
             self.laser, self.current_isotope, layer=self.current_layer
         )
@@ -470,11 +508,13 @@ class LaserWidget(_ViewWidget):
         super().refresh()
 
     def rename(self, text: str) -> None:
+        """Set the 'Name' value of laser information."""
         self.laser.info["Name"] = text
         self.modified = True
 
     # Other
     def labelEditDialog(self, name: str) -> QtWidgets.QInputDialog:
+        """Simple dialog for editing the label (and element name)."""
         dlg = QtWidgets.QInputDialog(self)
         dlg.setWindowTitle("Edit Name")
         dlg.setInputMode(QtWidgets.QInputDialog.TextInput)
@@ -487,6 +527,7 @@ class LaserWidget(_ViewWidget):
         return dlg
 
     def renameIsotope(self, old: str, new: str) -> None:
+        """Rename a single element."""
         self.laser.rename({old: new})
         self.modified = True
         self.populateIsotopes()
@@ -501,17 +542,20 @@ class LaserWidget(_ViewWidget):
         return path.with_name(self.laserName() + ext)
 
     def populateIsotopes(self) -> None:
+        """Repopulate the element combo box."""
         self.combo_isotope.blockSignals(True)
         self.combo_isotope.clear()
         self.combo_isotope.addItems(self.laser.isotopes)
         self.combo_isotope.blockSignals(False)
 
     def clearCursorStatus(self) -> None:
+        """Clear window statusbar, if it exists."""
         status_bar = self.viewspace.window().statusBar()
         if status_bar is not None:
             status_bar.clearMessage()
 
     def updateCursorStatus(self, x: float, y: float, v: float) -> None:
+        """Updates the windows statusbar if it exists."""
         status_bar = self.viewspace.window().statusBar()
         if status_bar is None:  # pragma: no cover
             return
@@ -528,6 +572,7 @@ class LaserWidget(_ViewWidget):
             status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
 
     def updateNames(self, rename: dict) -> None:
+        """Rename multiple elements."""
         current = self.current_isotope
         self.laser.rename(rename)
         self.populateIsotopes()
@@ -538,6 +583,10 @@ class LaserWidget(_ViewWidget):
 
     # Transformations
     def cropToSelection(self) -> None:
+        """Crop image to current selection and open in a new tab.
+
+        If selection is not rectangular then it is filled with nan.
+        """
         if self.is_srr:  # pragma: no cover
             QtWidgets.QMessageBox.information(
                 self, "Transform", "Unable to transform SRR data."
@@ -571,22 +620,34 @@ class LaserWidget(_ViewWidget):
         new_widget.setActive()
 
     def transform(self, flip: str = None, rotate: str = None) -> None:
+        """Transform the image.
+
+        Args:
+            flip: flip the image ['horizontal', 'vertical']
+            rotate: rotate the image 90 degrees ['left', 'right']
+
+        """
         if self.is_srr:  # pragma: no cover
             QtWidgets.QMessageBox.information(
                 self, "Transform", "Unable to transform SRR data."
             )
             return
-        if flip is not None:
+        if flip in ["horizontal", "vertical"]:
             axis = 1 if flip == "horizontal" else 0
             self.laser.data = np.flip(self.laser.data, axis=axis)
-        if rotate is not None:
+        else:
+            raise ValueError("flip must be 'horizontal', 'vertical'.")
+        if rotate in ["left", "right"]:
             k = 1 if rotate == "right" else 3 if rotate == "left" else 2
             self.laser.data = np.rot90(self.laser.data, k=k, axes=(1, 0))
+        else:
+            raise ValueError("rotate must be 'left', 'right'.")
         self.modified = True
         self.refresh()
 
     # Callbacks
     def applyCalibration(self, calibrations: Dict[str, Calibration]) -> None:
+        """Set laser calibrations."""
         modified = False
         for isotope in calibrations:
             if isotope in self.laser.calibration:
@@ -597,6 +658,7 @@ class LaserWidget(_ViewWidget):
             self.refresh()
 
     def applyConfig(self, config: Config) -> None:
+        """Set laser configuration."""
         # Only apply if the type of config is correct
         if type(config) is type(self.laser.config):  # noqa
             self.laser.config = copy.copy(config)
@@ -604,6 +666,7 @@ class LaserWidget(_ViewWidget):
             self.refresh()
 
     def applyInformation(self, info: Dict[str, str]) -> None:
+        """Set laser information."""
         # if self.laser.info["Name"] != info["Name"]:  # pragma: ignore
         #     self.view.tabs.setTabText(self.index(), info["Name"])
         if self.laser.info != info:
@@ -611,6 +674,11 @@ class LaserWidget(_ViewWidget):
             self.modified = True
 
     def saveDocument(self, path: Union[str, Path]) -> None:
+        """Saves the laser to an '.npz' file.
+
+        See Also:
+            `:func:pewlib.io.npz.save`
+        """
         if isinstance(path, str):
             path = Path(path)
 
@@ -619,6 +687,7 @@ class LaserWidget(_ViewWidget):
         self.modified = False
 
     def actionCalibration(self) -> QtWidgets.QDialog:
+        """Open a `:class:pewpew.widgets.dialogs.CalibrationDialog` and applies result."""
         dlg = dialogs.CalibrationDialog(
             self.laser.calibration, self.current_isotope, parent=self
         )
@@ -628,6 +697,7 @@ class LaserWidget(_ViewWidget):
         return dlg
 
     def actionConfig(self) -> QtWidgets.QDialog:
+        """Open a `:class:pewpew.widgets.dialogs.ConfigDialog` and applies result."""
         dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
         dlg.configSelected.connect(self.applyConfig)
         dlg.configApplyAll.connect(self.viewspace.applyConfig)
@@ -638,6 +708,7 @@ class LaserWidget(_ViewWidget):
         self.graphics.copyToClipboard()
 
     def actionCopySelectionText(self) -> None:
+        """Copies the currently selected data to the system clipboard."""
         data = self.graphics.data[self.graphics.mask].ravel()
 
         html = (
@@ -659,20 +730,30 @@ class LaserWidget(_ViewWidget):
         self.cropToSelection()
 
     def actionDuplicate(self) -> None:
+        """Duplicate document to a new tab."""
         self.view.addLaser(copy.deepcopy(self.laser))
 
     def actionExport(self) -> QtWidgets.QDialog:
+        """Opens a `:class:pewpew.exportdialogs.ExportDialog`.
+
+        This can save the document to various formats.
+        """
         dlg = exportdialogs.ExportDialog(self, parent=self)
         dlg.open()
         return dlg
 
     def actionInformation(self) -> QtWidgets.QDialog:
+        """Opens a `:class:pewpew.widgets.dialogs.InformationDialog`."""
         dlg = dialogs.InformationDialog(self.laser.info, parent=self)
         dlg.infoChanged.connect(self.applyInformation)
         dlg.open()
         return dlg
 
     def actionSave(self) -> QtWidgets.QDialog:
+        """Save the document to an '.npz' file.
+
+        If not already associated with an '.npz' path a dialog is opened to select one.
+        """
         path = Path(self.laser.info["File Path"])
         if path.suffix.lower() == ".npz" and path.exists():
             self.saveDocument(path)
@@ -688,6 +769,7 @@ class LaserWidget(_ViewWidget):
         return dlg
 
     def actionSelectDialog(self) -> QtWidgets.QDialog:
+        """Open a `:class:pewpew.widgets.dialogs.SelectionDialog` and applies selection."""
         dlg = dialogs.SelectionDialog(self.graphics, parent=self)
         dlg.maskSelected.connect(self.graphics.drawSelectionImage)
         self.refreshed.connect(dlg.refresh)
@@ -695,6 +777,11 @@ class LaserWidget(_ViewWidget):
         return dlg
 
     def actionStatistics(self, crop_to_selection: bool = False) -> QtWidgets.QDialog:
+        """Open a `:class:pewpew.widgets.dialogs.StatsDialog` with image data.
+
+        Args:
+            crop_to_selection: pass current selection as a mask
+        """
         data = self.laser.get(calibrate=self.viewspace.options.calibrate, flat=True)
         mask = self.graphics.mask
         if mask is None or crop_to_selection:
@@ -723,6 +810,11 @@ class LaserWidget(_ViewWidget):
         return self.actionStatistics(True)
 
     def actionColocal(self, crop_to_selection: bool = False) -> QtWidgets.QDialog:
+        """Open a `:class:pewpew.widgets.dialogs.ColocalisationDialog` with image data.
+
+        Args:
+            crop_to_selection: pass current selection as a mask
+        """
         data = self.laser.get(flat=True)
         mask = self.graphics.mask if crop_to_selection else None
 

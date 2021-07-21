@@ -1,9 +1,3 @@
-"""Items that can be used by the classes in overlaygraphics.
-
-..Todo
-
-Write MetricScaleBarOverlay as a GraphicsItem, handling text painting.
-"""
 from PySide2 import QtCore, QtGui, QtWidgets
 
 import numpy as np
@@ -12,8 +6,9 @@ from typing import List, Tuple
 
 
 class LabelOverlay(QtWidgets.QGraphicsObject):
+    """Draws a label with a black outline for increased visibility."""
+
     editRequested = QtCore.Signal(str)
-    """Draws the label with an outline for increased visibility."""
 
     def __init__(
         self,
@@ -64,6 +59,22 @@ class LabelOverlay(QtWidgets.QGraphicsObject):
 
 
 class ColorBarOverlay(QtWidgets.QGraphicsObject):
+    """Draw a colorbar.
+
+    Ticks are formatted at easily readable intervals.
+
+    Args:
+        colortable: the colortable to use
+        vmin: minimum value
+        vmax: maxmium value
+        unit: also display a unit
+        height: height of bar in pixels
+        font: label font
+        color: font color
+        checkmarks: mark intervals
+        parent: parent item
+    """
+
     nicenums = [1.0, 1.5, 2.0, 2.5, 3.0, 5.0, 7.5]
     editRequested = QtCore.Signal()
     mouseOverBar = QtCore.Signal(float)
@@ -193,6 +204,18 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
 
 
 class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):
+    """Draw a scalebar.
+
+    Uses metric units with a base of 1 pixel = 1 μm.
+
+    Args:
+        width: maxmium width in px
+        height: height in px
+        font: label font
+        color: font color
+        parent: parent item
+    """
+
     allowed_lengths = [1.0, 2.0, 5.0, 10.0, 50.0, 100.0, 200.0, 500.0]
     units = {
         "pm": 1e-12,

@@ -2,6 +2,8 @@ from PySide2 import QtCore
 
 
 class DragDropRedirectFilter(QtCore.QObject):  # pragma: no cover
+    """Redirects drag and drop events to parent."""
+
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if event.type() == QtCore.QEvent.DragEnter:
             self.parent().dragEnterEvent(event)
@@ -19,6 +21,8 @@ class DragDropRedirectFilter(QtCore.QObject):  # pragma: no cover
 
 
 class MousePressRedirectFilter(QtCore.QObject):
+    """Redirects mouse press events to parent."""
+
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if event.type() == QtCore.QEvent.MouseButtonPress:
             self.parent().mousePressEvent(event)

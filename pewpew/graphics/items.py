@@ -4,6 +4,11 @@ from typing import Optional
 
 
 class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
+    """A mouse resizable rectangle.
+
+    Click and drag the corners or edges of the rectangle to resize.
+    """
+
     cursors = {
         "left": QtCore.Qt.SizeHorCursor,
         "right": QtCore.Qt.SizeHorCursor,

@@ -1,3 +1,8 @@
+"""Colortables stored as lists of int32.
+
+Each colortable is created from 4 shifted int8.
+r << 16 + g << 8 + b << 0 + a << 24
+"""
 from typing import Dict, List
 
 
@@ -600,8 +605,10 @@ colortables: Dict[str, List[int]] = {
 
 
 def list_tables() -> List[str]:
+    """List available tables."""
     return list(colortables.keys())
 
 
 def get_table(name: str) -> List[int]:
+    """Get a colortable."""
     return colortables[name]

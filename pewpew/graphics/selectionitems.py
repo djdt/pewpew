@@ -33,6 +33,15 @@ class SelectionItem(QtWidgets.QGraphicsObject):
 
 
 class ScaledImageSelectionItem(SelectionItem):
+    """Base class for image selection items.
+
+    Args:
+        image: image to select from
+        modes: map keyboard modifers to modes,
+            default maps shift to 'add', control to 'subtract'
+        parent: parent item
+    """
+
     def __init__(
         self,
         image: ScaledImageItem = None,
@@ -61,6 +70,8 @@ class ScaledImageSelectionItem(SelectionItem):
 
 
 class LassoImageSelectionItem(ScaledImageSelectionItem):
+    """Selection using a lasso that follows mouse movements."""
+
     def __init__(
         self,
         image: ScaledImageItem,
@@ -154,6 +165,8 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
 
 
 class RectImageSelectionItem(ScaledImageSelectionItem):
+    """Selection using a rectangle."""
+
     def __init__(
         self,
         image: ScaledImageItem,

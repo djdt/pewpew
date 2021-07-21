@@ -10,6 +10,8 @@ from pewpew.lib.numpyqt import array_to_polygonf
 
 
 class ColocalisationChart(BaseChart):
+    """BaseChart for displaying a scatter plot of two arrays."""
+
     def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
         super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
         self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
@@ -55,13 +57,16 @@ class ColocalisationChart(BaseChart):
         self.t2.attachAxis(self.yaxis)
 
     def drawPoints(self, x: np.ndarray, y: np.ndarray) -> None:
+        """Plot scatter of 'x' and 'y'."""
         points = np.stack([x.flat, y.flat], axis=1)
         poly = array_to_polygonf(points)
         self.scatter.replace(poly)
 
     def drawLine(self, a: float, b: float) -> None:
+        """Plot a line with gradient 'a' and intercept 'b'."""
         self.line.replace([QtCore.QPointF(b, 0.0), QtCore.QPointF(1.0, a + b)])
 
     def drawThresholds(self, t1: float, t2: float) -> None:
+        """Draw horizontal and vertical lines at 't1' and 't2'."""
         self.t1.replace([QtCore.QPointF(t1, 0.0), QtCore.QPointF(t1, 1.0)])
         self.t2.replace([QtCore.QPointF(0.0, t2), QtCore.QPointF(1.0, t2)])

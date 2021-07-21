@@ -18,11 +18,13 @@ from typing import Callable, List, Tuple
 
 # Filters
 def rolling_mean(x: np.ndarray, size: int, threshold: float) -> np.ndarray:
+    """For mapping size to (size, size)."""
     size = int(size)
     return filters.rolling_mean(x, (size, size), threshold)
 
 
 def rolling_median(x: np.ndarray, size: int, threshold: float) -> np.ndarray:
+    """For mapping size to (size, size)."""
     size = int(size)
     return filters.rolling_median(x, (size, size), threshold)
 
@@ -36,6 +38,8 @@ def rolling_median(x: np.ndarray, size: int, threshold: float) -> np.ndarray:
 
 
 class FilteringTool(ToolWidget):
+    """View and calculate mean and meidan filtered images."""
+
     methods: dict = {
         "Rolling Mean": {
             "filter": rolling_mean,
