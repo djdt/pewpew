@@ -346,6 +346,7 @@ class Reducer(object):
     See Also:
         `:func:pewpew.lib.pratt.Reducer`
     """
+
     def __init__(self, variables: dict = None):
         self._variables: Dict[str, Union[float, np.ndarray]] = {}
 
@@ -366,7 +367,7 @@ class Reducer(object):
             "=": (np.equal, 2),
             "!=": (np.not_equal, 2),
             "?": (np.where, 3),
-            "[": (None, 2),
+            "[": (lambda x, i: x[int(i)], 2),
         }
 
     @property
@@ -379,23 +380,18 @@ class Reducer(object):
             raise ValueError("Spaces are not allowed in variable names!")
         self._variables = variables
 
-    def reduceExpr(self, tokens: List[str]) -> Union[float, np.ndarray]:
+    def reduceExpr(self, tokens: List[str]) -> Union[float, int, np.ndarray]:
         if len(tokens) == 0:
             raise ReducerException("Unexpected end of input.")
         token = tokens.pop(0)
-        if token == "[":  # Special case for array access
-            try:
-                n = np.array(self.reduceExpr(tokens))
-                i = self.reduceExpr(tokens)
-                return n[int(i)]
-            except (IndexError, TypeError, ValueError):
-                raise ReducerException(f"Invalid indexing of '{tokens}'.")
-        elif token in self.operations:
+        if token in self.operations:
             try:
                 op, nargs = self.operations[token]
                 args = [self.reduceExpr(tokens) for _ in range(nargs)]
                 return op(*args)
-            except (AttributeError, KeyError, ValueError):  # pragma: no cover
+            except (IndexError, TypeError):
+                raise ReducerException(f"Unable to index '{token}'.")
+            except (AttributeError, KeyError, ValueError):
                 raise ReducerException(f"Invalid args for '{token}'.")
         elif token in self.variables:
             return self.variables[token]
