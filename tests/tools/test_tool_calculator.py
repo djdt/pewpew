@@ -56,13 +56,13 @@ def test_tool_calculator(qtbot: QtBot):
 
     assert tool.lineedit_name.text() == "calc0"
     tool.apply()
-    assert "calc0" in widget.laser.isotopes
+    assert "calc0" in widget.laser.elements
     assert tool.lineedit_name.text() == "calc1"
 
     # overwrite
     tool.lineedit_name.setText("a")
     tool.apply()
-    assert len(widget.laser.isotopes) == 3
+    assert len(widget.laser.elements) == 3
 
     # Inserters
     assert tool.formula.toPlainText() == "a"

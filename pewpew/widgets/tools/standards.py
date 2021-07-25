@@ -92,7 +92,7 @@ class StandardsTool(ToolWidget):
         self.setWindowTitle("Calibration Tool")
 
         self.calibration: Dict[str, Calibration] = {}
-        self.previous_isotope = ""
+        self.previous_element = ""
         self.dlg: Optional[CalibrationCurveDialog] = None
 
         # Left side
@@ -124,8 +124,8 @@ class StandardsTool(ToolWidget):
         self.graphics = StandardsGraphicsView(self.viewspace.options, parent=self)
         self.graphics.levelsChanged.connect(self.updateCounts)
 
-        self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.currentIndexChanged.connect(self.comboIsotope)
+        self.combo_element = QtWidgets.QComboBox()
+        self.combo_element.currentIndexChanged.connect(self.comboElement)
 
         self.table = StandardsTable(Calibration(), self)
         self.table.model().setRowCount(6)
@@ -135,16 +135,16 @@ class StandardsTool(ToolWidget):
         # Initialise
         self.calibration = copy.deepcopy(self.widget.laser.calibration)
         # Prevent currentIndexChanged being emmited
-        self.combo_isotope.blockSignals(True)
-        self.combo_isotope.clear()
-        self.combo_isotope.addItems(self.widget.laser.isotopes)
-        self.combo_isotope.setCurrentText(self.widget.combo_isotope.currentText())
-        self.combo_isotope.blockSignals(False)
+        self.combo_element.blockSignals(True)
+        self.combo_element.clear()
+        self.combo_element.addItems(self.widget.laser.elements)
+        self.combo_element.setCurrentText(self.widget.combo_element.currentText())
+        self.combo_element.blockSignals(False)
 
-        isotope = self.combo_isotope.currentText()
-        self.combo_weighting.setCurrentText(self.calibration[isotope].weighting)
-        self.lineedit_units.setText(self.calibration[isotope].unit)
-        self.table.model().setCalibration(self.calibration[isotope], resize=False)
+        element = self.combo_element.currentText()
+        self.combo_weighting.setCurrentText(self.calibration[element].weighting)
+        self.lineedit_units.setText(self.calibration[element].unit)
+        self.table.model().setCalibration(self.calibration[element], resize=False)
 
         layout_cal_form = QtWidgets.QFormLayout()
         layout_cal_form.addRow("Levels:", self.spinbox_levels)
@@ -158,7 +158,7 @@ class StandardsTool(ToolWidget):
         layout_results.addWidget(
             self.button_plot, 0, QtCore.Qt.AlignRight | QtCore.Qt.AlignTop
         )
-        layout_results.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignTop)
+        layout_results.addWidget(self.combo_element, 0, QtCore.Qt.AlignTop)
 
         layout_graphics = QtWidgets.QVBoxLayout()
         layout_graphics.addWidget(self.graphics, 1)
@@ -184,18 +184,18 @@ class StandardsTool(ToolWidget):
         return self.table.isComplete()
 
     def refresh(self) -> None:
-        isotope = self.combo_isotope.currentText()
-        if isotope not in self.widget.laser.isotopes:  # pragma: no cover
+        element = self.combo_element.currentText()
+        if element not in self.widget.laser.elements:  # pragma: no cover
             return
 
-        data = self.widget.laser.get(isotope, calibrate=False, flat=True)
+        data = self.widget.laser.get(element, calibrate=False, flat=True)
 
         x0, x1, y0, y1 = self.widget.laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
-        self.graphics.drawImage(data, rect, self.combo_isotope.currentText())
+        self.graphics.drawImage(data, rect, self.combo_element.currentText())
 
-        self.graphics.label.setText(self.combo_isotope.currentText())
+        self.graphics.label.setText(self.combo_element.currentText())
 
         self.graphics.setOverlayItemVisibility()
         self.graphics.updateForeground()
@@ -207,10 +207,10 @@ class StandardsTool(ToolWidget):
         self.updateCounts()
 
     def updateWeights(self) -> None:
-        isotope = self.combo_isotope.currentText()
+        element = self.combo_element.currentText()
         wstr = self.combo_weighting.currentText()
         if wstr == "1/σ²":
-            if self.calibration[isotope].x.size > 0:
+            if self.calibration[element].x.size > 0:
                 shape = self.graphics.data.shape
                 levels = self.graphics.currentLevelDataCoords()
                 buckets = []
@@ -224,13 +224,13 @@ class StandardsTool(ToolWidget):
                 )
             else:
                 weights = np.empty(0, dtype=np.float64)
-            self.calibration[isotope].weights = (wstr, weights)
+            self.calibration[element].weights = (wstr, weights)
         else:
             if wstr == "1/x²":
                 wstr = "1/(x^2)"
             elif wstr == "1/y²":
                 wstr = "1/(y^2)"
-            self.calibration[isotope].weights = wstr
+            self.calibration[element].weights = wstr
 
     def updateCounts(self) -> None:
         if self.graphics.data.size == 0:  # pragma: no cover
@@ -254,42 +254,42 @@ class StandardsTool(ToolWidget):
             self.results.clearResults()
             self.button_plot.setEnabled(False)
         else:
-            isotope = self.combo_isotope.currentText()
+            element = self.combo_element.currentText()
 
-            self.calibration[isotope].update_linreg()
-            self.results.updateResults(self.calibration[isotope])
+            self.calibration[element].update_linreg()
+            self.results.updateResults(self.calibration[element])
             self.button_plot.setEnabled(True)
             if self.dlg is not None:
-                self.dlg.updateChart(self.calibration[isotope])
+                self.dlg.updateChart(self.calibration[element])
 
     # Widget callbacks
-    def comboIsotope(self, text: str) -> None:
-        isotope = self.combo_isotope.currentText()
-        self.table.model().setCalibration(self.calibration[isotope], resize=False)
+    def comboElement(self, text: str) -> None:
+        element = self.combo_element.currentText()
+        self.table.model().setCalibration(self.calibration[element], resize=False)
 
-        self.lineedit_units.setText(self.calibration[isotope].unit)
+        self.lineedit_units.setText(self.calibration[element].unit)
 
-        if self.calibration[isotope].weighting is not None:
-            self.combo_weighting.setCurrentText(self.calibration[isotope].weighting)
+        if self.calibration[element].weighting is not None:
+            self.combo_weighting.setCurrentText(self.calibration[element].weighting)
         else:  # pragma: no cover
-            self.calibration[isotope].weighting = "Equal"
+            self.calibration[element].weighting = "Equal"
 
         self.refresh()
 
     def comboWeighting(self, index: int) -> None:
-        isotope = self.combo_isotope.currentText()
-        self.calibration[isotope].weighting = self.combo_weighting.currentText()
+        element = self.combo_element.currentText()
+        self.calibration[element].weighting = self.combo_weighting.currentText()
         self.updateResults()
 
     def lineeditUnits(self) -> None:
-        isotope = self.combo_isotope.currentText()
+        element = self.combo_element.currentText()
         unit = self.lineedit_units.text()
-        self.calibration[isotope].unit = unit
+        self.calibration[element].unit = unit
 
     def showCurve(self) -> QtWidgets.QDialog:
         self.dlg = CalibrationCurveDialog(
-            self.combo_isotope.currentText(),
-            self.calibration[self.combo_isotope.currentText()],
+            self.combo_element.currentText(),
+            self.calibration[self.combo_element.currentText()],
             parent=self,
         )
         self.dlg.finished.connect(self.clearCurve)

@@ -167,8 +167,8 @@ class OverlayTool(ToolWidget):
         self.radio_custom.toggled.connect(self.updateColorModel)
 
         self.combo_add = QtWidgets.QComboBox()
-        self.combo_add.addItem("Add Isotope")
-        self.combo_add.addItems(widget.laser.isotopes)
+        self.combo_add.addItem("Add Element")
+        self.combo_add.addItems(widget.laser.elements)
         self.combo_add.activated[int].connect(self.comboAdd)
 
         self.rows = OverlayRows(self)
@@ -324,14 +324,14 @@ class OverlayItemRow(QtWidgets.QWidget):
         self.action_color = qAction(
             "color-picker",
             "Color",
-            "Select the color for this isotope.",
+            "Select the color for this element.",
             self.selectColor,
         )
         self.action_close = qAction(
-            "window-close", "Remove", "Remove this isotope.", self.close
+            "window-close", "Remove", "Remove this element.", self.close
         )
         self.action_hide = qAction(
-            "visibility", "Hide", "Toggle visibility of this isotope.", self.hideChanged
+            "visibility", "Hide", "Toggle visibility of this element.", self.hideChanged
         )
         self.action_hide.setCheckable(True)
 

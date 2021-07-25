@@ -34,7 +34,7 @@ def test_calibration_dialog(qtbot: QtBot):
     qtbot.addWidget(dialog)
     dialog.open()
 
-    assert dialog.combo_isotope.currentText() == "B"
+    assert dialog.combo_element.currentText() == "B"
     assert dialog.points.model.array.size == 0
     assert not dialog.button_plot.isEnabled()
     assert not dialog.points.button_remove.isEnabled()
@@ -43,8 +43,8 @@ def test_calibration_dialog(qtbot: QtBot):
     dialog.lineedit_intercept.setText("2")
     dialog.lineedit_unit.setText("ppm")
 
-    dialog.combo_isotope.setCurrentIndex(0)
-    assert dialog.combo_isotope.currentText() == "A"
+    dialog.combo_element.setCurrentIndex(0)
+    assert dialog.combo_element.currentText() == "A"
     assert dialog.points.model.array.size == 6
     assert dialog.button_plot.isEnabled()
 
@@ -75,7 +75,7 @@ def test_calibration_dialog(qtbot: QtBot):
     dialog.copyToClipboard()
     dialog.copyAllToClipboard()
 
-    dialog.combo_isotope.setCurrentIndex(0)
+    dialog.combo_element.setCurrentIndex(0)
     dialog.showCurve()
 
     dialog.apply()
@@ -135,7 +135,7 @@ def test_colorrange_dialog(qtbot: QtBot):
     dialog.open()
 
     # Loads C as current, has default range
-    assert dialog.combo_isotope.currentText() == "C"
+    assert dialog.combo_element.currentText() == "C"
     assert dialog.lineedit_min.text() == ""
     assert dialog.lineedit_max.text() == ""
     assert dialog.lineedit_min.placeholderText() == "0.0"
@@ -145,20 +145,20 @@ def test_colorrange_dialog(qtbot: QtBot):
     # Add and check is there
     dialog.lineedit_min.setText("1%")
     dialog.lineedit_max.setText("2%")
-    dialog.combo_isotope.setCurrentText("B")  # Update C
+    dialog.combo_element.setCurrentText("B")  # Update C
     assert dialog.ranges["C"] == ("1%", "2%")
 
     assert dialog.lineedit_min.text() == "2%"
     assert dialog.lineedit_max.text() == "3.0"
 
-    dialog.combo_isotope.setCurrentText("A")
+    dialog.combo_element.setCurrentText("A")
     assert dialog.lineedit_min.text() == "1.0"
     assert dialog.lineedit_max.text() == "2.0"
 
     dialog.check_all.click()
     dialog.lineedit_min.setText("1.0")
     dialog.lineedit_max.setText("2.0")
-    # dialog.combo_isotope.setCurrentText("C")
+    # dialog.combo_element.setCurrentText("C")
 
     dialog.apply()
 

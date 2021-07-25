@@ -95,9 +95,9 @@ class FilteringTool(ToolWidget):
         self.button_hide_filter = qToolButton(action=self.action_toggle_filter)
         self.button_hide_filter.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
 
-        self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.activated.connect(self.completeChanged)
-        self.combo_isotope.activated.connect(self.refresh)
+        self.combo_element = QtWidgets.QComboBox()
+        self.combo_element.activated.connect(self.completeChanged)
+        self.combo_element.activated.connect(self.refresh)
 
         self.combo_filter = QtWidgets.QComboBox()
         self.combo_filter.addItems(FilteringTool.methods.keys())
@@ -116,7 +116,7 @@ class FilteringTool(ToolWidget):
 
         layout_graphics = QtWidgets.QVBoxLayout()
         layout_graphics.addWidget(self.graphics)
-        layout_graphics.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+        layout_graphics.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
         self.box_graphics.setLayout(layout_graphics)
 
         layout_controls = QtWidgets.QFormLayout()
@@ -131,7 +131,7 @@ class FilteringTool(ToolWidget):
 
     def apply(self) -> None:
         self.modified = True
-        name = self.combo_isotope.currentText()
+        name = self.combo_element.currentText()
         if self.button_hide_filter.isChecked():
             self.widget.laser.data[name] = self.previewData(
                 self.widget.laser.data[name]
@@ -170,9 +170,9 @@ class FilteringTool(ToolWidget):
                 self.lineedit_fparams[i].revalidate()
 
     def initialise(self) -> None:
-        isotopes = self.widget.laser.isotopes
-        self.combo_isotope.clear()
-        self.combo_isotope.addItems(isotopes)
+        elements = self.widget.laser.elements
+        self.combo_element.clear()
+        self.combo_element.addItems(elements)
 
         self.filterChanged()
         self.refresh()
@@ -192,9 +192,9 @@ class FilteringTool(ToolWidget):
         if not self.isComplete():  # Not ready for update to preview
             return
 
-        isotope = self.combo_isotope.currentText()
+        element = self.combo_element.currentText()
 
-        data = self.widget.laser.get(isotope, flat=True, calibrated=False)
+        data = self.widget.laser.get(element, flat=True, calibrated=False)
         if not self.button_hide_filter.isChecked():
             data = self.previewData(data)
         if data is None:
@@ -203,8 +203,8 @@ class FilteringTool(ToolWidget):
         x0, x1, y0, y1 = self.widget.laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
-        self.graphics.drawImage(data, rect, isotope)
-        self.graphics.label.setText(isotope)
+        self.graphics.drawImage(data, rect, element)
+        self.graphics.label.setText(element)
 
         self.graphics.setOverlayItemVisibility()
         self.graphics.updateForeground()

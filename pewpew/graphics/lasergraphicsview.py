@@ -1,7 +1,7 @@
 import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewlib.laser import _Laser
+from pewlib.laser import Laser
 from pewlib.srr import SRRConfig
 
 from pewpew.graphics import colortable
@@ -250,7 +250,7 @@ class LaserGraphicsView(OverlayView):
         self.selection_image.setZValue(self.image.zValue() + 1.0)
         self.scene().addItem(self.selection_image)
 
-    def drawLaser(self, laser: _Laser, name: str, layer: int = None) -> None:
+    def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
         """Draw image of laser.
 
         Args:

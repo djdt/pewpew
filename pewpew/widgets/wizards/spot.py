@@ -347,8 +347,8 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.combo_peak_method = QtWidgets.QComboBox()
         self.combo_peak_method.addItems(list(self.options.keys()))
 
-        self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.currentIndexChanged.connect(self.onIsotopeChanged)
+        self.combo_element = QtWidgets.QComboBox()
+        self.combo_element.currentIndexChanged.connect(self.onElementChanged)
 
         self.stack = QtWidgets.QStackedWidget()
         for option in self.options.values():
@@ -404,7 +404,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
 
         layout_chart = QtWidgets.QVBoxLayout()
         layout_chart.addWidget(self.chart, 1)
-        layout_chart.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+        layout_chart.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(layout_controls)
@@ -412,7 +412,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
         self.registerField(
-            "isotope", self.combo_isotope, "currentText", "currentTextChanged"
+            "element", self.combo_element, "currentText", "currentTextChanged"
         )
         self.registerField(
             "base_method", self.combo_base_method, "currentText", "currentTextChanged"
@@ -468,12 +468,12 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
 
     def initializePage(self) -> None:
         data = self.field("laserdata")
-        self.combo_isotope.blockSignals(True)
-        self.combo_isotope.clear()
-        self.combo_isotope.addItems(data.dtype.names)
-        self.combo_isotope.blockSignals(False)
+        self.combo_element.blockSignals(True)
+        self.combo_element.clear()
+        self.combo_element.addItems(data.dtype.names)
+        self.combo_element.blockSignals(False)
 
-        data = data[self.combo_isotope.currentText()]
+        data = data[self.combo_element.currentText()]
         self.options["Constant"].lineedit_minimum.setText(
             f"{np.percentile(data, 25):.2f}"
         )
@@ -481,8 +481,8 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.drawSignal(data)
         self.updatePeaks()
 
-    def onIsotopeChanged(self) -> None:
-        data = self.field("laserdata")[self.combo_isotope.currentText()]
+    def onElementChanged(self) -> None:
+        data = self.field("laserdata")[self.combo_element.currentText()]
         self.drawSignal(data)
         self.updatePeaks()
 
@@ -551,7 +551,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
 
         method = self.combo_peak_method.currentText()
         args = self.options[method].args()
-        data = self.field("laserdata")[self.combo_isotope.currentText()]
+        data = self.field("laserdata")[self.combo_element.currentText()]
 
         if method == "Constant":
             thresholds = {"baseline": np.full(data.size, args["minimum"])}
@@ -653,7 +653,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             dtype=[(name, peakfinding.PEAK_DTYPE) for name in data.dtype.names],
         )
         for name in data.dtype.names:
-            if name == self.field("isotope"):
+            if name == self.field("element"):
                 peakdata[name] = peaks
             else:
                 peakdata[name] = peakfinding.peaks_from_edges(
@@ -703,8 +703,8 @@ class SpotImagePage(QtWidgets.QWizardPage):
 
         self.graphics = LaserGraphicsView(options)
 
-        self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.currentIndexChanged.connect(self.updateImage)
+        self.combo_element = QtWidgets.QComboBox()
+        self.combo_element.currentIndexChanged.connect(self.updateImage)
 
         layout_shape = QtWidgets.QHBoxLayout()
         layout_shape.addWidget(self.lineedit_shape_x, 1)
@@ -724,7 +724,7 @@ class SpotImagePage(QtWidgets.QWizardPage):
 
         layout_chart = QtWidgets.QVBoxLayout()
         layout_chart.addWidget(self.graphics, 1)
-        layout_chart.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+        layout_chart.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(controls, 0)
@@ -740,11 +740,11 @@ class SpotImagePage(QtWidgets.QWizardPage):
 
     def initializePage(self) -> None:
         data = self.field("laserdata")
-        self.combo_isotope.blockSignals(True)
-        self.combo_isotope.clear()
-        self.combo_isotope.addItems(data.dtype.names)
-        self.combo_isotope.setCurrentText(self.field("isotope"))
-        self.combo_isotope.blockSignals(False)
+        self.combo_element.blockSignals(True)
+        self.combo_element.clear()
+        self.combo_element.addItems(data.dtype.names)
+        self.combo_element.setCurrentText(self.field("element"))
+        self.combo_element.blockSignals(False)
 
         peaks = self.field("peaks")
         x = int(np.sqrt(peaks.size))
@@ -760,7 +760,7 @@ class SpotImagePage(QtWidgets.QWizardPage):
         self.updateImage()
 
     def cleanupPage(self) -> None:
-        self.setField("peaks", self.field("peaks")[self.field("isotope")])
+        self.setField("peaks", self.field("peaks")[self.field("element")])
 
     def updateImage(self) -> None:
         peaks = self.field("peaks")
@@ -772,7 +772,7 @@ class SpotImagePage(QtWidgets.QWizardPage):
             return
 
         image = np.full((y, x), np.nan)
-        image.flat = peaks[self.combo_isotope.currentText()][
+        image.flat = peaks[self.combo_element.currentText()][
             self.combo_integ.currentText()
         ]
 
@@ -793,12 +793,12 @@ class SpotConfigPage(QtWidgets.QWizardPage):
 
     def __init__(self, config: SpotConfig, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.setTitle("Isotopes and Config")
+        self.setTitle("Elements and Config")
 
         self._datas: List[np.ndarray] = []
-        self.label_isotopes = QtWidgets.QLabel()
-        self.button_isotopes = QtWidgets.QPushButton("Edit Names")
-        self.button_isotopes.pressed.connect(self.buttonNamesPressed)
+        self.label_elements = QtWidgets.QLabel()
+        self.button_elements = QtWidgets.QPushButton("Edit Names")
+        self.button_elements.pressed.connect(self.buttonNamesPressed)
 
         self.lineedit_spotsize_x = QtWidgets.QLineEdit()
         self.lineedit_spotsize_x.setText(str(config.spotsize))
@@ -815,10 +815,10 @@ class SpotConfigPage(QtWidgets.QWizardPage):
         self.lineedit_aspect = QtWidgets.QLineEdit()
         self.lineedit_aspect.setEnabled(False)
 
-        layout_isotopes = QtWidgets.QHBoxLayout()
-        layout_isotopes.addWidget(QtWidgets.QLabel("Isotopes:"), 0, QtCore.Qt.AlignLeft)
-        layout_isotopes.addWidget(self.label_isotopes, 1)
-        layout_isotopes.addWidget(self.button_isotopes, 0, QtCore.Qt.AlignRight)
+        layout_elements = QtWidgets.QHBoxLayout()
+        layout_elements.addWidget(QtWidgets.QLabel("Elements:"), 0, QtCore.Qt.AlignLeft)
+        layout_elements.addWidget(self.label_elements, 1)
+        layout_elements.addWidget(self.button_elements, 0, QtCore.Qt.AlignRight)
 
         config_box = QtWidgets.QGroupBox("Config")
         layout_config = QtWidgets.QFormLayout()
@@ -831,7 +831,7 @@ class SpotConfigPage(QtWidgets.QWizardPage):
         layout.addWidget(
             QtWidgets.QLabel("Edit imported elements and laser configuration."), 0
         )
-        layout.addLayout(layout_isotopes)
+        layout.addLayout(layout_elements)
         layout.addWidget(config_box)
 
         self.setLayout(layout)
@@ -871,9 +871,9 @@ class SpotConfigPage(QtWidgets.QWizardPage):
 
     def setElidedNames(self, names: List[str]) -> None:
         text = ", ".join(name for name in names)
-        fm = QtGui.QFontMetrics(self.label_isotopes.font())
-        text = fm.elidedText(text, QtCore.Qt.ElideRight, self.label_isotopes.width())
-        self.label_isotopes.setText(text)
+        fm = QtGui.QFontMetrics(self.label_elements.font())
+        text = fm.elidedText(text, QtCore.Qt.ElideRight, self.label_elements.width())
+        self.label_elements.setText(text)
 
     def updateNames(self, rename: dict) -> None:
         peaks = self.field("laserdata")

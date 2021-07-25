@@ -31,7 +31,7 @@ def test_wizard_srr_config(qtbot: QtBot):
 
     # Config
     page = wiz.currentPage()
-    assert page.getNames() == ("_Isotope_",)
+    assert page.getNames() == ("_Element_",)
     assert not page.isComplete()
     page.lineedit_warmup.setText("0")
     assert page.isComplete()
@@ -45,7 +45,7 @@ def test_wizard_srr_config(qtbot: QtBot):
     dlg = page.buttonNamesPressed()
     dlg.close()
 
-    page.updateNames({"_Isotope_": "Pew"})
+    page.updateNames({"_Element_": "Pew"})
     assert page.getNames() == ("Pew",)
 
 

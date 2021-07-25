@@ -7,7 +7,7 @@ from pewpew import __version__ as pewpew_version
 from pewlib import __version__ as pewlib_version
 from pewlib import io
 from pewlib import Config
-from pewlib.laser import _Laser, Laser
+from pewlib.laser import Laser
 
 from typing import List
 
@@ -59,7 +59,7 @@ class ImportThread(QtCore.QThread):
                 self.importFailed.emit(f"Unable to import {path.name}.")
         self.progressChanged.emit(len(self.paths))
 
-    def importPath(self, path: Path) -> _Laser:
+    def importPath(self, path: Path) -> Laser:
         config = Config(
             spotsize=self.config.spotsize,
             speed=self.config.speed,
@@ -100,10 +100,10 @@ class ImportThread(QtCore.QThread):
                     data, params = io.thermo.load(path, full=True)
                     info["Instrument Vendor"] = "Thermo"
                 else:
-                    data = io.textimage.load(path, name="_isotope_")
+                    data = io.textimage.load(path, name="_element_")
                     params = {}
             elif path.suffix.lower() in [".txt", ".text"]:
-                data = io.textimage.load(path, name="_isotope_")
+                data = io.textimage.load(path, name="_element_")
                 params = {}
             else:  # pragma: no cover
                 raise ValueError(f"{path.name}: Unknown extention '{path.suffix}'.")

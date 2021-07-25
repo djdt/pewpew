@@ -248,8 +248,8 @@ class CalculatorTool(ToolWidget):
         self.lineedit_name.textEdited.connect(self.completeChanged)
         self.lineedit_name.editingFinished.connect(self.refresh)
 
-        self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.activated.connect(self.insertVariable)
+        self.combo_element = QtWidgets.QComboBox()
+        self.combo_element.activated.connect(self.insertVariable)
 
         functions = [k + v[0][1] for k, v in CalculatorTool.functions.items()]
         tooltips = [v[0][2] for v in CalculatorTool.functions.values()]
@@ -273,7 +273,7 @@ class CalculatorTool(ToolWidget):
         )
 
         layout_combos = QtWidgets.QHBoxLayout()
-        layout_combos.addWidget(self.combo_isotope)
+        layout_combos.addWidget(self.combo_element)
         layout_combos.addWidget(self.combo_function)
 
         layout_graphics = QtWidgets.QVBoxLayout()
@@ -293,28 +293,28 @@ class CalculatorTool(ToolWidget):
         self.modified = True
         name = self.lineedit_name.text()
         data = self.reducer.reduce(self.formula.expr)
-        if name in self.widget.laser.isotopes:
+        if name in self.widget.laser.elements:
             self.widget.laser.data[name] = data
         else:
             self.widget.laser.add(self.lineedit_name.text(), data)
-        # Make sure to repop isotopes
-        self.widget.populateIsotopes()
+        # Make sure to repop elements
+        self.widget.populateElements()
 
         self.initialise()
 
     def initialise(self) -> None:
-        isotopes = self.widget.laser.isotopes
-        self.combo_isotope.clear()
-        self.combo_isotope.addItem("Isotopes")
-        self.combo_isotope.addItems(isotopes)
+        elements = self.widget.laser.elements
+        self.combo_element.clear()
+        self.combo_element.addItem("Elements")
+        self.combo_element.addItems(elements)
 
         name = "calc0"
         i = 1
-        while name in isotopes:
+        while name in elements:
             name = f"calc{i}"
             i += 1
         self.lineedit_name.setText(name)
-        self.formula.parser.variables = isotopes
+        self.formula.parser.variables = elements
         self.formula.setCompleter(
             QtWidgets.QCompleter(
                 list(self.formula.parser.variables)
@@ -322,7 +322,7 @@ class CalculatorTool(ToolWidget):
             )
         )
         self.formula.valid = True
-        self.formula.setText(self.widget.combo_isotope.currentText())  # refreshes
+        self.formula.setText(self.widget.combo_element.currentText())  # refreshes
 
     def insertFunction(self, index: int) -> None:
         if index == 0:
@@ -336,8 +336,8 @@ class CalculatorTool(ToolWidget):
     def insertVariable(self, index: int) -> None:
         if index == 0:
             return
-        self.formula.insertPlainText(self.combo_isotope.itemText(index))
-        self.combo_isotope.setCurrentIndex(0)
+        self.formula.insertPlainText(self.combo_element.itemText(index))
+        self.combo_element.setCurrentIndex(0)
         self.formula.setFocus()
 
     def isComplete(self) -> bool:

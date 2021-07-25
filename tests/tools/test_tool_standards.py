@@ -36,8 +36,8 @@ def test_standards_tool(qtbot: QtBot):
         index = tool.table.model().index(i, 0)
         tool.table.model().setData(index, i)
 
-    # Change isotope, check weighting
-    tool.combo_isotope.setCurrentIndex(1)
+    # Change element, check weighting
+    tool.combo_element.setCurrentIndex(1)
     assert not tool.table.isComplete()
     for i in range(0, tool.table.model().rowCount()):
         index = tool.table.model().index(i, 0)
@@ -55,8 +55,8 @@ def test_standards_tool(qtbot: QtBot):
     assert tool.calibration["B2"].weighting == "y"
     assert np.isclose(tool.calibration["B2"].gradient, 1.954022988)
 
-    # Change isotope back, check weighting, unit, table restored
-    tool.combo_isotope.setCurrentIndex(0)
+    # Change element back, check weighting, unit, table restored
+    tool.combo_element.setCurrentIndex(0)
     assert tool.isComplete()
     assert tool.lineedit_units.text() == "unit"
     assert tool.combo_weighting.currentIndex() == 2
@@ -65,7 +65,7 @@ def test_standards_tool(qtbot: QtBot):
     tool.combo_weighting.setCurrentIndex(1)
     assert np.all(tool.calibration["A1"].weights == 4.0)
 
-    tool.combo_isotope.setCurrentIndex(1)
+    tool.combo_element.setCurrentIndex(1)
     dlg = tool.showCurve()
     qtbot.waitForWindowShown(dlg)
     dlg.close()

@@ -195,14 +195,14 @@ class ConfigPage(QtWidgets.QWizardPage):
 
     def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.setTitle("Isotopes and Config")
+        self.setTitle("Elements and Config")
 
         self._datas: List[np.ndarray] = []
         self._infos: List[dict] = []
 
-        self.label_isotopes = QtWidgets.QLabel()
-        self.button_isotopes = QtWidgets.QPushButton("Edit Names")
-        self.button_isotopes.pressed.connect(self.buttonNamesPressed)
+        self.label_elements = QtWidgets.QLabel()
+        self.button_elements = QtWidgets.QPushButton("Edit Names")
+        self.button_elements.pressed.connect(self.buttonNamesPressed)
 
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setText(str(config.spotsize))
@@ -228,10 +228,10 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.lineedit_aspect = QtWidgets.QLineEdit()
         self.lineedit_aspect.setEnabled(False)
 
-        layout_isotopes = QtWidgets.QHBoxLayout()
-        layout_isotopes.addWidget(QtWidgets.QLabel("Isotopes:"), 0, QtCore.Qt.AlignLeft)
-        layout_isotopes.addWidget(self.label_isotopes, 1)
-        layout_isotopes.addWidget(self.button_isotopes, 0, QtCore.Qt.AlignRight)
+        layout_elements = QtWidgets.QHBoxLayout()
+        layout_elements.addWidget(QtWidgets.QLabel("Elements:"), 0, QtCore.Qt.AlignLeft)
+        layout_elements.addWidget(self.label_elements, 1)
+        layout_elements.addWidget(self.button_elements, 0, QtCore.Qt.AlignRight)
 
         config_box = QtWidgets.QGroupBox("Config")
         layout_config = QtWidgets.QFormLayout()
@@ -245,7 +245,7 @@ class ConfigPage(QtWidgets.QWizardPage):
         layout.addWidget(
             QtWidgets.QLabel("Edit imported elements and laser configuration."), 0
         )
-        layout.addLayout(layout_isotopes)
+        layout.addLayout(layout_elements)
         layout.addWidget(config_box)
 
         self.setLayout(layout)
@@ -307,9 +307,9 @@ class ConfigPage(QtWidgets.QWizardPage):
 
     def setElidedNames(self, names: List[str]) -> None:
         text = ", ".join(name for name in names)
-        fm = QtGui.QFontMetrics(self.label_isotopes.font())
-        text = fm.elidedText(text, QtCore.Qt.ElideRight, self.label_isotopes.width())
-        self.label_isotopes.setText(text)
+        fm = QtGui.QFontMetrics(self.label_elements.font())
+        text = fm.elidedText(text, QtCore.Qt.ElideRight, self.label_elements.width())
+        self.label_elements.setText(text)
 
     def updateNames(self, rename: dict) -> None:
         datas = self.field("laserdata")

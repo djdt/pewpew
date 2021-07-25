@@ -32,15 +32,15 @@ def test_laser_view_space(qtbot: QtBot):
 
     viewspace.splitActiveHorizontal()
 
-    assert viewspace.currentIsotope() is None
+    assert viewspace.currentElement() is None
 
     viewspace.views[0].addLaser(Laser(rand_data(["A1", "B2"])))
     viewspace.views[0].addLaser(Laser(rand_data(["A1", "C3"])))
     viewspace.views[1].addLaser(Laser(rand_data(["A1", "C3"])))
     viewspace.views[1].addLaser(Laser(rand_data(["B2", "D4"])))
 
-    assert viewspace.uniqueIsotopes() == ["A1", "B2", "C3", "D4"]
-    assert viewspace.currentIsotope() == "A1"
+    assert viewspace.uniqueElements() == ["A1", "B2", "C3", "D4"]
+    assert viewspace.currentElement() == "A1"
 
     # Apply config
     viewspace.applyConfig(Config(10, 10, 10))
@@ -56,22 +56,22 @@ def test_laser_view_space(qtbot: QtBot):
     qtbot.waitForWindowShown(viewspace)
     for view in viewspace.views:
         for widget in view.widgets():
-            if "A1" in widget.laser.isotopes:
+            if "A1" in widget.laser.elements:
                 assert widget.laser.calibration["A1"].intercept == 1.0
                 assert widget.laser.calibration["A1"].gradient == 1.0
-            if "B2" in widget.laser.isotopes:
+            if "B2" in widget.laser.elements:
                 assert widget.laser.calibration["B2"].intercept == 2.0
                 assert widget.laser.calibration["B2"].gradient == 2.0
-            if "C3" in widget.laser.isotopes:
+            if "C3" in widget.laser.elements:
                 assert widget.laser.calibration["C3"].intercept == 0.0
                 assert widget.laser.calibration["C3"].gradient == 1.0
 
-    # Check isotope changed if avilable
-    assert viewspace.views[0].activeWidget().combo_isotope.currentText() == "A1"
-    assert viewspace.views[1].activeWidget().combo_isotope.currentText() == "A1"
-    viewspace.setCurrentIsotope("B2")
-    assert viewspace.views[0].activeWidget().combo_isotope.currentText() == "B2"
-    assert viewspace.views[1].activeWidget().combo_isotope.currentText() == "A1"
+    # Check element changed if avilable
+    assert viewspace.views[0].activeWidget().combo_element.currentText() == "A1"
+    assert viewspace.views[1].activeWidget().combo_element.currentText() == "A1"
+    viewspace.setCurrentElement("B2")
+    assert viewspace.views[0].activeWidget().combo_element.currentText() == "B2"
+    assert viewspace.views[1].activeWidget().combo_element.currentText() == "A1"
     # Close all
     for view in viewspace.views:
         for widget in view.widgets():
@@ -162,7 +162,7 @@ def test_laser_widget(qtbot: QtBot):
     assert widget.laser.calibration["B2"].intercept == 2.0
 
     widget.updateNames({"A1": "A1", "B2": "2B"})
-    assert np.all(viewspace.uniqueIsotopes() == ["2B", "A1"])
+    assert np.all(viewspace.uniqueElements() == ["2B", "A1"])
 
     widget.transform(flip="horizontal")
     assert np.all(widget.laser.get("A1") == np.flip(y, axis=1))

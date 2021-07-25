@@ -261,8 +261,8 @@ class DriftTool(ToolWidget):
 
         self.chart = DriftChart(parent=self)
 
-        self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.activated.connect(self.refresh)
+        self.combo_element = QtWidgets.QComboBox()
+        self.combo_element.activated.connect(self.refresh)
 
         self.spinbox_degree = QtWidgets.QSpinBox()
         self.spinbox_degree.setRange(0, 9)
@@ -289,7 +289,7 @@ class DriftTool(ToolWidget):
         layout_graphics = QtWidgets.QVBoxLayout()
         layout_graphics.addWidget(self.graphics, 2)
         layout_graphics.addWidget(self.chart, 1)
-        layout_graphics.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+        layout_graphics.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
         self.box_graphics.setLayout(layout_graphics)
 
         layout_norm = QtWidgets.QVBoxLayout()
@@ -316,9 +316,9 @@ class DriftTool(ToolWidget):
             raise ValueError("Unknown normalisation method.")
 
         if self.check_apply_all.isChecked():
-            names = self.widget.laser.isotopes
+            names = self.widget.laser.elements
         else:
-            names = [self.combo_isotope.currentText()]
+            names = [self.combo_element.currentText()]
 
         for name in names:
             transpose = self.widget.laser.data[name].T
@@ -327,9 +327,9 @@ class DriftTool(ToolWidget):
         self.refresh()
 
     def initialise(self) -> None:
-        isotopes = self.widget.laser.isotopes
-        self.combo_isotope.clear()
-        self.combo_isotope.addItems(isotopes)
+        elements = self.widget.laser.elements
+        self.combo_element.clear()
+        self.combo_element.addItems(elements)
 
         self.refresh()
 
@@ -371,17 +371,17 @@ class DriftTool(ToolWidget):
         self.lineedit_normalise.setText(f"{value:.8g}")
 
     def refresh(self) -> None:
-        isotope = self.combo_isotope.currentText()
+        element = self.combo_element.currentText()
 
-        data = self.widget.laser.get(isotope, flat=True, calibrated=False)
+        data = self.widget.laser.get(element, flat=True, calibrated=False)
 
         x0, x1, y0, y1 = self.widget.laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
-        self.graphics.drawImage(data, rect, isotope)
+        self.graphics.drawImage(data, rect, element)
         if self.graphics.guide is None:
             self.graphics.drawGuides()
-        self.graphics.label.setText(isotope)
+        self.graphics.label.setText(element)
 
         self.graphics.setOverlayItemVisibility()
         self.graphics.updateForeground()

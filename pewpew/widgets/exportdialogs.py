@@ -277,10 +277,10 @@ class ExportDialog(_ExportDialogBase):
         self.check_calibrate.setChecked(True)
         self.check_calibrate.setToolTip("Calibrate the data before exporting.")
 
-        self.check_export_all = QtWidgets.QCheckBox("Export all isotopes.")
+        self.check_export_all = QtWidgets.QCheckBox("Export all elements.")
         self.check_export_all.setToolTip(
-            "Export all isotopes for the current image.\n"
-            "The filename will be appended with the isotopes name."
+            "Export all elements for the current image.\n"
+            "The filename will be appended with the elements name."
         )
         self.check_export_all.clicked.connect(self.updatePreview)
 
@@ -333,7 +333,7 @@ class ExportDialog(_ExportDialogBase):
     def updatePreview(self) -> None:
         path = Path(self.lineedit_filename.text())
         if self.isExportAll():
-            path = path.with_name(path.stem + "_<isotope>")
+            path = path.with_name(path.stem + "_<element>")
         if self.isExportLayers():
             path = path.with_name(path.stem + "_<layer#>")
 
@@ -355,9 +355,9 @@ class ExportDialog(_ExportDialogBase):
             path = path.with_suffix(self.options.currentExt())
         return Path(self.lineedit_directory.text()).joinpath(path)
 
-    def getPathForIsotope(self, path: Path, isotope: str) -> Path:
+    def getPathForElement(self, path: Path, element: str) -> Path:
         return path.with_name(
-            path.stem + "_" + isotope.translate(self.invalid_map) + path.suffix
+            path.stem + "_" + element.translate(self.invalid_map) + path.suffix
         )
 
     def getPathForLayer(self, path: Path, layer: int) -> Path:
@@ -365,12 +365,12 @@ class ExportDialog(_ExportDialogBase):
 
     def generatePaths(self, laser: Laser) -> List[Tuple[Path, str, Optional[int]]]:
         paths: List[Tuple[Path, str, Optional[int]]] = [
-            (self.getPath(), self.widget.combo_isotope.currentText(), None)
+            (self.getPath(), self.widget.combo_element.currentText(), None)
         ]
         if self.isExportAll():
             paths = [
-                (self.getPathForIsotope(p, i), i, None)
-                for i in laser.isotopes
+                (self.getPathForElement(p, i), i, None)
+                for i in laser.elements
                 for (p, _, _) in paths
             ]
         if self.isExportLayers():
@@ -382,21 +382,21 @@ class ExportDialog(_ExportDialogBase):
 
         return [p for p in paths if p[0] != ""]
 
-    def export(self, path: Path, isotope: str, layer: Optional[int], widget: _ViewWidget) -> None:
+    def export(self, path: Path, element: str, layer: Optional[int], widget: _ViewWidget) -> None:
         option = self.options.currentOption()
 
         if option.ext == ".csv":
             kwargs = {"calibrate": self.isCalibrate(), "flat": True}
-            if isotope in widget.laser.isotopes:
-                data = widget.laser.get(isotope, layer=layer, **kwargs)
+            if element in widget.laser.elements:
+                data = widget.laser.get(element, layer=layer, **kwargs)
                 io.textimage.save(path, data)
 
         elif option.ext == ".png":
-            if isotope in widget.laser.isotopes:
+            if element in widget.laser.elements:
 
                 self.widget.graphics.drawLaser(
                     self.widget.laser,
-                    isotope,
+                    element,
                     layer=self.widget.current_layer,
                 )
                 if self.widget.graphics.widget is not None:
@@ -439,8 +439,8 @@ class ExportDialog(_ExportDialogBase):
             return
 
         try:
-            for path, isotope, layer in paths:
-                self.export(path, isotope, layer, self.widget)
+            for path, element, layer in paths:
+                self.export(path, element, layer, self.widget)
         except Exception as e:  # pragma: no cover
             logger.exception(e)
             QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
@@ -454,11 +454,11 @@ class ExportAllDialog(ExportDialog):
     def __init__(self, widgets: List[_ViewWidget], parent: QtWidgets.QWidget = None):
         unique: Set[str] = set()
         for widget in widgets:
-            unique.update(widget.laser.isotopes)
-        isotopes = sorted(unique)
+            unique.update(widget.laser.elements)
+        elements = sorted(unique)
 
-        self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.addItems(isotopes)
+        self.combo_element = QtWidgets.QComboBox()
+        self.combo_element.addItems(elements)
         self.lineedit_prefix = QtWidgets.QLineEdit("")
         prefix_regexp = QtCore.QRegExp(f"[^{self.invalid_chars}]+")
         self.lineedit_prefix.setValidator(QtGui.QRegExpValidator(prefix_regexp))
@@ -474,17 +474,17 @@ class ExportAllDialog(ExportDialog):
         label.setText("Prefix:")
         self.layout_form.replaceWidget(self.lineedit_filename, self.lineedit_prefix)
 
-        self.layout_form.addRow("Isotope:", self.combo_isotope)
+        self.layout_form.addRow("Element:", self.combo_element)
 
-        self.check_export_all.stateChanged.connect(self.showIsotopes)
-        self.showIsotopes()
+        self.check_export_all.stateChanged.connect(self.showElements)
+        self.showElements()
 
-    def showIsotopes(self) -> None:
-        self.combo_isotope.setEnabled(self.allowExportAll() and not self.isExportAll())
+    def showElements(self) -> None:
+        self.combo_element.setEnabled(self.allowExportAll() and not self.isExportAll())
 
     def typeChanged(self, index: int) -> None:
         super().typeChanged(index)
-        self.showIsotopes()
+        self.showElements()
 
     def updatePreview(self) -> None:
         path = Path(self.lineedit_filename.text())
@@ -492,7 +492,7 @@ class ExportAllDialog(ExportDialog):
         if prefix != "":
             path = path.with_name(prefix + "_" + path.name)
         if self.isExportAll():
-            path = path.with_name(path.stem + "_<isotope>" + path.suffix)
+            path = path.with_name(path.stem + "_<element>" + path.suffix)
         self.lineedit_preview.setText(str(path))
 
     def getPath(self, name: str) -> Path:
@@ -510,14 +510,14 @@ class ExportAllDialog(ExportDialog):
         paths: List[Tuple[Path, str, Optional[int]]] = [
             (
                 self.getPath(laser.info["Name"]),
-                self.widget.combo_isotope.currentText(),
+                self.widget.combo_element.currentText(),
                 None,
             )
         ]
         if self.isExportAll():
             paths = [
-                (self.getPathForIsotope(p, i), i, None)
-                for i in laser.isotopes
+                (self.getPathForElement(p, i), i, None)
+                for i in laser.elements
                 for (p, _, _) in paths
             ]
         if self.isExportLayers():
@@ -551,11 +551,11 @@ class ExportAllDialog(ExportDialog):
         try:
             for paths, widget in zip(all_paths, self.widgets):
                 widget.setActive()
-                for path, isotope, layer in paths:
+                for path, element, layer in paths:
                     dlg.setValue(exported)
                     if dlg.wasCanceled():
                         break
-                    self.export(path, isotope, layer, widget)
+                    self.export(path, element, layer, widget)
                     exported += 1
         except Exception as e:  # pragma: no cover
             logger.exception(e)

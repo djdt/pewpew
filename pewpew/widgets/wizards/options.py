@@ -291,9 +291,9 @@ class TextOptions(_OptionsBase):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__("Text Image", "File", [".csv", ".text", ".txt"], parent)
 
-        self.lineedit_name = QtWidgets.QLineEdit("_Isotope_")
+        self.lineedit_name = QtWidgets.QLineEdit("_Element_")
         layout = QtWidgets.QFormLayout()
-        layout.addRow("Isotope Name:", self.lineedit_name)
+        layout.addRow("Element Name:", self.lineedit_name)
 
         self.setLayout(layout)
 

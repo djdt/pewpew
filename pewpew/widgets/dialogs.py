@@ -204,7 +204,7 @@ class CalibrationDialog(ApplyDialog):
     def __init__(
         self,
         calibrations: Dict[str, Calibration],
-        current_isotope: str,
+        current_element: str,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
@@ -237,19 +237,19 @@ class CalibrationDialog(ApplyDialog):
         self.lineedit_unit = QtWidgets.QLineEdit()
         self.lineedit_unit.setPlaceholderText("")
 
-        # Isotope combo
-        self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.addItems(list(self.calibrations.keys()))
-        self.combo_isotope.setCurrentText(current_isotope)
-        self.previous_index = self.combo_isotope.currentIndex()
-        self.combo_isotope.currentIndexChanged.connect(self.comboChanged)
+        # Element combo
+        self.combo_element = QtWidgets.QComboBox()
+        self.combo_element.addItems(list(self.calibrations.keys()))
+        self.combo_element.setCurrentText(current_element)
+        self.previous_index = self.combo_element.currentIndex()
+        self.combo_element.currentIndexChanged.connect(self.comboChanged)
 
         # Check all
         self.check_all = QtWidgets.QCheckBox("Apply calibration to all images.")
 
         # Button to plot
         self.button_plot = QtWidgets.QPushButton("Plot")
-        self.button_plot.setEnabled(self.calibrations[current_isotope].points.size > 0)
+        self.button_plot.setEnabled(self.calibrations[current_element].points.size > 0)
         self.button_plot.pressed.connect(self.showCurve)
 
         self.points = CalibrationPointsWidget(self)
@@ -258,9 +258,9 @@ class CalibrationDialog(ApplyDialog):
         self.points.model.dataChanged.connect(self.updateLineEdits)
         self.points.model.dataChanged.connect(self.updatePlotEnabled)
 
-        layout_isotopes = QtWidgets.QHBoxLayout()
-        layout_isotopes.addWidget(self.button_plot, 0, QtCore.Qt.AlignLeft)
-        layout_isotopes.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+        layout_elements = QtWidgets.QHBoxLayout()
+        layout_elements.addWidget(self.button_plot, 0, QtCore.Qt.AlignLeft)
+        layout_elements.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
 
         # Form layout for line edits
         layout_form = QtWidgets.QFormLayout()
@@ -275,13 +275,13 @@ class CalibrationDialog(ApplyDialog):
         self.layout_main.addLayout(layout_horz)
         self.layout_main.addWidget(self.points)
         self.layout_main.addWidget(self.check_all)
-        self.layout_main.addLayout(layout_isotopes)
+        self.layout_main.addLayout(layout_elements)
 
         self.updateLineEdits()
         self.updatePoints()
 
     def apply(self) -> None:
-        self.updateCalibration(self.combo_isotope.currentText())
+        self.updateCalibration(self.combo_element.currentText())
         if self.check_all.isChecked():
             self.calibrationApplyAll.emit(self.calibrations)
         else:
@@ -289,7 +289,7 @@ class CalibrationDialog(ApplyDialog):
 
     def copyToClipboard(self) -> None:
         """Copy the current calibration to the system clipboard."""
-        name = self.combo_isotope.currentText()
+        name = self.combo_element.currentText()
         self.updateCalibration(name)
 
         text = (
@@ -316,7 +316,7 @@ class CalibrationDialog(ApplyDialog):
 
     def copyAllToClipboard(self) -> None:
         """Copy all calibrations to the system clipboard."""
-        name = self.combo_isotope.currentText()
+        name = self.combo_element.currentText()
         self.updateCalibration(name)
 
         names = "\t".join(name for name in self.calibrations)
@@ -343,25 +343,25 @@ class CalibrationDialog(ApplyDialog):
         QtWidgets.QApplication.clipboard().setMimeData(mime)
 
     def comboChanged(self) -> None:
-        previous = self.combo_isotope.itemText(self.previous_index)
+        previous = self.combo_element.itemText(self.previous_index)
 
         self.updateCalibration(previous)
         self.updateLineEdits()
         self.updatePoints()
         self.updatePlotEnabled()
 
-        self.previous_index = self.combo_isotope.currentIndex()
+        self.previous_index = self.combo_element.currentIndex()
 
     def updatePlotEnabled(self) -> None:
-        points = self.calibrations[self.combo_isotope.currentText()].points
+        points = self.calibrations[self.combo_element.currentText()].points
         no_nans = ~np.isnan(points).any(axis=1)
         self.button_plot.setEnabled(np.count_nonzero(no_nans) >= 2)
 
     def showCurve(self) -> None:
         """Plot the current calibration in a new dialog."""
         dlg = CalibrationCurveDialog(
-            self.combo_isotope.currentText(),
-            self.calibrations[self.combo_isotope.currentText()],
+            self.combo_element.currentText(),
+            self.calibrations[self.combo_element.currentText()],
             parent=self,
         )
         dlg.show()
@@ -379,7 +379,7 @@ class CalibrationDialog(ApplyDialog):
             self.calibrations[name].unit = unit
 
     def updateLineEdits(self) -> None:
-        name = self.combo_isotope.currentText()
+        name = self.combo_element.currentText()
 
         gradient = self.calibrations[name].gradient
         if gradient == 1.0:
@@ -398,7 +398,7 @@ class CalibrationDialog(ApplyDialog):
             self.lineedit_unit.setText(str(unit))
 
     def updatePoints(self) -> None:
-        name = self.combo_isotope.currentText()
+        name = self.combo_element.currentText()
         self.points.model.setCalibration(self.calibrations[name], resize=True)
         self.points.setCurrentWeighting(self.calibrations[name].weighting)
 
@@ -442,8 +442,8 @@ class ColorRangeDialog(ApplyDialog):
     Args:
         ranges: the current ranges
         default_range: current default range
-        isotopes: availble elements
-        current_isotope: start dialog with this element
+        elements: availble elements
+        current_element: start dialog with this element
         parent: aprent widget
     """
 
@@ -451,14 +451,14 @@ class ColorRangeDialog(ApplyDialog):
         self,
         ranges: Dict[str, Tuple[Union[float, str], Union[float, str]]],
         default_range: Tuple[Union[float, str], Union[float, str]],
-        isotopes: List[str],
-        current_isotope: str = None,
+        elements: List[str],
+        current_element: str = None,
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(parent)
         self.default_range = default_range
         self.ranges = copy.copy(ranges)
-        self.previous_isotope = current_isotope
+        self.previous_element = current_element
         self.setWindowTitle("Colormap Range")
 
         self.lineedit_min = QtWidgets.QLineEdit()
@@ -472,31 +472,31 @@ class ColorRangeDialog(ApplyDialog):
         )
         self.lineedit_max.setToolTip("Percentile for maximum colormap value.")
 
-        # Only add the isotopes combo if there are any open files
-        self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.addItems(isotopes)
-        self.combo_isotope.setCurrentText(self.previous_isotope)
-        self.combo_isotope.currentIndexChanged.connect(self.comboChanged)
-        self.combo_isotope.setVisible(len(isotopes) > 0)
+        # Only add the elements combo if there are any open files
+        self.combo_element = QtWidgets.QComboBox()
+        self.combo_element.addItems(elements)
+        self.combo_element.setCurrentText(self.previous_element)
+        self.combo_element.currentIndexChanged.connect(self.comboChanged)
+        self.combo_element.setVisible(len(elements) > 0)
 
         # Checkbox
         self.check_all = QtWidgets.QCheckBox("Apply range to all elements.")
-        self.check_all.setChecked(len(isotopes) == 0)
-        self.check_all.setEnabled(len(isotopes) > 0)
-        self.check_all.clicked.connect(self.enableComboIsotope)
+        self.check_all.setChecked(len(elements) == 0)
+        self.check_all.setEnabled(len(elements) > 0)
+        self.check_all.clicked.connect(self.enableComboElement)
 
         layout_form = QtWidgets.QFormLayout()
         layout_form.addRow("Minimum:", self.lineedit_min)
         layout_form.addRow("Maximum:", self.lineedit_max)
 
         self.layout_main.addLayout(layout_form)
-        self.layout_main.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+        self.layout_main.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
         self.layout_main.addWidget(self.check_all)
 
         self.updateLineEdits()
 
-    def enableComboIsotope(self, enabled: bool) -> None:
-        self.combo_isotope.setEnabled(not enabled)
+    def enableComboElement(self, enabled: bool) -> None:
+        self.combo_element.setEnabled(not enabled)
         self.updateLineEdits()
 
     def updateLineEdits(self) -> None:
@@ -505,12 +505,12 @@ class ColorRangeDialog(ApplyDialog):
         tmin, tmax = "", ""
 
         # If the combobox is disabled then shown default range as true text
-        if self.combo_isotope.isEnabled():
+        if self.combo_element.isEnabled():
             # tmin, tmax = "", ""
-            # If there is a current isotope then update text to it's value, if exists
-            current_isotope = self.combo_isotope.currentText()
-            if current_isotope in self.ranges:
-                range = self.ranges[current_isotope]
+            # If there is a current element then update text to it's value, if exists
+            current_element = self.combo_element.currentText()
+            if current_element in self.ranges:
+                range = self.ranges[current_element]
                 tmin, tmax = str(range[0]), str(range[1])
 
         else:
@@ -520,13 +520,13 @@ class ColorRangeDialog(ApplyDialog):
         self.lineedit_max.setText(tmax)
 
     def comboChanged(self) -> None:
-        self.updateRange(self.previous_isotope)
+        self.updateRange(self.previous_element)
         self.updateLineEdits()
-        self.previous_isotope = self.combo_isotope.currentText()
+        self.previous_element = self.combo_element.currentText()
 
-    def updateRange(self, isotope: str = None) -> None:
+    def updateRange(self, element: str = None) -> None:
         tmin, tmax = self.lineedit_min.text(), self.lineedit_max.text()
-        vmin, vmax = self.ranges.get(isotope or "", self.default_range)
+        vmin, vmax = self.ranges.get(element or "", self.default_range)
 
         if tmin != "":
             vmin = tmin if "%" in tmin else float(tmin)
@@ -537,15 +537,15 @@ class ColorRangeDialog(ApplyDialog):
         if tmin == "" and tmax == "":
             return  # pragma: no cover
 
-        if isotope is not None:
-            self.ranges[isotope] = (vmin, vmax)
+        if element is not None:
+            self.ranges[element] = (vmin, vmax)
         else:
             self.ranges = {}
             self.default_range = (vmin, vmax)
 
     def apply(self) -> None:
-        current_isotope = self.combo_isotope.currentText()
-        self.updateRange(current_isotope if self.combo_isotope.isEnabled() else None)
+        current_element = self.combo_element.currentText()
+        self.updateRange(current_element if self.combo_element.isEnabled() else None)
 
 
 class ColocalisationDialog(QtWidgets.QDialog):
@@ -1089,19 +1089,19 @@ class StatsDialog(QtWidgets.QDialog):
         data: structured array of elements
         mask: mask for input, shape shape as `x`
         units: dict mapping data names to a str
-        isotope: display this element at open
+        element: display this element at open
         pixel_size: size of a pixel in μm, for area
         parent: parent widget
     """
 
-    isotope_changed = QtCore.Signal(str)
+    element_changed = QtCore.Signal(str)
 
     def __init__(
         self,
         data: np.ndarray,
         mask: np.ndarray,
         units: Dict[str, str],
-        isotope: str,
+        element: str,
         pixel_size: Tuple[float, float] = None,
         parent: QtWidgets.QWidget = None,
     ):
@@ -1123,11 +1123,11 @@ class StatsDialog(QtWidgets.QDialog):
             self.button_clipboard, QtWidgets.QDialogButtonBox.ActionRole
         )
 
-        self.combo_isotope = QtWidgets.QComboBox()
-        self.combo_isotope.addItems(self.data.dtype.names or [isotope])
-        self.combo_isotope.setCurrentText(isotope)
-        self.combo_isotope.currentIndexChanged.connect(self.updateStats)
-        self.combo_isotope.currentTextChanged.connect(self.isotope_changed)
+        self.combo_element = QtWidgets.QComboBox()
+        self.combo_element.addItems(self.data.dtype.names or [element])
+        self.combo_element.setCurrentText(element)
+        self.combo_element.currentIndexChanged.connect(self.updateStats)
+        self.combo_element.currentTextChanged.connect(self.element_changed)
 
         self.label_shape = QtWidgets.QLabel()
         self.label_size = QtWidgets.QLabel()
@@ -1160,7 +1160,7 @@ class StatsDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.chart)
         layout.addWidget(stats_box)
-        layout.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+        layout.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
         layout.addWidget(self.button_box)
         self.setLayout(layout)
 
@@ -1206,9 +1206,9 @@ class StatsDialog(QtWidgets.QDialog):
         QtWidgets.QApplication.clipboard().setMimeData(mime)
 
     def updateStats(self) -> None:
-        isotope = self.combo_isotope.currentText()
-        data = self.data[isotope]
-        unit = self.units.get(isotope, "")
+        element = self.combo_element.currentText()
+        data = self.data[element]
+        unit = self.units.get(element, "")
 
         self.label_shape.setText(str(data.shape))
         self.label_size.setText(str(data.size))

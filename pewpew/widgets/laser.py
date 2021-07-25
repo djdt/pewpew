@@ -46,14 +46,14 @@ class LaserViewSpace(ViewSpace):
         self.config = Config()
         self.options = GraphicsOptions()
 
-    def uniqueIsotopes(self) -> List[str]:
+    def uniqueElements(self) -> List[str]:
         """Return set of unqiue elements from all open images."""
-        isotopes: Set[str] = set()
+        elements: Set[str] = set()
         for view in self.views:
             for widget in view.widgets():
                 if isinstance(widget, LaserWidget):
-                    isotopes.update(widget.laser.isotopes)
-        return sorted(isotopes)
+                    elements.update(widget.laser.elements)
+        return sorted(elements)
 
     def createView(self) -> "LaserView":
         """Override for ViewSpace."""
@@ -63,17 +63,17 @@ class LaserViewSpace(ViewSpace):
         self.numViewsChanged.emit()
         return view
 
-    def currentIsotope(self) -> Optional[str]:
+    def currentElement(self) -> Optional[str]:
         """The active element name from the active image."""
         widget = self.activeWidget()
         if widget is None:
             return None
-        return widget.current_isotope
+        return widget.current_element
 
-    def setCurrentIsotope(self, isotope: str) -> None:
+    def setCurrentElement(self, element: str) -> None:
         """Set the active element name in all views."""
         for view in self.views:
-            view.setCurrentIsotope(isotope)
+            view.setCurrentElement(element)
 
     def applyCalibration(self, calibration: Dict[str, Calibration]) -> None:
         """Set the calibration in all views."""
@@ -98,11 +98,11 @@ class LaserViewSpace(ViewSpace):
         dlg = dialogs.ColorRangeDialog(
             self.options._colorranges,
             self.options.colorrange_default,
-            self.uniqueIsotopes(),
-            current_isotope=self.currentIsotope(),
+            self.uniqueElements(),
+            current_element=self.currentElement(),
             parent=self,
         )
-        dlg.combo_isotope.currentTextChanged.connect(self.setCurrentIsotope)
+        dlg.combo_element.currentTextChanged.connect(self.setCurrentElement)
         dlg.applyPressed.connect(applyDialog)
         dlg.open()
         return dlg
@@ -170,11 +170,11 @@ class LaserView(View):
         self.addTab(name, widget)
         return widget
 
-    def setCurrentIsotope(self, isotope: str) -> None:
+    def setCurrentElement(self, element: str) -> None:
         """Set displayed element in all tabs."""
         for widget in self.widgets():
-            if isotope in widget.laser.isotopes:
-                widget.current_isotope = isotope
+            if element in widget.laser.elements:
+                widget.current_element = element
 
     # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
@@ -309,11 +309,11 @@ class LaserWidget(_ViewWidget):
             self.combo_layers.setEnabled(False)
             self.combo_layers.setVisible(False)
 
-        self.combo_isotope = LaserComboBox()
-        self.combo_isotope.namesSelected.connect(self.updateNames)
-        self.combo_isotope.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
-        self.combo_isotope.currentIndexChanged.connect(self.refresh)
-        self.populateIsotopes()
+        self.combo_element = LaserComboBox()
+        self.combo_element.namesSelected.connect(self.updateNames)
+        self.combo_element.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        self.combo_element.currentIndexChanged.connect(self.refresh)
+        self.populateElements()
 
         self.action_calibration = qAction(
             "go-top",
@@ -465,7 +465,7 @@ class LaserWidget(_ViewWidget):
         self.view_button.addAction(self.action_zoom_out)
 
         self.graphics.viewport().installEventFilter(DragDropRedirectFilter(self))
-        self.combo_isotope.installEventFilter(self)
+        self.combo_element.installEventFilter(self)
         self.selection_button.installEventFilter(self)
         self.view_button.installEventFilter(self)
 
@@ -475,7 +475,7 @@ class LaserWidget(_ViewWidget):
         layout_bar.addWidget(self.view_button, 0, QtCore.Qt.AlignLeft)
         layout_bar.addStretch(1)
         layout_bar.addWidget(self.combo_layers, 0, QtCore.Qt.AlignRight)
-        layout_bar.addWidget(self.combo_isotope, 0, QtCore.Qt.AlignRight)
+        layout_bar.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.graphics, 1)
@@ -483,12 +483,12 @@ class LaserWidget(_ViewWidget):
         self.setLayout(layout)
 
     @property
-    def current_isotope(self) -> str:
-        return self.combo_isotope.currentText()
+    def current_element(self) -> str:
+        return self.combo_element.currentText()
 
-    @current_isotope.setter
-    def current_isotope(self, isotope: str) -> None:
-        self.combo_isotope.setCurrentText(isotope)
+    @current_element.setter
+    def current_element(self, element: str) -> None:
+        self.combo_element.setCurrentText(element)
 
     @property
     def current_layer(self) -> Optional[int]:
@@ -500,7 +500,7 @@ class LaserWidget(_ViewWidget):
     def refresh(self) -> None:
         """Redraw image."""
         self.graphics.drawLaser(
-            self.laser, self.current_isotope, layer=self.current_layer
+            self.laser, self.current_element, layer=self.current_layer
         )
         if self.graphics.widget is not None:
             self.graphics.widget.imageChanged(self.graphics.image, self.graphics.data)
@@ -521,17 +521,17 @@ class LaserWidget(_ViewWidget):
         dlg.setTextValue(name)
         dlg.setLabelText("Rename:")
         dlg.textValueSelected.connect(
-            lambda s: self.renameIsotope(self.current_isotope, s)
+            lambda s: self.renameElement(self.current_element, s)
         )
         dlg.open()
         return dlg
 
-    def renameIsotope(self, old: str, new: str) -> None:
+    def renameElement(self, old: str, new: str) -> None:
         """Rename a single element."""
         self.laser.rename({old: new})
         self.modified = True
-        self.populateIsotopes()
-        self.current_isotope = new
+        self.populateElements()
+        self.current_element = new
         self.refresh()
 
     def laserName(self) -> str:
@@ -541,12 +541,12 @@ class LaserWidget(_ViewWidget):
         path = Path(self.laser.info.get("File Path", ""))
         return path.with_name(self.laserName() + ext)
 
-    def populateIsotopes(self) -> None:
+    def populateElements(self) -> None:
         """Repopulate the element combo box."""
-        self.combo_isotope.blockSignals(True)
-        self.combo_isotope.clear()
-        self.combo_isotope.addItems(self.laser.isotopes)
-        self.combo_isotope.blockSignals(False)
+        self.combo_element.blockSignals(True)
+        self.combo_element.clear()
+        self.combo_element.addItems(self.laser.elements)
+        self.combo_element.blockSignals(False)
 
     def clearCursorStatus(self) -> None:
         """Clear window statusbar, if it exists."""
@@ -573,11 +573,11 @@ class LaserWidget(_ViewWidget):
 
     def updateNames(self, rename: dict) -> None:
         """Rename multiple elements."""
-        current = self.current_isotope
+        current = self.current_element
         self.laser.rename(rename)
-        self.populateIsotopes()
+        self.populateElements()
         current = rename[current]
-        self.current_isotope = current
+        self.current_element = current
 
         self.modified = True
 
@@ -651,9 +651,9 @@ class LaserWidget(_ViewWidget):
     def applyCalibration(self, calibrations: Dict[str, Calibration]) -> None:
         """Set laser calibrations."""
         modified = False
-        for isotope in calibrations:
-            if isotope in self.laser.calibration:
-                self.laser.calibration[isotope] = copy.copy(calibrations[isotope])
+        for element in calibrations:
+            if element in self.laser.calibration:
+                self.laser.calibration[element] = copy.copy(calibrations[element])
                 modified = True
         if modified:
             self.modified = True
@@ -691,7 +691,7 @@ class LaserWidget(_ViewWidget):
     def actionCalibration(self) -> QtWidgets.QDialog:
         """Open a `:class:pewpew.widgets.dialogs.CalibrationDialog` and applies result."""
         dlg = dialogs.CalibrationDialog(
-            self.laser.calibration, self.current_isotope, parent=self
+            self.laser.calibration, self.current_element, parent=self
         )
         dlg.calibrationSelected.connect(self.applyCalibration)
         dlg.calibrationApplyAll.connect(self.viewspace.applyCalibration)
@@ -797,7 +797,7 @@ class LaserWidget(_ViewWidget):
             data,
             mask,
             units,
-            self.current_isotope,
+            self.current_element,
             pixel_size=(
                 self.laser.config.get_pixel_width(),
                 self.laser.config.get_pixel_height(),

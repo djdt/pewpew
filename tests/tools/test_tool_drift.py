@@ -20,16 +20,16 @@ def test_tool_filter(qtbot: QtBot):
     view.addTab("Tool", tool)
     qtbot.waitForWindowShown(tool)
 
-    tool.combo_isotope.setCurrentText("a")
-    tool.combo_isotope.activated.emit(0)
+    tool.combo_element.setCurrentText("a")
+    tool.combo_element.activated.emit(0)
 
     tool.spinbox_degree.setValue(1)
     tool.apply()
 
     assert np.all(np.isclose(widget.laser.data["a"], widget.laser.data["a"][0][0]))
 
-    tool.combo_isotope.setCurrentText("b")
-    tool.combo_isotope.activated.emit(0)
+    tool.combo_element.setCurrentText("b")
+    tool.combo_element.activated.emit(0)
 
     assert not np.all(np.isclose(widget.laser.data["b"], widget.laser.data["c"][0][0]))
 
