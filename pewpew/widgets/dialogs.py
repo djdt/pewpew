@@ -1048,7 +1048,7 @@ class SelectionDialog(ApplyDialog):
             self.lineedit_manual.setEnabled(True)
             self.spinbox_method.setEnabled(False)
             self.spinbox_comparison.setEnabled(False)
-            self.threshold = float(self.lineedit_manual.text())
+            self.threshold = float(self.lineedit_manual.text() or np.inf)
         else:
             self.lineedit_manual.setEnabled(False)
             if var is not None:
