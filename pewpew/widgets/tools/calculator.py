@@ -371,7 +371,6 @@ class CalculatorTool(ToolWidget):
         data = self.previewData(self.widget.laser.get(flat=True, calibrated=False))
         if data is None:
             return
-        print(data.shape)
         x0, x1, y0, y1 = self.widget.laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
