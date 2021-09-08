@@ -786,7 +786,7 @@ class LaserWidget(_ViewWidget):
         """
         data = self.laser.get(calibrate=self.viewspace.options.calibrate, flat=True)
         mask = self.graphics.mask
-        if mask is None or crop_to_selection:
+        if mask is None or not crop_to_selection:
             mask = np.ones(data.shape, dtype=bool)
 
         units = {}
