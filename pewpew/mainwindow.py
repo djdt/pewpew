@@ -10,7 +10,6 @@ from pewpew import __version__
 from pewpew.actions import qAction, qActionGroup
 from pewpew.log import LoggingDialog
 from pewpew.help import HelpDialog
-from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.laser import LaserWidget, LaserViewSpace
 

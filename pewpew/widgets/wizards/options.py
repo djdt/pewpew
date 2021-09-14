@@ -835,7 +835,6 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
                 )
 
             option.sortkey = sortTimestamp
-        print(option.drop_nan_columns, option.drop_nan_rows)
 
         data, params = io.csv.load(path, option=option, full=True)
         return data, params, {}

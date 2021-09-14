@@ -26,3 +26,8 @@ pewpew
 ## Documentation
 
 Documentation is available at https://djdt.github.io/pewpew
+
+
+## Publications
+
+* [Pew2: Open-Source Imaging Software for Laser Ablation−Inductively Coupled Plasma−Mass Spectrometry](https://doi.org/10.1021/acs.analchem.1c02138)
