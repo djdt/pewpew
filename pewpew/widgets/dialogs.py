@@ -1181,19 +1181,23 @@ class StatsDialog(QtWidgets.QDialog):
         data += f"<tr><td>Area</td><td>{area}</td><td>μm²</td></tr>"
         text += f"Shape\t{area}\n"
 
-        data += "<tr><td>Name</td><td>Unit</td><td>Min</td><td>Max</td><td>Mean</td>"
-        "<td>Median</td><td>Std</tr>"
+        data += (
+            "<tr><td>Name</td><td>Unit</td><td>Min</td><td>Max</td><td>Mean</td>"
+            "<td>Median</td><td>Std</tr>"
+        )
         text += "Name\tUnit\tMin\tMax\tMean\tMedian\tStd\n"
 
         for name in self.data.dtype.names:
             nd = self.data[name]
             unit = self.units.get(str(name), "")
             nd = nd[~np.isnan(nd)]
+            print(nd)
 
-            data += f"<tr><td>{name}</td><td>{unit}</td><td>{np.min(nd)}</td>"
-            f"<td>{np.max(nd)}</td><td>{np.mean(nd)}</td><td>{np.median(nd)}</td>"
-            f"<td>{np.std(nd)}</td></tr>"
-
+            data += (
+                f"<tr><td>{name}</td><td>{unit}</td><td>{np.min(nd)}</td>"
+                f"<td>{np.max(nd)}</td><td>{np.mean(nd)}</td><td>{np.median(nd)}</td>"
+                f"<td>{np.std(nd)}</td></tr>"
+            )
             text += f"{name}\t{unit}\t{np.min(nd)}\t{np.max(nd)}\t"
             f"{np.mean(nd)}\t{np.median(nd)}\t{np.std(nd)}\n"
 
