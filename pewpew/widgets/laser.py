@@ -166,6 +166,7 @@ class LaserView(View):
     def addLaser(self, laser: Laser) -> "LaserWidget":
         """Open image of  a laser in a new tab."""
         widget = LaserWidget(laser, self.viewspace.options, self)
+
         name = laser.info.get("Name", "<No Name>")
         self.addTab(name, widget)
         return widget
@@ -296,10 +297,8 @@ class LaserWidget(_ViewWidget):
         self.graphics = LaserGraphicsView(options, parent=self)
         self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
         self.graphics.label.editRequested.connect(self.labelEditDialog)
-        self.graphics.colorbar.editRequested.connect(
-            self.viewspace.colortableRangeDialog
-        )
         self.graphics.setMouseTracking(True)
+        self.graphics.colorbar.editRequested.connect(self.actionRequestColorbarEdit)
 
         self.combo_layers = QtWidgets.QComboBox()
         self.combo_layers.addItem("*")
@@ -465,8 +464,11 @@ class LaserWidget(_ViewWidget):
         self.view_button.addAction(self.action_zoom_out)
 
         self.graphics.viewport().installEventFilter(DragDropRedirectFilter(self))
+        # Filters for setting active view
+        self.graphics.viewport().installEventFilter(self)
         self.combo_element.installEventFilter(self)
         self.selection_button.installEventFilter(self)
+        self.widgets_button.installEventFilter(self)
         self.view_button.installEventFilter(self)
 
         layout_bar = QtWidgets.QHBoxLayout()
@@ -617,7 +619,8 @@ class LaserWidget(_ViewWidget):
                 info=info,
             )
         )
-        new_widget.setActive()
+
+        new_widget.activate()
 
     def transform(self, flip: str = None, rotate: str = None) -> None:
         """Transform the image.
@@ -750,6 +753,10 @@ class LaserWidget(_ViewWidget):
         dlg.infoChanged.connect(self.applyInformation)
         dlg.open()
         return dlg
+
+    def actionRequestColorbarEdit(self) -> None:
+        if self.viewspace is not None:
+            self.viewspace.colortableRangeDialog()
 
     def actionSave(self) -> QtWidgets.QDialog:
         """Save the document to an '.npz' file.

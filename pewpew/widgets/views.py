@@ -1,8 +1,13 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
+import logging
+
 from pewpew.actions import qAction, qToolButton
 
 from typing import List, Optional
+
+
+logger = logging.getLogger(__name__)
 
 
 class ViewSpace(QtWidgets.QSplitter):
@@ -13,6 +18,7 @@ class ViewSpace(QtWidgets.QSplitter):
         `:class:pewpew.widgets.views._ViewWidget`
     """
 
+    activeViewChanged = QtCore.Signal()
     numViewsChanged = QtCore.Signal()
     numTabsChanged = QtCore.Signal()
 
@@ -51,11 +57,12 @@ class ViewSpace(QtWidgets.QSplitter):
         """Return the view last interacted with."""
         if self.active_view is None:
             view = self.views[0]
-            self.active_view = view
+            self.setActiveView(view)
+            assert self.active_view is not None
 
         return self.active_view
 
-    def activeWidget(self) -> QtWidgets.QWidget:
+    def activeWidget(self) -> Optional[QtWidgets.QWidget]:
         """Return the tabbed widget last interacted with."""
         view = self.activeView()
         widget = view.activeWidget()
@@ -65,11 +72,11 @@ class ViewSpace(QtWidgets.QSplitter):
         """Set the active view."""
         if self.active_view == view:
             return
-        if self.active_view is not None:
-            self.active_view.setActive(False)
-        # if view is not None:
-        #     view.setActive(True)
         self.active_view = view
+
+        self.active_view.viewActivated.emit()
+        self.activeViewChanged.emit()
+        logger.debug(f"Active view changed: {view}")
 
     def countViewTabs(self) -> int:
         """Total number of tabbed widgets."""
@@ -216,6 +223,8 @@ class View(QtWidgets.QWidget):
     """
 
     numTabsChanged = QtCore.Signal()
+    viewActivated = QtCore.Signal()
+    activeWidgetChanged = QtCore.Signal()
 
     icon_modified = QtGui.QIcon.fromTheme("document-save")
 
@@ -225,7 +234,6 @@ class View(QtWidgets.QWidget):
         self.setAcceptDrops(True)
         self.setFocusPolicy(QtCore.Qt.ClickFocus)
 
-        self.active = False
         self.viewspace = viewspace
 
         self.scroll_area = QtWidgets.QScrollArea(self)
@@ -236,6 +244,7 @@ class View(QtWidgets.QWidget):
         self.tabs = ViewTabBar(self)
         self.tabs.setDrawBase(False)
         self.tabs.currentChanged.connect(self.stack.setCurrentIndex)
+        self.tabs.currentChanged.connect(self.activeWidgetChanged)
         self.tabs.tabMoved.connect(self.moveWidget)
         self.tabs.tabCloseRequested.connect(self.requestClose)
         self.tabs.tabTextChanged.connect(self.renameWidget)
@@ -258,6 +267,11 @@ class View(QtWidgets.QWidget):
         if self.stack.count() == 0:
             return None
         return self.stack.widget(self.stack.currentIndex())
+
+    def setActiveWidget(self, index: int) -> None:
+        if self.stack.currentIndex() == index:
+            return
+        self.tabs.setCurrentIndex(index)
 
     def moveWidget(self, ifrom: int, ito: int) -> None:
         """Move tab from index `ifrom` to `ito`."""
@@ -301,6 +315,8 @@ class View(QtWidgets.QWidget):
         """
         index = self.tabs.insertTab(index, text)
         self.stack.insertWidget(index, widget)
+        widget.view = self
+
         self.setTabModified(index, widget.modified)
         self.numTabsChanged.emit()
         return index
@@ -333,11 +349,9 @@ class View(QtWidgets.QWidget):
         if self.stack.widget(index).requestClose():
             self.removeTab(index)
 
-    def setActive(self, active: bool) -> None:
+    def activate(self) -> None:
         """Set the view as the active view in it's viewspace."""
-        if active:
-            self.viewspace.setActiveView(self)
-        self.active = active
+        self.viewspace.setActiveView(self)
 
     # Events
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:  # pragma: no cover
@@ -352,8 +366,11 @@ class View(QtWidgets.QWidget):
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
         """Filter to set as active view on mouse interaction."""
-        if obj and event.type() == QtCore.QEvent.MouseButtonPress:
-            self.setActive(True)
+        if obj and event.type() in [
+            QtCore.QEvent.MouseButtonPress,
+            QtCore.QEvent.Scroll,
+        ]:
+            self.activate()
         return False
 
 
@@ -481,6 +498,7 @@ class ViewTabBar(QtWidgets.QTabBar):
         src, ok = event.mimeData().data("application/x-pew2tabbar").toInt()
         if ok and event.source() == self:
             self.moveTab(src, dest)
+            event.acceptProposedAction()
         elif ok and isinstance(event.source(), ViewTabBar):
             text = event.source().tabText(src)
             widget = event.source().view.stack.widget(src)
@@ -489,10 +507,10 @@ class ViewTabBar(QtWidgets.QTabBar):
 
             index = self.view.insertTab(dest, text, widget)
             self.setCurrentIndex(index)
+            widget.activate()
+            event.acceptProposedAction()
         else:
-            return
-
-        event.acceptProposedAction()
+            event.rejectProposedAction()
 
 
 class ViewTitleBar(QtWidgets.QWidget):
@@ -530,11 +548,15 @@ class _ViewWidget(QtWidgets.QWidget):
 
     def __init__(self, view: View = None, editable: bool = True):
         super().__init__(view)
+
         self.view = view
-        self.viewspace = view.viewspace
 
         self.editable = editable
         self._modified = False
+
+    @property
+    def viewspace(self) -> Optional[ViewSpace]:
+        return self.view.viewspace if self.view is not None else None
 
     @property
     def index(self) -> int:
@@ -562,8 +584,9 @@ class _ViewWidget(QtWidgets.QWidget):
     def requestClose(self) -> bool:
         return True
 
-    def setActive(self) -> None:
-        self.view.tabs.setCurrentIndex(self.index)
+    def activate(self) -> None:
+        self.view.activate()
+        self.view.setActiveWidget(self.index)
 
     @QtCore.Slot("QWidget*")
     def mouseSelectStart(self, callback_widget: QtWidgets.QWidget) -> None:
@@ -574,6 +597,10 @@ class _ViewWidget(QtWidgets.QWidget):
         pass
 
     def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
-        if obj and event.type() == QtCore.QEvent.MouseButtonPress:  # pragma: no cover
-            self.view.setActive(True)
+        if obj and event.type() in [
+            QtCore.QEvent.MouseButtonPress,
+            QtCore.QEvent.Scroll,
+        ]:
+            self.view.activate()
+            self.activate()
         return False

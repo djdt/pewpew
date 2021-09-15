@@ -41,6 +41,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.viewspace = LaserViewSpace()
         self.viewspace.numTabsChanged.connect(self.updateActionAvailablity)
+        self.viewspace.activeViewChanged.connect(self.updateActionAvailablity)
         self.setCentralWidget(self.viewspace)
 
         self.createActions()
@@ -263,60 +264,33 @@ class MainWindow(QtWidgets.QMainWindow):
         view = self.viewspace.activeView()
         return view.actionOpen()
 
-    def actionToolCalculator(self) -> None:
+    def openTool(self, tool: ToolWidget, name: str) -> None:
         widget = self.viewspace.activeWidget()
+        if widget is None:
+            return
         index = widget.index
         if isinstance(widget, ToolWidget):
             widget = widget.widget
-        tool = CalculatorTool(widget)
-        name = f"Calculator: {widget.laserName()}"
+        tool = tool(widget)
+        name = f"{name}: {widget.laserName()}"
         widget.view.removeTab(index)
         widget.view.insertTab(index, name, tool)
-        tool.setActive()
+        tool.activate()
+
+    def actionToolCalculator(self) -> None:
+        self.openTool(CalculatorTool, "Calculator")
 
     def actionToolDrift(self) -> None:
-        widget = self.viewspace.activeWidget()
-        index = widget.index
-        if isinstance(widget, ToolWidget):
-            widget = widget.widget
-        tool = DriftTool(widget)
-        name = f"Drift: {widget.laserName()}"
-        widget.view.removeTab(index)
-        widget.view.insertTab(index, name, tool)
-        tool.setActive()
+        self.openTool(DriftTool, "Drift")
 
     def actionToolFilter(self) -> None:
-        widget = self.viewspace.activeWidget()
-        index = widget.index
-        if isinstance(widget, ToolWidget):
-            widget = widget.widget
-        tool = FilteringTool(widget)
-        name = f"Filter: {widget.laserName()}"
-        widget.view.removeTab(index)
-        widget.view.insertTab(index, name, tool)
-        tool.setActive()
+        self.openTool(FilteringTool, "Filter")
 
     def actionToolStandards(self) -> None:
-        widget = self.viewspace.activeWidget()
-        index = widget.index
-        if isinstance(widget, ToolWidget):
-            widget = widget.widget
-        tool = StandardsTool(widget)
-        name = f"Standards: {widget.laserName()}"
-        widget.view.removeTab(index)
-        widget.view.insertTab(index, name, tool)
-        tool.setActive()
+        self.openTool(StandardsTool, "Standards")
 
     def actionToolOverlay(self) -> None:
-        widget = self.viewspace.activeWidget()
-        index = widget.index
-        if isinstance(widget, ToolWidget):
-            widget = widget.widget
-        tool = OverlayTool(widget)
-        name = f"Overlay: {widget.laserName()}"
-        widget.view.removeTab(index)
-        widget.view.insertTab(index, name, tool)
-        tool.setActive()
+        self.openTool(OverlayTool, "Overlay")
 
     def actionTransformFlipHorz(self) -> None:
         widget = self.viewspace.activeWidget()
@@ -443,6 +417,9 @@ class MainWindow(QtWidgets.QMainWindow):
         """Enables tools if at least one view is present."""
         enabled = self.viewspace.countViewTabs() > 0
         self.action_export_all.setEnabled(enabled)
+        
+        # Tools require an active view
+        enabled = enabled and self.viewspace.activeView().tabs.count() > 0
 
         self.action_tool_calculator.setEnabled(enabled)
         self.action_tool_drift.setEnabled(enabled)

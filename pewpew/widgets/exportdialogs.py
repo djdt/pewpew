@@ -550,7 +550,7 @@ class ExportAllDialog(ExportDialog):
 
         try:
             for paths, widget in zip(all_paths, self.widgets):
-                widget.setActive()
+                widget.activate()
                 for path, element, layer in paths:
                     dlg.setValue(exported)
                     if dlg.wasCanceled():

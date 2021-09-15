@@ -3,7 +3,7 @@ import logging
 from PySide2 import QtCore, QtGui, QtWidgets
 
 __version__ = "1.3.3"
-__loglevel__ = logging.INFO
+__loglevel__ = logging.DEBUG
 
 logging.captureWarnings(True)
 log = logging.getLogger()
