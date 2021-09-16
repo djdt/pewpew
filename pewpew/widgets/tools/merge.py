@@ -60,14 +60,19 @@ class MergeRowItem(QtWidgets.QWidget):
 
 
 class MergeLaserList(QtWidgets.QListWidget):
-    rowsChanged = QtCore.Signal(int)
     itemChanged = QtCore.Signal()
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         # Allow reorder
+        # self.setAcceptDrops(True)
+        # self.setDragEnabled(True)
+        # self.setDefaultDropAction(QtCore.Qt.MoveAction)
+        # self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        # self.viewport().setAcceptDrops(True)
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
-        self.setDropIndicatorShown(True)
+        # self.setMovement(QtWidgets.QListView.Free)
+        # self.setDropIndicatorShown(True)
 
     def addRow(self, laser: Laser) -> None:
         item = QtWidgets.QListWidgetItem(self)
@@ -77,11 +82,17 @@ class MergeLaserList(QtWidgets.QListWidget):
         row.itemChanged.connect(self.itemChanged)
         row.closeRequested.connect(self.removeRow)
 
-        item.setSizeHint(row.minimumSizeHint())
+        item.setSizeHint(row.sizeHint())
         self.setItemWidget(item, row)
 
     def removeRow(self, item: QtWidgets.QListWidgetItem) -> None:
         self.takeItem(self.row(item))
+
+    def dropEvent(self, event: QtGui.QDropEvent):
+        format = event.mimeData().formats()[0]
+        print(event.mimeData().urls(), event.mimeData().html())
+        super().dropEvent(event)
+        # self.dropItem.emit()
 
 
 class MergeTool(ToolWidget):
@@ -95,6 +106,8 @@ class MergeTool(ToolWidget):
         self.graphics = MergeGraphicsView(self.viewspace.options, parent=self)
 
         self.list = MergeLaserList()
+        # self.list.indexesMoved.connect(lambda x: print("moved"))
+        # self.list.rowsInserted.connect(lambda x: print("insert"))
 
         box_align = QtWidgets.QGroupBox("Align Images")
         layout_align = QtWidgets.QVBoxLayout()
@@ -129,4 +142,5 @@ if __name__ == "__main__":
     view.activeView().removeTab(0)
     view.activeView().insertTab(0, "", tool)
     view.show()
+    view.resize(800, 600)
     app.exec_()
