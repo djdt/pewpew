@@ -11,7 +11,7 @@ from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.laser import LaserWidget
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 
 class MergeGraphicsView(LaserGraphicsView):
@@ -65,14 +65,17 @@ class MergeLaserList(QtWidgets.QListWidget):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         # Allow reorder
-        # self.setAcceptDrops(True)
-        # self.setDragEnabled(True)
-        # self.setDefaultDropAction(QtCore.Qt.MoveAction)
-        # self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        # self.viewport().setAcceptDrops(True)
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
-        # self.setMovement(QtWidgets.QListView.Free)
-        # self.setDropIndicatorShown(True)
+        self.setDefaultDropAction(QtCore.Qt.TargetMoveAction)
+        # self.indexesMoved.connect(lambda x: print(x, flush=True))
+        self.setMovement(QtWidgets.QListView.Free)
+
+        # self.model().rowsMoved.connect(lambda x: print("moved", x))
+        # self.model().rowsAboutToBeInserted.connect(lambda x: print("inserted", x))
+        # self.model().rowsAboutToBeRemoved.connect(lambda x, y ,z: print("removed", x, y ,z))
+
+    # def supportedDropActions(self):
+    #     return QtCore.Qt.CopyAction
 
     def addRow(self, laser: Laser) -> None:
         item = QtWidgets.QListWidgetItem(self)
@@ -87,13 +90,6 @@ class MergeLaserList(QtWidgets.QListWidget):
 
     def removeRow(self, item: QtWidgets.QListWidgetItem) -> None:
         self.takeItem(self.row(item))
-
-    def dropEvent(self, event: QtGui.QDropEvent):
-        format = event.mimeData().formats()[0]
-        print(event.mimeData().urls(), event.mimeData().html())
-        super().dropEvent(event)
-        # self.dropItem.emit()
-
 
 class MergeTool(ToolWidget):
     """Tool for merging laser images."""
