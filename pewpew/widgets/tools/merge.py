@@ -23,7 +23,7 @@ class MergeGraphicsView(LaserGraphicsView):
 
 
 class MergeRowItem(QtWidgets.QWidget):
-    closeRequested = QtCore.Signal("QListWidgetItem*")
+    closeRequested = QtCore.Signal("QWidget*")
     itemChanged = QtCore.Signal()
 
     def __init__(
@@ -66,16 +66,20 @@ class MergeLaserList(QtWidgets.QListWidget):
         super().__init__(parent)
         # Allow reorder
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
-        self.setDefaultDropAction(QtCore.Qt.TargetMoveAction)
-        # self.indexesMoved.connect(lambda x: print(x, flush=True))
-        self.setMovement(QtWidgets.QListView.Free)
 
-        # self.model().rowsMoved.connect(lambda x: print("moved", x))
-        # self.model().rowsAboutToBeInserted.connect(lambda x: print("inserted", x))
-        # self.model().rowsAboutToBeRemoved.connect(lambda x, y ,z: print("removed", x, y ,z))
+    @property
+    def lasers(self) -> List[Laser]:
+        return [self.itemWidget(self.item(i)).laser for i in range(self.count())]
 
-    # def supportedDropActions(self):
-    #     return QtCore.Qt.CopyAction
+    def dropMimeData(
+        self,
+        index: int,
+        data: QtCore.QMimeData,
+        action: QtCore.Qt.DropAction,
+    ) -> bool:
+        if action != QtCore.Qt.TargetMoveAction:
+            return False
+        return super().dropMimeData(index, data, action)
 
     def addRow(self, laser: Laser) -> None:
         item = QtWidgets.QListWidgetItem(self)
@@ -91,6 +95,7 @@ class MergeLaserList(QtWidgets.QListWidget):
     def removeRow(self, item: QtWidgets.QListWidgetItem) -> None:
         self.takeItem(self.row(item))
 
+
 class MergeTool(ToolWidget):
     """Tool for merging laser images."""
 
@@ -102,13 +107,36 @@ class MergeTool(ToolWidget):
         self.graphics = MergeGraphicsView(self.viewspace.options, parent=self)
 
         self.list = MergeLaserList()
-        # self.list.indexesMoved.connect(lambda x: print("moved"))
-        # self.list.rowsInserted.connect(lambda x: print("insert"))
+        self.list.itemChanged.connect(self.refresh)
 
         box_align = QtWidgets.QGroupBox("Align Images")
-        layout_align = QtWidgets.QVBoxLayout()
+        box_align.setLayout(QtWidgets.QVBoxLayout())
 
-        box_align.setLayout(layout_align)
+        action_align_auto = qAction(
+            "view-refresh",
+            "FFT Register",
+            "Register all images to the topmost image.",
+            self.alignImagesFFT,
+        )
+        action_align_horz = qAction(
+            "align-vertical-top",
+            "Left to Right",
+            "Layout images in a horizontal line.",
+            self.alignImagesLeftToRight,
+        )
+        action_align_vert = qAction(
+            "align-horizontal-left",
+            "Top to Bottom",
+            "Layout images in a vertical line.",
+            self.alignImagesTopToBottom,
+        )
+
+        for action in [action_align_auto, action_align_horz, action_align_vert]:
+            button = qToolButton(action=action)
+            button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+
+            box_align.layout().addWidget(button)
+
 
         layout_graphics = QtWidgets.QVBoxLayout()
         layout_graphics.addWidget(self.graphics)
@@ -120,6 +148,17 @@ class MergeTool(ToolWidget):
         self.box_graphics.setLayout(layout_graphics)
         self.box_controls.setLayout(layout_controls)
 
+    def refresh(self) -> None:
+        lasers = self.list.lasers
+
+        super().refresh()
+
+    def alignImagesFFT(self) -> None:
+        pass
+    def alignImagesLeftToRight(self) -> None:
+        pass
+    def alignImagesTopToBottom(self) -> None:
+        pass
 
 if __name__ == "__main__":
     import pewlib.io
