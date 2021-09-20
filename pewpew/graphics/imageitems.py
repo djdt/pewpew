@@ -7,18 +7,20 @@ from pewlib.process.calc import normalise
 from pewpew.actions import qAction
 from pewpew.lib.numpyqt import array_to_image, array_to_polygonf
 
-from typing import Optional, List
+from typing import Any, Optional, List
 
 
-class ScaledImageItem(QtWidgets.QGraphicsItem):
+class ScaledImageItem(QtWidgets.QGraphicsObject):
     """Item to draw image to a defined rect.
 
-    Images scan be bicubic smoothed using 'smooth'.
+    Images scan be bicubic smoothed using `smooth`.
+    If `snap` is used, then the 'ItemSendsGeometryChanges' flag must be set.
 
     Args:
         image: image
         rect: extent of image
         smooth: smooth image using 2x scaling
+        snap: snap image position to pixel size
         parent: parent item
     """
 
@@ -27,6 +29,7 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
         image: QtGui.QImage,
         rect: QtCore.QRectF,
         smooth: bool = False,
+        snap: bool = True,
         parent: QtWidgets.QGraphicsItem = None,
     ):
         super().__init__(parent)
@@ -42,6 +45,18 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
             self.image = image
             self.image_scale = 1
         self.rect = QtCore.QRectF(rect)  # copy the rect
+        self.snap = snap
+
+    def itemChange(
+        self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
+    ) -> Any:
+        if self.snap and change == QtWidgets.QGraphicsItem.ItemPositionChange:
+            pos = QtCore.QPointF(value)
+            size = self.pixelSize()
+            pos.setX(pos.x() - pos.x() % size.width())
+            pos.setY(pos.y() - pos.y() % size.height())
+            return pos
+        return super().itemChange(change, value)
 
     def width(self) -> int:
         """Width of image, independant of smoothing."""
@@ -113,11 +128,11 @@ class ImageWidgetItem(QtWidgets.QGraphicsObject):
     ):
         super().__init__(parent)
         self.image = image
-        self.data = data
+        self.image_data = data
 
     def imageChanged(self, image: ScaledImageItem, data: np.ndarray) -> None:
         self.image = image
-        self.data = data
+        self.image_data = data
 
 
 class RulerWidgetItem(ImageWidgetItem):
@@ -258,6 +273,7 @@ class ImageSliceWidgetItem(ImageWidgetItem):
         font: label font
         parent: parent item
     """
+
     def __init__(
         self,
         image: ScaledImageItem,
@@ -276,7 +292,7 @@ class ImageSliceWidgetItem(ImageWidgetItem):
         if font is None:
             font = QtGui.QFont()
 
-        self.data = data
+        self.image_data = data
         self.sliced: Optional[np.ndarray] = None
 
         self.pen = pen
@@ -333,7 +349,7 @@ class ImageSliceWidgetItem(ImageWidgetItem):
 
         points = connect_nd([[p1.x(), p1.y()], [p2.x(), p2.y()]])
         if points.size > 3:
-            self.sliced = self.data[points[:, 1], points[:, 0]]
+            self.sliced = self.image_data[points[:, 1], points[:, 0]]
 
             xs = np.linspace(0.0, self.line.length(), self.sliced.size)
             try:
