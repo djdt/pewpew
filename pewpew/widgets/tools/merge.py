@@ -1,30 +1,91 @@
 from PySide2 import QtCore, QtGui, QtWidgets
+import numpy as np
 
 from pewlib.laser import Laser
+from pewlib.process.register import fft_register_images
 
 from pewpew.actions import qAction, qToolButton
 
+from pewpew.lib.numpyqt import array_to_image
+
+from pewpew.graphics import colortable
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.imageitems import ScaledImageItem
-from pewpew.graphics.lasergraphicsview import LaserGraphicsView
+
+# from pewpew.graphics.lasergraphicsview import LaserGraphicsView
+from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
 
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.laser import LaserWidget
 
+
 from typing import List, Optional, Tuple
 
 
-class MergeGraphicsView(LaserGraphicsView):
+class MergeGraphicsView(OverlayView):
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
-        super().__init__(options, parent=parent)
+        self.options = options
+        self._scene = OverlayScene(0, 0, 640, 480)
+        self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
+        super().__init__(scene=self._scene, parent=parent)
+
         self.setInteractionFlag("tool")
 
         self.merge_images: List[ScaledImageItem] = []
 
+    def drawImage(self, data: np.ndarray, rect: QtCore.QRect, name: str) -> None:
+        """Draw 'data' into 'rect'.
+
+        Args:
+            data: image data
+            rect: image extent
+            name: label of data
+        """
+        self.data = np.ascontiguousarray(data)
+
+        vmin, vmax = self.options.get_colorrange_as_float(name, self.data)
+        table = colortable.get_table(self.options.colortable)
+
+        data = np.clip(self.data, vmin, vmax)
+        if vmin != vmax:  # Avoid div 0
+            data = (data - vmin) / (vmax - vmin)
+
+        image = array_to_image(data)
+        image.setColorTable(table)
+        scaled_image = ScaledImageItem(image, rect, smooth=self.options.smoothing)
+        self.scene().addItem(scaled_image)
+        self.merge_images.append(scaled_image)
+
+        # self.colorbar.updateTable(table, vmin, vmax)
+
+    def boundingRect(self) -> QtCore.QRectF:
+        if len(self.merge_images) == 0:
+            return QtCore.QRectF(0.0, 0.0, 1.0, 1.0)
+
+        union = self.merge_images[0].rect
+        for image in self.merge_images[1:]:
+            union = union.united(image.rect)
+        return union
+
+    # def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
+    #     super().mouseMoveEvent(event)
+    #     pos = self.mapToScene(event.pos())
+    #     if (
+    #         self.image is not None
+    #         and self.image.rect.left() < pos.x() < self.image.rect.right()
+    #         and self.image.rect.top() < pos.y() < self.image.rect.bottom()
+    #     ):
+    #         dpos = self.mapToData(pos)
+    #         self.cursorValueChanged.emit(
+    #             pos.x(), pos.y(), self.data[dpos.y(), dpos.x()]
+    #         )
+    #     else:
+    #         self.cursorValueChanged.emit(pos.x(), pos.y(), np.nan)
+
 
 class MergeRowItem(QtWidgets.QWidget):
     closeRequested = QtCore.Signal("QWidget*")
-    itemChanged = QtCore.Signal()
+    elementChanged = QtCore.Signal(str)
 
     def __init__(
         self, laser: Laser, item: QtWidgets.QListWidgetItem, parent: "MergeLaserList"
@@ -33,6 +94,7 @@ class MergeRowItem(QtWidgets.QWidget):
 
         self.laser = laser
         self.item = item
+        self.offset = (0.0, 0.0)
 
         self.action_close = qAction(
             "window-close", "Remove", "Remove laser.", self.close
@@ -42,7 +104,7 @@ class MergeRowItem(QtWidgets.QWidget):
         self.combo_element = QtWidgets.QComboBox()
         self.combo_element.addItems(self.laser.elements)
 
-        self.combo_element.currentIndexChanged.connect(self.itemChanged)
+        self.combo_element.currentIndexChanged.connect(self.elementChanged)
 
         self.button_close = qToolButton(action=self.action_close)
 
@@ -54,13 +116,23 @@ class MergeRowItem(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
+    def data(self, calibrate: bool = False) -> np.ndarray:
+        return self.laser.get(
+            self.combo_element.currentText(), calibrate=calibrate, layer=None, flat=True
+        )
+
+    def rect(self) -> QtCore.QRectF:
+        x0, x1, y0, y1 = self.laser.extent
+        rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
+        return rect.translated(self.offset[0], self.offset[1])
+
     def close(self) -> None:
         self.closeRequested.emit(self.item)
         super().close()
 
 
 class MergeLaserList(QtWidgets.QListWidget):
-    itemChanged = QtCore.Signal()
+    refreshRequested = QtCore.Signal()
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
@@ -68,8 +140,8 @@ class MergeLaserList(QtWidgets.QListWidget):
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
 
     @property
-    def lasers(self) -> List[Laser]:
-        return [self.itemWidget(self.item(i)).laser for i in range(self.count())]
+    def rows(self) -> List[MergeRowItem]:
+        return [self.itemWidget(self.item(i)) for i in range(self.count())]
 
     def dropMimeData(
         self,
@@ -86,7 +158,7 @@ class MergeLaserList(QtWidgets.QListWidget):
         self.addItem(item)
 
         row = MergeRowItem(laser, item, self)
-        row.itemChanged.connect(self.itemChanged)
+        row.elementChanged.connect(self.refreshRequested)
         row.closeRequested.connect(self.removeRow)
 
         item.setSizeHint(row.sizeHint())
@@ -107,7 +179,8 @@ class MergeTool(ToolWidget):
         self.graphics = MergeGraphicsView(self.viewspace.options, parent=self)
 
         self.list = MergeLaserList()
-        self.list.itemChanged.connect(self.refresh)
+        self.list.refreshRequested.connect(self.refresh)
+        self.list.model().rowsRemoved.connect(self.refresh)
 
         box_align = QtWidgets.QGroupBox("Align Images")
         box_align.setLayout(QtWidgets.QVBoxLayout())
@@ -137,7 +210,6 @@ class MergeTool(ToolWidget):
 
             box_align.layout().addWidget(button)
 
-
         layout_graphics = QtWidgets.QVBoxLayout()
         layout_graphics.addWidget(self.graphics)
 
@@ -149,16 +221,53 @@ class MergeTool(ToolWidget):
         self.box_controls.setLayout(layout_controls)
 
     def refresh(self) -> None:
-        lasers = self.list.lasers
+        # Clear current images
+        for image in self.graphics.merge_images:
+            self.graphics.scene().removeItem(image)
+        self.graphics.merge_images.clear()
 
+        for row in self.list.rows:
+            data = row.data(calibrate=self.graphics.options.calibrate)
+            rect = row.rect()
+
+            self.graphics.drawImage(data, rect, row.combo_element.currentText())
+
+        # Set the view to contain all images
+        rect = self.graphics.boundingRect()
+        self.graphics.setSceneRect(rect)
+        self.graphics.fitInView(rect, QtCore.Qt.KeepAspectRatio)
         super().refresh()
 
     def alignImagesFFT(self) -> None:
-        pass
+        rows = self.list.rows
+        if len(rows) == 0:
+            return
+        base = rows[0].data()
+        rows[0].offset = (0.0, 0.0)
+
+        for row in rows[1:]:
+            offset = fft_register_images(base, row.data())
+            w, h = row.laser.config.get_pixel_width(), row.laser.config.get_pixel_height()
+            row.offset = (offset[0] * w, offset[1] * h)
+
+        self.refresh()
+
     def alignImagesLeftToRight(self) -> None:
-        pass
+        sum = 0.0
+        for row in self.list.rows:
+            row.offset = (0.0, sum)
+            sum += row.rect().height()
+
+        self.refresh()
+
     def alignImagesTopToBottom(self) -> None:
-        pass
+        sum = 0.0
+        for row in self.list.rows:
+            row.offset = (sum, 0.0)
+            sum += row.rect().width()
+
+        self.refresh()
+
 
 if __name__ == "__main__":
     import pewlib.io
@@ -178,4 +287,5 @@ if __name__ == "__main__":
     view.activeView().insertTab(0, "", tool)
     view.show()
     view.resize(800, 600)
+    tool.refresh()
     app.exec_()
