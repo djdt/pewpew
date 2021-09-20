@@ -12,14 +12,16 @@ from pewpew.graphics import colortable
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.imageitems import ScaledImageItem
 
-# from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
 
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.laser import LaserWidget
 
 
-from typing import List, Optional, Tuple
+from typing import List
+
+# class MergeImage(ScaledImageItem, QtWidgets.QGraphicsObject):
+#     pass
 
 
 class MergeGraphicsView(OverlayView):
@@ -33,7 +35,9 @@ class MergeGraphicsView(OverlayView):
 
         self.merge_images: List[ScaledImageItem] = []
 
-    def drawImage(self, data: np.ndarray, rect: QtCore.QRect, name: str) -> None:
+    def drawImage(
+        self, data: np.ndarray, rect: QtCore.QRect, name: str
+    ) -> ScaledImageItem:
         """Draw 'data' into 'rect'.
 
         Args:
@@ -52,11 +56,15 @@ class MergeGraphicsView(OverlayView):
 
         image = array_to_image(data)
         image.setColorTable(table)
-        scaled_image = ScaledImageItem(image, rect, smooth=self.options.smoothing)
+        scaled_image = ScaledImageItem(image, rect, smooth=False, snap=True)
+        scaled_image.setFlags(
+            QtWidgets.QGraphicsItem.ItemIsMovable
+            | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges
+        )
         self.scene().addItem(scaled_image)
         self.merge_images.append(scaled_image)
 
-        # self.colorbar.updateTable(table, vmin, vmax)
+        return scaled_image
 
     def boundingRect(self) -> QtCore.QRectF:
         if len(self.merge_images) == 0:
@@ -66,21 +74,6 @@ class MergeGraphicsView(OverlayView):
         for image in self.merge_images[1:]:
             union = union.united(image.rect)
         return union
-
-    # def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
-    #     super().mouseMoveEvent(event)
-    #     pos = self.mapToScene(event.pos())
-    #     if (
-    #         self.image is not None
-    #         and self.image.rect.left() < pos.x() < self.image.rect.right()
-    #         and self.image.rect.top() < pos.y() < self.image.rect.bottom()
-    #     ):
-    #         dpos = self.mapToData(pos)
-    #         self.cursorValueChanged.emit(
-    #             pos.x(), pos.y(), self.data[dpos.y(), dpos.x()]
-    #         )
-    #     else:
-    #         self.cursorValueChanged.emit(pos.x(), pos.y(), np.nan)
 
 
 class MergeRowItem(QtWidgets.QWidget):
@@ -124,7 +117,7 @@ class MergeRowItem(QtWidgets.QWidget):
     def rect(self) -> QtCore.QRectF:
         x0, x1, y0, y1 = self.laser.extent
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
-        return rect.translated(self.offset[0], self.offset[1])
+        return rect.translated(-self.offset[0], -self.offset[1])
 
     def close(self) -> None:
         self.closeRequested.emit(self.item)
@@ -220,6 +213,16 @@ class MergeTool(ToolWidget):
         self.box_graphics.setLayout(layout_graphics)
         self.box_controls.setLayout(layout_controls)
 
+    def updateRowOffset(self, row: MergeRowItem, image: ScaledImageItem) -> None:
+        pos = image.pos()
+        row.offset = (pos.x(), pos.y())
+
+        rect = self.graphics.boundingRect()
+        # print(rect)
+        # self.graphics.setSceneRect(rect)
+        self.graphics.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+
+
     def refresh(self) -> None:
         # Clear current images
         for image in self.graphics.merge_images:
@@ -230,7 +233,9 @@ class MergeTool(ToolWidget):
             data = row.data(calibrate=self.graphics.options.calibrate)
             rect = row.rect()
 
-            self.graphics.drawImage(data, rect, row.combo_element.currentText())
+            image = self.graphics.drawImage(data, rect, row.combo_element.currentText())
+            image.xChanged.connect(lambda: self.updateRowOffset(row, image))
+            image.yChanged.connect(lambda: self.updateRowOffset(row, image))
 
         # Set the view to contain all images
         rect = self.graphics.boundingRect()
@@ -247,7 +252,10 @@ class MergeTool(ToolWidget):
 
         for row in rows[1:]:
             offset = fft_register_images(base, row.data())
-            w, h = row.laser.config.get_pixel_width(), row.laser.config.get_pixel_height()
+            w, h = (
+                row.laser.config.get_pixel_width(),
+                row.laser.config.get_pixel_height(),
+            )
             row.offset = (offset[0] * w, offset[1] * h)
 
         self.refresh()
@@ -255,16 +263,16 @@ class MergeTool(ToolWidget):
     def alignImagesLeftToRight(self) -> None:
         sum = 0.0
         for row in self.list.rows:
-            row.offset = (0.0, sum)
-            sum += row.rect().height()
+            row.offset = (sum, 0.0)
+            sum += row.rect().width()
 
         self.refresh()
 
     def alignImagesTopToBottom(self) -> None:
         sum = 0.0
         for row in self.list.rows:
-            row.offset = (sum, 0.0)
-            sum += row.rect().width()
+            row.offset = (0.0, sum)
+            sum += row.rect().height()
 
         self.refresh()
 
