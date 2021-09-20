@@ -37,19 +37,19 @@ class ScaledImageItem(QtWidgets.QGraphicsItem):
             self.image = image.scaledToHeight(
                 image.height() * 2, QtCore.Qt.SmoothTransformation
             )
-            self.scale = 2
+            self.image_scale = 2
         else:
             self.image = image
-            self.scale = 1
+            self.image_scale = 1
         self.rect = QtCore.QRectF(rect)  # copy the rect
 
     def width(self) -> int:
         """Width of image, independant of smoothing."""
-        return self.image.width() // self.scale
+        return int(self.image.width() / self.image_scale)
 
     def height(self) -> int:
         """Height of image, independant of smoothing."""
-        return self.image.height() // self.scale
+        return int(self.image.height() / self.image_scale)
 
     def pixelSize(self) -> QtCore.QSizeF:
         """Size / scaling of an image pixel."""
