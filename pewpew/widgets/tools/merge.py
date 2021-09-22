@@ -27,7 +27,7 @@ from typing import Dict, List, Optional, Tuple
 class MergeGraphicsView(OverlayView):
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
         self.options = options
-        self._scene = OverlayScene(0, 0, 640, 480)
+        self._scene = OverlayScene(-1e6, -1e6, 2e6, 2e6)
         self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
         super().__init__(scene=self._scene, parent=parent)
 
@@ -69,7 +69,7 @@ class MergeGraphicsView(OverlayView):
         union = QtCore.QRectF(0, 0, 0, 0)
         for image in images:
             union = union.united(image.rect.translated(image.pos()))
-        self.scene().setSceneRect(union)
+        # self.scene().setSceneRect(union.setCoords)
         self.fitInView(union, QtCore.Qt.KeepAspectRatio)
 
 
@@ -189,7 +189,7 @@ class MergeTool(ToolWidget):
 
         self.list = MergeLaserList()
         self.list.elementChanged.connect(self.redrawRow)
-        self.list.model().rowsMoved.connect(self.refresh)
+        self.list.model().rowsMoved.connect(self.reassignZValues)
 
         self.button_add = QtWidgets.QPushButton("Add Laser")
         self.button_add.clicked.connect(self.addLaserDialog)
@@ -291,6 +291,18 @@ class MergeTool(ToolWidget):
         row.image.yChanged.connect(row.updateOffset)
 
         self.graphics.scene().addItem(row.image)
+
+    def reassignZValues(
+        self,
+        source: QtCore.QModelIndex,
+        start: int,
+        end: int,
+        dest: QtCore.QModelIndex,
+        row: int,
+    ) -> None:
+        for i in range(self.list.count()):
+            w = self.list.itemWidget(self.list.item(i))
+            w.image.setZValue(-i)
 
     def refresh(self) -> None:
         for i in range(self.list.count()):
