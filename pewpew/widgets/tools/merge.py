@@ -81,6 +81,7 @@ class MergeRowItem(QtWidgets.QWidget):
         self,
         laser: Laser,
         item: QtWidgets.QListWidgetItem,
+        close_button: bool,
         parent: "MergeLaserList",
     ):
         super().__init__(parent)
@@ -101,13 +102,13 @@ class MergeRowItem(QtWidgets.QWidget):
         self.combo_element.currentTextChanged.connect(self.comboElementChanged)
 
         self.button_close = qToolButton(action=self.action_close)
+        self.button_close.setEnabled(close_button)
 
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(self.label_name, 0)
-        layout.addWidget(self.label_offset, 0)
-        layout.addStretch(1)
-        layout.addWidget(self.combo_element, 0)
-        layout.addWidget(self.button_close, 0)
+        layout.addWidget(self.label_name, 1)
+        layout.addWidget(self.label_offset, 0, QtCore.Qt.AlignRight)
+        layout.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
+        layout.addWidget(self.button_close, 0, QtCore.Qt.AlignRight)
 
         self.setLayout(layout)
 
@@ -127,7 +128,7 @@ class MergeRowItem(QtWidgets.QWidget):
         self.label_offset.setText(f"({pos.x():.1f}, {pos.y():.1f})")
 
     def comboElementChanged(self, name: str) -> None:
-        self.elementChanged.emit(self, name)
+        self.elementChanged.emit(self.item, name)
 
     def close(self) -> None:
         if self.image is not None:
@@ -158,11 +159,13 @@ class MergeLaserList(QtWidgets.QListWidget):
             return False
         return super().dropMimeData(index, data, action)
 
-    def addRow(self, laser: Laser) -> QtWidgets.QListWidgetItem:
+    def addRow(
+        self, laser: Laser, close_button: bool = True
+    ) -> QtWidgets.QListWidgetItem:
         item = QtWidgets.QListWidgetItem(self)
         self.addItem(item)
 
-        row = MergeRowItem(laser, item, parent=self)
+        row = MergeRowItem(laser, item, close_button=close_button, parent=self)
         row.elementChanged.connect(self.elementChanged)
         row.closeRequested.connect(self.removeRow)
 
@@ -180,61 +183,109 @@ class MergeTool(ToolWidget):
     normalise_methods = ["Maximum", "Minimum"]
 
     def __init__(self, widget: LaserWidget):
-        super().__init__(widget, apply_all=False)
+        super().__init__(widget, orientation=QtCore.Qt.Vertical, apply_all=False)
 
         self.graphics = MergeGraphicsView(self.viewspace.options, parent=self)
 
         self.list = MergeLaserList()
         self.list.elementChanged.connect(self.redrawRow)
+        self.list.model().rowsMoved.connect(self.refresh)
+
+        self.button_add = QtWidgets.QPushButton("Add Laser")
+        self.button_add.clicked.connect(self.addLaserDialog)
 
         box_align = QtWidgets.QGroupBox("Align Images")
         box_align.setLayout(QtWidgets.QVBoxLayout())
 
-        action_align_auto = qAction(
+        self.action_align_auto = qAction(
             "view-refresh",
             "FFT Register",
             "Register all images to the topmost image.",
             self.alignImagesFFT,
         )
-        action_align_horz = qAction(
+        self.action_align_horz = qAction(
             "align-vertical-top",
             "Left to Right",
             "Layout images in a horizontal line.",
             self.alignImagesLeftToRight,
         )
-        action_align_vert = qAction(
+        self.action_align_vert = qAction(
             "align-horizontal-left",
             "Top to Bottom",
             "Layout images in a vertical line.",
             self.alignImagesTopToBottom,
         )
 
-        for action in [action_align_auto, action_align_horz, action_align_vert]:
-            button = qToolButton(action=action)
-            button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        self.button_align = qToolButton("align-horizontal-left", "Align Images")
+        self.button_align.addAction(self.action_align_auto)
+        self.button_align.addAction(self.action_align_horz)
+        self.button_align.addAction(self.action_align_vert)
 
-            box_align.layout().addWidget(button)
+        layout_right = QtWidgets.QVBoxLayout()
+        layout_right.addWidget(self.button_align)
+        layout_right.addStretch(1)
+        layout_right.addWidget(self.button_add)
 
         layout_graphics = QtWidgets.QVBoxLayout()
         layout_graphics.addWidget(self.graphics)
 
-        layout_controls = QtWidgets.QVBoxLayout()
+        layout_controls = QtWidgets.QHBoxLayout()
         layout_controls.addWidget(self.list, 1)
-        layout_controls.addWidget(box_align, 0)
+        # layout_controls.addWidget(self.button_add, 0)
+        layout_controls.addLayout(layout_right)
 
         self.box_graphics.setLayout(layout_graphics)
         self.box_controls.setLayout(layout_controls)
 
-    def redrawRow(self, row: MergeRowItem) -> None:
+        # Add the tool widgets laser, make unclosable
+        self.list.addRow(self.widget.laser, close_button=False)
+
+    def onFirstShow(self) -> None:
+        super().onFirstShow()
+        self.graphics.fitAllImages()
+
+    def addLaserDialog(self) -> None:
+        lasers = [
+            w.laser
+            for view in self.viewspace.views
+            for w in view.widgets()
+            if isinstance(w, LaserWidget)
+        ]
+        current_lasers = [row.laser for row in self.list.rows]
+        lasers = [laser for laser in lasers if laser not in current_lasers]
+
+        if len(lasers) == 0:
+            return
+        name, ok = QtWidgets.QInputDialog.getItem(
+            self,
+            "Select Laser",
+            "Laser:",
+            [laser.info["Name"] for laser in lasers],
+            0,
+            False,
+        )
+        if not ok:
+            return
+        laser = [laser for laser in lasers if laser.info["Name"] == name][0]
+        item = self.list.addRow(laser)
+
+        self.redrawRow(item)
+        self.graphics.fitAllImages()
+
+    def redrawRow(self, item: QtWidgets.QListWidgetItem) -> None:
         pos = QtCore.QPointF(0.0, 0.0)
+        row = self.list.itemWidget(item)
         if row.image is not None:
             pos = row.image.pos()
             self.graphics.scene().removeItem(row.image)
             row.image = None
 
         data = row.data(calibrate=self.graphics.options.calibrate)
-        row.image = self.graphics.drawImage(data, row.extentRect(), row.combo_element.currentText())
+        row.image = self.graphics.drawImage(
+            data, row.extentRect(), row.combo_element.currentText()
+        )
         row.image.setPos(pos)
+        row.image.setZValue(self.list.row(item))
 
         row.image.xChanged.connect(row.updateOffset)
         row.image.yChanged.connect(row.updateOffset)
@@ -242,8 +293,8 @@ class MergeTool(ToolWidget):
         self.graphics.scene().addItem(row.image)
 
     def refresh(self) -> None:
-        for row in self.list.rows:
-            self.redrawRow(row)
+        for i in range(self.list.count()):
+            self.redrawRow(self.list.item(i))
 
         self.graphics.fitAllImages()
         super().refresh()
@@ -289,16 +340,24 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication()
     view = LaserViewSpace()
     laser1 = pewlib.io.npz.load(
-        "/home/tom/MEGA/Uni/Experimental/LAICPMS/2019 Micro Arrays/20190617_krisskross/20190617_me401c_r4c3.npz"
+        "/home/tom/MEGA/Uni/Experimental/LAICPMS/2019 Micro Arrays/20190629_10um/20190629_pa1001b_r3c1.npz"
     )
-    widget = view.activeView().addLaser(laser1)
-    tool = MergeTool(widget)
-    tool.list.addRow(widget.laser)
-    tool.list.addRow(widget.laser)
-    tool.list.addRow(widget.laser)
+    laser2 = pewlib.io.npz.load(
+        "/home/tom/MEGA/Uni/Experimental/LAICPMS/2019 Micro Arrays/20190629_10um/20190629_pa1001b_r3c6.npz"
+    )
+    laser3 = pewlib.io.npz.load(
+        "/home/tom/MEGA/Uni/Experimental/LAICPMS/2019 Micro Arrays/20190629_10um/20190629_std_pre_10_40_0.25.npz"
+    )
+    # widget = view.activeView().addLaser(laser1)
+    view.activeView().addLaser(laser1)
+    view.activeView().addLaser(laser2)
+    view.activeView().addLaser(laser3)
+    tool = MergeTool(view.activeWidget())
+    tool.list.addRow(laser3)
     view.activeView().removeTab(0)
     view.activeView().insertTab(0, "", tool)
+    view.activeView().setActiveWidget(0)
     view.show()
-    view.resize(800, 600)
+    view.resize(1280, 800)
     tool.refresh()
     app.exec_()
