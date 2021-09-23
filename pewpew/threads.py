@@ -81,8 +81,16 @@ class ImportThread(QtCore.QThread):
 
         if path.is_dir():
             if path.suffix.lower() == ".b":
-                data, params = io.agilent.load(path, full=True)
-                info.update(io.agilent.load_info(path))
+                data = None
+                for methods in [['batch_xml', 'batch_csv'], ['acq_method_xml']]:
+                    try:
+                        data, params = io.agilent.load(path, collection_methods=methods, full=True)
+                        info.update(io.agilent.load_info(path))
+                        break
+                    except ValueError as e:
+                        logger.warning(f"Error for collection methods {methods}: {e}")
+                if data is None:
+                    raise ValueError(f"Unable to import batch '{path.name}'!")
             elif io.perkinelmer.is_valid_directory(path):
                 data, params = io.perkinelmer.load(path, full=True)
                 info["Instrument Vendor"] = "PerkinElemer"
