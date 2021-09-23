@@ -69,7 +69,7 @@ class MergeGraphicsView(OverlayView):
         union = QtCore.QRectF(0, 0, 0, 0)
         for image in images:
             union = union.united(image.rect.translated(image.pos()))
-        # self.scene().setSceneRect(union.setCoords)
+        # self.scene().setSceneRect(union)
         self.fitInView(union, QtCore.Qt.KeepAspectRatio)
 
 
