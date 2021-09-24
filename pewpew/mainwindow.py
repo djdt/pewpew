@@ -18,6 +18,7 @@ from pewpew.widgets.tools import (
     CalculatorTool,
     DriftTool,
     FilteringTool,
+    MergeTool,
     StandardsTool,
     OverlayTool,
 )
@@ -30,8 +31,9 @@ logger = logging.getLogger(__name__)
 
 class MainWindow(QtWidgets.QMainWindow):
     """Pewpew mainwindow, holding a LaserViewSpace.
-    Actions for the menu and status bars are created and stored here. 
+    Actions for the menu and status bars are created and stored here.
     """
+
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.resize(1280, 800)
@@ -140,7 +142,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_open.setShortcut("Ctrl+O")
 
         self.action_toggle_calibrate = qAction(
-            "go-top", "Ca&librate", "Toggle calibration.", self.viewspace.toggleCalibrate
+            "go-top",
+            "Ca&librate",
+            "Toggle calibration.",
+            self.viewspace.toggleCalibrate,
         )
         self.action_toggle_calibrate.setShortcut("Ctrl+L")
         self.action_toggle_calibrate.setCheckable(True)
@@ -177,6 +182,12 @@ class MainWindow(QtWidgets.QMainWindow):
             "Filtering",
             "Open the filtering tool.",
             self.actionToolFilter,
+        )
+        self.action_tool_merge = qAction(
+            "align-vertical-top",
+            "Merge Tool",
+            "Open tool for merging multiple images.",
+            self.actionToolMerge,
         )
         self.action_tool_standards = qAction(
             "document-properties",
@@ -286,6 +297,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def actionToolFilter(self) -> None:
         self.openTool(FilteringTool, "Filter")
 
+    def actionToolMerge(self) -> None:
+        self.openTool(MergeTool, "Merge")
+
     def actionToolStandards(self) -> None:
         self.openTool(StandardsTool, "Standards")
 
@@ -339,7 +353,6 @@ class MainWindow(QtWidgets.QMainWindow):
         wiz.open()
         return wiz
 
-
     def createMenus(self) -> None:
         # File
         menu_file = self.menuBar().addMenu("&File")
@@ -374,6 +387,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_tools.addAction(self.action_tool_calculator)
         menu_tools.addAction(self.action_tool_drift)
         menu_tools.addAction(self.action_tool_filter)
+        menu_tools.addAction(self.action_tool_merge)
         menu_tools.addAction(self.action_tool_standards)
         menu_tools.addAction(self.action_tool_overlay)
 
@@ -417,7 +431,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Enables tools if at least one view is present."""
         enabled = self.viewspace.countViewTabs() > 0
         self.action_export_all.setEnabled(enabled)
-        
+
         # Tools require an active view
         enabled = enabled and self.viewspace.activeView().tabs.count() > 0
 

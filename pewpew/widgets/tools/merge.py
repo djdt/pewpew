@@ -2,7 +2,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 import numpy as np
 
 from pewlib.laser import Laser
-from pewlib.process.register import fft_register_images
+from pewlib.process.register import fft_register_images, overlap_structured_arrays
 
 from pewpew.actions import qAction, qToolButton
 
@@ -127,6 +127,14 @@ class MergeRowItem(QtWidgets.QWidget):
         pos = self.image.pos()
         self.label_offset.setText(f"({pos.x():.1f}, {pos.y():.1f})")
 
+    def offset(self) -> Tuple[int, int]:
+        if self.image is None:
+            return (0, 0)
+        pos = self.image.pos()
+        size = self.image.pixelSize()
+        print(pos, size, flush=True)
+        return ( int(pos.y() / size.height()), int(pos.x() / size.width()))
+
     def comboElementChanged(self, name: str) -> None:
         self.elementChanged.emit(self.item, name)
 
@@ -184,6 +192,7 @@ class MergeTool(ToolWidget):
 
     def __init__(self, widget: LaserWidget):
         super().__init__(widget, orientation=QtCore.Qt.Vertical, apply_all=False)
+        self.button_box.removeButton(self.button_box.button(QtWidgets.QDialogButtonBox.Apply))
 
         self.graphics = MergeGraphicsView(self.viewspace.options, parent=self)
 
@@ -239,6 +248,28 @@ class MergeTool(ToolWidget):
 
         # Add the tool widgets laser, make unclosable
         self.list.addRow(self.widget.laser, close_button=False)
+
+    def apply(self) -> None:
+        count = self.list.count()
+        if count < 2:
+            return
+        base = self.list.rows[0]
+        # Align to first row
+        merge = base.laser.get(calibrate=False)
+        for row in self.list.rows[1:]:
+            offset = np.array(row.offset()) - base.offset()
+            merge = overlap_structured_arrays(merge, row.laser.get(calibrate=False), offset=offset)
+
+        info = base.laser.info.copy()
+        info["Name"] = "merge: " + info["Name"]
+        info["Merge File Paths"] = ";".join(row.laser.info["File Path"] for row in self.list.rows)
+
+        # Merge calibrations
+
+        laser = Laser(merge, calibration=base.laser.calibration, config=base.laser.config, info=info)
+        self.view.addLaser(laser)
+        super().accept()
+
 
     def onFirstShow(self) -> None:
         super().onFirstShow()
