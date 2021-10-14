@@ -18,10 +18,9 @@ from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.laser import LaserWidget
 
 
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
-# class MergeImage(ScaledImageItem, QtWidgets.QGraphicsObject):
-#     pass
+# TODO: possible off by one on overlap
 
 
 class MergeGraphicsView(OverlayView):
@@ -132,8 +131,7 @@ class MergeRowItem(QtWidgets.QWidget):
             return (0, 0)
         pos = self.image.pos()
         size = self.image.pixelSize()
-        print(pos, size, flush=True)
-        return ( int(pos.y() / size.height()), int(pos.x() / size.width()))
+        return (int(pos.y() / size.height()), int(pos.x() / size.width()))
 
     def comboElementChanged(self, name: str) -> None:
         self.elementChanged.emit(self.item, name)
@@ -192,7 +190,9 @@ class MergeTool(ToolWidget):
 
     def __init__(self, widget: LaserWidget):
         super().__init__(widget, orientation=QtCore.Qt.Vertical, apply_all=False)
-        self.button_box.removeButton(self.button_box.button(QtWidgets.QDialogButtonBox.Apply))
+        self.button_box.removeButton(
+            self.button_box.button(QtWidgets.QDialogButtonBox.Apply)
+        )
 
         self.graphics = MergeGraphicsView(self.viewspace.options, parent=self)
 
@@ -249,6 +249,8 @@ class MergeTool(ToolWidget):
         # Add the tool widgets laser, make unclosable
         self.list.addRow(self.widget.laser, close_button=False)
 
+        self.refresh()
+
     def apply(self) -> None:
         count = self.list.count()
         if count < 2:
@@ -258,22 +260,25 @@ class MergeTool(ToolWidget):
         merge = base.laser.get(calibrate=False)
         for row in self.list.rows[1:]:
             offset = np.array(row.offset()) - base.offset()
-            merge = overlap_structured_arrays(merge, row.laser.get(calibrate=False), offset=offset)
+            merge = overlap_structured_arrays(
+                merge, row.laser.get(calibrate=False), offset=offset
+            )
 
         info = base.laser.info.copy()
         info["Name"] = "merge: " + info["Name"]
-        info["Merge File Paths"] = ";".join(row.laser.info["File Path"] for row in self.list.rows)
+        info["Merge File Paths"] = ";".join(
+            row.laser.info["File Path"] for row in self.list.rows
+        )
 
         # Merge calibrations
 
-        laser = Laser(merge, calibration=base.laser.calibration, config=base.laser.config, info=info)
+        laser = Laser(
+            merge,
+            calibration=base.laser.calibration,
+            config=base.laser.config,
+            info=info,
+        )
         self.view.addLaser(laser)
-        super().accept()
-
-
-    def onFirstShow(self) -> None:
-        super().onFirstShow()
-        self.graphics.fitAllImages()
 
     def addLaserDialog(self) -> None:
         lasers = [
@@ -320,8 +325,6 @@ class MergeTool(ToolWidget):
 
         row.image.xChanged.connect(row.updateOffset)
         row.image.yChanged.connect(row.updateOffset)
-
-        self.graphics.scene().addItem(row.image)
 
     def reassignZValues(
         self,
