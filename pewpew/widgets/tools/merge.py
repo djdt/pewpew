@@ -22,6 +22,8 @@ from typing import List, Optional, Tuple
 
 # TODO: possible off by one on overlap
 # shared range
+# Alpha
+# Add / mult
 
 class MergeGraphicsView(OverlayView):
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
