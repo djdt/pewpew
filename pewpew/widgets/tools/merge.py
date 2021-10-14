@@ -389,33 +389,3 @@ class MergeTool(ToolWidget):
             sum += row.image.rect.height()
 
         self.refresh()
-
-
-if __name__ == "__main__":
-    import pewlib.io
-    from pewpew.widgets.laser import LaserViewSpace
-
-    app = QtWidgets.QApplication()
-    view = LaserViewSpace()
-    laser1 = pewlib.io.npz.load(
-        "/home/tom/MEGA/Uni/Experimental/LAICPMS/2019 Micro Arrays/20190629_10um/20190629_pa1001b_r3c1.npz"
-    )
-    laser2 = pewlib.io.npz.load(
-        "/home/tom/MEGA/Uni/Experimental/LAICPMS/2019 Micro Arrays/20190629_10um/20190629_pa1001b_r3c6.npz"
-    )
-    laser3 = pewlib.io.npz.load(
-        "/home/tom/MEGA/Uni/Experimental/LAICPMS/2019 Micro Arrays/20190629_10um/20190629_std_pre_10_40_0.25.npz"
-    )
-    # widget = view.activeView().addLaser(laser1)
-    view.activeView().addLaser(laser1)
-    view.activeView().addLaser(laser2)
-    view.activeView().addLaser(laser3)
-    tool = MergeTool(view.activeWidget())
-    tool.list.addRow(laser3)
-    view.activeView().removeTab(0)
-    view.activeView().insertTab(0, "", tool)
-    view.activeView().setActiveWidget(0)
-    view.show()
-    view.resize(1280, 800)
-    tool.refresh()
-    app.exec_()
