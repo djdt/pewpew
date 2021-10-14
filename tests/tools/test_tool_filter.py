@@ -18,7 +18,7 @@ def test_tool_filter(qtbot: QtBot):
     view.addLaser(Laser(rand_data(["a"])))
     tool = FilteringTool(view.activeWidget())
     view.addTab("Tool", tool)
-    qtbot.waitForWindowShown(tool)
+    qtbot.waitExposed(tool)
 
     tool.combo_filter.setCurrentText("Mean")
     tool.combo_filter.activated.emit(0)

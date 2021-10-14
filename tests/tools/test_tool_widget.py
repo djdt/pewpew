@@ -21,7 +21,7 @@ def test_tool_widget(qtbot: QtBot):
 
     widget.view.removeTab(index)
     widget.view.insertTab(index, "Tool", tool)
-    qtbot.waitForWindowShown(tool)
+    qtbot.waitExposed(tool)
 
     tool.requestClose()
     view.tabs.tabText(index) == "Widget"

@@ -11,7 +11,7 @@ def test_wizard_import_config(qtbot: QtBot):
     wiz = ImportWizard(path.joinpath("agilent", "test_ms.b"))
     qtbot.addWidget(wiz)
     wiz.show()
-    qtbot.waitForWindowShown(wiz)
+    qtbot.waitExposed(wiz)
 
     wiz.next()
     wiz.next()
@@ -43,7 +43,7 @@ def test_wizard_import_agilent(qtbot: QtBot):
     wiz = ImportWizard(path.joinpath("agilent", "test_ms.b"))
     qtbot.addWidget(wiz)
     wiz.show()
-    qtbot.waitForWindowShown(wiz)
+    qtbot.waitExposed(wiz)
 
     # Format
     page = wiz.currentPage()
@@ -67,7 +67,7 @@ def test_wizard_import_perkinelemer(qtbot: QtBot):
     wiz = ImportWizard(path.joinpath("perkinelmer", "perkinelmer"))
     qtbot.addWidget(wiz)
     wiz.show()
-    qtbot.waitForWindowShown(wiz)
+    qtbot.waitExposed(wiz)
 
     # Format
     page = wiz.currentPage()
@@ -93,7 +93,7 @@ def test_wizard_import_text(qtbot: QtBot):
     wiz = ImportWizard(path.joinpath("textimage", "csv.csv"))
     qtbot.addWidget(wiz)
     wiz.show()
-    qtbot.waitForWindowShown(wiz)
+    qtbot.waitExposed(wiz)
 
     # Format
     page = wiz.currentPage()
@@ -116,7 +116,7 @@ def test_wizard_import_thermo(qtbot: QtBot):
     wiz = ImportWizard(path.joinpath("thermo", "icap_columns.csv"))
     qtbot.addWidget(wiz)
     wiz.show()
-    qtbot.waitForWindowShown(wiz)
+    qtbot.waitExposed(wiz)
 
     # Format
     page = wiz.currentPage()

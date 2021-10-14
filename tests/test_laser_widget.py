@@ -53,7 +53,7 @@ def test_laser_view_space(qtbot: QtBot):
     viewspace.applyCalibration(
         {"A1": Calibration(1.0, 1.0), "B2": Calibration(2.0, 2.0)}
     )
-    qtbot.waitForWindowShown(viewspace)
+    qtbot.waitExposed(viewspace)
     for view in viewspace.views:
         for widget in view.widgets():
             if "A1" in widget.laser.elements:
@@ -106,7 +106,7 @@ def test_laser_view(qtbot: QtBot):
     viewspace.show()
     view = viewspace.activeView()
     laser = view.addLaser(Laser(rand_data(["A1", "B2", "C3"])))
-    qtbot.waitForWindowShown(laser)
+    qtbot.waitExposed(laser)
 
     view.tabs.setTabText(0, "newname")
     assert view.stack.widget(0).laserName() == "newname"

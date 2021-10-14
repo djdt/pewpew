@@ -41,7 +41,7 @@ def test_calibration_chart(qtbot: QtBot):
     chart.setText("Text")
 
     chart.show()
-    qtbot.waitForWindowShown(chart)
+    qtbot.waitExposed(chart)
 
     assert not chart.label_series.isVisible()
     chart.showPointPosition(QtCore.QPointF(0.0, 1.0), True)

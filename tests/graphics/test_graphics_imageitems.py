@@ -94,7 +94,7 @@ def test_ruler_widget_item(qtbot: QtBot):
 
     # Draw everything
     window.show()
-    qtbot.waitForWindowShown(window)
+    qtbot.waitExposed(window)
 
 
 def test_image_slice_item(qtbot: QtBot):
@@ -128,4 +128,4 @@ def test_image_slice_item(qtbot: QtBot):
 
     # Draw everything
     window.show()
-    qtbot.waitForWindowShown(window)
+    qtbot.waitExposed(window)

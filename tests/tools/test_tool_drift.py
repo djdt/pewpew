@@ -18,7 +18,7 @@ def test_tool_filter(qtbot: QtBot):
     widget = view.addLaser(Laser(linear_data(["a", "b", "c"])))
     tool = DriftTool(view.activeWidget())
     view.addTab("Tool", tool)
-    qtbot.waitForWindowShown(tool)
+    qtbot.waitExposed(tool)
 
     tool.combo_element.setCurrentText("a")
     tool.combo_element.activated.emit(0)

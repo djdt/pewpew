@@ -13,7 +13,7 @@ def test_laser_graphics_selection(qtbot: QtBot):
     x = np.random.random((10, 10))
     graphics.drawImage(x, QtCore.QRectF(0, 0, 100, 100), "x")
 
-    qtbot.waitForWindowShown(graphics)
+    qtbot.waitExposed(graphics)
 
     # Test rectangle selector and center pixel selecting
     graphics.startRectangleSelection()
@@ -79,7 +79,7 @@ def test_laser_graphics_widgets(qtbot: QtBot):
     x = np.random.random((10, 10))
     graphics.drawImage(x, QtCore.QRectF(0, 0, 100, 100), "x")
 
-    qtbot.waitForWindowShown(graphics)
+    qtbot.waitExposed(graphics)
 
     graphics.startRulerWidget()
     assert graphics.widget is not None
@@ -124,7 +124,7 @@ def test_laser_graphics_zoom(qtbot: QtBot):
     x = np.random.random((10, 10))
     graphics.drawImage(x, QtCore.QRectF(0, 0, 100, 100), "x")
 
-    qtbot.waitForWindowShown(graphics)
+    qtbot.waitExposed(graphics)
 
     graphics.zoomStart()
 

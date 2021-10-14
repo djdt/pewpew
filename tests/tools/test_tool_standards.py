@@ -20,7 +20,7 @@ def test_standards_tool(qtbot: QtBot):
     view.addLaser(Laser(data))
     tool = StandardsTool(view.activeWidget())
     view.addTab("Tool", tool)
-    qtbot.waitForWindowShown(tool)
+    qtbot.waitExposed(tool)
 
     # Units
     tool.lineedit_units.setText("unit")
@@ -67,5 +67,5 @@ def test_standards_tool(qtbot: QtBot):
 
     tool.combo_element.setCurrentIndex(1)
     dlg = tool.showCurve()
-    qtbot.waitForWindowShown(dlg)
+    qtbot.waitExposed(dlg)
     dlg.close()

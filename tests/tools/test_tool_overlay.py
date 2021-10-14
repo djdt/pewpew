@@ -26,7 +26,7 @@ def test_overlay_tool(qtbot: QtBot):
     )
     tool = OverlayTool(view.activeWidget())
     view.addTab("Tool", tool)
-    qtbot.waitForWindowShown(tool)
+    qtbot.waitExposed(tool)
 
     # Test rgb mode
     assert tool.rows.color_model == "rgb"

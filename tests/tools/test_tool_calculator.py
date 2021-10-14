@@ -52,7 +52,7 @@ def test_tool_calculator(qtbot: QtBot):
     widget = view.addLaser(Laser(rand_data(["a", "b"])))
     tool = CalculatorTool(view.activeWidget())
     view.addTab("Tool", tool)
-    qtbot.waitForWindowShown(tool)
+    qtbot.waitExposed(tool)
 
     assert tool.lineedit_name.text() == "calc0"
     tool.apply()

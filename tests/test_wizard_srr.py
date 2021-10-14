@@ -18,7 +18,7 @@ def test_wizard_srr_config(qtbot: QtBot):
     )
     qtbot.addWidget(wiz)
     wiz.show()
-    qtbot.waitForWindowShown(wiz)
+    qtbot.waitExposed(wiz)
 
     # Format
     page = wiz.currentPage()
@@ -59,7 +59,7 @@ def test_wizard_srr_import_agilent(qtbot: QtBot):
     )
     qtbot.addWidget(wiz)
     wiz.show()
-    qtbot.waitForWindowShown(wiz)
+    qtbot.waitExposed(wiz)
 
     # Format
     page = wiz.currentPage()
@@ -84,7 +84,7 @@ def test_wizard_srr_import_numpy(qtbot: QtBot):
     )
     qtbot.addWidget(wiz)
     wiz.show()
-    qtbot.waitForWindowShown(wiz)
+    qtbot.waitExposed(wiz)
 
     # Format
     page = wiz.currentPage()
@@ -109,7 +109,7 @@ def test_wizard_srr_import_text(qtbot: QtBot):
     )
     qtbot.addWidget(wiz)
     wiz.show()
-    qtbot.waitForWindowShown(wiz)
+    qtbot.waitExposed(wiz)
 
     # Format
     page = wiz.currentPage()
@@ -134,7 +134,7 @@ def test_wizard_srr_import_thermo(qtbot: QtBot):
     )
     qtbot.addWidget(wiz)
     wiz.show()
-    qtbot.waitForWindowShown(wiz)
+    qtbot.waitExposed(wiz)
 
     # Format
     page = wiz.currentPage()
