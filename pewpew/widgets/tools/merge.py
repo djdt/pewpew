@@ -21,7 +21,7 @@ from pewpew.widgets.laser import LaserWidget
 from typing import List, Optional, Tuple
 
 # TODO: possible off by one on overlap
-
+# shared range
 
 class MergeGraphicsView(OverlayView):
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
@@ -280,7 +280,7 @@ class MergeTool(ToolWidget):
         )
         self.view.addLaser(laser)
 
-    def addLaserDialog(self) -> None:
+    def addLaserDialog(self) -> QtWidgets.QInputDialog:
         lasers = [
             w.laser
             for view in self.viewspace.views
@@ -292,17 +292,29 @@ class MergeTool(ToolWidget):
 
         if len(lasers) == 0:
             return
-        name, ok = QtWidgets.QInputDialog.getItem(
-            self,
-            "Select Laser",
-            "Laser:",
-            [laser.info["Name"] for laser in lasers],
-            0,
-            False,
-        )
-        if not ok:
+
+        dlg = QtWidgets.QInputDialog(self)
+        dlg.setComboBoxItems([laser.info["Name"] for laser in lasers])
+        dlg.setLabelText("Laser:")
+        dlg.setWindowTitle("Select Laser")
+        dlg.textValueSelected.connect(self.addLaserByName)
+        dlg.open()
+
+        return dlg
+
+    def addLaserByName(self, name: str) -> None:
+        lasers = [
+            w.laser
+            for view in self.viewspace.views
+            for w in view.widgets()
+            if isinstance(w, LaserWidget)
+        ]
+        current_lasers = [row.laser for row in self.list.rows]
+        lasers = [laser for laser in lasers if laser not in current_lasers]
+        if len(lasers) == 0:
             return
         laser = [laser for laser in lasers if laser.info["Name"] == name][0]
+
         item = self.list.addRow(laser)
 
         self.redrawRow(item)
