@@ -25,6 +25,7 @@ from typing import List, Optional, Tuple
 # Alpha
 # Add / mult
 
+
 class MergeGraphicsView(OverlayView):
     def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
         self.options = options
@@ -75,7 +76,8 @@ class MergeGraphicsView(OverlayView):
 
 
 class MergeRowItem(QtWidgets.QWidget):
-    elementChanged = QtCore.Signal("QWidget*", str)
+    alphaChanged = QtCore.Signal("QWidget*")
+    elementChanged = QtCore.Signal("QWidget*")
     closeRequested = QtCore.Signal("QWidget*")
 
     def __init__(
@@ -100,18 +102,33 @@ class MergeRowItem(QtWidgets.QWidget):
         self.combo_element = QtWidgets.QComboBox()
         self.combo_element.addItems(laser.elements)
 
-        self.combo_element.currentTextChanged.connect(self.comboElementChanged)
+        self.combo_element.currentTextChanged.connect(
+            lambda _: self.elementChanged.emit(self.item)
+        )
 
         self.button_close = qToolButton(action=self.action_close)
         self.button_close.setEnabled(close_button)
 
+        self.slider_alpha = QtWidgets.QSlider()
+        self.slider_alpha.setMinimumWidth(200)
+        self.slider_alpha.setOrientation(QtCore.Qt.Horizontal)
+        self.slider_alpha.setRange(0, 100)
+        self.slider_alpha.setValue(100)
+        self.slider_alpha.valueChanged.connect(
+            lambda _: self.alphaChanged.emit(self.item)
+        )
+
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(self.label_name, 1)
+        layout.addWidget(self.label_name, 2)
         layout.addWidget(self.label_offset, 0, QtCore.Qt.AlignRight)
+        layout.addWidget(self.slider_alpha, 0, QtCore.Qt.AlignRight)
         layout.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
         layout.addWidget(self.button_close, 0, QtCore.Qt.AlignRight)
 
         self.setLayout(layout)
+
+    def alpha(self) -> float:
+        return self.slider_alpha.value() / 100.0
 
     def data(self, calibrate: bool = False) -> np.ndarray:
         return self.laser.get(
@@ -146,7 +163,8 @@ class MergeRowItem(QtWidgets.QWidget):
 
 
 class MergeLaserList(QtWidgets.QListWidget):
-    elementChanged = QtCore.Signal("QWidget*")
+    rowAlphaChanged = QtCore.Signal("QWidget*")
+    rowElementChanged = QtCore.Signal("QWidget*")
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
@@ -174,7 +192,8 @@ class MergeLaserList(QtWidgets.QListWidget):
         self.addItem(item)
 
         row = MergeRowItem(laser, item, close_button=close_button, parent=self)
-        row.elementChanged.connect(self.elementChanged)
+        row.elementChanged.connect(self.rowElementChanged)
+        row.alphaChanged.connect(self.rowAlphaChanged)
         row.closeRequested.connect(self.removeRow)
 
         item.setSizeHint(row.sizeHint())
@@ -199,7 +218,8 @@ class MergeTool(ToolWidget):
         self.graphics = MergeGraphicsView(self.viewspace.options, parent=self)
 
         self.list = MergeLaserList()
-        self.list.elementChanged.connect(self.redrawRow)
+        self.list.rowElementChanged.connect(self.redrawRow)
+        self.list.rowAlphaChanged.connect(self.updateRowAlpha)
         self.list.model().rowsMoved.connect(self.reassignZValues)
 
         self.button_add = QtWidgets.QPushButton("Add Laser")
@@ -322,6 +342,12 @@ class MergeTool(ToolWidget):
         self.redrawRow(item)
         self.graphics.fitAllImages()
 
+    def updateRowAlpha(self,item: QtWidgets.QListWidgetItem) -> None: 
+        row = self.list.itemWidget(item)
+        if row.image is not None:
+            alpha = row.alpha()
+            row.image.setOpacity(alpha)
+
     def redrawRow(self, item: QtWidgets.QListWidgetItem) -> None:
         pos = QtCore.QPointF(0.0, 0.0)
         row = self.list.itemWidget(item)
@@ -334,6 +360,9 @@ class MergeTool(ToolWidget):
         row.image = self.graphics.drawImage(
             data, row.extentRect(), row.combo_element.currentText()
         )
+        alpha = row.alpha()
+
+        row.image.setOpacity(alpha)
         row.image.setPos(pos)
         row.image.setZValue(self.list.row(item))
 
