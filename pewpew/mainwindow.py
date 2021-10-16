@@ -263,9 +263,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def actionGroupColortable(self, action: QtWidgets.QAction) -> None:
         text = action.text().replace("&", "")
         self.viewspace.options.colortable = text
-        self.refresh()
+        self.viewspace.refresh()
 
-    def actionHelp(self) -> QtWidgets.QWidget:
+    def actionHelp(self) -> None:
         self.help.show()
 
     def actionLog(self) -> None:
