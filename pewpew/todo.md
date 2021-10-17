@@ -1,28 +1,30 @@
 Bugs
 ----
 
+Multi
+-----
+_Current viewspaces are not utilised, remove viewspaces and use a single tabbed widget. The new widgets will allow multiple images per tab. Will need rewrite of View, Viewpsace, LaserView/Viewpsace and tying of images to LaserWidget_
+
+Remove viewspace / views. One tabbed widget.
+
+Allow multiple images to be open in one overlay view, see merge tool
+Allow movement of images, see merge tool
+
+A way to move each image to own tab
+A way to combine image into current tab
+
+Image alpha
+
+Right-click context menus per graphics image.
+
 Misc
 ----
 
-> Overlay tool could use a colorbar scale.
-Cant make a 3 color color scale.
-
 Colocal is slow (coastes has many python loop).
-
-Edit tool needs indicator for what is getting updated (single / multiple isotopes?)
-
-Edit Tool
----------
-
-
-Draw Tool
----------
-_Implement a tool for drawing_
 
 Image Export Tool
 -----------------
 _tool for composition of images_
-
 
 Info Dialog Rebuild
 -------------------
