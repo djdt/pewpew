@@ -254,16 +254,11 @@ class OverlayView(QtWidgets.QGraphicsView):
         """Update interaction modes and the cursor."""
         if on:
             self.interaction_flags.add(flag)
+            if flag in self.cursors:
+                self.viewport().setCursor(self.cursors[flag])
         else:
             self.interaction_flags.discard(flag)
-
-        if len(self.interaction_flags) == 0:
             self.viewport().setCursor(QtCore.Qt.ArrowCursor)
-        else:
-            for flag in self.interaction_flags:
-                if flag in self.cursors:
-                    self.viewport().setCursor(self.cursors[flag])
-                    break
 
     def scrollContentsBy(self, dx: int, dy: int) -> None:
         super().scrollContentsBy(dx, dy)

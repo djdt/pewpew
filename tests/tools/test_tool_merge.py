@@ -17,9 +17,9 @@ def test_merge_tool(qtbot: QtBot):
     view = viewspace.activeView()
 
     data = rand_data(["A", "B"])
-    view.addLaser(Laser(data, info={"Name": "Laser 1"}))
+    view.addLaser(Laser(data, info={"Name": "Laser 1", "File Path": "/test/laser1"}))
     data = rand_data(["B", "C"])
-    view.addLaser(Laser(data, info={"Name": "Laser 2"}))
+    view.addLaser(Laser(data, info={"Name": "Laser 2", "File Path": "/test/laser1"}))
 
     tool = MergeTool(view.activeWidget())
     view.addTab("Tool", tool)
@@ -51,3 +51,5 @@ def test_merge_tool(qtbot: QtBot):
 
     assert tool.list.rows[0].offset() == (0, 0)
     # Second image position unknown
+
+    tool.apply()
