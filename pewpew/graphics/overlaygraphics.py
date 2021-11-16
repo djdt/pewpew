@@ -141,15 +141,21 @@ class OverlayScene(QtWidgets.QGraphicsScene):
             painter.setTransform(transform)
             item.item.paint(painter, QtWidgets.QStyleOptionGraphicsItem(), None)
 
-            # painter.setBrush(QtGui.QBrush(QtCore.Qt.red, QtCore.Qt.Dense7Pattern))
-            # painter.drawRect(item.item.boundingRect())
-
     def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         """Intercept events and pass to overlay."""
         view_pos = event.widget().mapFromGlobal(event.screenPos())
         for item in self.overlayitems:
             if item.contains(view_pos, event.widget().rect()):
                 item.item.mouseDoubleClickEvent(event)
+
+    def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
+        """Intercept events and pass to overlay."""
+        view_pos = event.widget().mapFromGlobal(event.screenPos())
+        for item in self.overlayitems:
+            if item.contains(view_pos, event.widget().rect()):
+                item.item.contextMenuEvent(event)
+                return
+        super().contextMenuEvent(event)
 
 
 class OverlayView(QtWidgets.QGraphicsView):
