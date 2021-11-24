@@ -23,6 +23,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
     def __init__(
         self,
         rect: QtCore.QRectF,
+        cursor_dist: int = 6,
         parent: QtWidgets.QGraphicsItem = None,
     ):
         super().__init__(rect, parent)
@@ -34,6 +35,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         self.setAcceptHoverEvents(True)
 
         self.selected_edge: Optional[str] = None
+        self.cursor_dist = cursor_dist
 
     def boundingRect(self) -> QtCore.QRectF:
         rect = super().boundingRect()
@@ -41,7 +43,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         if view is None:
             return rect
 
-        dist = view.mapToScene(QtCore.QRect(0, 0, 10, 1)).boundingRect().width()
+        dist = view.mapToScene(QtCore.QRect(0, 0,self.cursor_dist, 1)).boundingRect().width()
         return rect.marginsAdded(QtCore.QMarginsF(dist, dist, dist, dist))
 
     def shape(self) -> QtGui.QPainterPath:
@@ -52,7 +54,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
 
     def edgeAt(self, pos: QtCore.QPointF) -> Optional[str]:
         view = next(iter(self.scene().views()))
-        dist = view.mapToScene(QtCore.QRect(0, 0, 10, 1)).boundingRect().width()
+        dist = view.mapToScene(QtCore.QRect(0, 0, self.cursor_dist, 1)).boundingRect().width()
 
         edge = ""
         if abs(self.rect().top() - pos.y()) < dist:
