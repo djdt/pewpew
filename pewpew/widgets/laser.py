@@ -137,16 +137,16 @@ class LaserViewSpace(ViewSpace):
         self.options.calibrate = checked
         self.refresh()
 
-    def toggleColorbar(self, checked: bool) -> None:
-        self.options.items["colorbar"] = checked
+    def setColorbarVisible(self, visible: bool = False) -> None:
+        self.options.items["colorbar"] = visible
         self.refresh()
 
-    def toggleLabel(self, checked: bool) -> None:
-        self.options.items["label"] = checked
+    def setLabelVisible(self, visible: bool) -> None:
+        self.options.items["label"] = visible
         self.refresh()
 
-    def toggleScalebar(self, checked: bool) -> None:
-        self.options.items["scalebar"] = checked
+    def setScalebarVisible(self, visible: bool) -> None:
+        self.options.items["scalebar"] = visible
         self.refresh()
 
     def toggleSmooth(self, checked: bool) -> None:
@@ -179,10 +179,10 @@ class LaserView(View):
 
     # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
-        event.accept()
         menu = QtWidgets.QMenu(self)
         menu.addAction(self.action_open)
         menu.popup(event.globalPos())
+        event.accept()
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
@@ -295,9 +295,10 @@ class LaserWidget(_ViewWidget):
         self.is_srr = isinstance(laser, SRRLaser)
 
         self.graphics = LaserGraphicsView(options, parent=self)
-        self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
-        self.graphics.label.editRequested.connect(self.labelEditDialog)
         self.graphics.setMouseTracking(True)
+
+        self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
+        self.graphics.label.labelChanged.connect(self.renameCurrentElement)
         self.graphics.colorbar.editRequested.connect(self.actionRequestColorbarEdit)
 
         self.combo_layers = QtWidgets.QComboBox()
@@ -515,22 +516,10 @@ class LaserWidget(_ViewWidget):
         self.modified = True
 
     # Other
-    def labelEditDialog(self, name: str) -> QtWidgets.QInputDialog:
-        """Simple dialog for editing the label (and element name)."""
-        dlg = QtWidgets.QInputDialog(self)
-        dlg.setWindowTitle("Edit Name")
-        dlg.setInputMode(QtWidgets.QInputDialog.TextInput)
-        dlg.setTextValue(name)
-        dlg.setLabelText("Rename:")
-        dlg.textValueSelected.connect(
-            lambda s: self.renameElement(self.current_element, s)
-        )
-        dlg.open()
-        return dlg
 
-    def renameElement(self, old: str, new: str) -> None:
+    def renameCurrentElement(self, new: str) -> None:
         """Rename a single element."""
-        self.laser.rename({old: new})
+        self.laser.rename({self.current_element: new})
         self.modified = True
         self.populateElements()
         self.current_element = new
@@ -835,7 +824,6 @@ class LaserWidget(_ViewWidget):
 
     # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
-        event.accept()
         menu = QtWidgets.QMenu(self)
         # menu.addAction(self.action_duplicate)
         menu.addAction(self.action_copy_image)
@@ -859,6 +847,7 @@ class LaserWidget(_ViewWidget):
             menu.addAction(self.action_statistics)
             menu.addAction(self.action_colocalisation)
         menu.popup(event.globalPos())
+        event.accept()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.matches(QtGui.QKeySequence.Cancel):
