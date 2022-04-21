@@ -31,15 +31,15 @@ class GraphicsOptions(object):
 
     def __init__(self, *args, **kwargs) -> None:
         # Todo: maybe alignments here?
-        self.items = {
+        self.overlay_items = {
             "label": True,
             "scalebar": True,
             "colorbar": True,
         }
 
         self.colortable = "viridis"
-        self._colorranges: Dict[str, Tuple[Union[float, str], Union[float, str]]] = {}
-        self.colorrange_default = (0.0, "99%")
+        self.color_ranges: Dict[str, Tuple[Union[float, str], Union[float, str]]] = {}
+        self.color_range_default = (0.0, "99%")
 
         self.smoothing = False
 
@@ -50,18 +50,18 @@ class GraphicsOptions(object):
         self.calibrate = True
         self.units = "μm"
 
-    def get_colorrange(self, name: str) -> Tuple[Union[float, str], Union[float, str]]:
-        """Get colorrange for 'name' or a default."""
-        return self._colorranges.get(name, self.colorrange_default)
+    # def get_colorrange(self, name: str) -> Tuple[Union[float, str], Union[float, str]]:
+    #     """Get colorrange for 'name' or a default."""
+    #     return self._colorranges.get(name, self.colorrange_default)
 
-    def get_colorrange_as_float(
+    def get_color_range_as_float(
         self, name: str, data: np.ndarray
     ) -> Tuple[float, float]:
         """Get colorrange for 'name' or a default.
 
         Converts percentile ranges to float values.
         """
-        vmin, vmax = self.get_colorrange(name)
+        vmin, vmax = self.color_ranges.get(name, self.color_range_default)
         if data.dtype == bool:
             return 0, 1
 
@@ -71,26 +71,26 @@ class GraphicsOptions(object):
             vmax = np.nanpercentile(data, float(vmax.rstrip("%")))
         return vmin, vmax  # type: ignore
 
-    def get_colorrange_as_percentile(
-        self, name: str, data: np.ndarray
-    ) -> Tuple[float, float]:
-        """Get colorrange for 'name' or a default.
+    # def get_colorrange_as_percentile(
+    #     self, name: str, data: np.ndarray
+    # ) -> Tuple[float, float]:
+    #     """Get colorrange for 'name' or a default.
 
-        Converts float values to percentile ranges.
-        """
-        vmin, vmax = self.get_colorrange(name)
-        if isinstance(vmin, str):
-            vmin = float(vmin.rstrip("%"))
-        else:
-            vmin = np.count_nonzero(data < vmin) / data.size * 100
-        if isinstance(vmax, str):
-            vmax = float(vmax.rstrip("%"))
-        else:
-            vmin = np.count_nonzero(data < vmax) / data.size * 100
-        return vmin, vmax  # type: ignore
+    #     Converts float values to percentile ranges.
+    #     """
+    #     vmin, vmax = self.get_colorrange(name)
+    #     if isinstance(vmin, str):
+    #         vmin = float(vmin.rstrip("%"))
+    #     else:
+    #         vmin = np.count_nonzero(data < vmin) / data.size * 100
+    #     if isinstance(vmax, str):
+    #         vmax = float(vmax.rstrip("%"))
+    #     else:
+    #         vmin = np.count_nonzero(data < vmax) / data.size * 100
+    #     return vmin, vmax  # type: ignore
 
-    def set_colorrange(
-        self, name: str, colorrange: Tuple[Union[float, str], Union[float, str]]
-    ) -> None:
-        """Set colorrange for 'name'."""
-        self._colorranges[name] = colorrange
+    # def set_colorrange(
+    #     self, name: str, colorrange: Tuple[Union[float, str], Union[float, str]]
+    # ) -> None:
+    #     """Set colorrange for 'name'."""
+    #     self._colorranges[name] = colorrange

@@ -1,5 +1,6 @@
 import sys
 import logging
+from typing import Optional
 
 from PySide2 import QtGui, QtWidgets
 
@@ -8,6 +9,7 @@ from pewlib.config import SpotConfig
 from pewpew import __version__
 
 from pewpew.actions import qAction, qActionGroup
+from pewpew.graphics.options import GraphicsOptions
 from pewpew.log import LoggingDialog
 from pewpew.help import HelpDialog
 from pewpew.widgets import dialogs
@@ -34,6 +36,19 @@ class MainWindow(QtWidgets.QMainWindow):
     """Pewpew mainwindow, holding a Lasertabview.
     Actions for the menu and status bars are created and stored here.
     """
+
+    ENABLED_TOOLS = {
+        "Calculator": (CalculatorTool, None, ""),
+        "Drift": (DriftTool, None, "Correct instrument drift."),
+        "Filter": (
+            FilteringTool,
+            None,
+            "Remove spikes and instrument noise from data.",
+        ),
+        # "Merge": (MergeTool, "align-vertical-top", "Tool for merging multiple images."),
+        "Calibration": (StandardsTool, None, "Generate calibrations from stanards."),
+        "Overlay": (OverlayTool, None, "Overlay elements as RGB images."),
+    }
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
@@ -64,7 +79,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "help-about", "&About", "About pew².", self.actionAbout
         )
         self.action_help = qAction(
-            "help-contents", "&Help", "Show the help contents.", self.actionHelp
+            "help-contents", "&Help", "Show the help contents.", self.help.open
         )
         self.action_colortable_range = qAction(
             "",
@@ -102,19 +117,22 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_group_colortable = qActionGroup(
             self,
-            list(self.options.colortables.keys()),
+            list(self.tabview.options.colortables.keys()),
             self.actionGroupColortable,
-            checked=self.options.colortable,
-            statuses=list(self.options.colortables.values()),
+            checked=self.tabview.options.colortable,
+            statuses=list(self.tabview.options.colortables.values()),
         )
         self.action_smooth = qAction(
             "smooth",
             "&Smooth",
             "Smooth images with bilinear interpolation.",
-            self.tabview.toggleSmooth,
+            lambda checked: [
+                setattr(self.tabview.options, "smoothing", checked),
+                self.tabview.refresh,
+            ],
         )
         self.action_smooth.setCheckable(True)
-        self.action_smooth.setChecked(self.options.smoothing)
+        self.action_smooth.setChecked(self.tabview.options.smoothing)
         self.action_wizard_import = qAction(
             "",
             "Import Wizard",
@@ -134,7 +152,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionWizardSRR,
         )
         self.action_log = qAction(
-            "clock", "&Show Log", "Show the pew² event and error log.", self.actionLog
+            "clock", "&Show Log", "Show the pew² event and error log.", self.log.open
         )
         self.action_open = qAction(
             "document-open", "&Open", "Open new document(s).", self.actionOpen
@@ -145,90 +163,73 @@ class MainWindow(QtWidgets.QMainWindow):
             "go-top",
             "Ca&librate",
             "Toggle calibration.",
-            self.toggleCalibrate,
+            lambda checked: [
+                setattr(self.tabview.options, "calibrate", checked),
+                self.tabview.refresh,
+            ],
         )
         self.action_toggle_calibrate.setShortcut("Ctrl+L")
         self.action_toggle_calibrate.setCheckable(True)
-        self.action_toggle_calibrate.setChecked(self.options.calibrate)
-        self.action_toggle_colorbar = qAction(
-            "", "Show Colorbar", "Toggle colorbars.", self.setColorbarVisible
-        )
-        self.action_toggle_colorbar.setCheckable(True)
-        self.action_toggle_colorbar.setChecked(self.options.items["colorbar"])
-        self.action_toggle_label = qAction(
-            "", "Show Labels", "Toggle element labels.", self.setLabelVisible
-        )
-        self.action_toggle_label.setCheckable(True)
-        self.action_toggle_label.setChecked(self.options.items["label"])
-        self.action_toggle_scalebar = qAction(
-            "", "Show Scalebar", "Toggle scalebar.", self.setScalebarVisible
-        )
-        self.action_toggle_scalebar.setCheckable(True)
-        self.action_toggle_scalebar.setChecked(self.options.items["scalebar"])
-        self.action_tool_calculator = qAction(
-            "document-properties",
-            "Calculator",
-            "Open the calculator.",
-            self.actionToolCalculator,
-        )
-        self.action_tool_drift = qAction(
-            "document-properties",
-            "Drift Compensation",
-            "Open the drift compensation tool.",
-            self.actionToolDrift,
-        )
-        self.action_tool_filter = qAction(
-            "document-properties",
-            "Filtering",
-            "Open the filtering tool.",
-            self.actionToolFilter,
-        )
-        self.action_tool_merge = qAction(
-            "align-vertical-top",
-            "Merge Tool",
-            "Open tool for merging multiple images.",
-            self.actionToolMerge,
-        )
-        self.action_tool_standards = qAction(
-            "document-properties",
-            "Calibration Standards",
-            "Open the standards calibration tool.",
-            self.actionToolStandards,
-        )
-        self.action_tool_overlay = qAction(
-            "document-properties",
-            "Image Overlay",
-            "Open the overlay tool.",
-            lambda: self.openTool(OverlayTool, "Overlay tool")
-        )
+        self.action_toggle_calibrate.setChecked(self.tabview.options.calibrate)
 
-        self.action_transform_flip_horizontal = qAction(
-            "object-flip-horizontal",
-            "Flip Horizontal",
-            "Flip the image about vertical axis.",
-            self.actionTransformFlipHorz,
-        )
-        self.action_transform_flip_vertical = qAction(
-            "object-flip-vertical",
-            "Flip Vertical",
-            "Flip the image about horizontal axis.",
-            self.actionTransformFlipVert,
-        )
-        self.action_transform_rotate_left = qAction(
-            "object-rotate-left",
-            "Rotate Left",
-            "Rotate the image 90° counter clockwise.",
-            self.actionTransformRotateLeft,
-        )
-        self.action_transform_rotate_right = qAction(
-            "object-rotate-right",
-            "Rotate Right",
-            "Rotate the image 90° clockwise.",
-            self.actionTransformRotateRight,
-        )
+        self.action_overlay_items = [
+            # qAction("", "Show Labels", "Toggle visiblity of labels.", lambda checked: setattr(self.tabview.options.overlay_items, "label", checked)),
+            qAction(
+                "",
+                f"Show {item.capitalize()}",
+                f"Toggle visibility of the {item}.",
+                lambda checked: [
+                    setattr(self.tabview.options.overlay_items, item, checked),
+                    self.tabview.refresh,
+                ],
+            )
+            for item in self.tabview.options.overlay_items.keys()
+        ]
+        for action, checked in zip(
+            self.action_overlay_items, self.tabview.options.overlay_items.values()
+        ):
+            action.setCheckable(True)
+            action.setChecked(checked)
+
+        self.action_tools = [
+            qAction(
+                icon or "document-properties",
+                name,
+                desc,
+                lambda: self.openTool(tool, name),
+            )
+            for name, (tool, icon, desc) in self.ENABLED_TOOLS.items()
+        ]
+
+        self.action_transforms = [
+            qAction(
+                "object-flip-horizontal",
+                "Flip Horizontal",
+                "Flip the image about vertical axis.",
+                lambda: self.actionTransform(flip="horizontal"),
+            ),
+            qAction(
+                "object-flip-vertical",
+                "Flip Vertical",
+                "Flip the image about horizontal axis.",
+                lambda: self.actionTransform(flip="vertical"),
+            ),
+            qAction(
+                "object-rotate-left",
+                "Rotate Left",
+                "Rotate the image 90° counter clockwise.",
+                lambda: self.actionTransform(rotate="left"),
+            ),
+            qAction(
+                "object-rotate-right",
+                "Rotate Right",
+                "Rotate the image 90° clockwise.",
+                lambda: self.actionTransform(rotate="right"),
+            ),
+        ]
 
         self.action_refresh = qAction(
-            "view-refresh", "Refresh", "Redraw documents.", self.refresh
+            "view-refresh", "Refresh", "Redraw documents.", self.tabview.refresh
         )
         self.action_refresh.setShortcut("F5")
 
@@ -257,18 +258,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu_edit.addSeparator()
 
-        menu_edit.addAction(self.action_transform_flip_horizontal)
-        menu_edit.addAction(self.action_transform_flip_vertical)
-        menu_edit.addAction(self.action_transform_rotate_left)
-        menu_edit.addAction(self.action_transform_rotate_right)
+        for action in self.action_transforms:
+            menu_edit.addAction(action)
 
+        # Tools
         menu_tools = self.menuBar().addMenu("&Tools")
-        menu_tools.addAction(self.action_tool_calculator)
-        menu_tools.addAction(self.action_tool_drift)
-        menu_tools.addAction(self.action_tool_filter)
-        menu_tools.addAction(self.action_tool_merge)
-        menu_tools.addAction(self.action_tool_standards)
-        menu_tools.addAction(self.action_tool_overlay)
+        for action in self.action_tools:
+            menu_tools.addAction(action)
 
         # View
         menu_view = self.menuBar().addMenu("&View")
@@ -285,9 +281,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu_view.addSeparator()
 
-        menu_view.addAction(self.action_toggle_colorbar)
-        menu_view.addAction(self.action_toggle_label)
-        menu_view.addAction(self.action_toggle_scalebar)
+        for action in self.action_overlay_items:
+            menu_view.addAction(action)
 
         menu_view.addSeparator()
 
@@ -299,19 +294,18 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_help.addAction(self.action_help)
         menu_help.addAction(self.action_about)
 
-
     # === Actions ===
     def actionDialogColorTableRange(self) -> QtWidgets.QDialog:
         """Open a `:class:pewpew.widgets.dialogs.ColocalisationDialog` and apply result."""
 
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
-            self.options._colorranges = dialog.ranges
-            self.options.colorrange_default = dialog.default_range
-            self.refresh()
+            self.tabview.options._colorranges = dialog.ranges
+            self.tabview.options.colorrange_default = dialog.default_range
+            self.tabview.refresh()
 
         dlg = dialogs.ColorRangeDialog(
-            self.options._colorranges,
-            self.options.colorrange_default,
+            self.tabview.options._colorranges,
+            self.tabview.options.colorrange_default,
             self.uniqueElements(),
             current_element=self.currentElement(),
             parent=self,
@@ -354,12 +348,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tabview.options.colortable = text
         self.tabview.refresh()
 
-    def actionHelp(self) -> None:
-        self.help.show()
-
-    def actionLog(self) -> None:
-        self.log.show()
-
     def actionOpen(self) -> QtWidgets.QDialog:
         view = self.tabview.activeView()
         return view.actionOpen()
@@ -377,47 +365,13 @@ class MainWindow(QtWidgets.QMainWindow):
         widget.view.insertTab(index, name, tool)
         tool.activate()
 
-    def actionToolCalculator(self) -> None:
-        self.openTool(CalculatorTool, "Calculator")
-
-    def actionToolDrift(self) -> None:
-        self.openTool(DriftTool, "Drift")
-
-    def actionToolFilter(self) -> None:
-        self.openTool(FilteringTool, "Filter")
-
-    def actionToolMerge(self) -> None:
-        self.openTool(MergeTool, "Merge")
-
-    def actionToolStandards(self) -> None:
-        self.openTool(StandardsTool, "Standards")
-
-    def actionToolOverlay(self) -> None:
-        self.openTool(OverlayTool, "Overlay")
-
-    def actionTransformFlipHorz(self) -> None:
+    def actionTransform(
+        self, flip: Optional[str] = None, rotate: Optional[str] = None
+    ) -> None:
         widget = self.tabview.activeWidget()
         if widget is None:
             return
-        widget.transform(flip="horizontal")
-
-    def actionTransformFlipVert(self) -> None:
-        widget = self.tabview.activeWidget()
-        if widget is None:
-            return
-        widget.transform(flip="vertical")
-
-    def actionTransformRotateLeft(self) -> None:
-        widget = self.tabview.activeWidget()
-        if widget is None:
-            return
-        widget.transform(rotate="left")
-
-    def actionTransformRotateRight(self) -> None:
-        widget = self.tabview.activeWidget()
-        if widget is None:
-            return
-        widget.transform(rotate="right")
+        widget.transform(flip=flip, rotate=rotate)
 
     def actionWizardImport(self) -> QtWidgets.QWizard:
         wiz = ImportWizard(config=self.tabview.config, parent=self)
@@ -426,12 +380,8 @@ class MainWindow(QtWidgets.QMainWindow):
         return wiz
 
     def actionWizardSpot(self) -> QtWidgets.QWizard:
-        config = SpotConfig(
-            self.tabview.config.spotsize, self.tabview.config.spotsize
-        )
-        wiz = SpotImportWizard(
-            config=config, options=self.tabview.options, parent=self
-        )
+        config = SpotConfig(self.tabview.config.spotsize, self.tabview.config.spotsize)
+        wiz = SpotImportWizard(config=config, options=self.tabview.options, parent=self)
         wiz.laserImported.connect(self.tabview.activeView().addLaser)
         wiz.open()
         return wiz
@@ -441,6 +391,49 @@ class MainWindow(QtWidgets.QMainWindow):
         wiz.laserImported.connect(self.tabview.activeView().addLaser)
         wiz.open()
         return wiz
+
+    def dialogColortableRange(self) -> QtWidgets.QDialog:
+        """Open a `:class:pewpew.widgets.dialogs.ColorRangeDialog` and apply result."""
+
+        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
+            self.tabview.options.color_ranges = dialog.ranges
+            self.tabview.options.color_range_default = dialog.default_range
+            self.tabview.refresh()
+
+        dlg = dialogs.ColorRangeDialog(
+            self.tabview.options.color_ranges,
+            self.tabview.options.color_range_default,
+            self.uniqueElements(),
+            current_element=self.currentElement(),
+            parent=self,
+        )
+        dlg.combo_element.currentTextChanged.connect(self.setCurrentElement)
+        dlg.applyPressed.connect(applyDialog)
+        dlg.open()
+        return dlg
+
+    def dialogConfig(self) -> QtWidgets.QDialog:
+        """Open a `:class:pewpew.widgets.dialogs.ConfigDialog` and apply result."""
+        dlg = dialogs.ConfigDialog(self.config, parent=self)
+        dlg.check_all.setChecked(True)
+        dlg.check_all.setEnabled(False)
+        dlg.configApplyAll.connect(self.applyConfig)
+        dlg.open()
+        return dlg
+
+    def dialogFontsize(self) -> QtWidgets.QDialog:
+        """Simple dialog for editing image font size."""
+        dlg = QtWidgets.QInputDialog(self)
+        dlg.setWindowTitle("Fontsize")
+        dlg.setLabelText("Fontisze:")
+        dlg.setIntValue(self.tabview.options.font.pointSize())
+        dlg.setIntRange(2, 96)
+        dlg.setInputMode(QtWidgets.QInputDialog.IntInput)
+        dlg.intValueSelected.connect(self.tabview.options.font.setPointSize)
+        dlg.intValueSelected.connect(self.tabview.refresh)
+        dlg.open()
+        return dlg
+
     def buttonStatusUnit(self, toggled: bool) -> None:
         """Callback for 'button_status_um'."""
         if self.button_status_um.isChecked():
@@ -450,17 +443,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def updateActionAvailablity(self) -> None:
         """Enables tools if at least one view is present."""
-        enabled = self.tabview.countViewTabs() > 0
+        enabled = self.tabview.tabs.count() > 0
         self.action_export_all.setEnabled(enabled)
 
         # Tools require an active view
         enabled = enabled and self.tabview.tabs.count() > 0
 
-        self.action_tool_calculator.setEnabled(enabled)
-        self.action_tool_drift.setEnabled(enabled)
-        self.action_tool_filter.setEnabled(enabled)
-        self.action_tool_standards.setEnabled(enabled)
-        self.action_tool_overlay.setEnabled(enabled)
+        for action in self.action_tools:
+            action.setEnabled(enabled)
 
     def exceptHook(
         self, etype: type, value: BaseException, tb: TracebackType

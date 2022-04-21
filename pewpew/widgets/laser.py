@@ -158,9 +158,15 @@ logger = logging.getLogger(__name__)
 class LaserTabView(TabView):
     """Tabbed view for displaying laser images."""
 
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+
+        self.config = Config()
+        self.options = GraphicsOptions()
+
     def addLaser(self, laser: Laser) -> "LaserTabWidget":
         """Open image of  a laser in a new tab."""
-        widget = LaserTabWidget(laser, self.viewspace.options, self)
+        widget = LaserTabWidget(laser, self.options, self)
 
         name = laser.info.get("Name", "<No Name>")
         self.addTab(name, widget)
@@ -204,7 +210,7 @@ class LaserTabView(TabView):
         )
         progress.setWindowTitle("Importing...")
         progress.setMinimumDuration(2000)
-        thread = ImportThread(paths, config=self.viewspace.config, parent=self)
+        thread = ImportThread(paths, config=self.config, parent=self)
 
         progress.canceled.connect(thread.requestInterruption)
         thread.importStarted.connect(progress.setLabelText)
@@ -224,6 +230,7 @@ class LaserTabView(TabView):
 
     def applyConfig(self, config: Config) -> None:
         """Set laser configurations in all tabs."""
+        self.config = config
         for widget in self.widgets():
             if isinstance(widget, LaserTabWidget):
                 widget.applyConfig(config)
@@ -508,14 +515,14 @@ class LaserTabWidget(TabViewWidget):
     def rename(self, text: str) -> None:
         """Set the 'Name' value of laser information."""
         self.laser.info["Name"] = text
-        self.modified = True
+        self.setWindowModified(True)
 
     # Other
 
     def renameCurrentElement(self, new: str) -> None:
         """Rename a single element."""
         self.laser.rename({self.current_element: new})
-        self.modified = True
+        self.setWindowModified(True)
         self.populateElements()
         self.current_element = new
         self.refresh()
@@ -536,17 +543,17 @@ class LaserTabWidget(TabViewWidget):
 
     def clearCursorStatus(self) -> None:
         """Clear window statusbar, if it exists."""
-        status_bar = self.viewspace.window().statusBar()
+        status_bar = self.view.window().statusBar()
         if status_bar is not None:
             status_bar.clearMessage()
 
     def updateCursorStatus(self, x: float, y: float, v: float) -> None:
         """Updates the windows statusbar if it exists."""
-        status_bar = self.viewspace.window().statusBar()
+        status_bar = self.view.window().statusBar()
         if status_bar is None:  # pragma: no cover
             return
 
-        if self.viewspace.options.units == "index":  # convert to indices
+        if self.graphics.options.units == "index":  # convert to indices
             p = self.graphics.mapToData(QtCore.QPointF(x, y))
             x, y = p.x(), p.y()
 
@@ -565,7 +572,7 @@ class LaserTabWidget(TabViewWidget):
         current = rename[current]
         self.current_element = current
 
-        self.modified = True
+        self.setWindowModified(True)
 
     # Transformations
     def cropToSelection(self) -> None:
@@ -631,7 +638,7 @@ class LaserTabWidget(TabViewWidget):
                 self.laser.data = np.rot90(self.laser.data, k=k, axes=(1, 0))
             else:
                 raise ValueError("rotate must be 'left', 'right'.")
-        self.modified = True
+        self.setWindowModified(True)
         self.refresh()
 
     # Callbacks
@@ -643,7 +650,7 @@ class LaserTabWidget(TabViewWidget):
                 self.laser.calibration[element] = copy.copy(calibrations[element])
                 modified = True
         if modified:
-            self.modified = True
+            self.setWindowModified(True)
             self.refresh()
 
     def applyConfig(self, config: Config) -> None:
@@ -651,7 +658,7 @@ class LaserTabWidget(TabViewWidget):
         # Only apply if the type of config is correct
         if type(config) is type(self.laser.config):  # noqa
             self.laser.config = copy.copy(config)
-            self.modified = True
+            self.setWindowModified(True)
             self.refresh()
 
     def applyInformation(self, info: Dict[str, str]) -> None:
@@ -660,7 +667,7 @@ class LaserTabWidget(TabViewWidget):
         #     self.view.tabs.setTabText(self.index(), info["Name"])
         if self.laser.info != info:
             self.laser.info = info
-            self.modified = True
+            self.setWindowModified(True)
 
     def saveDocument(self, path: Union[str, Path]) -> None:
         """Saves the laser to an '.npz' file.
@@ -673,7 +680,7 @@ class LaserTabWidget(TabViewWidget):
 
         io.npz.save(path, self.laser)
         self.laser.info["File Path"] = str(path.resolve())
-        self.modified = False
+        self.setWindowModified(False)
 
     def actionCalibration(self) -> QtWidgets.QDialog:
         """Open a `:class:pewpew.widgets.dialogs.CalibrationDialog` and applies result."""
@@ -681,7 +688,7 @@ class LaserTabWidget(TabViewWidget):
             self.laser.calibration, self.current_element, parent=self
         )
         dlg.calibrationSelected.connect(self.applyCalibration)
-        dlg.calibrationApplyAll.connect(self.viewspace.applyCalibration)
+        dlg.calibrationApplyAll.connect(self.view.applyCalibration)
         dlg.open()
         return dlg
 
@@ -689,7 +696,7 @@ class LaserTabWidget(TabViewWidget):
         """Open a `:class:pewpew.widgets.dialogs.ConfigDialog` and applies result."""
         dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
         dlg.configSelected.connect(self.applyConfig)
-        dlg.configApplyAll.connect(self.viewspace.applyConfig)
+        dlg.configApplyAll.connect(self.view.applyConfig)
         dlg.open()
         return dlg
 
@@ -775,13 +782,13 @@ class LaserTabWidget(TabViewWidget):
         Args:
             crop_to_selection: pass current selection as a mask
         """
-        data = self.laser.get(calibrate=self.viewspace.options.calibrate, flat=True)
+        data = self.laser.get(calibrate=self.graphics.options.calibrate, flat=True)
         mask = self.graphics.mask
         if mask is None or not crop_to_selection:
             mask = np.ones(data.shape, dtype=bool)
 
         units = {}
-        if self.viewspace.options.calibrate:
+        if self.graphics.options.calibrate:
             units = {k: v.unit for k, v in self.laser.calibration.items()}
 
         dlg = dialogs.StatsDialog(

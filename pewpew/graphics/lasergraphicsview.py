@@ -194,7 +194,7 @@ class LaserGraphicsView(OverlayView):
 
         self.data = np.ascontiguousarray(data)
 
-        vmin, vmax = self.options.get_colorrange_as_float(name, self.data)
+        vmin, vmax = self.options.get_color_range_as_float(name, self.data)
         table = colortable.get_table(self.options.colortable)
 
         data = np.clip(self.data, vmin, vmax)
@@ -287,11 +287,11 @@ class LaserGraphicsView(OverlayView):
     ):
         """Set visibility of overlay items."""
         if label is None:
-            label = self.options.items["label"]
+            label = self.options.overlay_items["label"]
         if scalebar is None:
-            scalebar = self.options.items["scalebar"]
+            scalebar = self.options.overlay_items["scalebar"]
         if colorbar is None:
-            colorbar = self.options.items["colorbar"]
+            colorbar = self.options.overlay_items["colorbar"]
 
         self.label.setVisible(label)
         self.scalebar.setVisible(scalebar)

@@ -91,7 +91,7 @@ class TabView(QtWidgets.QWidget):
         """
         index = self.tabs.addTab(text)
         self.stack.insertWidget(index, widget)
-        self.setTabModified(index, widget.modified)
+        self.setTabModified(index, widget.isWindowModified())
         self.numTabsChanged.emit()
         return index
 
@@ -325,7 +325,7 @@ class TabViewWidget(QtWidgets.QWidget):
 
     def setWindowModified(self, modified: bool) -> None:
         super().setWindowModified(modified)
-        self.view.tabs.setTabModified(self.index, modified)
+        self.view.setTabModified(self.index, modified)
 
     def refresh(self) -> None:  # pragma: no cover
         self.refreshed.emit()
