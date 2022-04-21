@@ -2,7 +2,7 @@ from pathlib import Path
 
 from PySide2 import QtCore, QtWidgets
 
-from typing import List, Union
+from typing import List, Optional, Union
 
 
 class DetailedError(QtWidgets.QMessageBox):
