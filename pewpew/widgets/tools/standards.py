@@ -17,7 +17,7 @@ from pewpew.widgets.modelviews import (
     BasicTable,
     BasicTableView,
 )
-from pewpew.widgets.laser import LaserWidget
+from pewpew.widgets.laser import LaserTabWidget
 
 from .tool import ToolWidget
 
@@ -87,7 +87,7 @@ class StandardsTool(ToolWidget):
 
     WEIGHTINGS = ["Equal", "1/σ²", "x", "1/x", "1/x²", "y", "1/y", "1/y²"]
 
-    def __init__(self, widget: LaserWidget):
+    def __init__(self, widget: LaserTabWidget):
         super().__init__(widget, control_label="Calibration", apply_all=True)
         self.setWindowTitle("Calibration Tool")
 

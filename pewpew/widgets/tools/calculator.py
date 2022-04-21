@@ -12,7 +12,7 @@ from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 
 from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
-from pewpew.widgets.laser import LaserWidget
+from pewpew.widgets.laser import LaserTabWidget
 from pewpew.widgets.tools import ToolWidget
 
 from typing import List, Optional
@@ -229,7 +229,7 @@ class CalculatorTool(ToolWidget):
         ),
     }
 
-    def __init__(self, widget: LaserWidget):
+    def __init__(self, widget: LaserTabWidget):
         super().__init__(widget, graphics_label="Preview")
 
         self.graphics = LaserGraphicsView(self.viewspace.options, parent=self)

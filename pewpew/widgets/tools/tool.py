@@ -1,9 +1,9 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewpew.widgets.views import _ViewWidget
+from pewpew.widgets.views import TabViewWidget
 
 
-class ToolWidget(_ViewWidget):
+class ToolWidget(TabViewWidget):
     """Base widget for pewpew tools.
 
     Provides a layout with two group boxes, oriented as per `orientation`.
@@ -25,7 +25,7 @@ class ToolWidget(_ViewWidget):
 
     def __init__(
         self,
-        widget: _ViewWidget,
+        widget: TabViewWidget,
         control_label: str = "Controls",
         graphics_label: str = "",
         orientation: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,

@@ -15,7 +15,7 @@ from pewpew.graphics.imageitems import ScaledImageItem
 from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
 
 from pewpew.widgets.tools import ToolWidget
-from pewpew.widgets.laser import LaserWidget
+from pewpew.widgets.laser import LaserTabWidget
 
 
 from typing import List, Optional, Tuple
@@ -209,7 +209,7 @@ class MergeTool(ToolWidget):
 
     normalise_methods = ["Maximum", "Minimum"]
 
-    def __init__(self, widget: LaserWidget):
+    def __init__(self, widget: LaserTabWidget):
         super().__init__(widget, orientation=QtCore.Qt.Vertical, apply_all=False)
         self.button_box.removeButton(
             self.button_box.button(QtWidgets.QDialogButtonBox.Apply)
@@ -308,7 +308,7 @@ class MergeTool(ToolWidget):
             w.laser
             for view in self.viewspace.views
             for w in view.widgets()
-            if isinstance(w, LaserWidget)
+            if isinstance(w, LaserTabWidget)
         ]
         current_lasers = [row.laser for row in self.list.rows]
         lasers = [laser for laser in lasers if laser not in current_lasers]
@@ -330,7 +330,7 @@ class MergeTool(ToolWidget):
             w.laser
             for view in self.viewspace.views
             for w in view.widgets()
-            if isinstance(w, LaserWidget)
+            if isinstance(w, LaserTabWidget)
         ]
         current_lasers = [row.laser for row in self.list.rows]
         lasers = [laser for laser in lasers if laser not in current_lasers]

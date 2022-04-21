@@ -10,8 +10,9 @@ from pewpew import __version__
 from pewpew.actions import qAction, qActionGroup
 from pewpew.log import LoggingDialog
 from pewpew.help import HelpDialog
+from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
-from pewpew.widgets.laser import LaserWidget, LaserViewSpace
+from pewpew.widgets.laser import LaserTabWidget, LaserTabView
 
 from pewpew.widgets.tools import (
     ToolWidget,
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    """Pewpew mainwindow, holding a LaserViewSpace.
+    """Pewpew mainwindow, holding a Lasertabview.
     Actions for the menu and status bars are created and stored here.
     """
 
@@ -41,10 +42,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.log = LoggingDialog()
         self.help = HelpDialog()
 
-        self.viewspace = LaserViewSpace()
-        self.viewspace.numTabsChanged.connect(self.updateActionAvailablity)
-        self.viewspace.activeViewChanged.connect(self.updateActionAvailablity)
-        self.setCentralWidget(self.viewspace)
+        self.tabview = LaserTabView()
+        self.tabview.numTabsChanged.connect(self.updateActionAvailablity)
+        self.setCentralWidget(self.tabview)
 
         self.createActions()
         self.createMenus()
@@ -70,14 +70,14 @@ class MainWindow(QtWidgets.QMainWindow):
             "",
             "Set &Range",
             "Set the range of the colortable.",
-            self.viewspace.colortableRangeDialog,
+            self.dialogColortableRange,
         )
         self.action_colortable_range.setShortcut("Ctrl+R")
         self.action_config = qAction(
             "document-edit",
             "Default Config",
             "Edit the default config.",
-            self.viewspace.configDialog,
+            self.dialogConfig,
         )
         self.action_config.setShortcut("Ctrl+K")
 
@@ -98,23 +98,23 @@ class MainWindow(QtWidgets.QMainWindow):
             "insert-text",
             "Fontsize",
             "Set the font size in points.",
-            self.viewspace.fontsizeDialog,
+            self.dialogFontsize,
         )
         self.action_group_colortable = qActionGroup(
             self,
-            list(self.viewspace.options.colortables.keys()),
+            list(self.options.colortables.keys()),
             self.actionGroupColortable,
-            checked=self.viewspace.options.colortable,
-            statuses=list(self.viewspace.options.colortables.values()),
+            checked=self.options.colortable,
+            statuses=list(self.options.colortables.values()),
         )
         self.action_smooth = qAction(
             "smooth",
             "&Smooth",
             "Smooth images with bilinear interpolation.",
-            self.viewspace.toggleSmooth,
+            self.tabview.toggleSmooth,
         )
         self.action_smooth.setCheckable(True)
-        self.action_smooth.setChecked(self.viewspace.options.smoothing)
+        self.action_smooth.setChecked(self.options.smoothing)
         self.action_wizard_import = qAction(
             "",
             "Import Wizard",
@@ -145,26 +145,26 @@ class MainWindow(QtWidgets.QMainWindow):
             "go-top",
             "Ca&librate",
             "Toggle calibration.",
-            self.viewspace.toggleCalibrate,
+            self.toggleCalibrate,
         )
         self.action_toggle_calibrate.setShortcut("Ctrl+L")
         self.action_toggle_calibrate.setCheckable(True)
-        self.action_toggle_calibrate.setChecked(self.viewspace.options.calibrate)
+        self.action_toggle_calibrate.setChecked(self.options.calibrate)
         self.action_toggle_colorbar = qAction(
-            "", "Show Colorbar", "Toggle colorbars.", self.viewspace.setColorbarVisible
+            "", "Show Colorbar", "Toggle colorbars.", self.setColorbarVisible
         )
         self.action_toggle_colorbar.setCheckable(True)
-        self.action_toggle_colorbar.setChecked(self.viewspace.options.items["colorbar"])
+        self.action_toggle_colorbar.setChecked(self.options.items["colorbar"])
         self.action_toggle_label = qAction(
-            "", "Show Labels", "Toggle element labels.", self.viewspace.setLabelVisible
+            "", "Show Labels", "Toggle element labels.", self.setLabelVisible
         )
         self.action_toggle_label.setCheckable(True)
-        self.action_toggle_label.setChecked(self.viewspace.options.items["label"])
+        self.action_toggle_label.setChecked(self.options.items["label"])
         self.action_toggle_scalebar = qAction(
-            "", "Show Scalebar", "Toggle scalebar.", self.viewspace.setScalebarVisible
+            "", "Show Scalebar", "Toggle scalebar.", self.setScalebarVisible
         )
         self.action_toggle_scalebar.setCheckable(True)
-        self.action_toggle_scalebar.setChecked(self.viewspace.options.items["scalebar"])
+        self.action_toggle_scalebar.setChecked(self.options.items["scalebar"])
         self.action_tool_calculator = qAction(
             "document-properties",
             "Calculator",
@@ -199,7 +199,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "document-properties",
             "Image Overlay",
             "Open the overlay tool.",
-            self.actionToolOverlay,
+            lambda: self.openTool(OverlayTool, "Overlay tool")
         )
 
         self.action_transform_flip_horizontal = qAction(
@@ -228,130 +228,9 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
         self.action_refresh = qAction(
-            "view-refresh", "Refresh", "Redraw documents.", self.viewspace.refresh
+            "view-refresh", "Refresh", "Redraw documents.", self.refresh
         )
         self.action_refresh.setShortcut("F5")
-
-    def actionAbout(self) -> QtWidgets.QDialog:
-        dlg = QtWidgets.QMessageBox(
-            QtWidgets.QMessageBox.Information,
-            "About pew²",
-            (
-                "Import, process and export of LA-ICP-MS data.\n"
-                f"Version {__version__}\n"
-                "Developed by the Atomic Medicine Initiative.\n"
-                "https://github.com/djdt/pewpew"
-            ),
-            parent=self,
-        )
-        if self.windowIcon() is not None:
-            dlg.setIconPixmap(self.windowIcon().pixmap(64, 64))
-        dlg.open()
-        return dlg
-
-    def actionExportAll(self) -> QtWidgets.QDialog:
-        widgets = [
-            w
-            for v in self.viewspace.views
-            for w in v.widgets()
-            if isinstance(w, LaserWidget)
-        ]
-        dlg = ExportAllDialog(widgets, self)
-        dlg.open()
-        return dlg
-
-    def actionGroupColortable(self, action: QtWidgets.QAction) -> None:
-        text = action.text().replace("&", "")
-        self.viewspace.options.colortable = text
-        self.viewspace.refresh()
-
-    def actionHelp(self) -> None:
-        self.help.show()
-
-    def actionLog(self) -> None:
-        self.log.show()
-
-    def actionOpen(self) -> QtWidgets.QDialog:
-        view = self.viewspace.activeView()
-        return view.actionOpen()
-
-    def openTool(self, tool: ToolWidget, name: str) -> None:
-        widget = self.viewspace.activeWidget()
-        if widget is None:
-            return
-        index = widget.index
-        if isinstance(widget, ToolWidget):
-            widget = widget.widget
-        tool = tool(widget)
-        name = f"{name}: {widget.laserName()}"
-        widget.view.removeTab(index)
-        widget.view.insertTab(index, name, tool)
-        tool.activate()
-
-    def actionToolCalculator(self) -> None:
-        self.openTool(CalculatorTool, "Calculator")
-
-    def actionToolDrift(self) -> None:
-        self.openTool(DriftTool, "Drift")
-
-    def actionToolFilter(self) -> None:
-        self.openTool(FilteringTool, "Filter")
-
-    def actionToolMerge(self) -> None:
-        self.openTool(MergeTool, "Merge")
-
-    def actionToolStandards(self) -> None:
-        self.openTool(StandardsTool, "Standards")
-
-    def actionToolOverlay(self) -> None:
-        self.openTool(OverlayTool, "Overlay")
-
-    def actionTransformFlipHorz(self) -> None:
-        widget = self.viewspace.activeWidget()
-        if widget is None:
-            return
-        widget.transform(flip="horizontal")
-
-    def actionTransformFlipVert(self) -> None:
-        widget = self.viewspace.activeWidget()
-        if widget is None:
-            return
-        widget.transform(flip="vertical")
-
-    def actionTransformRotateLeft(self) -> None:
-        widget = self.viewspace.activeWidget()
-        if widget is None:
-            return
-        widget.transform(rotate="left")
-
-    def actionTransformRotateRight(self) -> None:
-        widget = self.viewspace.activeWidget()
-        if widget is None:
-            return
-        widget.transform(rotate="right")
-
-    def actionWizardImport(self) -> QtWidgets.QWizard:
-        wiz = ImportWizard(config=self.viewspace.config, parent=self)
-        wiz.laserImported.connect(self.viewspace.activeView().addLaser)
-        wiz.open()
-        return wiz
-
-    def actionWizardSpot(self) -> QtWidgets.QWizard:
-        config = SpotConfig(
-            self.viewspace.config.spotsize, self.viewspace.config.spotsize
-        )
-        wiz = SpotImportWizard(
-            config=config, options=self.viewspace.options, parent=self
-        )
-        wiz.laserImported.connect(self.viewspace.activeView().addLaser)
-        wiz.open()
-        return wiz
-
-    def actionWizardSRR(self) -> QtWidgets.QWizard:
-        wiz = SRRImportWizard(config=self.viewspace.config, parent=self)
-        wiz.laserImported.connect(self.viewspace.activeView().addLaser)
-        wiz.open()
-        return wiz
 
     def createMenus(self) -> None:
         # File
@@ -420,20 +299,162 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_help.addAction(self.action_help)
         menu_help.addAction(self.action_about)
 
+
+    # === Actions ===
+    def actionDialogColorTableRange(self) -> QtWidgets.QDialog:
+        """Open a `:class:pewpew.widgets.dialogs.ColocalisationDialog` and apply result."""
+
+        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
+            self.options._colorranges = dialog.ranges
+            self.options.colorrange_default = dialog.default_range
+            self.refresh()
+
+        dlg = dialogs.ColorRangeDialog(
+            self.options._colorranges,
+            self.options.colorrange_default,
+            self.uniqueElements(),
+            current_element=self.currentElement(),
+            parent=self,
+        )
+        dlg.combo_element.currentTextChanged.connect(self.setCurrentElement)
+        dlg.applyPressed.connect(applyDialog)
+        dlg.open()
+        return dlg
+
+    def actionAbout(self) -> QtWidgets.QDialog:
+        dlg = QtWidgets.QMessageBox(
+            QtWidgets.QMessageBox.Information,
+            "About pew²",
+            (
+                "Import, process and export of LA-ICP-MS data.\n"
+                f"Version {__version__}\n"
+                "Developed by the Atomic Medicine Initiative.\n"
+                "https://github.com/djdt/pewpew"
+            ),
+            parent=self,
+        )
+        if self.windowIcon() is not None:
+            dlg.setIconPixmap(self.windowIcon().pixmap(64, 64))
+        dlg.open()
+        return dlg
+
+    def actionExportAll(self) -> QtWidgets.QDialog:
+        widgets = [
+            w
+            for v in self.tabview.views
+            for w in v.widgets()
+            if isinstance(w, LaserTabWidget)
+        ]
+        dlg = ExportAllDialog(widgets, self)
+        dlg.open()
+        return dlg
+
+    def actionGroupColortable(self, action: QtWidgets.QAction) -> None:
+        text = action.text().replace("&", "")
+        self.tabview.options.colortable = text
+        self.tabview.refresh()
+
+    def actionHelp(self) -> None:
+        self.help.show()
+
+    def actionLog(self) -> None:
+        self.log.show()
+
+    def actionOpen(self) -> QtWidgets.QDialog:
+        view = self.tabview.activeView()
+        return view.actionOpen()
+
+    def openTool(self, tool: ToolWidget, name: str) -> None:
+        widget = self.tabview.activeWidget()
+        if widget is None:
+            return
+        index = widget.index
+        if isinstance(widget, ToolWidget):
+            widget = widget.widget
+        tool = tool(widget)
+        name = f"{name}: {widget.laserName()}"
+        widget.view.removeTab(index)
+        widget.view.insertTab(index, name, tool)
+        tool.activate()
+
+    def actionToolCalculator(self) -> None:
+        self.openTool(CalculatorTool, "Calculator")
+
+    def actionToolDrift(self) -> None:
+        self.openTool(DriftTool, "Drift")
+
+    def actionToolFilter(self) -> None:
+        self.openTool(FilteringTool, "Filter")
+
+    def actionToolMerge(self) -> None:
+        self.openTool(MergeTool, "Merge")
+
+    def actionToolStandards(self) -> None:
+        self.openTool(StandardsTool, "Standards")
+
+    def actionToolOverlay(self) -> None:
+        self.openTool(OverlayTool, "Overlay")
+
+    def actionTransformFlipHorz(self) -> None:
+        widget = self.tabview.activeWidget()
+        if widget is None:
+            return
+        widget.transform(flip="horizontal")
+
+    def actionTransformFlipVert(self) -> None:
+        widget = self.tabview.activeWidget()
+        if widget is None:
+            return
+        widget.transform(flip="vertical")
+
+    def actionTransformRotateLeft(self) -> None:
+        widget = self.tabview.activeWidget()
+        if widget is None:
+            return
+        widget.transform(rotate="left")
+
+    def actionTransformRotateRight(self) -> None:
+        widget = self.tabview.activeWidget()
+        if widget is None:
+            return
+        widget.transform(rotate="right")
+
+    def actionWizardImport(self) -> QtWidgets.QWizard:
+        wiz = ImportWizard(config=self.tabview.config, parent=self)
+        wiz.laserImported.connect(self.tabview.activeView().addLaser)
+        wiz.open()
+        return wiz
+
+    def actionWizardSpot(self) -> QtWidgets.QWizard:
+        config = SpotConfig(
+            self.tabview.config.spotsize, self.tabview.config.spotsize
+        )
+        wiz = SpotImportWizard(
+            config=config, options=self.tabview.options, parent=self
+        )
+        wiz.laserImported.connect(self.tabview.activeView().addLaser)
+        wiz.open()
+        return wiz
+
+    def actionWizardSRR(self) -> QtWidgets.QWizard:
+        wiz = SRRImportWizard(config=self.tabview.config, parent=self)
+        wiz.laserImported.connect(self.tabview.activeView().addLaser)
+        wiz.open()
+        return wiz
     def buttonStatusUnit(self, toggled: bool) -> None:
         """Callback for 'button_status_um'."""
         if self.button_status_um.isChecked():
-            self.viewspace.options.units = "μm"
+            self.tabview.options.units = "μm"
         elif self.button_status_index.isChecked():
-            self.viewspace.options.units = "index"
+            self.tabview.options.units = "index"
 
     def updateActionAvailablity(self) -> None:
         """Enables tools if at least one view is present."""
-        enabled = self.viewspace.countViewTabs() > 0
+        enabled = self.tabview.countViewTabs() > 0
         self.action_export_all.setEnabled(enabled)
 
         # Tools require an active view
-        enabled = enabled and self.viewspace.activeView().tabs.count() > 0
+        enabled = enabled and self.tabview.tabs.count() > 0
 
         self.action_tool_calculator.setEnabled(enabled)
         self.action_tool_drift.setEnabled(enabled)

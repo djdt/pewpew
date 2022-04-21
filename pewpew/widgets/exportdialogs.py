@@ -7,7 +7,8 @@ from pewlib import io
 from pewlib.laser import Laser
 
 from pewpew.widgets.prompts import OverwriteFilePrompt
-from pewpew.widgets.views import _ViewWidget
+# from pewpew.widgets.views import TabViewWidget
+from pewpew.widgets.views import TabViewWidget
 
 from typing import List, Optional, Set, Tuple
 
@@ -258,7 +259,7 @@ class _ExportDialogBase(QtWidgets.QDialog):
 
 
 class ExportDialog(_ExportDialogBase):
-    def __init__(self, widget: _ViewWidget, parent: QtWidgets.QWidget = None):
+    def __init__(self, widget: TabViewWidget, parent: QtWidgets.QWidget = None):
         spacing = (
             widget.laser.config.get_pixel_width(),
             widget.laser.config.get_pixel_height(),
@@ -382,7 +383,7 @@ class ExportDialog(_ExportDialogBase):
 
         return [p for p in paths if p[0] != ""]
 
-    def export(self, path: Path, element: str, layer: Optional[int], widget: _ViewWidget) -> None:
+    def export(self, path: Path, element: str, layer: Optional[int], widget: TabViewWidget) -> None:
         option = self.options.currentOption()
 
         if option.ext == ".csv":
@@ -451,7 +452,7 @@ class ExportDialog(_ExportDialogBase):
 
 
 class ExportAllDialog(ExportDialog):
-    def __init__(self, widgets: List[_ViewWidget], parent: QtWidgets.QWidget = None):
+    def __init__(self, widgets: List[TabViewWidget], parent: QtWidgets.QWidget = None):
         unique: Set[str] = set()
         for widget in widgets:
             unique.update(widget.laser.elements)

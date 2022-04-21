@@ -12,7 +12,7 @@ from pewpew.graphics.items import ResizeableRectItem
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 
-from pewpew.widgets.laser import LaserWidget
+from pewpew.widgets.laser import LaserTabWidget
 from pewpew.widgets.tools.tool import ToolWidget
 
 from typing import Any, Optional
@@ -250,7 +250,7 @@ class DriftTool(ToolWidget):
     """Drift normalisation tool."""
     normalise_methods = ["Maximum", "Minimum"]
 
-    def __init__(self, widget: LaserWidget):
+    def __init__(self, widget: LaserTabWidget):
         super().__init__(widget, apply_all=False)
 
         self.drift: Optional[np.ndarray] = None

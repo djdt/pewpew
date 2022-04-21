@@ -14,7 +14,7 @@ from pewpew.graphics.overlayitems import MetricScaleBarOverlay
 
 from pewpew.widgets.exportdialogs import _ExportDialogBase, PngOptionsBox
 from pewpew.widgets.ext import RangeSlider
-from pewpew.widgets.laser import LaserWidget
+from pewpew.widgets.laser import LaserTabWidget
 from pewpew.widgets.prompts import OverwriteFilePrompt
 from pewpew.widgets.tools import ToolWidget
 
@@ -140,7 +140,7 @@ class OverlayTool(ToolWidget):
 
     model_type = {"any": "additive", "cmyk": "subtractive", "rgb": "additive"}
 
-    def __init__(self, widget: LaserWidget):
+    def __init__(self, widget: LaserTabWidget):
         super().__init__(
             widget, control_label="", orientation=QtCore.Qt.Vertical, apply_all=False
         )

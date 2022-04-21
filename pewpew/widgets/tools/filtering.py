@@ -8,7 +8,7 @@ from pewpew.actions import qAction, qToolButton
 
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.widgets.ext import ValidColorLineEdit
-from pewpew.widgets.laser import LaserWidget
+from pewpew.widgets.laser import LaserTabWidget
 from pewpew.widgets.tools import ToolWidget
 
 from pewpew.validators import ConditionalLimitValidator
@@ -78,7 +78,7 @@ class FilteringTool(ToolWidget):
         # },
     }
 
-    def __init__(self, widget: LaserWidget):
+    def __init__(self, widget: LaserTabWidget):
         super().__init__(widget, graphics_label="Preview")
 
         self.graphics = LaserGraphicsView(self.viewspace.options, parent=self)

@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 # class LaserViewSpace(ViewSpace):
-#     """A viewspace for displaying LaserWidget.
+#     """A viewspace for displaying LaserTabWidget.
 
 #     Parameters:
 #         config: the default config
@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 #         elements: Set[str] = set()
 #         for view in self.views:
 #             for widget in view.widgets():
-#                 if isinstance(widget, LaserWidget):
+#                 if isinstance(widget, LaserTabWidget):
 #                     elements.update(widget.laser.elements)
 #         return sorted(elements)
 
@@ -160,7 +160,7 @@ class LaserTabView(TabView):
 
     def addLaser(self, laser: Laser) -> "LaserTabWidget":
         """Open image of  a laser in a new tab."""
-        widget = LaserWidget(laser, self.viewspace.options, self)
+        widget = LaserTabWidget(laser, self.viewspace.options, self)
 
         name = laser.info.get("Name", "<No Name>")
         self.addTab(name, widget)
@@ -219,13 +219,13 @@ class LaserTabView(TabView):
     def applyCalibration(self, calibration: Dict[str, Calibration]) -> None:
         """Set calibrations in all tabs."""
         for widget in self.widgets():
-            if isinstance(widget, LaserWidget):
+            if isinstance(widget, LaserTabWidget):
                 widget.applyCalibration(calibration)
 
     def applyConfig(self, config: Config) -> None:
         """Set laser configurations in all tabs."""
         for widget in self.widgets():
-            if isinstance(widget, LaserWidget):
+            if isinstance(widget, LaserTabWidget):
                 widget.applyConfig(config)
 
     # Actions
