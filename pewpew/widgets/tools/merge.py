@@ -216,6 +216,7 @@ class MergeTool(ToolWidget):
         )
 
         self.graphics = MergeGraphicsView(self.viewspace.options, parent=self)
+        self.graphics.setMouseTracking(True)
 
         self.list = MergeLaserList()
         self.list.rowElementChanged.connect(self.redrawRow)

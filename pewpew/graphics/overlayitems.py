@@ -2,13 +2,15 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 import numpy as np
 
+from pewpew.actions import qAction
+
 from typing import List, Tuple
 
 
 class LabelOverlay(QtWidgets.QGraphicsObject):
     """Draws a label with a black outline for increased visibility."""
 
-    editRequested = QtCore.Signal(str)
+    labelChanged = QtCore.Signal(str)
 
     def __init__(
         self,
@@ -27,6 +29,13 @@ class LabelOverlay(QtWidgets.QGraphicsObject):
         self._text = text
         self.font = font
         self.color = color
+
+        self.action_edit_label = qAction(
+            "edit-rename",
+            "Rename",
+            "Rename the current element.",
+            self.editLabel,
+        )
 
     def text(self) -> str:
         return self._text
@@ -54,8 +63,25 @@ class LabelOverlay(QtWidgets.QGraphicsObject):
         painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
 
     def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        self.editRequested.emit(self.text())
+        self.editLabel()
         super().mouseDoubleClickEvent(event)
+
+    def editLabel(self) -> QtWidgets.QInputDialog:
+        """Simple dialog for editing the label (and element name)."""
+        dlg = QtWidgets.QInputDialog(self.scene().views()[0])
+        dlg.setWindowTitle("Edit Name")
+        dlg.setInputMode(QtWidgets.QInputDialog.TextInput)
+        dlg.setTextValue(self.text())
+        dlg.setLabelText("Rename:")
+        dlg.textValueSelected.connect(self.labelChanged)
+        dlg.open()
+        return dlg
+
+    def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
+        menu = QtWidgets.QMenu()
+        menu.addAction(self.action_edit_label)
+        menu.exec_(event.screenPos())
+        event.accept()
 
 
 class ColorBarOverlay(QtWidgets.QGraphicsObject):

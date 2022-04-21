@@ -151,17 +151,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_toggle_calibrate.setCheckable(True)
         self.action_toggle_calibrate.setChecked(self.viewspace.options.calibrate)
         self.action_toggle_colorbar = qAction(
-            "", "Show Colorbar", "Toggle colorbars.", self.viewspace.toggleColorbar
+            "", "Show Colorbar", "Toggle colorbars.", self.viewspace.setColorbarVisible
         )
         self.action_toggle_colorbar.setCheckable(True)
         self.action_toggle_colorbar.setChecked(self.viewspace.options.items["colorbar"])
         self.action_toggle_label = qAction(
-            "", "Show Labels", "Toggle element labels.", self.viewspace.toggleLabel
+            "", "Show Labels", "Toggle element labels.", self.viewspace.setLabelVisible
         )
         self.action_toggle_label.setCheckable(True)
         self.action_toggle_label.setChecked(self.viewspace.options.items["label"])
         self.action_toggle_scalebar = qAction(
-            "", "Show Scalebar", "Toggle scalebar.", self.viewspace.toggleScalebar
+            "", "Show Scalebar", "Toggle scalebar.", self.viewspace.setScalebarVisible
         )
         self.action_toggle_scalebar.setCheckable(True)
         self.action_toggle_scalebar.setChecked(self.viewspace.options.items["scalebar"])
