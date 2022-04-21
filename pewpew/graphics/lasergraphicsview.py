@@ -25,7 +25,7 @@ from pewpew.graphics.overlayitems import (
 
 from pewpew.lib.numpyqt import array_to_image
 
-from typing import Optional, List
+from typing import List, Optional
 
 
 class LaserGraphicsView(OverlayView):
@@ -37,7 +37,7 @@ class LaserGraphicsView(OverlayView):
 
     cursorValueChanged = QtCore.Signal(float, float, float)
 
-    def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
+    def __init__(self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None):
         self.options = options
         self.data: Optional[np.ndarray] = None
         self.mask: Optional[np.ndarray] = None
@@ -250,7 +250,7 @@ class LaserGraphicsView(OverlayView):
         self.selection_image.setZValue(self.image.zValue() + 1.0)
         self.scene().addItem(self.selection_image)
 
-    def drawLaser(self, laser: Laser, name: str, layer: int = None) -> None:
+    def drawLaser(self, laser: Laser, name: str, layer: Optional[int] = None) -> None:
         """Draw image of laser.
 
         Args:
@@ -283,7 +283,7 @@ class LaserGraphicsView(OverlayView):
         self.updateForeground()
 
     def setOverlayItemVisibility(
-        self, label: bool = None, scalebar: bool = None, colorbar: bool = None
+        self, label: Optional[bool] = None, scalebar: Optional[bool] = None, colorbar: Optional[bool] = None
     ):
         """Set visibility of overlay items."""
         if label is None:

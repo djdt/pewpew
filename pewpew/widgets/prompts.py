@@ -12,7 +12,7 @@ class DetailedError(QtWidgets.QMessageBox):
         title: str = "Error",
         message: str = "",
         detailed_message: str = "",
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(level, title, message, QtWidgets.QMessageBox.NoButton, parent)
 
@@ -26,7 +26,7 @@ class DetailedError(QtWidgets.QMessageBox):
         title: str = "Info",
         message: str = "",
         detailed_message: str = "",
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ) -> QtWidgets.QMessageBox.StandardButton:
         return DetailedError(
             QtWidgets.QMessageBox.Information, title, message, detailed_message, parent
@@ -37,7 +37,7 @@ class DetailedError(QtWidgets.QMessageBox):
         title: str = "Warning",
         message: str = "",
         detailed_message: str = "",
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ) -> QtWidgets.QMessageBox.StandardButton:
         return DetailedError(
             QtWidgets.QMessageBox.Warning, title, message, detailed_message, parent
@@ -48,7 +48,7 @@ class DetailedError(QtWidgets.QMessageBox):
         title: str = "Critical",
         message: str = "",
         detailed_message: str = "",
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ) -> QtWidgets.QMessageBox.StandardButton:
         return DetailedError(
             QtWidgets.QMessageBox.Critical, title, message, detailed_message, parent
@@ -61,7 +61,7 @@ class NonModalMessageBox(QtWidgets.QMessageBox):
         level: QtWidgets.QMessageBox.Icon,
         title: str = "Error",
         message: str = "",
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(level, title, message, QtWidgets.QMessageBox.NoButton, parent)
         self.setWindowModality(QtCore.Qt.NonModal)
@@ -70,7 +70,7 @@ class NonModalMessageBox(QtWidgets.QMessageBox):
     def info(
         title: str = "Info",
         message: str = "",
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ) -> QtWidgets.QMessageBox:
         dlg = NonModalMessageBox(
             QtWidgets.QMessageBox.Information, title, message, parent
@@ -81,7 +81,7 @@ class NonModalMessageBox(QtWidgets.QMessageBox):
     def warning(
         title: str = "Warning",
         message: str = "",
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ) -> QtWidgets.QMessageBox:
         dlg = NonModalMessageBox(
             QtWidgets.QMessageBox.Warning, title, message, parent
@@ -92,7 +92,7 @@ class NonModalMessageBox(QtWidgets.QMessageBox):
     def critical(
         title: str = "Critical",
         message: str = "",
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ) -> QtWidgets.QMessageBox:
         dlg = NonModalMessageBox(
             QtWidgets.QMessageBox.Critical, title, message, parent
@@ -101,7 +101,7 @@ class NonModalMessageBox(QtWidgets.QMessageBox):
 
 
 class OverwriteFilePrompt(QtWidgets.QMessageBox):
-    def __init__(self, show_all_buttons: bool = True, parent: QtWidgets.QWidget = None):
+    def __init__(self, show_all_buttons: bool = True, parent: Optional[QtWidgets.QWidget] = None):
         self.yes_to_all = False
         self.no_to_all = False
 
@@ -140,7 +140,7 @@ class OverwriteFilePrompt(QtWidgets.QMessageBox):
         return True
 
     def promptOverwriteSingleFile(
-        self, path: Union[str, Path], parent: QtWidgets.QWidget = None
+        self, path: Union[str, Path], parent: Optional[QtWidgets.QWidget] = None
     ) -> bool:
         if isinstance(path, str):  # pragma: no cover
             path = Path(path)
@@ -151,7 +151,7 @@ class OverwriteFilePrompt(QtWidgets.QMessageBox):
 
 
 class OverwriteFilesPrompt(QtWidgets.QMessageBox):
-    def __init__(self, paths: List[Path], parent: QtWidgets.QWidget = None):
+    def __init__(self, paths: List[Path], parent: Optional[QtWidgets.QWidget] = None):
         buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
         super().__init__(
             QtWidgets.QMessageBox.Warning,

@@ -6,13 +6,13 @@ import numpy as np
 from pewpew.charts.base import BaseChart
 from pewpew.charts.colors import light_theme, sequential
 
-from typing import Union
+from typing import Optional, Union
 
 
 class HistogramChart(BaseChart):
     """BaseChart for drawing a histogram."""
 
-    def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
+    def __init__(self, title: Optional[str] = None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
         self.setMinimumSize(QtCore.QSize(640, 320))
         self.setRenderHint(QtGui.QPainter.Antialiasing)

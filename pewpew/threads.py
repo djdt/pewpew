@@ -9,7 +9,7 @@ from pewlib import io
 from pewlib import Config
 from pewlib.laser import Laser
 
-from typing import List
+from typing import List, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class ImportThread(QtCore.QThread):
     progressChanged = QtCore.Signal(int)
 
     def __init__(
-        self, paths: List[Path], config: Config, parent: QtCore.QObject = None
+        self, paths: List[Path], config: Config, parent: Optional[QtCore.QObject] = None
     ):
         super().__init__(parent)
         self.paths = paths

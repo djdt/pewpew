@@ -76,7 +76,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         array: np.ndarray,
         axes: Tuple[int, int] = (0, 1),
         fill_value: float = 0.0,
-        parent: QtCore.QObject = None,
+        parent: Optional[QtCore.QObject] = None,
     ):
         array = np.atleast_2d(array)
         assert array.ndim == 2
@@ -87,10 +87,10 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         self.fill_value = fill_value
 
     # Rows and Columns
-    def columnCount(self, parent: QtCore.QModelIndex = None) -> int:
+    def columnCount(self, parent: Optional[QtCore.QModelIndex] = None) -> int:
         return self.array.shape[self.axes[1]]
 
-    def rowCount(self, parent: QtCore.QModelIndex = None) -> int:
+    def rowCount(self, parent: Optional[QtCore.QModelIndex] = None) -> int:
         return self.array.shape[self.axes[0]]
 
     def insertRows(

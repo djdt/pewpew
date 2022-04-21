@@ -26,8 +26,8 @@ class RGBLabelItem(QtWidgets.QGraphicsItem):
         self,
         texts: List[str],
         colors: List[QtGui.QColor],
-        font: QtGui.QFont = None,
-        parent: QtWidgets.QGraphicsItem = None,
+        font: Optional[QtGui.QFont] = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(parent)
 
@@ -58,7 +58,7 @@ class RGBLabelItem(QtWidgets.QGraphicsItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: Optional[QtWidgets.QWidget] = None,
     ):
 
         fm = QtGui.QFontMetrics(self.font, painter.device())
@@ -74,7 +74,7 @@ class RGBLabelItem(QtWidgets.QGraphicsItem):
 
 
 class RGBOverlayView(OverlayView):
-    def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
+    def __init__(self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None):
         self.options = options
         self.data: Optional[np.ndarray] = None
 
@@ -107,7 +107,7 @@ class RGBOverlayView(OverlayView):
         self.scalebar.setPos(0, 10)
 
     def setOverlayItemVisibility(
-        self, label: bool = None, scalebar: bool = None, colorbar: bool = None
+        self, label: Optional[bool] = None, scalebar: Optional[bool] = None, colorbar: Optional[bool] = None
     ):
         if label is None:
             label = self.options.items["label"]
@@ -407,7 +407,7 @@ class OverlayRows(QtWidgets.QScrollArea):
         QtGui.QColor.fromCmykF(0.0, 0.0, 1.0, 0.0),
     ]
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.rows: List[OverlayItemRow] = []
         self.color_model = "rgb"

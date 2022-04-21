@@ -8,6 +8,8 @@ from pewpew.charts.colors import light_theme
 
 from pewpew.lib.numpyqt import array_to_polygonf
 
+from typing import Optional
+
 
 class SignalChart(BaseChart):
     """BaseChart for drawing raw LAICPMS signals.
@@ -15,7 +17,7 @@ class SignalChart(BaseChart):
     Series are stored in a dictionary variable 'series'.
     """
 
-    def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
+    def __init__(self, title: Optional[str] = None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(
             QtCharts.QChart(), theme=light_theme, allow_navigation=True, parent=parent
         )
@@ -37,7 +39,7 @@ class SignalChart(BaseChart):
 
         self.series = {}
 
-    def setSeries(self, name: str, ys: np.ndarray, xs: np.ndarray = None) -> None:
+    def setSeries(self, name: str, ys: np.ndarray, xs: Optional[np.ndarray] = None) -> None:
         if xs is None:
             xs = np.arange(ys.size)
         data = np.stack((xs, ys), axis=1)
@@ -48,10 +50,10 @@ class SignalChart(BaseChart):
         self,
         name: str,
         ys: np.ndarray,
-        xs: np.ndarray = None,
+        xs: Optional[np.ndarray] = None,
         color: QtGui.QColor = QtCore.Qt.black,
         linewidth: float = 1.0,
-        label: str = None,
+        label: Optional[str] = None,
     ) -> None:
         """Add a line plot to the chart.
 
@@ -84,10 +86,10 @@ class SignalChart(BaseChart):
         self,
         name: str,
         ys: np.ndarray,
-        xs: np.ndarray = None,
+        xs: Optional[np.ndarray] = None,
         color: QtGui.QColor = QtCore.Qt.black,
         markersize: float = 10.0,
-        label: str = None,
+        label: Optional[str] = None,
     ) -> None:
         """Add a scatter plot to the chart.
 

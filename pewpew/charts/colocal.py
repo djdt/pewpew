@@ -8,11 +8,13 @@ from pewpew.charts.colors import light_theme, sequential
 
 from pewpew.lib.numpyqt import array_to_polygonf
 
+from typing import Optional
+
 
 class ColocalisationChart(BaseChart):
     """BaseChart for displaying a scatter plot of two arrays."""
 
-    def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
+    def __init__(self, title: Optional[str] = None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
         self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
         self.setMinimumSize(QtCore.QSize(640, 480))

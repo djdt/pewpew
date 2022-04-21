@@ -2,6 +2,8 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew.widgets.views import TabViewWidget
 
+from typing import Optional
+
 
 class ToolWidget(TabViewWidget):
     """Base widget for pewpew tools.
@@ -36,7 +38,7 @@ class ToolWidget(TabViewWidget):
         self.modified = widget.modified
         self._shown = False
 
-        self.graphics: QtWidgets.QGraphicsView = None
+        self.graphics: Optional[QtWidgets.QGraphicsView] = None
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Cancel

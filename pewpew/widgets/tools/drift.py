@@ -22,7 +22,7 @@ from typing import Any, Optional
 
 class DriftChart(BaseChart):
     """Display the drift data and fit."""
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
         self.setRenderHint(QtGui.QPainter.Antialiasing)
 
@@ -92,7 +92,7 @@ class DriftGuideRectItem(ResizeableRectItem):
         px: float,
         py: float,
         trim_enabled: bool = False,
-        parent: QtWidgets.QGraphicsItem = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(rect, parent=parent)
 
@@ -161,7 +161,7 @@ class DriftGuideRectItem(ResizeableRectItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: Optional[QtWidgets.QWidget] = None,
     ):
         option.state &= ~QtWidgets.QStyle.State_Selected
         super().paint(painter, option, widget)
@@ -189,7 +189,7 @@ class DriftGraphicsView(LaserGraphicsView):
     """Graphics view with drift selection and display."""
     driftChanged = QtCore.Signal()
 
-    def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
+    def __init__(self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(options, parent=parent)
         self.setInteractionFlag("tool")
 

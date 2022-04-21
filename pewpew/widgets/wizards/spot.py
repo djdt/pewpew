@@ -48,9 +48,9 @@ class SpotImportWizard(QtWidgets.QWizard):
     def __init__(
         self,
         paths: Union[List[str], List[Path]] = [],
-        config: SpotConfig = None,
-        options: GraphicsOptions = None,
-        parent: QtWidgets.QWidget = None,
+        config: Optional[SpotConfig] = None,
+        options: Optional[GraphicsOptions] = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Spot Import Wizard")
@@ -198,7 +198,7 @@ class SpotImportWizard(QtWidgets.QWizard):
 class SpotPeakOptions(QtWidgets.QGroupBox):
     optionsChanged = QtCore.Signal()
 
-    def __init__(self, name: str, parent: QtWidgets.QWidget = None):
+    def __init__(self, name: str, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(name, parent=parent)
         self.setLayout(QtWidgets.QFormLayout())
 
@@ -210,7 +210,7 @@ class SpotPeakOptions(QtWidgets.QGroupBox):
 
 
 class ConstantPeakOptions(SpotPeakOptions):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__("Constant Options", parent)
 
         self.lineedit_minimum = QtWidgets.QLineEdit("0.0")
@@ -229,7 +229,7 @@ class ConstantPeakOptions(SpotPeakOptions):
 
 
 class CWTPeakOptions(SpotPeakOptions):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__("CWT Options", parent)
         self.lineedit_minwidth = QtWidgets.QLineEdit("3")
         self.lineedit_minwidth.setValidator(QtGui.QIntValidator(1, 992))
@@ -281,7 +281,7 @@ class CWTPeakOptions(SpotPeakOptions):
 
 
 class WindowedPeakOptions(SpotPeakOptions):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__("Window Options", parent)
 
         self.lineedit_window_size = QtWidgets.QLineEdit("9")
@@ -328,7 +328,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
     infoChanged = QtCore.Signal()
     peaksChanged = QtCore.Signal()
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setWindowTitle("Spot Peak Detection")
 
@@ -672,7 +672,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
 
 
 class SpotImagePage(QtWidgets.QWizardPage):
-    def __init__(self, options: GraphicsOptions = None, parent: QtWidgets.QWidget = None):
+    def __init__(self, options: Optional[GraphicsOptions] = None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setWindowTitle("Spot Image Preview")
 
@@ -791,7 +791,7 @@ class SpotImagePage(QtWidgets.QWizardPage):
 class SpotConfigPage(QtWidgets.QWizardPage):
     dataChanged = QtCore.Signal()
 
-    def __init__(self, config: SpotConfig, parent: QtWidgets.QWidget = None):
+    def __init__(self, config: SpotConfig, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setTitle("Elements and Config")
 

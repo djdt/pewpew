@@ -2,7 +2,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 import logging
 
-from pewpew.actions import qAction, qToolButton
+from pewpew.actions import qAction
 
 from typing import List, Optional
 
@@ -25,7 +25,7 @@ class TabView(QtWidgets.QWidget):
 
     icon_modified = QtGui.QIcon.fromTheme("document-save")
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setAcceptDrops(True)
@@ -161,7 +161,7 @@ class TabViewBar(QtWidgets.QTabBar):
 
     tabTextChanged = QtCore.Signal(int, str)
 
-    def __init__(self, view: TabView, parent: QtWidgets.QWidget = None):
+    def __init__(self, view: TabView, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
 
         self.view = view
@@ -309,7 +309,7 @@ class TabViewWidget(QtWidgets.QWidget):
 
     refreshed = QtCore.Signal()
 
-    def __init__(self, view: TabView = None, editable: bool = True):
+    def __init__(self, view: Optional[TabView] = None, editable: bool = True):
         super().__init__(view)
 
         self.view = view

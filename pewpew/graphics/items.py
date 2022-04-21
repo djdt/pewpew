@@ -24,7 +24,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         self,
         rect: QtCore.QRectF,
         cursor_dist: int = 6,
-        parent: QtWidgets.QGraphicsItem = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(rect, parent)
         self.setFlags(

@@ -29,7 +29,7 @@ class StandardsGraphicsView(LaserGraphicsView):
 
     levelsChanged = QtCore.Signal()
 
-    def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
+    def __init__(self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(options, parent)
         self.setInteractionFlag("tool")
         self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
@@ -308,7 +308,7 @@ class StandardsTool(ToolWidget):
 class StandardsResultsTable(BasicTable):
     LABELS = ["r²", "Gradient", "Intercept", "Sxy", "LOD (3σ)"]
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(2, 5, parent)
         self.setMinimumSize(QtCore.QSize(0, 1))
         self.horizontalHeader().hide()
@@ -348,7 +348,7 @@ class StandardsTable(BasicTableView):
     COLUMN_COUNT = 1
     COLUMN_WEIGHTS = 2
 
-    def __init__(self, calibration: Calibration, parent: QtWidgets.QWidget = None):
+    def __init__(self, calibration: Calibration, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         model = CalibrationPointsTableModel(calibration, parent=self)
@@ -393,8 +393,8 @@ class CalibrationRectItem(ResizeableRectItem):
         label: str,
         px: float,
         py: float,
-        font: QtGui.QFont = None,
-        parent: QtWidgets.QGraphicsItem = None,
+        font: Optional[QtGui.QFont] = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(rect, parent=parent)
 
@@ -417,7 +417,7 @@ class CalibrationRectItem(ResizeableRectItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: Optional[QtWidgets.QWidget] = None,
     ):
         super().paint(painter, option, widget)
 

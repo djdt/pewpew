@@ -27,7 +27,7 @@ from typing import List, Optional, Tuple
 
 
 class MergeGraphicsView(OverlayView):
-    def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
+    def __init__(self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None):
         self.options = options
         self._scene = OverlayScene(-1e6, -1e6, 2e6, 2e6)
         self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
@@ -166,7 +166,7 @@ class MergeLaserList(QtWidgets.QListWidget):
     rowAlphaChanged = QtCore.Signal("QWidget*")
     rowElementChanged = QtCore.Signal("QWidget*")
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         # Allow reorder
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)

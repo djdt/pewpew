@@ -11,7 +11,7 @@ from pewlib import io
 from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog
 
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 
 class _OptionsBase(QtWidgets.QGroupBox):  # pragma: no cover
@@ -22,7 +22,7 @@ class _OptionsBase(QtWidgets.QGroupBox):  # pragma: no cover
         filetype: str,
         filemode: str,
         exts: List[str],
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__("Import Options", parent)
         self.filetype = filetype
@@ -43,7 +43,7 @@ class _OptionsBase(QtWidgets.QGroupBox):  # pragma: no cover
 
 
 class AgilentOptions(_OptionsBase):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__("Agilent Batch", "Directory", [".b"], parent)
 
         self.current_path = Path()
@@ -151,7 +151,7 @@ class AgilentOptions(_OptionsBase):
 
 
 class CsvLinesOptions(_OptionsBase):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__("CSV Lines", "Directory", [""], parent)
         self.csvs: List[Path] = []
         self.lines = 0
@@ -256,7 +256,7 @@ class CsvLinesOptions(_OptionsBase):
 
 
 class NumpyOptions(_OptionsBase):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__("Numpy Archive", "File", [".npz"], parent)
         self.check_calibration = QtWidgets.QCheckBox("Import calibration.")
         layout = QtWidgets.QVBoxLayout()
@@ -268,7 +268,7 @@ class NumpyOptions(_OptionsBase):
 
 
 class PerkinElmerOptions(_OptionsBase):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__("Perkin-Elmer 'XL'", "Directory", [""], parent)
         self.datafiles = 0
 
@@ -288,7 +288,7 @@ class PerkinElmerOptions(_OptionsBase):
 
 
 class TextOptions(_OptionsBase):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__("Text Image", "File", [".csv", ".text", ".txt"], parent)
 
         self.lineedit_name = QtWidgets.QLineEdit("_Element_")
@@ -305,7 +305,7 @@ class TextOptions(_OptionsBase):
 
 
 class ThermoOptions(_OptionsBase):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__("Thermo iCap Data", "File", [".csv"], parent)
 
         self.radio_columns = QtWidgets.QRadioButton("Samples in columns.")
@@ -393,7 +393,7 @@ class _PathSelectBase(QtWidgets.QWidget):
         filetype: str,
         exts: List[str],
         mode: str = "File",
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(parent)
         if mode not in ["File", "Directory"]:  # pragma: no cover
@@ -504,7 +504,7 @@ class PathSelectWidget(_PathSelectBase):
         filetype: str,
         exts: List[str],
         mode: str = "File",
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(filetype, exts, mode, parent)
 
@@ -543,7 +543,7 @@ class MultiplePathSelectWidget(_PathSelectBase):
         filetype: str,
         exts: List[str],
         mode: str = "File",
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(filetype, exts, mode, parent)
 
@@ -677,8 +677,8 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         paths: List[Path],
         format: str,
         multiplepaths: bool = False,
-        nextid: int = None,
-        parent: QtWidgets.QWidget = None,
+        nextid: Optional[int] = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(parent)
         (ftype, exts, fmode, fdesc), otype = self.formats[format]

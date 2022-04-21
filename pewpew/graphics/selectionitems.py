@@ -7,7 +7,7 @@ from pewpew.graphics.util import polygonf_contains_points
 
 from pewpew.lib.numpyqt import polygonf_to_array
 
-from typing import Dict, Generator
+from typing import Dict, Generator, Optional
 
 
 class SelectionItem(QtWidgets.QGraphicsObject):
@@ -16,7 +16,7 @@ class SelectionItem(QtWidgets.QGraphicsObject):
     def __init__(
         self,
         modes: Dict[QtCore.Qt.KeyboardModifier, str] = None,
-        parent: QtWidgets.QGraphicsItem = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(parent)
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
@@ -44,9 +44,9 @@ class ScaledImageSelectionItem(SelectionItem):
 
     def __init__(
         self,
-        image: ScaledImageItem = None,
+        image: Optional[ScaledImageItem] = None,
         modes: Dict[QtCore.Qt.KeyboardModifier, str] = None,
-        parent: QtWidgets.QGraphicsItem = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         _modes = {QtCore.Qt.ShiftModifier: "add", QtCore.Qt.ControlModifier: "subtract"}
         if modes is not None:
@@ -76,8 +76,8 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
         self,
         image: ScaledImageItem,
         modes: Dict[QtCore.Qt.Modifier, str] = None,
-        pen: QtGui.QPen = None,
-        parent: QtWidgets.QGraphicsItem = None,
+        pen: Optional[QtGui.QPen] = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(image, modes=modes, parent=parent)
 
@@ -152,7 +152,7 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
         self,
         painter: QtGui.QPainter,
         options: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: Optional[QtWidgets.QWidget] = None,
     ):
         painter.save()
 
@@ -171,8 +171,8 @@ class RectImageSelectionItem(ScaledImageSelectionItem):
         self,
         image: ScaledImageItem,
         modes: Dict[QtCore.Qt.Modifier, str] = None,
-        pen: QtGui.QPen = None,
-        parent: QtWidgets.QGraphicsItem = None,
+        pen: Optional[QtGui.QPen] = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(image, modes=modes, parent=parent)
 
@@ -228,7 +228,7 @@ class RectImageSelectionItem(ScaledImageSelectionItem):
         self,
         painter: QtGui.QPainter,
         options: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: Optional[QtWidgets.QWidget] = None,
     ):
         painter.save()
 

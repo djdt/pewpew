@@ -2,7 +2,7 @@ import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from typing import List
+from typing import List, Optional
 
 
 class LogRecordSignaller(QtCore.QObject):
@@ -35,7 +35,7 @@ class LoggingTextEdit(QtWidgets.QPlainTextEdit):
         logging.CRITICAL: "purple",
     }
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setFont(QtGui.QFont("monospace"))
         self.setReadOnly(True)
@@ -55,7 +55,7 @@ class LoggingDialog(QtWidgets.QDialog):
 
     def __init__(
         self,
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(parent)
         self.handler = QtListHandler()

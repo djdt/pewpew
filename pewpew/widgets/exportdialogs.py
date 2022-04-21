@@ -24,7 +24,7 @@ class OptionsBox(QtWidgets.QGroupBox):
         filetype: str,
         ext: str,
         visible: bool = False,
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__("Format Options", parent)
         self.filetype = filetype
@@ -36,7 +36,7 @@ class OptionsBox(QtWidgets.QGroupBox):
 
 
 class PngOptionsBox(OptionsBox):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__("PNG Images", ".png", visible=True, parent=parent)
         self.check_raw = QtWidgets.QCheckBox("Save raw image data.")
         layout = QtWidgets.QVBoxLayout()
@@ -49,7 +49,7 @@ class PngOptionsBox(OptionsBox):
 
 class VtiOptionsBox(OptionsBox):
     def __init__(
-        self, spacing: Tuple[float, float, float], parent: QtWidgets.QWidget = None
+        self, spacing: Tuple[float, float, float], parent: Optional[QtWidgets.QWidget] = None
     ):
         super().__init__("VTK Images", ".vti", visible=True, parent=parent)
         self.lineedits = [QtWidgets.QLineEdit(str(dim)) for dim in spacing]
@@ -90,7 +90,7 @@ class ExportOptions(QtWidgets.QWidget):
     currentIndexChanged = QtCore.Signal(int)
 
     def __init__(
-        self, options: List[OptionsBox] = None, parent: QtWidgets.QWidget = None
+        self, options: List[OptionsBox] = None, parent: Optional[QtWidgets.QWidget] = None
     ):
         super().__init__(parent)
         self.setSizePolicy(
@@ -163,7 +163,7 @@ class _ExportDialogBase(QtWidgets.QDialog):
     invalid_chars = '<>:"/\\|?*'
     invalid_map = str.maketrans(invalid_chars, "_" * len(invalid_chars))
 
-    def __init__(self, options: List[OptionsBox], parent: QtWidgets.QWidget = None):
+    def __init__(self, options: List[OptionsBox], parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setWindowTitle("Export")
 
@@ -259,7 +259,7 @@ class _ExportDialogBase(QtWidgets.QDialog):
 
 
 class ExportDialog(_ExportDialogBase):
-    def __init__(self, widget: TabViewWidget, parent: QtWidgets.QWidget = None):
+    def __init__(self, widget: TabViewWidget, parent: Optional[QtWidgets.QWidget] = None):
         spacing = (
             widget.laser.config.get_pixel_width(),
             widget.laser.config.get_pixel_height(),
@@ -452,7 +452,7 @@ class ExportDialog(_ExportDialogBase):
 
 
 class ExportAllDialog(ExportDialog):
-    def __init__(self, widgets: List[TabViewWidget], parent: QtWidgets.QWidget = None):
+    def __init__(self, widgets: List[TabViewWidget], parent: Optional[QtWidgets.QWidget] = None):
         unique: Set[str] = set()
         for widget in widgets:
             unique.update(widget.laser.elements)

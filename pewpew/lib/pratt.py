@@ -5,7 +5,7 @@ Based on https://www.engr.mun.ca/~theo/Misc/pratt_parsing.htm
 import numpy as np
 import re
 
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 
 class ParserException(Exception):
@@ -19,7 +19,7 @@ class ReducerException(Exception):
 class Expr(object):
     """Stores expressions for conversion to string."""
 
-    def __init__(self, value: str, children: List["Expr"] = None):
+    def __init__(self, value: str, children: Optional[List["Expr"]] = None):
         self.value = value
         self.children = children
 
@@ -347,7 +347,7 @@ class Reducer(object):
         `:func:pewpew.lib.pratt.Reducer`
     """
 
-    def __init__(self, variables: dict = None):
+    def __init__(self, variables: Optional[dict] = None):
         self._variables: Dict[str, Union[float, np.ndarray]] = {}
 
         if variables is not None:

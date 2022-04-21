@@ -16,7 +16,7 @@ from pewpew.validators import DecimalValidatorNoZero
 from pewpew.widgets.dialogs import NameEditDialog
 from pewpew.widgets.wizards.options import PathAndOptionsPage
 
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 
 logger = logging.getLogger(__name__)
@@ -36,8 +36,8 @@ class ImportWizard(QtWidgets.QWizard):
     def __init__(
         self,
         path: Union[str, Path] = "",
-        config: Config = None,
-        parent: QtWidgets.QWidget = None,
+        config: Optional[Config] = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Import Wizard")
@@ -138,7 +138,7 @@ class FormatPage(QtWidgets.QWizardPage):
         self,
         text: str,
         page_id_dict: Dict[str, int] = None,
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(parent)
         self.setTitle("Import Introduction")
@@ -193,7 +193,7 @@ class ConfigPage(QtWidgets.QWizardPage):
     dataChanged = QtCore.Signal()
     infoChanged = QtCore.Signal()
 
-    def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
+    def __init__(self, config: Config, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setTitle("Elements and Config")
 

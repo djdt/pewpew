@@ -1,6 +1,6 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 
 class CollapsableWidget(QtWidgets.QWidget):
@@ -97,7 +97,7 @@ class RangeSlider(QtWidgets.QSlider):
 
     value2Changed = QtCore.Signal(int)
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setOrientation(QtCore.Qt.Horizontal)
 
@@ -302,7 +302,7 @@ class RangeSlider(QtWidgets.QSlider):
 class ValidColorLineEdit(QtWidgets.QLineEdit):
     """Colors the QLineEdit red when there is non-acceptable input."""
 
-    def __init__(self, text: str = "", parent: QtWidgets.QWidget = None):
+    def __init__(self, text: str = "", parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(text, parent)
         self.textChanged.connect(self.revalidate)
         self.color_good = self.palette().color(QtGui.QPalette.Base)
@@ -327,7 +327,7 @@ class ValidColorLineEdit(QtWidgets.QLineEdit):
 
 class ValidColorTextEdit(QtWidgets.QTextEdit):
     """Colors the QTextEdit red when there is non-acceptable input."""
-    def __init__(self, text: str = "", parent: QtWidgets.QWidget = None):
+    def __init__(self, text: str = "", parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(text, parent)
         self.textChanged.connect(self.revalidate)
         self.color_good = self.palette().color(QtGui.QPalette.Base)

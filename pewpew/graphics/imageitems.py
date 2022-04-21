@@ -30,7 +30,7 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
         rect: QtCore.QRectF,
         smooth: bool = False,
         snap: bool = True,
-        parent: QtWidgets.QGraphicsItem = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(parent)
         self.setCacheMode(
@@ -87,7 +87,7 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: Optional[QtWidgets.QWidget] = None,
     ):
         painter.drawImage(self.rect, self.image)
 
@@ -98,7 +98,7 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
         rect: QtCore.QRectF,
         colortable: List[int] = None,
         smooth: bool = False,
-        parent: QtWidgets.QGraphicsItem = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ) -> "ScaledImageItem":
         """Create a ScaledImageItem from a numpy array.
 
@@ -123,8 +123,8 @@ class ImageWidgetItem(QtWidgets.QGraphicsObject):
     def __init__(
         self,
         image: ScaledImageItem,
-        data: np.ndarray = None,
-        parent: QtWidgets.QGraphicsItem = None,
+        data: Optional[np.ndarray] = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(parent)
         self.image = image
@@ -151,10 +151,10 @@ class RulerWidgetItem(ImageWidgetItem):
     def __init__(
         self,
         image: ScaledImageItem,
-        pen: QtGui.QPen = None,
-        font: QtGui.QFont = None,
+        pen: Optional[QtGui.QPen] = None,
+        font: Optional[QtGui.QFont] = None,
         unit: str = "μm",
-        parent: QtWidgets.QGraphicsItem = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(image, None, parent)
 
@@ -218,7 +218,7 @@ class RulerWidgetItem(ImageWidgetItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: Optional[QtWidgets.QWidget] = None,
     ):
         view = next(iter(self.scene().views()))
 
@@ -278,9 +278,9 @@ class ImageSliceWidgetItem(ImageWidgetItem):
         self,
         image: ScaledImageItem,
         data: np.ndarray,
-        pen: QtGui.QPen = None,
-        font: QtGui.QFont = None,
-        parent: QtWidgets.QGraphicsItem = None,
+        pen: Optional[QtGui.QPen] = None,
+        font: Optional[QtGui.QFont] = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(image, parent)
 
@@ -397,7 +397,7 @@ class ImageSliceWidgetItem(ImageWidgetItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: Optional[QtWidgets.QWidget] = None,
     ):
 
         painter.setRenderHint(QtGui.QPainter.Antialiasing)

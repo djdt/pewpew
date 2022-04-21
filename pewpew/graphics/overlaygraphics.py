@@ -2,7 +2,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 from pathlib import Path
 
-from typing import List, Set, Union
+from typing import List, Optional, Set, Union
 
 
 class OverlayItem(object):
@@ -20,7 +20,7 @@ class OverlayItem(object):
         self,
         item: QtWidgets.QGraphicsItem,
         anchor: Union[QtCore.Qt.AnchorPoint, QtCore.Qt.Corner] = None,
-        alignment: QtCore.Qt.Alignment = None,
+        alignment: Optional[QtCore.Qt.Alignment] = None,
     ):
         if anchor is None:
             anchor = QtCore.Qt.TopLeftCorner
@@ -89,7 +89,7 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         y: float,
         width: float,
         height: float,
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(x, y, width, height, parent)
         self.setSortCacheEnabled(True)
@@ -99,13 +99,13 @@ class OverlayScene(QtWidgets.QGraphicsScene):
 
         self.overlayitems: List[OverlayItem] = []
 
-        self.foreground_pixmap: QtGui.QPixmap = None
+        self.foreground_pixmap: Optional[QtGui.QPixmap] = None
 
     def addOverlayItem(
         self,
         item,
         anchor: QtCore.Qt.AnchorPoint,
-        alignment: QtCore.Qt.Alignment = None,
+        alignment: Optional[QtCore.Qt.Alignment] = None,
     ):
         """Adds an item to the overlay."""
         item.setFlag(
@@ -174,7 +174,7 @@ class OverlayView(QtWidgets.QGraphicsView):
     def __init__(
         self,
         scene: OverlayScene,
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(scene, parent)
         self.setCacheMode(QtWidgets.QGraphicsView.CacheBackground)
@@ -274,7 +274,7 @@ class OverlayView(QtWidgets.QGraphicsView):
                 QtWidgets.QGraphicsScene.ForegroundLayer,
             )
 
-    def updateForeground(self, rect: QtCore.QRect = None) -> None:
+    def updateForeground(self, rect: Optional[QtCore.QRect] = None) -> None:
         if rect is None:
             rect = self.viewport().rect()
         self.scene().updateForeground(rect)

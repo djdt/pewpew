@@ -24,7 +24,7 @@ from pewpew.threads import ImportThread
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.views import TabView, TabViewWidget
 
-from typing import Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Union
 
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 #     def __init__(
 #         self,
 #         orientaion: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
-#         parent: QtWidgets.QWidget = None,
+#         parent: Optional[QtWidgets.QWidget] = None,
 #     ):
 #         super().__init__(orientaion, parent)
 #         self.config = Config()
@@ -158,7 +158,7 @@ logger = logging.getLogger(__name__)
 class LaserTabView(TabView):
     """Tabbed view for displaying laser images."""
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
 
         self.config = Config()
@@ -256,7 +256,7 @@ class LaserComboBox(QtWidgets.QComboBox):
 
     namesSelected = QtCore.Signal(dict)
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.action_edit_names = qAction(
             "document-edit",
@@ -291,7 +291,7 @@ class LaserTabWidget(TabViewWidget):
         view: parent view
     """
 
-    def __init__(self, laser: Laser, options: GraphicsOptions, view: LaserTabView = None):
+    def __init__(self, laser: Laser, options: GraphicsOptions, view: Optional[LaserTabView] = None):
         super().__init__(view)
         self.laser = laser
         self.is_srr = isinstance(laser, SRRLaser)
@@ -613,7 +613,7 @@ class LaserTabWidget(TabViewWidget):
 
         new_widget.activate()
 
-    def transform(self, flip: str = None, rotate: str = None) -> None:
+    def transform(self, flip: Optional[str] = None, rotate: Optional[str] = None) -> None:
         """Transform the image.
 
         Args:
@@ -878,7 +878,7 @@ class LaserTabWidget(TabViewWidget):
 
 
 class LaserImage(ScaledImageItem):
-    def __init__(self, laser: Laser, options: GraphicsOptions, tab: LaserTabWidget = None):
+    def __init__(self, laser: Laser, options: GraphicsOptions, tab: Optional[LaserTabWidget] = None):
         self.laser = laser
         self.tab = tab
         super().__init__(tab)

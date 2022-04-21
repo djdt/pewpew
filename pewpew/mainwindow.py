@@ -50,7 +50,7 @@ class MainWindow(QtWidgets.QMainWindow):
         "Overlay": (OverlayTool, None, "Overlay elements as RGB images."),
     }
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.resize(1280, 800)
 

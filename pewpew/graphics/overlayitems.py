@@ -4,7 +4,7 @@ import numpy as np
 
 from pewpew.actions import qAction
 
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 
 class LabelOverlay(QtWidgets.QGraphicsObject):
@@ -15,9 +15,9 @@ class LabelOverlay(QtWidgets.QGraphicsObject):
     def __init__(
         self,
         text: str,
-        font: QtGui.QFont = None,
-        color: QtGui.QColor = None,
-        parent: QtWidgets.QGraphicsItem = None,
+        font: Optional[QtGui.QFont] = None,
+        color: Optional[QtGui.QColor] = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(parent)
 
@@ -52,7 +52,7 @@ class LabelOverlay(QtWidgets.QGraphicsObject):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: Optional[QtWidgets.QWidget] = None,
     ):
 
         fm = QtGui.QFontMetrics(self.font, painter.device())
@@ -112,10 +112,10 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
         vmax: float,
         unit: str = "",
         height: int = 16,
-        font: QtGui.QFont = None,
-        color: QtGui.QColor = None,
+        font: Optional[QtGui.QFont] = None,
+        color: Optional[QtGui.QColor] = None,
         checkmarks: bool = False,
-        parent: QtWidgets.QGraphicsItem = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(parent)
 
@@ -180,7 +180,7 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: Optional[QtWidgets.QWidget] = None,
     ):
         width = painter.viewport().width()
 
@@ -257,9 +257,9 @@ class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):
         self,
         width: int = 200,
         height: int = 10,
-        font: QtGui.QFont = None,
-        color: QtGui.QColor = None,
-        parent: QtWidgets.QGraphicsItem = None,
+        font: Optional[QtGui.QFont] = None,
+        color: Optional[QtGui.QColor] = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(parent)
 
@@ -297,7 +297,7 @@ class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: Optional[QtWidgets.QWidget] = None,
     ):
         view = self.scene().views()[0]
         view_width = view.mapToScene(0, 0, self.width, 1).boundingRect().width()

@@ -36,7 +36,7 @@ class CalculatorName(ValidColorLineEdit):
         text: str,
         badnames: List[str],
         badparser: List[str],
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(text, parent)
 
@@ -68,11 +68,11 @@ class CalculatorFormula(ValidColorTextEdit):
         self,
         text: str,
         variables: List[str],
-        parent: QtWidgets.QWidget = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(text, parent)
 
-        self.completer: QtWidgets.QCompleter = None
+        self.completer: Optional[QtWidgets.QCompleter] = None
 
         self.textChanged.disconnect(self.revalidate)
         self.textChanged.connect(self.calculate)

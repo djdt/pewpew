@@ -29,7 +29,7 @@ class GraphicsOptions(object):
         "viridis": "Perceptually uniform colormap.",
     }
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self) -> None:
         # Todo: maybe alignments here?
         self.overlay_items = {
             "label": True,
