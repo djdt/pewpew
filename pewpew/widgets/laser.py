@@ -1,6 +1,6 @@
 import copy
 from io import BytesIO
-from pewpew.graphics.imageitems import ScaledImageItem
+# from pewpew.graphics.imageitems import ScaledImageItem
 import numpy as np
 from pathlib import Path
 import logging
@@ -17,6 +17,7 @@ from pewpew.actions import qAction, qToolButton
 from pewpew.events import DragDropRedirectFilter
 
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
+from pewpew.graphics.laserimageitem import LaserImageItem
 from pewpew.graphics.options import GraphicsOptions
 
 from pewpew.threads import ImportThread
@@ -28,131 +29,6 @@ from typing import Dict, List, Optional, Union
 
 
 logger = logging.getLogger(__name__)
-
-
-# class LaserViewSpace(ViewSpace):
-#     """A viewspace for displaying LaserTabWidget.
-
-#     Parameters:
-#         config: the default config
-#         options: image drawing options
-#     """
-
-#     def __init__(
-#         self,
-#         orientaion: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
-#         parent: Optional[QtWidgets.QWidget] = None,
-#     ):
-#         super().__init__(orientaion, parent)
-#         self.config = Config()
-#         self.options = GraphicsOptions()
-
-#     def uniqueElements(self) -> List[str]:
-#         """Return set of unqiue elements from all open images."""
-#         elements: Set[str] = set()
-#         for view in self.views:
-#             for widget in view.widgets():
-#                 if isinstance(widget, LaserTabWidget):
-#                     elements.update(widget.laser.elements)
-#         return sorted(elements)
-
-#     def createView(self) -> "LaserView":
-#         """Override for ViewSpace."""
-#         view = LaserView(self)
-#         view.numTabsChanged.connect(self.numTabsChanged)
-#         self.views.append(view)
-#         self.numViewsChanged.emit()
-#         return view
-
-#     def currentElement(self) -> Optional[str]:
-#         """The active element name from the active image."""
-#         widget = self.activeWidget()
-#         if widget is None:
-#             return None
-#         return widget.current_element
-
-#     def setCurrentElement(self, element: str) -> None:
-#         """Set the active element name in all views."""
-#         for view in self.views:
-#             view.setCurrentElement(element)
-
-#     def applyCalibration(self, calibration: Dict[str, Calibration]) -> None:
-#         """Set the calibration in all views."""
-#         for view in self.views:
-#             view.applyCalibration(calibration)
-
-#     def applyConfig(self, config: Config) -> None:
-#         """Set the laser configuration in all views."""
-#         self.config = copy.copy(config)
-#         for view in self.views:
-#             view.applyConfig(self.config)
-
-#     # Editing options
-#     def colortableRangeDialog(self) -> QtWidgets.QDialog:
-#         """Open a `:class:pewpew.widgets.dialogs.ColocalisationDialog` and apply result."""
-
-#         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
-#             self.options._colorranges = dialog.ranges
-#             self.options.colorrange_default = dialog.default_range
-#             self.refresh()
-
-#         dlg = dialogs.ColorRangeDialog(
-#             self.options._colorranges,
-#             self.options.colorrange_default,
-#             self.uniqueElements(),
-#             current_element=self.currentElement(),
-#             parent=self,
-#         )
-#         dlg.combo_element.currentTextChanged.connect(self.setCurrentElement)
-#         dlg.applyPressed.connect(applyDialog)
-#         dlg.open()
-#         return dlg
-
-#     def configDialog(self) -> QtWidgets.QDialog:
-#         """Open a `:class:pewpew.widgets.dialogs.ConfigDialog` and apply result."""
-#         dlg = dialogs.ConfigDialog(self.config, parent=self)
-#         dlg.check_all.setChecked(True)
-#         dlg.check_all.setEnabled(False)
-#         dlg.configApplyAll.connect(self.applyConfig)
-#         dlg.open()
-#         return dlg
-
-#     def fontsizeDialog(self) -> QtWidgets.QDialog:
-#         """Simple dialog for editing image font size."""
-#         dlg = QtWidgets.QInputDialog(self)
-#         dlg.setWindowTitle("Fontsize")
-#         dlg.setLabelText("Fontisze:")
-#         dlg.setIntValue(self.options.font.pointSize())
-#         dlg.setIntRange(2, 96)
-#         dlg.setInputMode(QtWidgets.QInputDialog.IntInput)
-#         dlg.intValueSelected.connect(self.options.font.setPointSize)
-#         dlg.intValueSelected.connect(self.refresh)
-#         dlg.open()
-#         return dlg
-
-#     def setColortable(self, table: str) -> None:
-#         self.options.colortable = table
-#         self.refresh()
-
-#     def toggleCalibrate(self, checked: bool) -> None:
-#         self.options.calibrate = checked
-#         self.refresh()
-
-    # def setColorbarVisible(self, visible: bool = False) -> None:
-    #     self.options.items["colorbar"] = visible
-    #     self.refresh()
-
-    # def setLabelVisible(self, visible: bool) -> None:
-    #     self.options.items["label"] = visible
-    #     self.refresh()
-
-    # def setScalebarVisible(self, visible: bool) -> None:
-    #     self.options.items["scalebar"] = visible
-    #     self.refresh()
-
-#     def toggleSmooth(self, checked: bool) -> None:
-#         self.options.smoothing = checked
-#         self.refresh()
 
 
 class LaserTabView(TabView):
@@ -504,11 +380,18 @@ class LaserTabWidget(TabViewWidget):
     # Virtual
     def refresh(self) -> None:
         """Redraw image."""
-        self.graphics.drawLaser(
-            self.laser, self.current_element, layer=self.current_layer
-        )
+        
+        item = LaserImageItem(self.laser, self)
+        item.updateImage(self.current_element, self.graphics.options, self.current_layer)
+        self.graphics.scene().addItem(item)
+        self.graphics.image = item
+        # self.graphics.drawLaser(
+        #     self.laser, self.current_element, layer=self.current_layer
+        # )
         if self.graphics.widget is not None:
             self.graphics.widget.imageChanged(self.graphics.image, self.graphics.data)
+
+        self.graphics.zoomReset()
         self.graphics.invalidateScene()
         super().refresh()
 
@@ -875,11 +758,3 @@ class LaserTabWidget(TabViewWidget):
     def showEvent(self, event: QtGui.QShowEvent) -> None:
         self.refresh()
         super().showEvent(event)
-
-
-class LaserImage(ScaledImageItem):
-    def __init__(self, laser: Laser, options: GraphicsOptions, tab: Optional[LaserTabWidget] = None):
-        self.laser = laser
-        self.tab = tab
-        super().__init__(tab)
-

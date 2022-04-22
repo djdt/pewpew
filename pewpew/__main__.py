@@ -62,7 +62,7 @@ def main(argv: List[str] = None) -> int:
 
     # Arguments
     if args.open is not None:
-        window.viewspace.activeView().openDocument(args.open)
+        window.tabview.openDocument(args.open)
 
     # Keep event loop active with timer
     timer = QtCore.QTimer()

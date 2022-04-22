@@ -96,7 +96,7 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
         cls,
         array: np.ndarray,
         rect: QtCore.QRectF,
-        colortable: List[int] = None,
+        colortable: Optional[List[int]] = None,
         smooth: bool = False,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ) -> "ScaledImageItem":

@@ -1,17 +1,12 @@
 import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewlib.laser import Laser
-from pewlib.srr import SRRConfig
-
-from pewpew.graphics import colortable
 from pewpew.graphics.imageitems import (
     ScaledImageItem,
     RulerWidgetItem,
     ImageSliceWidgetItem,
 )
 from pewpew.graphics.selectionitems import (
-    ScaledImageSelectionItem,
     LassoImageSelectionItem,
     RectImageSelectionItem,
 )
@@ -22,8 +17,6 @@ from pewpew.graphics.overlayitems import (
     MetricScaleBarOverlay,
     LabelOverlay,
 )
-
-from pewpew.lib.numpyqt import array_to_image
 
 from typing import List, Optional
 
@@ -48,9 +41,9 @@ class LaserGraphicsView(OverlayView):
         super().__init__(self._scene, parent)
         self.cursors["selection"] = QtCore.Qt.ArrowCursor
 
-        self.image: Optional[ScaledImageItem] = None
-        self.selection_item: Optional[ScaledImageSelectionItem] = None
-        self.selection_image: Optional[ScaledImageItem] = None
+        # self.image: Optional[ScaledImageItem] = None
+        # self.selection_item: Optional[ScaledImageSelectionItem] = None
+        # self.selection_image: Optional[ScaledImageItem] = None
         self.widget: Optional[QtWidgets.QGraphicsItem] = None
 
         self.label = LabelOverlay(
@@ -91,17 +84,17 @@ class LaserGraphicsView(OverlayView):
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         super().mouseMoveEvent(event)
         pos = self.mapToScene(event.pos())
-        if (
-            self.image is not None
-            and self.image.rect.left() < pos.x() < self.image.rect.right()
-            and self.image.rect.top() < pos.y() < self.image.rect.bottom()
-        ):
-            dpos = self.mapToData(pos)
-            self.cursorValueChanged.emit(
-                pos.x(), pos.y(), self.data[dpos.y(), dpos.x()]
-            )
-        else:
-            self.cursorValueChanged.emit(pos.x(), pos.y(), np.nan)
+        # if (
+        #     self.image is not None
+        #     and self.image.rect.left() < pos.x() < self.image.rect.right()
+        #     and self.image.rect.top() < pos.y() < self.image.rect.bottom()
+        # ):
+        #     dpos = self.mapToData(pos)
+        #     self.cursorValueChanged.emit(
+        #         pos.x(), pos.y(), self.data[dpos.y(), dpos.x()]
+        #     )
+        # else:
+        #     self.cursorValueChanged.emit(pos.x(), pos.y(), np.nan)
 
     def startLassoSelection(self) -> None:
         """Select image pixels using a lasso."""
@@ -181,36 +174,36 @@ class LaserGraphicsView(OverlayView):
         self.widget = None
         self.setInteractionFlag("widget", False)
 
-    def drawImage(self, data: np.ndarray, rect: QtCore.QRectF, name: str) -> None:
-        """Draw 'data' into 'rect'.
+    # def drawImage(self, data: np.ndarray, rect: QtCore.QRectF, name: str) -> None:
+    #     """Draw 'data' into 'rect'.
 
-        Args:
-            data: image data
-            rect: image extent
-            name: label of data
-        """
-        if self.image is not None:
-            self.scene().removeItem(self.image)
+    #     Args:
+    #         data: image data
+    #         rect: image extent
+    #         name: label of data
+    #     """
+    #     if self.image is not None:
+    #         self.scene().removeItem(self.image)
 
-        self.data = np.ascontiguousarray(data)
+    #     self.data = np.ascontiguousarray(data)
 
-        vmin, vmax = self.options.get_color_range_as_float(name, self.data)
-        table = colortable.get_table(self.options.colortable)
+    #     vmin, vmax = self.options.get_color_range_as_float(name, self.data)
+    #     table = colortable.get_table(self.options.colortable)
 
-        data = np.clip(self.data, vmin, vmax)
-        if vmin != vmax:  # Avoid div 0
-            data = (data - vmin) / (vmax - vmin)
+    #     data = np.clip(self.data, vmin, vmax)
+    #     if vmin != vmax:  # Avoid div 0
+    #         data = (data - vmin) / (vmax - vmin)
 
-        image = array_to_image(data)
-        image.setColorTable(table)
-        self.image = ScaledImageItem(image, rect, smooth=self.options.smoothing)
-        self.scene().addItem(self.image)
+    #     image = array_to_image(data)
+    #     image.setColorTable(table)
+    #     self.image = ScaledImageItem(image, rect, smooth=self.options.smoothing)
+    #     self.scene().addItem(self.image)
 
-        self.colorbar.updateTable(table, vmin, vmax)
+    #     self.colorbar.updateTable(table, vmin, vmax)
 
-        if self.sceneRect() != rect:
-            self.setSceneRect(rect)
-            self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+    #     if self.sceneRect() != rect:
+    #         self.setSceneRect(rect)
+    #         self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
 
     def drawSelectionImage(self, mask: np.ndarray, modes: List[str]) -> None:
         """Highlight selected regions.
@@ -250,37 +243,37 @@ class LaserGraphicsView(OverlayView):
         self.selection_image.setZValue(self.image.zValue() + 1.0)
         self.scene().addItem(self.selection_image)
 
-    def drawLaser(self, laser: Laser, name: str, layer: Optional[int] = None) -> None:
-        """Draw image of laser.
+    # def drawLaser(self, laser: Laser, name: str, layer: Optional[int] = None) -> None:
+    #     """Draw image of laser.
 
-        Args:
-            laser: laser object
-            name: name of element to draw
-            layer: layer to draw (SRRLaser only)
-        """
-        kwargs = {"calibrate": self.options.calibrate, "layer": layer, "flat": True}
+    #     Args:
+    #         laser: laser object
+    #         name: name of element to draw
+    #         layer: layer to draw (SRRLaser only)
+    #     """
+    #     kwargs = {"calibrate": self.options.calibrate, "layer": layer, "flat": True}
 
-        data = laser.get(name, **kwargs)
-        unit = laser.calibration[name].unit if self.options.calibrate else ""
+    #     data = laser.get(name, **kwargs)
+    #     unit = laser.calibration[name].unit if self.options.calibrate else ""
 
-        # Get extent
-        if isinstance(laser.config, SRRConfig):
-            x0, x1, y0, y1 = laser.config.data_extent(data.shape, layer=layer)
-        else:
-            x0, x1, y0, y1 = laser.config.data_extent(data.shape)
-        rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
-        # Recoordinate the top left to 0,0 for correct updating
-        rect.moveTopLeft(QtCore.QPointF(0.0, 0.0))
+    #     # Get extent
+    #     if isinstance(laser.config, SRRConfig):
+    #         x0, x1, y0, y1 = laser.config.data_extent(data.shape, layer=layer)
+    #     else:
+    #         x0, x1, y0, y1 = laser.config.data_extent(data.shape)
+    #     rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
+    #     # Recoordinate the top left to 0,0 for correct updating
+    #     rect.moveTopLeft(QtCore.QPointF(0.0, 0.0))
 
-        # Update overlay items
-        self.label.setText(name)
-        self.colorbar.unit = unit
+    #     # Update overlay items
+    #     self.label.setText(name)
+    #     self.colorbar.unit = unit
 
-        # Set overlay items visibility
-        self.setOverlayItemVisibility()
+    #     # Set overlay items visibility
+    #     self.setOverlayItemVisibility()
 
-        self.drawImage(data, rect, name)
-        self.updateForeground()
+    #     self.drawImage(data, rect, name)
+    #     self.updateForeground()
 
     def setOverlayItemVisibility(
         self, label: Optional[bool] = None, scalebar: Optional[bool] = None, colorbar: Optional[bool] = None
@@ -296,6 +289,14 @@ class LaserGraphicsView(OverlayView):
         self.label.setVisible(label)
         self.scalebar.setVisible(scalebar)
         self.colorbar.setVisible(colorbar)
+
+    def zoomReset(self) -> None:
+        rect = QtCore.QRectF(0, 0, 0, 0)
+        for item in self.scene().items():
+            if isinstance(item, ScaledImageItem):
+                rect = rect.united(item.boundingRect())
+        self.scene().setSceneRect(rect)
+        self.fitInView(self.scene().sceneRect())
 
     def zoomStart(self) -> None:
         """Start zoom interactions."""
