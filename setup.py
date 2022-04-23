@@ -34,7 +34,7 @@ setup(
     packages=find_packages(include=["pewpew", "pewpew.*"]),
     install_requires=[
         "numpy!=1.19.4",
-        "pewlib>=0.7.3",
+        "pewlib>=0.8.0",
         "PySide2",
     ],
     entry_points={"console_scripts": ["pewpew=pewpew.__main__:main"]},

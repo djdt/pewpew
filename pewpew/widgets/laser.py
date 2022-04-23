@@ -42,7 +42,8 @@ class LaserTabView(TabView):
 
     def addLaser(self, laser: Laser) -> "LaserTabWidget":
         """Open image of  a laser in a new tab."""
-        widget = LaserTabWidget(laser, self.options, self)
+        widget = LaserTabWidget(self.options, self)
+        widget.addLaser(laser)
 
         name = laser.info.get("Name", "<No Name>")
         self.addTab(name, widget)
@@ -167,10 +168,8 @@ class LaserTabWidget(TabViewWidget):
         view: parent view
     """
 
-    def __init__(self, laser: Laser, options: GraphicsOptions, view: Optional[LaserTabView] = None):
+    def __init__(self, options: GraphicsOptions, view: Optional[LaserTabView] = None):
         super().__init__(view)
-        self.laser = laser
-        self.is_srr = isinstance(laser, SRRLaser)
 
         self.graphics = LaserGraphicsView(options, parent=self)
         self.graphics.setMouseTracking(True)
@@ -179,19 +178,19 @@ class LaserTabWidget(TabViewWidget):
         self.graphics.label.labelChanged.connect(self.renameCurrentElement)
         self.graphics.colorbar.editRequested.connect(self.actionRequestColorbarEdit)
 
-        self.combo_layers = QtWidgets.QComboBox()
-        self.combo_layers.addItem("*")
-        self.combo_layers.addItems([str(i) for i in range(0, self.laser.layers)])
-        self.combo_layers.currentIndexChanged.connect(self.refresh)
-        if not self.is_srr:
-            self.combo_layers.setEnabled(False)
-            self.combo_layers.setVisible(False)
+        # self.combo_layers = QtWidgets.QComboBox()
+        # self.combo_layers.addItem("*")
+        # self.combo_layers.addItems([str(i) for i in range(0, self.laser.layers)])
+        # self.combo_layers.currentIndexChanged.connect(self.refresh)
+        # if not self.is_srr:
+        #     self.combo_layers.setEnabled(False)
+        #     self.combo_layers.setVisible(False)
 
-        self.combo_element = LaserComboBox()
-        self.combo_element.namesSelected.connect(self.updateNames)
-        self.combo_element.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
-        self.combo_element.currentIndexChanged.connect(self.refresh)
-        self.populateElements()
+        # self.combo_element = LaserComboBox()
+        # self.combo_element.namesSelected.connect(self.updateNames)
+        # self.combo_element.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        # self.combo_element.currentIndexChanged.connect(self.refresh)
+        # self.populateElements()
 
         self.action_calibration = qAction(
             "go-top",
@@ -345,7 +344,7 @@ class LaserTabWidget(TabViewWidget):
         self.graphics.viewport().installEventFilter(DragDropRedirectFilter(self))
         # Filters for setting active view
         self.graphics.viewport().installEventFilter(self)
-        self.combo_element.installEventFilter(self)
+        # self.combo_element.installEventFilter(self)
         self.selection_button.installEventFilter(self)
         self.widgets_button.installEventFilter(self)
         self.view_button.installEventFilter(self)
@@ -355,13 +354,19 @@ class LaserTabWidget(TabViewWidget):
         layout_bar.addWidget(self.widgets_button, 0, QtCore.Qt.AlignLeft)
         layout_bar.addWidget(self.view_button, 0, QtCore.Qt.AlignLeft)
         layout_bar.addStretch(1)
-        layout_bar.addWidget(self.combo_layers, 0, QtCore.Qt.AlignRight)
-        layout_bar.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
+        # layout_bar.addWidget(self.combo_layers, 0, QtCore.Qt.AlignRight)
+        # layout_bar.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.graphics, 1)
         layout.addLayout(layout_bar)
         self.setLayout(layout)
+
+    def addLaser(self, laser: Laser) -> None:
+        item = LaserImageItem(laser, self.graphics.options)
+        # item.updateImage(self.current_element, self.graphics.options)
+        self.graphics.scene().addItem(item)
+        item.refresh()
 
     @property
     def current_element(self) -> str:
@@ -371,25 +376,21 @@ class LaserTabWidget(TabViewWidget):
     def current_element(self, element: str) -> None:
         self.combo_element.setCurrentText(element)
 
-    @property
-    def current_layer(self) -> Optional[int]:
-        if not self.is_srr or self.combo_layers.currentIndex() == 0:
-            return None
-        return int(self.combo_layers.currentText())
+    # @property
+    # def current_layer(self) -> Optional[int]:
+    #     if not self.is_srr or self.combo_layers.currentIndex() == 0:
+    #         return None
+    #     return int(self.combo_layers.currentText())
 
     # Virtual
     def refresh(self) -> None:
         """Redraw image."""
         
-        item = LaserImageItem(self.laser, self)
-        item.updateImage(self.current_element, self.graphics.options, self.current_layer)
-        self.graphics.scene().addItem(item)
-        self.graphics.image = item
         # self.graphics.drawLaser(
         #     self.laser, self.current_element, layer=self.current_layer
         # )
-        if self.graphics.widget is not None:
-            self.graphics.widget.imageChanged(self.graphics.image, self.graphics.data)
+        # if self.graphics.widget is not None:
+        #     self.graphics.widget.imageChanged(self.graphics.image, self.graphics.data)
 
         self.graphics.zoomReset()
         self.graphics.invalidateScene()
@@ -416,6 +417,10 @@ class LaserTabWidget(TabViewWidget):
     def laserFilePath(self, ext: str = ".npz") -> Path:
         path = Path(self.laser.info.get("File Path", ""))
         return path.with_name(self.laserName() + ext)
+
+    def uniqueElements(self) -> List[str]:
+        for item in self.graphics.scene().items():
+            return []
 
     def populateElements(self) -> None:
         """Repopulate the element combo box."""
