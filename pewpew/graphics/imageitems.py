@@ -10,7 +10,38 @@ from pewpew.lib.numpyqt import array_to_image, array_to_polygonf
 from typing import Any, Optional, List
 
 
-class ScaledImageItem(QtWidgets.QGraphicsObject):
+class SnapImageItem(QtWidgets.QGraphicsObject):
+    def itemChange(
+        self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
+    ) -> Any:
+        if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+            pos = QtCore.QPointF(value)
+            size = self.pixelSize()
+            pos.setX(pos.x() - pos.x() % size.width())
+            pos.setY(pos.y() - pos.y() % size.height())
+            return pos
+        return super().itemChange(change, value)
+
+    def imageSize(self) -> QtCore.QSize:
+        raise NotImplementedError
+
+    def pixelSize(self) -> QtCore.QSizeF:
+        """Size / scaling of an image pixel."""
+        rect = self.boundingRect()
+        size = self.imageSize()
+        return QtCore.QSizeF(rect.width() / size.width(), rect.height() / size.height())
+
+    def mapToData(self, pos: QtCore.QPointF) -> QtCore.QPoint:
+        """Map a position to an image pixel coordinate."""
+        pixel = self.pixelSize()
+        rect = self.boundingRect()
+        return QtCore.QPoint(
+            (pos.x() - rect.left()) / pixel.width(),
+            (pos.y() - rect.top()) / pixel.height(),
+        )
+
+
+class ScaledImageItem(SnapImageItem):
     """Item to draw image to a defined rect.
 
     If `snap` is used, then the 'ItemSendsGeometryChanges' flag must is set.
@@ -18,7 +49,6 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
     Args:
         image: image
         rect: extent of image
-        smooth: smooth image using 2x scaling
         snap: snap image position to pixel size
         parent: parent item
     """
@@ -40,33 +70,11 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
         if self.snap:
             self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
 
-    def itemChange(
-        self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
-    ) -> Any:
-        if self.snap and change == QtWidgets.QGraphicsItem.ItemPositionChange:
-            pos = QtCore.QPointF(value)
-            size = self.pixelSize()
-            pos.setX(pos.x() - pos.x() % size.width())
-            pos.setY(pos.y() - pos.y() % size.height())
-            return pos
-        return super().itemChange(change, value)
-
-    def pixelSize(self) -> QtCore.QSizeF:
-        """Size / scaling of an image pixel."""
-        return QtCore.QSizeF(
-            self.rect.width() / self.image.width(),
-            self.rect.height() / self.image.height(),
-        )
+    def imageSize(self) -> QtCore.QSize:
+        return self.image.size()
 
     def boundingRect(self) -> QtCore.QRectF:
         return self.rect
-
-    def mapToData(self, pos: QtCore.QPointF) -> QtCore.QPoint:
-        """Map a position to an image pixel coordinate."""
-        pixel = self.pixelSize()
-
-        pos -= self.rect.topLeft()
-        return QtCore.QPoint(pos.x() / pixel.width(), pos.y() / pixel.height())
 
     def paint(
         self,

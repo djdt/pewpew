@@ -393,13 +393,17 @@ class LaserTabWidget(TabViewWidget):
 
     # Virtual
     def refresh(self) -> None:
-        """Redraw image."""
+        """Redraw images."""
 
         # self.graphics.drawLaser(
         #     self.laser, self.current_element, layer=self.current_layer
         # )
         # if self.graphics.widget is not None:
         #     self.graphics.widget.imageChanged(self.graphics.image, self.graphics.data)
+
+        for item in self.graphics.items():
+            if isinstance(item, LaserImageItem):
+                item.image = None
 
         self.graphics.zoomReset()
         self.graphics.invalidateScene()

@@ -5,13 +5,14 @@ import copy
 from pewlib.laser import Laser
 from pewlib.calibration import Calibration
 from pewlib.config import Config
+
 # from pewlib.srr.config import SRRConfig
 
 from pewpew.lib.numpyqt import array_to_image
 
 from pewpew.graphics import colortable
 from pewpew.graphics.options import GraphicsOptions
-from pewpew.graphics.imageitems import ScaledImageItem
+from pewpew.graphics.imageitems import SnapImageItem
 
 # from pewpew.graphics.overlayitems import OverlayItem, LabelOverlay
 
@@ -20,7 +21,7 @@ from pewpew.actions import qAction
 from typing import Dict, Optional
 
 
-class LaserImageItem(ScaledImageItem):
+class LaserImageItem(SnapImageItem):
     requestDialogCalibration = QtCore.Signal()
     requestDialogConfig = QtCore.Signal()
     requestDialogColocalisation = QtCore.Signal()
@@ -42,21 +43,59 @@ class LaserImageItem(ScaledImageItem):
 
         self.mask = None
 
-        super().__init__(
-            self.laserImage(self.current_element),
-            self.laserRect(),
-            snap=True,
-            parent=parent,
-        )
+        super().__init__(parent=parent)
 
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
 
         self.createActions()
+
+        # Cache image creation
+        self._image = None
 
         # Name in top left corner
         # self.label_overlay = OverlayItem(LabelOverlay(self.laser.info["Name"], font=self.options.font, parent=self))
         # self.label.setTransformOriginPoint(self.transformOriginPoint().transposed())
         # self.label.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
+
+    @property
+    def image(self) -> QtGui.QImage:
+        if self._image is None:
+            data = self.laser.get(
+                self.current_element, calibrate=self.options.calibrate, flat=True
+            )
+            data = np.ascontiguousarray(data)
+            # unit = self.laser.calibration[name].unit if options.calibrate else ""
+
+            vmin, vmax = self.options.get_color_range_as_float(
+                self.current_element, data
+            )
+            table = colortable.get_table(self.options.colortable)
+
+            data = np.clip(data, vmin, vmax)
+            if vmin != vmax:  # Avoid div 0
+                data = (data - vmin) / (vmax - vmin)
+
+            image = array_to_image(data)
+            image.setColorTable(table)
+            self._image = image
+        return self._image
+    
+    @image.setter
+    def image(self, image: Optional[QtGui.QImage]) -> None:
+        self._image = image
+
+    def boundingRect(self) -> QtCore.QRectF:
+        x0, x1, y0, y1 = self.laser.config.data_extent(self.laser.shape)
+        rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
+        rect.moveTopLeft(QtCore.QPointF(0, 0))
+        return rect
+
+    def imageSize(self) -> QtCore.QSize:
+        return QtCore.QSize(self.laser.shape)
+
+    def redraw(self) -> None:
+        self._image = None  # Clear the image
 
     def paint(
         self,
@@ -66,60 +105,16 @@ class LaserImageItem(ScaledImageItem):
     ):
         if self.options.smoothing:
             painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform)
-        super().paint(painter, option, widget)
+
+        painter.drawImage(self.boundingRect(), self.image)
 
         if self.mask is not None:
-            painter.drawImage(self.rect, self.mask)
-        # if self.hasFocus() or True:
-        #     pen = QtGui.QPen(QtCore.Qt.white, 2.0)
-        #     pen.setCosmetic(True)
-        #     painter.setPen(pen)
-        #     painter.drawRect(self.rect)
-            # view = next(iter(self.scene().views()))
-            # painter.save()
-            # painter.resetTransform()
-            # transform = QtGui.QTransform.fromTranslate(view.mapFromScene(self.pos()).x(), view.mapFromScene(self.pos()).y())
-            # # transform = QtGui.QTransform()
-            # # transform.translate(self.pos().x(), self.pos().y())
-            # painter.setTransform(transform)
+            painter.drawImage(self.boundingRect(), self.mask)
 
-            # fm = QtGui.QFontMetrics(self.options.font, painter.device())
-            # path = QtGui.QPainterPath()
-            # path.addText(0, fm.ascent(), self.options.font, self.laser.info["Name"][:64])
+    #     self.rect = self.laserRect()
+    #     self.image = self.laserImage(self.current_element)
 
-            # painter.setRenderHint(QtGui.QPainter.Antialiasing)
-            # painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
-            # painter.fillPath(path, QtGui.QBrush(self.options.font_color, QtCore.Qt.SolidPattern))
-
-            # painter.restore()
-
-    def laserImage(self, name: str) -> QtGui.QImage:
-        data = self.laser.get(name, calibrate=self.options.calibrate, flat=True)
-        self.raw_data = np.ascontiguousarray(data)
-        # unit = self.laser.calibration[name].unit if options.calibrate else ""
-
-        vmin, vmax = self.options.get_color_range_as_float(name, self.raw_data)
-        table = colortable.get_table(self.options.colortable)
-
-        data = np.clip(self.raw_data, vmin, vmax)
-        if vmin != vmax:  # Avoid div 0
-            data = (data - vmin) / (vmax - vmin)
-
-        image = array_to_image(data)
-        image.setColorTable(table)
-        return image
-
-    def laserRect(self) -> QtCore.QRectF:
-        x0, x1, y0, y1 = self.laser.config.data_extent(self.laser.shape)
-        rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
-        rect.moveTopLeft(QtCore.QPointF(0, 0))
-        return rect
-
-    def refresh(self) -> None:
-        self.rect = self.laserRect()
-        self.image = self.laserImage(self.current_element)
-
-    # === Slots === 
+    # === Slots ===
     def applyCalibration(self, calibrations: Dict[str, Calibration]) -> None:
         """Set laser calibrations."""
         modified = False

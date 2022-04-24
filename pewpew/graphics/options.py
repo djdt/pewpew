@@ -4,7 +4,7 @@ import numpy as np
 from typing import Dict, Tuple, Union
 
 
-class GraphicsOptions(object):
+class GraphicsOptions(QtCore.QObject):
     """This object stores information used by pewpew to draw images.
 
     Parameters:
@@ -29,6 +29,8 @@ class GraphicsOptions(object):
         "viridis": "Perceptually uniform colormap.",
     }
 
+    optionsChanged = QtCore.Signal()
+
     def __init__(self) -> None:
         # Todo: maybe alignments here?
         self.overlay_items = {
@@ -43,16 +45,23 @@ class GraphicsOptions(object):
 
         self.smoothing = False
 
-        self.font = QtGui.QFont()
-        self.font.setPointSize(16)
+        self.font = QtGui.QFont("sans", 16)
         self.font_color = QtCore.Qt.white
 
         self.calibrate = True
         self.units = "μm"
 
-    # def get_colorrange(self, name: str) -> Tuple[Union[float, str], Union[float, str]]:
-    #     """Get colorrange for 'name' or a default."""
-    #     return self._colorranges.get(name, self.colorrange_default)
+    def setFont(self, font: QtGui.QFont) -> None:
+        self.font = font
+        self.optionsChanged.emit()
+
+    def setFontSize(self, size: int) -> None:
+        self.font.setPointSize(size)
+        self.optionsChanged.emit()
+
+    def setSmoothing(self, smooth: bool) -> None:
+        self.smoothing = smooth
+        self.optionsChanged.emit()
 
     def get_color_range_as_float(
         self, name: str, data: np.ndarray
@@ -70,6 +79,10 @@ class GraphicsOptions(object):
         if isinstance(vmax, str):
             vmax = np.nanpercentile(data, float(vmax.rstrip("%")))
         return vmin, vmax  # type: ignore
+
+    # def get_colorrange(self, name: str) -> Tuple[Union[float, str], Union[float, str]]:
+    #     """Get colorrange for 'name' or a default."""
+    #     return self._colorranges.get(name, self.colorrange_default)
 
     # def get_colorrange_as_percentile(
     #     self, name: str, data: np.ndarray
