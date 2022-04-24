@@ -296,7 +296,7 @@ class LaserGraphicsView(OverlayView):
             if isinstance(item, ScaledImageItem):
                 rect = rect.united(item.boundingRect())
         self.scene().setSceneRect(rect)
-        self.fitInView(self.scene().sceneRect())
+        self.fitInView(self.scene().sceneRect(), QtCore.Qt.KeepAspectRatio)
 
     def zoomStart(self) -> None:
         """Start zoom interactions."""

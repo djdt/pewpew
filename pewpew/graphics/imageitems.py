@@ -13,8 +13,7 @@ from typing import Any, Optional, List
 class ScaledImageItem(QtWidgets.QGraphicsObject):
     """Item to draw image to a defined rect.
 
-    Images scan be bicubic smoothed using `smooth`.
-    If `snap` is used, then the 'ItemSendsGeometryChanges' flag must be set.
+    If `snap` is used, then the 'ItemSendsGeometryChanges' flag must is set.
 
     Args:
         image: image
@@ -28,7 +27,6 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
         self,
         image: QtGui.QImage,
         rect: QtCore.QRectF,
-        smooth: bool = False,
         snap: bool = True,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
@@ -36,16 +34,11 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
         self.setCacheMode(
             QtWidgets.QGraphicsItem.DeviceCoordinateCache
         )  # Speed up redraw of image
-        if smooth:
-            self.image = image.scaledToHeight(
-                image.height() * 2, QtCore.Qt.SmoothTransformation
-            )
-            self.image_scale = 2
-        else:
-            self.image = image
-            self.image_scale = 1
+        self.image = image
         self.rect = QtCore.QRectF(rect)  # copy the rect
         self.snap = snap
+        if self.snap:
+            self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
 
     def itemChange(
         self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
@@ -58,19 +51,11 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
             return pos
         return super().itemChange(change, value)
 
-    def width(self) -> int:
-        """Width of image, independant of smoothing."""
-        return int(self.image.width() / self.image_scale)
-
-    def height(self) -> int:
-        """Height of image, independant of smoothing."""
-        return int(self.image.height() / self.image_scale)
-
     def pixelSize(self) -> QtCore.QSizeF:
         """Size / scaling of an image pixel."""
         return QtCore.QSizeF(
-            self.rect.width() / self.width(),
-            self.rect.height() / self.height(),
+            self.rect.width() / self.image.width(),
+            self.rect.height() / self.image.height(),
         )
 
     def boundingRect(self) -> QtCore.QRectF:
@@ -97,7 +82,6 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
         array: np.ndarray,
         rect: QtCore.QRectF,
         colortable: Optional[List[int]] = None,
-        smooth: bool = False,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ) -> "ScaledImageItem":
         """Create a ScaledImageItem from a numpy array.
@@ -106,14 +90,13 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
             array: 2d array
             rect: image extent
             colortable: map data using colortable
-            smooth: bicubic smoothing
             parent: parent item
         """
         image = array_to_image(array)
         if colortable is not None:
             image.setColorTable(colortable)
             image.setColorCount(len(colortable))
-        item = cls(image, rect, smooth, parent=parent)
+        item = cls(image, rect, parent=parent)
         return item
 
 

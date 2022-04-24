@@ -15,7 +15,7 @@ class SelectionItem(QtWidgets.QGraphicsObject):
 
     def __init__(
         self,
-        modes: Dict[QtCore.Qt.KeyboardModifier, str] = None,
+        modes: Optional[Dict[QtCore.Qt.KeyboardModifier, str]] = None,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(parent)
@@ -45,7 +45,7 @@ class ScaledImageSelectionItem(SelectionItem):
     def __init__(
         self,
         image: Optional[ScaledImageItem] = None,
-        modes: Dict[QtCore.Qt.KeyboardModifier, str] = None,
+        modes: Optional[Dict[QtCore.Qt.KeyboardModifier, str]] = None,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         _modes = {QtCore.Qt.ShiftModifier: "add", QtCore.Qt.ControlModifier: "subtract"}
@@ -75,7 +75,7 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
     def __init__(
         self,
         image: ScaledImageItem,
-        modes: Dict[QtCore.Qt.Modifier, str] = None,
+        modes: Optional[Dict[QtCore.Qt.Modifier, str]] = None,
         pen: Optional[QtGui.QPen] = None,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
@@ -170,7 +170,7 @@ class RectImageSelectionItem(ScaledImageSelectionItem):
     def __init__(
         self,
         image: ScaledImageItem,
-        modes: Dict[QtCore.Qt.Modifier, str] = None,
+        modes: Optional[Dict[QtCore.Qt.Modifier, str]] = None,
         pen: Optional[QtGui.QPen] = None,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
