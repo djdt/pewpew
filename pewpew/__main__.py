@@ -18,7 +18,7 @@ from typing import List
 logger = logging.getLogger()
 
 
-def parse_args(argv: List[str] = None) -> argparse.Namespace:
+def parse_args(argv: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="pew²",
         description="GUI for visualisation and manipulation of LA-ICP-MS data.",
@@ -43,7 +43,7 @@ def parse_args(argv: List[str] = None) -> argparse.Namespace:
     return args
 
 
-def main(argv: List[str] = None) -> int:
+def main(argv: List[str] = []) -> int:
     args = parse_args(argv)
 
     app = QtWidgets.QApplication(args.qtargs)
