@@ -6,12 +6,13 @@ from pewlib.process.calc import normalise
 
 from pewpew.actions import qAction
 from pewpew.lib.numpyqt import array_to_image, array_to_polygonf
-from pewpew.lib.polyext import array_contains_points
 
-from typing import Any, Optional, List
+from typing import Any, List, Optional
 
 
 class SnapImageItem(QtWidgets.QGraphicsObject):
+    selectionChanged = QtCore.Signal()
+
     def itemChange(
         self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
     ) -> Any:
@@ -47,32 +48,8 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         y = round(pos.y() / pixel.height()) * pixel.height()
         return QtCore.QPointF(x, y)
 
-    def selectionFromPoints(self, points: np.ndarray, modes: List[str] = []) -> None:
-        assert points.ndim == 2 and points.shape[0] == 2
-
-        rect = self.boundingRect()
-        pixel = self.item.pixelSize()
-
-        # Get start and end points of area
-        x1, x2 = np.amin(points[:, 0]), np.amax(points[:, 0])
-        y1, y2 = np.amin(points[:, 1]), np.amax(points[:, 1])
-        # Bound to image area
-        x1, y1 = max(x1, 0.0), max(y1, 0.0)
-        x2 = min(x2, rect.width() - pixel.width() / 2.0)
-        y2 = min(y2, rect.height() - pixel.height() / 2.0)
-        # Generate pixel centers
-        xs = np.arange(x1, x2, pixel.width()) + pixel.width() / 2.0
-        ys = np.arange(y1, y2, pixel.height()) + pixel.height() / 2.0
-        X, Y = np.meshgrid(xs, ys)
-        pixels = np.stack((X.flat, Y.flat), axis=1)
-
-        # Get mask of selected area
-        size = self.imageSize()
-        mask = np.zeros([size.width(), size.height()], dtype=bool)
-        polymask = array_contains_points(points, pixels).reshape(ys.size, xs.size)
-        # Insert
-        ix, iy = int(x1 / pixel.width()), int(y1 / pixel.height())
-        mask[iy : iy + ys.size, ix : ix + xs.size] = polymask
+    def handleSelection(self, mask: np.ndarray, modes: List[str]) -> None:
+        self.selectionChanged.emit()
 
 
 class ScaledImageItem(SnapImageItem):
@@ -247,6 +224,7 @@ class RulerWidgetItem(ImageWidgetItem):
     ):
         view = next(iter(self.scene().views()))
 
+        painter.save()
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.setFont(self.font)
         painter.setPen(self.pen)
@@ -275,14 +253,13 @@ class RulerWidgetItem(ImageWidgetItem):
             width = fm.boundingRect(self.text).width()
 
             if width < length * 0.9:
-                painter.save()
                 painter.resetTransform()
                 transform = QtGui.QTransform()
                 transform.translate(center.x(), center.y())
                 transform.rotate(-angle)
                 painter.setTransform(transform)
                 painter.drawText(-width / 2.0, -fm.descent(), self.text)
-                painter.restore()
+        painter.restore()
 
 
 class ImageSliceWidgetItem(ImageWidgetItem):
@@ -355,7 +332,7 @@ class ImageSliceWidgetItem(ImageWidgetItem):
         mime.setText(text)
         QtWidgets.QApplication.clipboard().setMimeData(mime)
 
-    def createSlicePoly(self) -> QtGui.QPolygonF:
+    def createSlicePoly(self) -> None:
         def connect_nd(ends):
             d = np.diff(ends, axis=0)[0]
             j = np.argmax(np.abs(d))
@@ -425,6 +402,7 @@ class ImageSliceWidgetItem(ImageWidgetItem):
         widget: Optional[QtWidgets.QWidget] = None,
     ):
 
+        painter.save()
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.setFont(self.font)
         painter.setPen(self.pen)
@@ -448,6 +426,7 @@ class ImageSliceWidgetItem(ImageWidgetItem):
             pen.setWidth(10)
             painter.setPen(pen)
             painter.drawPoints([self.line.p1(), self.line.p2()])
+        painter.restore()
 
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
         menu = QtWidgets.QMenu()
