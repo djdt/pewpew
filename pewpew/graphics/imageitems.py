@@ -6,6 +6,7 @@ from pewlib.process.calc import normalise
 
 from pewpew.actions import qAction
 from pewpew.lib.numpyqt import array_to_image, array_to_polygonf
+from pewpew.lib.polyext import array_contains_points
 
 from typing import Any, Optional, List
 
@@ -39,6 +40,39 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
             (pos.x() - rect.left()) / pixel.width(),
             (pos.y() - rect.top()) / pixel.height(),
         )
+
+    def snapPos(self, pos: QtCore.QPointF) -> QtCore.QPointF:
+        pixel = self.pixelSize()
+        x = round(pos.x() / pixel.width()) * pixel.width()
+        y = round(pos.y() / pixel.height()) * pixel.height()
+        return QtCore.QPointF(x, y)
+
+    def selectionFromPoints(self, points: np.ndarray, modes: List[str] = []) -> None:
+        assert points.ndim == 2 and points.shape[0] == 2
+
+        rect = self.boundingRect()
+        pixel = self.item.pixelSize()
+
+        # Get start and end points of area
+        x1, x2 = np.amin(points[:, 0]), np.amax(points[:, 0])
+        y1, y2 = np.amin(points[:, 1]), np.amax(points[:, 1])
+        # Bound to image area
+        x1, y1 = max(x1, 0.0), max(y1, 0.0)
+        x2 = min(x2, rect.width() - pixel.width() / 2.0)
+        y2 = min(y2, rect.height() - pixel.height() / 2.0)
+        # Generate pixel centers
+        xs = np.arange(x1, x2, pixel.width()) + pixel.width() / 2.0
+        ys = np.arange(y1, y2, pixel.height()) + pixel.height() / 2.0
+        X, Y = np.meshgrid(xs, ys)
+        pixels = np.stack((X.flat, Y.flat), axis=1)
+
+        # Get mask of selected area
+        size = self.imageSize()
+        mask = np.zeros([size.width(), size.height()], dtype=bool)
+        polymask = array_contains_points(points, pixels).reshape(ys.size, xs.size)
+        # Insert
+        ix, iy = int(x1 / pixel.width()), int(y1 / pixel.height())
+        mask[iy : iy + ys.size, ix : ix + xs.size] = polymask
 
 
 class ScaledImageItem(SnapImageItem):

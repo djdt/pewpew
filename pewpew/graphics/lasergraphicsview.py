@@ -98,12 +98,10 @@ class LaserGraphicsView(OverlayView):
 
     def startLassoSelection(self) -> None:
         """Select image pixels using a lasso."""
-        if self.image is None:
-            return
-        if self.selection_item is not None:
-            self.scene().removeItem(self.selection_item)
+        # if self.selection_item is not None:
+        #     self.scene().removeItem(self.selection_item)
 
-        self.selection_item = LassoImageSelectionItem(self.image)
+        self.selection_item = LassoImageSelectionItem(parent=None)
         self.selection_item.selectionChanged.connect(self.drawSelectionImage)
         self.scene().addItem(self.selection_item)
         self.selection_item.grabMouse()
@@ -111,12 +109,10 @@ class LaserGraphicsView(OverlayView):
 
     def startRectangleSelection(self) -> None:
         """Select image pixels using a rectangle."""
-        if self.image is None:
-            return
         if self.selection_item is not None:
             self.scene().removeItem(self.selection_item)
 
-        self.selection_item = RectImageSelectionItem(self.image)
+        self.selection_item = RectImageSelectionItem(parent=self)
         self.selection_item.selectionChanged.connect(self.drawSelectionImage)
         self.scene().addItem(self.selection_item)
         self.selection_item.grabMouse()

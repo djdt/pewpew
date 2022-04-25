@@ -6,6 +6,11 @@ from pewpew.lib.numpyqt import polygonf_to_array
 import pewpew.lib.polyext
 
 
+def array_contains_points(array: np.ndarray, points: np.ndarray) -> np.ndarray:
+    result = pewpew.lib.polyext.polygonf_contains_points(array, points)
+    return result
+
+
 def polygonf_contains_points(
     polygon: QtGui.QPolygonF, points: np.ndarray
 ) -> np.ndarray:

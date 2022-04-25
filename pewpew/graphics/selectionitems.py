@@ -2,7 +2,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 import numpy as np
 
-from pewpew.graphics.imageitems import ScaledImageItem
+from pewpew.graphics.imageitems import SnapImageItem
 from pewpew.graphics.util import polygonf_contains_points
 
 from pewpew.lib.numpyqt import polygonf_to_array
@@ -44,7 +44,7 @@ class ScaledImageSelectionItem(SelectionItem):
 
     def __init__(
         self,
-        image: Optional[ScaledImageItem] = None,
+        # image: Optional[ScaledImageItem] = None,
         modes: Optional[Dict[QtCore.Qt.KeyboardModifier, str]] = None,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
@@ -53,20 +53,37 @@ class ScaledImageSelectionItem(SelectionItem):
             _modes.update(modes)
         super().__init__(modes=_modes, parent=parent)
 
-        self.rect = QtCore.QRectF(image.rect)
-        self.image_shape = (image.height(), image.width())
+        self.item: Optional[SnapImageItem] = None
 
-    def pixelSize(self) -> QtCore.QSizeF:
-        return QtCore.QSizeF(
-            self.rect.width() / self.image_shape[1],
-            self.rect.height() / self.image_shape[0],
-        )
+    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        item = self.scene().itemAt(event.scenePos(), QtGui.QTransform())
+        if not isinstance(item, SnapImageItem):
+            return
+        self.item = item
 
-    def snapPos(self, pos: QtCore.QPointF) -> QtCore.QPointF:
-        pixel = self.pixelSize()
-        x = round(pos.x() / pixel.width()) * pixel.width()
-        y = round(pos.y() / pixel.height()) * pixel.height()
-        return QtCore.QPointF(x, y)
+    def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent)-> None:
+        self.item = None
+
+        # self.poly.clear()
+        # self.poly.append(self.snapPos(event.pos()))
+
+        # self.prepareGeometryChange()
+
+
+        # self.rect = QtCore.QRectF(image.rect)
+        # self.image_shape = (image.height(), image.width())
+
+    # def pixelSize(self) -> QtCore.QSizeF:
+    #     return QtCore.QSizeF(
+    #         self.rect.width() / self.image_shape[1],
+    #         self.rect.height() / self.image_shape[0],
+    #     )
+
+    # def snapPos(self, pos: QtCore.QPointF) -> QtCore.QPointF:
+    #     pixel = self.pixelSize()
+    #     x = round(pos.x() / pixel.width()) * pixel.width()
+    #     y = round(pos.y() / pixel.height()) * pixel.height()
+    #     return QtCore.QPointF(x, y)
 
 
 class LassoImageSelectionItem(ScaledImageSelectionItem):
@@ -74,12 +91,12 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
 
     def __init__(
         self,
-        image: ScaledImageItem,
-        modes: Optional[Dict[QtCore.Qt.Modifier, str]] = None,
+        # image: ScaledImageItem,
+        modes: Optional[Dict[QtCore.Qt.KeyboardModifier, str]] = None,
         pen: Optional[QtGui.QPen] = None,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
-        super().__init__(image, modes=modes, parent=parent)
+        super().__init__(modes=modes, parent=parent)
 
         if pen is None:
             pen = QtGui.QPen(QtCore.Qt.white, 2.0)
@@ -100,17 +117,19 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if not event.button() & QtCore.Qt.LeftButton:
             return
+        super().mousePressEvent(event)
+
         self.poly.clear()
-        self.poly.append(self.snapPos(event.pos()))
+        self.poly.append(self.item.snapPos(event.pos()))
 
         self.prepareGeometryChange()
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if not event.buttons() & QtCore.Qt.LeftButton:
             return
-        if self.poly.size() == 0:
+        if self.poly.size() == 0 or self.item is None:
             return
-        pos = self.snapPos(event.pos())
+        pos = self.item.snapPos(event.pos())
         if self.poly.last() != pos:
             self.poly.append(pos)
             self.prepareGeometryChange()
@@ -118,8 +137,10 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if not event.button() & QtCore.Qt.LeftButton:
             return
+        if self.item is None:
+            return
         modes = list(self.modifierModes(event.modifiers()))
-        pixel = self.pixelSize()
+        pixel = self.item.pixelSize()
 
         array = polygonf_to_array(self.poly)
         # Get start and end points of area
@@ -127,8 +148,8 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
         y1, y2 = np.amin(array[:, 1]), np.amax(array[:, 1])
         # Bound to image area
         x1, y1 = max(x1, 0.0), max(y1, 0.0)
-        x2 = min(x2, self.rect.width() - pixel.width() / 2.0)
-        y2 = min(y2, self.rect.height() - pixel.height() / 2.0)
+        x2 = min(x2, self.item.boundingRect().width() - pixel.width() / 2.0)
+        y2 = min(y2, self.item.boundingRect().height() - pixel.height() / 2.0)
         # Generate pixel centers
         xs = np.arange(x1, x2, pixel.width()) + pixel.width() / 2.0
         ys = np.arange(y1, y2, pixel.height()) + pixel.height() / 2.0
@@ -136,7 +157,8 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
         pixels = np.stack((X.flat, Y.flat), axis=1)
 
         # Get mask of selected area
-        mask = np.zeros(self.image_shape, dtype=bool)
+        size = self.item.imageSize()
+        mask = np.zeros([size.width(), size.height()], dtype=bool)
         polymask = polygonf_contains_points(self.poly, pixels).reshape(ys.size, xs.size)
         # Insert
         ix, iy = int(x1 / pixel.width()), int(y1 / pixel.height())
@@ -147,6 +169,7 @@ class LassoImageSelectionItem(ScaledImageSelectionItem):
         self.prepareGeometryChange()
 
         self.selectionChanged.emit(mask, modes)
+        super().mouseReleaseEvent(event)
 
     def paint(
         self,
@@ -169,12 +192,12 @@ class RectImageSelectionItem(ScaledImageSelectionItem):
 
     def __init__(
         self,
-        image: ScaledImageItem,
+        # image: Smap,
         modes: Optional[Dict[QtCore.Qt.Modifier, str]] = None,
         pen: Optional[QtGui.QPen] = None,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
-        super().__init__(image, modes=modes, parent=parent)
+        super().__init__(modes=modes, parent=parent)
 
         if pen is None:
             pen = QtGui.QPen(QtCore.Qt.white, 2.0)
