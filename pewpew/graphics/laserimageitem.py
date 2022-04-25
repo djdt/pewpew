@@ -15,9 +15,6 @@ from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.imageitems import SnapImageItem
 
 # from pewpew.graphics.overlayitems import OverlayItem, LabelOverlay
-from pewpew.graphics.util import polygonf_contains_points
-
-from pewpew.lib.numpyqt import polygonf_to_array
 
 from pewpew.actions import qAction
 
@@ -40,53 +37,25 @@ class LaserImageItem(SnapImageItem):
         current_element: Optional[str] = None,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
+        super().__init__(parent=parent)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
+
         self.laser = laser
         self.options = options
         self.current_element = current_element or self.laser.elements[0]
 
-        self.mask = None
+        self.mask: Optional[np.ndarray] = None
 
-        super().__init__(parent=parent)
-
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
+        self.image: Optional[QtGui.QImage] = None
+        self.mask_image: Optional[QtGui.QImage] = None
 
         self.createActions()
-
-        # Cache image creation
-        self._image = None
 
         # Name in top left corner
         # self.label_overlay = OverlayItem(LabelOverlay(self.laser.info["Name"], font=self.options.font, parent=self))
         # self.label.setTransformOriginPoint(self.transformOriginPoint().transposed())
         # self.label.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
-
-    @property
-    def image(self) -> QtGui.QImage:
-        if self._image is None:
-            data = self.laser.get(
-                self.current_element, calibrate=self.options.calibrate, flat=True
-            )
-            data = np.ascontiguousarray(data)
-            # unit = self.laser.calibration[name].unit if options.calibrate else ""
-
-            vmin, vmax = self.options.get_color_range_as_float(
-                self.current_element, data
-            )
-            table = colortable.get_table(self.options.colortable)
-
-            data = np.clip(data, vmin, vmax)
-            if vmin != vmax:  # Avoid div 0
-                data = (data - vmin) / (vmax - vmin)
-
-            image = array_to_image(data)
-            image.setColorTable(table)
-            self._image = image
-        return self._image
-    
-    @image.setter
-    def image(self, image: Optional[QtGui.QImage]) -> None:
-        self._image = image
 
     def boundingRect(self) -> QtCore.QRectF:
         x0, x1, y0, y1 = self.laser.config.data_extent(self.laser.shape)
@@ -98,34 +67,50 @@ class LaserImageItem(SnapImageItem):
         return QtCore.QSize(self.laser.shape[1], self.laser.shape[0])
 
     def redraw(self) -> None:
-        self._image = None  # Clear the image
+        data = self.laser.get(
+            self.current_element, calibrate=self.options.calibrate, flat=True
+        )
+        data = np.ascontiguousarray(data)
+        # unit = self.laser.calibration[name].unit if options.calibrate else ""
 
-    def selectionFromPoints(self, points: np.ndarray, modes: List[str] = []) -> None:
-        assert points.ndim == 2 and points.shape[0] == 2
+        vmin, vmax = self.options.get_color_range_as_float(
+            self.current_element, data
+        )
+        table = colortable.get_table(self.options.colortable)
 
-        rect = self.boundingRect()
-        pixel = self.item.pixelSize()
+        data = np.clip(data, vmin, vmax)
+        if vmin != vmax:  # Avoid div 0
+            data = (data - vmin) / (vmax - vmin)
 
-        # Get start and end points of area
-        x1, x2 = np.amin(points[:, 0]), np.amax(points[:, 0])
-        y1, y2 = np.amin(points[:, 1]), np.amax(points[:, 1])
-        # Bound to image area
-        x1, y1 = max(x1, 0.0), max(y1, 0.0)
-        x2 = min(x2, rect.width() - pixel.width() / 2.0)
-        y2 = min(y2, rect.height() - pixel.height() / 2.0)
-        # Generate pixel centers
-        xs = np.arange(x1, x2, pixel.width()) + pixel.width() / 2.0
-        ys = np.arange(y1, y2, pixel.height()) + pixel.height() / 2.0
-        X, Y = np.meshgrid(xs, ys)
-        pixels = np.stack((X.flat, Y.flat), axis=1)
+        self.image = array_to_image(data)
+        self.image.setColorTable(table)
+        self.image.setColorCount(len(table))
 
-        # Get mask of selected area
-        size = self.imageSize()
-        mask = np.zeros([size.width(), size.height()], dtype=bool)
-        polymask = polygonf_contains_points(self.poly, pixels).reshape(ys.size, xs.size)
-        # Insert
-        ix, iy = int(x1 / pixel.width()), int(y1 / pixel.height())
-        mask[iy : iy + ys.size, ix : ix + xs.size] = polymask
+    def handleSelection(self, mask: np.ndarray, modes: List[str]) -> None:
+        print("HNADLE SELECT", mask, modes)
+        if self.mask_image is None:
+            current_mask = np.zeros(self.laser.shape, dtype=bool)
+        else:
+            current_mask = self.mask_image._array.astype(bool)
+
+        if "add" in modes:
+            mask = np.logical_or(current_mask, mask)
+        elif "subtract" in modes:
+            mask = np.logical_and(current_mask, ~mask)
+        elif "intersect" in modes:
+            mask = np.logical_and(current_mask, mask)
+        elif "difference" in modes:
+            mask = np.logical_xor(current_mask, mask)
+
+        color = QtGui.QColor(255, 255, 255, a=128)
+
+        self.mask_image = array_to_image(mask.astype(np.uint8))
+        self.mask_image.setColorTable([0, int(color.rgba())])
+        self.mask_image.setColorCount(2)
+
+        self.update()
+
+        super().handleSelection(mask, modes)
 
     def paint(
         self,
@@ -136,10 +121,11 @@ class LaserImageItem(SnapImageItem):
         if self.options.smoothing:
             painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform)
 
-        painter.drawImage(self.boundingRect(), self.image)
+        if self.image is not None:
+            painter.drawImage(self.boundingRect(), self.image)
 
-        if self.mask is not None:
-            painter.drawImage(self.boundingRect(), self.mask)
+        if self.mask_image is not None:
+            painter.drawImage(self.boundingRect(), self.mask_image)
 
     #     self.rect = self.laserRect()
     #     self.image = self.laserImage(self.current_element)

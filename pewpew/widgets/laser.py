@@ -403,7 +403,7 @@ class LaserTabWidget(TabViewWidget):
 
         for item in self.graphics.items():
             if isinstance(item, LaserImageItem):
-                item.image = None
+                item.redraw()
 
         self.graphics.zoomReset()
         self.graphics.invalidateScene()

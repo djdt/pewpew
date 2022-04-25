@@ -137,7 +137,7 @@ class LassoImageSelectionItem(SnapImageSelectionItem):
         pixels = np.stack((X.flat, Y.flat), axis=1)
 
         # Get mask of selected area
-        mask = np.zeros([size.width(), size.height()], dtype=bool)
+        mask = np.zeros((size.height(), size.width()), dtype=bool)
         polymask = polygonf_contains_points(self.poly, pixels).reshape(ys.size, xs.size)
         # Insert
         ix, iy = int(x1 / pixel.width()), int(y1 / pixel.height())
