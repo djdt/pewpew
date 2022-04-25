@@ -9,6 +9,7 @@ from pewpew.graphics.imageitems import (
 from pewpew.graphics.selectionitems import (
     LassoImageSelectionItem,
     RectImageSelectionItem,
+    SnapImageSelectionItem,
 )
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
@@ -98,24 +99,26 @@ class LaserGraphicsView(OverlayView):
 
     def startLassoSelection(self) -> None:
         """Select image pixels using a lasso."""
-        # if self.selection_item is not None:
-        #     self.scene().removeItem(self.selection_item)
+        for item in self.items():
+            if isinstance(item, SnapImageSelectionItem):
+                self.scene().removeItem(item)
 
-        self.selection_item = LassoImageSelectionItem(parent=None)
-        self.selection_item.selectionChanged.connect(self.drawSelectionImage)
-        self.scene().addItem(self.selection_item)
-        self.selection_item.grabMouse()
+        selection_item = LassoImageSelectionItem(parent=None)
+        # selection_item.selectionChanged.connect(self.drawSelectionImage)
+        self.scene().addItem(selection_item)
+        selection_item.grabMouse()
         self.setInteractionFlag("selection")
 
     def startRectangleSelection(self) -> None:
         """Select image pixels using a rectangle."""
-        if self.selection_item is not None:
-            self.scene().removeItem(self.selection_item)
+        for item in self.items():
+            if isinstance(item, SnapImageSelectionItem):
+                self.scene().removeItem(item)
 
-        self.selection_item = RectImageSelectionItem(parent=self)
-        self.selection_item.selectionChanged.connect(self.drawSelectionImage)
-        self.scene().addItem(self.selection_item)
-        self.selection_item.grabMouse()
+        selection_item = RectImageSelectionItem(parent=None)
+        # self.selection_item.selectionChanged.connect(self.drawSelectionImage)
+        self.scene().addItem(selection_item)
+        selection_item.grabMouse()
         self.setInteractionFlag("selection")
 
     def endSelection(self) -> None:
