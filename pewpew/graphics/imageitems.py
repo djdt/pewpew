@@ -7,19 +7,59 @@ from pewlib.process.calc import normalise
 from pewpew.actions import qAction
 from pewpew.lib.numpyqt import array_to_image, array_to_polygonf
 
-from typing import Any, Optional, List
+from typing import Any, List, Optional
 
 
-class ScaledImageItem(QtWidgets.QGraphicsObject):
+class SnapImageItem(QtWidgets.QGraphicsObject):
+    selectionChanged = QtCore.Signal()
+
+    def itemChange(
+        self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
+    ) -> Any:
+        if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+            pos = QtCore.QPointF(value)
+            size = self.pixelSize()
+            pos.setX(pos.x() - pos.x() % size.width())
+            pos.setY(pos.y() - pos.y() % size.height())
+            return pos
+        return super().itemChange(change, value)
+
+    def imageSize(self) -> QtCore.QSize:
+        raise NotImplementedError
+
+    def pixelSize(self) -> QtCore.QSizeF:
+        """Size / scaling of an image pixel."""
+        rect = self.boundingRect()
+        size = self.imageSize()
+        return QtCore.QSizeF(rect.width() / size.width(), rect.height() / size.height())
+
+    def mapToData(self, pos: QtCore.QPointF) -> QtCore.QPoint:
+        """Map a position to an image pixel coordinate."""
+        pixel = self.pixelSize()
+        rect = self.boundingRect()
+        return QtCore.QPoint(
+            (pos.x() - rect.left()) / pixel.width(),
+            (pos.y() - rect.top()) / pixel.height(),
+        )
+
+    def snapPos(self, pos: QtCore.QPointF) -> QtCore.QPointF:
+        pixel = self.pixelSize()
+        x = round(pos.x() / pixel.width()) * pixel.width()
+        y = round(pos.y() / pixel.height()) * pixel.height()
+        return QtCore.QPointF(x, y)
+
+    def handleSelection(self, mask: np.ndarray, modes: List[str]) -> None:
+        self.selectionChanged.emit()
+
+
+class ScaledImageItem(SnapImageItem):
     """Item to draw image to a defined rect.
 
-    Images scan be bicubic smoothed using `smooth`.
-    If `snap` is used, then the 'ItemSendsGeometryChanges' flag must be set.
+    If `snap` is used, then the 'ItemSendsGeometryChanges' flag must is set.
 
     Args:
         image: image
         rect: extent of image
-        smooth: smooth image using 2x scaling
         snap: snap image position to pixel size
         parent: parent item
     """
@@ -28,7 +68,6 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
         self,
         image: QtGui.QImage,
         rect: QtCore.QRectF,
-        smooth: bool = False,
         snap: bool = True,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
@@ -36,52 +75,17 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
         self.setCacheMode(
             QtWidgets.QGraphicsItem.DeviceCoordinateCache
         )  # Speed up redraw of image
-        if smooth:
-            self.image = image.scaledToHeight(
-                image.height() * 2, QtCore.Qt.SmoothTransformation
-            )
-            self.image_scale = 2
-        else:
-            self.image = image
-            self.image_scale = 1
+        self.image = image
         self.rect = QtCore.QRectF(rect)  # copy the rect
         self.snap = snap
+        if self.snap:
+            self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
 
-    def itemChange(
-        self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
-    ) -> Any:
-        if self.snap and change == QtWidgets.QGraphicsItem.ItemPositionChange:
-            pos = QtCore.QPointF(value)
-            size = self.pixelSize()
-            pos.setX(pos.x() - pos.x() % size.width())
-            pos.setY(pos.y() - pos.y() % size.height())
-            return pos
-        return super().itemChange(change, value)
-
-    def width(self) -> int:
-        """Width of image, independant of smoothing."""
-        return int(self.image.width() / self.image_scale)
-
-    def height(self) -> int:
-        """Height of image, independant of smoothing."""
-        return int(self.image.height() / self.image_scale)
-
-    def pixelSize(self) -> QtCore.QSizeF:
-        """Size / scaling of an image pixel."""
-        return QtCore.QSizeF(
-            self.rect.width() / self.width(),
-            self.rect.height() / self.height(),
-        )
+    def imageSize(self) -> QtCore.QSize:
+        return self.image.size()
 
     def boundingRect(self) -> QtCore.QRectF:
         return self.rect
-
-    def mapToData(self, pos: QtCore.QPointF) -> QtCore.QPoint:
-        """Map a position to an image pixel coordinate."""
-        pixel = self.pixelSize()
-
-        pos -= self.rect.topLeft()
-        return QtCore.QPoint(pos.x() / pixel.width(), pos.y() / pixel.height())
 
     def paint(
         self,
@@ -97,7 +101,6 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
         array: np.ndarray,
         rect: QtCore.QRectF,
         colortable: Optional[List[int]] = None,
-        smooth: bool = False,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ) -> "ScaledImageItem":
         """Create a ScaledImageItem from a numpy array.
@@ -106,14 +109,13 @@ class ScaledImageItem(QtWidgets.QGraphicsObject):
             array: 2d array
             rect: image extent
             colortable: map data using colortable
-            smooth: bicubic smoothing
             parent: parent item
         """
         image = array_to_image(array)
         if colortable is not None:
             image.setColorTable(colortable)
             image.setColorCount(len(colortable))
-        item = cls(image, rect, smooth, parent=parent)
+        item = cls(image, rect, parent=parent)
         return item
 
 
@@ -222,6 +224,7 @@ class RulerWidgetItem(ImageWidgetItem):
     ):
         view = next(iter(self.scene().views()))
 
+        painter.save()
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.setFont(self.font)
         painter.setPen(self.pen)
@@ -250,14 +253,13 @@ class RulerWidgetItem(ImageWidgetItem):
             width = fm.boundingRect(self.text).width()
 
             if width < length * 0.9:
-                painter.save()
                 painter.resetTransform()
                 transform = QtGui.QTransform()
                 transform.translate(center.x(), center.y())
                 transform.rotate(-angle)
                 painter.setTransform(transform)
                 painter.drawText(-width / 2.0, -fm.descent(), self.text)
-                painter.restore()
+        painter.restore()
 
 
 class ImageSliceWidgetItem(ImageWidgetItem):
@@ -330,7 +332,7 @@ class ImageSliceWidgetItem(ImageWidgetItem):
         mime.setText(text)
         QtWidgets.QApplication.clipboard().setMimeData(mime)
 
-    def createSlicePoly(self) -> QtGui.QPolygonF:
+    def createSlicePoly(self) -> None:
         def connect_nd(ends):
             d = np.diff(ends, axis=0)[0]
             j = np.argmax(np.abs(d))
@@ -400,6 +402,7 @@ class ImageSliceWidgetItem(ImageWidgetItem):
         widget: Optional[QtWidgets.QWidget] = None,
     ):
 
+        painter.save()
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.setFont(self.font)
         painter.setPen(self.pen)
@@ -423,6 +426,7 @@ class ImageSliceWidgetItem(ImageWidgetItem):
             pen.setWidth(10)
             painter.setPen(pen)
             painter.drawPoints([self.line.p1(), self.line.p2()])
+        painter.restore()
 
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
         menu = QtWidgets.QMenu()

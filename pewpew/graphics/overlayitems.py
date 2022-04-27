@@ -4,7 +4,91 @@ import numpy as np
 
 from pewpew.actions import qAction
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
+
+# class OverlayGraphicsItem(QtGui.QGraphicsItem):
+#     def __init__(
+#         self,
+#         anchor: Optional[Union[QtCore.Qt.AnchorPoint, QtCore.Qt.Corner]] = None,
+#         alignment: Optional[QtCore.Qt.Alignment] = None,
+#     ):
+#         if anchor is None:
+#             anchor = QtCore.Qt.TopLeftCorner
+#         if alignment is None:
+#             alignment = QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft
+
+
+
+class OverlayItem(object):
+    """Item to draw as an overlay.
+
+    Overlay items are a fixed sized and are anchored to a position.
+
+    Args:
+        item: item to overlay
+        anchor: side or corner to anchor item
+        alignment: how to align item relative to anchor
+    """
+
+    def __init__(
+        self,
+        item: QtWidgets.QGraphicsItem,
+        anchor: Optional[Union[QtCore.Qt.AnchorPoint, QtCore.Qt.Corner]] = None,
+        alignment: Optional[QtCore.Qt.Alignment] = None,
+    ):
+        if anchor is None:
+            anchor = QtCore.Qt.TopLeftCorner
+        if alignment is None:
+            alignment = QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft
+
+        self.item = item
+        self.anchor = anchor
+        self.alignment = alignment
+
+    def anchorPos(self, rect: QtCore.QRectF) -> QtCore.QPointF:
+        if isinstance(self.anchor, QtCore.Qt.Corner):
+            if self.anchor == QtCore.Qt.TopLeftCorner:
+                pos = rect.topLeft()
+            elif self.anchor == QtCore.Qt.TopRightCorner:
+                pos = rect.topRight()
+            elif self.anchor == QtCore.Qt.BottomLeftCorner:
+                pos = rect.bottomLeft()
+            else:  # BottomRightCorner
+                pos = rect.bottomRight()
+        else:  # AnchorPoint
+            if self.anchor == QtCore.Qt.AnchorTop:
+                pos = QtCore.QPointF(rect.center().x(), rect.top())
+            elif self.anchor == QtCore.Qt.AnchorLeft:
+                pos = QtCore.QPointF(rect.left(), rect.center().y())
+            elif self.anchor == QtCore.Qt.AnchorRight:
+                pos = QtCore.QPointF(rect.right(), rect.center().y())
+            elif self.anchor == QtCore.Qt.AnchorBottom:
+                pos = QtCore.QPointF(rect.center().x(), rect.bottom())
+            else:
+                raise ValueError("Only Top, Left, Right, Bottom anchors supported.")
+
+        return pos
+
+    def pos(self) -> QtCore.QPointF:
+        pos = self.item.pos()  # Aligned Left and Top
+        rect = self.item.boundingRect()
+
+        if self.alignment & QtCore.Qt.AlignHCenter:
+            pos.setX(pos.x() - rect.width() / 2.0)
+        elif self.alignment & QtCore.Qt.AlignRight:
+            pos.setX(pos.x() - rect.width())
+
+        if self.alignment & QtCore.Qt.AlignVCenter:
+            pos.setY(pos.y() - rect.height() / 2.0)
+        elif self.alignment & QtCore.Qt.AlignBottom:
+            pos.setY(pos.y() - rect.height())
+
+        return pos
+
+    def contains(self, view_pos: QtCore.QPoint, view_rect: QtCore.QRect) -> bool:
+        rect = self.item.boundingRect()
+        rect.moveTo(self.pos() + self.anchorPos(view_rect))
+        return rect.contains(view_pos)
 
 
 class LabelOverlay(QtWidgets.QGraphicsObject):
@@ -59,6 +143,7 @@ class LabelOverlay(QtWidgets.QGraphicsObject):
         path = QtGui.QPainterPath()
         path.addText(0, fm.ascent(), self.font, self.text())
 
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
         painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
 
