@@ -14,131 +14,60 @@ from pewpew.graphics import colortable
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.imageitems import SnapImageItem
 
-from pewpew.graphics.overlayitems import OverlayItem, LabelOverlay
+# from pewpew.graphics.overlayitems import OverlayItem, LabelOverlay
+from pewpew.graphics.aligneditems import UnscaledTextItem
 
 from pewpew.actions import qAction
 
 from typing import Any, Dict, List, Optional, Union
 
+# class AnchoredLabel(AnchoredItem):
+#     def __init__(self, text, font, color, anchor, alignment, parent):
 
-class AnchoredItem(QtWidgets.QGraphicsItem):
-    def __init__(
-        self,
-        anchor: Union[QtCore.Qt.AnchorPoint, QtCore.Qt.Corner],
-        alignment: QtCore.Qt.Alignment,
-        parent: QtWidgets.QGraphicsItem
-    ):
-        super().__init__(parent=parent)
+#         super().__init__(anchor, alignment, parent)
 
-        if anchor is None:
-            anchor = QtCore.Qt.TopLeftCorner
-        if alignment is None:
-            alignment = QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft
+#         self.text = text
+#         if font is None:
+#             font = QtGui.QFont()
+#         if color is None:
+#             color = QtCore.Qt.white
 
-        self.anchor = anchor
-        self.alignment = alignment
+#         self._text = text
+#         self.font = font
+#         self.color = color
 
-        # self.setPos(self.anchorPos(anchor, alignment))
-        # self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
+#     def boundingRect(self):
+#         fm = QtGui.QFontMetrics(self.font)
+#         rect = QtCore.QRectF(0, 0, fm.boundingRect(self.text).width(), fm.height())
+#         # if self.scene() is not None:
+#         #     view = next(iter(self.scene().views()))
+#         #     if view is not None:
+#         #         rect =  view.mapToScene(rect.toRect()).boundingRect()
+#         #         rect.moveTo(0, 0)
 
-    # def itemChange(
-        # self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
-    # ) -> Any:
-        # if change == QtWidgets.QGraphicsItem.ItemPositionChange:
-        #     pos = QtCore.QPointF(value)
-        #     # size = self.pixelSize()
-        #     # pos.setX(pos.x() - pos.x() % size.width())
-        #     # pos.setY(pos.y() - pos.y() % size.height())
-        #     return self.anchorPos(self.anchor) + self.alignedPos(pos, self.alignment)
-        # return super().itemChange(change, value)
+#         print(self.mapToParent(rect))
 
-    def anchorPos(self, anchor: Union[QtCore.Qt.AnchorPoint, QtCore.Qt.Corner]) -> QtCore.QPointF:
-        rect = self.parentItem().boundingRect()
+#         return rect
 
-        if isinstance(anchor, QtCore.Qt.Corner):
-            if anchor == QtCore.Qt.TopLeftCorner:
-                pos = rect.topLeft()
-            elif anchor == QtCore.Qt.TopRightCorner:
-                pos = rect.topRight()
-            elif anchor == QtCore.Qt.BottomLeftCorner:
-                pos = rect.bottomLeft()
-            else:  # BottomRightCorner
-                pos = rect.bottomRight()
-        else:  # AnchorPoint
-            if anchor == QtCore.Qt.AnchorTop:
-                pos = QtCore.QPointF(rect.center().x(), rect.top())
-            elif anchor == QtCore.Qt.AnchorLeft:
-                pos = QtCore.QPointF(rect.left(), rect.center().y())
-            elif anchor == QtCore.Qt.AnchorRight:
-                pos = QtCore.QPointF(rect.right(), rect.center().y())
-            elif anchor == QtCore.Qt.AnchorBottom:
-                pos = QtCore.QPointF(rect.center().x(), rect.bottom())
-            else:
-                raise ValueError("Only Top, Left, Right, Bottom anchors supported.")
-        return pos
+#     def paint(
+#         self,
+#         painter: QtGui.QPainter,
+#         option: QtWidgets.QStyleOptionGraphicsItem,
+#         widget: Optional[QtWidgets.QWidget] = None,
+#     ):
+#         painter.save()
+#         fm = QtGui.QFontMetrics(self.font, painter.device())
+#         path = QtGui.QPainterPath()
+#         path.addText(0, fm.ascent(), self.font, self.text)
 
-    def alignedPos(self, pos: QtCore.QPointF, alignment: QtCore.Qt.Alignment) -> QtCore.QPointF:
-        rect = self.boundingRect()
+#         painter.setRenderHint(QtGui.QPainter.Antialiasing)
+#         painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
+#         painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
 
-        if alignment & QtCore.Qt.AlignHCenter:
-            pos.setX(pos.x() - rect.width() / 2.0)
-        elif alignment & QtCore.Qt.AlignRight:
-            pos.setX(pos.x() - rect.width())
+#         painter.setPen(QtGui.QPen(QtCore.Qt.white))
+#         painter.drawRect(self.boundingRect())
 
-        if alignment & QtCore.Qt.AlignVCenter:
-            pos.setY(pos.y() - rect.height() / 2.0)
-        elif alignment & QtCore.Qt.AlignBottom:
-            pos.setY(pos.y() - rect.height())
-
-        return pos
-
-class AnchoredLabel(AnchoredItem):
-    def __init__(self, text, font, color, anchor, alignment, parent):
-
-        super().__init__(anchor, alignment, parent)
-
-        self.text = text
-        if font is None:
-            font = QtGui.QFont()
-        if color is None:
-            color = QtCore.Qt.white
-
-        self._text = text
-        self.font = font
-        self.color = color
-
-    def boundingRect(self):
-        fm = QtGui.QFontMetrics(self.font)
-        rect = QtCore.QRectF(0, 0, fm.boundingRect(self.text).width(), fm.height())
-        # if self.scene() is not None:
-        #     view = next(iter(self.scene().views()))
-        #     if view is not None:
-        #         rect =  view.mapToScene(rect.toRect()).boundingRect()
-        #         rect.moveTo(0, 0)
-
-        print(self.mapToParent(rect))
-
-        return rect
-
-    def paint(
-        self,
-        painter: QtGui.QPainter,
-        option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
-    ):
-        painter.save()
-        fm = QtGui.QFontMetrics(self.font, painter.device())
-        path = QtGui.QPainterPath()
-        path.addText(0, fm.ascent(), self.font, self.text)
-
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
-        painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
-
-        painter.setPen(QtGui.QPen(QtCore.Qt.white))
-        painter.drawRect(self.boundingRect())
-
-        painter.restore()
+#         painter.restore()
 
 
 class LaserImageItem(SnapImageItem):
@@ -173,16 +102,7 @@ class LaserImageItem(SnapImageItem):
         self.createActions()
 
         # Name in top left corner
-        self.label = AnchoredLabel("test 123", None, None, QtCore.Qt.TopRightCorner, QtCore.Qt.AlignRight, parent=self)
-        self.label.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
-        # self.label.setPos(
-        #     self.boundingRect().width() - self.label.boundingRect().width(),
-        #     self.boundingRect().height() - self.label.boundingRect().height(),
-        # )
-        # self.setPos(1000, 1000)
-        # self.label_overlay = OverlayItem(LabelOverlay(self.laser.info["Name"], font=self.options.font, parent=self))
-        # self.label.setTransformOriginPoint(self.transformOriginPoint().transposed())
-        # self.label.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
+        self.label = UnscaledTextItem(self, self.laser.info["Name"], font=self.options.font)
 
     def boundingRect(self) -> QtCore.QRectF:
         x0, x1, y0, y1 = self.laser.config.data_extent(self.laser.shape)
@@ -254,24 +174,24 @@ class LaserImageItem(SnapImageItem):
         if self.mask_image is not None:
             painter.drawImage(rect, self.mask_image)
 
-        if self.hasFocus():
-            painter.setRenderHint(QtGui.QPainter.Antialiasing)
-            fm = QtGui.QFontMetrics(self.options.font, painter.device())
-            path = QtGui.QPainterPath()
-            path.addText(0, fm.ascent(), self.options.font, self.laser.info["Name"])
+        # if self.hasFocus():
+        #     painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        #     fm = QtGui.QFontMetrics(self.options.font, painter.device())
+        #     path = QtGui.QPainterPath()
+        #     path.addText(0, fm.ascent(), self.options.font, self.laser.info["Name"])
 
-            # painter.setTransform
-            # painter.setBrushOrigin(rect.topRight())
-            # painter.setTransform(QtGui.QTransform.fromTranslate(rect.left(), rect.top()))
+        #     # painter.setTransform
+        #     # painter.setBrushOrigin(rect.topRight())
+        #     # painter.setTransform(QtGui.QTransform.fromTranslate(rect.left(), rect.top()))
 
-            painter.setRenderHint(QtGui.QPainter.Antialiasing)
-            painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
-            painter.fillPath(
-                path, QtGui.QBrush(self.options.font_color, QtCore.Qt.SolidPattern)
-            )
-        #     self.rect = self.laserRect()
-        #     self.image = self.laserImage(self.current_element)
-        painter.restore()
+        #     painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        #     painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
+        #     painter.fillPath(
+        #         path, QtGui.QBrush(self.options.font_color, QtCore.Qt.SolidPattern)
+        #     )
+        # #     self.rect = self.laserRect()
+        # #     self.image = self.laserImage(self.current_element)
+        # painter.restore()
 
     # === Slots ===
     def applyCalibration(self, calibrations: Dict[str, Calibration]) -> None:
