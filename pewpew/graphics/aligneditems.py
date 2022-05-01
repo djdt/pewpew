@@ -1,9 +1,9 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from typing import Optional, Union
+from typing import Optional
 
 
-class AlignedTextItem(QtWidgets.QGraphicsItem):
+class AlignedTextItem(QtWidgets.QGraphicsObject):
     """Draws a label with a black outline for increased visibility."""
 
     def __init__(
@@ -19,20 +19,14 @@ class AlignedTextItem(QtWidgets.QGraphicsItem):
 
         if alignment is None:
             alignment = QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft
-        if font is None:
-            font = QtGui.QFont()
-        if brush is None:
-            brush = QtGui.QBrush(QtCore.Qt.white)
-        if pen is None:
-            pen = QtGui.QPen(QtCore.Qt.black, 2.0)
 
         self.alignment = alignment
 
         self._text = text
-        self._font = font
+        self._font = font or QtGui.QFont()
 
-        self.brush = brush
-        self.pen = pen
+        self.brush = brush or QtGui.QBrush(QtCore.Qt.white)
+        self.pen = pen or QtGui.QPen(QtCore.Qt.black, 2.0)
 
     def font(self) -> QtGui.QFont:
         return self._font
@@ -99,9 +93,10 @@ class UnscaledTextItem(AlignedTextItem):
         text: str,
         alignment: Optional[QtCore.Qt.Alignment] = None,
         font: Optional[QtGui.QFont] = None,
-        color: Optional[QtGui.QColor] = None,
+        brush: Optional[QtGui.QBrush] = None,
+        pen: Optional[QtGui.QPen] = None,
     ):
-        super().__init__(parent, text, alignment, font, color)
+        super().__init__(parent, text, alignment, font, brush, pen)
 
     def font(self) -> QtGui.QFont:
         font = QtGui.QFont(self._font)

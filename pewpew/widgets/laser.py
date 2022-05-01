@@ -176,8 +176,11 @@ class LaserTabWidget(TabViewWidget):
         self.graphics.setMouseTracking(True)
 
         self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
-        self.graphics.label.labelChanged.connect(self.renameCurrentElement)
+        # self.graphics.label.labelChanged.connect(self.renameCurrentElement)
         self.graphics.colorbar.editRequested.connect(self.actionRequestColorbarEdit)
+
+        self.graphics.scene().selectionChanged.connect(self.selectionChanged)
+        self.graphics.scene().setStickyFocus(True)
 
         # self.combo_layers = QtWidgets.QComboBox()
         # self.combo_layers.addItem("*")
@@ -187,10 +190,11 @@ class LaserTabWidget(TabViewWidget):
         #     self.combo_layers.setEnabled(False)
         #     self.combo_layers.setVisible(False)
 
-        # self.combo_element = LaserComboBox()
-        # self.combo_element.namesSelected.connect(self.updateNames)
-        # self.combo_element.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
-        # self.combo_element.currentIndexChanged.connect(self.refresh)
+        self.combo_element = LaserComboBox()
+        self.combo_element.namesSelected.connect(self.updateNames)
+        self.combo_element.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+
+        # self.combo_element.currentIndexChanged.connect(self.setCurrentElement)
         # self.populateElements()
 
         # self.action_calibration = qAction(
@@ -345,7 +349,7 @@ class LaserTabWidget(TabViewWidget):
         self.graphics.viewport().installEventFilter(DragDropRedirectFilter(self))
         # Filters for setting active view
         self.graphics.viewport().installEventFilter(self)
-        # self.combo_element.installEventFilter(self)
+        self.combo_element.installEventFilter(self)
         self.selection_button.installEventFilter(self)
         self.widgets_button.installEventFilter(self)
         self.view_button.installEventFilter(self)
@@ -356,7 +360,7 @@ class LaserTabWidget(TabViewWidget):
         layout_bar.addWidget(self.view_button, 0, QtCore.Qt.AlignLeft)
         layout_bar.addStretch(1)
         # layout_bar.addWidget(self.combo_layers, 0, QtCore.Qt.AlignRight)
-        # layout_bar.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
+        layout_bar.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.graphics, 1)
@@ -372,10 +376,14 @@ class LaserTabWidget(TabViewWidget):
         item.requestDialogCalibration.connect(self.dialogCalibration)
         item.requestDialogConfig.connect(self.dialogConfig)
         item.requestDialogInformation.connect(self.dialogInformation)
-        item.requestDialogColocalisation.connect(self.dialogColcalisation)
+        item.requestDialogColocalisation.connect(self.dialogColocalisation)
         item.requestDialogStatistics.connect(self.dialogStatistics)
 
-        item.setFocus()
+        # Modification
+        item.modified.connect(lambda: self.setWindowModified(True))
+        # self.graphics.scene().setFocusItem(item)
+        # self.graphics.scene().setFocusItem(item)
+        item.setSelected(True)
 
     @property
     def current_element(self) -> str:
@@ -390,6 +398,28 @@ class LaserTabWidget(TabViewWidget):
     #     if not self.is_srr or self.combo_layers.currentIndex() == 0:
     #         return None
     #     return int(self.combo_layers.currentText())
+
+    def selectionChanged(
+        self,
+    ) -> None:
+        items = [item for item in self.graphics.scene().selectedItems() if isinstance(item, LaserImageItem)]
+        if len(items) == 0:  # Leave connected if no new selected items
+            return
+
+        try:  # Remove any existing connects to the element combo box
+            self.combo_element.currentIndexChanged.disconnect()
+        except RuntimeError:
+            pass
+
+        self.combo_element.blockSignals(True)
+        self.combo_element.clear()
+
+        for item in items:
+            self.combo_element.addItems(item.laser.elements)
+            self.combo_element.setCurrentText(item.element)
+            self.combo_element.currentTextChanged.connect(lambda s: [item.setElement(s), item.update()])
+
+        self.combo_element.blockSignals(False)
 
     # Virtual
     def refresh(self) -> None:
@@ -409,38 +439,30 @@ class LaserTabWidget(TabViewWidget):
         self.graphics.invalidateScene()
         super().refresh()
 
-    def rename(self, text: str) -> None:
-        """Set the 'Name' value of laser information."""
-        self.laser.info["Name"] = text
-        self.setWindowModified(True)
-
     # Other
 
-    def renameCurrentElement(self, new: str) -> None:
-        """Rename a single element."""
-        self.laser.rename({self.current_element: new})
-        self.setWindowModified(True)
-        self.populateElements()
-        self.current_element = new
-        self.refresh()
+    # def renameCurrentElement(self, new: str) -> None:
+    #     """Rename a single element."""
+    #     self.laser.rename({self.current_element: new})
+    #     self.setWindowModified(True)
+    #     self.populateElements()
+    #     self.current_element = new
+    #     self.refresh()
 
-    def laserName(self) -> str:
-        return self.laser.info.get("Name", "<No Name>")
-
-    def laserFilePath(self, ext: str = ".npz") -> Path:
-        path = Path(self.laser.info.get("File Path", ""))
-        return path.with_name(self.laserName() + ext)
+    #     def laserFilePath(self, ext: str = ".npz") -> Path:
+    #         path = Path(self.laser.info.get("File Path", ""))
+    #         return path.with_name(self.laserName() + ext)
 
     def uniqueElements(self) -> List[str]:
         for item in self.graphics.scene().items():
             return []
 
-    def populateElements(self) -> None:
-        """Repopulate the element combo box."""
-        self.combo_element.blockSignals(True)
-        self.combo_element.clear()
-        self.combo_element.addItems(self.laser.elements)
-        self.combo_element.blockSignals(False)
+    # def populateElements(self, item: LaserImageItem) -> None:
+    #     """Repopulate the element combo box."""
+    #     self.combo_element.blockSignals(True)
+    #     self.combo_element.clear()
+    #     self.combo_element.addItems(item.laser.elements)
+    #     self.combo_element.blockSignals(False)
 
     def clearCursorStatus(self) -> None:
         """Clear window statusbar, if it exists."""
@@ -565,14 +587,14 @@ class LaserTabWidget(TabViewWidget):
             item = self.graphics.scene().focusItem()
 
         dlg = dialogs.CalibrationDialog(
-            item.laser.calibration, item.current_element, parent=self
+            item.laser.calibration, item.element, parent=self
         )
         dlg.calibrationSelected.connect(item.applyCalibration)
         dlg.calibrationApplyAll.connect(self.view.applyCalibration)
         dlg.open()
         return dlg
 
-    def dialogColcalisation(
+    def dialogColocalisation(
         self, item: Optional[LaserImageItem] = None, crop_to_selection: bool = False
     ) -> QtWidgets.QDialog:
         """Open a `:class:pewpew.widgets.dialogs.ColocalisationDialog` with image data.
@@ -583,9 +605,7 @@ class LaserTabWidget(TabViewWidget):
         if item is None:
             item = self.graphics.scene().focusItem()
         data = item.laser.get(flat=True)
-        # mask = item.graphics.mask if crop_to_selection else None
-        # Todo: when selection implemented
-        mask = None
+        mask = item.mask if crop_to_selection else None
 
         dlg = dialogs.ColocalisationDialog(data, mask, parent=self)
         dlg.open()
@@ -626,9 +646,7 @@ class LaserTabWidget(TabViewWidget):
             item = self.graphics.scene().focusItem()
 
         data = item.laser.get(calibrate=self.graphics.options.calibrate, flat=True)
-        mask = self.graphics.mask
-        if mask is None or not crop_to_selection:
-            mask = np.ones(data.shape, dtype=bool)
+        mask = item.mask if crop_to_selection else None
 
         units = {}
         if self.graphics.options.calibrate:
@@ -638,7 +656,7 @@ class LaserTabWidget(TabViewWidget):
             data,
             mask,
             units,
-            item.current_element,
+            item.element,
             pixel_size=(
                 item.laser.config.get_pixel_width(),
                 item.laser.config.get_pixel_height(),

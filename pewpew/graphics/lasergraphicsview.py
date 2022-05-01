@@ -2,7 +2,7 @@ import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew.graphics.imageitems import (
-    ScaledImageItem,
+    SnapImageItem,
     RulerWidgetItem,
     ImageSliceWidgetItem,
 )
@@ -42,9 +42,6 @@ class LaserGraphicsView(OverlayView):
         super().__init__(self._scene, parent)
         self.cursors["selection"] = QtCore.Qt.ArrowCursor
 
-        # self.image: Optional[ScaledImageItem] = None
-        # self.selection_item: Optional[ScaledImageSelectionItem] = None
-        # self.selection_image: Optional[ScaledImageItem] = None
         self.widget: Optional[QtWidgets.QGraphicsItem] = None
 
         self.label = LabelOverlay(
@@ -173,107 +170,6 @@ class LaserGraphicsView(OverlayView):
         self.widget = None
         self.setInteractionFlag("widget", False)
 
-    # def drawImage(self, data: np.ndarray, rect: QtCore.QRectF, name: str) -> None:
-    #     """Draw 'data' into 'rect'.
-
-    #     Args:
-    #         data: image data
-    #         rect: image extent
-    #         name: label of data
-    #     """
-    #     if self.image is not None:
-    #         self.scene().removeItem(self.image)
-
-    #     self.data = np.ascontiguousarray(data)
-
-    #     vmin, vmax = self.options.get_color_range_as_float(name, self.data)
-    #     table = colortable.get_table(self.options.colortable)
-
-    #     data = np.clip(self.data, vmin, vmax)
-    #     if vmin != vmax:  # Avoid div 0
-    #         data = (data - vmin) / (vmax - vmin)
-
-    #     image = array_to_image(data)
-    #     image.setColorTable(table)
-    #     self.image = ScaledImageItem(image, rect, smooth=self.options.smoothing)
-    #     self.scene().addItem(self.image)
-
-    #     self.colorbar.updateTable(table, vmin, vmax)
-
-    #     if self.sceneRect() != rect:
-    #         self.setSceneRect(rect)
-    #         self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
-
-    def drawSelectionImage(self, mask: np.ndarray, modes: List[str]) -> None:
-        """Highlight selected regions.
-
-        The mask can be added to, subtracted, intersected or differentiated from
-        the current selection using 'modes'.
-
-        Args:
-            mask: bool array of pixels to highlight
-            modes: operation, ['add', 'subtract', 'intersect', 'difference']
-        """
-        if self.selection_image is not None:
-            self.scene().removeItem(self.selection_image)
-
-        if self.mask is None:
-            self.mask = np.zeros(self.data.shape, dtype=bool)
-
-        mask = mask.astype(bool)
-        if "add" in modes:
-            self.mask = np.logical_or(self.mask, mask)
-        elif "subtract" in modes:
-            self.mask = np.logical_and(self.mask, ~mask)
-        elif "intersect" in modes:
-            self.mask = np.logical_and(self.mask, mask)
-        elif "difference" in modes:
-            self.mask = np.logical_xor(self.mask, mask)
-        else:
-            self.mask = mask
-
-        color = QtGui.QColor(255, 255, 255, a=128)
-
-        self.selection_image = ScaledImageItem.fromArray(
-            self.mask.astype(np.uint8),
-            self.image.rect,
-            colortable=[0, int(color.rgba())],
-        )
-        self.selection_image.setZValue(self.image.zValue() + 1.0)
-        self.scene().addItem(self.selection_image)
-
-    # def drawLaser(self, laser: Laser, name: str, layer: Optional[int] = None) -> None:
-    #     """Draw image of laser.
-
-    #     Args:
-    #         laser: laser object
-    #         name: name of element to draw
-    #         layer: layer to draw (SRRLaser only)
-    #     """
-    #     kwargs = {"calibrate": self.options.calibrate, "layer": layer, "flat": True}
-
-    #     data = laser.get(name, **kwargs)
-    #     unit = laser.calibration[name].unit if self.options.calibrate else ""
-
-    #     # Get extent
-    #     if isinstance(laser.config, SRRConfig):
-    #         x0, x1, y0, y1 = laser.config.data_extent(data.shape, layer=layer)
-    #     else:
-    #         x0, x1, y0, y1 = laser.config.data_extent(data.shape)
-    #     rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
-    #     # Recoordinate the top left to 0,0 for correct updating
-    #     rect.moveTopLeft(QtCore.QPointF(0.0, 0.0))
-
-    #     # Update overlay items
-    #     self.label.setText(name)
-    #     self.colorbar.unit = unit
-
-    #     # Set overlay items visibility
-    #     self.setOverlayItemVisibility()
-
-    #     self.drawImage(data, rect, name)
-    #     self.updateForeground()
-
     def setOverlayItemVisibility(
         self, label: Optional[bool] = None, scalebar: Optional[bool] = None, colorbar: Optional[bool] = None
     ):
@@ -292,7 +188,7 @@ class LaserGraphicsView(OverlayView):
     def zoomReset(self) -> None:
         rect = QtCore.QRectF(0, 0, 0, 0)
         for item in self.scene().items():
-            if isinstance(item, ScaledImageItem):
+            if isinstance(item, SnapImageItem):
                 rect = rect.united(item.boundingRect())
         self.scene().setSceneRect(rect)
         self.fitInView(self.scene().sceneRect(), QtCore.Qt.KeepAspectRatio)

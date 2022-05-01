@@ -19,55 +19,42 @@ from pewpew.graphics.aligneditems import UnscaledTextItem
 
 from pewpew.actions import qAction
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
-# class AnchoredLabel(AnchoredItem):
-#     def __init__(self, text, font, color, anchor, alignment, parent):
 
-#         super().__init__(anchor, alignment, parent)
+class LaserLabelItem(UnscaledTextItem):
+    labelChanged = QtCore.Signal(str)
 
-#         self.text = text
-#         if font is None:
-#             font = QtGui.QFont()
-#         if color is None:
-#             color = QtCore.Qt.white
+    def editLabel(self) -> QtWidgets.QInputDialog:
+        """Simple dialog for editing the label (and element name)."""
+        dlg = QtWidgets.QInputDialog(self.scene().views()[0])
+        dlg.setWindowTitle("Set Name")
+        dlg.setInputMode(QtWidgets.QInputDialog.TextInput)
+        dlg.setTextValue(self.text())
+        dlg.setLabelText("Name:")
+        dlg.textValueSelected.connect(self.labelChanged)
+        dlg.open()
 
-#         self._text = text
-#         self.font = font
-#         self.color = color
+        return dlg
 
-#     def boundingRect(self):
-#         fm = QtGui.QFontMetrics(self.font)
-#         rect = QtCore.QRectF(0, 0, fm.boundingRect(self.text).width(), fm.height())
-#         # if self.scene() is not None:
-#         #     view = next(iter(self.scene().views()))
-#         #     if view is not None:
-#         #         rect =  view.mapToScene(rect.toRect()).boundingRect()
-#         #         rect.moveTo(0, 0)
-
-#         print(self.mapToParent(rect))
-
-#         return rect
-
-#     def paint(
-#         self,
-#         painter: QtGui.QPainter,
-#         option: QtWidgets.QStyleOptionGraphicsItem,
-#         widget: Optional[QtWidgets.QWidget] = None,
-#     ):
-#         painter.save()
-#         fm = QtGui.QFontMetrics(self.font, painter.device())
-#         path = QtGui.QPainterPath()
-#         path.addText(0, fm.ascent(), self.font, self.text)
-
-#         painter.setRenderHint(QtGui.QPainter.Antialiasing)
-#         painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
-#         painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
-
-#         painter.setPen(QtGui.QPen(QtCore.Qt.white))
-#         painter.drawRect(self.boundingRect())
-
-#         painter.restore()
+    def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
+        action_edit = qAction(
+            "edit-rename",
+            "Set Name",
+            "Rename the laser.",
+            self.editLabel,
+        )
+        action_hide = qAction(
+            "visibility",
+            "Hide Name",
+            "Hide the laser name label.",
+            self.hide,
+        )
+        menu = QtWidgets.QMenu()
+        menu.addAction(action_edit)
+        menu.addAction(action_hide)
+        menu.exec_(event.screenPos())
+        event.accept()
 
 
 class LaserImageItem(SnapImageItem):
@@ -87,14 +74,12 @@ class LaserImageItem(SnapImageItem):
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(parent=parent)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
 
         self.laser = laser
         self.options = options
-        self.current_element = current_element or self.laser.elements[0]
-
-        self.mask: Optional[np.ndarray] = None
+        self.element = current_element or self.laser.elements[0]
 
         self.image: Optional[QtGui.QImage] = None
         self.mask_image: Optional[QtGui.QImage] = None
@@ -102,7 +87,46 @@ class LaserImageItem(SnapImageItem):
         self.createActions()
 
         # Name in top left corner
-        self.label = UnscaledTextItem(self, self.laser.info["Name"], font=self.options.font)
+        self.element_label = UnscaledTextItem(
+            self,
+            self.element,
+            font=self.options.font,
+        )
+        self.label = LaserLabelItem(
+            self,
+            self.laser.info["Name"],
+            font=self.options.font,
+            alignment=QtCore.Qt.AlignTop | QtCore.Qt.AlignRight,
+        )
+        self.label.labelChanged.connect(self.rename)
+
+    def setElement(self, element: str) -> None:
+        if element not in self.laser.elements:
+            raise ValueError(
+                f"Unknown element {element}. Expected one of {self.laser.elements}."
+            )
+        self.element = element
+        self.element_label.setText(element)
+        self.redraw()
+
+    @property
+    def name(self) -> str:
+        return self.laser.info["Name"]
+
+    @name.setter
+    def name(self, name: str) -> None:
+        self.laser.info["Name"] = name
+        self.modified.emit()
+
+    @property
+    def mask(self) -> np.ndarray:
+        if self.mask_image is None:
+            return np.ones(self.laser.shape, dtype=bool)
+        return self.mask_image._array.astype(bool)
+
+    def rename(self, name: str) -> None:
+        self.laser.info["Name"] = name
+        self.label.setText(name)
 
     def boundingRect(self) -> QtCore.QRectF:
         x0, x1, y0, y1 = self.laser.config.data_extent(self.laser.shape)
@@ -114,13 +138,10 @@ class LaserImageItem(SnapImageItem):
         return QtCore.QSize(self.laser.shape[1], self.laser.shape[0])
 
     def redraw(self) -> None:
-        data = self.laser.get(
-            self.current_element, calibrate=self.options.calibrate, flat=True
-        )
+        data = self.laser.get(self.element, calibrate=self.options.calibrate, flat=True)
         data = np.ascontiguousarray(data)
-        # unit = self.laser.calibration[name].unit if options.calibrate else ""
 
-        vmin, vmax = self.options.get_color_range_as_float(self.current_element, data)
+        vmin, vmax = self.options.get_color_range_as_float(self.element, data)
         table = colortable.get_table(self.options.colortable)
 
         data = np.clip(data, vmin, vmax)
@@ -132,10 +153,7 @@ class LaserImageItem(SnapImageItem):
         self.image.setColorCount(len(table))
 
     def handleSelection(self, mask: np.ndarray, modes: List[str]) -> None:
-        if self.mask_image is None:
-            current_mask = np.zeros(self.laser.shape, dtype=bool)
-        else:
-            current_mask = self.mask_image._array.astype(bool)
+        current_mask = self.mask
 
         if "add" in modes:
             mask = np.logical_or(current_mask, mask)
@@ -148,9 +166,12 @@ class LaserImageItem(SnapImageItem):
 
         color = QtGui.QColor(255, 255, 255, a=128)
 
-        self.mask_image = array_to_image(mask.astype(np.uint8))
-        self.mask_image.setColorTable([0, int(color.rgba())])
-        self.mask_image.setColorCount(2)
+        if np.any(mask):
+            self.mask_image = array_to_image(mask.astype(np.uint8))
+            self.mask_image.setColorTable([0, int(color.rgba())])
+            self.mask_image.setColorCount(2)
+        else:
+            self.mask_image = None
 
         self.update()
 
@@ -174,6 +195,10 @@ class LaserImageItem(SnapImageItem):
         if self.mask_image is not None:
             painter.drawImage(rect, self.mask_image)
 
+        # if self.isSelected():
+        #     painter.setPen(QtGui.QPen(QtCore.Qt.white, 10.0))
+        #     painter.drawRect(self.boundingRect())
+
         # if self.hasFocus():
         #     painter.setRenderHint(QtGui.QPainter.Antialiasing)
         #     fm = QtGui.QFontMetrics(self.options.font, painter.device())
@@ -191,7 +216,7 @@ class LaserImageItem(SnapImageItem):
         #     )
         # #     self.rect = self.laserRect()
         # #     self.image = self.laserImage(self.current_element)
-        # painter.restore()
+        painter.restore()
 
     # === Slots ===
     def applyCalibration(self, calibrations: Dict[str, Calibration]) -> None:
@@ -202,24 +227,22 @@ class LaserImageItem(SnapImageItem):
                 self.laser.calibration[element] = copy.copy(calibrations[element])
                 modified = True
         if modified:
-            # self.modified.emit()
-            self.refresh()
+            self.modified.emit()
+            self.redraw()
 
     def applyConfig(self, config: Config) -> None:
         """Set laser configuration."""
         # Only apply if the type of config is correct
         if type(config) is type(self.laser.config):  # noqa
             self.laser.config = copy.copy(config)
-            # self.modified.emit()
-            self.refresh()
+            self.modified.emit()
+            self.redraw()
 
     def applyInformation(self, info: Dict[str, str]) -> None:
         """Set laser information."""
-        # if self.laser.info["Name"] != info["Name"]:  # pragma: ignore
-        #     self.view.tabs.setTabText(self.index(), info["Name"])
         if self.laser.info != info:
             self.laser.info = info
-            # self.setWindowModified(True)
+            self.modified.emit()
 
     def copyToClipboard(self) -> None:
         clipboard = QtWidgets.QApplication.clipboard()
@@ -456,6 +479,8 @@ class LaserImageItem(SnapImageItem):
     #     return self.actionColocal(True)
 
     # === Events ===
+    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneEvent) -> None:
+        self.setSelected(True)
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
         menu = QtWidgets.QMenu()
         # menu.addAction(self.action_duplicate)

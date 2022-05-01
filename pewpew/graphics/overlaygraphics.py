@@ -134,14 +134,12 @@ class OverlayView(QtWidgets.QGraphicsView):
         if "zoom" in self.interaction_flags and event.button() == QtCore.Qt.LeftButton:
             self._last_pos = event.pos()
             self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
-            super().mousePressEvent(event)
         elif (
             len(self.interaction_flags) == 0 and event.button() == QtCore.Qt.LeftButton
         ) or event.button() == QtCore.Qt.MiddleButton:
             self.setInteractionFlag("drag")
             self._last_pos = event.pos()
-        else:
-            super().mousePressEvent(event)
+        super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         if "drag" in self.interaction_flags:
