@@ -28,7 +28,6 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         )  # Turn off BSP indexing, it causes a crash on item removal
 
         self.overlayitems: List[OverlayItem] = []
-
         self.foreground_pixmap: Optional[QtGui.QPixmap] = None
 
     def addOverlayItem(

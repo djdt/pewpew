@@ -78,13 +78,13 @@ class LaserImageItem(SnapImageItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
 
         self.laser = laser
+        self.raw_data: np.ndarray = np.array([])
+
         self.options = options
         self.element = current_element or self.laser.elements[0]
 
         self.image: Optional[QtGui.QImage] = None
         self.mask_image: Optional[QtGui.QImage] = None
-
-        self.createActions()
 
         # Name in top left corner
         self.element_label = UnscaledTextItem(
@@ -99,6 +99,8 @@ class LaserImageItem(SnapImageItem):
             alignment=QtCore.Qt.AlignTop | QtCore.Qt.AlignRight,
         )
         self.label.labelChanged.connect(self.rename)
+
+        self.createActions()
 
     def setElement(self, element: str) -> None:
         if element not in self.laser.elements:
@@ -128,11 +130,9 @@ class LaserImageItem(SnapImageItem):
         self.laser.info["Name"] = name
         self.label.setText(name)
 
-    def boundingRect(self) -> QtCore.QRectF:
-        x0, x1, y0, y1 = self.laser.config.data_extent(self.laser.shape)
-        rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
-        rect.moveTopLeft(QtCore.QPointF(0, 0))
-        return rect
+    def dataAtPos(self, pos: QtCore.QPointF) -> float:
+        pos = self.mapToData(pos)
+        return self.raw_data[pos.y(), pos.x()]
 
     def imageSize(self) -> QtCore.QSize:
         return QtCore.QSize(self.laser.shape[1], self.laser.shape[0])
@@ -144,6 +144,7 @@ class LaserImageItem(SnapImageItem):
         vmin, vmax = self.options.get_color_range_as_float(self.element, data)
         table = colortable.get_table(self.options.colortable)
 
+        self.raw_data = data
         data = np.clip(data, vmin, vmax)
         if vmin != vmax:  # Avoid div 0
             data = (data - vmin) / (vmax - vmin)
@@ -176,6 +177,12 @@ class LaserImageItem(SnapImageItem):
         self.update()
 
         super().handleSelection(mask, modes)
+
+    def boundingRect(self) -> QtCore.QRectF:
+        x0, x1, y0, y1 = self.laser.config.data_extent(self.laser.shape)
+        rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
+        rect.moveTopLeft(QtCore.QPointF(0, 0))
+        return rect
 
     def paint(
         self,
@@ -286,6 +293,19 @@ class LaserImageItem(SnapImageItem):
             "Statistics",
             "Open the statisitics dialog.",
             self.requestDialogStatistics,
+        )
+
+        self.action_show_label_name = qAction(
+            "visibility",
+            "Show Name Label",
+            "Un-hide the laser name label.",
+            self.label.show,
+        )
+        self.action_show_label_element = qAction(
+            "visibility",
+            "Show Element Label",
+            "Un-hide the current element label.",
+            self.element_label.show,
         )
         # self.action_duplicate = qAction(
         #     "edit-copy",
@@ -481,6 +501,7 @@ class LaserImageItem(SnapImageItem):
     # === Events ===
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneEvent) -> None:
         self.setSelected(True)
+
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
         menu = QtWidgets.QMenu()
         # menu.addAction(self.action_duplicate)
@@ -502,6 +523,14 @@ class LaserImageItem(SnapImageItem):
         menu.addAction(self.action_config)
         menu.addAction(self.action_calibration)
         menu.addAction(self.action_information)
+
+        menu.addSeparator()
+
+        if not self.label.isVisible():
+            menu.addAction(self.action_show_label_name)
+        if not self.element_label.isVisible():
+            menu.addAction(self.action_show_label_element)
+
         #     menu.addSeparator()
         #     menu.addAction(self.action_statistics)
         #     menu.addAction(self.action_colocalisation)

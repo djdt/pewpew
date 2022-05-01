@@ -6,18 +6,6 @@ from pewpew.actions import qAction
 
 from typing import List, Optional, Tuple, Union
 
-# class OverlayGraphicsItem(QtGui.QGraphicsItem):
-#     def __init__(
-#         self,
-#         anchor: Optional[Union[QtCore.Qt.AnchorPoint, QtCore.Qt.Corner]] = None,
-#         alignment: Optional[QtCore.Qt.Alignment] = None,
-#     ):
-#         if anchor is None:
-#             anchor = QtCore.Qt.TopLeftCorner
-#         if alignment is None:
-#             alignment = QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft
-
-
 
 class OverlayItem(object):
     """Item to draw as an overlay.

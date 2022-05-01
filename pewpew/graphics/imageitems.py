@@ -24,6 +24,9 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
             return pos
         return super().itemChange(change, value)
 
+    def dataAtPos(self, pos: QtCore.QPointF) -> float:
+        raise NotImplementedError
+
     def imageSize(self) -> QtCore.QSize:
         raise NotImplementedError
 
