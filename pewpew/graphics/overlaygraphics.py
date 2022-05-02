@@ -6,6 +6,7 @@ from pewpew.graphics.overlayitems import OverlayItem
 
 from typing import List, Optional, Set, Union
 
+# Todo - Lazy updating method, where a call to update() on an overlay triggers foreground redraw
 
 class OverlayScene(QtWidgets.QGraphicsScene):
     """A graphics scene that also draws OverlayItems in the foreground.
@@ -28,7 +29,7 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         )  # Turn off BSP indexing, it causes a crash on item removal
 
         self.overlayitems: List[OverlayItem] = []
-        self.foreground_pixmap: Optional[QtGui.QPixmap] = None
+        self.foreground_pixmap: QtGui.QPixmap = QtGui.QPixmap()
 
     def addOverlayItem(
         self,
@@ -44,10 +45,7 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         self.overlayitems.append(OverlayItem(item, anchor, alignment))
 
     def drawForeground(self, painter: QtGui.QPainter, rect: QtCore.QRectF):
-        """Draw the foreground pixmap, updates if None."""
-        if self.foreground_pixmap is None:
-            self.updateForeground(rect)
-
+        """Draw the foreground pixmap."""
         painter.save()
         painter.resetTransform()
         # Draw the actual overlay

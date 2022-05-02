@@ -44,9 +44,9 @@ class LaserGraphicsView(OverlayView):
 
         self.widget: Optional[QtWidgets.QGraphicsItem] = None
 
-        self.label = LabelOverlay(
-            "_", font=self.options.font, color=self.options.font_color
-        )
+        # self.label = LabelOverlay(
+        #     "_", font=self.options.font, color=self.options.font_color
+        # )
         self.scalebar = MetricScaleBarOverlay(
             font=self.options.font, color=self.options.font_color
         )
@@ -54,12 +54,12 @@ class LaserGraphicsView(OverlayView):
             [], 0, 1, font=self.options.font, color=self.options.font_color
         )
 
-        self.scene().addOverlayItem(
-            self.label,
-            QtCore.Qt.TopLeftCorner,
-            QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft,
-        )
-        self.label.setPos(10, 10)
+        # self.scene().addOverlayItem(
+        #     self.label,
+        #     QtCore.Qt.TopLeftCorner,
+        #     QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft,
+        # )
+        # self.label.setPos(10, 10)
         self.scene().addOverlayItem(
             self.scalebar,
             QtCore.Qt.TopRightCorner,
@@ -172,14 +172,14 @@ class LaserGraphicsView(OverlayView):
         self, label: Optional[bool] = None, scalebar: Optional[bool] = None, colorbar: Optional[bool] = None
     ):
         """Set visibility of overlay items."""
-        if label is None:
-            label = self.options.overlay_items["label"]
+        # if label is None:
+        #     label = self.options.overlay_items["label"]
         if scalebar is None:
             scalebar = self.options.overlay_items["scalebar"]
         if colorbar is None:
             colorbar = self.options.overlay_items["colorbar"]
 
-        self.label.setVisible(label)
+        # self.label.setVisible(label)
         self.scalebar.setVisible(scalebar)
         self.colorbar.setVisible(colorbar)
 

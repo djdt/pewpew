@@ -63,6 +63,7 @@ class LaserImageItem(SnapImageItem):
     requestDialogColocalisation = QtCore.Signal()
     requestDialogInformation = QtCore.Signal()
     requestDialogStatistics = QtCore.Signal()
+    colortableChanged = QtCore.Signal(list, float, float)
 
     modified = QtCore.Signal()
 
@@ -74,17 +75,19 @@ class LaserImageItem(SnapImageItem):
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(parent=parent)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
 
         self.laser = laser
-        self.raw_data: np.ndarray = np.array([])
-
         self.options = options
         self.element = current_element or self.laser.elements[0]
 
         self.image: Optional[QtGui.QImage] = None
         self.mask_image: Optional[QtGui.QImage] = None
+
+        self.raw_data: np.ndarray = np.array([])
+        self.vmin, self.vmax = 0.0, 0.0
 
         # Name in top left corner
         self.element_label = UnscaledTextItem(
@@ -139,19 +142,22 @@ class LaserImageItem(SnapImageItem):
 
     def redraw(self) -> None:
         data = self.laser.get(self.element, calibrate=self.options.calibrate, flat=True)
-        data = np.ascontiguousarray(data)
+        self.raw_data = np.ascontiguousarray(data)
 
-        vmin, vmax = self.options.get_color_range_as_float(self.element, data)
+        self.vmin, self.vmax = self.options.get_color_range_as_float(
+            self.element, self.raw_data
+        )
         table = colortable.get_table(self.options.colortable)
 
-        self.raw_data = data
-        data = np.clip(data, vmin, vmax)
-        if vmin != vmax:  # Avoid div 0
-            data = (data - vmin) / (vmax - vmin)
+        data = np.clip(self.raw_data, self.vmin, self.vmax)
+        if self.vmin != self.vmax:  # Avoid div 0
+            data = (data - self.vmin) / (self.vmax - self.vmin)
 
         self.image = array_to_image(data)
         self.image.setColorTable(table)
         self.image.setColorCount(len(table))
+
+        self.colortableChanged.emit(table, self.vmin, self.vmax)
 
     def handleSelection(self, mask: np.ndarray, modes: List[str]) -> None:
         current_mask = self.mask

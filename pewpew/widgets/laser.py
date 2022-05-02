@@ -179,7 +179,7 @@ class LaserTabWidget(TabViewWidget):
         # self.graphics.label.labelChanged.connect(self.renameCurrentElement)
         self.graphics.colorbar.editRequested.connect(self.actionRequestColorbarEdit)
 
-        self.graphics.scene().selectionChanged.connect(self.selectionChanged)
+        self.graphics.scene().selectionChanged.connect(self.laserSelectionChanged)
         self.graphics.scene().setStickyFocus(True)
 
         # self.combo_layers = QtWidgets.QComboBox()
@@ -380,6 +380,7 @@ class LaserTabWidget(TabViewWidget):
         item.requestDialogStatistics.connect(self.dialogStatistics)
 
         # Modification
+        item.colortableChanged.connect(self.laserColortableChanged)
         item.modified.connect(lambda: self.setWindowModified(True))
         # self.graphics.scene().setFocusItem(item)
         # self.graphics.scene().setFocusItem(item)
@@ -399,13 +400,20 @@ class LaserTabWidget(TabViewWidget):
     #         return None
     #     return int(self.combo_layers.currentText())
 
-    def selectionChanged(
+    def laserColortableChanged(self, table: List[int], vmin: float, vmax: float) -> None:
+        # Todo calculate this based on all open lasers?
+        self.graphics.colorbar.updateTable(table, vmin, vmax)
+        self.graphics.updateForeground()
+        self.graphics.invalidateScene()
+
+    def laserSelectionChanged(
         self,
     ) -> None:
         items = [item for item in self.graphics.scene().selectedItems() if isinstance(item, LaserImageItem)]
-        if len(items) == 0:  # Leave connected if no new selected items
+        if len(items) == 0:  # No update if no laser image selected
             return
 
+        # Update the combo box
         try:  # Remove any existing connects to the element combo box
             self.combo_element.currentIndexChanged.disconnect()
         except RuntimeError:
