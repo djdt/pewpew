@@ -1,25 +1,25 @@
 import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewpew.graphics.imageitems import (
-    SnapImageItem,
-    RulerWidgetItem,
-    ImageSliceWidgetItem,
-)
+from pewpew.graphics.imageitems import SnapImageItem
 from pewpew.graphics.selectionitems import (
     LassoImageSelectionItem,
     RectImageSelectionItem,
     SnapImageSelectionItem,
+)
+from pewpew.graphics.widgetitems import (
+    ImageSliceWidgetItem,
+    RulerWidgetItem,
+    WidgetItem,
 )
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
 from pewpew.graphics.overlayitems import (
     ColorBarOverlay,
     MetricScaleBarOverlay,
-    LabelOverlay,
 )
 
-from typing import List, Optional
+from typing import Optional
 
 
 class LaserGraphicsView(OverlayView):
@@ -31,7 +31,9 @@ class LaserGraphicsView(OverlayView):
 
     cursorValueChanged = QtCore.Signal(float, float, float)
 
-    def __init__(self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(
+        self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None
+    ):
         self.options = options
         self.data: Optional[np.ndarray] = None
         self.mask: Optional[np.ndarray] = None
@@ -41,8 +43,6 @@ class LaserGraphicsView(OverlayView):
 
         super().__init__(self._scene, parent)
         self.cursors["selection"] = QtCore.Qt.ArrowCursor
-
-        self.widget: Optional[QtWidgets.QGraphicsItem] = None
 
         # self.label = LabelOverlay(
         #     "_", font=self.options.font, color=self.options.font_color
@@ -72,23 +72,16 @@ class LaserGraphicsView(OverlayView):
             QtCore.Qt.AlignBottom | QtCore.Qt.AlignLeft,
         )
 
-    def mapToData(self, pos: QtCore.QPointF) -> QtCore.QPoint:
-        """Maps point to image pixel."""
-        if self.image is None:
-            return QtCore.QPoint(0, 0)
-
-        return self.image.mapToData(pos)
-
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         super().mouseMoveEvent(event)
-        items = [item for item in self.items(event.pos()) if isinstance(item, SnapImageItem)]
+        items = [
+            item for item in self.items(event.pos()) if isinstance(item, SnapImageItem)
+        ]
         pos = self.mapToScene(event.pos())
 
         if len(items) > 0:
             item = items[0]  # Todo, test Z-values
-            self.cursorValueChanged.emit(
-                pos.x(), pos.y(), item.dataAtPos(pos)
-            )
+            self.cursorValueChanged.emit(pos.x(), pos.y(), item.dataAtPos(pos))
         else:
             self.cursorValueChanged.emit(pos.x(), pos.y(), np.nan)
 
@@ -99,7 +92,6 @@ class LaserGraphicsView(OverlayView):
                 self.scene().removeItem(item)
 
         selection_item = LassoImageSelectionItem(parent=None)
-        # selection_item.selectionChanged.connect(self.drawSelectionImage)
         self.scene().addItem(selection_item)
         selection_item.grabMouse()
         self.setInteractionFlag("selection")
@@ -111,65 +103,56 @@ class LaserGraphicsView(OverlayView):
                 self.scene().removeItem(item)
 
         selection_item = RectImageSelectionItem(parent=None)
-        # self.selection_item.selectionChanged.connect(self.drawSelectionImage)
         self.scene().addItem(selection_item)
         selection_item.grabMouse()
         self.setInteractionFlag("selection")
 
     def endSelection(self) -> None:
         """End selection and remove highlight."""
-        if self.selection_item is not None:
-            self.selection_item = None
-            self.scene().removeItem(self.selection_item)
-        if self.selection_image is not None:
-            self.scene().removeItem(self.selection_image)
-            self.selection_image = None
+        for item in self.items():
+            if isinstance(item, SnapImageSelectionItem):
+                self.scene().removeItem(item)
+            elif isinstance(item, SnapImageItem):
+                item.handleSelection(np.zeros([], dtype=bool), [])
 
-        self.mask = np.zeros(self.data.shape, dtype=bool)
         self.setInteractionFlag("selection", False)
-
-    def posInSelection(self, pos: QtCore.QPointF) -> bool:
-        """Is the pos in the selected area."""
-        if self.mask is None:
-            return False
-        pos = self.mapToData(self.mapToScene(pos))
-        return self.mask[pos.y(), pos.x()]
 
     def startRulerWidget(self) -> None:
         """Measure distances using a ruler."""
-        if self.image is None:
-            return
-        if self.widget is not None:
-            self.scene().removeItem(self.widget)
-        self.widget = RulerWidgetItem(self.image, font=self.options.font)
-        self.widget.setZValue(1)
-        self.scene().addItem(self.widget)
-        self.widget.grabMouse()
+        for item in self.items():
+            if isinstance(item, RulerWidgetItem):
+                self.scene().removeItem(item)
+
+        widget = RulerWidgetItem(font=self.options.font)
+        widget.setZValue(10)
+        self.scene().addItem(widget)
+        widget.grabMouse()
         self.setInteractionFlag("widget")
 
     def startSliceWidget(self) -> None:
         """Display 1d slices in image."""
-        if self.image is None or self.data is None:
-            return
-        if self.widget is not None:
-            self.scene().removeItem(self.widget)
-        self.widget = ImageSliceWidgetItem(
-            self.image, self.data, font=self.options.font
-        )
-        self.widget.setZValue(1)
-        self.scene().addItem(self.widget)
-        self.widget.grabMouse()
+        for item in self.items():
+            if isinstance(item, ImageSliceWidgetItem):
+                self.scene().removeItem(item)
+
+        widget = ImageSliceWidgetItem(font=self.options.font)
+        widget.setZValue(10)
+        self.scene().addItem(widget)
+        widget.grabMouse()
         self.setInteractionFlag("widget")
 
     def endWidget(self) -> None:
         """End and remove any widgets."""
-        if self.widget is not None:
-            self.scene().removeItem(self.widget)
-        self.widget = None
+        for item in self.items():
+            if isinstance(item, WidgetItem):
+                self.scene().removeItem(item)
         self.setInteractionFlag("widget", False)
 
     def setOverlayItemVisibility(
-        self, label: Optional[bool] = None, scalebar: Optional[bool] = None, colorbar: Optional[bool] = None
+        self,
+        label: Optional[bool] = None,
+        scalebar: Optional[bool] = None,
+        colorbar: Optional[bool] = None,
     ):
         """Set visibility of overlay items."""
         # if label is None:

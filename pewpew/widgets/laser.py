@@ -17,8 +17,8 @@ from pewlib.config import Config
 from pewpew.actions import qAction, qToolButton
 from pewpew.events import DragDropRedirectFilter
 
+from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
-from pewpew.graphics.laserimageitem import LaserImageItem
 from pewpew.graphics.options import GraphicsOptions
 
 from pewpew.threads import ImportThread
