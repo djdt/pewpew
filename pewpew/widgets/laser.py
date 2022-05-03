@@ -400,7 +400,9 @@ class LaserTabWidget(TabViewWidget):
     #         return None
     #     return int(self.combo_layers.currentText())
 
-    def laserColortableChanged(self, table: List[int], vmin: float, vmax: float) -> None:
+    def laserColortableChanged(
+        self, table: List[int], vmin: float, vmax: float
+    ) -> None:
         # Todo calculate this based on all open lasers?
         self.graphics.colorbar.updateTable(table, vmin, vmax)
         self.graphics.updateForeground()
@@ -409,7 +411,11 @@ class LaserTabWidget(TabViewWidget):
     def laserSelectionChanged(
         self,
     ) -> None:
-        items = [item for item in self.graphics.scene().selectedItems() if isinstance(item, LaserImageItem)]
+        items = [
+            item
+            for item in self.graphics.scene().selectedItems()
+            if isinstance(item, LaserImageItem)
+        ]
         if len(items) == 0:  # No update if no laser image selected
             return
 
@@ -424,8 +430,10 @@ class LaserTabWidget(TabViewWidget):
 
         for item in items:
             self.combo_element.addItems(item.laser.elements)
-            self.combo_element.setCurrentText(item.element)
-            self.combo_element.currentTextChanged.connect(lambda s: [item.setElement(s), item.update()])
+            self.combo_element.setCurrentText(item.element())
+            self.combo_element.currentTextChanged.connect(
+                lambda s: [item.setElement(s), item.update()]
+            )
 
         self.combo_element.blockSignals(False)
 

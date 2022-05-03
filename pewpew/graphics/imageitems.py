@@ -94,7 +94,7 @@ class LaserImageItem(SnapImageItem):
 
         self.laser = laser
         self.options = options
-        self.element = current_element or self.laser.elements[0]
+        self.current_element = current_element or self.laser.elements[0]
 
         self.image: Optional[QtGui.QImage] = None
         self.mask_image: Optional[QtGui.QImage] = None
@@ -105,35 +105,40 @@ class LaserImageItem(SnapImageItem):
         # Name in top left corner
         self.element_label = EditableLabelItem(
             self,
-            self.element,
+            self.element(),
+            "Element",
             font=self.options.font,
         )
+        # self.element_label.labelChanged.connect(self.setElementName)
         self.label = EditableLabelItem(
             self,
             self.laser.info["Name"],
+            "Laser Name",
             font=self.options.font,
             alignment=QtCore.Qt.AlignTop | QtCore.Qt.AlignRight,
         )
-        self.label.labelChanged.connect(self.rename)
+        self.label.labelChanged.connect(self.setName)
 
         self.createActions()
+
+    def element(self) -> str:
+        return self.current_element
 
     def setElement(self, element: str) -> None:
         if element not in self.laser.elements:
             raise ValueError(
                 f"Unknown element {element}. Expected one of {self.laser.elements}."
             )
-        self.element = element
+        self.current_element = element
         self.element_label.setText(element)
         self.redraw()
 
-    @property
     def name(self) -> str:
         return self.laser.info["Name"]
 
-    @name.setter
-    def name(self, name: str) -> None:
+    def setName(self, name: str) -> None:
         self.laser.info["Name"] = name
+        self.label.setText(name)
         self.modified.emit()
 
     @property
@@ -141,10 +146,6 @@ class LaserImageItem(SnapImageItem):
         if self.mask_image is None:
             return np.ones(self.laser.shape, dtype=bool)
         return self.mask_image._array.astype(bool)
-
-    def rename(self, name: str) -> None:
-        self.laser.info["Name"] = name
-        self.label.setText(name)
 
     # Virtual SnapImageItem methods
     def dataAtPos(self, pos: QtCore.QPointF) -> float:
@@ -158,11 +159,11 @@ class LaserImageItem(SnapImageItem):
         return self.raw_data
 
     def redraw(self) -> None:
-        data = self.laser.get(self.element, calibrate=self.options.calibrate, flat=True)
+        data = self.laser.get(self.element(), calibrate=self.options.calibrate, flat=True)
         self.raw_data = np.ascontiguousarray(data)
 
         self.vmin, self.vmax = self.options.get_color_range_as_float(
-            self.element, self.raw_data
+            self.element(), self.raw_data
         )
         table = colortable.get_table(self.options.colortable)
 

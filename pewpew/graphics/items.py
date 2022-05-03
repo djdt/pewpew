@@ -9,13 +9,27 @@ from typing import Optional
 class EditableLabelItem(UnscaledAlignedTextItem):
     labelChanged = QtCore.Signal(str)
 
+    def __init__(
+        self,
+        parent: QtWidgets.QGraphicsItem,
+        text: str,
+        label_text: str,
+        alignment: Optional[QtCore.Qt.Alignment] = None,
+        font: Optional[QtGui.QFont] = None,
+        brush: Optional[QtGui.QBrush] = None,
+        pen: Optional[QtGui.QPen] = None,
+    ):
+        super().__init__(parent, text, alignment, font, brush, pen)
+        self.label = label_text
+
+
     def editLabel(self) -> QtWidgets.QInputDialog:
-        """Simple dialog for editing the label (and element name)."""
+        """Simple dialog for editing the label."""
         dlg = QtWidgets.QInputDialog(self.scene().views()[0])
-        dlg.setWindowTitle("Set Name")
+        dlg.setWindowTitle(f"{self.label} Label")
         dlg.setInputMode(QtWidgets.QInputDialog.TextInput)
         dlg.setTextValue(self.text())
-        dlg.setLabelText("Name:")
+        dlg.setLabelText(f"{self.label}:")
         dlg.textValueSelected.connect(self.labelChanged)
         dlg.open()
 
@@ -24,13 +38,13 @@ class EditableLabelItem(UnscaledAlignedTextItem):
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
         action_edit = qAction(
             "edit-rename",
-            "Set Name",
-            "Rename the laser.",
+            f"Set {self.label}",
+            "Set the text of the label.",
             self.editLabel,
         )
         action_hide = qAction(
             "visibility",
-            "Hide Name",
+            f"Hide {self.label} Label",
             "Hide the laser name label.",
             self.hide,
         )
