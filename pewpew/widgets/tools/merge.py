@@ -2,7 +2,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 import numpy as np
 
 from pewlib.laser import Laser
-from pewlib.process.register import fft_register_images, overlap_structured_arrays
+from pewlib.process.register import fft_register_offset, overlap_structured_arrays
 
 from pewpew.actions import qAction, qToolButton
 
@@ -10,7 +10,7 @@ from pewpew.lib.numpyqt import array_to_image
 
 from pewpew.graphics import colortable
 from pewpew.graphics.options import GraphicsOptions
-from pewpew.graphics.imageitems import ScaledImageItem
+from pewpew.graphics.imageitems import SnapImageItem
 
 from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
 
@@ -37,7 +37,7 @@ class MergeGraphicsView(OverlayView):
 
     def drawImage(
         self, data: np.ndarray, rect: QtCore.QRect, name: str
-    ) -> ScaledImageItem:
+    ) -> SnapImageItem:
         """Draw 'data' into 'rect'.
 
         Args:
@@ -56,7 +56,7 @@ class MergeGraphicsView(OverlayView):
 
         image = array_to_image(data)
         image.setColorTable(table)
-        scaled_image = ScaledImageItem(image, rect, smooth=False, snap=True)
+        scaled_image = SnapImageItem(image, rect, smooth=False, snap=True)
         scaled_image.setFlags(
             QtWidgets.QGraphicsItem.ItemIsMovable
             | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges
@@ -66,7 +66,7 @@ class MergeGraphicsView(OverlayView):
         return scaled_image
 
     def fitAllImages(self) -> None:
-        images = filter(lambda x: isinstance(x, ScaledImageItem), self.scene().items())
+        images = filter(lambda x: isinstance(x, SnapImageItem), self.scene().items())
 
         union = QtCore.QRectF(0, 0, 0, 0)
         for image in images:
@@ -90,7 +90,7 @@ class MergeRowItem(QtWidgets.QWidget):
         super().__init__(parent)
 
         self.laser = laser
-        self.image: Optional[ScaledImageItem] = None
+        self.image: Optional[SnapImageItem] = None
         self.item = item
 
         self.action_close = qAction(
@@ -397,7 +397,7 @@ class MergeTool(ToolWidget):
         rows[0].image.setPos(QtCore.QPointF(0.0, 0.0))
 
         for row in rows[1:]:
-            offset = fft_register_images(base, row.data())
+            offset = fft_register_offset(base, row.data())
             w, h = (
                 row.laser.config.get_pixel_width(),
                 row.laser.config.get_pixel_height(),

@@ -8,7 +8,7 @@ from pewlib.process.calc import normalise
 from pewpew.actions import qAction, qToolButton
 
 from pewpew.graphics.options import GraphicsOptions
-from pewpew.graphics.imageitems import ScaledImageItem
+from pewpew.graphics.imageitems import SnapImageItem
 from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
 from pewpew.graphics.overlayitems import MetricScaleBarOverlay
 
@@ -84,7 +84,7 @@ class RGBOverlayView(OverlayView):
         super().__init__(self._scene, parent)
         self.cursors["selection"] = QtCore.Qt.ArrowCursor
 
-        self.image: Optional[ScaledImageItem] = None
+        self.image: Optional[SnapImageItem] = None
 
         self.label = RGBLabelItem(
             ["_"], colors=[self.options.font_color], font=self.options.font
@@ -125,7 +125,7 @@ class RGBOverlayView(OverlayView):
             self.scene().removeItem(self.image)
 
         self.data = data
-        self.image = ScaledImageItem.fromArray(
+        self.image = SnapImageItem.fromArray(
             data, rect, smooth=self.options.smoothing
         )
         self.scene().addItem(self.image)
