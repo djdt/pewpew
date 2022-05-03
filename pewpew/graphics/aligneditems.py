@@ -84,7 +84,7 @@ class AlignedTextItem(QtWidgets.QGraphicsObject):
         painter.restore()
 
 
-class UnscaledTextItem(AlignedTextItem):
+class UnscaledAlignedTextItem(AlignedTextItem):
     """AlignedTextItem that removes scaling from the view."""
 
     def __init__(
