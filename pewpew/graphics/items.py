@@ -1,6 +1,44 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from pewpew.actions import qAction
+from pewpew.graphics.aligneditems import UnscaledAlignedTextItem
+
 from typing import Optional
+
+
+class EditableLabelItem(UnscaledAlignedTextItem):
+    labelChanged = QtCore.Signal(str)
+
+    def editLabel(self) -> QtWidgets.QInputDialog:
+        """Simple dialog for editing the label (and element name)."""
+        dlg = QtWidgets.QInputDialog(self.scene().views()[0])
+        dlg.setWindowTitle("Set Name")
+        dlg.setInputMode(QtWidgets.QInputDialog.TextInput)
+        dlg.setTextValue(self.text())
+        dlg.setLabelText("Name:")
+        dlg.textValueSelected.connect(self.labelChanged)
+        dlg.open()
+
+        return dlg
+
+    def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
+        action_edit = qAction(
+            "edit-rename",
+            "Set Name",
+            "Rename the laser.",
+            self.editLabel,
+        )
+        action_hide = qAction(
+            "visibility",
+            "Hide Name",
+            "Hide the laser name label.",
+            self.hide,
+        )
+        menu = QtWidgets.QMenu()
+        menu.addAction(action_edit)
+        menu.addAction(action_hide)
+        menu.exec_(event.screenPos())
+        event.accept()
 
 
 class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
@@ -43,7 +81,11 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         if view is None:
             return rect
 
-        dist = view.mapToScene(QtCore.QRect(0, 0,self.cursor_dist, 1)).boundingRect().width()
+        dist = (
+            view.mapToScene(QtCore.QRect(0, 0, self.cursor_dist, 1))
+            .boundingRect()
+            .width()
+        )
         return rect.marginsAdded(QtCore.QMarginsF(dist, dist, dist, dist))
 
     def shape(self) -> QtGui.QPainterPath:
@@ -54,7 +96,11 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
 
     def edgeAt(self, pos: QtCore.QPointF) -> Optional[str]:
         view = next(iter(self.scene().views()))
-        dist = view.mapToScene(QtCore.QRect(0, 0, self.cursor_dist, 1)).boundingRect().width()
+        dist = (
+            view.mapToScene(QtCore.QRect(0, 0, self.cursor_dist, 1))
+            .boundingRect()
+            .width()
+        )
 
         edge = ""
         if abs(self.rect().top() - pos.y()) < dist:

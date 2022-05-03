@@ -1,17 +1,29 @@
 from PySide2 import QtCore, QtGui, QtWidgets
-
 import numpy as np
+import copy
 
-from pewlib.process.calc import normalise
+from pewlib.laser import Laser
+from pewlib.calibration import Calibration
+from pewlib.config import Config
+
+# from pewlib.srr.config import SRRConfig
+
+from pewpew.lib.numpyqt import array_to_image
+
+from pewpew.graphics import colortable
+from pewpew.graphics.options import GraphicsOptions
+
+# from pewpew.graphics.overlayitems import OverlayItem, LabelOverlay
+from pewpew.graphics.items import EditableLabelItem
 
 from pewpew.actions import qAction
-from pewpew.lib.numpyqt import array_to_image, array_to_polygonf
 
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 class SnapImageItem(QtWidgets.QGraphicsObject):
     selectionChanged = QtCore.Signal()
+    imageChanged = QtCore.Signal()
 
     def itemChange(
         self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
@@ -30,11 +42,11 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
     def imageSize(self) -> QtCore.QSize:
         raise NotImplementedError
 
-    def pixelSize(self) -> QtCore.QSizeF:
-        """Size / scaling of an image pixel."""
-        rect = self.boundingRect()
-        size = self.imageSize()
-        return QtCore.QSizeF(rect.width() / size.width(), rect.height() / size.height())
+    def rawData(self) -> np.ndarray:
+        raise NotImplementedError
+
+    def handleSelection(self, mask: np.ndarray, modes: List[str]) -> None:
+        self.selectionChanged.emit()
 
     def mapToData(self, pos: QtCore.QPointF) -> QtCore.QPoint:
         """Map a position to an image pixel coordinate."""
@@ -45,358 +57,156 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
             (pos.y() - rect.top()) / pixel.height(),
         )
 
+    def pixelSize(self) -> QtCore.QSizeF:
+        """Size / scaling of an image pixel."""
+        rect = self.boundingRect()
+        size = self.imageSize()
+        return QtCore.QSizeF(rect.width() / size.width(), rect.height() / size.height())
+
     def snapPos(self, pos: QtCore.QPointF) -> QtCore.QPointF:
         pixel = self.pixelSize()
         x = round(pos.x() / pixel.width()) * pixel.width()
         y = round(pos.y() / pixel.height()) * pixel.height()
         return QtCore.QPointF(x, y)
 
-    def handleSelection(self, mask: np.ndarray, modes: List[str]) -> None:
-        self.selectionChanged.emit()
 
+class LaserImageItem(SnapImageItem):
+    requestDialogCalibration = QtCore.Signal()
+    requestDialogConfig = QtCore.Signal()
+    requestDialogColocalisation = QtCore.Signal()
+    requestDialogInformation = QtCore.Signal()
+    requestDialogStatistics = QtCore.Signal()
+    colortableChanged = QtCore.Signal(list, float, float)
 
-class ScaledImageItem(SnapImageItem):
-    """Item to draw image to a defined rect.
-
-    If `snap` is used, then the 'ItemSendsGeometryChanges' flag must is set.
-
-    Args:
-        image: image
-        rect: extent of image
-        snap: snap image position to pixel size
-        parent: parent item
-    """
+    modified = QtCore.Signal()
 
     def __init__(
         self,
-        image: QtGui.QImage,
-        rect: QtCore.QRectF,
-        snap: bool = True,
+        laser: Laser,
+        options: GraphicsOptions,
+        current_element: Optional[str] = None,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
-        super().__init__(parent)
-        self.setCacheMode(
-            QtWidgets.QGraphicsItem.DeviceCoordinateCache
-        )  # Speed up redraw of image
-        self.image = image
-        self.rect = QtCore.QRectF(rect)  # copy the rect
-        self.snap = snap
-        if self.snap:
-            self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
+        super().__init__(parent=parent)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
+
+        self.laser = laser
+        self.options = options
+        self.element = current_element or self.laser.elements[0]
+
+        self.image: Optional[QtGui.QImage] = None
+        self.mask_image: Optional[QtGui.QImage] = None
+
+        self.raw_data: np.ndarray = np.array([])
+        self.vmin, self.vmax = 0.0, 0.0
+
+        # Name in top left corner
+        self.element_label = EditableLabelItem(
+            self,
+            self.element,
+            font=self.options.font,
+        )
+        self.label = EditableLabelItem(
+            self,
+            self.laser.info["Name"],
+            font=self.options.font,
+            alignment=QtCore.Qt.AlignTop | QtCore.Qt.AlignRight,
+        )
+        self.label.labelChanged.connect(self.rename)
+
+        self.createActions()
+
+    def setElement(self, element: str) -> None:
+        if element not in self.laser.elements:
+            raise ValueError(
+                f"Unknown element {element}. Expected one of {self.laser.elements}."
+            )
+        self.element = element
+        self.element_label.setText(element)
+        self.redraw()
+
+    @property
+    def name(self) -> str:
+        return self.laser.info["Name"]
+
+    @name.setter
+    def name(self, name: str) -> None:
+        self.laser.info["Name"] = name
+        self.modified.emit()
+
+    @property
+    def mask(self) -> np.ndarray:
+        if self.mask_image is None:
+            return np.ones(self.laser.shape, dtype=bool)
+        return self.mask_image._array.astype(bool)
+
+    def rename(self, name: str) -> None:
+        self.laser.info["Name"] = name
+        self.label.setText(name)
+
+    # Virtual SnapImageItem methods
+    def dataAtPos(self, pos: QtCore.QPointF) -> float:
+        pos = self.mapToData(pos)
+        return self.raw_data[pos.y(), pos.x()]
 
     def imageSize(self) -> QtCore.QSize:
-        return self.image.size()
+        return QtCore.QSize(self.laser.shape[1], self.laser.shape[0])
 
-    def boundingRect(self) -> QtCore.QRectF:
-        return self.rect
+    def rawData(self) -> np.ndarray:
+        return self.raw_data
 
-    def paint(
-        self,
-        painter: QtGui.QPainter,
-        option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
-    ):
-        painter.drawImage(self.rect, self.image)
+    def redraw(self) -> None:
+        data = self.laser.get(self.element, calibrate=self.options.calibrate, flat=True)
+        self.raw_data = np.ascontiguousarray(data)
 
-    @classmethod
-    def fromArray(
-        cls,
-        array: np.ndarray,
-        rect: QtCore.QRectF,
-        colortable: Optional[List[int]] = None,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
-    ) -> "ScaledImageItem":
-        """Create a ScaledImageItem from a numpy array.
+        self.vmin, self.vmax = self.options.get_color_range_as_float(
+            self.element, self.raw_data
+        )
+        table = colortable.get_table(self.options.colortable)
 
-        Args:
-            array: 2d array
-            rect: image extent
-            colortable: map data using colortable
-            parent: parent item
-        """
-        image = array_to_image(array)
-        if colortable is not None:
-            image.setColorTable(colortable)
-            image.setColorCount(len(colortable))
-        item = cls(image, rect, parent=parent)
-        return item
+        data = np.clip(self.raw_data, self.vmin, self.vmax)
+        if self.vmin != self.vmax:  # Avoid div 0
+            data = (data - self.vmin) / (self.vmax - self.vmin)
 
+        self.image = array_to_image(data)
+        self.image.setColorTable(table)
+        self.image.setColorCount(len(table))
 
-class ImageWidgetItem(QtWidgets.QGraphicsObject):
-    """Base class for items that act on a ScaledImageItem."""
+        self.colortableChanged.emit(table, self.vmin, self.vmax)
+        self.imageChanged.emit()
 
-    def __init__(
-        self,
-        image: ScaledImageItem,
-        data: Optional[np.ndarray] = None,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
-    ):
-        super().__init__(parent)
-        self.image = image
-        self.image_data = data
+    def handleSelection(self, mask: np.ndarray, modes: List[str]) -> None:
+        current_mask = self.mask
 
-    def imageChanged(self, image: ScaledImageItem, data: np.ndarray) -> None:
-        self.image = image
-        self.image_data = data
+        if "add" in modes:
+            mask = np.logical_or(current_mask, mask)
+        elif "subtract" in modes:
+            mask = np.logical_and(current_mask, ~mask)
+        elif "intersect" in modes:
+            mask = np.logical_and(current_mask, mask)
+        elif "difference" in modes:
+            mask = np.logical_xor(current_mask, mask)
 
+        color = QtGui.QColor(255, 255, 255, a=128)
 
-class RulerWidgetItem(ImageWidgetItem):
-    """Draws a ruler between two points of a ScaledImageItem.
-
-    Points are selected using the mouse and the length is displayed at the ruler's midpoint.
-
-    Args:
-        image: image to measure
-        pen: QPen, default to white dashed line
-        font: label font
-        unit: length unit
-        parent: parent item
-    """
-
-    def __init__(
-        self,
-        image: ScaledImageItem,
-        pen: Optional[QtGui.QPen] = None,
-        font: Optional[QtGui.QFont] = None,
-        unit: str = "μm",
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
-    ):
-        super().__init__(image, None, parent)
-
-        if pen is None:
-            pen = QtGui.QPen(QtCore.Qt.white, 2.0)
-            pen.setCosmetic(True)
-            pen.setStyle(QtCore.Qt.DashLine)
-            pen.setCapStyle(QtCore.Qt.RoundCap)
-
-        if font is None:
-            font = QtGui.QFont()
-
-        self.pen = pen
-        self.font = font
-        self.text = ""
-        self.unit = unit
-
-        self.line = QtCore.QLineF()
-
-    def imageChanged(self, image: ScaledImageItem, data: np.ndarray) -> None:
-        pass  # pragma: no cover
-
-    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        if event.buttons() & QtCore.Qt.LeftButton:
-            self.line.setPoints(event.pos(), event.pos())
-            self.text = ""
-            self.prepareGeometryChange()
-        super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        if event.buttons() & QtCore.Qt.LeftButton:
-            self.line.setP2(event.pos())
-            self.text = f"{self.line.length():.4g} {self.unit}"
-            self.prepareGeometryChange()
-        super().mouseMoveEvent(event)
-
-    def boundingRect(self) -> QtCore.QRectF:
-        view = next(iter(self.scene().views()))
-        angle = self.line.angle()
-
-        fm = QtGui.QFontMetrics(self.font)
-        text = fm.boundingRect(self.text)
-        text = view.mapToScene(text).boundingRect()
-
-        # Corners above the text height
-        n1 = QtCore.QLineF(self.line.p2(), self.line.p1()).normalVector()
-        n2 = QtCore.QLineF(self.line.p1(), self.line.p2()).normalVector()
-        if 90 < angle < 270:
-            n1.setLength(text.height())
-            n2.setLength(-text.height())
+        if np.any(mask):
+            self.mask_image = array_to_image(mask.astype(np.uint8))
+            self.mask_image.setColorTable([0, int(color.rgba())])
+            self.mask_image.setColorCount(2)
         else:
-            n1.setLength(-text.height())
-            n2.setLength(text.height())
+            self.mask_image = None
 
-        poly = QtGui.QPolygonF([self.line.p1(), n1.p2(), n2.p2(), self.line.p2()])
+        self.update()
 
-        w = view.mapToScene(QtCore.QRect(0, 0, 5, 1)).boundingRect().width()
-        return poly.boundingRect().marginsAdded(QtCore.QMarginsF(w, w, w, w))
-
-    def paint(
-        self,
-        painter: QtGui.QPainter,
-        option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
-    ):
-        view = next(iter(self.scene().views()))
-
-        painter.save()
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        painter.setFont(self.font)
-        painter.setPen(self.pen)
-
-        fm = painter.fontMetrics()
-
-        painter.drawLine(self.line)
-
-        if not self.line.p1().isNull():
-            pen = QtGui.QPen(self.pen)
-            pen.setWidth(10)
-            painter.setPen(pen)
-            painter.drawPoints([self.line.p1(), self.line.p2()])
-            painter.setPen(self.pen)
-
-        if view is not None and self.text != "":
-            angle = self.line.angle()
-            if 90 < angle < 270:
-                angle -= 180
-            center = view.mapFromScene(self.line.center())
-            length = (
-                view.mapFromScene(QtCore.QRectF(0, 0, self.line.length(), 1))
-                .boundingRect()
-                .width()
-            )
-            width = fm.boundingRect(self.text).width()
-
-            if width < length * 0.9:
-                painter.resetTransform()
-                transform = QtGui.QTransform()
-                transform.translate(center.x(), center.y())
-                transform.rotate(-angle)
-                painter.setTransform(transform)
-                painter.drawText(-width / 2.0, -fm.descent(), self.text)
-        painter.restore()
-
-
-class ImageSliceWidgetItem(ImageWidgetItem):
-    """Draws a 1d data slice between two points of a ScaledImageItem.
-
-    Points are selected using the mouse.
-    A context menu option can copy the slice data to the system clipboard.
-
-    Args:
-        image: image
-        data: image data
-        pen: QPen, default to white dotted line
-        font: label font
-        parent: parent item
-    """
-
-    def __init__(
-        self,
-        image: ScaledImageItem,
-        data: np.ndarray,
-        pen: Optional[QtGui.QPen] = None,
-        font: Optional[QtGui.QFont] = None,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
-    ):
-        super().__init__(image, parent)
-
-        if pen is None:
-            pen = QtGui.QPen(QtCore.Qt.white, 2.0, QtCore.Qt.DotLine)
-            pen.setCosmetic(True)
-            pen.setCapStyle(QtCore.Qt.RoundCap)
-
-        if font is None:
-            font = QtGui.QFont()
-
-        self.image_data = data
-        self.sliced: Optional[np.ndarray] = None
-
-        self.pen = pen
-        self.font = font
-
-        self.line = QtCore.QLineF()
-        self.poly = QtGui.QPolygonF()
-
-        self.action_copy_to_clipboard = qAction(
-            "insert-text",
-            "Copy To Clipboard",
-            "Copy slice values to the clipboard.",
-            self.actionCopyToClipboard,
-        )
-
-    def imageChanged(self, image: ScaledImageItem, data: np.ndarray) -> None:
-        super().imageChanged(image, data)
-        self.createSlicePoly()
-
-    def actionCopyToClipboard(self):
-        if self.sliced is None:
-            return
-        html = (
-            '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
-            "<table>"
-        )
-        text = ""
-        for x in self.sliced:
-            html += f"<tr><td>{x:.10g}</td></tr>"
-            text += f"{x:.10g}\n"
-        html += "</table>"
-
-        mime = QtCore.QMimeData()
-        mime.setHtml(html)
-        mime.setText(text)
-        QtWidgets.QApplication.clipboard().setMimeData(mime)
-
-    def createSlicePoly(self) -> None:
-        def connect_nd(ends):
-            d = np.diff(ends, axis=0)[0]
-            j = np.argmax(np.abs(d))
-            D = d[j]
-            aD = np.abs(D)
-            return ends[0] + (np.outer(np.arange(aD + 1), d) + (aD >> 1)) // aD
-
-        p1 = self.image.mapToData(self.line.p1())
-        p2 = self.image.mapToData(self.line.p2())
-
-        if self.line.dx() < 0.0:
-            p1, p2 = p2, p1
-
-        view = next(iter(self.scene().views()))
-        height = view.mapToScene(QtCore.QRect(0, 0, 1, 100)).boundingRect().height()
-
-        points = connect_nd([[p1.x(), p1.y()], [p2.x(), p2.y()]])
-        if points.size > 3:
-            self.sliced = self.image_data[points[:, 1], points[:, 0]]
-
-            xs = np.linspace(0.0, self.line.length(), self.sliced.size)
-            try:
-                ys = -1.0 * normalise(self.sliced, 0.0, height)
-            except ValueError:
-                self.sliced = None
-                self.poly.clear()
-                return
-
-            poly = array_to_polygonf(np.stack((xs, ys), axis=1))
-
-            angle = self.line.angle()
-            if 90 < angle < 270:
-                angle -= 180
-
-            transform = QtGui.QTransform()
-            if self.line.dx() < 0.0:
-                transform.translate(self.line.p2().x(), self.line.p2().y())
-            else:
-                transform.translate(self.line.p1().x(), self.line.p1().y())
-            transform.rotate(-angle)
-
-            self.poly = transform.map(poly)
+        super().handleSelection(mask, modes)
 
     def boundingRect(self) -> QtCore.QRectF:
-        view = next(iter(self.scene().views()))
-        p1r = view.mapToScene(QtCore.QRect(0, 0, 10, 10)).boundingRect()
-        p1r.moveCenter(self.line.p1())
-        p2r = p1r.translated(self.line.dx(), self.line.dy())
-        return self.poly.boundingRect().united(p1r).united(p2r)
-
-    def shape(self) -> QtGui.QPainterPath:
-        p1, p2 = self.line.p1(), self.line.p2()
-        if self.line.dx() < 0.0:
-            p1, p2 = p2, p1
-        path = QtGui.QPainterPath(p1)
-        path.lineTo(self.poly.first())
-        path.addPolygon(self.poly)
-        path.lineTo(p2)
-        path.lineTo(p1)
-        path.closeSubpath()
-        return path
+        x0, x1, y0, y1 = self.laser.config.data_extent(self.laser.shape)
+        rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
+        rect.moveTopLeft(QtCore.QPointF(0, 0))
+        return rect
 
     def paint(
         self,
@@ -404,58 +214,349 @@ class ImageSliceWidgetItem(ImageWidgetItem):
         option: QtWidgets.QStyleOptionGraphicsItem,
         widget: Optional[QtWidgets.QWidget] = None,
     ):
-
         painter.save()
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        painter.setFont(self.font)
-        painter.setPen(self.pen)
+        if self.options.smoothing:
+            painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform)
 
-        painter.drawLine(self.line)
-        p1, p2 = self.line.p1(), self.line.p2()
+        rect = self.boundingRect()
 
-        if self.poly.size() > 8:
-            if self.line.dx() < 0.0:
-                p1, p2 = p2, p1
-            painter.drawLine(p1, self.poly.first())
-            painter.drawLine(p2, self.poly.last())
+        if self.image is not None:
+            painter.drawImage(rect, self.image)
 
-            pen = QtGui.QPen(self.pen)
-            pen.setStyle(QtCore.Qt.SolidLine)
-            painter.setPen(pen)
-            painter.drawPolyline(self.poly)
+        if self.mask_image is not None:
+            painter.drawImage(rect, self.mask_image)
 
-        if not self.line.p1().isNull():
-            pen = QtGui.QPen(self.pen)
-            pen.setWidth(10)
-            painter.setPen(pen)
-            painter.drawPoints([self.line.p1(), self.line.p2()])
+        # if self.isSelected():
+        #     painter.setPen(QtGui.QPen(QtCore.Qt.white, 10.0))
+        #     painter.drawRect(self.boundingRect())
+
+        # if self.hasFocus():
+        #     painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        #     fm = QtGui.QFontMetrics(self.options.font, painter.device())
+        #     path = QtGui.QPainterPath()
+        #     path.addText(0, fm.ascent(), self.options.font, self.laser.info["Name"])
+
+        #     # painter.setTransform
+        #     # painter.setBrushOrigin(rect.topRight())
+        #     # painter.setTransform(QtGui.QTransform.fromTranslate(rect.left(), rect.top()))
+
+        #     painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        #     painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
+        #     painter.fillPath(
+        #         path, QtGui.QBrush(self.options.font_color, QtCore.Qt.SolidPattern)
+        #     )
+        # #     self.rect = self.laserRect()
+        # #     self.image = self.laserImage(self.current_element)
         painter.restore()
+
+    # === Slots ===
+    def applyCalibration(self, calibrations: Dict[str, Calibration]) -> None:
+        """Set laser calibrations."""
+        modified = False
+        for element in calibrations:
+            if element in self.laser.calibration:
+                self.laser.calibration[element] = copy.copy(calibrations[element])
+                modified = True
+        if modified:
+            self.modified.emit()
+            self.redraw()
+
+    def applyConfig(self, config: Config) -> None:
+        """Set laser configuration."""
+        # Only apply if the type of config is correct
+        if type(config) is type(self.laser.config):  # noqa
+            self.laser.config = copy.copy(config)
+            self.modified.emit()
+            self.redraw()
+
+    def applyInformation(self, info: Dict[str, str]) -> None:
+        """Set laser information."""
+        if self.laser.info != info:
+            self.laser.info = info
+            self.modified.emit()
+
+    def copyToClipboard(self) -> None:
+        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard.setImage(self.image)
+
+    # ==== Actions ===
+    def createActions(self) -> None:
+        self.action_copy_image = qAction(
+            "insert-image",
+            "Copy &Image",
+            "Copy image to clipboard.",
+            self.copyToClipboard,
+        )
+        # === Dialogs requests ===
+        self.action_calibration = qAction(
+            "go-top",
+            "Ca&libration",
+            "Edit the laser calibration.",
+            self.requestDialogCalibration,
+        )
+        self.action_config = qAction(
+            "document-edit",
+            "&Config",
+            "Edit the laser configuration.",
+            self.requestDialogConfig,
+        )
+        self.action_colocalisation = qAction(
+            "dialog-information",
+            "Colocalisation",
+            "Open the colocalisation dialog.",
+            self.requestDialogColocalisation,
+        )
+        self.action_information = qAction(
+            "documentinfo",
+            "In&formation",
+            "View and edit stored laser information.",
+            self.requestDialogInformation,
+        )
+        self.action_statistics = qAction(
+            "dialog-information",
+            "Statistics",
+            "Open the statisitics dialog.",
+            self.requestDialogStatistics,
+        )
+
+        self.action_show_label_name = qAction(
+            "visibility",
+            "Show Name Label",
+            "Un-hide the laser name label.",
+            self.label.show,
+        )
+        self.action_show_label_element = qAction(
+            "visibility",
+            "Show Element Label",
+            "Un-hide the current element label.",
+            self.element_label.show,
+        )
+        # self.action_duplicate = qAction(
+        #     "edit-copy",
+        #     "Duplicate image",
+        #     "Open a copy of the image.",
+        #     self.actionDuplicate,
+        # )
+        # self.action_export = qAction(
+        #     "document-save-as", "E&xport", "Export documents.", self.actionExport
+        # )
+        # self.action_export.setShortcut("Ctrl+X")
+        # # Add the export action so we can use it via shortcut
+        # self.addAction(self.action_export)
+        # self.action_save = qAction(
+        #     "document-save", "&Save", "Save document to numpy archive.", self.actionSave
+        # )
+        # self.action_save.setShortcut("Ctrl+S")
+        # Add the save action so we can use it via shortcut
+        # self.addAction(self.action_save)
+        # self.action_select_statistics = qAction(
+        #     "dialog-information",
+        #     "Selection Statistics",
+        #     "Open the statisitics dialog for the current selection.",
+        #     self.actionStatisticsSelection,
+        # )
+        # self.action_select_colocalisation = qAction(
+        #     "dialog-information",
+        #     "Selection Colocalisation",
+        #     "Open the colocalisation dialog for the current selection.",
+        #     self.actionColocalSelection,
+        # )
+
+        # self.action_select_copy_text = qAction(
+        #     "insert-table",
+        #     "Copy Selection as Text",
+        #     "Copy the current selection to the clipboard as a column of text values.",
+        #     self.actionCopySelectionText,
+        # )
+        # self.action_select_crop = qAction(
+        #     "transform-crop",
+        #     "Crop to Selection",
+        #     "Crop the image to the current selection.",
+        #     self.actionCropSelection,
+        # )
+
+    # def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+    #     if self.label.boundingRect().contains(event.scenePos()):
+    #         self.label.mouseDoubleClickEvent(event)
+    #     super().mouseDoubleClickEvent(event)
+
+    # def actionCalibration(self) -> QtWidgets.QDialog:
+    #     """Open a `:class:pewpew.widgets.dialogs.CalibrationDialog` and applies result."""
+    #     dlg = dialogs.CalibrationDialog(
+    #         self.laser.calibration, self.current_element, parent=self
+    #     )
+    #     dlg.calibrationSelected.connect(self.applyCalibration)
+    #     dlg.calibrationApplyAll.connect(self.view.applyCalibration)
+    #     dlg.open()
+    #     return dlg
+
+    # def actionConfig(self) -> QtWidgets.QDialog:
+    #     """Open a `:class:pewpew.widgets.dialogs.ConfigDialog` and applies result."""
+    #     dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
+    #     dlg.configSelected.connect(self.applyConfig)
+    #     dlg.configApplyAll.connect(self.view.applyConfig)
+    #     dlg.open()
+    #     return dlg
+
+    # def actionCopyImage(self) -> None:
+    #     self.graphics.copyToClipboard()
+
+    # def actionCopySelectionText(self) -> None:
+    #     """Copies the currently selected data to the system clipboard."""
+    #     data = self.graphics.data[self.graphics.mask].ravel()
+
+    #     html = (
+    #         '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
+    #         "<table>"
+    #     )
+    #     text = ""
+    #     for x in data:
+    #         html += f"<tr><td>{x:.10g}</td></tr>"
+    #         text += f"{x:.10g}\n"
+    #     html += "</table>"
+
+    #     mime = QtCore.QMimeData()
+    #     mime.setHtml(html)
+    #     mime.setText(text)
+    #     QtWidgets.QApplication.clipboard().setMimeData(mime)
+
+    # def actionCropSelection(self) -> None:
+    #     self.cropToSelection()
+
+    # def actionDuplicate(self) -> None:
+    #     """Duplicate document to a new tab."""
+    #     self.view.addLaser(copy.deepcopy(self.laser))
+
+    # def actionExport(self) -> QtWidgets.QDialog:
+    #     """Opens a `:class:pewpew.exportdialogs.ExportDialog`.
+
+    #     This can save the document to various formats.
+    #     """
+    #     dlg = exportdialogs.ExportDialog(self, parent=self)
+    #     dlg.open()
+    #     return dlg
+
+    # def actionInformation(self) -> QtWidgets.QDialog:
+    #     """Opens a `:class:pewpew.widgets.dialogs.InformationDialog`."""
+    #     dlg = dialogs.InformationDialog(self.laser.info, parent=self)
+    #     dlg.infoChanged.connect(self.applyInformation)
+    #     dlg.open()
+    #     return dlg
+
+    # def actionRequestColorbarEdit(self) -> None:
+    #     if self.viewspace is not None:
+    #         self.viewspace.colortableRangeDialog()
+
+    # def actionSave(self) -> QtWidgets.QDialog:
+    #     """Save the document to an '.npz' file.
+
+    #     If not already associated with an '.npz' path a dialog is opened to select one.
+    #     """
+    #     path = Path(self.laser.info["File Path"])
+    #     if path.suffix.lower() == ".npz" and path.exists():
+    #         self.saveDocument(path)
+    #         return None
+    #     else:
+    #         path = self.laserFilePath()
+    #     dlg = QtWidgets.QFileDialog(
+    #         self, "Save File", str(path.resolve()), "Numpy archive(*.npz);;All files(*)"
+    #     )
+    #     dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+    #     dlg.fileSelected.connect(self.saveDocument)
+    #     dlg.open()
+    #     return dlg
+
+    # def actionSelectDialog(self) -> QtWidgets.QDialog:
+    #     """Open a `:class:pewpew.widgets.dialogs.SelectionDialog` and applies selection."""
+    #     dlg = dialogs.SelectionDialog(self.graphics, parent=self)
+    #     dlg.maskSelected.connect(self.graphics.drawSelectionImage)
+    #     self.refreshed.connect(dlg.refresh)
+    #     dlg.show()
+    #     return dlg
+
+    # def actionStatistics(self, crop_to_selection: bool = False) -> QtWidgets.QDialog:
+    #     """Open a `:class:pewpew.widgets.dialogs.StatsDialog` with image data.
+
+    #     Args:
+    #         crop_to_selection: pass current selection as a mask
+    #     """
+    #     data = self.laser.get(calibrate=self.graphics.options.calibrate, flat=True)
+    #     mask = self.graphics.mask
+    #     if mask is None or not crop_to_selection:
+    #         mask = np.ones(data.shape, dtype=bool)
+
+    #     units = {}
+    #     if self.graphics.options.calibrate:
+    #         units = {k: v.unit for k, v in self.laser.calibration.items()}
+
+    #     dlg = dialogs.StatsDialog(
+    #         data,
+    #         mask,
+    #         units,
+    #         self.current_element,
+    #         pixel_size=(
+    #             self.laser.config.get_pixel_width(),
+    #             self.laser.config.get_pixel_height(),
+    #         ),
+    #         parent=self,
+    #     )
+    #     dlg.open()
+    #     return dlg
+
+    # def actionStatisticsSelection(self) -> QtWidgets.QDialog:
+    #     return self.actionStatistics(True)
+
+    # def actionColocal(self, crop_to_selection: bool = False) -> QtWidgets.QDialog:
+    #     """Open a `:class:pewpew.widgets.dialogs.ColocalisationDialog` with image data.
+
+    #     Args:
+    #         crop_to_selection: pass current selection as a mask
+    #     """
+    #     data = self.laser.get(flat=True)
+    #     mask = self.graphics.mask if crop_to_selection else None
+
+    #     dlg = dialogs.ColocalisationDialog(data, mask, parent=self)
+    #     dlg.open()
+    #     return dlg
+
+    # def actionColocalSelection(self) -> QtWidgets.QDialog:
+    #     return self.actionColocal(True)
+
+    # === Events ===
+    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneEvent) -> None:
+        self.setSelected(True)
 
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
         menu = QtWidgets.QMenu()
-        menu.addAction(self.action_copy_to_clipboard)
+        # menu.addAction(self.action_duplicate)
+        menu.addAction(self.action_copy_image)
+        menu.addSeparator()
+        # menu.addAction(self.action_calibration)
+
+        # if self.graphics.posInSelection(event.pos()):
+        #     menu.addAction(self.action_select_copy_text)
+        #     menu.addAction(self.action_select_crop)
+        #     menu.addSeparator()
+        #     menu.addAction(self.action_select_statistics)
+        #     menu.addAction(self.action_select_colocalisation)
+        # else:
+        #     menu.addAction(self.view.action_open)
+        #     menu.addAction(self.action_save)
+        #     menu.addAction(self.action_export)
+        #     menu.addSeparator()
+        menu.addAction(self.action_config)
+        menu.addAction(self.action_calibration)
+        menu.addAction(self.action_information)
+
+        menu.addSeparator()
+
+        if not self.label.isVisible():
+            menu.addAction(self.action_show_label_name)
+        if not self.element_label.isVisible():
+            menu.addAction(self.action_show_label_element)
+
+        #     menu.addSeparator()
+        #     menu.addAction(self.action_statistics)
+        #     menu.addAction(self.action_colocalisation)
         menu.exec_(event.screenPos())
-
-    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        if event.buttons() & QtCore.Qt.LeftButton:
-            if (
-                self.image.rect.left() < event.pos().x() < self.image.rect.right()
-                and self.image.rect.top() < event.pos().y() < self.image.rect.bottom()
-            ):
-                self.line.setPoints(event.pos(), event.pos())
-            self.sliced = None
-            self.poly = QtGui.QPolygonF()
-            self.prepareGeometryChange()
-        super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        if event.buttons() & QtCore.Qt.LeftButton:
-            pos = self.line.p2()
-            if self.image.rect.left() < event.pos().x() < self.image.rect.right():
-                pos.setX(event.pos().x())
-            if self.image.rect.top() < event.pos().y() < self.image.rect.bottom():
-                pos.setY(event.pos().y())
-            self.line.setP2(pos)
-            self.createSlicePoly()
-            self.prepareGeometryChange()
-        super().mouseMoveEvent(event)
+        event.accept()
