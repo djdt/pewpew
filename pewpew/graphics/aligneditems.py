@@ -19,6 +19,9 @@ class AlignedTextItem(QtWidgets.QGraphicsObject):
 
         if alignment is None:
             alignment = QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft
+        if pen is None:
+            pen = QtGui.QPen(QtCore.Qt.black, 2.0)
+            pen.setCosmetic(True)
 
         self.alignment = alignment
 
@@ -26,7 +29,7 @@ class AlignedTextItem(QtWidgets.QGraphicsObject):
         self._font = font or QtGui.QFont()
 
         self.brush = brush or QtGui.QBrush(QtCore.Qt.white)
-        self.pen = pen or QtGui.QPen(QtCore.Qt.black, 2.0)
+        self.pen = pen
 
     def font(self) -> QtGui.QFont:
         return self._font
