@@ -379,6 +379,9 @@ class LaserTabWidget(TabViewWidget):
         item.requestDialogColocalisation.connect(self.dialogColocalisation)
         item.requestDialogStatistics.connect(self.dialogStatistics)
 
+        item.requestExport.connect(self.exportLaserItem)
+        item.requestSave.connect(self.saveLaserItem)
+
         # Modification
         item.colortableChanged.connect(self.laserColortableChanged)
         item.modified.connect(lambda: self.setWindowModified(True))
