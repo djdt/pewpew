@@ -2,7 +2,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 import numpy as np
 
 from pewlib.laser import Laser
-from pewlib.process.register import fft_register_images, overlap_structured_arrays
+from pewlib.process.register import fft_register_offset, overlap_structured_arrays
 
 from pewpew.actions import qAction, qToolButton
 
@@ -397,7 +397,7 @@ class MergeTool(ToolWidget):
         rows[0].image.setPos(QtCore.QPointF(0.0, 0.0))
 
         for row in rows[1:]:
-            offset = fft_register_images(base, row.data())
+            offset = fft_register_offset(base, row.data())
             w, h = (
                 row.laser.config.get_pixel_width(),
                 row.laser.config.get_pixel_height(),
