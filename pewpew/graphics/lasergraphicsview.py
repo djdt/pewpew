@@ -13,7 +13,7 @@ from pewpew.graphics.widgetitems import (
     WidgetItem,
 )
 from pewpew.graphics.options import GraphicsOptions
-from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
+from pewpew.graphics.overlaygraphics import OverlayGraphicsView
 from pewpew.graphics.overlayitems import (
     ColorBarOverlay,
     MetricScaleBarOverlay,
@@ -22,7 +22,7 @@ from pewpew.graphics.overlayitems import (
 from typing import Optional
 
 
-class LaserGraphicsView(OverlayView):
+class LaserGraphicsView(OverlayGraphicsView):
     """The pewpew laser view.
 
     Displays the image with correct scaling and an overlay label, sizebar and colorbar.
@@ -38,7 +38,7 @@ class LaserGraphicsView(OverlayView):
         self.data: Optional[np.ndarray] = None
         self.mask: Optional[np.ndarray] = None
 
-        self._scene = OverlayScene(0, 0, 640, 480)
+        self._scene = QtWidgets.QGraphicsScene(QtCore.QRectF(0, 0, 640, 480))
         self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
 
         super().__init__(self._scene, parent)
@@ -60,17 +60,11 @@ class LaserGraphicsView(OverlayView):
         #     QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft,
         # )
         # self.label.setPos(10, 10)
-        self.scene().addOverlayItem(
-            self.scalebar,
-            QtCore.Qt.TopRightCorner,
-            QtCore.Qt.AlignTop | QtCore.Qt.AlignRight,
-        )
+        self.addOverlayItem(self.scalebar)
         self.scalebar.setPos(0, 10)
-        self.scene().addOverlayItem(
-            self.colorbar,
-            QtCore.Qt.BottomLeftCorner,
-            QtCore.Qt.AlignBottom | QtCore.Qt.AlignLeft,
-        )
+        self.addOverlayItem(self.colorbar)
+
+        self.viewScaleChanged.connect(self.scalebar.requestPaint)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         super().mouseMoveEvent(event)

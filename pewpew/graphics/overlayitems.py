@@ -2,162 +2,90 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 import numpy as np
 
-from pewpew.actions import qAction
+from pewpew.graphics.overlaygraphics import OverlayItem
 
-from typing import List, Optional, Tuple, Union
-
-
-class OverlayItem(object):
-    """Item to draw as an overlay.
-
-    Overlay items are a fixed sized and are anchored to a position.
-
-    Args:
-        item: item to overlay
-        anchor: side or corner to anchor item
-        alignment: how to align item relative to anchor
-    """
-
-    def __init__(
-        self,
-        item: QtWidgets.QGraphicsItem,
-        anchor: Optional[Union[QtCore.Qt.AnchorPoint, QtCore.Qt.Corner]] = None,
-        alignment: Optional[QtCore.Qt.Alignment] = None,
-    ):
-        if anchor is None:
-            anchor = QtCore.Qt.TopLeftCorner
-        if alignment is None:
-            alignment = QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft
-
-        self.item = item
-        self.anchor = anchor
-        self.alignment = alignment
-
-    def anchorPos(self, rect: QtCore.QRectF) -> QtCore.QPointF:
-        if isinstance(self.anchor, QtCore.Qt.Corner):
-            if self.anchor == QtCore.Qt.TopLeftCorner:
-                pos = rect.topLeft()
-            elif self.anchor == QtCore.Qt.TopRightCorner:
-                pos = rect.topRight()
-            elif self.anchor == QtCore.Qt.BottomLeftCorner:
-                pos = rect.bottomLeft()
-            else:  # BottomRightCorner
-                pos = rect.bottomRight()
-        else:  # AnchorPoint
-            if self.anchor == QtCore.Qt.AnchorTop:
-                pos = QtCore.QPointF(rect.center().x(), rect.top())
-            elif self.anchor == QtCore.Qt.AnchorLeft:
-                pos = QtCore.QPointF(rect.left(), rect.center().y())
-            elif self.anchor == QtCore.Qt.AnchorRight:
-                pos = QtCore.QPointF(rect.right(), rect.center().y())
-            elif self.anchor == QtCore.Qt.AnchorBottom:
-                pos = QtCore.QPointF(rect.center().x(), rect.bottom())
-            else:
-                raise ValueError("Only Top, Left, Right, Bottom anchors supported.")
-
-        return pos
-
-    def pos(self) -> QtCore.QPointF:
-        pos = self.item.pos()  # Aligned Left and Top
-        rect = self.item.boundingRect()
-
-        if self.alignment & QtCore.Qt.AlignHCenter:
-            pos.setX(pos.x() - rect.width() / 2.0)
-        elif self.alignment & QtCore.Qt.AlignRight:
-            pos.setX(pos.x() - rect.width())
-
-        if self.alignment & QtCore.Qt.AlignVCenter:
-            pos.setY(pos.y() - rect.height() / 2.0)
-        elif self.alignment & QtCore.Qt.AlignBottom:
-            pos.setY(pos.y() - rect.height())
-
-        return pos
-
-    def contains(self, view_pos: QtCore.QPoint, view_rect: QtCore.QRect) -> bool:
-        rect = self.item.boundingRect()
-        rect.moveTo(self.pos() + self.anchorPos(view_rect))
-        return rect.contains(view_pos)
+from typing import List, Optional, Tuple
 
 
-class LabelOverlay(QtWidgets.QGraphicsObject):
-    """Draws a label with a black outline for increased visibility."""
+# class LabelOverlay(QtWidgets.QGraphicsObject):
+#     """Draws a label with a black outline for increased visibility."""
 
-    labelChanged = QtCore.Signal(str)
+#     labelChanged = QtCore.Signal(str)
 
-    def __init__(
-        self,
-        text: str,
-        font: Optional[QtGui.QFont] = None,
-        color: Optional[QtGui.QColor] = None,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
-    ):
-        super().__init__(parent)
+#     def __init__(
+#         self,
+#         text: str,
+#         font: Optional[QtGui.QFont] = None,
+#         color: Optional[QtGui.QColor] = None,
+#         parent: Optional[QtWidgets.QGraphicsItem] = None,
+#     ):
+#         super().__init__(parent)
 
-        if font is None:
-            font = QtGui.QFont()
-        if color is None:
-            color = QtCore.Qt.white
+#         if font is None:
+#             font = QtGui.QFont()
+#         if color is None:
+#             color = QtCore.Qt.white
 
-        self._text = text
-        self.font = font
-        self.color = color
+#         self._text = text
+#         self.font = font
+#         self.color = color
 
-        self.action_edit_label = qAction(
-            "edit-rename",
-            "Rename",
-            "Rename the current element.",
-            self.editLabel,
-        )
+#         self.action_edit_label = qAction(
+#             "edit-rename",
+#             "Rename",
+#             "Rename the current element.",
+#             self.editLabel,
+#         )
 
-    def text(self) -> str:
-        return self._text
+#     def text(self) -> str:
+#         return self._text
 
-    def setText(self, text: str) -> None:
-        self._text = text
-        self.prepareGeometryChange()
+#     def setText(self, text: str) -> None:
+#         self._text = text
+#         self.prepareGeometryChange()
 
-    def boundingRect(self):
-        fm = QtGui.QFontMetrics(self.font)
-        return QtCore.QRectF(0, 0, fm.boundingRect(self._text).width(), fm.height())
+#     def boundingRect(self):
+#         fm = QtGui.QFontMetrics(self.font)
+#         return QtCore.QRectF(0, 0, fm.boundingRect(self._text).width(), fm.height())
 
-    def paint(
-        self,
-        painter: QtGui.QPainter,
-        option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
-    ):
+#     def paint(
+#         self,
+#         painter: QtGui.QPainter,
+#         option: QtWidgets.QStyleOptionGraphicsItem,
+#         widget: Optional[QtWidgets.QWidget] = None,
+#     ):
 
-        fm = QtGui.QFontMetrics(self.font, painter.device())
-        path = QtGui.QPainterPath()
-        path.addText(0, fm.ascent(), self.font, self.text())
+#         fm = QtGui.QFontMetrics(self.font, painter.device())
+#         path = QtGui.QPainterPath()
+#         path.addText(0, fm.ascent(), self.font, self.text())
 
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
-        painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
+#         painter.setRenderHint(QtGui.QPainter.Antialiasing)
+#         painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
+#         painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
 
-    def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        self.editLabel()
-        super().mouseDoubleClickEvent(event)
+#     def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+#         self.editLabel()
+#         super().mouseDoubleClickEvent(event)
 
-    def editLabel(self) -> QtWidgets.QInputDialog:
-        """Simple dialog for editing the label (and element name)."""
-        dlg = QtWidgets.QInputDialog(self.scene().views()[0])
-        dlg.setWindowTitle("Edit Name")
-        dlg.setInputMode(QtWidgets.QInputDialog.TextInput)
-        dlg.setTextValue(self.text())
-        dlg.setLabelText("Rename:")
-        dlg.textValueSelected.connect(self.labelChanged)
-        dlg.open()
-        return dlg
+#     def editLabel(self) -> QtWidgets.QInputDialog:
+#         """Simple dialog for editing the label (and element name)."""
+#         dlg = QtWidgets.QInputDialog(self.scene().views()[0])
+#         dlg.setWindowTitle("Edit Name")
+#         dlg.setInputMode(QtWidgets.QInputDialog.TextInput)
+#         dlg.setTextValue(self.text())
+#         dlg.setLabelText("Rename:")
+#         dlg.textValueSelected.connect(self.labelChanged)
+#         dlg.open()
+#         return dlg
 
-    def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
-        menu = QtWidgets.QMenu()
-        menu.addAction(self.action_edit_label)
-        menu.exec_(event.screenPos())
-        event.accept()
+#     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
+#         menu = QtWidgets.QMenu()
+#         menu.addAction(self.action_edit_label)
+#         menu.exec_(event.screenPos())
+#         event.accept()
 
 
-class ColorBarOverlay(QtWidgets.QGraphicsObject):
+class ColorBarOverlay(OverlayItem):
     """Draw a colorbar.
 
     Ticks are formatted at easily readable intervals.
@@ -188,6 +116,7 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
         font: Optional[QtGui.QFont] = None,
         color: Optional[QtGui.QColor] = None,
         checkmarks: bool = False,
+        alignment: Optional[QtCore.Qt.AlignmentFlag] = None,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(parent)
@@ -195,6 +124,8 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
         if font is None:
             font = QtGui.QFont()
             font.setPointSize(16)
+        if alignment is None:
+            alignment = QtCore.Qt.AlignBottom
 
         image = QtGui.QImage(
             np.arange(256, dtype=np.uint8), 256, 1, 256, QtGui.QImage.Format_Indexed8
@@ -207,14 +138,12 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
         self.unit = unit
         self.height = height
 
-        if font is None:
-            font = QtGui.QFont()
-        if color is None:
-            color = QtCore.Qt.white
-
-        self.font = font
-        self.color = color
+        self.font = font or QtGui.QFont()
+        self.color = color or QtCore.Qt.white
         self.checkmarks = checkmarks
+        self.alignment = alignment
+
+        self.painted_since_update = False
 
     def updateTable(self, colortable: List[int], vmin: float, vmax: float):
         self.vmin = vmin
@@ -225,14 +154,25 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
         )
         image.setColorTable(colortable)
         self.pixmap = QtGui.QPixmap.fromImage(image)
+        self.painted_since_update = False
 
-    def boundingRect(self) -> QtCore.QRectF:
+    def boundingRect(self):
         fm = QtGui.QFontMetrics(self.font)
-        if self.scene() is None:
-            return QtCore.QRectF(0, 0, 100, self.height + fm.height())
 
-        view = next(iter(self.scene().views()))
-        rect = QtCore.QRectF(0, 0, view.viewport().width(), self.height + fm.height())
+        rect = QtCore.QRectF(0, 0, self.viewport.width(), self.height + fm.height())
+
+        if self.alignment & QtCore.Qt.AlignRight:
+            rect.moveRight(self.viewport.right())
+        elif self.alignment & QtCore.Qt.AlignHCenter:
+            rect.moveCenter(
+                QtCore.QPointF(self.viewport.center().x(), rect.center().y())
+            )
+        if self.alignment & QtCore.Qt.AlignBottom:
+            rect.moveBottom(self.viewport.bottom())
+        elif self.alignment & QtCore.Qt.AlignVCenter:
+            rect.moveCenter(
+                QtCore.QPointF(rect.center().x(), self.viewport.center().y())
+            )
         return rect
 
     def niceTextValues(self, n: int = 7, trim: int = 0) -> np.ndarray:
@@ -255,11 +195,13 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
         option: QtWidgets.QStyleOptionGraphicsItem,
         widget: Optional[QtWidgets.QWidget] = None,
     ):
-        width = painter.viewport().width()
+        painter.save()
+
+        painter.translate(self.boundingRect().topLeft())
 
         fm = QtGui.QFontMetrics(self.font, painter.device())
 
-        rect = QtCore.QRect(0, fm.height(), width, self.height)
+        rect = QtCore.QRect(0, fm.height(), self.viewport.width(), self.height)
         painter.drawPixmap(rect, self.pixmap)
         painter.setPen(QtGui.QPen(QtCore.Qt.black, 2.0))
         painter.setBrush(QtGui.QBrush(QtCore.Qt.white, QtCore.Qt.NoBrush))
@@ -268,7 +210,7 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
         path = QtGui.QPainterPath()
         # Todo: find a better pad value
         path.addText(
-            width - fm.boundingRect(self.unit).width() - 10,
+            self.viewport.width() - fm.boundingRect(self.unit).width() - 10,
             fm.ascent(),
             self.font,
             self.unit,
@@ -279,7 +221,7 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
             return
 
         for value in self.niceTextValues(7, trim=1):
-            x = width * (value - self.vmin) / vrange
+            x = self.viewport.width() * (value - self.vmin) / vrange
             text = f"{value:.6g}"
             path.addText(
                 x - fm.boundingRect(text).width() / 2.0,
@@ -294,15 +236,19 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
                     fm.lineWidth() * 2.0,
                     fm.underlinePos(),
                 )
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
         painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
+        painter.restore()
+
+        super().paint(painter, option, widget)
 
     def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         self.editRequested.emit()
         super().mouseDoubleClickEvent(event)
 
 
-class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):
+class MetricScaleBarOverlay(OverlayItem):
     """Draw a scalebar.
 
     Uses metric units with a base of 1 pixel = 1 μm.
@@ -332,6 +278,7 @@ class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):
         height: int = 10,
         font: Optional[QtGui.QFont] = None,
         color: Optional[QtGui.QColor] = None,
+        alignment: Optional[QtCore.Qt.AlignmentFlag] = None,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(parent)
@@ -342,15 +289,30 @@ class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):
 
         if font is None:
             font = QtGui.QFont()
-        if color is None:
-            color = QtCore.Qt.white
+        if alignment is None:
+            alignment = QtCore.Qt.AlignTop | QtCore.Qt.AlignRight
 
         self.font = font
-        self.color = color
+        self.color = color or QtCore.Qt.white
+        self.alignment = alignment
 
     def boundingRect(self):
         fm = QtGui.QFontMetrics(self.font)
-        return QtCore.QRectF(0, 0, self.width, self.height + fm.height())
+        rect = QtCore.QRectF(0, 0, self.width, self.height + fm.height())
+
+        if self.alignment & QtCore.Qt.AlignRight:
+            rect.moveRight(self.viewport.right())
+        elif self.alignment & QtCore.Qt.AlignHCenter:
+            rect.moveCenter(
+                QtCore.QPointF(self.viewport.center().x(), rect.center().y())
+            )
+        if self.alignment & QtCore.Qt.AlignBottom:
+            rect.moveBottom(self.viewport.bottom())
+        elif self.alignment & QtCore.Qt.AlignVCenter:
+            rect.moveCenter(
+                QtCore.QPointF(rect.center().x(), self.viewport.center().y())
+            )
+        return rect
 
     def getWidthAndUnit(self, desired: float) -> Tuple[float, str]:
         base = desired * self.units[self.unit]
@@ -372,12 +334,16 @@ class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):
         option: QtWidgets.QStyleOptionGraphicsItem,
         widget: Optional[QtWidgets.QWidget] = None,
     ):
-        view = self.scene().views()[0]
-        view_width = view.mapToScene(0, 0, self.width, 1).boundingRect().width()
-        width, unit = self.getWidthAndUnit(view_width)
+        painter.save()
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.translate(self.boundingRect().topLeft())
+
+        scale = self.parentItem().boundingRect().width() / self.viewport.width()
+        width, unit = self.getWidthAndUnit(self.width * scale)
+
         # Current scale
         text = f"{width * self.units[self.unit] / self.units[unit]:.3g} {unit}"
-        width = width * view.transform().m11()
+        width = width / scale
 
         fm = QtGui.QFontMetrics(self.font, painter.device())
         path = QtGui.QPainterPath()
@@ -398,3 +364,6 @@ class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):
         painter.setPen(QtGui.QPen(QtCore.Qt.black, 1.0))
         painter.setBrush(QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
         painter.drawRect(rect)
+        painter.restore()
+
+        super().paint(painter, option, widget)

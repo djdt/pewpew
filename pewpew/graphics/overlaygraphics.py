@@ -2,90 +2,79 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 from pathlib import Path
 
-from pewpew.graphics.overlayitems import OverlayItem
+from typing import Optional, Set, Union
 
-from typing import List, Optional, Set, Union
 
-# Todo - Lazy updating method, where a call to update() on an overlay triggers foreground redraw
+class OverlayParentItem(QtWidgets.QGraphicsObject):
+    def __init__(self, parent: Optional[QtWidgets.QGraphicsItem] = None):
+        super().__init__(parent)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemHasNoContents)
 
-class OverlayScene(QtWidgets.QGraphicsScene):
-    """A graphics scene that also draws OverlayItems in the foreground.
+        self.rect = QtCore.QRectF()
+        self.pixmap = None
 
-    The forground is saved to a pixmap to limit redrawing.
-    """
+    def boundingRect(self) -> QtCore.QRectF:
+        return self.rect
 
-    def __init__(
+    def setRect(self, rect: QtCore.QRectF) -> None:
+        self.rect = rect
+
+    def paint(
         self,
-        x: float,
-        y: float,
-        width: float,
-        height: float,
-        parent: Optional[QtWidgets.QWidget] = None,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: Optional[QtWidgets.QWidget] = None,
     ):
-        super().__init__(x, y, width, height, parent)
-        self.setSortCacheEnabled(True)
-        self.setItemIndexMethod(
-            QtWidgets.QGraphicsScene.NoIndex
-        )  # Turn off BSP indexing, it causes a crash on item removal
+        paint_requested = any(item.paintRequested() for item in self.childItems())
+        if (
+            self.pixmap is None
+            or self.pixmap.size() != painter.viewport().size()
+            or paint_requested
+        ):
+            self.pixmap = QtGui.QPixmap(painter.viewport().size())
+            self.pixmap.fill(QtCore.Qt.transparent)
 
-        self.overlayitems: List[OverlayItem] = []
-        self.foreground_pixmap: QtGui.QPixmap = QtGui.QPixmap()
+            pixmap_painter = QtGui.QPainter(self.pixmap)
+            for item in self.childItems():
+                pixmap_painter.setTransform(self.itemTransform(item)[0].inverted()[0])
+                item.setViewport(painter.viewport())
+                item.paint(pixmap_painter, option, widget)
+            pixmap_painter.end()
 
-    def addOverlayItem(
-        self,
-        item,
-        anchor: QtCore.Qt.AnchorPoint,
-        alignment: Optional[QtCore.Qt.Alignment] = None,
-    ):
-        """Adds an item to the overlay."""
-        item.setFlag(
-            QtWidgets.QGraphicsItem.ItemHasNoContents
-        )  # Drawing handled manually
-        self.addItem(item)
-        self.overlayitems.append(OverlayItem(item, anchor, alignment))
-
-    def drawForeground(self, painter: QtGui.QPainter, rect: QtCore.QRectF):
-        """Draw the foreground pixmap."""
         painter.save()
         painter.resetTransform()
-        # Draw the actual overlay
-        painter.drawPixmap(0, 0, self.foreground_pixmap)
+        painter.drawPixmap(0, 0, self.pixmap)
         painter.restore()
 
-    def updateForeground(self, rect: QtCore.QRectF) -> None:
-        """Update the forground pixmap, rect should equal display size."""
-        self.foreground_pixmap = QtGui.QPixmap(rect.size())
-        self.foreground_pixmap.fill(QtCore.Qt.transparent)
-        painter = QtGui.QPainter(self.foreground_pixmap)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
-        for item in self.overlayitems:
-            if not item.item.isVisible():
-                continue
-            transform = QtGui.QTransform()
-            transform.translate(item.pos().x(), item.pos().y())
-            transform.translate(item.anchorPos(rect).x(), item.anchorPos(rect).y())
-            painter.setTransform(transform)
-            item.item.paint(painter, QtWidgets.QStyleOptionGraphicsItem(), None)
+class OverlayItem(QtWidgets.QGraphicsObject):
+    def __init__(self, parent: Optional[QtWidgets.QGraphicsItem] = None):
+        super().__init__(parent)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemHasNoContents)
 
-    def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        """Intercept events and pass to overlay."""
-        view_pos = event.widget().mapFromGlobal(event.screenPos())
-        for item in self.overlayitems:
-            if item.contains(view_pos, event.widget().rect()):
-                item.item.mouseDoubleClickEvent(event)
+        self.painted = False
 
-    def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
-        """Intercept events and pass to overlay."""
-        view_pos = event.widget().mapFromGlobal(event.screenPos())
-        for item in self.overlayitems:
-            if item.contains(view_pos, event.widget().rect()):
-                item.item.contextMenuEvent(event)
-                return
-        super().contextMenuEvent(event)
+    def setViewport(self, rect: QtCore.QRect) -> None:
+        self.viewport = rect
+
+    def requestPaint(self) -> None:
+        self.painted = False
+
+    def paintRequested(self) -> bool:
+        return not self.painted
+
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: Optional[QtWidgets.QWidget] = None,
+    ):
+        self.painted = True
 
 
-class OverlayView(QtWidgets.QGraphicsView):
+class OverlayGraphicsView(QtWidgets.QGraphicsView):
     """A graphics view implementing an overlay scene and mouse navigation.
 
     Updates the overlay pixmap on on view changes.
@@ -100,10 +89,14 @@ class OverlayView(QtWidgets.QGraphicsView):
 
     def __init__(
         self,
-        scene: OverlayScene,
+        scene: QtWidgets.QGraphicsScene,
         parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(scene, parent)
+
+        self.overlay = OverlayParentItem()
+        self.scene().addItem(self.overlay)
+
         self.setCacheMode(QtWidgets.QGraphicsView.CacheBackground)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -115,9 +108,14 @@ class OverlayView(QtWidgets.QGraphicsView):
         self.interaction_flags: Set[str] = set()  # Deafult is navigate when empty
         self._last_pos = QtCore.QPoint(0, 0)  # Used for mouse events
 
-        # Only redraw the ForegroundLayer when needed
-        self.viewSizeChanged.connect(self.updateForeground)
-        self.viewScaleChanged.connect(self.updateForeground)
+    def addOverlayItem(self, item: OverlayItem):
+        self.scene().addItem(item)
+        item.setParentItem(self.overlay)
+
+    def drawForeground(self, painter: QtGui.QPainter, rect: QtCore.QRectF):
+        self.overlay.setPos(rect.topLeft())
+        self.overlay.setRect(rect.translated(rect.topLeft()))
+        self.overlay.paint(painter, QtWidgets.QStyleOptionGraphicsItem(), None)
 
     def copyToClipboard(self) -> None:
         """Copy current view to system clipboard."""
@@ -198,11 +196,6 @@ class OverlayView(QtWidgets.QGraphicsView):
                 self.mapToScene(self.viewport().rect()).boundingRect(),
                 QtWidgets.QGraphicsScene.ForegroundLayer,
             )
-
-    def updateForeground(self, rect: Optional[QtCore.QRect] = None) -> None:
-        if rect is None:
-            rect = self.viewport().rect()
-        self.scene().updateForeground(rect)
 
     def wheelEvent(self, event: QtGui.QWheelEvent):
         # Save transformation anchor and set to mouse position
