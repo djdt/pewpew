@@ -9,7 +9,7 @@ from pewpew.actions import qAction, qToolButton
 
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.imageitems import SnapImageItem
-from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
+from pewpew.graphics.overlaygraphics import OverlayGraphicsView
 from pewpew.graphics.overlayitems import MetricScaleBarOverlay
 
 from pewpew.widgets.exportdialogs import _ExportDialogBase, PngOptionsBox
@@ -73,12 +73,12 @@ class RGBLabelItem(QtWidgets.QGraphicsItem):
             y += fm.height()
 
 
-class RGBOverlayView(OverlayView):
+class RGBOverlayGraphicsView(OverlayGraphicsView):
     def __init__(self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None):
         self.options = options
         self.data: Optional[np.ndarray] = None
 
-        self._scene = OverlayScene(0, 0, 640, 480)
+        self._scene = QtWidgets.QGraphicsScene(0, 0, 640, 480)
         self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
 
         super().__init__(self._scene, parent)
@@ -150,7 +150,7 @@ class OverlayTool(ToolWidget):
         self.button_save.setIcon(QtGui.QIcon.fromTheme("document-export"))
         self.button_save.pressed.connect(self.openExportDialog)
 
-        self.graphics = RGBOverlayView(self.viewspace.options)
+        self.graphics = RGBOverlayGraphicsView(self.viewspace.options)
         # self.graphics.cursorClear.connect(self.widget.clearCursorStatus)
         # self.graphics.cursorMoved.connect(self.updateCursorStatus)
 

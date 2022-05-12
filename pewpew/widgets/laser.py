@@ -405,7 +405,7 @@ class LaserTabWidget(TabViewWidget):
     ) -> None:
         # Todo calculate this based on all open lasers?
         self.graphics.colorbar.updateTable(table, vmin, vmax)
-        self.graphics.updateForeground()
+        # self.graphics.updateForeground()
         self.graphics.invalidateScene()
 
     def laserSelectionChanged(
@@ -603,7 +603,7 @@ class LaserTabWidget(TabViewWidget):
             item = self.graphics.scene().focusItem()
 
         dlg = dialogs.CalibrationDialog(
-            item.laser.calibration, item.element, parent=self
+            item.laser.calibration, item.element(), parent=self
         )
         dlg.calibrationSelected.connect(item.applyCalibration)
         dlg.calibrationApplyAll.connect(self.view.applyCalibration)
@@ -672,7 +672,7 @@ class LaserTabWidget(TabViewWidget):
             data,
             mask,
             units,
-            item.element,
+            item.element(),
             pixel_size=(
                 item.laser.config.get_pixel_width(),
                 item.laser.config.get_pixel_height(),

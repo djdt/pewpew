@@ -12,7 +12,7 @@ from pewpew.graphics import colortable
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.imageitems import SnapImageItem
 
-from pewpew.graphics.overlaygraphics import OverlayScene, OverlayView
+from pewpew.graphics.overlaygraphics import OverlayGraphicsView
 
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.laser import LaserTabWidget
@@ -26,10 +26,10 @@ from typing import List, Optional, Tuple
 # Add / mult
 
 
-class MergeGraphicsView(OverlayView):
+class MergeGraphicsView(OverlayGraphicsView):
     def __init__(self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None):
         self.options = options
-        self._scene = OverlayScene(-1e6, -1e6, 2e6, 2e6)
+        self._scene = QtWidgets.QGraphicsScene(-1e6, -1e6, 2e6, 2e6)
         self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
         super().__init__(scene=self._scene, parent=parent)
 
