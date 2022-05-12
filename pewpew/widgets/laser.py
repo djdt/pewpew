@@ -641,6 +641,15 @@ class LaserTabWidget(TabViewWidget):
         dlg.open()
         return dlg
 
+    def dialogExport(self, item: Optional[LaserImageItem] = None) -> QtWidgets.QDialog:
+        if item is None:
+            item = self.graphics.scene().focusItem()
+
+        dlg = exportdialogs.ExportDialog(item.laser, item.element(), item, parent=self)
+        dlg.open()
+        return dlg
+
+
     def dialogInformation(
         self, item: Optional[LaserImageItem] = None
     ) -> QtWidgets.QDialog:
