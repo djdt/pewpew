@@ -46,7 +46,7 @@ class GraphicsOptions(QtCore.QObject):
         self.smoothing = False
 
         self.font = QtGui.QFont("sans", 16)
-        self.font_color = QtCore.Qt.white
+        self.font_color = QtGui.QColor(255, 255, 255)
 
         self.calibrate = True
         self.units = "μm"
