@@ -5,8 +5,10 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewlib import io
 from pewlib.laser import Laser
+from pewpew.graphics.imageitems import LaserImageItem
 
 from pewpew.widgets.prompts import OverwriteFilePrompt
+
 # from pewpew.widgets.views import TabViewWidget
 from pewpew.widgets.views import TabViewWidget
 
@@ -49,7 +51,9 @@ class PngOptionsBox(OptionsBox):
 
 class VtiOptionsBox(OptionsBox):
     def __init__(
-        self, spacing: Tuple[float, float, float], parent: Optional[QtWidgets.QWidget] = None
+        self,
+        spacing: Tuple[float, float, float],
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__("VTK Images", ".vti", visible=True, parent=parent)
         self.lineedits = [QtWidgets.QLineEdit(str(dim)) for dim in spacing]
@@ -90,7 +94,9 @@ class ExportOptions(QtWidgets.QWidget):
     currentIndexChanged = QtCore.Signal(int)
 
     def __init__(
-        self, options: List[OptionsBox] = None, parent: Optional[QtWidgets.QWidget] = None
+        self,
+        options: List[OptionsBox] = None,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(parent)
         self.setSizePolicy(
@@ -163,7 +169,9 @@ class _ExportDialogBase(QtWidgets.QDialog):
     invalid_chars = '<>:"/\\|?*'
     invalid_map = str.maketrans(invalid_chars, "_" * len(invalid_chars))
 
-    def __init__(self, options: List[OptionsBox], parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(
+        self, options: List[OptionsBox], parent: Optional[QtWidgets.QWidget] = None
+    ):
         super().__init__(parent)
         self.setWindowTitle("Export")
 
@@ -259,11 +267,21 @@ class _ExportDialogBase(QtWidgets.QDialog):
 
 
 class ExportDialog(_ExportDialogBase):
-    def __init__(self, widget: TabViewWidget, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(
+        self,
+        laser: Laser,
+        default_element: Optional[str] = None,
+        item: Optional[LaserImageItem] = None,
+        parent: Optional[QtWidgets.QWidget] = None,
+    ):
+
+        # @Todo need to redo PNG export, single scene?
+        # @Todo PNG options
+
         spacing = (
-            widget.laser.config.get_pixel_width(),
-            widget.laser.config.get_pixel_height(),
-            widget.laser.config.spotsize / 2.0,
+            laser.config.get_pixel_width(),
+            laser.config.get_pixel_height(),
+            laser.config.spotsize / 2.0,
         )
         options = [
             OptionsBox("Numpy Archives", ".npz"),
@@ -272,7 +290,11 @@ class ExportDialog(_ExportDialogBase):
             VtiOptionsBox(spacing),
         ]
         super().__init__(options, parent)
-        self.widget = widget
+
+        self.laser = laser
+        self.default_element = default_element or laser.elements[0]
+        self.item = item
+        # self.widget = widget
 
         self.check_calibrate = QtWidgets.QCheckBox("Calibrate data.")
         self.check_calibrate.setChecked(True)
@@ -291,18 +313,22 @@ class ExportDialog(_ExportDialogBase):
             "The filename will be appended with the layer number."
         )
         self.check_export_layers.clicked.connect(self.updatePreview)
-        self.check_export_layers.setEnabled(widget.is_srr)
-        self.check_export_layers.setVisible(widget.is_srr)
+        # self.check_export_layers.setEnabled(widget.is_srr)
+        # self.check_export_layers.setVisible(widget.is_srr)
 
         self.layout.insertWidget(2, self.check_calibrate)
         self.layout.insertWidget(3, self.check_export_all)
         self.layout.insertWidget(4, self.check_export_layers)
 
         # A default path
-        path = self.widget.laserFilePath(ext=".npz").resolve()
+        path = self.pathForLaser(self.laser).resolve()
         self.lineedit_directory.setText(str(path.parent))
         self.lineedit_filename.setText(str(path.name).translate(self.invalid_map))
         self.typeChanged(0)
+
+    def pathForLaser(self, laser: Laser, ext: str = ".npz") -> Path:
+        path = Path(laser.info.get("File Path", ""))
+        return path.with_name(laser.info.get("Name", "laser") + ext)
 
     def allowCalibrate(self) -> bool:
         return self.options.currentExt() != ".npz"
@@ -312,6 +338,9 @@ class ExportDialog(_ExportDialogBase):
 
     def allowExportLayers(self) -> bool:
         return self.options.currentExt() not in [".npz", ".png", ".vti"]
+
+    # def allowPNGExport(self) -> bool:
+    #     return self.item is not None
 
     def isCalibrate(self) -> bool:
         return self.check_calibrate.isChecked() and self.check_calibrate.isEnabled()
@@ -383,17 +412,24 @@ class ExportDialog(_ExportDialogBase):
 
         return [p for p in paths if p[0] != ""]
 
-    def export(self, path: Path, element: str, layer: Optional[int], widget: TabViewWidget) -> None:
+    def export(
+        self,
+        path: Path,
+        element: str,
+        layer: Optional[int],
+        laser: Laser,
+        item: LaserImageItem,
+    ) -> None:
         option = self.options.currentOption()
 
         if option.ext == ".csv":
             kwargs = {"calibrate": self.isCalibrate(), "flat": True}
-            if element in widget.laser.elements:
-                data = widget.laser.get(element, layer=layer, **kwargs)
+            if element in laser.elements:
+                data = laser.get(element, layer=layer, **kwargs)
                 io.textimage.save(path, data)
 
         elif option.ext == ".png":
-            if element in widget.laser.elements:
+            if element in laser.elements:
 
                 self.widget.graphics.drawLaser(
                     self.widget.laser,
@@ -420,16 +456,16 @@ class ExportDialog(_ExportDialogBase):
             spacing = option.spacing()
             # Last axis (z) is negative for layer order
             spacing = spacing[0], spacing[1], -spacing[2]
-            data = widget.laser.get(calibrate=self.isCalibrate())
+            data = laser.get(calibrate=self.isCalibrate())
             io.vtk.save(path, data, spacing)
 
         elif option.ext == ".npz":  # npz
-            io.npz.save(path, widget.laser)
+            io.npz.save(path, laser)
 
         else:
             raise ValueError(f"Unable to export file as '{option.ext}'.")
 
-        logger.info(f"Exported {widget.laser.info['Name']} to {path.name}.")
+        logger.info(f"Exported {laser.info['Name']} to {path.name}.")
 
     def accept(self) -> None:
         paths = self.generatePaths(self.widget.laser)
@@ -452,7 +488,9 @@ class ExportDialog(_ExportDialogBase):
 
 
 class ExportAllDialog(ExportDialog):
-    def __init__(self, widgets: List[TabViewWidget], parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(
+        self, widgets: List[TabViewWidget], parent: Optional[QtWidgets.QWidget] = None
+    ):
         unique: Set[str] = set()
         for widget in widgets:
             unique.update(widget.laser.elements)

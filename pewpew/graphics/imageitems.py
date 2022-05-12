@@ -76,6 +76,10 @@ class LaserImageItem(SnapImageItem):
     requestDialogColocalisation = QtCore.Signal()
     requestDialogInformation = QtCore.Signal()
     requestDialogStatistics = QtCore.Signal()
+
+    requestExport = QtCore.Signal()
+    requestSave = QtCore.Signal()
+
     colortableChanged = QtCore.Signal(list, float, float)
 
     modified = QtCore.Signal()

@@ -379,6 +379,9 @@ class LaserTabWidget(TabViewWidget):
         item.requestDialogColocalisation.connect(self.dialogColocalisation)
         item.requestDialogStatistics.connect(self.dialogStatistics)
 
+        item.requestExport.connect(self.exportLaserItem)
+        item.requestSave.connect(self.saveLaserItem)
+
         # Modification
         item.colortableChanged.connect(self.laserColortableChanged)
         item.modified.connect(lambda: self.setWindowModified(True))
@@ -637,6 +640,15 @@ class LaserTabWidget(TabViewWidget):
         dlg.configApplyAll.connect(self.view.applyConfig)
         dlg.open()
         return dlg
+
+    def dialogExport(self, item: Optional[LaserImageItem] = None) -> QtWidgets.QDialog:
+        if item is None:
+            item = self.graphics.scene().focusItem()
+
+        dlg = exportdialogs.ExportDialog(item.laser, item.element(), item, parent=self)
+        dlg.open()
+        return dlg
+
 
     def dialogInformation(
         self, item: Optional[LaserImageItem] = None
