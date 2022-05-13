@@ -143,8 +143,6 @@ class ColorBarOverlay(OverlayItem):
         self.checkmarks = checkmarks
         self.alignment = alignment
 
-        self.painted_since_update = False
-
     def updateTable(self, colortable: List[int], vmin: float, vmax: float):
         self.vmin = vmin
         self.vmax = vmax
@@ -154,7 +152,7 @@ class ColorBarOverlay(OverlayItem):
         )
         image.setColorTable(colortable)
         self.pixmap = QtGui.QPixmap.fromImage(image)
-        self.painted_since_update = False
+        self.requestPaint()
 
     def boundingRect(self):
         fm = QtGui.QFontMetrics(self.font)
