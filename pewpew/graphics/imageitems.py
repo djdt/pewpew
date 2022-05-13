@@ -1,7 +1,9 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 import numpy as np
 import copy
+from pathlib import Path
 
+from pewlib import io
 from pewlib.laser import Laser
 from pewlib.calibration import Calibration
 from pewlib.config import Config
@@ -18,7 +20,7 @@ from pewpew.graphics.items import EditableLabelItem
 
 from pewpew.actions import qAction
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 
 class SnapImageItem(QtWidgets.QGraphicsObject):
@@ -125,6 +127,12 @@ class LaserImageItem(SnapImageItem):
 
         self.createActions()
 
+    @property
+    def mask(self) -> np.ndarray:
+        if self.mask_image is None:
+            return np.ones(self.laser.shape, dtype=bool)
+        return self.mask_image._array.astype(bool)
+
     def element(self) -> str:
         return self.current_element
 
@@ -145,12 +153,6 @@ class LaserImageItem(SnapImageItem):
         self.label.setText(name)
         self.modified.emit()
 
-    @property
-    def mask(self) -> np.ndarray:
-        if self.mask_image is None:
-            return np.ones(self.laser.shape, dtype=bool)
-        return self.mask_image._array.astype(bool)
-
     # Virtual SnapImageItem methods
     def dataAtPos(self, pos: QtCore.QPointF) -> float:
         pos = self.mapToData(pos)
@@ -163,7 +165,9 @@ class LaserImageItem(SnapImageItem):
         return self.raw_data
 
     def redraw(self) -> None:
-        data = self.laser.get(self.element(), calibrate=self.options.calibrate, flat=True)
+        data = self.laser.get(
+            self.element(), calibrate=self.options.calibrate, flat=True
+        )
         self.raw_data = np.ascontiguousarray(data)
 
         self.vmin, self.vmax = self.options.get_color_range_as_float(
@@ -207,6 +211,7 @@ class LaserImageItem(SnapImageItem):
 
         super().handleSelection(mask, modes)
 
+    # GraphicsItem drawing
     def boundingRect(self) -> QtCore.QRectF:
         x0, x1, y0, y1 = self.laser.config.data_extent(self.laser.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
@@ -231,27 +236,6 @@ class LaserImageItem(SnapImageItem):
         if self.mask_image is not None:
             painter.drawImage(rect, self.mask_image)
 
-        # if self.isSelected():
-        #     painter.setPen(QtGui.QPen(QtCore.Qt.white, 10.0))
-        #     painter.drawRect(self.boundingRect())
-
-        # if self.hasFocus():
-        #     painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        #     fm = QtGui.QFontMetrics(self.options.font, painter.device())
-        #     path = QtGui.QPainterPath()
-        #     path.addText(0, fm.ascent(), self.options.font, self.laser.info["Name"])
-
-        #     # painter.setTransform
-        #     # painter.setBrushOrigin(rect.topRight())
-        #     # painter.setTransform(QtGui.QTransform.fromTranslate(rect.left(), rect.top()))
-
-        #     painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        #     painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
-        #     painter.fillPath(
-        #         path, QtGui.QBrush(self.options.font_color, QtCore.Qt.SolidPattern)
-        #     )
-        # #     self.rect = self.laserRect()
-        # #     self.image = self.laserImage(self.current_element)
         painter.restore()
 
     # === Slots ===
@@ -284,6 +268,11 @@ class LaserImageItem(SnapImageItem):
         clipboard = QtWidgets.QApplication.clipboard()
         clipboard.setImage(self.image)
 
+    def saveToFile(self, path: Union[Path, str]) -> None:
+        path = Path(path)
+        io.npz.save(path, self.laser)
+        self.laser.info["File Path"] = str(path.resolve())
+
     # ==== Actions ===
     def createActions(self) -> None:
         self.action_copy_image = qAction(
@@ -292,6 +281,23 @@ class LaserImageItem(SnapImageItem):
             "Copy image to clipboard.",
             self.copyToClipboard,
         )
+
+        # === IO requests ===
+        self.action_export = qAction(
+            "document-save-as",
+            "E&xport",
+            "Export laser data to a variety of formats.",
+            self.requestExport,
+        )
+        self.action_export.setShortcut("Ctrl+X")
+        self.action_save = qAction(
+            "document-save",
+            "&Save",
+            "Save document to numpy archive.",
+            self.requestSave,
+        )
+        # self.addAction(self.action_save)
+        self.action_save.setShortcut("Ctrl+S")
         # === Dialogs requests ===
         self.action_calibration = qAction(
             "go-top",
@@ -342,18 +348,6 @@ class LaserImageItem(SnapImageItem):
         #     "Open a copy of the image.",
         #     self.actionDuplicate,
         # )
-        # self.action_export = qAction(
-        #     "document-save-as", "E&xport", "Export documents.", self.actionExport
-        # )
-        # self.action_export.setShortcut("Ctrl+X")
-        # # Add the export action so we can use it via shortcut
-        # self.addAction(self.action_export)
-        # self.action_save = qAction(
-        #     "document-save", "&Save", "Save document to numpy archive.", self.actionSave
-        # )
-        # self.action_save.setShortcut("Ctrl+S")
-        # Add the save action so we can use it via shortcut
-        # self.addAction(self.action_save)
         # self.action_select_statistics = qAction(
         #     "dialog-information",
         #     "Selection Statistics",
@@ -531,6 +525,8 @@ class LaserImageItem(SnapImageItem):
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneEvent) -> None:
         self.setSelected(True)
 
+    # def keyPressEvent(self, )
+
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
         menu = QtWidgets.QMenu()
         # menu.addAction(self.action_duplicate)
@@ -546,9 +542,11 @@ class LaserImageItem(SnapImageItem):
         #     menu.addAction(self.action_select_colocalisation)
         # else:
         #     menu.addAction(self.view.action_open)
-        #     menu.addAction(self.action_save)
-        #     menu.addAction(self.action_export)
-        #     menu.addSeparator()
+        menu.addAction(self.action_save)
+        menu.addAction(self.action_export)
+
+        menu.addSeparator()
+
         menu.addAction(self.action_config)
         menu.addAction(self.action_calibration)
         menu.addAction(self.action_information)

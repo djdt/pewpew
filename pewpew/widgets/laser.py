@@ -379,8 +379,8 @@ class LaserTabWidget(TabViewWidget):
         item.requestDialogColocalisation.connect(self.dialogColocalisation)
         item.requestDialogStatistics.connect(self.dialogStatistics)
 
-        item.requestExport.connect(self.exportLaserItem)
-        item.requestSave.connect(self.saveLaserItem)
+        item.requestExport.connect(self.dialogExport)
+        item.requestSave.connect(self.dialogSave)
 
         # Modification
         item.colortableChanged.connect(self.laserColortableChanged)
@@ -586,19 +586,6 @@ class LaserTabWidget(TabViewWidget):
         self.refresh()
 
     # Callbacks
-    def saveDocument(self, path: Union[str, Path]) -> None:
-        """Saves the laser to an '.npz' file.
-
-        See Also:
-            `:func:pewlib.io.npz.save`
-        """
-        if isinstance(path, str):
-            path = Path(path)
-
-        io.npz.save(path, self.laser)
-        self.laser.info["File Path"] = str(path.resolve())
-        self.setWindowModified(False)
-
     def dialogCalibration(
         self, item: Optional[LaserImageItem] = None
     ) -> QtWidgets.QDialog:
@@ -644,11 +631,11 @@ class LaserTabWidget(TabViewWidget):
     def dialogExport(self, item: Optional[LaserImageItem] = None) -> QtWidgets.QDialog:
         if item is None:
             item = self.graphics.scene().focusItem()
+            assert item is not None
 
-        dlg = exportdialogs.ExportDialog(item.laser, item.element(), item, parent=self)
+        dlg = exportdialogs.ExportDialog(item, parent=self)
         dlg.open()
         return dlg
-
 
     def dialogInformation(
         self, item: Optional[LaserImageItem] = None
@@ -659,6 +646,33 @@ class LaserTabWidget(TabViewWidget):
 
         dlg = dialogs.InformationDialog(item.laser.info, parent=self)
         dlg.infoChanged.connect(item.applyInformation)
+        dlg.open()
+        return dlg
+
+    def dialogSave(self, item: Optional[LaserImageItem] = None) -> QtWidgets.QDialog:
+        """Save the document to an '.npz' file.
+
+        If not already associated with an '.npz' path a dialog is opened to select one.
+        """
+        if item is None:
+            item = self.graphics.scene().focusItem()
+
+        path = Path(item.laser.info["File Path"])
+        if path.suffix.lower() == ".npz" and path.exists():
+            item.saveToFile(path)
+            # Todo window modifed - 1
+            self.setWindowModified(False)
+            return None
+        else:
+            path = Path(item.laser.info.get("File Path", ""))
+            path = path.with_name(item.name() + ".npz")
+
+        dlg = QtWidgets.QFileDialog(
+            self, "Save File", str(path.resolve()), "Numpy archive(*.npz);;All files(*)"
+        )
+        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        dlg.fileSelected.connect(item.saveToFile)
+        dlg.fileSelected.connect(lambda _: self.setWindowModified(False))
         dlg.open()
         return dlg
 
@@ -735,25 +749,6 @@ class LaserTabWidget(TabViewWidget):
     def actionRequestColorbarEdit(self) -> None:
         if self.viewspace is not None:
             self.viewspace.colortableRangeDialog()
-
-    def actionSave(self) -> QtWidgets.QDialog:
-        """Save the document to an '.npz' file.
-
-        If not already associated with an '.npz' path a dialog is opened to select one.
-        """
-        path = Path(self.laser.info["File Path"])
-        if path.suffix.lower() == ".npz" and path.exists():
-            self.saveDocument(path)
-            return None
-        else:
-            path = self.laserFilePath()
-        dlg = QtWidgets.QFileDialog(
-            self, "Save File", str(path.resolve()), "Numpy archive(*.npz);;All files(*)"
-        )
-        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-        dlg.fileSelected.connect(self.saveDocument)
-        dlg.open()
-        return dlg
 
     def actionSelectDialog(self) -> QtWidgets.QDialog:
         """Open a `:class:pewpew.widgets.dialogs.SelectionDialog` and applies selection."""
