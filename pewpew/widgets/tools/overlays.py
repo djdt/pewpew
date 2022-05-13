@@ -12,7 +12,7 @@ from pewpew.graphics.imageitems import SnapImageItem
 from pewpew.graphics.overlaygraphics import OverlayGraphicsView
 from pewpew.graphics.overlayitems import MetricScaleBarOverlay
 
-from pewpew.widgets.exportdialogs import _ExportDialogBase, PngOptionsBox
+from pewpew.widgets.exportdialogs import _ExportDialogBase, OptionsBox
 from pewpew.widgets.ext import RangeSlider
 from pewpew.widgets.laser import LaserTabWidget
 from pewpew.widgets.prompts import OverwriteFilePrompt
@@ -74,7 +74,9 @@ class RGBLabelItem(QtWidgets.QGraphicsItem):
 
 
 class RGBOverlayGraphicsView(OverlayGraphicsView):
-    def __init__(self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(
+        self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None
+    ):
         self.options = options
         self.data: Optional[np.ndarray] = None
 
@@ -107,7 +109,10 @@ class RGBOverlayGraphicsView(OverlayGraphicsView):
         self.scalebar.setPos(0, 10)
 
     def setOverlayItemVisibility(
-        self, label: Optional[bool] = None, scalebar: Optional[bool] = None, colorbar: Optional[bool] = None
+        self,
+        label: Optional[bool] = None,
+        scalebar: Optional[bool] = None,
+        colorbar: Optional[bool] = None,
     ):
         if label is None:
             label = self.options.items["label"]
@@ -125,9 +130,7 @@ class RGBOverlayGraphicsView(OverlayGraphicsView):
             self.scene().removeItem(self.image)
 
         self.data = data
-        self.image = SnapImageItem.fromArray(
-            data, rect, smooth=self.options.smoothing
-        )
+        self.image = SnapImageItem.fromArray(data, rect, smooth=self.options.smoothing)
         self.scene().addItem(self.image)
 
         if self.sceneRect() != rect:
@@ -489,8 +492,9 @@ class OverlayRows(QtWidgets.QScrollArea):
 
 class OverlayExportDialog(_ExportDialogBase):
     """Export dialog for the overlay tool."""
+
     def __init__(self, parent: OverlayTool):
-        super().__init__([PngOptionsBox()], parent)
+        super().__init__([OptionsBox("PNG images", ".png")], parent)
         self.setWindowTitle("Overlay Export")
         self.widget = parent
 
