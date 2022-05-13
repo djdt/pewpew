@@ -820,7 +820,7 @@ class InformationDialog(QtWidgets.QDialog):
 
     infoChanged = QtCore.Signal(dict)
 
-    read_only_items = ["Name", "File Path"]
+    read_only_items = ["Name", "File Path", "File Version"]
 
     def __init__(self, info: Dict[str, str], parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
