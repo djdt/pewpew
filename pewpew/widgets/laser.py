@@ -206,12 +206,12 @@ class LaserTabWidget(TabViewWidget):
         # self.action_config = qAction(
         #     "document-edit", "&Config", "Edit the document's config.", self.actionConfig
         # )
-        # self.action_copy_image = qAction(
-        #     "insert-image",
-        #     "Copy &Image",
-        #     "Copy image to clipboard.",
-        #     self.actionCopyImage,
-        # )
+        self.action_copy_image = qAction(
+            "insert-image",
+            "Copy Scene &Image",
+            "Copy scene to clipboard.",
+            self.actionCopyImage,
+        )
         # self.action_duplicate = qAction(
         #     "edit-copy",
         #     "Duplicate image",
@@ -367,9 +367,16 @@ class LaserTabWidget(TabViewWidget):
         layout.addLayout(layout_bar)
         self.setLayout(layout)
 
+    # @property
+    # def current_element(self) -> str:
+    #     return self.combo_element.currentText()
+
+    # @current_element.setter
+    # def current_element(self, element: str) -> None:
+    #     self.combo_element.setCurrentText(element)
+
     def addLaser(self, laser: Laser) -> None:
         item = LaserImageItem(laser, self.graphics.options)
-        # item.updateImage(self.current_element, self.graphics.options)
         self.graphics.scene().addItem(item)
 
         # Connect dialog requests
@@ -385,30 +392,26 @@ class LaserTabWidget(TabViewWidget):
         # Modification
         item.colortableChanged.connect(self.laserColortableChanged)
         item.modified.connect(lambda: self.setWindowModified(True))
-        # self.graphics.scene().setFocusItem(item)
-        # self.graphics.scene().setFocusItem(item)
         item.setSelected(True)
 
-    @property
-    def current_element(self) -> str:
-        return self.combo_element.currentText()
+    def laserItems(self) -> List[LaserImageItem]:
+        return [
+            item
+            for item in self.graphics.scene().items()
+            if isinstance(item, LaserImageItem)
+        ]
 
-    @current_element.setter
-    def current_element(self, element: str) -> None:
-        self.combo_element.setCurrentText(element)
-
-    # @property
-    # def current_layer(self) -> Optional[int]:
-    #     if not self.is_srr or self.combo_layers.currentIndex() == 0:
-    #         return None
-    #     return int(self.combo_layers.currentText())
+    def uniqueElements(self) -> List[str]:
+        elements = set([])
+        for item in self.laserItems():
+            elements.update(item.laser.elements)
+        return list(elements)
 
     def laserColortableChanged(
         self, table: List[int], vmin: float, vmax: float
     ) -> None:
         # Todo calculate this based on all open lasers?
         self.graphics.colorbar.updateTable(table, vmin, vmax)
-        # self.graphics.updateForeground()
         self.graphics.invalidateScene()
 
     def laserSelectionChanged(
@@ -443,13 +446,6 @@ class LaserTabWidget(TabViewWidget):
     # Virtual
     def refresh(self) -> None:
         """Redraw images."""
-
-        # self.graphics.drawLaser(
-        #     self.laser, self.current_element, layer=self.current_layer
-        # )
-        # if self.graphics.widget is not None:
-        #     self.graphics.widget.imageChanged(self.graphics.image, self.graphics.data)
-
         for item in self.graphics.items():
             if isinstance(item, LaserImageItem):
                 item.redraw()
@@ -471,10 +467,6 @@ class LaserTabWidget(TabViewWidget):
     #     def laserFilePath(self, ext: str = ".npz") -> Path:
     #         path = Path(self.laser.info.get("File Path", ""))
     #         return path.with_name(self.laserName() + ext)
-
-    def uniqueElements(self) -> List[str]:
-        for item in self.graphics.scene().items():
-            return []
 
     # def populateElements(self, item: LaserImageItem) -> None:
     #     """Repopulate the element combo box."""
@@ -765,23 +757,26 @@ class LaserTabWidget(TabViewWidget):
         menu.addAction(self.action_copy_image)
         menu.addSeparator()
 
-        if self.graphics.posInSelection(event.pos()):
-            menu.addAction(self.action_select_copy_text)
-            menu.addAction(self.action_select_crop)
-            menu.addSeparator()
-            menu.addAction(self.action_select_statistics)
-            menu.addAction(self.action_select_colocalisation)
-        else:
-            menu.addAction(self.view.action_open)
-            menu.addAction(self.action_save)
-            menu.addAction(self.action_export)
-            menu.addSeparator()
-            menu.addAction(self.action_config)
-            menu.addAction(self.action_calibration)
-            menu.addAction(self.action_information)
-            menu.addSeparator()
-            menu.addAction(self.action_statistics)
-            menu.addAction(self.action_colocalisation)
+        if self.graphics.items(): # More than one laser
+            # @Todo add export all
+            pass
+        # if self.graphics.posInSelection(event.pos()):
+        #     menu.addAction(self.action_select_copy_text)
+        #     menu.addAction(self.action_select_crop)
+        #     menu.addSeparator()
+        #     menu.addAction(self.action_select_statistics)
+        #     menu.addAction(self.action_select_colocalisation)
+        # else:
+        #     menu.addAction(self.view.action_open)
+        #     menu.addAction(self.action_save)
+        #     menu.addAction(self.action_export)
+        #     menu.addSeparator()
+        #     menu.addAction(self.action_config)
+        #     menu.addAction(self.action_calibration)
+        #     menu.addAction(self.action_information)
+        #     menu.addSeparator()
+        #     menu.addAction(self.action_statistics)
+        #     menu.addAction(self.action_colocalisation)
         menu.popup(event.globalPos())
         event.accept()
 
