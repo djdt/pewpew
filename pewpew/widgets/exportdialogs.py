@@ -9,10 +9,7 @@ from pewpew.graphics.imageitems import LaserImageItem
 
 from pewpew.widgets.prompts import OverwriteFilePrompt
 
-# from pewpew.widgets.views import TabViewWidget
-from pewpew.widgets.views import TabViewWidget
-
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple, Union
 
 
 logger = logging.getLogger(__name__)
@@ -269,9 +266,7 @@ class _ExportDialogBase(QtWidgets.QDialog):
 class ExportDialog(_ExportDialogBase):
     def __init__(
         self,
-        laser: Laser,
-        default_element: Optional[str] = None,
-        item: Optional[LaserImageItem] = None,
+        laser: Union[Laser, LaserImageItem],
         parent: Optional[QtWidgets.QWidget] = None,
     ):
 
@@ -286,15 +281,18 @@ class ExportDialog(_ExportDialogBase):
         options = [
             OptionsBox("Numpy Archives", ".npz"),
             OptionsBox("CSV Document", ".csv"),
-            PngOptionsBox(),
             VtiOptionsBox(spacing),
         ]
-        super().__init__(options, parent)
 
-        self.laser = laser
-        self.default_element = default_element or laser.elements[0]
-        self.item = item
-        # self.widget = widget
+        if isinstance(laser, LaserImageItem):
+            self.item = laser
+            self.laser = laser.laser
+            options.insert(2, PngOptionsBox())
+        else:
+            self.item = None
+            self.laser = laser
+
+        super().__init__(options, parent)
 
         self.check_calibrate = QtWidgets.QCheckBox("Calibrate data.")
         self.check_calibrate.setChecked(True)
@@ -338,9 +336,6 @@ class ExportDialog(_ExportDialogBase):
 
     def allowExportLayers(self) -> bool:
         return self.options.currentExt() not in [".npz", ".png", ".vti"]
-
-    # def allowPNGExport(self) -> bool:
-    #     return self.item is not None
 
     def isCalibrate(self) -> bool:
         return self.check_calibrate.isChecked() and self.check_calibrate.isEnabled()
@@ -418,7 +413,7 @@ class ExportDialog(_ExportDialogBase):
         element: str,
         layer: Optional[int],
         laser: Laser,
-        item: LaserImageItem,
+        item: Optional[LaserImageItem] = None,
     ) -> None:
         option = self.options.currentOption()
 
@@ -428,9 +423,9 @@ class ExportDialog(_ExportDialogBase):
                 data = laser.get(element, layer=layer, **kwargs)
                 io.textimage.save(path, data)
 
-        elif option.ext == ".png":
+        elif option.ext == ".png":  # @Todo better png export
+            assert item is not None
             if element in laser.elements:
-
                 self.widget.graphics.drawLaser(
                     self.widget.laser,
                     element,
@@ -468,7 +463,7 @@ class ExportDialog(_ExportDialogBase):
         logger.info(f"Exported {laser.info['Name']} to {path.name}.")
 
     def accept(self) -> None:
-        paths = self.generatePaths(self.widget.laser)
+        paths = self.generatePaths(self.laser)
         prompt = OverwriteFilePrompt()
         paths = [p for p in paths if prompt.promptOverwrite(str(p[0].resolve()))]
 
@@ -477,13 +472,12 @@ class ExportDialog(_ExportDialogBase):
 
         try:
             for path, element, layer in paths:
-                self.export(path, element, layer, self.widget)
+                self.export(path, element, layer, self.laser, self.item)
         except Exception as e:  # pragma: no cover
             logger.exception(e)
             QtWidgets.QMessageBox.critical(self, "Unable to Export!", str(e))
             return
 
-        self.widget.refresh()
         super().accept()
 
 
