@@ -14,6 +14,7 @@ from pewlib.process.threshold import otsu
 from pewlib.srr import SRRConfig
 
 from pewpew.actions import qAction, qToolButton
+from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.lib import kmeans
 from pewpew.validators import (
     DecimalValidator,
@@ -24,8 +25,6 @@ from pewpew.validators import (
 from pewpew.charts.calibration import CalibrationChart
 from pewpew.charts.colocal import ColocalisationChart
 from pewpew.charts.histogram import HistogramChart
-
-from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 
 from pewpew.models import CalibrationPointsTableModel
 
@@ -972,11 +971,11 @@ class SelectionDialog(ApplyDialog):
     }
     COMPARISION = {">": np.greater, "<": np.less, "=": np.equal}
 
-    def __init__(self, graphics: LaserGraphicsView, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, item: LaserImageItem, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setWindowTitle("Selection")
 
-        self.graphics = graphics
+        self.item = item
 
         self.threshold: float = 0.0
 
@@ -1003,7 +1002,7 @@ class SelectionDialog(ApplyDialog):
         self.lineedit_manual.textEdited.connect(self.refresh)
 
         self.check_limit_selection = QtWidgets.QCheckBox(
-            "Interscet selection with current selection."
+            "Intersect selection with current selection."
         )
         self.check_limit_threshold = QtWidgets.QCheckBox(
             "Limit thresholding to selected values."
@@ -1029,11 +1028,11 @@ class SelectionDialog(ApplyDialog):
 
     def refresh(self) -> None:
         method = self.combo_method.currentText()
-        data = self.graphics.data
+        data = self.item.raw_data
         if data is None:
             return
-        if self.check_limit_threshold.isChecked() and self.graphics.mask is not None:
-            data = data[self.graphics.mask]
+        if self.check_limit_threshold.isChecked() and self.item.mask_image is not None:
+            data = data[self.item.mask]
 
         # Remove nans
         data = data[~np.isnan(data)]
@@ -1073,7 +1072,7 @@ class SelectionDialog(ApplyDialog):
 
     def apply(self) -> None:
         comparison = self.COMPARISION[self.combo_comparison.currentText()]
-        data = self.graphics.data
+        data = self.item.raw_data
         if data is None:
             return
         mask = comparison(data, self.threshold)

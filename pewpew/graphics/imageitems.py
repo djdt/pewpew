@@ -38,8 +38,11 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
             return pos
         return super().itemChange(change, value)
 
-    def dataAtPos(self, pos: QtCore.QPointF) -> float:
+    def dataAt(self, pos: QtCore.QPointF) -> float:
         raise NotImplementedError
+
+    def selectedAt(self, pos: QtCore.QPointF) -> bool:
+        return False
 
     def imageSize(self) -> QtCore.QSize:
         raise NotImplementedError
@@ -47,7 +50,7 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
     def rawData(self) -> np.ndarray:
         raise NotImplementedError
 
-    def handleSelection(self, mask: np.ndarray, modes: List[str]) -> None:
+    def select(self, mask: np.ndarray, modes: List[str]) -> None:
         self.selectionChanged.emit()
 
     def mapToData(self, pos: QtCore.QPointF) -> QtCore.QPoint:
@@ -73,14 +76,14 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
 
 
 class LaserImageItem(SnapImageItem):
-    requestDialogCalibration = QtCore.Signal()
-    requestDialogConfig = QtCore.Signal()
-    requestDialogColocalisation = QtCore.Signal()
-    requestDialogInformation = QtCore.Signal()
-    requestDialogStatistics = QtCore.Signal()
+    requestDialogCalibration = QtCore.Signal(QtWidgets.QGraphicsItem)
+    requestDialogConfig = QtCore.Signal(QtWidgets.QGraphicsItem)
+    requestDialogColocalisation = QtCore.Signal(QtWidgets.QGraphicsItem, bool)
+    requestDialogInformation = QtCore.Signal(QtWidgets.QGraphicsItem)
+    requestDialogStatistics = QtCore.Signal(QtWidgets.QGraphicsItem, bool)
 
-    requestExport = QtCore.Signal()
-    requestSave = QtCore.Signal()
+    requestExport = QtCore.Signal(QtWidgets.QGraphicsItem)
+    requestSave = QtCore.Signal(QtWidgets.QGraphicsItem)
 
     colortableChanged = QtCore.Signal(list, float, float)
 
@@ -154,9 +157,13 @@ class LaserImageItem(SnapImageItem):
         self.modified.emit()
 
     # Virtual SnapImageItem methods
-    def dataAtPos(self, pos: QtCore.QPointF) -> float:
+    def dataAt(self, pos: QtCore.QPointF) -> float:
         pos = self.mapToData(pos)
         return self.raw_data[pos.y(), pos.x()]
+
+    def selectedAt(self, pos: QtCore.QPointF) -> bool:
+        pos = self.mapToData(pos)
+        return self.mask[pos.y(), pos.x()]
 
     def imageSize(self) -> QtCore.QSize:
         return QtCore.QSize(self.laser.shape[1], self.laser.shape[0])
@@ -186,7 +193,7 @@ class LaserImageItem(SnapImageItem):
         self.colortableChanged.emit(table, self.vmin, self.vmax)
         self.imageChanged.emit()
 
-    def handleSelection(self, mask: np.ndarray, modes: List[str]) -> None:
+    def select(self, mask: np.ndarray, modes: List[str]) -> None:
         current_mask = self.mask
 
         if "add" in modes:
@@ -209,7 +216,7 @@ class LaserImageItem(SnapImageItem):
 
         self.update()
 
-        super().handleSelection(mask, modes)
+        super().select(mask, modes)
 
     # GraphicsItem drawing
     def boundingRect(self) -> QtCore.QRectF:
@@ -287,47 +294,59 @@ class LaserImageItem(SnapImageItem):
             "document-save-as",
             "E&xport",
             "Export laser data to a variety of formats.",
-            self.requestExport,
+            lambda: self.requestExport.emit(self),
         )
         self.action_export.setShortcut("Ctrl+X")
         self.action_save = qAction(
             "document-save",
             "&Save",
             "Save document to numpy archive.",
-            self.requestSave,
+            lambda: self.requestSave.emit(self),
         )
-        # self.addAction(self.action_save)
         self.action_save.setShortcut("Ctrl+S")
+
         # === Dialogs requests ===
         self.action_calibration = qAction(
             "go-top",
             "Ca&libration",
             "Edit the laser calibration.",
-            self.requestDialogCalibration,
+            lambda: self.requestDialogCalibration.emit(self),
         )
         self.action_config = qAction(
             "document-edit",
             "&Config",
             "Edit the laser configuration.",
-            self.requestDialogConfig,
+            lambda: self.requestDialogConfig.emit(self),
         )
         self.action_colocalisation = qAction(
             "dialog-information",
             "Colocalisation",
             "Open the colocalisation dialog.",
-            self.requestDialogColocalisation,
+            lambda: self.requestDialogColocalisation.emit(self, False),
+        )
+        self.action_colocalisation_selection = qAction(
+            "dialog-information",
+            "Selection Colocalisation",
+            "Open the colocalisation dialog for the current selected area.",
+            lambda: self.requestDialogColocalisation.emit(self, True),
         )
         self.action_information = qAction(
             "documentinfo",
             "In&formation",
             "View and edit stored laser information.",
-            self.requestDialogInformation,
+            lambda: self.requestDialogInformation.emit(self),
         )
         self.action_statistics = qAction(
             "dialog-information",
             "Statistics",
             "Open the statisitics dialog.",
-            self.requestDialogStatistics,
+            lambda: self.requestDialogStatistics.emit(self, False),
+        )
+        self.action_statistics_selection = qAction(
+            "dialog-information",
+            "Selection Statistics",
+            "Open the statisitics dialog for the current selected area.",
+            lambda: self.requestDialogStatistics.emit(self, True),
         )
 
         self.action_show_label_name = qAction(
@@ -348,31 +367,19 @@ class LaserImageItem(SnapImageItem):
         #     "Open a copy of the image.",
         #     self.actionDuplicate,
         # )
-        # self.action_select_statistics = qAction(
-        #     "dialog-information",
-        #     "Selection Statistics",
-        #     "Open the statisitics dialog for the current selection.",
-        #     self.actionStatisticsSelection,
-        # )
-        # self.action_select_colocalisation = qAction(
-        #     "dialog-information",
-        #     "Selection Colocalisation",
-        #     "Open the colocalisation dialog for the current selection.",
-        #     self.actionColocalSelection,
-        # )
 
-        # self.action_select_copy_text = qAction(
-        #     "insert-table",
-        #     "Copy Selection as Text",
-        #     "Copy the current selection to the clipboard as a column of text values.",
-        #     self.actionCopySelectionText,
-        # )
-        # self.action_select_crop = qAction(
-        #     "transform-crop",
-        #     "Crop to Selection",
-        #     "Crop the image to the current selection.",
-        #     self.actionCropSelection,
-        # )
+        self.action_selection_copy_text = qAction(
+            "insert-table",
+            "Copy Selection as Text",
+            "Copy the current selection to the clipboard as a column of text values.",
+            self.copySelectionToText,
+        )
+        self.action_selection_crop = qAction(
+            "transform-crop",
+            "Crop to Selection",
+            "Crop the image to the current selection.",
+            self.cropToSelection,
+        )
 
     # def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
     #     if self.label.boundingRect().contains(event.scenePos()):
@@ -400,24 +407,63 @@ class LaserImageItem(SnapImageItem):
     # def actionCopyImage(self) -> None:
     #     self.graphics.copyToClipboard()
 
-    # def actionCopySelectionText(self) -> None:
-    #     """Copies the currently selected data to the system clipboard."""
-    #     data = self.graphics.data[self.graphics.mask].ravel()
+    def copySelectionToText(self) -> None:
+        """Copies the currently selected data to the system clipboard."""
+        data = self.raw_data[self.mask].ravel()
 
-    #     html = (
-    #         '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
-    #         "<table>"
-    #     )
-    #     text = ""
-    #     for x in data:
-    #         html += f"<tr><td>{x:.10g}</td></tr>"
-    #         text += f"{x:.10g}\n"
-    #     html += "</table>"
+        html = (
+            '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
+            "<table>"
+        )
+        text = ""
+        for x in data:
+            html += f"<tr><td>{x:.10g}</td></tr>"
+            text += f"{x:.10g}\n"
+        html += "</table>"
 
-    #     mime = QtCore.QMimeData()
-    #     mime.setHtml(html)
-    #     mime.setText(text)
-    #     QtWidgets.QApplication.clipboard().setMimeData(mime)
+        mime = QtCore.QMimeData()
+        mime.setHtml(html)
+        mime.setText(text)
+        QtWidgets.QApplication.clipboard().setMimeData(mime)
+
+    def cropToSelection(self) -> None:
+        """Crop image to current selection and open in a new tab.
+
+        If selection is not rectangular then it is filled with nan.
+        """
+        raise NotImplementedError
+        # if self.is_srr:  # pragma: no cover
+        #     QtWidgets.QMessageBox.information(
+        #         self, "Transform", "Unable to transform SRR data."
+        #     )
+        #     return
+
+        # mask = self.graphics.mask
+        # if mask is None or np.all(mask == 0):  # pragma: no cover
+        #     return
+        # ix, iy = np.nonzero(mask)
+        # x0, x1, y0, y1 = np.min(ix), np.max(ix) + 1, np.min(iy), np.max(iy) + 1
+
+        # data = self.laser.data
+        # new_data = np.empty((x1 - x0, y1 - y0), dtype=data.dtype)
+        # for name in new_data.dtype.names:
+        #     new_data[name] = np.where(
+        #         mask[x0:x1, y0:y1], data[name][x0:x1, y0:y1], np.nan
+        #     )
+
+        # info = self.laser.info.copy()
+        # info["Name"] = self.laserName() + "_cropped"
+        # info["File Path"] = str(Path(info.get("File Path", "")).with_stem(info["Name"]))
+        # new_widget = self.view.addLaser(
+        #     Laser(
+        #         new_data,
+        #         calibration=self.laser.calibration,
+        #         config=self.laser.config,
+        #         info=info,
+        #     )
+        # )
+
+        # new_widget.activate()
 
     # def actionCropSelection(self) -> None:
     #     self.cropToSelection()
@@ -524,26 +570,31 @@ class LaserImageItem(SnapImageItem):
     # === Events ===
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneEvent) -> None:
         self.setSelected(True)
-
-    # def keyPressEvent(self, )
+        super().mousePressEvent(event)
 
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
+        self.setSelected(True)
+
         menu = QtWidgets.QMenu()
         # menu.addAction(self.action_duplicate)
         menu.addAction(self.action_copy_image)
         menu.addSeparator()
         # menu.addAction(self.action_calibration)
 
-        # if self.graphics.posInSelection(event.pos()):
-        #     menu.addAction(self.action_select_copy_text)
-        #     menu.addAction(self.action_select_crop)
-        #     menu.addSeparator()
-        #     menu.addAction(self.action_select_statistics)
-        #     menu.addAction(self.action_select_colocalisation)
-        # else:
-        #     menu.addAction(self.view.action_open)
         menu.addAction(self.action_save)
         menu.addAction(self.action_export)
+
+        menu.addSeparator()
+
+        if self.mask_image is not None and self.selectedAt(event.pos()):
+            menu.addAction(self.action_selection_copy_text)
+            menu.addAction(self.action_selection_crop)
+            menu.addSeparator()
+            menu.addAction(self.action_statistics_selection)
+            menu.addAction(self.action_colocalisation_selection)
+        else:
+            menu.addAction(self.action_statistics)
+            menu.addAction(self.action_colocalisation)
 
         menu.addSeparator()
 
@@ -558,8 +609,5 @@ class LaserImageItem(SnapImageItem):
         if not self.element_label.isVisible():
             menu.addAction(self.action_show_label_element)
 
-        #     menu.addSeparator()
-        #     menu.addAction(self.action_statistics)
-        #     menu.addAction(self.action_colocalisation)
         menu.exec_(event.screenPos())
         event.accept()

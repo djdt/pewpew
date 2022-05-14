@@ -50,12 +50,6 @@ class LaserTabView(TabView):
         self.addTab(name, widget)
         return widget
 
-    # def setCurrentElement(self, element: str) -> None:
-    #     """Set displayed element in all tabs."""
-    #     for widget in self.widgets():
-    #         if element in widget.laser.elements:
-    #             widget.current_element = element
-
     # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         menu = QtWidgets.QMenu(self)
@@ -176,104 +170,26 @@ class LaserTabWidget(TabViewWidget):
         self.graphics.setMouseTracking(True)
 
         self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
-        # self.graphics.label.labelChanged.connect(self.renameCurrentElement)
-        self.graphics.colorbar.editRequested.connect(self.actionRequestColorbarEdit)
+        # self.graphics.colorbar.editRequested.connect(self.)
 
         self.graphics.scene().selectionChanged.connect(self.laserSelectionChanged)
         self.graphics.scene().setStickyFocus(True)
-
-        # self.combo_layers = QtWidgets.QComboBox()
-        # self.combo_layers.addItem("*")
-        # self.combo_layers.addItems([str(i) for i in range(0, self.laser.layers)])
-        # self.combo_layers.currentIndexChanged.connect(self.refresh)
-        # if not self.is_srr:
-        #     self.combo_layers.setEnabled(False)
-        #     self.combo_layers.setVisible(False)
 
         self.combo_element = LaserComboBox()
         self.combo_element.namesSelected.connect(self.updateNames)
         self.combo_element.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
 
-        # self.combo_element.currentIndexChanged.connect(self.setCurrentElement)
-        # self.populateElements()
-
-        # self.action_calibration = qAction(
-        #     "go-top",
-        #     "Ca&libration",
-        #     "Edit the documents calibration.",
-        #     self.actionCalibration,
-        # )
-        # self.action_config = qAction(
-        #     "document-edit", "&Config", "Edit the document's config.", self.actionConfig
-        # )
         self.action_copy_image = qAction(
             "insert-image",
             "Copy Scene &Image",
             "Copy scene to clipboard.",
             self.actionCopyImage,
         )
-        # self.action_duplicate = qAction(
-        #     "edit-copy",
-        #     "Duplicate image",
-        #     "Open a copy of the image.",
-        #     self.actionDuplicate,
-        # )
-        # self.action_export = qAction(
-        #     "document-save-as", "E&xport", "Export documents.", self.actionExport
-        # )
-        # self.action_export.setShortcut("Ctrl+X")
-        # # Add the export action so we can use it via shortcut
-        # self.addAction(self.action_export)
-        # self.action_information = qAction(
-        #     "documentinfo",
-        #     "In&formation",
-        #     "View and edit image information.",
-        #     self.actionInformation,
-        # )
-        # self.action_save = qAction(
-        #     "document-save", "&Save", "Save document to numpy archive.", self.actionSave
-        # )
-        # self.action_save.setShortcut("Ctrl+S")
-        # # Add the save action so we can use it via shortcut
-        # self.addAction(self.action_save)
-        # self.action_statistics = qAction(
-        #     "dialog-information",
-        #     "Statistics",
-        #     "Open the statisitics dialog.",
-        #     self.actionStatistics,
-        # )
-        # self.action_select_statistics = qAction(
-        #     "dialog-information",
-        #     "Selection Statistics",
-        #     "Open the statisitics dialog for the current selection.",
-        #     self.actionStatisticsSelection,
-        # )
-        # self.action_colocalisation = qAction(
-        #     "dialog-information",
-        #     "Colocalisation",
-        #     "Open the colocalisation dialog.",
-        #     self.actionColocal,
-        # )
-        # self.action_select_colocalisation = qAction(
-        #     "dialog-information",
-        #     "Selection Colocalisation",
-        #     "Open the colocalisation dialog for the current selection.",
-        #     self.actionColocalSelection,
-        # )
+        self.action_export_all = qAction(
+            "document-save-as", "E&xport All", "Export all lasers.", self.dialogExportAll
+        )
 
-        # Toolbar actions
-        self.action_select_none = qAction(
-            "transform-move",
-            "Clear Selection",
-            "Clear any selections.",
-            self.graphics.endSelection,
-        )
-        self.action_widget_none = qAction(
-            "transform-move",
-            "Clear Widgets",
-            "Closes any open widgets.",
-            self.graphics.endWidget,
-        )
+        # === Toolbar actions ===
         self.action_select_rect = qAction(
             "draw-rectangle",
             "Rectangle Selector",
@@ -289,29 +205,23 @@ class LaserTabWidget(TabViewWidget):
             self.graphics.startLassoSelection,
         )
         self.action_select_dialog = qAction(
-            "dialog-information",
+            "view-filter",
             "Selection Dialog",
             "Start the selection dialog.",
-            self.actionSelectDialog,
+            self.dialogSelection,
         )
-        self.action_select_copy_text = qAction(
-            "insert-table",
-            "Copy Selection as Text",
-            "Copy the current selection to the clipboard as a column of text values.",
-            self.actionCopySelectionText,
-        )
-        self.action_select_crop = qAction(
-            "transform-crop",
-            "Crop to Selection",
-            "Crop the image to the current selection.",
-            self.actionCropSelection,
-        )
-
-        self.selection_button = qToolButton("select", "Selection")
-        self.selection_button.addAction(self.action_select_none)
-        self.selection_button.addAction(self.action_select_rect)
-        self.selection_button.addAction(self.action_select_lasso)
-        self.selection_button.addAction(self.action_select_dialog)
+        # self.action_select_copy_text = qAction(
+        #     "insert-table",
+        #     "Copy Selection as Text",
+        #     "Copy the current selection to the clipboard as a column of text values.",
+        #     self.actionCopySelectionText,
+        # )
+        # self.action_select_crop = qAction(
+        #     "transform-crop",
+        #     "Crop to Selection",
+        #     "Crop the image to the current selection.",
+        #     self.actionCropSelection,
+        # )
 
         self.action_ruler = qAction(
             "tool-measure",
@@ -320,44 +230,38 @@ class LaserTabWidget(TabViewWidget):
             self.graphics.startRulerWidget,
         )
         self.action_slice = qAction(
-            "tool-measure",
+            "view-object-histogram-linear",
             "1D Slice",
             "Select and display a 1-dimensional slice of the image.",
             self.graphics.startSliceWidget,
         )
-        self.widgets_button = qToolButton("tool-measure", "Widgets")
-        self.widgets_button.addAction(self.action_widget_none)
-        self.widgets_button.addAction(self.action_ruler)
-        self.widgets_button.addAction(self.action_slice)
 
-        self.action_zoom_in = qAction(
-            "zoom-in",
-            "Zoom to Area",
-            "Start zoom area selection.",
-            self.graphics.zoomStart,
-        )
         self.action_zoom_out = qAction(
-            "zoom-original",
+            "zoom-fit-best",
             "Reset Zoom",
             "Reset zoom to full image extent.",
             self.graphics.zoomReset,
         )
-        self.view_button = qToolButton("zoom", "Zoom")
-        self.view_button.addAction(self.action_zoom_in)
-        self.view_button.addAction(self.action_zoom_out)
+
+        self.toolbar = QtWidgets.QToolBar()
+        self.toolbar.addActions([self.action_select_rect, self.action_select_lasso, self.action_select_dialog])
+        self.toolbar.addSeparator()
+        self.toolbar.addActions([self.action_ruler, self.action_slice])
+        self.toolbar.addSeparator()
+        self.toolbar.addActions([self.action_zoom_out])
 
         self.graphics.viewport().installEventFilter(DragDropRedirectFilter(self))
         # Filters for setting active view
         self.graphics.viewport().installEventFilter(self)
         self.combo_element.installEventFilter(self)
-        self.selection_button.installEventFilter(self)
-        self.widgets_button.installEventFilter(self)
-        self.view_button.installEventFilter(self)
+        self.toolbar.installEventFilter(self)
+
 
         layout_bar = QtWidgets.QHBoxLayout()
-        layout_bar.addWidget(self.selection_button, 0, QtCore.Qt.AlignLeft)
-        layout_bar.addWidget(self.widgets_button, 0, QtCore.Qt.AlignLeft)
-        layout_bar.addWidget(self.view_button, 0, QtCore.Qt.AlignLeft)
+        # layout_bar.addWidget(self.selection_button, 0, QtCore.Qt.AlignLeft)
+        # layout_bar.addWidget(self.widgets_button, 0, QtCore.Qt.AlignLeft)
+        # layout_bar.addWidget(self.view_button, 0, QtCore.Qt.AlignLeft)
+        layout_bar.addWidget(self.toolbar)
         layout_bar.addStretch(1)
         # layout_bar.addWidget(self.combo_layers, 0, QtCore.Qt.AlignRight)
         layout_bar.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
@@ -366,14 +270,6 @@ class LaserTabWidget(TabViewWidget):
         layout.addWidget(self.graphics, 1)
         layout.addLayout(layout_bar)
         self.setLayout(layout)
-
-    # @property
-    # def current_element(self) -> str:
-    #     return self.combo_element.currentText()
-
-    # @current_element.setter
-    # def current_element(self, element: str) -> None:
-    #     self.combo_element.setCurrentText(element)
 
     def addLaser(self, laser: Laser) -> None:
         item = LaserImageItem(laser, self.graphics.options)
@@ -629,6 +525,11 @@ class LaserTabWidget(TabViewWidget):
         dlg.open()
         return dlg
 
+    def dialogExportAll(self) -> QtWidgets.QDialog:
+        dlg = exportdialogs.ExportAllDialog(self.laserItems(), parent=self)
+        dlg.open()
+        return dlg
+
     def dialogInformation(
         self, item: Optional[LaserImageItem] = None
     ) -> QtWidgets.QDialog:
@@ -668,6 +569,19 @@ class LaserTabWidget(TabViewWidget):
         dlg.open()
         return dlg
 
+    def dialogSelection(self) -> QtWidgets.QDialog:
+        """Open a `:class:pewpew.widgets.dialogs.SelectionDialog` and applies selection."""
+        # @Todo better implementation of this
+        item = self.laserItems()[0]
+        # if item is None:
+        # item = self.graphics.scene().focusItem()
+
+        dlg = dialogs.SelectionDialog(item, parent=self)
+        dlg.maskSelected.connect(item.select)
+        self.refreshed.connect(dlg.refresh)
+        dlg.show()
+        return dlg
+
     def dialogStatistics(
         self, item: Optional[LaserImageItem] = None, crop_to_selection: bool = False
     ) -> QtWidgets.QDialog:
@@ -680,7 +594,7 @@ class LaserTabWidget(TabViewWidget):
             item = self.graphics.scene().focusItem()
 
         data = item.laser.get(calibrate=self.graphics.options.calibrate, flat=True)
-        mask = item.mask if crop_to_selection else None
+        mask = item.mask if crop_to_selection else np.ones(item.laser.shape, dtype=bool)
 
         units = {}
         if self.graphics.options.calibrate:
@@ -703,52 +617,9 @@ class LaserTabWidget(TabViewWidget):
     def actionCopyImage(self) -> None:
         self.graphics.copyToClipboard()
 
-    def actionCopySelectionText(self) -> None:
-        """Copies the currently selected data to the system clipboard."""
-        data = self.graphics.data[self.graphics.mask].ravel()
-
-        html = (
-            '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
-            "<table>"
-        )
-        text = ""
-        for x in data:
-            html += f"<tr><td>{x:.10g}</td></tr>"
-            text += f"{x:.10g}\n"
-        html += "</table>"
-
-        mime = QtCore.QMimeData()
-        mime.setHtml(html)
-        mime.setText(text)
-        QtWidgets.QApplication.clipboard().setMimeData(mime)
-
-    def actionCropSelection(self) -> None:
-        self.cropToSelection()
-
     def actionDuplicate(self) -> None:
         """Duplicate document to a new tab."""
         self.view.addLaser(copy.deepcopy(self.laser))
-
-    def actionExport(self) -> QtWidgets.QDialog:
-        """Opens a `:class:pewpew.exportdialogs.ExportDialog`.
-
-        This can save the document to various formats.
-        """
-        dlg = exportdialogs.ExportDialog(self, parent=self)
-        dlg.open()
-        return dlg
-
-    def actionRequestColorbarEdit(self) -> None:
-        if self.viewspace is not None:
-            self.viewspace.colortableRangeDialog()
-
-    def actionSelectDialog(self) -> QtWidgets.QDialog:
-        """Open a `:class:pewpew.widgets.dialogs.SelectionDialog` and applies selection."""
-        dlg = dialogs.SelectionDialog(self.graphics, parent=self)
-        dlg.maskSelected.connect(self.graphics.drawSelectionImage)
-        self.refreshed.connect(dlg.refresh)
-        dlg.show()
-        return dlg
 
     # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
