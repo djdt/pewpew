@@ -146,7 +146,7 @@ class LassoImageSelectionItem(SnapImageSelectionItem):
         self.poly.clear()
         self.prepareGeometryChange()
 
-        self.item.handleSelection(mask, modes)
+        self.item.select(mask, modes)
         super().mouseReleaseEvent(event)
 
     def paint(
@@ -231,7 +231,7 @@ class RectImageSelectionItem(SnapImageSelectionItem):
         self._rect = QtCore.QRectF()
         self.prepareGeometryChange()
 
-        self.item.handleSelection(mask, modes)
+        self.item.select(mask, modes)
         super().mouseReleaseEvent(event)
 
     def paint(
