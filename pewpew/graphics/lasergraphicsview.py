@@ -39,14 +39,12 @@ class LaserGraphicsView(OverlayGraphicsView):
         self.mask: Optional[np.ndarray] = None
 
         self._scene = QtWidgets.QGraphicsScene(QtCore.QRectF(0, 0, 640, 480))
+        self._scene.setItemIndexMethod(QtWidgets.QGraphicsScene.NoIndex)
         self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
 
         super().__init__(self._scene, parent)
         self.cursors["selection"] = QtCore.Qt.ArrowCursor
 
-        # self.label = LabelOverlay(
-        #     "_", font=self.options.font, color=self.options.font_color
-        # )
         self.scalebar = MetricScaleBarOverlay(
             font=self.options.font, color=self.options.font_color
         )
@@ -54,12 +52,6 @@ class LaserGraphicsView(OverlayGraphicsView):
             [], 0, 1, font=self.options.font, color=self.options.font_color
         )
 
-        # self.scene().addOverlayItem(
-        #     self.label,
-        #     QtCore.Qt.TopLeftCorner,
-        #     QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft,
-        # )
-        # self.label.setPos(10, 10)
         self.addOverlayItem(self.scalebar)
         self.scalebar.setPos(0, 10)
         self.addOverlayItem(self.colorbar)
@@ -75,7 +67,7 @@ class LaserGraphicsView(OverlayGraphicsView):
 
         if len(items) > 0:
             item = items[0]  # Todo, test Z-values
-            self.cursorValueChanged.emit(pos.x(), pos.y(), item.dataAtPos(pos))
+            self.cursorValueChanged.emit(pos.x(), pos.y(), item.dataAt(pos))
         else:
             self.cursorValueChanged.emit(pos.x(), pos.y(), np.nan)
 
@@ -107,7 +99,7 @@ class LaserGraphicsView(OverlayGraphicsView):
             if isinstance(item, SnapImageSelectionItem):
                 self.scene().removeItem(item)
             elif isinstance(item, SnapImageItem):
-                item.handleSelection(np.zeros([], dtype=bool), [])
+                item.select(np.zeros([], dtype=bool), [])
 
         self.setInteractionFlag("selection", False)
 
@@ -144,19 +136,15 @@ class LaserGraphicsView(OverlayGraphicsView):
 
     def setOverlayItemVisibility(
         self,
-        label: Optional[bool] = None,
         scalebar: Optional[bool] = None,
         colorbar: Optional[bool] = None,
     ):
         """Set visibility of overlay items."""
-        # if label is None:
-        #     label = self.options.overlay_items["label"]
         if scalebar is None:
             scalebar = self.options.overlay_items["scalebar"]
         if colorbar is None:
             colorbar = self.options.overlay_items["colorbar"]
 
-        # self.label.setVisible(label)
         self.scalebar.setVisible(scalebar)
         self.colorbar.setVisible(colorbar)
 
