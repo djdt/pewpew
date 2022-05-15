@@ -1,20 +1,18 @@
 import copy
 from io import BytesIO
 
-# from pewpew.graphics.imageitems import ScaledImageItem
 import numpy as np
 from pathlib import Path
 import logging
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewlib import io
 from pewlib.laser import Laser
-from pewlib.srr import SRRLaser, SRRConfig
+from pewlib.srr import SRRConfig
 from pewlib.calibration import Calibration
 from pewlib.config import Config
 
-from pewpew.actions import qAction, qToolButton
+from pewpew.actions import qAction
 from pewpew.events import DragDropRedirectFilter
 
 from pewpew.graphics.imageitems import LaserImageItem
@@ -26,7 +24,7 @@ from pewpew.threads import ImportThread
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.views import TabView, TabViewWidget
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -42,12 +40,16 @@ class LaserTabView(TabView):
         self.options = GraphicsOptions()
 
     def addLaser(self, laser: Laser) -> "LaserTabWidget":
-        """Open image of  a laser in a new tab."""
-        widget = LaserTabWidget(self.options, self)
-        widget.addLaser(laser)
+        """Open image of a laser in a new tab."""
+        if len(self.widgets()) > 0:
+            widget = self.widgets()[0]
+            widget.addLaser(laser)
+        else:
+            widget = LaserTabWidget(self.options, self)
+            widget.addLaser(laser)
+            name = laser.info.get("Name", "<No Name>")
+            self.addTab(name, widget)
 
-        name = laser.info.get("Name", "<No Name>")
-        self.addTab(name, widget)
         return widget
 
     # Events
@@ -172,7 +174,7 @@ class LaserTabWidget(TabViewWidget):
         self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
         # self.graphics.colorbar.editRequested.connect(self.)
 
-        self.graphics.scene().selectionChanged.connect(self.laserSelectionChanged)
+        self.graphics.scene().focusItemChanged.connect(self.focusItemChanged)
         self.graphics.scene().setStickyFocus(True)
 
         self.combo_element = LaserComboBox()
@@ -185,8 +187,12 @@ class LaserTabWidget(TabViewWidget):
             "Copy scene to clipboard.",
             self.actionCopyImage,
         )
+        # self.action_open = qAction("document-open", "Open")
         self.action_export_all = qAction(
-            "document-save-as", "E&xport All", "Export all lasers.", self.dialogExportAll
+            "document-save-as",
+            "E&xport All",
+            "Export all lasers.",
+            self.dialogExportAll,
         )
 
         # === Toolbar actions ===
@@ -210,18 +216,6 @@ class LaserTabWidget(TabViewWidget):
             "Start the selection dialog.",
             self.dialogSelection,
         )
-        # self.action_select_copy_text = qAction(
-        #     "insert-table",
-        #     "Copy Selection as Text",
-        #     "Copy the current selection to the clipboard as a column of text values.",
-        #     self.actionCopySelectionText,
-        # )
-        # self.action_select_crop = qAction(
-        #     "transform-crop",
-        #     "Crop to Selection",
-        #     "Crop the image to the current selection.",
-        #     self.actionCropSelection,
-        # )
 
         self.action_ruler = qAction(
             "tool-measure",
@@ -244,7 +238,13 @@ class LaserTabWidget(TabViewWidget):
         )
 
         self.toolbar = QtWidgets.QToolBar()
-        self.toolbar.addActions([self.action_select_rect, self.action_select_lasso, self.action_select_dialog])
+        self.toolbar.addActions(
+            [
+                self.action_select_rect,
+                self.action_select_lasso,
+                self.action_select_dialog,
+            ]
+        )
         self.toolbar.addSeparator()
         self.toolbar.addActions([self.action_ruler, self.action_slice])
         self.toolbar.addSeparator()
@@ -256,11 +256,7 @@ class LaserTabWidget(TabViewWidget):
         self.combo_element.installEventFilter(self)
         self.toolbar.installEventFilter(self)
 
-
         layout_bar = QtWidgets.QHBoxLayout()
-        # layout_bar.addWidget(self.selection_button, 0, QtCore.Qt.AlignLeft)
-        # layout_bar.addWidget(self.widgets_button, 0, QtCore.Qt.AlignLeft)
-        # layout_bar.addWidget(self.view_button, 0, QtCore.Qt.AlignLeft)
         layout_bar.addWidget(self.toolbar)
         layout_bar.addStretch(1)
         # layout_bar.addWidget(self.combo_layers, 0, QtCore.Qt.AlignRight)
@@ -288,7 +284,9 @@ class LaserTabWidget(TabViewWidget):
         # Modification
         item.colortableChanged.connect(self.laserColortableChanged)
         item.modified.connect(lambda: self.setWindowModified(True))
-        item.setSelected(True)
+
+        item.redraw()
+        item.setFocus(QtCore.Qt.NoFocusReason)
 
     def laserItems(self) -> List[LaserImageItem]:
         return [
@@ -304,40 +302,38 @@ class LaserTabWidget(TabViewWidget):
         return list(elements)
 
     def laserColortableChanged(
-        self, table: List[int], vmin: float, vmax: float
+        self, table: List[int], vmin: float, vmax: float, unit: str
     ) -> None:
         # Todo calculate this based on all open lasers?
-        self.graphics.colorbar.updateTable(table, vmin, vmax)
+        self.graphics.colorbar.updateTable(table, vmin, vmax, unit)
         self.graphics.invalidateScene()
 
-    def laserSelectionChanged(
+    def focusItemChanged(
         self,
+        new: QtWidgets.QGraphicsItem,
+        old: QtWidgets.QGraphicsItem,
+        reason: QtCore.Qt.FocusReason,
     ) -> None:
-        items = [
-            item
-            for item in self.graphics.scene().selectedItems()
-            if isinstance(item, LaserImageItem)
-        ]
-        if len(items) == 0:  # No update if no laser image selected
+        if not isinstance(new, LaserImageItem) or old == new:
             return
 
         # Update the combo box
         try:  # Remove any existing connects to the element combo box
-            self.combo_element.currentIndexChanged.disconnect()
+            self.combo_element.currentTextChanged.disconnect()
         except RuntimeError:
             pass
 
         self.combo_element.blockSignals(True)
         self.combo_element.clear()
 
-        for item in items:
-            self.combo_element.addItems(item.laser.elements)
-            self.combo_element.setCurrentText(item.element())
-            self.combo_element.currentTextChanged.connect(
-                lambda s: [item.setElement(s), item.update()]
-            )
+        self.combo_element.addItems(new.laser.elements)
+        self.combo_element.setCurrentText(new.element())
+        self.combo_element.currentTextChanged.connect(
+            lambda s: [new.setElement(s), new.redraw()]
+        )
 
         self.combo_element.blockSignals(False)
+        self.laserColortableChanged(new.image.colorTable(), new.vmin, new.vmax, new.laser.calibration[new.element()].unit)
 
     # Virtual
     def refresh(self) -> None:
@@ -351,25 +347,6 @@ class LaserTabWidget(TabViewWidget):
         super().refresh()
 
     # Other
-
-    # def renameCurrentElement(self, new: str) -> None:
-    #     """Rename a single element."""
-    #     self.laser.rename({self.current_element: new})
-    #     self.setWindowModified(True)
-    #     self.populateElements()
-    #     self.current_element = new
-    #     self.refresh()
-
-    #     def laserFilePath(self, ext: str = ".npz") -> Path:
-    #         path = Path(self.laser.info.get("File Path", ""))
-    #         return path.with_name(self.laserName() + ext)
-
-    # def populateElements(self, item: LaserImageItem) -> None:
-    #     """Repopulate the element combo box."""
-    #     self.combo_element.blockSignals(True)
-    #     self.combo_element.clear()
-    #     self.combo_element.addItems(item.laser.elements)
-    #     self.combo_element.blockSignals(False)
 
     def clearCursorStatus(self) -> None:
         """Clear window statusbar, if it exists."""
@@ -542,7 +519,7 @@ class LaserTabWidget(TabViewWidget):
         dlg.open()
         return dlg
 
-    def dialogSave(self, item: Optional[LaserImageItem] = None) -> QtWidgets.QDialog:
+    def dialogSave(self, item: Optional[LaserImageItem] = None) -> Optional[QtWidgets.QDialog]:
         """Save the document to an '.npz' file.
 
         If not already associated with an '.npz' path a dialog is opened to select one.
@@ -628,7 +605,7 @@ class LaserTabWidget(TabViewWidget):
         menu.addAction(self.action_copy_image)
         menu.addSeparator()
 
-        if self.graphics.items(): # More than one laser
+        if self.graphics.items():  # More than one laser
             # @Todo add export all
             pass
         # if self.graphics.posInSelection(event.pos()):

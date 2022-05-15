@@ -58,6 +58,10 @@ class LaserGraphicsView(OverlayGraphicsView):
 
         self.viewScaleChanged.connect(self.scalebar.requestPaint)
 
+    def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
+        self.clearFocus()
+        event.accept()
+
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         super().mouseMoveEvent(event)
         items = [

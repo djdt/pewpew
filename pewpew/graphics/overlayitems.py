@@ -65,9 +65,10 @@ class ColorBarOverlay(OverlayItem):
         self.checkmarks = checkmarks
         self.alignment = alignment
 
-    def updateTable(self, colortable: List[int], vmin: float, vmax: float):
+    def updateTable(self, colortable: List[int], vmin: float, vmax: float, unit: str):
         self.vmin = vmin
         self.vmax = vmax
+        self.unit = unit
 
         image = QtGui.QImage(
             np.arange(256, dtype=np.uint8), 256, 1, 256, QtGui.QImage.Format_Indexed8
