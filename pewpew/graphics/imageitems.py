@@ -87,6 +87,9 @@ class LaserImageItem(SnapImageItem):
 
     colortableChanged = QtCore.Signal(list, float, float)
 
+    hoveredValueChanged = QtCore.Signal(QtCore.QPointF, QtCore.QPoint, float)
+    hoveredValueCleared = QtCore.Signal()
+
     modified = QtCore.Signal()
 
     def __init__(
@@ -100,6 +103,10 @@ class LaserImageItem(SnapImageItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
+
+        self.setAcceptHoverEvents(True)
+
+        self._last_hover_pos = QtCore.QPoint(-1, -1)
 
         self.laser = laser
         self.options = options
@@ -568,10 +575,6 @@ class LaserImageItem(SnapImageItem):
     #     return self.actionColocal(True)
 
     # === Events ===
-    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneEvent) -> None:
-        self.setSelected(True)
-        super().mousePressEvent(event)
-
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
         self.setSelected(True)
 
@@ -611,3 +614,13 @@ class LaserImageItem(SnapImageItem):
 
         menu.exec_(event.screenPos())
         event.accept()
+
+    def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
+        pos = self.mapToData(event.pos())
+        if pos != self._last_hover_pos:
+            self._last_hover_pos = pos
+            self.hoveredValueChanged.emit(event.pos(), pos, self.rawData()[pos.y(), pos.x()])
+
+    def hoverLeaveEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
+        self._last_hover_pos = QtCore.QPoint(-1, -1)
+        self.hoveredValueCleared.emit()

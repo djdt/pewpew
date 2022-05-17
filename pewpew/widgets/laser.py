@@ -169,7 +169,7 @@ class LaserTabWidget(TabViewWidget):
         self.graphics = LaserGraphicsView(options, parent=self)
         self.graphics.setMouseTracking(True)
 
-        self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
+        # self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
         # self.graphics.colorbar.editRequested.connect(self.)
 
         self.graphics.scene().selectionChanged.connect(self.laserSelectionChanged)
@@ -285,6 +285,9 @@ class LaserTabWidget(TabViewWidget):
         item.requestExport.connect(self.dialogExport)
         item.requestSave.connect(self.dialogSave)
 
+        item.hoveredValueChanged.connect(self.updateCursorStatus)
+        item.hoveredValueCleared.connect(self.clearCursorStatus)
+
         # Modification
         item.colortableChanged.connect(self.laserColortableChanged)
         item.modified.connect(lambda: self.setWindowModified(True))
@@ -377,15 +380,18 @@ class LaserTabWidget(TabViewWidget):
         if status_bar is not None:
             status_bar.clearMessage()
 
-    def updateCursorStatus(self, x: float, y: float, v: float) -> None:
+    def updateCursorStatus(self, pos: QtCore.QPointF, data_pos: QtCore.QPoint, v: float) -> None:
         """Updates the windows statusbar if it exists."""
         status_bar = self.view.window().statusBar()
         if status_bar is None:  # pragma: no cover
             return
 
         if self.graphics.options.units == "index":  # convert to indices
-            p = self.graphics.mapToData(QtCore.QPointF(x, y))
-            x, y = p.x(), p.y()
+            x, y = data_pos.x(), data_pos.y()
+        else:
+            x, y = pos.x(), pos.y()
+            # p = self.graphics.mapToData(QtCore.QPointF(x, y))
+            # x, y = p.x(), p.y()
 
         if v is None:
             status_bar.clearMessage()
