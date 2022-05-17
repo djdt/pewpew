@@ -69,7 +69,6 @@ class LassoImageSelectionItem(SnapImageSelectionItem):
 
     def __init__(
         self,
-        # image: ScaledImageItem,
         modes: Optional[Dict[QtCore.Qt.KeyboardModifier, str]] = None,
         pen: Optional[QtGui.QPen] = None,
         parent: Optional[QtWidgets.QGraphicsItem] = None,

@@ -309,7 +309,7 @@ class TabViewWidget(QtWidgets.QWidget):
 
     refreshed = QtCore.Signal()
 
-    def __init__(self, view: Optional[TabView] = None, editable: bool = True):
+    def __init__(self, view: Optional[TabView], editable: bool = True):
         super().__init__(view)
 
         self.view = view
