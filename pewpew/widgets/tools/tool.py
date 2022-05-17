@@ -1,6 +1,7 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewpew.widgets.views import TabViewWidget
+from pewpew.widgets.views import TabView, TabViewWidget
+from pewpew.graphics.imageitems import SnapImageItem
 
 from typing import Optional
 
@@ -27,18 +28,15 @@ class ToolWidget(TabViewWidget):
 
     def __init__(
         self,
-        widget: TabViewWidget,
+        item: SnapImageItem,
         control_label: str = "Controls",
         graphics_label: str = "",
         orientation: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
         apply_all: bool = False,
+        view: Optional[TabView] = None,
     ):
-        super().__init__(widget.view, editable=False)
-        self.widget = widget
-        self.modified = widget.modified
-        self._shown = False
-
-        self.graphics: Optional[QtWidgets.QGraphicsView] = None
+        super().__init__(editable=False, view=view)
+        self.item = item
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Cancel
@@ -76,20 +74,20 @@ class ToolWidget(TabViewWidget):
         layout.addWidget(self.button_box)
         self.setLayout(layout)
 
-    def contextMenuEvent(self, event: QtCore.QEvent) -> None:
-        event.accept()
-        action_copy_image = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("insert-image"), "Copy To Clipboard", self
-        )
-        action_copy_image.setStatusTip("Copy the graphics view to the clipboard.")
-        action_copy_image.triggered.connect(self.graphics.copyToClipboard)
+    # def contextMenuEvent(self, event: QtCore.QEvent) -> None:
+    #     event.accept()
+    #     action_copy_image = QtWidgets.QAction(
+    #         QtGui.QIcon.fromTheme("insert-image"), "Copy To Clipboard", self
+    #     )
+    #     action_copy_image.setStatusTip("Copy the graphics view to the clipboard.")
+    #     action_copy_image.triggered.connect(self.graphics.copyToClipboard)
 
-        menu = QtWidgets.QMenu(self)
-        menu.addAction(action_copy_image)
-        menu.popup(event.globalPos())
+    #     menu = QtWidgets.QMenu(self)
+    #     menu.addAction(action_copy_image)
+    #     menu.popup(event.globalPos())
 
     def accept(self) -> None:  # pragma: no cover
-        self.restoreWidget()
+        self.view.requestClose(self.index)
 
     def apply(self) -> None:  # pragma: no cover
         pass
@@ -121,42 +119,42 @@ class ToolWidget(TabViewWidget):
     def isComplete(self) -> bool:  # pragma: no cover
         return True
 
-    def onFirstShow(self) -> None:
-        if self.graphics is None:
-            return
+    # def onFirstShow(self) -> None:
+    #     if self.graphics is None:
+    #         return
 
-        rect = self.widget.graphics.mapToScene(
-            self.widget.graphics.viewport().rect()
-        ).boundingRect()
-        rect = rect.intersected(self.widget.graphics.sceneRect())
-        self.graphics.fitInView(rect, QtCore.Qt.KeepAspectRatio)
-        self.graphics.updateForeground()
-        self.graphics.invalidateScene()
+    #     rect = self.widget.graphics.mapToScene(
+    #         self.widget.graphics.viewport().rect()
+    #     ).boundingRect()
+    #     rect = rect.intersected(self.widget.graphics.sceneRect())
+    #     self.graphics.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+    #     self.graphics.updateForeground()
+    #     self.graphics.invalidateScene()
 
     def reject(self) -> None:
-        self.restoreWidget()
+        self.view.requestClose(self.index)
 
-    def restoreWidget(self) -> None:
-        """Remove the tool and replace with it's `widget`."""
-        self.view.removeTab(self.index)
-        self.view.insertTab(self.index, self.widget.laserName(), self.widget)
-        self.widget.modified = self.modified
-        self.widget.activate()
+    # def restoreWidget(self) -> None:
+    #     """Remove the tool and replace with it's `widget`."""
+    #     self.view.removeTab(self.index)
+    #     self.view.insertTab(self.index, self.widget.laserName(), self.widget)
+    #     self.widget.modified = self.modified
+    #     self.widget.activate()
 
-    def requestClose(self) -> bool:
-        self.reject()
-        return False
+    # def requestClose(self) -> bool:
+    #     self.reject()
+    #     return False
 
-    def showEvent(self, event: QtGui.QShowEvent) -> None:
-        super().showEvent(event)
-        if not self._shown:
-            self.onFirstShow()
-            self._shown
+    # def showEvent(self, event: QtGui.QShowEvent) -> None:
+    #     super().showEvent(event)
+    #     if not self._shown:
+    #         self.onFirstShow()
+    #         self._shown
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(800, 600)
 
-    def transform(self, **kwargs) -> None:
-        if hasattr(self.widget, "transform"):
-            self.widget.transform(**kwargs)
-        self.refresh()
+    # def transform(self, **kwargs) -> None:
+    #     if hasattr(self.widget, "transform"):
+    #         self.widget.transform(**kwargs)
+    #     self.refresh()

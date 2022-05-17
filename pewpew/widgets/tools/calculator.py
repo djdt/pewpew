@@ -10,9 +10,9 @@ from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
+from pewpew.graphics.imageitems import LaserImageItem
 
 from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
-from pewpew.widgets.laser import LaserTabWidget
 from pewpew.widgets.tools import ToolWidget
 
 from typing import List, Optional
@@ -38,7 +38,7 @@ class CalculatorName(ValidColorLineEdit):
         badparser: List[str],
         parent: Optional[QtWidgets.QWidget] = None,
     ):
-        super().__init__(text, parent)
+        super().__init__(text, parent=parent)
 
         self.badnames = badnames
         self.badchars = [" ", "\t", "\n"]
@@ -229,12 +229,14 @@ class CalculatorTool(ToolWidget):
         ),
     }
 
-    def __init__(self, widget: LaserTabWidget):
-        super().__init__(widget, graphics_label="Preview")
+    def __init__(self, item: LaserImageItem):
+        super().__init__(item, graphics_label="Preview")
 
         self.graphics = LaserGraphicsView(self.viewspace.options, parent=self)
         self.graphics.cursorValueChanged.connect(self.widget.updateCursorStatus)
         self.graphics.setMouseTracking(True)
+
+        self.graphics.scene().addItem(self.item)
 
         self.output = QtWidgets.QLineEdit("Result")
         self.output.setEnabled(False)
