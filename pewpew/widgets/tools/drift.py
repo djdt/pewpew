@@ -9,10 +9,11 @@ from pewpew.charts.colors import light_theme, sequential
 from pewpew.lib.numpyqt import array_to_polygonf
 
 from pewpew.graphics.items import ResizeableRectItem
+from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 
-from pewpew.widgets.laser import LaserTabWidget
+from pewpew.widgets.views import TabView
 from pewpew.widgets.tools.tool import ToolWidget
 
 from typing import Any, Optional
@@ -250,8 +251,8 @@ class DriftTool(ToolWidget):
     """Drift normalisation tool."""
     normalise_methods = ["Maximum", "Minimum"]
 
-    def __init__(self, widget: LaserTabWidget):
-        super().__init__(widget, apply_all=False)
+    def __init__(self, item: LaserImageItem, view: TabView):
+        super().__init__(item, apply_all=False, view=view)
 
         self.drift: Optional[np.ndarray] = None
 

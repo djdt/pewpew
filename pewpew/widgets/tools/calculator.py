@@ -234,8 +234,8 @@ class CalculatorTool(ToolWidget):
     def __init__(self, item: LaserImageItem, view: Optional[TabView] = None):
         super().__init__(item, graphics_label="Preview", view=view)
 
-        self.graphics = LaserGraphicsView(self.viewspace.options, parent=self)
-        self.graphics.cursorValueChanged.connect(self.widget.updateCursorStatus)
+        self.graphics = LaserGraphicsView(item.options, parent=self)
+        # self.graphics.cursorValueChanged.connect(self.widget.updateCursorStatus)
         self.graphics.setMouseTracking(True)
 
         self.graphics.scene().addItem(self.item)
@@ -297,17 +297,17 @@ class CalculatorTool(ToolWidget):
         self.modified = True
         name = self.lineedit_name.text()
         data = self.reducer.reduce(self.formula.expr)
-        if name in self.widget.laser.elements:
-            self.widget.laser.data[name] = data
+        if name in self.item.laser.elements:
+            self.item.laser.data[name] = data
         else:
-            self.widget.laser.add(self.lineedit_name.text(), data)
+            self.item.laser.add(self.lineedit_name.text(), data)
         # Make sure to repop elements
-        self.widget.populateElements()
+        # self.widget.populateElements()
 
         self.initialise()
 
     def initialise(self) -> None:
-        elements = self.widget.laser.elements
+        elements = self.item.laser.elements
         self.combo_element.clear()
         self.combo_element.addItem("Elements")
         self.combo_element.addItems(elements)
@@ -326,7 +326,7 @@ class CalculatorTool(ToolWidget):
             )
         )
         self.formula.valid = True
-        self.formula.setText(self.widget.combo_element.currentText())  # refreshes
+        self.formula.setText(self.item.element())  # refreshes
 
     def insertFunction(self, index: int) -> None:
         if index == 0:
@@ -372,16 +372,16 @@ class CalculatorTool(ToolWidget):
         if not self.isComplete():  # Not ready for update to preview
             return
 
-        data = self.previewData(self.widget.laser.get(flat=True, calibrated=False))
+        data = self.previewData(self.item.laser.get(flat=True, calibrated=False))
         if data is None:
             return
-        x0, x1, y0, y1 = self.widget.laser.config.data_extent(data.shape)
+        x0, x1, y0, y1 = self.item.laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
-        self.graphics.drawImage(data, rect, self.lineedit_name.text())
+        # self.graphics.drawImage(data, rect, self.lineedit_name.text())
 
-        self.graphics.label.setText(self.lineedit_name.text())
+        # self.graphics.label.setText(self.lineedit_name.text())
 
-        self.graphics.setOverlayItemVisibility()
-        self.graphics.updateForeground()
+        # self.graphics.setOverlayItemVisibility()
+        # self.graphics.updateForeground()
         self.graphics.invalidateScene()

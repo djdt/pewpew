@@ -18,12 +18,12 @@ from pewpew.widgets.laser import LaserTabWidget, LaserTabView
 
 from pewpew.widgets.tools import (
     ToolWidget,
-    CalculatorTool,
-    DriftTool,
-    FilteringTool,
-    MergeTool,
-    StandardsTool,
-    OverlayTool,
+#     CalculatorTool,
+#     DriftTool,
+#     FilteringTool,
+#     MergeTool,
+#     StandardsTool,
+#     OverlayTool,
 )
 from pewpew.widgets.wizards import ImportWizard, SpotImportWizard, SRRImportWizard
 
@@ -38,16 +38,16 @@ class MainWindow(QtWidgets.QMainWindow):
     """
 
     ENABLED_TOOLS = {
-        "Calculator": (CalculatorTool, None, ""),
-        "Drift": (DriftTool, None, "Correct instrument drift."),
-        "Filter": (
-            FilteringTool,
-            None,
-            "Remove spikes and instrument noise from data.",
-        ),
-        # "Merge": (MergeTool, "align-vertical-top", "Tool for merging multiple images."),
-        "Calibration": (StandardsTool, None, "Generate calibrations from standards."),
-        "Overlay": (OverlayTool, None, "Overlay elements as RGB images."),
+        # "Calculator": (CalculatorTool, None, ""),
+        # "Drift": (DriftTool, None, "Correct instrument drift."),
+        # "Filter": (
+        #     FilteringTool,
+        #     None,
+        #     "Remove spikes and instrument noise from data.",
+        # ),
+        # # "Merge": (MergeTool, "align-vertical-top", "Tool for merging multiple images."),
+        # "Calibration": (StandardsTool, None, "Generate calibrations from standards."),
+        # "Overlay": (OverlayTool, None, "Overlay elements as RGB images."),
     }
 
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
