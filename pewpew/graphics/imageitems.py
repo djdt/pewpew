@@ -576,7 +576,6 @@ class LaserImageItem(SnapImageItem):
 
     # === Events ===
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
-        self.setSelected(True)
 
         menu = QtWidgets.QMenu()
         # menu.addAction(self.action_duplicate)
@@ -589,7 +588,7 @@ class LaserImageItem(SnapImageItem):
 
         menu.addSeparator()
 
-        if self.mask_image is not None and self.selectedAt(event.pos()):
+        if self.mask_image is not None and self.selectedAt(event.pos()):  # Context menu for mask
             menu.addAction(self.action_selection_copy_text)
             menu.addAction(self.action_selection_crop)
             menu.addSeparator()

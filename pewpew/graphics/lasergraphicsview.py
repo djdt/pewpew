@@ -56,19 +56,6 @@ class LaserGraphicsView(OverlayGraphicsView):
 
         self.viewScaleChanged.connect(self.scalebar.requestPaint)
 
-    # def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
-    #     super().mouseMoveEvent(event)
-    #     items = [
-    #         item for item in self.items(event.pos()) if isinstance(item, SnapImageItem)
-    #     ]
-    #     pos = self.mapToScene(event.pos())
-
-    #     if len(items) > 0:
-    #         item = items[0]  # Todo, test Z-values
-    #         self.cursorValueChanged.emit(pos.x(), pos.y(), item.dataAt(pos))
-    #     else:
-    #         self.cursorValueChanged.emit(pos.x(), pos.y(), np.nan)
-
     def startLassoSelection(self) -> None:
         """Select image pixels using a lasso."""
         for item in self.items():
