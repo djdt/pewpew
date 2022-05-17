@@ -43,6 +43,7 @@ class GraphicsOptions(QtCore.QObject):
         self.color_ranges: Dict[str, Tuple[Union[float, str], Union[float, str]]] = {}
         self.color_range_default = (0.0, "99%")
 
+        self.highlight_focus = True
         self.smoothing = False
 
         self.font = QtGui.QFont("sans", 16)
@@ -57,6 +58,10 @@ class GraphicsOptions(QtCore.QObject):
 
     def setFontSize(self, size: int) -> None:
         self.font.setPointSize(size)
+        self.optionsChanged.emit()
+
+    def setHighlightFocus(self, hightlight: bool) -> None:
+        self.highlight_focus = hightlight
         self.optionsChanged.emit()
 
     def setSmoothing(self, smooth: bool) -> None:

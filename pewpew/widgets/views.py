@@ -236,7 +236,7 @@ class TabViewBar(QtWidgets.QTabBar):
         if (
             not event.buttons() & QtCore.Qt.LeftButton
             or (event.pos() - self.drag_start_pos).manhattanLength()
-            < QtWidgets.QApplication.startDragDistance(self)
+            < QtWidgets.QApplication.startDragDistance()
         ):
             return super().mouseMoveEvent(event)
         index = self.tabAt(event.pos())

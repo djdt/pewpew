@@ -76,16 +76,14 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
 
 
 class LaserImageItem(SnapImageItem):
-    requestDialogCalibration = QtCore.Signal(QtWidgets.QGraphicsItem)
-    requestDialogConfig = QtCore.Signal(QtWidgets.QGraphicsItem)
-    requestDialogColocalisation = QtCore.Signal(QtWidgets.QGraphicsItem, bool)
-    requestDialogInformation = QtCore.Signal(QtWidgets.QGraphicsItem)
-    requestDialogStatistics = QtCore.Signal(QtWidgets.QGraphicsItem, bool)
+    requestDialog = QtCore.Signal(str, QtWidgets.QGraphicsItem, bool)
 
     requestExport = QtCore.Signal(QtWidgets.QGraphicsItem)
     requestSave = QtCore.Signal(QtWidgets.QGraphicsItem)
 
-    colortableChanged = QtCore.Signal(list, float, float)
+    requestTool = QtCore.Signal(str, QtWidgets.QGraphicsItem)
+
+    colortableChanged = QtCore.Signal(list, float, float, str)
 
     hoveredValueChanged = QtCore.Signal(QtCore.QPointF, QtCore.QPoint, float)
     hoveredValueCleared = QtCore.Signal()
@@ -101,7 +99,6 @@ class LaserImageItem(SnapImageItem):
     ):
         super().__init__(parent=parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
 
         self.setAcceptHoverEvents(True)
@@ -182,6 +179,8 @@ class LaserImageItem(SnapImageItem):
         data = self.laser.get(
             self.element(), calibrate=self.options.calibrate, flat=True
         )
+        unit = self.laser.calibration[self.element()].unit
+
         self.raw_data = np.ascontiguousarray(data)
 
         self.vmin, self.vmax = self.options.get_color_range_as_float(
@@ -197,7 +196,7 @@ class LaserImageItem(SnapImageItem):
         self.image.setColorTable(table)
         self.image.setColorCount(len(table))
 
-        self.colortableChanged.emit(table, self.vmin, self.vmax)
+        self.colortableChanged.emit(table, self.vmin, self.vmax, unit)
         self.imageChanged.emit()
 
     def select(self, mask: np.ndarray, modes: List[str]) -> None:
@@ -249,6 +248,16 @@ class LaserImageItem(SnapImageItem):
 
         if self.mask_image is not None:
             painter.drawImage(rect, self.mask_image)
+
+        if (
+            self.hasFocus()
+            and self.options.highlight_focus
+            and not isinstance(painter.device(), QtGui.QPixmap)
+        ):  # Only paint focus if option is active and not painting to a pixmap
+            pen = QtGui.QPen(QtGui.QColor(255, 255, 255, 127), 2.0, QtCore.Qt.SolidLine)
+            pen.setCosmetic(True)
+            painter.setPen(pen)
+            painter.drawRect(self.boundingRect())
 
         painter.restore()
 
@@ -317,43 +326,43 @@ class LaserImageItem(SnapImageItem):
             "go-top",
             "Ca&libration",
             "Edit the laser calibration.",
-            lambda: self.requestDialogCalibration.emit(self),
+            lambda: self.requestDialog.emit("Calibration", self, False),
         )
         self.action_config = qAction(
             "document-edit",
             "&Config",
             "Edit the laser configuration.",
-            lambda: self.requestDialogConfig.emit(self),
+            lambda: self.requestDialog.emit("Config", self, False),
         )
         self.action_colocalisation = qAction(
             "dialog-information",
             "Colocalisation",
             "Open the colocalisation dialog.",
-            lambda: self.requestDialogColocalisation.emit(self, False),
+            lambda: self.requestDialog.emit("Colocalisation", self, False),
         )
         self.action_colocalisation_selection = qAction(
             "dialog-information",
             "Selection Colocalisation",
             "Open the colocalisation dialog for the current selected area.",
-            lambda: self.requestDialogColocalisation.emit(self, True),
+            lambda: self.requestDialog.emit("Colocalisation", self, True),
         )
         self.action_information = qAction(
             "documentinfo",
             "In&formation",
             "View and edit stored laser information.",
-            lambda: self.requestDialogInformation.emit(self),
+            lambda: self.requestDialog.emit("Information", self, False),
         )
         self.action_statistics = qAction(
             "dialog-information",
             "Statistics",
             "Open the statisitics dialog.",
-            lambda: self.requestDialogStatistics.emit(self, False),
+            lambda: self.requestDialog.emit("Statistics", self, False),
         )
         self.action_statistics_selection = qAction(
             "dialog-information",
             "Selection Statistics",
             "Open the statisitics dialog for the current selected area.",
-            lambda: self.requestDialogStatistics.emit(self, True),
+            lambda: self.requestDialog.emit("Statistics", self, True),
         )
 
         self.action_show_label_name = qAction(
@@ -388,31 +397,41 @@ class LaserImageItem(SnapImageItem):
             self.cropToSelection,
         )
 
-    # def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-    #     if self.label.boundingRect().contains(event.scenePos()):
-    #         self.label.mouseDoubleClickEvent(event)
-    #     super().mouseDoubleClickEvent(event)
+        self.actions_transform = [
+            qAction(
+                "object-flip-horizontal",
+                "Flip Horizontal",
+                "Flip data about the vertical axis.",
+                lambda: self.transform(flip="horizontal"),
+            ),
+            qAction(
+                "object-flip-vertical",
+                "Flip Vertical",
+                "Flip data about the horizontal axis.",
+                lambda: self.transform(flip="vertical"),
+            ),
+            qAction(
+                "object-rotate-left",
+                "Rotate Left",
+                "Rotate data 90 degrees counter-clockwise.",
+                lambda: self.transform(rotate="left"),
+            ),
+            qAction(
+                "object-rotate-right",
+                "Rotate Right",
+                "Rotate data 90 degrees clockwise.",
+                lambda: self.transform(rotate="right"),
+            ),
+        ]
 
-    # def actionCalibration(self) -> QtWidgets.QDialog:
-    #     """Open a `:class:pewpew.widgets.dialogs.CalibrationDialog` and applies result."""
-    #     dlg = dialogs.CalibrationDialog(
-    #         self.laser.calibration, self.current_element, parent=self
-    #     )
-    #     dlg.calibrationSelected.connect(self.applyCalibration)
-    #     dlg.calibrationApplyAll.connect(self.view.applyCalibration)
-    #     dlg.open()
-    #     return dlg
-
-    # def actionConfig(self) -> QtWidgets.QDialog:
-    #     """Open a `:class:pewpew.widgets.dialogs.ConfigDialog` and applies result."""
-    #     dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
-    #     dlg.configSelected.connect(self.applyConfig)
-    #     dlg.configApplyAll.connect(self.view.applyConfig)
-    #     dlg.open()
-    #     return dlg
-
-    # def actionCopyImage(self) -> None:
-    #     self.graphics.copyToClipboard()
+        self.actions_tools = [
+            qAction(
+                "folder-calculate",
+                "Calculator",
+                "Open the calculator tool for the current laser image.",
+                lambda: self.requestTool.emit("Calculator", self),
+            )
+        ]
 
     def copySelectionToText(self) -> None:
         """Copies the currently selected data to the system clipboard."""
@@ -439,12 +458,6 @@ class LaserImageItem(SnapImageItem):
         If selection is not rectangular then it is filled with nan.
         """
         raise NotImplementedError
-        # if self.is_srr:  # pragma: no cover
-        #     QtWidgets.QMessageBox.information(
-        #         self, "Transform", "Unable to transform SRR data."
-        #     )
-        #     return
-
         # mask = self.graphics.mask
         # if mask is None or np.all(mask == 0):  # pragma: no cover
         #     return
@@ -472,136 +485,70 @@ class LaserImageItem(SnapImageItem):
 
         # new_widget.activate()
 
-    # def actionCropSelection(self) -> None:
-    #     self.cropToSelection()
+    def transform(
+        self, flip: Optional[str] = None, rotate: Optional[str] = None
+    ) -> None:
+        """Transform the laser data.
 
-    # def actionDuplicate(self) -> None:
-    #     """Duplicate document to a new tab."""
-    #     self.view.addLaser(copy.deepcopy(self.laser))
+        Args:
+            flip: flip the image ['horizontal', 'vertical']
+            rotate: rotate the image 90 degrees ['left', 'right']
 
-    # def actionExport(self) -> QtWidgets.QDialog:
-    #     """Opens a `:class:pewpew.exportdialogs.ExportDialog`.
+        """
+        if flip is not None:
+            if flip in ["horizontal", "vertical"]:
+                axis = 1 if flip == "horizontal" else 0
+                self.laser.data = np.flip(self.laser.data, axis=axis)
+            else:
+                raise ValueError("flip must be 'horizontal', 'vertical'.")
+        if rotate is not None:
+            if rotate in ["left", "right"]:
+                k = 1 if rotate == "right" else 3 if rotate == "left" else 2
+                self.laser.data = np.rot90(self.laser.data, k=k, axes=(1, 0))
+            else:
+                raise ValueError("rotate must be 'left', 'right'.")
 
-    #     This can save the document to various formats.
-    #     """
-    #     dlg = exportdialogs.ExportDialog(self, parent=self)
-    #     dlg.open()
-    #     return dlg
-
-    # def actionInformation(self) -> QtWidgets.QDialog:
-    #     """Opens a `:class:pewpew.widgets.dialogs.InformationDialog`."""
-    #     dlg = dialogs.InformationDialog(self.laser.info, parent=self)
-    #     dlg.infoChanged.connect(self.applyInformation)
-    #     dlg.open()
-    #     return dlg
-
-    # def actionRequestColorbarEdit(self) -> None:
-    #     if self.viewspace is not None:
-    #         self.viewspace.colortableRangeDialog()
-
-    # def actionSave(self) -> QtWidgets.QDialog:
-    #     """Save the document to an '.npz' file.
-
-    #     If not already associated with an '.npz' path a dialog is opened to select one.
-    #     """
-    #     path = Path(self.laser.info["File Path"])
-    #     if path.suffix.lower() == ".npz" and path.exists():
-    #         self.saveDocument(path)
-    #         return None
-    #     else:
-    #         path = self.laserFilePath()
-    #     dlg = QtWidgets.QFileDialog(
-    #         self, "Save File", str(path.resolve()), "Numpy archive(*.npz);;All files(*)"
-    #     )
-    #     dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-    #     dlg.fileSelected.connect(self.saveDocument)
-    #     dlg.open()
-    #     return dlg
-
-    # def actionSelectDialog(self) -> QtWidgets.QDialog:
-    #     """Open a `:class:pewpew.widgets.dialogs.SelectionDialog` and applies selection."""
-    #     dlg = dialogs.SelectionDialog(self.graphics, parent=self)
-    #     dlg.maskSelected.connect(self.graphics.drawSelectionImage)
-    #     self.refreshed.connect(dlg.refresh)
-    #     dlg.show()
-    #     return dlg
-
-    # def actionStatistics(self, crop_to_selection: bool = False) -> QtWidgets.QDialog:
-    #     """Open a `:class:pewpew.widgets.dialogs.StatsDialog` with image data.
-
-    #     Args:
-    #         crop_to_selection: pass current selection as a mask
-    #     """
-    #     data = self.laser.get(calibrate=self.graphics.options.calibrate, flat=True)
-    #     mask = self.graphics.mask
-    #     if mask is None or not crop_to_selection:
-    #         mask = np.ones(data.shape, dtype=bool)
-
-    #     units = {}
-    #     if self.graphics.options.calibrate:
-    #         units = {k: v.unit for k, v in self.laser.calibration.items()}
-
-    #     dlg = dialogs.StatsDialog(
-    #         data,
-    #         mask,
-    #         units,
-    #         self.current_element,
-    #         pixel_size=(
-    #             self.laser.config.get_pixel_width(),
-    #             self.laser.config.get_pixel_height(),
-    #         ),
-    #         parent=self,
-    #     )
-    #     dlg.open()
-    #     return dlg
-
-    # def actionStatisticsSelection(self) -> QtWidgets.QDialog:
-    #     return self.actionStatistics(True)
-
-    # def actionColocal(self, crop_to_selection: bool = False) -> QtWidgets.QDialog:
-    #     """Open a `:class:pewpew.widgets.dialogs.ColocalisationDialog` with image data.
-
-    #     Args:
-    #         crop_to_selection: pass current selection as a mask
-    #     """
-    #     data = self.laser.get(flat=True)
-    #     mask = self.graphics.mask if crop_to_selection else None
-
-    #     dlg = dialogs.ColocalisationDialog(data, mask, parent=self)
-    #     dlg.open()
-    #     return dlg
-
-    # def actionColocalSelection(self) -> QtWidgets.QDialog:
-    #     return self.actionColocal(True)
+        self.prepareGeometryChange()
+        self.redraw()
 
     # === Events ===
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
+        mask_context = self.mask_image is not None and self.selectedAt(event.pos())
 
         menu = QtWidgets.QMenu()
-        # menu.addAction(self.action_duplicate)
         menu.addAction(self.action_copy_image)
         menu.addSeparator()
-        # menu.addAction(self.action_calibration)
 
         menu.addAction(self.action_save)
         menu.addAction(self.action_export)
 
         menu.addSeparator()
 
-        if self.mask_image is not None and self.selectedAt(event.pos()):  # Context menu for mask
+        if mask_context:
             menu.addAction(self.action_selection_copy_text)
             menu.addAction(self.action_selection_crop)
             menu.addSeparator()
-            menu.addAction(self.action_statistics_selection)
+
+        if mask_context:
             menu.addAction(self.action_colocalisation_selection)
+            menu.addAction(self.action_statistics_selection)
         else:
-            menu.addAction(self.action_statistics)
             menu.addAction(self.action_colocalisation)
+            menu.addAction(self.action_statistics)
 
         menu.addSeparator()
 
-        menu.addAction(self.action_config)
+        if not mask_context:
+            transforms = menu.addMenu(
+                QtGui.QIcon.fromTheme("transform-rotate"), "Transform"
+            )
+            transforms.addActions(self.actions_transform)
+            menu.addSeparator()
+            tools = menu.addMenu(QtGui.QIcon.fromTheme(""), "Tools")
+            tools.addActions(self.actions_tools)
+
         menu.addAction(self.action_calibration)
+        menu.addAction(self.action_config)
         menu.addAction(self.action_information)
 
         menu.addSeparator()
@@ -618,7 +565,9 @@ class LaserImageItem(SnapImageItem):
         pos = self.mapToData(event.pos())
         if pos != self._last_hover_pos:
             self._last_hover_pos = pos
-            self.hoveredValueChanged.emit(event.pos(), pos, self.rawData()[pos.y(), pos.x()])
+            self.hoveredValueChanged.emit(
+                event.pos(), pos, self.rawData()[pos.y(), pos.x()]
+            )
 
     def hoverLeaveEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
         self._last_hover_pos = QtCore.QPoint(-1, -1)

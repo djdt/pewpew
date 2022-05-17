@@ -56,6 +56,10 @@ class LaserGraphicsView(OverlayGraphicsView):
 
         self.viewScaleChanged.connect(self.scalebar.requestPaint)
 
+    def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
+        self.clearFocus()
+        event.accept()
+
     def startLassoSelection(self) -> None:
         """Select image pixels using a lasso."""
         for item in self.items():

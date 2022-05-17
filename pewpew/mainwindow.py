@@ -46,7 +46,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "Remove spikes and instrument noise from data.",
         ),
         # "Merge": (MergeTool, "align-vertical-top", "Tool for merging multiple images."),
-        "Calibration": (StandardsTool, None, "Generate calibrations from stanards."),
+        "Calibration": (StandardsTool, None, "Generate calibrations from standards."),
         "Overlay": (OverlayTool, None, "Overlay elements as RGB images."),
     }
 

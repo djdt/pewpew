@@ -17,6 +17,8 @@ from pewpew.widgets.tools import ToolWidget
 
 from typing import List, Optional
 
+from pewpew.widgets.views import TabView
+
 
 def segment_image(x: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
     mask = np.zeros(x.shape, dtype=int)
@@ -229,8 +231,8 @@ class CalculatorTool(ToolWidget):
         ),
     }
 
-    def __init__(self, item: LaserImageItem):
-        super().__init__(item, graphics_label="Preview")
+    def __init__(self, item: LaserImageItem, view: Optional[TabView] = None):
+        super().__init__(item, graphics_label="Preview", view=view)
 
         self.graphics = LaserGraphicsView(self.viewspace.options, parent=self)
         self.graphics.cursorValueChanged.connect(self.widget.updateCursorStatus)
