@@ -236,8 +236,6 @@ class CalculatorTool(ToolWidget):
         super().__init__(item, graphics_label="Preview", view=view)
 
         self.graphics = LaserGraphicsView(item.options, parent=self)
-        # self.graphics.cursorValueChanged.connect(self.widget.updateCursorStatus)
-        # self.graphics.setMouseTracking(True)
 
         self.image: Optional[ScaledImageItem] = None
 
@@ -303,6 +301,7 @@ class CalculatorTool(ToolWidget):
         else:
             self.item.laser.add(self.lineedit_name.text(), data)
         # Make sure to repop elements
+        # self.item.setFocus(QtCore.Qt.OtherFocusReason)
         # self.widget.populateElements()
 
         self.initialise()
@@ -328,6 +327,11 @@ class CalculatorTool(ToolWidget):
         )
         self.formula.valid = True
         self.formula.setText(self.item.element())  # refreshes
+
+        # x0, x1, y0, y1 = self.item.laser.config.data_extent(self.item.laser.shape)
+        # rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
+        # self.graphics.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+        self.graphics.zoomReset()
 
     def insertFunction(self, index: int) -> None:
         if index == 0:
@@ -397,6 +401,6 @@ class CalculatorTool(ToolWidget):
 
     # @Todo First show event -- should refresh and resize the graphics for all widgets
     def showEvent(self, event: QtGui.QShowEvent) -> None:
-        self.refresh()
+    #     self.refresh()
         self.graphics.zoomReset()
         super().showEvent(event)

@@ -183,6 +183,10 @@ class LaserImageItem(SnapImageItem):
 
         self.createActions()
 
+    # def focusInEvent(self, e):
+    #     super().focusInEvent(e)
+    #     print(e)
+
     @property
     def mask(self) -> np.ndarray:
         if self.mask_image is None:

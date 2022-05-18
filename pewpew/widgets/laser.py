@@ -185,11 +185,11 @@ class LaserTabWidget(TabViewWidget):
         # self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
         # self.graphics.colorbar.editRequested.connect(self.)
 
-        self.graphics.scene().focusItemChanged.connect(self.focusItemChanged)
+        self.graphics.scene().focusItemChanged.connect(self.updateForItem)
         self.graphics.scene().setStickyFocus(True)
 
         self.combo_element = LaserComboBox()
-        self.combo_element.namesSelected.connect(self.updateNames)
+        # self.combo_element.namesSelected.connect(self.updateNames)
         self.combo_element.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
 
         self.action_copy_image = qAction(
@@ -280,7 +280,6 @@ class LaserTabWidget(TabViewWidget):
 
     def addLaser(self, laser: Laser) -> None:
         item = LaserImageItem(laser, self.graphics.options)
-        self.graphics.scene().addItem(item)
 
         # Connect dialog requests
         item.requestDialog.connect(self.openDialog)
@@ -297,7 +296,10 @@ class LaserTabWidget(TabViewWidget):
         item.modified.connect(lambda: self.setWindowModified(True))
 
         item.redraw()
-        item.setFocus(QtCore.Qt.NoFocusReason)
+        item.setActive(True)
+        self.updateForItem(item) 
+        self.graphics.scene().addItem(item)
+        self.graphics.zoomReset()
 
     def laserItems(self) -> List[LaserImageItem]:
         return [
@@ -319,11 +321,11 @@ class LaserTabWidget(TabViewWidget):
         self.graphics.colorbar.updateTable(table, vmin, vmax, unit)
         self.graphics.invalidateScene()
 
-    def focusItemChanged(
+    def updateForItem(
         self,
         new: QtWidgets.QGraphicsItem,
-        old: QtWidgets.QGraphicsItem,
-        reason: QtCore.Qt.FocusReason,
+        old: Optional[QtWidgets.QGraphicsItem] = None,
+        reason: QtCore.Qt.FocusReason = QtCore.Qt.NoFocusReason,
     ) -> None:
         if not isinstance(new, LaserImageItem) or old == new:
             return
@@ -389,15 +391,15 @@ class LaserTabWidget(TabViewWidget):
         else:
             status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
 
-    def updateNames(self, rename: dict) -> None:
-        """Rename multiple elements."""
-        current = self.current_element
-        self.laser.rename(rename)
-        self.populateElements()
-        current = rename[current]
-        self.current_element = current
+    # def updateNames(self, rename: dict) -> None:
+    #     """Rename multiple elements."""
+    #     current = self.current_element
+    #     self.laser.rename(rename)
+    #     self.populateElements()
+    #     current = rename[current]
+    #     self.current_element = current
 
-        self.setWindowModified(True)
+    #     self.setWindowModified(True)
 
     # Callbacks
     def openDialog(
@@ -537,6 +539,5 @@ class LaserTabWidget(TabViewWidget):
                 self.applyCalibration(calibrations)
         super().keyPressEvent(event)
 
-    def showEvent(self, event: QtGui.QShowEvent) -> None:
-        self.refresh()
-        super().showEvent(event)
+    # def showEvent(self, event: QtGui.QShowEvent) -> None:
+    #     super().showEvent(event)
