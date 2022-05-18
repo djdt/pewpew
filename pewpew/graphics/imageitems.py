@@ -39,7 +39,8 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         return super().itemChange(change, value)
 
     def dataAt(self, pos: QtCore.QPointF) -> float:
-        raise NotImplementedError
+        pos = self.mapToData(pos)
+        return self.rawData()[pos.y(), pos.x()]
 
     def selectedAt(self, pos: QtCore.QPointF) -> bool:
         return False
@@ -73,6 +74,54 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         x = round(pos.x() / pixel.width()) * pixel.width()
         y = round(pos.y() / pixel.height()) * pixel.height()
         return QtCore.QPointF(x, y)
+
+
+class ScaledImageItem(SnapImageItem):
+    def __init__(
+        self,
+        image: QtGui.QImage,
+        rect: QtCore.QRectF,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
+    ):
+        super().__init__(parent=parent)
+        self.setAcceptHoverEvents(True)
+        self._last_hover_pos = QtCore.QPoint(-1, -1)
+
+        self.image = image
+        self.rect = rect
+
+    def redraw(self) -> None:
+        table = colortable.get_table(self.options.colortable)
+
+        self.image = array_to_image(self.array)
+        self.image.setColorTable(table)
+        self.image.setColorCount(len(table))
+
+        self.imageChanged.emit()
+
+    def boundingRect(self) -> QtCore.QRectF:
+        return self.rect
+
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: Optional[QtWidgets.QWidget] = None,
+    ) -> None:
+        painter.drawImage(self.rect, self.image)
+
+    @classmethod
+    def fromArray(
+        cls,
+        array: np.ndarray,
+        rect: QtCore.QRectF,
+        colortable: List[int],
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
+    ) -> "ScaledImageItem":
+        image = array_to_image(array)
+        image.setColorTable(colortable)
+        image.setColorCount(len(colortable))
+        return cls(image, rect, parent)
 
 
 class LaserImageItem(SnapImageItem):
@@ -161,10 +210,6 @@ class LaserImageItem(SnapImageItem):
         self.modified.emit()
 
     # Virtual SnapImageItem methods
-    def dataAt(self, pos: QtCore.QPointF) -> float:
-        pos = self.mapToData(pos)
-        return self.raw_data[pos.y(), pos.x()]
-
     def selectedAt(self, pos: QtCore.QPointF) -> bool:
         pos = self.mapToData(pos)
         return self.mask[pos.y(), pos.x()]
