@@ -105,6 +105,7 @@ class LaserTabView(TabView):
             raise ValueError(f"Invalid tool type {tool}.")
         pass
         self.addTab(f"Tool: {tool}", widget)
+        self.setActiveWidget(widget)
 
     def applyCalibration(self, calibration: Dict[str, Calibration]) -> None:
         """Set calibrations in all tabs."""

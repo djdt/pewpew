@@ -4,13 +4,14 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
+from pewpew.graphics import colortable
 
 from pewpew.lib import kmeans
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
-from pewpew.graphics.imageitems import LaserImageItem
+from pewpew.graphics.imageitems import ScaledImageItem, SnapImageItem, LaserImageItem
 
 from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.tools import ToolWidget
@@ -236,9 +237,9 @@ class CalculatorTool(ToolWidget):
 
         self.graphics = LaserGraphicsView(item.options, parent=self)
         # self.graphics.cursorValueChanged.connect(self.widget.updateCursorStatus)
-        self.graphics.setMouseTracking(True)
+        # self.graphics.setMouseTracking(True)
 
-        self.graphics.scene().addItem(self.item)
+        self.image: Optional[ScaledImageItem] = None
 
         self.output = QtWidgets.QLineEdit("Result")
         self.output.setEnabled(False)
@@ -378,10 +379,24 @@ class CalculatorTool(ToolWidget):
         x0, x1, y0, y1 = self.item.laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
-        # self.graphics.drawImage(data, rect, self.lineedit_name.text())
+        vmin, vmax = self.item.options.get_color_range_as_float("<calc>", data)
+        data = np.clip(data, vmin, vmax)
+        if vmin != vmax:
+            data = (data - vmin) / (vmax - vmin)
 
-        # self.graphics.label.setText(self.lineedit_name.text())
+        table = colortable.get_table(self.item.options.colortable)
 
-        # self.graphics.setOverlayItemVisibility()
-        # self.graphics.updateForeground()
+        if self.image is not None:
+            self.graphics.scene().removeItem(self.image)
+        self.image = ScaledImageItem.fromArray(data, rect, table)
+        self.graphics.scene().addItem(self.image)
+        
+        self.graphics.colorbar.updateTable(table, vmin, vmax, "")
+
         self.graphics.invalidateScene()
+
+    # @Todo First show event -- should refresh and resize the graphics for all widgets
+    def showEvent(self, event: QtGui.QShowEvent) -> None:
+        self.refresh()
+        self.graphics.zoomReset()
+        super().showEvent(event)
