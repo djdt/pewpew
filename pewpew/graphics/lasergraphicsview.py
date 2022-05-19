@@ -36,7 +36,7 @@ class LaserGraphicsView(OverlayGraphicsView):
     ):
         self.options = options
 
-        self._scene = QtWidgets.QGraphicsScene(QtCore.QRectF(0, 0, 640, 480))
+        self._scene = QtWidgets.QGraphicsScene(QtCore.QRectF(0, 0, 1, 1))
         self._scene.setItemIndexMethod(QtWidgets.QGraphicsScene.NoIndex)
         self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
 
@@ -136,6 +136,11 @@ class LaserGraphicsView(OverlayGraphicsView):
 
         self.scalebar.setVisible(scalebar)
         self.colorbar.setVisible(colorbar)
+
+    # def showEvent(self, e):
+    #     print(self.sceneRect())
+    #     self.zoomReset()
+    #     print(self.sceneRect())
 
     def zoomReset(self) -> None:
         rect = QtCore.QRectF(0, 0, 0, 0)
