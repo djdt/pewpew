@@ -11,7 +11,7 @@ from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
-from pewpew.graphics.imageitems import ScaledImageItem, SnapImageItem, LaserImageItem
+from pewpew.graphics.imageitems import ScaledImageItem, LaserImageItem
 
 from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.tools import ToolWidget
@@ -295,7 +295,7 @@ class CalculatorTool(ToolWidget):
         self.initialise()  # refreshes
 
     def apply(self) -> None:
-        self.modified = True
+        # self.modified = True
         name = self.lineedit_name.text()
         data = self.reducer.reduce(self.formula.expr)
         if name in self.item.laser.elements:
@@ -304,6 +304,7 @@ class CalculatorTool(ToolWidget):
             self.item.laser.add(self.lineedit_name.text(), data)
         # Make sure to repop elements
         # self.widget.populateElements()
+        self.item.laser.modified.emit()
 
         self.initialise()
 
