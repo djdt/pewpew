@@ -293,7 +293,6 @@ class CalculatorTool(ToolWidget):
         self.initialise()  # refreshes
 
     def apply(self) -> None:
-        # self.modified = True
         name = self.lineedit_name.text()
         data = self.reducer.reduce(self.formula.expr)
         if name in self.item.laser.elements:
@@ -301,7 +300,6 @@ class CalculatorTool(ToolWidget):
         else:
             self.item.laser.add(self.lineedit_name.text(), data)
         # Make sure to repop elements
-        # self.widget.populateElements()
         self.itemModified.emit(self.item)
 
         self.initialise()

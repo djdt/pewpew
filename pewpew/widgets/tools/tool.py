@@ -39,6 +39,7 @@ class ToolWidget(TabViewWidget):
     ):
         super().__init__(editable=False, view=view)
         
+        self.graphics = OverlayGraphicsView()
         self.item = item
 
         self.button_box = QtWidgets.QDialogButtonBox(
