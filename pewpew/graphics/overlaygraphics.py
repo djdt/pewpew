@@ -54,6 +54,7 @@ class OverlayItem(QtWidgets.QGraphicsObject):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
         self.setFlag(QtWidgets.QGraphicsItem.ItemHasNoContents)
 
+        self.viewport = QtCore.QRect()
         self.painted = False
 
     def setViewport(self, rect: QtCore.QRect) -> None:
@@ -219,4 +220,8 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
         self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
 
     def zoomReset(self) -> None:
+        rect = QtCore.QRectF(0, 0, 0, 0)
+        for item in self.scene().items():
+            rect = rect.united(item.boundingRect())
+        self.scene().setSceneRect(rect)
         self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)

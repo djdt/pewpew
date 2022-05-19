@@ -136,20 +136,3 @@ class LaserGraphicsView(OverlayGraphicsView):
 
         self.scalebar.setVisible(scalebar)
         self.colorbar.setVisible(colorbar)
-
-    # def showEvent(self, e):
-    #     print(self.sceneRect())
-    #     self.zoomReset()
-    #     print(self.sceneRect())
-
-    def zoomReset(self) -> None:
-        rect = QtCore.QRectF(0, 0, 0, 0)
-        for item in self.scene().items():
-            if isinstance(item, SnapImageItem):
-                rect = rect.united(item.boundingRect())
-        self.scene().setSceneRect(rect)
-        self.fitInView(self.scene().sceneRect(), QtCore.Qt.KeepAspectRatio)
-
-    def zoomStart(self) -> None:
-        """Start zoom interactions."""
-        self.setInteractionFlag("zoom", True)
