@@ -301,9 +301,8 @@ class CalculatorTool(ToolWidget):
         else:
             self.item.laser.add(self.lineedit_name.text(), data)
         # Make sure to repop elements
-        # self.item.setFocus(QtCore.Qt.OtherFocusReason)
         # self.widget.populateElements()
-        self.item.laser.modified.emit()
+        self.itemModified.emit(self.item)
 
         self.initialise()
 

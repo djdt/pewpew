@@ -22,6 +22,7 @@ from pewpew.graphics.options import GraphicsOptions
 from pewpew.threads import ImportThread
 
 from pewpew.widgets import dialogs, exportdialogs
+from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.tools.calculator import CalculatorTool
 from pewpew.widgets.views import TabView, TabViewWidget
 
@@ -96,16 +97,6 @@ class LaserTabView(TabView):
         thread.finished.connect(progress.close)
 
         thread.start()
-
-    def openTool(self, tool: str, item: LaserImageItem) -> None:
-        if tool == "Calculator":
-            widget = CalculatorTool(item, view=self)
-            pass
-        else:
-            raise ValueError(f"Invalid tool type {tool}.")
-        pass
-        self.addTab(f"Tool: {tool}", widget)
-        self.setActiveWidget(widget)
 
     def applyCalibration(self, calibration: Dict[str, Calibration]) -> None:
         """Set calibrations in all tabs."""
@@ -283,7 +274,7 @@ class LaserTabWidget(TabViewWidget):
 
         # Connect dialog requests
         item.requestDialog.connect(self.openDialog)
-        item.requestTool.connect(self.view.openTool)
+        item.requestTool.connect(self.openTool)
 
         item.requestExport.connect(self.dialogExport)
         item.requestSave.connect(self.dialogSave)
@@ -297,7 +288,7 @@ class LaserTabWidget(TabViewWidget):
 
         item.redraw()
         item.setActive(True)
-        self.updateForItem(item) 
+        self.updateForItem(item)
         self.graphics.scene().addItem(item)
         self.graphics.zoomReset()
 
@@ -454,6 +445,18 @@ class LaserTabWidget(TabViewWidget):
 
         dlg.open()
         return dlg
+
+    def openTool(self, tool: str, item: LaserImageItem) -> ToolWidget:
+        if tool == "Calculator":
+            widget = CalculatorTool(item, view=self.view)
+        else:
+            raise ValueError(f"Invalid tool type {tool}.")
+
+        widget.itemModified.connect(self.updateForItem)
+        self.view.addTab(f"Tool: {tool}", widget)
+        self.view.setActiveWidget(widget)
+        return widget
+
 
     def dialogExport(self, item: Optional[LaserImageItem] = None) -> QtWidgets.QDialog:
         if item is None:

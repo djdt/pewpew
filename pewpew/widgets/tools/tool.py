@@ -26,6 +26,8 @@ class ToolWidget(TabViewWidget):
     applyPressed = QtCore.Signal()
     applyAllPressed = QtCore.Signal()
 
+    itemModified = QtCore.Signal(SnapImageItem)
+
     def __init__(
         self,
         item: SnapImageItem,
