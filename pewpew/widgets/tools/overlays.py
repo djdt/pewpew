@@ -7,47 +7,45 @@ from pewlib.process.calc import normalise
 
 from pewpew.actions import qAction, qToolButton
 
-from pewpew.graphics.options import GraphicsOptions
-from pewpew.graphics.aligneditems import UnscaledAlignedTextItem
-from pewpew.graphics.imageitems import ScaledImageItem
-from pewpew.graphics.overlaygraphics import OverlayGraphicsView
-from pewpew.graphics.overlayitems import MetricScaleBarOverlay
+from pewpew.graphics.overlayitems import OverlayItem
+from pewpew.graphics.imageitems import LaserImageItem, ScaledImageItem
 
 from pewpew.widgets.exportdialogs import _ExportDialogBase, OptionsBox
 from pewpew.widgets.ext import RangeSlider
-from pewpew.widgets.laser import LaserTabWidget
 from pewpew.widgets.prompts import OverwriteFilePrompt
 from pewpew.widgets.tools import ToolWidget
+from pewpew.widgets.views import TabView
 
 from typing import Iterator, Generator, List, Optional, Tuple
 
 
-class OverlayLabelItem(UnscaledAlignedTextItem):
+class OverlayLabelItem(OverlayItem):
     def __init__(
         self,
-        parent: QtWidgets.QGraphicsItem,
-        text: str,
-        alignment: Optional[QtCore.Qt.Alignment] = None,
         font: Optional[QtGui.QFont] = None,
-        brush: Optional[QtGui.QBrush] = None,
-        pen: Optional[QtGui.QPen] = None,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
-        super().__init__(parent, text, alignment, font, brush, pen)
+        super().__init__(parent)
 
-    def boundingRect(self):
-        fm = QtGui.QFontMetrics(self.font())
-        rect = QtCore.QRectF(0, 0, fm.boundingRect(self.text()).width(), fm.height())
-        parent_rect = self.parentItem().boundingRect()
+        self.font = font or QtGui.QFont()
+        self.texts = []
+        self.colors = []
 
-        if self.alignment & QtCore.Qt.AlignRight:
-            rect.moveRight(parent_rect.right())
-        elif self.alignment & QtCore.Qt.AlignHCenter:
-            rect.moveCenter(QtCore.QPointF(parent_rect.center().x(), rect.center().y()))
-        if self.alignment & QtCore.Qt.AlignBottom:
-            rect.moveBottom(parent_rect.bottom())
-        elif self.alignment & QtCore.Qt.AlignVCenter:
-            rect.moveCenter(QtCore.QPointF(rect.center().x(), parent_rect.center().y()))
-        return rect
+    def setColors(self, colors: List[QtGui.QColor]) -> None:
+        self.colors = colors
+
+    def setTexts(self, texts: List[str]) -> None:
+        self.texts = texts
+        self.prepareGeometryChange()
+
+    def boundingRect(self) -> QtCore.QRectF:
+        fm = QtGui.QFontMetrics(self.font)
+        return QtCore.QRectF(
+            0,
+            0,
+            max([fm.boundingRect(text).width() for text in self.texts] + [0]),
+            fm.height() * len(self.texts),
+        )
 
     def paint(
         self,
@@ -56,78 +54,11 @@ class OverlayLabelItem(UnscaledAlignedTextItem):
         widget: Optional[QtWidgets.QWidget] = None,
     ):
         painter.save()
-
-        painter.setFont(self.font())
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
-
-        rect = painter.boundingRect(
-            self.parentItem().boundingRect(), self.alignment, self.text()
-        )
-
-        path = QtGui.QPainterPath()
-        path.addText(
-            rect.left(),
-            rect.top() + painter.fontMetrics().ascent(),
-            painter.font(),
-            self.text(),
-        )
-        painter.strokePath(path, self.pen)
-        painter.fillPath(path, self.brush)
-
-        painter.restore()
-
-class OverlayImageItem(ScaledImageItem):
-    def __init__(
-        self,
-        image: QtGui.QImage,
-        rect: QtCore.QRectF,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
-    ):
-        super().__init__(image, rect, parent=parent)
-
-class RGBLabelItem(QtWidgets.QGraphicsItem):
-    def __init__(
-        self,
-        texts: List[str],
-        colors: List[QtGui.QColor],
-        font: Optional[QtGui.QFont] = None,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
-    ):
-        super().__init__(parent)
-
-        if font is None:
-            font = QtGui.QFont()
-
-        self._texts = texts
-        self.colors = colors
-        self.font = font
-
-    @property
-    def texts(self) -> List[str]:
-        return self._texts
-
-    @texts.setter
-    def texts(self, texts: List[str]) -> None:
-        self._texts = texts
-        self.prepareGeometryChange()
-
-    def boundingRect(self):
-        fm = QtGui.QFontMetrics(self.font)
-        width = max(
-            (fm.boundingRect(text).width() for text in self._texts), default=0.0
-        )
-        return QtCore.QRectF(0, 0, width, fm.height() * len(self._texts))
-
-    def paint(
-        self,
-        painter: QtGui.QPainter,
-        option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
-    ):
 
         fm = QtGui.QFontMetrics(self.font, painter.device())
         y = fm.ascent()
-        for text, color in zip(self._texts, self.colors):
+        for text, color in zip(self.texts, self.colors):
             path = QtGui.QPainterPath()
             path.addText(0, y, self.font, text)
 
@@ -136,70 +67,7 @@ class RGBLabelItem(QtWidgets.QGraphicsItem):
 
             y += fm.height()
 
-
-class RGBOverlayGraphicsView(OverlayGraphicsView):
-    def __init__(
-        self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None
-    ):
-        self.options = options
-        self.data: Optional[np.ndarray] = None
-
-        self._scene = QtWidgets.QGraphicsScene(0, 0, 640, 480)
-        self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
-
-        super().__init__(self._scene, parent)
-        self.cursors["selection"] = QtCore.Qt.ArrowCursor
-
-        self.image: Optional[SnapImageItem] = None
-
-        self.label = RGBLabelItem(
-            ["_"], colors=[self.options.font_color], font=self.options.font
-        )
-        self.scalebar = MetricScaleBarOverlay(
-            font=self.options.font, color=self.options.font_color
-        )
-
-        self.scene().addOverlayItem(
-            self.label,
-            QtCore.Qt.TopLeftCorner,
-            QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft,
-        )
-        self.label.setPos(10, 10)
-        self.scene().addOverlayItem(
-            self.scalebar,
-            QtCore.Qt.TopRightCorner,
-            QtCore.Qt.AlignTop | QtCore.Qt.AlignRight,
-        )
-        self.scalebar.setPos(0, 10)
-
-    def setOverlayItemVisibility(
-        self,
-        label: Optional[bool] = None,
-        scalebar: Optional[bool] = None,
-        colorbar: Optional[bool] = None,
-    ):
-        if label is None:
-            label = self.options.items["label"]
-        if scalebar is None:
-            scalebar = self.options.items["scalebar"]
-        # if colorbar is None:
-        #     colorbar = self.options.items["colorbar"]
-
-        self.label.setVisible(label)
-        self.scalebar.setVisible(scalebar)
-        # self.colorbar.setVisible(colorbar)
-
-    def drawImage(self, data: np.ndarray, rect: QtCore.QRectF) -> None:
-        if self.image is not None:
-            self.scene().removeItem(self.image)
-
-        self.data = data
-        self.image = SnapImageItem.fromArray(data, rect, smooth=self.options.smoothing)
-        self.scene().addItem(self.image)
-
-        if self.sceneRect() != rect:
-            self.setSceneRect(rect)
-            self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+        painter.restore()
 
 
 class OverlayTool(ToolWidget):
@@ -207,19 +75,27 @@ class OverlayTool(ToolWidget):
 
     model_type = {"any": "additive", "cmyk": "subtractive", "rgb": "additive"}
 
-    def __init__(self, widget: LaserTabWidget):
+    def __init__(self, item: LaserImageItem, view: Optional[TabView] = None):
         super().__init__(
-            widget, control_label="", orientation=QtCore.Qt.Vertical, apply_all=False
+            item,
+            control_label="",
+            orientation=QtCore.Qt.Vertical,
+            apply_all=False,
+            view=view,
         )
         self.setWindowTitle("Image Overlay")
+
+        self.image: Optional[ScaledImageItem] = None
+
+        self.label = OverlayLabelItem(self.item.options.font)
+        self.label.setPos(10, 10)
+        self.graphics.addOverlayItem(self.label)
+
+        self.graphics.colorbar.setVisible(False)
 
         self.button_save = QtWidgets.QPushButton("Export")
         self.button_save.setIcon(QtGui.QIcon.fromTheme("document-export"))
         self.button_save.pressed.connect(self.openExportDialog)
-
-        self.graphics = RGBOverlayGraphicsView(self.viewspace.options)
-        # self.graphics.cursorClear.connect(self.widget.clearCursorStatus)
-        # self.graphics.cursorMoved.connect(self.updateCursorStatus)
 
         self.check_normalise = QtWidgets.QCheckBox("Renormalise")
         self.check_normalise.setEnabled(False)
@@ -235,7 +111,7 @@ class OverlayTool(ToolWidget):
 
         self.combo_add = QtWidgets.QComboBox()
         self.combo_add.addItem("Add Element")
-        self.combo_add.addItems(widget.laser.elements)
+        self.combo_add.addItems(item.laser.elements)
         self.combo_add.activated[int].connect(self.comboAdd)
 
         self.rows = OverlayRows(self)
@@ -250,14 +126,10 @@ class OverlayTool(ToolWidget):
         layout_row_bar.addWidget(self.radio_cmyk, 0, QtCore.Qt.AlignRight)
         layout_row_bar.addWidget(self.radio_custom, 0, QtCore.Qt.AlignRight)
 
-        layout_graphics = QtWidgets.QVBoxLayout()
-        layout_graphics.addWidget(self.graphics)
-
         layout_controls = QtWidgets.QVBoxLayout()
         layout_controls.addLayout(layout_row_bar, 0)
         layout_controls.addWidget(self.rows, 1)
 
-        self.box_graphics.setLayout(layout_graphics)
         self.box_controls.setLayout(layout_controls)
 
         self.button_box.clear()
@@ -275,7 +147,7 @@ class OverlayTool(ToolWidget):
         self.button_save.setEnabled(enabled)
 
     def openExportDialog(self) -> QtWidgets.QDialog:
-        dlg = OverlayExportDialog(self)
+        dlg = OverlayExportDialog(self.item)
         dlg.open()
         return dlg
 
@@ -287,8 +159,8 @@ class OverlayTool(ToolWidget):
         self.combo_add.setCurrentIndex(0)
 
     def addRow(self, label: str) -> None:
-        img = self.widget.laser.get(label, calibrate=True, flat=True)
-        vmin, vmax = self.viewspace.options.get_colorrange_as_percentile(label, img)
+        img = self.item.laser.get(label, calibrate=True, flat=True)
+        vmin, vmax = self.item.options.get_color_range_as_percentile(label, img)
         self.rows.addRow(label, int(vmin), int(vmax))
 
     def updateColorModel(self) -> None:
@@ -312,7 +184,7 @@ class OverlayTool(ToolWidget):
         self.refresh()
 
     def processRow(self, row: "OverlayItemRow") -> np.ndarray:
-        img = self.widget.laser.get(row.label_name.text(), calibrate=True, flat=True)
+        img = self.item.laser.get(row.label_name.text(), calibrate=True, flat=True)
         vmin, vmax = row.getVmin(img), row.getVmax(img)
 
         r, g, b, _ = row.getColor().getRgb()
@@ -333,7 +205,7 @@ class OverlayTool(ToolWidget):
         datas = np.array([self.processRow(row) for row in rows])
 
         if len(datas) == 0:
-            img = np.zeros((*self.widget.laser.shape[:2], 3), dtype=np.uint32)
+            img = np.zeros((*self.item.laser.shape[:2], 3), dtype=np.uint32)
         else:
             img = np.sum(datas, axis=0).astype(np.uint32)
 
@@ -347,16 +219,18 @@ class OverlayTool(ToolWidget):
 
         img = (255 << 24) + (img[:, :, 0] << 16) + (img[:, :, 1] << 8) + img[:, :, 2]
 
-        x0, x1, y0, y1 = self.widget.laser.config.data_extent(img.shape)
+        x0, x1, y0, y1 = self.item.laser.config.data_extent(img.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
-        self.graphics.drawImage(img, rect)
+        if self.image is not None:
+            self.graphics.scene().removeItem(self.image)
 
-        self.graphics.label.colors = [row.getColor() for row in rows]
-        self.graphics.label.texts = [row.label_name.text() for row in rows]
+        self.image = ScaledImageItem.fromArray(img, rect)
+        self.graphics.scene().addItem(self.image)
 
-        self.graphics.setOverlayItemVisibility()
-        self.graphics.updateForeground()
+        self.label.setColors([row.getColor() for row in rows])
+        self.label.setTexts([row.label_name.text() for row in rows])
+
         self.graphics.invalidateScene()
 
     def updateCursorStatus(self, v: np.ndarray) -> None:
@@ -367,7 +241,7 @@ class OverlayTool(ToolWidget):
 
 
 class OverlayItemRow(QtWidgets.QWidget):
-    closeRequested = QtCore.Signal("QWidget*")
+    closeRequested = QtCore.Signal(QtWidgets.QWidget)
     itemChanged = QtCore.Signal()
 
     def __init__(
@@ -377,7 +251,7 @@ class OverlayItemRow(QtWidgets.QWidget):
         vmax: int,
         color: QtGui.QColor,
         color_pickable: bool = False,
-        parent: "OverlayRows" = None,
+        parent: Optional["OverlayRows"] = None,
     ):
         super().__init__(parent)
 
@@ -557,7 +431,7 @@ class OverlayRows(QtWidgets.QScrollArea):
 class OverlayExportDialog(_ExportDialogBase):
     """Export dialog for the overlay tool."""
 
-    def __init__(self, parent: OverlayTool):
+    def __init__(self, item: LaserImageItem, parent: OverlayTool):
         super().__init__([OptionsBox("PNG images", ".png")], parent)
         self.setWindowTitle("Overlay Export")
         self.widget = parent
@@ -635,6 +509,7 @@ class OverlayExportDialog(_ExportDialogBase):
             raise ValueError(f"Unable to export file as '{option.ext}'.")
 
     def exportIndividual(self, path: Path, rowi: int) -> None:
+        # @Todo
         option = self.options.currentOption()
         row = self.widget.rows[rowi]
 

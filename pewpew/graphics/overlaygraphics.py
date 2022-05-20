@@ -4,6 +4,8 @@ from pathlib import Path
 
 from typing import Optional, Set, Union
 
+from pewpew.actions import qAction
+
 
 class OverlayParentItem(QtWidgets.QGraphicsObject):
     def __init__(self, parent: Optional[QtWidgets.QGraphicsItem] = None):
@@ -100,7 +102,6 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
 
         self.overlay = OverlayParentItem()
         self.scene().addItem(self.overlay)
-
 
         self.setCacheMode(QtWidgets.QGraphicsView.CacheBackground)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)

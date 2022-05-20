@@ -25,6 +25,7 @@ class ToolWidget(TabViewWidget):
         box_controls: GroupBox for controls
         box_graphics: GroupBox for graphics
     """
+
     applyPressed = QtCore.Signal()
     applyAllPressed = QtCore.Signal()
 
@@ -41,8 +42,9 @@ class ToolWidget(TabViewWidget):
     ):
         super().__init__(editable=False, view=view)
         self._shown = False
-        
+
         self.graphics = LaserGraphicsView(item.options, parent=self)
+        self.graphics.setMouseTracking(True)
 
         self.item = item
 
@@ -86,17 +88,20 @@ class ToolWidget(TabViewWidget):
         layout.addWidget(self.button_box)
         self.setLayout(layout)
 
-    # def contextMenuEvent(self, event: QtCore.QEvent) -> None:
-    #     event.accept()
-    #     action_copy_image = QtWidgets.QAction(
-    #         QtGui.QIcon.fromTheme("insert-image"), "Copy To Clipboard", self
-    #     )
-    #     action_copy_image.setStatusTip("Copy the graphics view to the clipboard.")
-    #     action_copy_image.triggered.connect(self.graphics.copyToClipboard)
+    def contextMenuEvent(self, event: QtCore.QEvent) -> None:
+        if not self.graphics.underMouse():
+            return
 
-    #     menu = QtWidgets.QMenu(self)
-    #     menu.addAction(action_copy_image)
-    #     menu.popup(event.globalPos())
+        action_copy_image = QtWidgets.QAction(
+            QtGui.QIcon.fromTheme("insert-image"), "Copy Scene &Image", self
+        )
+        action_copy_image.setStatusTip("Copy scene to clipboard.")
+        action_copy_image.triggered.connect(self.graphics.copyToClipboard)
+
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(action_copy_image)
+        menu.popup(event.globalPos())
+        event.accept()
 
     def accept(self) -> None:  # pragma: no cover
         self.view.requestClose(self.index)

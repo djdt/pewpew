@@ -56,11 +56,11 @@ class LaserTabView(TabView):
         return widget
 
     # Events
-    def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
-        menu = QtWidgets.QMenu(self)
-        menu.addAction(self.action_open)
-        menu.popup(event.globalPos())
-        event.accept()
+    # def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+    #     menu = QtWidgets.QMenu(self)
+    #     menu.addAction(self.action_open)
+    #     menu.popup(event.globalPos())
+    #     event.accept()
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
@@ -185,7 +185,7 @@ class LaserTabWidget(TabViewWidget):
             "insert-image",
             "Copy Scene &Image",
             "Copy scene to clipboard.",
-            self.actionCopyImage,
+            self.graphics.copyToClipboard,
         )
         # self.action_open = qAction("document-open", "Open")
         self.action_export_all = qAction(
@@ -500,15 +500,14 @@ class LaserTabWidget(TabViewWidget):
         dlg.open()
         return dlg
 
-    def actionCopyImage(self) -> None:
-        self.graphics.copyToClipboard()
-
     def actionDuplicate(self) -> None:
         """Duplicate document to a new tab."""
         self.view.addLaser(copy.deepcopy(self.laser))
 
     # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
+        if not self.graphics.underMouse():
+            return
         menu = QtWidgets.QMenu(self)
         # menu.addAction(self.action_duplicate)
         menu.addAction(self.action_copy_image)
