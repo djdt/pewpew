@@ -85,27 +85,23 @@ class GraphicsOptions(QtCore.QObject):
             vmax = np.nanpercentile(data, float(vmax.rstrip("%")))
         return vmin, vmax  # type: ignore
 
-    # def get_colorrange(self, name: str) -> Tuple[Union[float, str], Union[float, str]]:
-    #     """Get colorrange for 'name' or a default."""
-    #     return self._colorranges.get(name, self.colorrange_default)
+    def get_color_range_as_percentile(
+        self, name: str, data: np.ndarray
+    ) -> Tuple[float, float]:
+        """Get colorrange for 'name' or a default.
 
-    # def get_colorrange_as_percentile(
-    #     self, name: str, data: np.ndarray
-    # ) -> Tuple[float, float]:
-    #     """Get colorrange for 'name' or a default.
-
-    #     Converts float values to percentile ranges.
-    #     """
-    #     vmin, vmax = self.get_colorrange(name)
-    #     if isinstance(vmin, str):
-    #         vmin = float(vmin.rstrip("%"))
-    #     else:
-    #         vmin = np.count_nonzero(data < vmin) / data.size * 100
-    #     if isinstance(vmax, str):
-    #         vmax = float(vmax.rstrip("%"))
-    #     else:
-    #         vmin = np.count_nonzero(data < vmax) / data.size * 100
-    #     return vmin, vmax  # type: ignore
+        Converts float values to percentile ranges.
+        """
+        vmin, vmax = self.color_ranges.get(name, self.color_range_default)
+        if isinstance(vmin, str):
+            vmin = float(vmin.rstrip("%"))
+        else:
+            vmin = np.count_nonzero(data < vmin) / data.size * 100
+        if isinstance(vmax, str):
+            vmax = float(vmax.rstrip("%"))
+        else:
+            vmin = np.count_nonzero(data < vmax) / data.size * 100
+        return vmin, vmax  # type: ignore
 
     # def set_colorrange(
     #     self, name: str, colorrange: Tuple[Union[float, str], Union[float, str]]
