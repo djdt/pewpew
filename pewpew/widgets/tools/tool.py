@@ -1,7 +1,7 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew.graphics.imageitems import SnapImageItem
-from pewpew.graphics.overlaygraphics import OverlayGraphicsView
+from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 
 from pewpew.widgets.views import TabView, TabViewWidget
 
@@ -42,7 +42,8 @@ class ToolWidget(TabViewWidget):
         super().__init__(editable=False, view=view)
         self._shown = False
         
-        self.graphics = OverlayGraphicsView(QtWidgets.QGraphicsScene(0, 0, 1, 1))
+        self.graphics = LaserGraphicsView(item.options, parent=self)
+
         self.item = item
 
         self.button_box = QtWidgets.QDialogButtonBox(
@@ -63,6 +64,10 @@ class ToolWidget(TabViewWidget):
 
         self.box_controls = QtWidgets.QGroupBox(control_label)
         self.box_graphics = QtWidgets.QGroupBox(graphics_label)
+
+        layout_graphics = QtWidgets.QVBoxLayout()
+        layout_graphics.addWidget(self.graphics)
+        self.box_graphics.setLayout(layout_graphics)
 
         self.splitter = QtWidgets.QSplitter(orientation)
         if orientation == QtCore.Qt.Horizontal:
