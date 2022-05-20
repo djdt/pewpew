@@ -29,18 +29,12 @@ class LaserGraphicsView(OverlayGraphicsView):
     If a selection is made the 'mask' is updated and a highlight is applied to sselected pixels.
     """
 
-    cursorValueChanged = QtCore.Signal(float, float, float)
-
     def __init__(
         self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None
     ):
+        super().__init__(QtWidgets.QGraphicsScene(QtCore.QRectF(0, 0, 1, 1), parent), parent)
+
         self.options = options
-
-        self._scene = QtWidgets.QGraphicsScene(QtCore.QRectF(0, 0, 1, 1))
-        self._scene.setItemIndexMethod(QtWidgets.QGraphicsScene.NoIndex)
-        self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
-
-        super().__init__(self._scene, parent)
         self.cursors["selection"] = QtCore.Qt.ArrowCursor
 
         self.scalebar = MetricScaleBarOverlay(
