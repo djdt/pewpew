@@ -329,7 +329,6 @@ class CalculatorTool(ToolWidget):
         # x0, x1, y0, y1 = self.item.laser.config.data_extent(self.item.laser.shape)
         # rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
         # self.graphics.fitInView(rect, QtCore.Qt.KeepAspectRatio)
-        self.graphics.zoomReset()
 
     def insertFunction(self, index: int) -> None:
         if index == 0:
@@ -394,11 +393,4 @@ class CalculatorTool(ToolWidget):
         self.graphics.scene().addItem(self.image)
         
         self.graphics.colorbar.updateTable(table, vmin, vmax, "")
-
         self.graphics.invalidateScene()
-
-    # @Todo First show event -- should refresh and resize the graphics for all widgets
-    def showEvent(self, event: QtGui.QShowEvent) -> None:
-    #     self.refresh()
-        self.graphics.zoomReset()
-        super().showEvent(event)

@@ -1,7 +1,9 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewpew.widgets.views import TabView, TabViewWidget
 from pewpew.graphics.imageitems import SnapImageItem
+from pewpew.graphics.overlaygraphics import OverlayGraphicsView
+
+from pewpew.widgets.views import TabView, TabViewWidget
 
 from typing import Optional
 
@@ -38,8 +40,9 @@ class ToolWidget(TabViewWidget):
         view: Optional[TabView] = None,
     ):
         super().__init__(editable=False, view=view)
+        self._shown = False
         
-        self.graphics = OverlayGraphicsView()
+        self.graphics = OverlayGraphicsView(QtWidgets.QGraphicsScene(0, 0, 1, 1))
         self.item = item
 
         self.button_box = QtWidgets.QDialogButtonBox(
@@ -123,18 +126,6 @@ class ToolWidget(TabViewWidget):
     def isComplete(self) -> bool:  # pragma: no cover
         return True
 
-    # def onFirstShow(self) -> None:
-    #     if self.graphics is None:
-    #         return
-
-    #     rect = self.widget.graphics.mapToScene(
-    #         self.widget.graphics.viewport().rect()
-    #     ).boundingRect()
-    #     rect = rect.intersected(self.widget.graphics.sceneRect())
-    #     self.graphics.fitInView(rect, QtCore.Qt.KeepAspectRatio)
-    #     self.graphics.updateForeground()
-    #     self.graphics.invalidateScene()
-
     def reject(self) -> None:
         self.view.requestClose(self.index)
 
@@ -149,16 +140,14 @@ class ToolWidget(TabViewWidget):
     #     self.reject()
     #     return False
 
-    # def showEvent(self, event: QtGui.QShowEvent) -> None:
-    #     super().showEvent(event)
-    #     if not self._shown:
-    #         self.onFirstShow()
-    #         self._shown
+    def onFirstShow(self) -> None:
+        self.graphics.zoomReset()
+
+    def showEvent(self, event: QtGui.QShowEvent) -> None:
+        super().showEvent(event)
+        if not self._shown:
+            self.onFirstShow()
+            self._shown = True
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(800, 600)
-
-    # def transform(self, **kwargs) -> None:
-    #     if hasattr(self.widget, "transform"):
-    #         self.widget.transform(**kwargs)
-    #     self.refresh()

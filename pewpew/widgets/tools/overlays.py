@@ -8,7 +8,8 @@ from pewlib.process.calc import normalise
 from pewpew.actions import qAction, qToolButton
 
 from pewpew.graphics.options import GraphicsOptions
-from pewpew.graphics.imageitems import SnapImageItem
+from pewpew.graphics.aligneditems import UnscaledAlignedTextItem
+from pewpew.graphics.imageitems import ScaledImageItem
 from pewpew.graphics.overlaygraphics import OverlayGraphicsView
 from pewpew.graphics.overlayitems import MetricScaleBarOverlay
 
@@ -20,6 +21,69 @@ from pewpew.widgets.tools import ToolWidget
 
 from typing import Iterator, Generator, List, Optional, Tuple
 
+
+class OverlayLabelItem(UnscaledAlignedTextItem):
+    def __init__(
+        self,
+        parent: QtWidgets.QGraphicsItem,
+        text: str,
+        alignment: Optional[QtCore.Qt.Alignment] = None,
+        font: Optional[QtGui.QFont] = None,
+        brush: Optional[QtGui.QBrush] = None,
+        pen: Optional[QtGui.QPen] = None,
+    ):
+        super().__init__(parent, text, alignment, font, brush, pen)
+
+    def boundingRect(self):
+        fm = QtGui.QFontMetrics(self.font())
+        rect = QtCore.QRectF(0, 0, fm.boundingRect(self.text()).width(), fm.height())
+        parent_rect = self.parentItem().boundingRect()
+
+        if self.alignment & QtCore.Qt.AlignRight:
+            rect.moveRight(parent_rect.right())
+        elif self.alignment & QtCore.Qt.AlignHCenter:
+            rect.moveCenter(QtCore.QPointF(parent_rect.center().x(), rect.center().y()))
+        if self.alignment & QtCore.Qt.AlignBottom:
+            rect.moveBottom(parent_rect.bottom())
+        elif self.alignment & QtCore.Qt.AlignVCenter:
+            rect.moveCenter(QtCore.QPointF(rect.center().x(), parent_rect.center().y()))
+        return rect
+
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: Optional[QtWidgets.QWidget] = None,
+    ):
+        painter.save()
+
+        painter.setFont(self.font())
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+
+        rect = painter.boundingRect(
+            self.parentItem().boundingRect(), self.alignment, self.text()
+        )
+
+        path = QtGui.QPainterPath()
+        path.addText(
+            rect.left(),
+            rect.top() + painter.fontMetrics().ascent(),
+            painter.font(),
+            self.text(),
+        )
+        painter.strokePath(path, self.pen)
+        painter.fillPath(path, self.brush)
+
+        painter.restore()
+
+class OverlayImageItem(ScaledImageItem):
+    def __init__(
+        self,
+        image: QtGui.QImage,
+        rect: QtCore.QRectF,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
+    ):
+        super().__init__(image, rect, parent=parent)
 
 class RGBLabelItem(QtWidgets.QGraphicsItem):
     def __init__(
