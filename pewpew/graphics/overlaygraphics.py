@@ -39,7 +39,8 @@ class OverlayParentItem(QtWidgets.QGraphicsObject):
             for item in self.childItems():
                 pixmap_painter.setTransform(self.itemTransform(item)[0].inverted()[0])
                 item.setViewport(painter.viewport())
-                item.paint(pixmap_painter, option, widget)
+                if item.isVisible():
+                    item.paint(pixmap_painter, option, widget)
             pixmap_painter.end()
 
         painter.save()
@@ -94,9 +95,12 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
         parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(scene, parent)
+        self.scene().setItemIndexMethod(QtWidgets.QGraphicsScene.NoIndex)
+        self.scene().setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
 
         self.overlay = OverlayParentItem()
         self.scene().addItem(self.overlay)
+
 
         self.setCacheMode(QtWidgets.QGraphicsView.CacheBackground)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
