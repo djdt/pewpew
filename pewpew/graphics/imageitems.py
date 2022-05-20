@@ -90,15 +90,6 @@ class ScaledImageItem(SnapImageItem):
         self.image = image
         self.rect = rect
 
-    def redraw(self) -> None:
-        table = colortable.get_table(self.options.colortable)
-
-        self.image = array_to_image(self.array)
-        self.image.setColorTable(table)
-        self.image.setColorCount(len(table))
-
-        self.imageChanged.emit()
-
     def boundingRect(self) -> QtCore.QRectF:
         return self.rect
 
@@ -115,12 +106,13 @@ class ScaledImageItem(SnapImageItem):
         cls,
         array: np.ndarray,
         rect: QtCore.QRectF,
-        colortable: List[int],
+        colortable: Optional[List[int]] = None,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ) -> "ScaledImageItem":
         image = array_to_image(array)
-        image.setColorTable(colortable)
-        image.setColorCount(len(colortable))
+        if colortable is not None:
+            image.setColorTable(colortable)
+            image.setColorCount(len(colortable))
         return cls(image, rect, parent)
 
 
@@ -475,6 +467,12 @@ class LaserImageItem(SnapImageItem):
                 "Calculator",
                 "Open the calculator tool for the current laser image.",
                 lambda: self.requestTool.emit("Calculator", self),
+            ),
+            qAction(
+                "dialog-layers",
+                "Overlay",
+                "Tool for visualising multiple elements at once.",
+                lambda: self.requestTool.emit("Overlay", self),
             )
         ]
 

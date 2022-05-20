@@ -24,6 +24,7 @@ from pewpew.threads import ImportThread
 from pewpew.widgets import dialogs, exportdialogs
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.tools.calculator import CalculatorTool
+from pewpew.widgets.tools.overlays import OverlayTool
 from pewpew.widgets.views import TabView, TabViewWidget
 
 from typing import Dict, List, Optional
@@ -445,6 +446,8 @@ class LaserTabWidget(TabViewWidget):
     def openTool(self, tool: str, item: LaserImageItem) -> ToolWidget:
         if tool == "Calculator":
             widget = CalculatorTool(item, view=self.view)
+        elif tool == "Overlay":
+            widget = OverlayTool(item, view=self.view)
         else:
             raise ValueError(f"Invalid tool type {tool}.")
 
