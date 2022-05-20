@@ -235,8 +235,6 @@ class CalculatorTool(ToolWidget):
     def __init__(self, item: LaserImageItem, view: Optional[TabView] = None):
         super().__init__(item, graphics_label="Preview", view=view)
 
-        self.graphics = LaserGraphicsView(item.options, parent=self)
-
         self.image: Optional[ScaledImageItem] = None
 
         self.output = QtWidgets.QLineEdit("Result")
@@ -278,10 +276,6 @@ class CalculatorTool(ToolWidget):
         layout_combos = QtWidgets.QHBoxLayout()
         layout_combos.addWidget(self.combo_element)
         layout_combos.addWidget(self.combo_function)
-
-        layout_graphics = QtWidgets.QVBoxLayout()
-        layout_graphics.addWidget(self.graphics)
-        self.box_graphics.setLayout(layout_graphics)
 
         layout_controls = QtWidgets.QFormLayout()
         layout_controls.addRow("Name:", self.lineedit_name)
