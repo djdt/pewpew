@@ -222,6 +222,7 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
     def zoomReset(self) -> None:
         rect = QtCore.QRectF(0, 0, 0, 0)
         for item in self.scene().items():
-            rect = rect.united(item.boundingRect())
+            if not isinstance(item, OverlayItem):
+                rect = rect.united(item.boundingRect())
         self.scene().setSceneRect(rect)
-        self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
+        self.fitInView(rect, QtCore.Qt.KeepAspectRatio)

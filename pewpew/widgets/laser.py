@@ -173,9 +173,6 @@ class LaserTabWidget(TabViewWidget):
         self.graphics = LaserGraphicsView(options, parent=self)
         self.graphics.setMouseTracking(True)
 
-        # self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
-        # self.graphics.colorbar.editRequested.connect(self.)
-
         self.graphics.scene().focusItemChanged.connect(self.updateForItem)
         self.graphics.scene().setStickyFocus(True)
 
@@ -351,7 +348,6 @@ class LaserTabWidget(TabViewWidget):
             if isinstance(item, LaserImageItem):
                 item.redraw()
 
-        self.graphics.zoomReset()
         self.graphics.invalidateScene()
         super().refresh()
 
@@ -541,6 +537,3 @@ class LaserTabWidget(TabViewWidget):
                     calibrations = {k: Calibration.from_array(npy[k]) for k in npy}
                 self.applyCalibration(calibrations)
         super().keyPressEvent(event)
-
-    # def showEvent(self, event: QtGui.QShowEvent) -> None:
-    #     super().showEvent(event)
