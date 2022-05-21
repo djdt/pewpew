@@ -210,6 +210,12 @@ class _ExportDialogBase(QtWidgets.QDialog):
         self.layout.addWidget(self.button_box)
         self.setLayout(self.layout)
 
+    def getPath(self) -> Path:
+        path = Path(self.lineedit_filename.text())
+        if path.suffix == "":
+            path = path.with_suffix(self.options.currentExt())
+        return Path(self.lineedit_directory.text()).joinpath(path)
+
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(600, 200)
 
@@ -335,19 +341,13 @@ class ExportDialog(_ExportDialogBase):
         self.check_export_all.setEnabled(self.allowExportAll())
         self.updatePreview()
 
-    def getPath(self) -> Path:
-        path = Path(self.lineedit_filename.text())
-        if path.suffix == "":
-            path = path.with_suffix(self.options.currentExt())
-        return Path(self.lineedit_directory.text()).joinpath(path)
-
     def getPathForElement(self, path: Path, element: str) -> Path:
         return path.with_name(
             path.stem + "_" + element.translate(self.invalid_map) + path.suffix
         )
 
-    def getPathForLayer(self, path: Path, layer: int) -> Path:
-        return path.with_name(path.stem + "_layer" + str(layer) + path.suffix)
+    # def getPathForLayer(self, path: Path, layer: int) -> Path:
+    #     return path.with_name(path.stem + "_layer" + str(layer) + path.suffix)
 
     def generatePaths(self, item: LaserImageItem) -> List[Tuple[Path, str]]:
         paths: List[Tuple[Path, str]] = [(self.getPath(), item.element())]

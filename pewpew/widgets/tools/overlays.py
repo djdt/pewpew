@@ -9,6 +9,7 @@ from pewpew.actions import qAction, qToolButton
 
 from pewpew.graphics.overlayitems import OverlayItem
 from pewpew.graphics.imageitems import LaserImageItem, ScaledImageItem
+from pewpew.lib.numpyqt import array_to_image
 
 from pewpew.widgets.exportdialogs import _ExportDialogBase, OptionsBox
 from pewpew.widgets.ext import RangeSlider
@@ -147,7 +148,19 @@ class OverlayTool(ToolWidget):
         self.button_save.setEnabled(enabled)
 
     def openExportDialog(self) -> QtWidgets.QDialog:
-        dlg = OverlayExportDialog(self.item)
+        if self.image is None:
+            raise ValueError
+
+        path = Path(self.item.laser.info.get("File Path", ""))
+        path = path.with_name(self.item.laser.info.get("Name", "laser") + ".png")
+
+        dlg = OverlayExportDialog(
+            path,
+            self.image,
+            [self.processRow(row) if not row.hidden else None for row in self.rows],
+            self.rows.color_model,
+            self,
+        )
         dlg.open()
         return dlg
 
@@ -431,10 +444,20 @@ class OverlayRows(QtWidgets.QScrollArea):
 class OverlayExportDialog(_ExportDialogBase):
     """Export dialog for the overlay tool."""
 
-    def __init__(self, item: LaserImageItem, parent: OverlayTool):
+    def __init__(
+        self,
+        default_path: Path,
+        image: ScaledImageItem,
+        row_images: List[Optional[np.ndarray]],
+        color_model: str,
+        parent: OverlayTool,
+    ):
         super().__init__([OptionsBox("PNG images", ".png")], parent)
         self.setWindowTitle("Overlay Export")
-        self.widget = parent
+
+        self.image = image
+        self.row_images = row_images
+        self.color_model = color_model
 
         self.check_individual = QtWidgets.QCheckBox("Export colors individually.")
         self.check_individual.setToolTip(
@@ -445,9 +468,8 @@ class OverlayExportDialog(_ExportDialogBase):
 
         self.layout.insertWidget(2, self.check_individual)
 
-        path = self.widget.widget.laserFilePath(ext=".png").resolve()
-        self.lineedit_directory.setText(str(path.parent))
-        self.lineedit_filename.setText(str(path.name))
+        self.lineedit_directory.setText(str(default_path.parent))
+        self.lineedit_filename.setText(str(default_path.name))
         self.typeChanged(0)
 
     def isIndividual(self) -> bool:
@@ -456,9 +478,9 @@ class OverlayExportDialog(_ExportDialogBase):
     def updatePreview(self) -> None:
         path = Path(self.lineedit_filename.text())
         if self.isIndividual():
-            if self.widget.rows.color_model == "rgb":
+            if self.color_model == "rgb":
                 path = path.with_name(path.stem + "_<rgb>" + path.suffix)
-            elif self.widget.rows.color_model == "cmyk":
+            elif self.color_model == "cmyk":
                 path = path.with_name(path.stem + "_<cmyk>" + path.suffix)
             else:
                 path = path.with_name(path.stem + "_<#>" + path.suffix)
@@ -479,13 +501,10 @@ class OverlayExportDialog(_ExportDialogBase):
         )
 
     def getPathForRow(self, row: int) -> Path:
-        color_model = self.widget.rows.color_model
-        if color_model == "rgb":
-            r, g, b, _ = self.widget.rows[row].getColor().getRgb()
-            suffix = "r" if r > 0 else "g" if g > 0 else "b"
-        elif color_model == "cmyk":
-            c, m, y, k, _ = self.widget.rows[row].getColor().getCmyk()
-            suffix = "c" if c > 0 else "m" if m > 0 else "y"
+        if self.color_model == "rgb":
+            suffix = "rgb"[row]
+        elif self.color_model == "cmyk":
+            suffix = "cmyk"[row]
         else:
             suffix = str(row)
 
@@ -493,60 +512,24 @@ class OverlayExportDialog(_ExportDialogBase):
         return path.with_name(path.stem + "_" + suffix + path.suffix)
 
     def generateRowPaths(self) -> Generator[Tuple[Path, int], None, None]:
-        for i, row in enumerate(self.widget.rows):
-            if not row.hidden:
+        for i, row in enumerate(self.row_images):
+            if row is not None:
                 yield (self.getPathForRow(i), i)
 
     def export(self, path: Path) -> None:
         option = self.options.currentOption()
 
         if option.ext == ".png":
-            if option.raw():
-                self.widget.graphics.image.image.save(str(path.absolute()))
-            else:
-                self.widget.graphics.saveToFile(str(path.absolute()))
+            self.image.image.save(str(path.absolute()))
         else:
             raise ValueError(f"Unable to export file as '{option.ext}'.")
 
-    def exportIndividual(self, path: Path, rowi: int) -> None:
-        # @Todo
+    def exportIndividual(self, path: Path, row: int) -> None:
         option = self.options.currentOption()
-        row = self.widget.rows[rowi]
 
         if option.ext == ".png":
-            img = self.widget.processRow(row).astype(np.uint32)
-
-            if OverlayTool.model_type[self.widget.rows.color_model] == "subtractive":
-                img = np.full_like(img, 255) - img
-
-            img = (
-                (255 << 24) + (img[:, :, 0] << 16) + (img[:, :, 1] << 8) + img[:, :, 2]
-            )
-
-            x0, x1, y0, y1 = self.widget.widget.laser.config.data_extent(img.shape)
-            rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
-
-            if option.raw():
-                image = QtGui.QImage(
-                    img.data, img.shape[1], img.shape[0], QtGui.QImage.Format_RGB32
-                )
-                image.save(str(path.absolute()))
-            else:
-                self.widget.graphics.drawImage(img, rect)
-
-                self.widget.graphics.label.colors = [QtCore.Qt.white]
-                self.widget.graphics.label.texts = [row.label_name.text()]
-
-                self.widget.graphics.updateForeground()
-                self.widget.graphics.invalidateScene()
-
-                pixmap = QtGui.QPixmap(self.widget.graphics.viewport().size())
-
-                painter = QtGui.QPainter(pixmap)
-                self.widget.graphics.render(painter)
-                painter.end()
-
-                pixmap.save(str(path.absolute()))
+            image = array_to_image(self.row_images[row])
+            image.save(str(path.absolute()))
         else:
             raise ValueError(f"Unable to export file as '{option.ext}'.")
 
@@ -558,7 +541,6 @@ class OverlayExportDialog(_ExportDialogBase):
                 return
             for path, row in paths:
                 self.exportIndividual(path, row)
-            self.widget.refresh()
         else:
             if not prompt.promptOverwrite(self.getPath()):
                 return
