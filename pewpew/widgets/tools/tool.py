@@ -139,17 +139,6 @@ class ToolWidget(TabViewWidget):
     def reject(self) -> None:
         self.view.requestClose(self.index)
 
-    # def restoreWidget(self) -> None:
-    #     """Remove the tool and replace with it's `widget`."""
-    #     self.view.removeTab(self.index)
-    #     self.view.insertTab(self.index, self.widget.laserName(), self.widget)
-    #     self.widget.modified = self.modified
-    #     self.widget.activate()
-
-    # def requestClose(self) -> bool:
-    #     self.reject()
-    #     return False
-
     def onFirstShow(self) -> None:
         self.graphics.zoomReset()
 

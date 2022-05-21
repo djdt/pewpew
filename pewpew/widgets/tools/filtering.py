@@ -5,6 +5,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from pewlib.process import filters
 
 from pewpew.actions import qAction, qToolButton
+from pewpew.graphics.imageitems import LaserImageItem
 
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.widgets.ext import ValidColorLineEdit
@@ -13,7 +14,9 @@ from pewpew.widgets.tools import ToolWidget
 
 from pewpew.validators import ConditionalLimitValidator
 
-from typing import Callable, List, Tuple
+from typing import Callable, List, Optional, Tuple
+
+from pewpew.widgets.views import TabView
 
 
 # Filters
@@ -53,11 +56,11 @@ class FilteringTool(ToolWidget):
             "filter": rolling_median,
             "params": [
                 ("size", 5, (2.5, 99), lambda x: (x + 1) % 2 == 0),
-                ("M", 3.0, (0.0, np.inf), None),
+                ("k", 3.0, (0.0, np.inf), None),
             ],
             "desc": [
                 "Window size for local median.",
-                "Filter if > M medians from median.",
+                "Filter if median absolute deviation > k stddevs",
             ],
         },
         # "Simple High-pass": {
@@ -78,12 +81,8 @@ class FilteringTool(ToolWidget):
         # },
     }
 
-    def __init__(self, widget: LaserTabWidget):
-        super().__init__(widget, graphics_label="Preview")
-
-        self.graphics = LaserGraphicsView(self.viewspace.options, parent=self)
-        self.graphics.cursorValueChanged.connect(self.widget.updateCursorStatus)
-        self.graphics.setMouseTracking(True)
+    def __init__(self, item: LaserImageItem, view: Optional[TabView] = None):
+        super().__init__(item, graphics_label="Preview", view=view)
 
         self.action_toggle_filter = qAction(
             "visibility",
@@ -133,11 +132,11 @@ class FilteringTool(ToolWidget):
         self.modified = True
         name = self.combo_element.currentText()
         if self.button_hide_filter.isChecked():
-            self.widget.laser.data[name] = self.previewData(
-                self.widget.laser.data[name]
+            self.item.laser.data[name] = self.previewData(
+                self.item.laser.data[name]
             )
         else:
-            self.widget.laser.data[name] = self.graphics.data
+            self.item.laser.data[name] = self.graphics.data
 
         self.initialise()
 
@@ -170,7 +169,7 @@ class FilteringTool(ToolWidget):
                 self.lineedit_fparams[i].revalidate()
 
     def initialise(self) -> None:
-        elements = self.widget.laser.elements
+        elements = self.item.laser.elements
         self.combo_element.clear()
         self.combo_element.addItems(elements)
 
@@ -194,13 +193,13 @@ class FilteringTool(ToolWidget):
 
         element = self.combo_element.currentText()
 
-        data = self.widget.laser.get(element, flat=True, calibrated=False)
+        data = self.item.laser.get(element, flat=True, calibrated=False)
         if not self.button_hide_filter.isChecked():
             data = self.previewData(data)
         if data is None:
             return
 
-        x0, x1, y0, y1 = self.widget.laser.config.data_extent(data.shape)
+        x0, x1, y0, y1 = self.item.laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
         self.graphics.drawImage(data, rect, element)
