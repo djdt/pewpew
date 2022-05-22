@@ -59,8 +59,8 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         pixel = self.pixelSize()
         rect = self.boundingRect()
         return QtCore.QPoint(
-            (pos.x() - rect.left()) / pixel.width(),
-            (pos.y() - rect.top()) / pixel.height(),
+            int((pos.x() - rect.left()) / pixel.width()),
+            int((pos.y() - rect.top()) / pixel.height()),
         )
 
     def pixelSize(self) -> QtCore.QSizeF:
@@ -467,6 +467,12 @@ class LaserImageItem(SnapImageItem):
                 "Calculator",
                 "Open the calculator tool for the current laser image.",
                 lambda: self.requestTool.emit("Calculator", self),
+            ),
+            qAction(
+                "view-filter",
+                "Filter",
+                "Apply various windowed filters to remove noise.",
+                lambda: self.requestTool.emit("Filtering", self),
             ),
             qAction(
                 "dialog-layers",

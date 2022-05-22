@@ -5,11 +5,10 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from pewlib.process import filters
 
 from pewpew.actions import qAction, qToolButton
-from pewpew.graphics.imageitems import LaserImageItem
+from pewpew.graphics import colortable
+from pewpew.graphics.imageitems import LaserImageItem, ScaledImageItem
 
-from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.widgets.ext import ValidColorLineEdit
-from pewpew.widgets.laser import LaserTabWidget
 from pewpew.widgets.tools import ToolWidget
 
 from pewpew.validators import ConditionalLimitValidator
@@ -84,6 +83,8 @@ class FilteringTool(ToolWidget):
     def __init__(self, item: LaserImageItem, view: Optional[TabView] = None):
         super().__init__(item, graphics_label="Preview", view=view)
 
+        self.image: Optional[ScaledImageItem] = None
+
         self.action_toggle_filter = qAction(
             "visibility",
             "Filter Visible",
@@ -97,6 +98,10 @@ class FilteringTool(ToolWidget):
         self.combo_element = QtWidgets.QComboBox()
         self.combo_element.activated.connect(self.completeChanged)
         self.combo_element.activated.connect(self.refresh)
+
+        self.box_graphics.layout().addWidget(
+            self.combo_element, 0, QtCore.Qt.AlignRight
+        )
 
         self.combo_filter = QtWidgets.QComboBox()
         self.combo_filter.addItems(FilteringTool.methods.keys())
@@ -113,11 +118,6 @@ class FilteringTool(ToolWidget):
             le.editingFinished.connect(self.refresh)
             le.setValidator(ConditionalLimitValidator(0.0, 0.0, 4, condition=None))
 
-        layout_graphics = QtWidgets.QVBoxLayout()
-        layout_graphics.addWidget(self.graphics)
-        layout_graphics.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
-        self.box_graphics.setLayout(layout_graphics)
-
         layout_controls = QtWidgets.QFormLayout()
         layout_controls.addWidget(self.combo_filter)
         for i in range(len(self.label_fparams)):
@@ -129,14 +129,14 @@ class FilteringTool(ToolWidget):
         self.initialise()
 
     def apply(self) -> None:
-        self.modified = True
         name = self.combo_element.currentText()
         if self.button_hide_filter.isChecked():
-            self.item.laser.data[name] = self.previewData(
-                self.item.laser.data[name]
+            filter_ = FilteringTool.methods[self.combo_filter.currentText()]["filter"]
+            self.item.laser.data[name] = filter_(
+                self.item.laser.data[name], *self.fparams
             )
         else:
-            self.item.laser.data[name] = self.graphics.data
+            self.item.laser.data[name] = self.filtered_data
 
         self.initialise()
 
@@ -183,10 +183,6 @@ class FilteringTool(ToolWidget):
             return False
         return True
 
-    def previewData(self, data: np.ndarray) -> np.ndarray:
-        filter_ = FilteringTool.methods[self.combo_filter.currentText()]["filter"]
-        return filter_(data, *self.fparams)
-
     def refresh(self) -> None:
         if not self.isComplete():  # Not ready for update to preview
             return
@@ -194,19 +190,35 @@ class FilteringTool(ToolWidget):
         element = self.combo_element.currentText()
 
         data = self.item.laser.get(element, flat=True, calibrated=False)
+        import time
         if not self.button_hide_filter.isChecked():
-            data = self.previewData(data)
-        if data is None:
-            return
+            t0 = time.time()
+            filter_ = FilteringTool.methods[self.combo_filter.currentText()]["filter"]
+            data = filter_(data, *self.fparams)
+            self.filtered_data = data
+            print(time.time() - t0)
+        else:
+            self.filtered_data = None
 
         x0, x1, y0, y1 = self.item.laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
-        self.graphics.drawImage(data, rect, element)
-        self.graphics.label.setText(element)
+        vmin, vmax = self.item.options.get_color_range_as_float("<calc>", data)
+        data = np.clip(data, vmin, vmax)
+        if vmin != vmax:
+            data = (data - vmin) / (vmax - vmin)
 
-        self.graphics.setOverlayItemVisibility()
-        self.graphics.updateForeground()
+        table = colortable.get_table(self.item.options.colortable)
+
+        if self.image is not None:
+            self.graphics.scene().removeItem(self.image)
+
+        self.image = ScaledImageItem.fromArray(data, rect, table)
+        self.graphics.scene().addItem(self.image)
+
+        self.graphics.colorbar.updateTable(
+            table, vmin, vmax, self.item.laser.calibration[element].unit
+        )
         self.graphics.invalidateScene()
 
     def toggleFilter(self, hide: bool) -> None:
