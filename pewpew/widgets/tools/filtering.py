@@ -138,6 +138,7 @@ class FilteringTool(ToolWidget):
         else:
             self.item.laser.data[name] = self.filtered_data
 
+        self.item.redraw()
         self.initialise()
 
     @property
@@ -190,13 +191,10 @@ class FilteringTool(ToolWidget):
         element = self.combo_element.currentText()
 
         data = self.item.laser.get(element, flat=True, calibrated=False)
-        import time
         if not self.button_hide_filter.isChecked():
-            t0 = time.time()
             filter_ = FilteringTool.methods[self.combo_filter.currentText()]["filter"]
             data = filter_(data, *self.fparams)
             self.filtered_data = data
-            print(time.time() - t0)
         else:
             self.filtered_data = None
 
