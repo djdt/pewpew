@@ -109,7 +109,6 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
 
         self.cursors = {
             "drag": QtCore.Qt.ClosedHandCursor,
-            "zoom": QtCore.Qt.ArrowCursor,
         }
         self.interaction_flags: Set[str] = set()  # Deafult is navigate when empty
         self._last_pos = QtCore.QPoint(0, 0)  # Used for mouse events
@@ -132,10 +131,7 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
         QtWidgets.QApplication.clipboard().setPixmap(pixmap)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
-        if "zoom" in self.interaction_flags and event.button() == QtCore.Qt.LeftButton:
-            self._last_pos = event.pos()
-            self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
-        elif (
+        if (
             len(self.interaction_flags) == 0 and event.button() == QtCore.Qt.LeftButton
         ) or event.button() == QtCore.Qt.MiddleButton:
             self.setInteractionFlag("drag")
@@ -155,12 +151,6 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         if "drag" in self.interaction_flags:
             self.setInteractionFlag("drag", False)
-        if "zoom" in self.interaction_flags:
-            self.setInteractionFlag("zoom", False)
-            rect = QtCore.QRect(self._last_pos, event.pos())
-            rect = self.mapToScene(rect).boundingRect()
-            self.zoomToArea(rect)
-            self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
         super().mouseReleaseEvent(event)
 
     def resizeEvent(self, event: QtGui.QResizeEvent):
@@ -208,8 +198,6 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
         anchor = self.transformationAnchor()
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
 
-        rect = self.mapFromScene(self.sceneRect()).boundingRect()
-
         # Scale a small amount per scroll
         scale = pow(2, event.angleDelta().y() / 360.0)
         self.scale(scale, scale)
@@ -227,7 +215,7 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
     def zoomReset(self) -> None:
         rect = QtCore.QRectF(0, 0, 0, 0)
         for item in self.scene().items():
-            if not isinstance(item, OverlayItem):
+            if not isinstance(item, (OverlayItem, OverlayParentItem)):
                 rect = rect.united(item.boundingRect())
         self.scene().setSceneRect(rect)
         self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
