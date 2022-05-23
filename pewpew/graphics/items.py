@@ -22,7 +22,6 @@ class EditableLabelItem(UnscaledAlignedTextItem):
         super().__init__(parent, text, alignment, font, brush, pen)
         self.label = label_text
 
-
     def editLabel(self) -> QtWidgets.QInputDialog:
         """Simple dialog for editing the label."""
         dlg = QtWidgets.QInputDialog(self.scene().views()[0])
@@ -55,7 +54,7 @@ class EditableLabelItem(UnscaledAlignedTextItem):
         event.accept()
 
 
-class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
+class ResizeableRectItem(QtWidgets.QGraphicsObject):
     """A mouse resizable rectangle.
 
     Click and drag the corners or edges of the rectangle to resize.
@@ -78,7 +77,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         cursor_dist: int = 6,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
-        super().__init__(rect, parent)
+        super().__init__(parent)
         self.setFlags(
             QtWidgets.QGraphicsItem.ItemIsMovable
             | QtWidgets.QGraphicsItem.ItemIsSelectable
@@ -86,27 +85,42 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         )
         self.setAcceptHoverEvents(True)
 
+        self.rect = rect
+        self.pen = QtGui.QPen()
+        self.brush = QtGui.QBrush()
+
         self.selected_edge: Optional[str] = None
         self.cursor_dist = cursor_dist
 
+    def setBrush(self, brush: QtGui.QBrush) -> None:
+        self.brush = brush
+
+    def setPen(self, pen: QtGui.QPen) -> None:
+        self.pen = pen
+
     def boundingRect(self) -> QtCore.QRectF:
-        rect = super().boundingRect()
         view = next(iter(self.scene().views()), None)
         if view is None:
-            return rect
+            return self.rect
 
         dist = (
             view.mapToScene(QtCore.QRect(0, 0, self.cursor_dist, 1))
             .boundingRect()
             .width()
         )
-        return rect.marginsAdded(QtCore.QMarginsF(dist, dist, dist, dist))
+        return self.rect.marginsAdded(QtCore.QMarginsF(dist, dist, dist, dist))
 
-    def shape(self) -> QtGui.QPainterPath:
-        path = QtGui.QPainterPath()
-        rect = self.boundingRect()
-        path.addRect(rect)
-        return path
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: Optional[QtWidgets.QWidget] = None,
+    ):
+        painter.save()
+        painter.setPen(self.pen)
+        painter.setBrush(self.brush)
+        painter.drawRect(self.rect)
+        painter.restore()
 
     def edgeAt(self, pos: QtCore.QPointF) -> Optional[str]:
         view = next(iter(self.scene().views()))
@@ -117,13 +131,13 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         )
 
         edge = ""
-        if abs(self.rect().top() - pos.y()) < dist:
+        if abs(self.rect.top() - pos.y()) < dist:
             edge += "top"
-        elif abs(self.rect().bottom() - pos.y()) < dist:
+        elif abs(self.rect.bottom() - pos.y()) < dist:
             edge += "bottom"
-        if abs(self.rect().left() - pos.x()) < dist:
+        if abs(self.rect.left() - pos.x()) < dist:
             edge += "left"
-        elif abs(self.rect().right() - pos.x()) < dist:
+        elif abs(self.rect.right() - pos.x()) < dist:
             edge += "right"
         if edge == "":
             return None
@@ -153,19 +167,17 @@ class ResizeableRectItem(QtWidgets.QGraphicsRectItem):
         super().mouseReleaseEvent(event)
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        pos = self.itemChange(QtWidgets.QGraphicsItem.ItemPositionChange, event.pos())
         if self.selected_edge is None:
             super().mouseMoveEvent(event)
         else:
-            rect = self.rect()
-            if self.selected_edge.startswith("top") and pos.y() < rect.bottom():
-                rect.setTop(pos.y())
-            elif self.selected_edge.startswith("bottom") and pos.y() > rect.top():
-                rect.setBottom(pos.y())
-            if self.selected_edge.endswith("left") and pos.x() < rect.right():
-                rect.setLeft(pos.x())
-            elif self.selected_edge.endswith("right") and pos.x() > rect.left():
-                rect.setRight(pos.x())
+            pos = event.pos()
+            if self.selected_edge.startswith("top") and pos.y() < self.rect.bottom():
+                self.rect.setTop(pos.y())
+            elif self.selected_edge.startswith("bottom") and pos.y() > self.rect.top():
+                self.rect.setBottom(pos.y())
+            if self.selected_edge.endswith("left") and pos.x() < self.rect.right():
+                self.rect.setLeft(pos.x())
+            elif self.selected_edge.endswith("right") and pos.x() > self.rect.left():
+                self.rect.setRight(pos.x())
 
             self.prepareGeometryChange()
-            self.setRect(rect)

@@ -90,6 +90,9 @@ class ScaledImageItem(SnapImageItem):
         self.image = image
         self.rect = rect
 
+    def imageSize(self) -> QtCore.QSize:
+        return self.image.size()
+
     def boundingRect(self) -> QtCore.QRectF:
         return self.rect
 
@@ -479,7 +482,13 @@ class LaserImageItem(SnapImageItem):
                 "Overlay",
                 "Tool for visualising multiple elements at once.",
                 lambda: self.requestTool.emit("Overlay", self),
-            )
+            ),
+            qAction(
+                "labplot-xy-fit-curve",
+                "Standards",
+                "Create calibrations from areas of the current laser.",
+                lambda: self.requestTool.emit("Standards", self),
+            ),
         ]
 
     def copySelectionToText(self) -> None:

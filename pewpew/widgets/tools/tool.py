@@ -68,7 +68,7 @@ class ToolWidget(TabViewWidget):
         self.box_graphics = QtWidgets.QGroupBox(graphics_label)
 
         layout_graphics = QtWidgets.QVBoxLayout()
-        layout_graphics.addWidget(self.graphics)
+        layout_graphics.addWidget(self.graphics, 1)
         self.box_graphics.setLayout(layout_graphics)
 
         self.splitter = QtWidgets.QSplitter(orientation)

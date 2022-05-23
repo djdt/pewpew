@@ -26,6 +26,7 @@ from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.tools.calculator import CalculatorTool
 from pewpew.widgets.tools.filtering import FilteringTool
 from pewpew.widgets.tools.overlays import OverlayTool
+from pewpew.widgets.tools.standards import StandardsTool
 from pewpew.widgets.views import TabView, TabViewWidget
 
 from typing import Dict, List, Optional
@@ -104,14 +105,16 @@ class LaserTabView(TabView):
         """Set calibrations in all tabs."""
         for widget in self.widgets():
             if isinstance(widget, LaserTabWidget):
-                widget.applyCalibration(calibration)
+                for item in widget.laserItems():
+                    item.applyCalibration(calibration)
 
     def applyConfig(self, config: Config) -> None:
         """Set laser configurations in all tabs."""
         self.config = config
         for widget in self.widgets():
             if isinstance(widget, LaserTabWidget):
-                widget.applyConfig(config)
+                for item in widget.laserItems():
+                    item.applyConfig(config)
 
     # Actions
     def actionOpen(self) -> QtWidgets.QDialog:
@@ -447,10 +450,12 @@ class LaserTabWidget(TabViewWidget):
     def openTool(self, tool: str, item: LaserImageItem) -> ToolWidget:
         if tool == "Calculator":
             widget = CalculatorTool(item, view=self.view)
-        elif tool == "Overlay":
-            widget = OverlayTool(item, view=self.view)
         elif tool == "Filtering":
             widget = FilteringTool(item, view=self.view)
+        elif tool == "Overlay":
+            widget = OverlayTool(item, view=self.view)
+        elif tool == "Standards":
+            widget = StandardsTool(item, view=self.view)
         else:
             raise ValueError(f"Invalid tool type {tool}.")
 
