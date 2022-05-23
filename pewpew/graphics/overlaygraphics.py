@@ -131,12 +131,13 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
         QtWidgets.QApplication.clipboard().setPixmap(pixmap)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
-        if (
-            len(self.interaction_flags) == 0 and event.button() == QtCore.Qt.LeftButton
-        ) or event.button() == QtCore.Qt.MiddleButton:
+        if event.button() == QtCore.Qt.LeftButton:
+            super().mousePressEvent(event)
+        elif event.button() == QtCore.Qt.MiddleButton:
             self.setInteractionFlag("drag")
             self._last_pos = event.pos()
-        super().mousePressEvent(event)
+        else:
+            super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         if "drag" in self.interaction_flags:
@@ -216,6 +217,7 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
         rect = QtCore.QRectF(0, 0, 0, 0)
         for item in self.scene().items():
             if not isinstance(item, (OverlayItem, OverlayParentItem)):
-                rect = rect.united(item.boundingRect())
+                item_rect = item.mapToScene(item.boundingRect()).boundingRect()
+                rect = rect.united(item_rect)
         self.scene().setSceneRect(rect)
         self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
