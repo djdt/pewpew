@@ -73,7 +73,10 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         return QtCore.QPointF(x, y)
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        if event.button() == QtCore.Qt.LeftButton:
+        if (
+            event.button() == QtCore.Qt.LeftButton
+            and self.flags() & QtWidgets.QGraphicsItem.ItemIsMovable
+        ):
             self.setCursor(QtCore.Qt.SizeAllCursor)
         super().mousePressEvent(event)
 
