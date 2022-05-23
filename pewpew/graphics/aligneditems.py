@@ -57,7 +57,7 @@ class AlignedTextItem(QtWidgets.QGraphicsObject):
             rect.moveBottom(parent_rect.bottom())
         elif self.alignment & QtCore.Qt.AlignVCenter:
             rect.moveCenter(QtCore.QPointF(rect.center().x(), parent_rect.center().y()))
-        return rect
+        return rect.intersected(parent_rect)
 
     def paint(
         self,
