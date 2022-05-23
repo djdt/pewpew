@@ -60,7 +60,7 @@ class SnapImageSelectionItem(SelectionItem):
             return
         self.item = item
 
-    def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent)-> None:
+    def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         self.item = None
 
 
@@ -92,9 +92,9 @@ class LassoImageSelectionItem(SnapImageSelectionItem):
         return path
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        if not event.button() & QtCore.Qt.LeftButton:
-            return
         super().mousePressEvent(event)
+        if not event.button() & QtCore.Qt.LeftButton or self.item is None:
+            return
 
         self.poly.clear()
         self.poly.append(self.item.snapPos(event.pos()))
@@ -121,7 +121,9 @@ class LassoImageSelectionItem(SnapImageSelectionItem):
         rect = self.item.boundingRect()
         size = self.item.imageSize()
 
-        array = polygonf_to_array(self.poly)
+        poly = self.mapToItem(self.item, self.poly)
+
+        array = polygonf_to_array(poly)
         # Get start and end points of area
         x1, x2 = np.amin(array[:, 0]), np.amax(array[:, 0])
         y1, y2 = np.amin(array[:, 1]), np.amax(array[:, 1])
@@ -137,7 +139,7 @@ class LassoImageSelectionItem(SnapImageSelectionItem):
 
         # Get mask of selected area
         mask = np.zeros((size.height(), size.width()), dtype=bool)
-        polymask = polygonf_contains_points(self.poly, pixels).reshape(ys.size, xs.size)
+        polymask = polygonf_contains_points(poly, pixels).reshape(ys.size, xs.size)
         # Insert
         ix, iy = int(x1 / pixel.width()), int(y1 / pixel.height())
         mask[iy : iy + ys.size, ix : ix + xs.size] = polymask
@@ -187,9 +189,9 @@ class RectImageSelectionItem(SnapImageSelectionItem):
         return self._rect.normalized()
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        if not event.button() & QtCore.Qt.LeftButton:
-            return
         super().mousePressEvent(event)
+        if not event.button() & QtCore.Qt.LeftButton or self.item is None:
+            return
 
         pos = self.item.snapPos(event.pos())
 
@@ -218,7 +220,11 @@ class RectImageSelectionItem(SnapImageSelectionItem):
             rect.height() / size.height(),
         )  # pixel size
 
-        x1, y1, x2, y2 = self._rect.normalized().getCoords()
+        x1, y1, x2, y2 = (
+            self.mapToItem(self.item, self._rect.normalized())
+            .boundingRect()
+            .getCoords()
+        )
         x1 = np.round(x1 / px).astype(int)
         x2 = np.round(x2 / px).astype(int)
         y1 = np.round(y1 / py).astype(int)
