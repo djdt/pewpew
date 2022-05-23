@@ -67,6 +67,7 @@ class AlignedTextItem(QtWidgets.QGraphicsObject):
     ):
         painter.save()
 
+        painter.setClipRect(self.parentItem().boundingRect())
         painter.setFont(self.font())
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
