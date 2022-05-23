@@ -82,7 +82,6 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         super().mouseReleaseEvent(event)
 
 
-
 class ScaledImageItem(SnapImageItem):
     def __init__(
         self,
@@ -149,9 +148,11 @@ class LaserImageItem(SnapImageItem):
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(parent=parent)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges)
+        self.setFlags(
+            QtWidgets.QGraphicsItem.ItemIsMovable
+            | QtWidgets.QGraphicsItem.ItemIsFocusable
+            | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges
+        )
         self.setAcceptHoverEvents(True)
 
         self._last_hover_pos = QtCore.QPoint(-1, -1)
