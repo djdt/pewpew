@@ -1,9 +1,169 @@
 from PySide2 import QtCore, QtGui, QtWidgets
+import numpy as np
 
 from pewpew.actions import qAction
 from pewpew.graphics.aligneditems import UnscaledAlignedTextItem
 
-from typing import Optional
+from typing import List, Optional
+
+
+class ColorBarItem(QtWidgets.QGraphicsObject):
+    """Draw a colorbar.
+
+    Ticks are formatted at easily readable intervals.
+
+    Args:
+        colortable: the colortable to use
+        vmin: minimum value
+        vmax: maxmium value
+        unit: also display a unit
+        height: height of bar in pixels
+        font: label font
+        color: font color
+        checkmarks: mark intervals
+        parent: parent item
+    """
+
+    nicenums = [1.0, 1.5, 2.0, 2.5, 3.0, 5.0, 7.5]
+    editRequested = QtCore.Signal()
+    mouseOverBar = QtCore.Signal(float)
+
+    def __init__(
+        self,
+        parent: QtWidgets.QGraphicsItem,
+        font: Optional[QtGui.QFont] = None,
+        brush: Optional[QtGui.QBrush] = None,
+        pen: Optional[QtGui.QPen] = None,
+        # checkmarks: bool = False,
+        orientation: Optional[QtCore.Qt.Orientation] = QtCore.Qt.Horizontal,
+    ):
+        super().__init__(parent)
+
+        if pen is None:
+            pen = QtGui.QPen(QtCore.Qt.black, 2.0)
+            pen.setCosmetic(True)
+
+        self._font = font or QtGui.QFont()
+        self.brush = brush or QtGui.QBrush(QtCore.Qt.white)
+        self.pen = pen
+        self.orientation = orientation
+
+        self.image = QtGui.QImage(
+            np.arange(256, dtype=np.uint8), 256, 1, 256, QtGui.QImage.Format_Indexed8
+        )
+
+        self.vmin = 0.0
+        self.vmax = 0.0
+        self.unit = ""
+
+    def font(self) -> QtGui.QFont:
+        font = QtGui.QFont(self._font)
+        if self.scene() is not None:
+            view = next(iter(self.scene().views()))
+            font.setPointSizeF(font.pointSizeF() / view.transform().m22())
+        return font
+
+    def updateTable(self, colortable: List[int], vmin: float, vmax: float, unit: str):
+        self.vmin = vmin
+        self.vmax = vmax
+        self.unit = unit
+
+        self.image.setColorTable(colortable)
+        self.image.setColorCount(len(colortable))
+
+        # self.requestPaint()
+
+    def boundingRect(self):
+        fm = QtGui.QFontMetrics(self.font())
+
+        parent_rect = self.parentItem().boundingRect()
+        if self.orientation == QtCore.Qt.Horizontal:
+            rect = QtCore.QRectF(
+                0,
+                0,
+                parent_rect.width(),
+                fm.ascent() / 4.0 + fm.ascent() / 3.0 + fm.height(),
+            )
+        else:
+            raise NotImplementedError
+            rect = QtCore.QRectF(
+                0,
+                0,
+                self.thickness + fm.width("MMMMMMM"),
+                parent_rect.height(),
+            )
+        return rect
+
+    def niceTextValues(self, n: int = 7, trim: int = 0) -> np.ndarray:
+        vrange = self.vmax - self.vmin
+        interval = vrange / (n + 2 * trim)
+
+        pwr = 10 ** int(np.log10(interval) - (1 if interval < 1.0 else 0))
+        interval = interval / pwr
+
+        idx = np.searchsorted(self.nicenums, interval)
+        idx = min(idx, len(self.nicenums) - 1)
+
+        interval = self.nicenums[idx] * pwr
+        values = np.arange(int(self.vmin / interval) * interval, self.vmax, interval)
+        return values[trim : values.size - trim]
+
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: Optional[QtWidgets.QWidget] = None,
+    ):
+        painter.save()
+
+        font = self.font()
+        fm = QtGui.QFontMetrics(font, painter.device())
+        rect = self.boundingRect()
+
+        painter.drawImage(
+            QtCore.QRectF(0, fm.ascent() / 4.0, rect.width(), fm.ascent() / 3.0),
+            self.image,
+        )
+        painter.setPen(QtGui.QPen(QtCore.Qt.white, 0.0))
+        painter.setBrush(QtGui.QBrush(QtCore.Qt.white, QtCore.Qt.NoBrush))
+        painter.drawRect(self.boundingRect())
+
+        path = QtGui.QPainterPath()
+        path.addText(
+            rect.width() - fm.boundingRect(self.unit).width() - fm.widthChar("m"),
+            fm.ascent() * 0.25 + fm.height(),
+            font,
+            self.unit,
+        )
+
+        vrange = self.vmax - self.vmin
+        if vrange <= 0.0:
+            return
+
+        for value in self.niceTextValues(7, trim=1):
+            x = rect.width() * (value - self.vmin) / vrange
+            text = f"{value:.6g}"
+            path.addText(
+                x - fm.boundingRect(text).width() / 2.0,
+                fm.ascent() * 0.25 + fm.ascent() / 3.0 + fm.ascent(),
+                font,
+                text,
+            )
+            # if self.checkmarks:
+            #     path.addRect(
+            #         x - fm.lineWidth() / 2.0,
+            #         fm.ascent() + fm.underlinePos(),
+            #         fm.lineWidth() * 2.0,
+            #         fm.underlinePos(),
+            #     )
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.strokePath(path, self.pen)
+        painter.fillPath(path, self.brush)
+        painter.restore()
+
+    def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        self.editRequested.emit()
+        super().mouseDoubleClickEvent(event)
 
 
 class EditableLabelItem(UnscaledAlignedTextItem):

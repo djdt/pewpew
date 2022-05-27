@@ -16,7 +16,7 @@ from pewpew.graphics import colortable
 from pewpew.graphics.options import GraphicsOptions
 
 # from pewpew.graphics.overlayitems import OverlayItem, LabelOverlay
-from pewpew.graphics.items import EditableLabelItem
+from pewpew.graphics.items import ColorBarItem, EditableLabelItem
 
 from pewpew.actions import qAction
 
@@ -187,6 +187,9 @@ class LaserImageItem(SnapImageItem):
         )
         self.label.labelChanged.connect(self.setName)
 
+        self.colorbar = ColorBarItem(self, font=self.options.font)
+        self.colorbar.setPos(self.boundingRect().bottomLeft())
+
         self.createActions()
 
     @property
@@ -248,6 +251,7 @@ class LaserImageItem(SnapImageItem):
         self.image.setColorCount(len(table))
 
         self.colortableChanged.emit(table, self.vmin, self.vmax, unit)
+        self.colorbar.updateTable(table, self.vmin, self.vmax, unit)
         self.imageChanged.emit()
 
     def select(self, mask: np.ndarray, modes: List[str]) -> None:
