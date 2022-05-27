@@ -46,7 +46,7 @@ class LaserGraphicsView(OverlayGraphicsView):
 
         self.addOverlayItem(self.scalebar)
         self.scalebar.setPos(0, 10)
-        self.addOverlayItem(self.colorbar)
+        # self.addOverlayItem(self.colorbar)
 
         self.viewScaleChanged.connect(self.scalebar.requestPaint)
 

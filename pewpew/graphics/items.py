@@ -46,6 +46,7 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         self._font = font or QtGui.QFont()
         self.brush = brush or QtGui.QBrush(QtCore.Qt.white)
         self.pen = pen
+        assert orientation == QtCore.Qt.Horizontal
         self.orientation = orientation
 
         self.image = QtGui.QImage(
@@ -70,8 +71,7 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
 
         self.image.setColorTable(colortable)
         self.image.setColorCount(len(colortable))
-
-        # self.requestPaint()
+        self.update()
 
     def boundingRect(self):
         fm = QtGui.QFontMetrics(self.font())
@@ -85,11 +85,10 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
                 fm.ascent() / 4.0 + fm.ascent() / 3.0 + fm.height(),
             )
         else:
-            raise NotImplementedError
             rect = QtCore.QRectF(
                 0,
                 0,
-                self.thickness + fm.width("MMMMMMM"),
+                fm.ascent() / 4.0 + fm.ascent() / 3.0 + fm.width("0000000"),
                 parent_rect.height(),
             )
         return rect
@@ -124,9 +123,6 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
             QtCore.QRectF(0, fm.ascent() / 4.0, rect.width(), fm.ascent() / 3.0),
             self.image,
         )
-        painter.setPen(QtGui.QPen(QtCore.Qt.white, 0.0))
-        painter.setBrush(QtGui.QBrush(QtCore.Qt.white, QtCore.Qt.NoBrush))
-        painter.drawRect(self.boundingRect())
 
         path = QtGui.QPainterPath()
         path.addText(

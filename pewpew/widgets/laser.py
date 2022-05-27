@@ -312,6 +312,7 @@ class LaserTabWidget(TabViewWidget):
     ) -> None:
         # Todo calculate this based on all open lasers?
         self.graphics.colorbar.updateTable(table, vmin, vmax, unit)
+        # self.graphics.repaint()
         self.graphics.invalidateScene()
 
     def updateForItem(

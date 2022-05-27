@@ -250,9 +250,10 @@ class LaserImageItem(SnapImageItem):
         self.image.setColorTable(table)
         self.image.setColorCount(len(table))
 
-        self.colortableChanged.emit(table, self.vmin, self.vmax, unit)
+        # self.colortableChanged.emit(table, self.vmin, self.vmax, unit)
         self.colorbar.updateTable(table, self.vmin, self.vmax, unit)
         self.imageChanged.emit()
+        self.update()
 
     def select(self, mask: np.ndarray, modes: List[str]) -> None:
         current_mask = self.mask
