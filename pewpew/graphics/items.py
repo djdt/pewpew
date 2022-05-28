@@ -62,8 +62,6 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         if self.scene() is not None:
             view = next(iter(self.scene().views()))
             font.setPointSizeF(font.pointSizeF() / view.transform().m22())
-        # Todo more stable version
-        print(font.pointSizeF())
         return font
 
     def updateTable(self, colortable: List[int], vmin: float, vmax: float, unit: str):

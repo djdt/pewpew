@@ -32,7 +32,7 @@ class LaserGraphicsView(OverlayGraphicsView):
     def __init__(
         self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None
     ):
-        super().__init__(QtWidgets.QGraphicsScene(QtCore.QRectF(0, 0, 1, 1), parent), parent)
+        super().__init__(QtWidgets.QGraphicsScene(QtCore.QRectF(0, 0, 1000, 1000), parent), parent)
 
         self.options = options
         self.cursors["selection"] = QtCore.Qt.ArrowCursor
