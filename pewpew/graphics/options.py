@@ -46,7 +46,7 @@ class GraphicsOptions(QtCore.QObject):
         self.highlight_focus = True
         self.smoothing = False
 
-        self.font = QtGui.QFont("sans", 16)
+        self.font = QtGui.QFont("sans", 16.0)
         self.font_color = QtGui.QColor(255, 255, 255)
 
         self.calibrate = True
