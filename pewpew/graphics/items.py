@@ -49,8 +49,9 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         assert orientation == QtCore.Qt.Horizontal
         self.orientation = orientation
 
+        self._data = np.arange(256, dtype=np.uint8)  # save a reference
         self.image = QtGui.QImage(
-            np.arange(256, dtype=np.uint8), 256, 1, 256, QtGui.QImage.Format_Indexed8
+            self._data, 256, 1, 256, QtGui.QImage.Format_Indexed8
         )
 
         self.vmin = 0.0
