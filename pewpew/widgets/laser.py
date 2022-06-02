@@ -22,6 +22,7 @@ from pewpew.graphics.options import GraphicsOptions
 from pewpew.threads import ImportThread
 
 from pewpew.widgets import dialogs, exportdialogs
+from pewpew.widgets.controls import LaserControlBar
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.tools.calculator import CalculatorTool
 from pewpew.widgets.tools.filtering import FilteringTool
@@ -132,32 +133,32 @@ class LaserTabView(TabView):
         return dlg
 
 
-class LaserComboBox(QtWidgets.QComboBox):
-    """Combo box with a context menu for editing names."""
+# class LaserComboBox(QtWidgets.QComboBox):
+#     """Combo box with a context menu for editing names."""
 
-    namesSelected = QtCore.Signal(dict)
+#     namesSelected = QtCore.Signal(dict)
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
-        super().__init__(parent)
-        self.action_edit_names = qAction(
-            "document-edit",
-            "Edit Names",
-            "Edit image names.",
-            self.actionNameEditDialog,
-        )
+#     def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+#         super().__init__(parent)
+#         self.action_edit_names = qAction(
+#             "document-edit",
+#             "Edit Names",
+#             "Edit image names.",
+#             self.actionNameEditDialog,
+#         )
 
-    def actionNameEditDialog(self) -> QtWidgets.QDialog:
-        names = [self.itemText(i) for i in range(self.count())]
-        dlg = dialogs.NameEditDialog(names, parent=self)
-        dlg.namesSelected.connect(self.namesSelected)
-        dlg.open()
-        return dlg
+#     def actionNameEditDialog(self) -> QtWidgets.QDialog:
+#         names = [self.itemText(i) for i in range(self.count())]
+#         dlg = dialogs.NameEditDialog(names, parent=self)
+#         dlg.namesSelected.connect(self.namesSelected)
+#         dlg.open()
+#         return dlg
 
-    def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
-        event.accept()
-        menu = QtWidgets.QMenu(self)
-        menu.addAction(self.action_edit_names)
-        menu.popup(event.globalPos())
+#     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
+#         event.accept()
+#         menu = QtWidgets.QMenu(self)
+#         menu.addAction(self.action_edit_names)
+#         menu.popup(event.globalPos())
 
 
 class LaserTabWidget(TabViewWidget):
@@ -180,10 +181,6 @@ class LaserTabWidget(TabViewWidget):
 
         self.graphics.scene().focusItemChanged.connect(self.updateForItem)
         self.graphics.scene().setStickyFocus(True)
-
-        self.combo_element = LaserComboBox()
-        # self.combo_element.namesSelected.connect(self.updateNames)
-        self.combo_element.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
 
         self.action_copy_image = qAction(
             "insert-image",
@@ -241,34 +238,33 @@ class LaserTabWidget(TabViewWidget):
             self.graphics.zoomReset,
         )
 
-        self.toolbar = QtWidgets.QToolBar()
-        self.toolbar.addActions(
+        self.controls = QtWidgets.QStackedWidget()
+        self.laser_controls = LaserControlBar()
+
+        self.controls.addWidget(self.laser_controls)
+
+        self.laser_controls.toolbar.addActions(
             [
                 self.action_select_rect,
                 self.action_select_lasso,
                 self.action_select_dialog,
             ]
         )
-        self.toolbar.addSeparator()
-        self.toolbar.addActions([self.action_ruler, self.action_slice])
-        self.toolbar.addSeparator()
-        self.toolbar.addActions([self.action_zoom_out])
+        self.laser_controls.toolbar.addSeparator()
+        self.laser_controls.toolbar.addActions([self.action_ruler, self.action_slice])
+        self.laser_controls.toolbar.addSeparator()
+        self.laser_controls.toolbar.addActions([self.action_zoom_out])
 
         self.graphics.viewport().installEventFilter(DragDropRedirectFilter(self))
         # Filters for setting active view
         self.graphics.viewport().installEventFilter(self)
-        self.combo_element.installEventFilter(self)
-        self.toolbar.installEventFilter(self)
+        # self.laser_controls.elements.installEventFilter(self)
+        self.controls.installEventFilter(self)
 
-        layout_bar = QtWidgets.QHBoxLayout()
-        layout_bar.addWidget(self.toolbar)
-        layout_bar.addStretch(1)
-        # layout_bar.addWidget(self.combo_layers, 0, QtCore.Qt.AlignRight)
-        layout_bar.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.graphics, 1)
-        layout.addLayout(layout_bar)
+        layout.addWidget(self.controls, 0)
         self.setLayout(layout)
 
     def addLaser(self, laser: Laser) -> None:
@@ -321,31 +317,34 @@ class LaserTabWidget(TabViewWidget):
         old: Optional[QtWidgets.QGraphicsItem] = None,
         reason: QtCore.Qt.FocusReason = QtCore.Qt.NoFocusReason,
     ) -> None:
-        if not isinstance(new, LaserImageItem) or old == new:
+        if old == new:
             return
+        if isinstance(new, LaserImageItem):
+            self.controls.setCurrentWidget(self.laser_controls)
 
-        # Update the combo box
-        try:  # Remove any existing connects to the element combo box
-            self.combo_element.currentTextChanged.disconnect()
-        except RuntimeError:
-            pass
+            try:  # Remove any existing connects to the element combo box
+                self.laser_controls.elements.currentTextChanged.disconnect()
+            except RuntimeError:
+                pass
 
-        self.combo_element.blockSignals(True)
-        self.combo_element.clear()
+            self.laser_controls.elements.blockSignals(True)
+            self.laser_controls.elements.clear()
 
-        self.combo_element.addItems(new.laser.elements)
-        self.combo_element.setCurrentText(new.element())
-        self.combo_element.currentTextChanged.connect(
-            lambda s: [new.setElement(s), new.redraw()]
-        )
+            self.laser_controls.elements.addItems(new.laser.elements)
+            self.laser_controls.elements.setCurrentText(new.element())
+            self.laser_controls.elements.currentTextChanged.connect(
+                lambda s: [new.setElement(s), new.redraw()]
+            )
 
-        self.combo_element.blockSignals(False)
-        self.laserColortableChanged(
-            new.image.colorTable(),
-            new.vmin,
-            new.vmax,
-            new.laser.calibration[new.element()].unit,
-        )
+            self.laser_controls.elements.blockSignals(False)
+            self.laserColortableChanged(
+                new.image.colorTable(),
+                new.vmin,
+                new.vmax,
+                new.laser.calibration[new.element()].unit,
+            )
+        else:
+            raise ValueError(f"updateForItem: Unknown item type {type(new)}.")
 
     # Virtual
     def refresh(self) -> None:
