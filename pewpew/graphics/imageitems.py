@@ -15,7 +15,6 @@ from pewpew.lib.numpyqt import array_to_image
 from pewpew.graphics import colortable
 from pewpew.graphics.options import GraphicsOptions
 
-# from pewpew.graphics.overlayitems import OverlayItem, LabelOverlay
 from pewpew.graphics.items import ColorBarItem, EditableLabelItem
 
 from pewpew.actions import qAction
