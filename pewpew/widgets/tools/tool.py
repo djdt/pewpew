@@ -2,6 +2,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 from pewpew.graphics.imageitems import SnapImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
+from pewpew.graphics.overlayitems import ColorBarOverlay
 
 from pewpew.widgets.views import TabView, TabViewWidget
 
@@ -44,6 +45,10 @@ class ToolWidget(TabViewWidget):
         self._shown = False
 
         self.graphics = LaserGraphicsView(item.options, parent=self)
+        self.colorbar = ColorBarOverlay(
+            [], 0, 1, font=item.options.font, color=item.options.font_color
+        )
+        self.graphics.addOverlayItem(self.colorbar)
         self.graphics.setMouseTracking(True)
 
         self.item = item

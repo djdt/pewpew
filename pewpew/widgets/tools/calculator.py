@@ -10,15 +10,13 @@ from pewpew.lib import kmeans
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
-from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.imageitems import ScaledImageItem, LaserImageItem
 
 from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.tools import ToolWidget
+from pewpew.widgets.views import TabView
 
 from typing import List, Optional
-
-from pewpew.widgets.views import TabView
 
 
 def segment_image(x: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
@@ -386,5 +384,5 @@ class CalculatorTool(ToolWidget):
         self.image = ScaledImageItem.fromArray(data, rect, table)
         self.graphics.scene().addItem(self.image)
         
-        self.graphics.colorbar.updateTable(table, vmin, vmax, "")
+        self.colorbar.updateTable(table, vmin, vmax, "")
         self.graphics.invalidateScene()

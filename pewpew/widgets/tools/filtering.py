@@ -214,7 +214,7 @@ class FilteringTool(ToolWidget):
         self.image = ScaledImageItem.fromArray(data, rect, table)
         self.graphics.scene().addItem(self.image)
 
-        self.graphics.colorbar.updateTable(
+        self.colorbar.updateTable(
             table, vmin, vmax, self.item.laser.calibration[element].unit
         )
         self.graphics.invalidateScene()

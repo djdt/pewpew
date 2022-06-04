@@ -7,9 +7,7 @@ from pewlib import Calibration
 from pewpew.graphics import colortable
 from pewpew.graphics.imageitems import LaserImageItem, ScaledImageItem, SnapImageItem
 
-from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.items import ResizeableRectItem
-from pewpew.graphics.options import GraphicsOptions
 
 from pewpew.validators import DoubleSignificantFiguresDelegate
 
@@ -23,34 +21,7 @@ from pewpew.widgets.views import TabView
 
 from .tool import ToolWidget
 
-from typing import Any, Dict, List, Optional, Tuple
-
-
-# class StandardsGraphicsView(LaserGraphicsView):
-#     """Graphics view with rectangle selection of areas."""
-
-#     levelsChanged = QtCore.Signal()
-
-#     def __init__(self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None):
-#         super().__init__(options, parent)
-
-
-#     def currentLevelDataCoords(self) -> List[Tuple[int, int, int, int]]:
-#         levels = []
-#         for item in self.levels:
-#             p1 = self.mapToData(item.mapToScene(item.rect().topLeft()))
-#             p2 = self.mapToData(item.mapToScene(item.rect().bottomRight()))
-#             levels.append((p1.x(), p1.y(), p2.x(), p2.y()))
-#         return levels
-
-#     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
-#         for item in self.levels:
-#             if item.changed:
-#                 self.levelsChanged.emit()
-#                 break
-#         for item in self.levels:
-#             item.changed = False
-#         super().mouseReleaseEvent(event)
+from typing import Any, Dict, List, Optional
 
 
 class StandardsTool(ToolWidget):
@@ -209,7 +180,7 @@ class StandardsTool(ToolWidget):
             self.graphics.scene().removeItem(self.image)
         self.image = image
 
-        self.graphics.colorbar.updateTable(
+        self.colorbar.updateTable(
             table, vmin, vmax, self.item.laser.calibration[element].unit
         )
 

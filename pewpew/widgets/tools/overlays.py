@@ -92,7 +92,7 @@ class OverlayTool(ToolWidget):
         self.label.setPos(10, 10)
         self.graphics.addOverlayItem(self.label)
 
-        self.graphics.colorbar.setVisible(False)
+        self.colorbar.setVisible(False)
 
         self.button_save = QtWidgets.QPushButton("Export")
         self.button_save.setIcon(QtGui.QIcon.fromTheme("document-export"))
