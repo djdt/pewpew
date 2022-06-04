@@ -73,9 +73,9 @@ class MainWindow(QtWidgets.QMainWindow):
             "help-contents", "&Help", "Show the help contents.", self.help.open
         )
         self.action_colortable_range = qAction(
-            "",
+            "format-number-percent",
             "Set &Range",
-            "Set the range of the colortable.",
+            "Set the numerical range of the colortable.",
             self.dialogColortableRange,
         )
         self.action_colortable_range.setShortcut("Ctrl+R")

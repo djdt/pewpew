@@ -25,8 +25,8 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
     """
 
     nicenums = [1.0, 1.5, 2.0, 2.5, 3.0, 5.0, 7.5]
-    editRequested = QtCore.Signal()
-    mouseOverBar = QtCore.Signal(float)
+    # editRequested = QtCore.Signal()
+    # mouseOverBar = QtCore.Signal(float)
 
     def __init__(
         self,
@@ -158,9 +158,24 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         painter.fillPath(path, self.brush)
         painter.restore()
 
-    def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        self.editRequested.emit()
-        super().mouseDoubleClickEvent(event)
+    def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
+        # action_edit = qAction(
+        #     "format-number-percent",
+        #     "Set Range",
+        #     "Set the numerical range of the colortable.",
+        #     self.editRequested,
+        # )
+        action_hide = qAction(
+            "visibility",
+            "Hide Colorbar",
+            "Hide the colortable scale bar.",
+            self.hide,
+        )
+        menu = QtWidgets.QMenu()
+        # menu.addAction(action_edit)
+        menu.addAction(action_hide)
+        menu.exec_(event.screenPos())
+        event.accept()
 
 
 class EditableLabelItem(UnscaledAlignedTextItem):

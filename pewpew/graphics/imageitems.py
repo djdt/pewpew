@@ -432,6 +432,12 @@ class LaserImageItem(SnapImageItem):
             "Un-hide the current element label.",
             self.element_label.show,
         )
+        self.action_show_colorbar = qAction(
+            "visibility",
+            "Show Colrbar",
+            "Un-hide the colortable scale bar.",
+            self.colorbar.show,
+        )
         # self.action_duplicate = qAction(
         #     "edit-copy",
         #     "Duplicate image",
@@ -626,6 +632,8 @@ class LaserImageItem(SnapImageItem):
 
         menu.addSeparator()
 
+        if not self.colorbar.isVisible():
+            menu.addAction(self.action_show_colorbar)
         if not self.label.isVisible():
             menu.addAction(self.action_show_label_name)
         if not self.element_label.isVisible():
