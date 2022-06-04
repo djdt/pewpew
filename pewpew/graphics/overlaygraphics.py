@@ -217,7 +217,11 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
         rect = QtCore.QRectF(0, 0, 0, 0)
         for item in self.scene().items():
             if not isinstance(item, (OverlayItem, OverlayParentItem)) and item.isVisible():
-                item_rect = item.mapToScene(item.boundingRect()).boundingRect()
+                item_rect = item.sceneBoundingRect()
+                if item.flags() & QtWidgets.QGraphicsItem.ItemIgnoresTransformations:
+                    transformed_rect = self.mapToScene(item_rect.toAlignedRect()).boundingRect()
+                    item_rect.setWidth(transformed_rect.width())
+                    item_rect.setHeight(transformed_rect.height())
                 rect = rect.united(item_rect)
         return rect
 

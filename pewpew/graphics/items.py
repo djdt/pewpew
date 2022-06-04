@@ -38,32 +38,31 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         orientation: Optional[QtCore.Qt.Orientation] = QtCore.Qt.Horizontal,
     ):
         super().__init__(parent)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
 
         if pen is None:
             pen = QtGui.QPen(QtCore.Qt.black, 2.0)
             pen.setCosmetic(True)
 
-        self._font = font or QtGui.QFont()
+        self.font = font or QtGui.QFont()
         self.brush = brush or QtGui.QBrush(QtCore.Qt.white)
         self.pen = pen
         assert orientation == QtCore.Qt.Horizontal
         self.orientation = orientation
 
         self._data = np.arange(256, dtype=np.uint8)  # save a reference
-        self.image = QtGui.QImage(
-            self._data, 256, 1, 256, QtGui.QImage.Format_Indexed8
-        )
+        self.image = QtGui.QImage(self._data, 256, 1, 256, QtGui.QImage.Format_Indexed8)
 
         self.vmin = 0.0
         self.vmax = 0.0
         self.unit = ""
 
-    def font(self) -> QtGui.QFont:
-        font = QtGui.QFont(self._font)
-        if self.scene() is not None:
-            view = next(iter(self.scene().views()))
-            font.setPointSizeF(font.pointSizeF() / view.transform().m22())
-        return font
+    # def font(self) -> QtGui.QFont:
+    #     font = QtGui.QFont(self._font)
+    #     if self.scene() is not None:
+    #         view = next(iter(self.scene().views()))
+    #         font.setPointSizeF(font.pointSizeF() / view.transform().m22())
+    #     return font
 
     def updateTable(self, colortable: List[int], vmin: float, vmax: float, unit: str):
         self.vmin = vmin
@@ -75,23 +74,22 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         self.update()
 
     def boundingRect(self):
-        fm = QtGui.QFontMetrics(self.font())
+        fm = QtGui.QFontMetrics(self.font)
 
-        parent_rect = self.parentItem().boundingRect()
-        if self.orientation == QtCore.Qt.Horizontal:
-            rect = QtCore.QRectF(
-                0,
-                0,
-                parent_rect.width(),
-                fm.ascent() / 4.0 + fm.ascent() / 3.0 + fm.height(),
+        if self.scene() is not None:
+            view = self.scene().views()[0]
+            length = (
+                view.mapFromScene(self.parentItem().boundingRect())
+                .boundingRect()
+                .width()
             )
         else:
-            rect = QtCore.QRectF(
-                0,
-                0,
-                fm.ascent() / 4.0 + fm.ascent() / 3.0 + fm.width("0000000"),
-                parent_rect.height(),
-            )
+            length = 1.0
+
+        if self.orientation == QtCore.Qt.Horizontal:
+            rect = QtCore.QRectF(0, 0, length, 5.0 + 10.0 + fm.height())
+        else:
+            raise NotImplementedError
         return rect
 
     def niceTextValues(self, n: int = 7, trim: int = 0) -> np.ndarray:
@@ -115,21 +113,28 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         widget: Optional[QtWidgets.QWidget] = None,
     ):
         painter.save()
+        fm = painter.fontMetrics()
 
-        font = self.font()
-        fm = QtGui.QFontMetrics(font, painter.device())
-        rect = self.boundingRect()
+        view = self.scene().views()[0]
+        length = (
+            view.mapFromScene(self.parentItem().boundingRect()).boundingRect().width()
+        )
+
+        painter.setFont(self.font)
+        painter.rotate(self.parentItem().rotation())
+        painter.rotate(self.rotation())
 
         painter.drawImage(
-            QtCore.QRectF(0, fm.ascent() / 4.0, rect.width(), fm.ascent() / 3.0),
+            QtCore.QRectF(0.0, 5.0, length, 10.0),
             self.image,
         )
 
         path = QtGui.QPainterPath()
+        unit_pos = length - fm.boundingRect(self.unit).width() - fm.maxWidth()
         path.addText(
-            rect.width() - fm.boundingRect(self.unit).width() - fm.widthChar("m"),
-            fm.ascent() * 0.25 + fm.height(),
-            font,
+            unit_pos,
+            5.0 + 10.0 + fm.height(),
+            self.font,
             self.unit,
         )
 
@@ -137,22 +142,22 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         if vrange <= 0.0:
             return
 
+        px = 0.0  # Store previous text left pos
         for value in self.niceTextValues(7, trim=1):
-            x = rect.width() * (value - self.vmin) / vrange
+            x = length * (value - self.vmin) / vrange
             text = f"{value:.6g}"
-            path.addText(
-                x - fm.boundingRect(text).width() / 2.0,
-                fm.ascent() * 0.25 + fm.ascent() / 3.0 + fm.ascent(),
-                font,
-                text,
-            )
-            # if self.checkmarks:
-            #     path.addRect(
-            #         x - fm.lineWidth() / 2.0,
-            #         fm.ascent() + fm.underlinePos(),
-            #         fm.lineWidth() * 2.0,
-            #         fm.underlinePos(),
-            #     )
+            half_width = fm.boundingRect(text).width()
+            if (
+                x - half_width > px and x + half_width < unit_pos
+            ):  # Only add non-overlapping
+                path.addText(
+                    x - half_width,
+                    5.0 + 10.0 + fm.height(),
+                    self.font,
+                    text,
+                )
+                px = x + half_width
+
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.strokePath(path, self.pen)
         painter.fillPath(path, self.brush)
