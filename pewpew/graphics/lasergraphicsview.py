@@ -15,7 +15,6 @@ from pewpew.graphics.widgetitems import (
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.overlaygraphics import OverlayGraphicsView
 from pewpew.graphics.overlayitems import (
-    ColorBarOverlay,
     MetricScaleBarOverlay,
 )
 
@@ -32,7 +31,9 @@ class LaserGraphicsView(OverlayGraphicsView):
     def __init__(
         self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None
     ):
-        super().__init__(QtWidgets.QGraphicsScene(QtCore.QRectF(0, 0, 1000, 1000), parent), parent)
+        super().__init__(
+            QtWidgets.QGraphicsScene(QtCore.QRectF(0, 0, 1000, 1000), parent), parent
+        )
 
         self.options = options
         self.cursors["selection"] = QtCore.Qt.ArrowCursor
@@ -40,15 +41,15 @@ class LaserGraphicsView(OverlayGraphicsView):
         self.scalebar = MetricScaleBarOverlay(
             font=self.options.font, color=self.options.font_color
         )
-        self.colorbar = ColorBarOverlay(
-            [], 0, 1, font=self.options.font, color=self.options.font_color
-        )
+        self.scalebar.setVisible(self.options.scalebar)
 
         self.addOverlayItem(self.scalebar)
         self.scalebar.setPos(0, 10)
-        # self.addOverlayItem(self.colorbar)
 
+        self.options.fontOptionsChanged.connect(self.scalebar.requestPaint)
+        self.options.visiblityOptionsChanged.connect(self.updateOverlayVisibility)
         self.viewScaleChanged.connect(self.scalebar.requestPaint)
+
 
     def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
         self.clearFocus()
@@ -117,16 +118,6 @@ class LaserGraphicsView(OverlayGraphicsView):
                 self.scene().removeItem(item)
         self.setInteractionFlag("widget", False)
 
-    def setOverlayItemVisibility(
-        self,
-        scalebar: Optional[bool] = None,
-        colorbar: Optional[bool] = None,
-    ):
-        """Set visibility of overlay items."""
-        if scalebar is None:
-            scalebar = self.options.overlay_items["scalebar"]
-        if colorbar is None:
-            colorbar = self.options.overlay_items["colorbar"]
-
-        self.scalebar.setVisible(scalebar)
-        self.colorbar.setVisible(colorbar)
+    def updateOverlayVisibility(self) -> None:
+        self.scalebar.setVisible(self.options.scalebar)
+        self.scalebar.requestPaint()

@@ -9,22 +9,13 @@ from pewlib.config import SpotConfig
 from pewpew import __version__
 
 from pewpew.actions import qAction, qActionGroup
-from pewpew.graphics.options import GraphicsOptions
 from pewpew.log import LoggingDialog
 from pewpew.help import HelpDialog
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.laser import LaserTabWidget, LaserTabView
 
-from pewpew.widgets.tools import (
-    ToolWidget,
-#     CalculatorTool,
-#     DriftTool,
-#     FilteringTool,
-#     MergeTool,
-#     StandardsTool,
-#     OverlayTool,
-)
+from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.wizards import ImportWizard, SpotImportWizard, SRRImportWizard
 
 from types import TracebackType
@@ -126,10 +117,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "smooth",
             "&Smooth",
             "Smooth images with bilinear interpolation.",
-            lambda checked: [
-                setattr(self.tabview.options, "smoothing", checked),
-                self.tabview.refresh,
-            ],
+            self.tabview.options.setSmoothing,
         )
         self.action_smooth.setCheckable(True)
         self.action_smooth.setChecked(self.tabview.options.smoothing)
@@ -172,24 +160,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_toggle_calibrate.setCheckable(True)
         self.action_toggle_calibrate.setChecked(self.tabview.options.calibrate)
 
-        self.action_overlay_items = [
-            # qAction("", "Show Labels", "Toggle visiblity of labels.", lambda checked: setattr(self.tabview.options.overlay_items, "label", checked)),
-            qAction(
-                "",
-                f"Show {item.capitalize()}",
-                f"Toggle visibility of the {item}.",
-                lambda checked: [
-                    setattr(self.tabview.options.overlay_items, item, checked),
-                    self.tabview.refresh,
-                ],
-            )
-            for item in self.tabview.options.overlay_items.keys()
-        ]
-        for action, checked in zip(
-            self.action_overlay_items, self.tabview.options.overlay_items.values()
-        ):
-            action.setCheckable(True)
-            action.setChecked(checked)
+        self.action_toggle_scalebar = qAction("", "Show Scalebar", "Toggle the visibility of the scalebar.", self.tabview.options.setScalebarVisible)
+        self.action_toggle_scalebar.setCheckable(True)
+        self.action_toggle_scalebar.setChecked(self.tabview.options.scalebar)
 
         self.action_tools = [
             qAction(
@@ -281,8 +254,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu_view.addSeparator()
 
-        for action in self.action_overlay_items:
-            menu_view.addAction(action)
+        menu_view.addAction(self.action_toggle_scalebar)
 
         menu_view.addSeparator()
 
@@ -429,7 +401,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.setIntValue(self.tabview.options.font.pointSize())
         dlg.setIntRange(2, 96)
         dlg.setInputMode(QtWidgets.QInputDialog.IntInput)
-        dlg.intValueSelected.connect(self.tabview.options.font.setPointSize)
+        dlg.intValueSelected.connect(self.tabview.options.setFontSize)
         dlg.intValueSelected.connect(self.tabview.refresh)
         dlg.open()
         return dlg

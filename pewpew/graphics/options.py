@@ -29,20 +29,18 @@ class GraphicsOptions(QtCore.QObject):
         "viridis": "Perceptually uniform colormap.",
     }
 
-    optionsChanged = QtCore.Signal()
+    fontOptionsChanged = QtCore.Signal()
+    imageOptionsChanged = QtCore.Signal()
+    visiblityOptionsChanged = QtCore.Signal()
 
     def __init__(self) -> None:
+        super().__init__()
         # Todo: maybe alignments here?
-        self.overlay_items = {
-            "label": True,
-            "scalebar": True,
-            "colorbar": True,
-        }
-
         self.colortable = "viridis"
         self.color_ranges: Dict[str, Tuple[Union[float, str], Union[float, str]]] = {}
         self.color_range_default = (0.0, "99%")
 
+        self.scalebar = True
         self.highlight_focus = True
         self.smoothing = False
 
@@ -54,19 +52,23 @@ class GraphicsOptions(QtCore.QObject):
 
     def setFont(self, font: QtGui.QFont) -> None:
         self.font = font
-        self.optionsChanged.emit()
+        self.fontOptionsChanged.emit()
 
     def setFontSize(self, size: int) -> None:
         self.font.setPointSize(size)
-        self.optionsChanged.emit()
+        self.fontOptionsChanged.emit()
 
     def setHighlightFocus(self, hightlight: bool) -> None:
         self.highlight_focus = hightlight
-        self.optionsChanged.emit()
+        self.imageOptionsChanged.emit()
+
+    def setScalebarVisible(self, visible: bool) -> None:
+        self.scalebar = visible
+        self.visiblityOptionsChanged.emit()
 
     def setSmoothing(self, smooth: bool) -> None:
         self.smoothing = smooth
-        self.optionsChanged.emit()
+        self.imageOptionsChanged.emit()
 
     def get_color_range_as_float(
         self, name: str, data: np.ndarray

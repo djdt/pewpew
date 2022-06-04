@@ -281,7 +281,6 @@ class LaserTabWidget(TabViewWidget):
         item.hoveredValueCleared.connect(self.clearCursorStatus)
 
         # Modification
-        item.colortableChanged.connect(self.laserColortableChanged)
         item.modified.connect(lambda: self.setWindowModified(True))
 
         item.redraw()
@@ -302,14 +301,6 @@ class LaserTabWidget(TabViewWidget):
         for item in self.laserItems():
             elements.update(item.laser.elements)
         return list(elements)
-
-    def laserColortableChanged(
-        self, table: List[int], vmin: float, vmax: float, unit: str
-    ) -> None:
-        # Todo calculate this based on all open lasers?
-        self.graphics.colorbar.updateTable(table, vmin, vmax, unit)
-        # self.graphics.repaint()
-        self.graphics.invalidateScene()
 
     def updateForItem(
         self,
