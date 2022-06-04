@@ -216,7 +216,7 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
     def itemsBoundingRect(self) ->QtCore.QRectF:
         rect = QtCore.QRectF(0, 0, 0, 0)
         for item in self.scene().items():
-            if not isinstance(item, (OverlayItem, OverlayParentItem)):
+            if not isinstance(item, (OverlayItem, OverlayParentItem)) and item.isVisible():
                 item_rect = item.mapToScene(item.boundingRect()).boundingRect()
                 rect = rect.united(item_rect)
         return rect
