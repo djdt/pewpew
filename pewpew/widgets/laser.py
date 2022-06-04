@@ -322,27 +322,7 @@ class LaserTabWidget(TabViewWidget):
         if isinstance(new, LaserImageItem):
             self.controls.setCurrentWidget(self.laser_controls)
 
-            try:  # Remove any existing connects to the element combo box
-                self.laser_controls.elements.currentTextChanged.disconnect()
-            except RuntimeError:
-                pass
-
-            self.laser_controls.elements.blockSignals(True)
-            self.laser_controls.elements.clear()
-
-            self.laser_controls.elements.addItems(new.laser.elements)
-            self.laser_controls.elements.setCurrentText(new.element())
-            self.laser_controls.elements.currentTextChanged.connect(
-                lambda s: [new.setElement(s), new.redraw()]
-            )
-
-            self.laser_controls.elements.blockSignals(False)
-            self.laserColortableChanged(
-                new.image.colorTable(),
-                new.vmin,
-                new.vmax,
-                new.laser.calibration[new.element()].unit,
-            )
+            self.laser_controls.setItem(new)
         else:
             raise ValueError(f"updateForItem: Unknown item type {type(new)}.")
 
