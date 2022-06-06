@@ -4,8 +4,6 @@ from pathlib import Path
 
 from typing import Optional, Set, Union
 
-from pewpew.actions import qAction
-
 
 class OverlayParentItem(QtWidgets.QGraphicsObject):
     def __init__(self, parent: Optional[QtWidgets.QGraphicsItem] = None):
@@ -226,7 +224,15 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
         return rect
 
     def zoomReset(self) -> None:
-        self.scene().setSceneRect(self.itemsBoundingRect())
-        self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
-        if self.itemsBoundingRect() != self.sceneRect():
-            self.zoomReset()
+        view_rect = self.viewport().size()
+        cx = self.transform().m11()
+        while True:
+            rect = self.itemsBoundingRect()
+            sx = view_rect.width() / rect.width()
+            if abs(cx - sx) < 1e-6:
+                break
+            self.setTransform(QtGui.QTransform.fromScale(sx, sx))
+            cx = sx
+
+        self.scene().setSceneRect(rect)
+        self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
