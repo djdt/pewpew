@@ -20,7 +20,7 @@ class SelectionItem(QtWidgets.QGraphicsObject):
     ):
         super().__init__(parent)
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
-        self.setZValue(99)
+        self.setZValue(100.0)
 
         self.modes = modes or {}
 

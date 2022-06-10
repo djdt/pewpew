@@ -94,7 +94,7 @@ class LaserGraphicsView(OverlayGraphicsView):
                 self.scene().removeItem(item)
 
         widget = RulerWidgetItem(font=self.options.font)
-        widget.setZValue(10)
+        widget.setZValue(100.0)
         self.scene().addItem(widget)
         widget.grabMouse()
         self.setInteractionFlag("widget")
@@ -106,7 +106,7 @@ class LaserGraphicsView(OverlayGraphicsView):
                 self.scene().removeItem(item)
 
         widget = ImageSliceWidgetItem(font=self.options.font)
-        widget.setZValue(10)
+        widget.setZValue(100.0)
         self.scene().addItem(widget)
         widget.grabMouse()
         self.setInteractionFlag("widget")
