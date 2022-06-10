@@ -71,6 +71,18 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         y = round(pos.y() / pixel.height()) * pixel.height()
         return QtCore.QPointF(x, y)
 
+    def sendToBack(self) -> None:
+        stack = [
+            item
+            for item in self.scene().items()
+            if isinstance(item, SnapImageItem) and item is not self
+        ]
+        stack.append(self)
+        print(stack)
+        for front, behind in zip(stack[:-1], stack[1:]):
+            front.stackBefore(behind)
+            print("front",front,"behind", behind)
+
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if (
             event.button() == QtCore.Qt.LeftButton
@@ -512,6 +524,15 @@ class LaserImageItem(SnapImageItem):
             ),
         ]
 
+        self.actions_order = [
+            qAction(
+                "object-order-back",
+                "Send to Back",
+                "Order the image behind all others.",
+                self.sendToBack,
+            )
+        ]
+
     def copySelectionToText(self) -> None:
         """Copies the currently selected data to the system clipboard."""
         data = self.raw_data[self.mask].ravel()
@@ -625,6 +646,9 @@ class LaserImageItem(SnapImageItem):
             menu.addSeparator()
             tools = menu.addMenu(QtGui.QIcon.fromTheme(""), "Tools")
             tools.addActions(self.actions_tools)
+            menu.addSeparator()
+            order = menu.addMenu(QtGui.QIcon.fromTheme(""), "Ordering")
+            order.addActions(self.actions_order)
 
         menu.addAction(self.action_calibration)
         menu.addAction(self.action_config)
