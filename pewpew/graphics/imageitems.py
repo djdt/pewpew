@@ -71,17 +71,47 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         y = round(pos.y() / pixel.height()) * pixel.height()
         return QtCore.QPointF(x, y)
 
-    def sendToBack(self) -> None:
+    def orderRaise(self) -> None:
+        stack = [
+            item
+            for item in self.scene().items(
+                self.sceneBoundingRect(), QtCore.Qt.IntersectsItemBoundingRect
+            )
+            if isinstance(item, SnapImageItem)
+        ]
+        idx = stack.index(self)
+        if idx > 0:
+            stack[idx - 1].stackBefore(self)
+
+    def orderFirst(self) -> None:
         stack = [
             item
             for item in self.scene().items()
             if isinstance(item, SnapImageItem) and item is not self
         ]
-        stack.append(self)
-        print(stack)
-        for front, behind in zip(stack[:-1], stack[1:]):
-            front.stackBefore(behind)
-            print("front",front,"behind", behind)
+        for item in stack:
+            item.stackBefore(self)
+
+    def orderLower(self) -> None:
+        stack = [
+            item
+            for item in self.scene().items(
+                self.sceneBoundingRect(), QtCore.Qt.IntersectsItemBoundingRect
+            )
+            if isinstance(item, SnapImageItem)
+        ]
+        idx = stack.index(self)
+        if idx + 1 < len(stack):
+            self.stackBefore(stack[idx + 1])
+
+    def orderLast(self) -> None:
+        stack = [
+            item
+            for item in self.scene().items()
+            if isinstance(item, SnapImageItem) and item is not self
+        ]
+        for item in stack:
+            self.stackBefore(item)
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if (
@@ -526,11 +556,29 @@ class LaserImageItem(SnapImageItem):
 
         self.actions_order = [
             qAction(
+                "object-order-front",
+                "Send to Front",
+                "Order the image in front of all others.",
+                self.orderFirst,
+            ),
+            qAction(
+                "object-order-raise",
+                "Send Forwards",
+                "Raise the images stacking order.",
+                self.orderRaise,
+            ),
+            qAction(
+                "object-order-lower",
+                "Send Backwards",
+                "Lower the images stacking order.",
+                self.orderLower,
+            ),
+            qAction(
                 "object-order-back",
                 "Send to Back",
                 "Order the image behind all others.",
-                self.sendToBack,
-            )
+                self.orderLast,
+            ),
         ]
 
     def copySelectionToText(self) -> None:
