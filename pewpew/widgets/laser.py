@@ -15,7 +15,7 @@ from pewlib.config import Config
 from pewpew.actions import qAction
 from pewpew.events import DragDropRedirectFilter
 
-from pewpew.graphics.imageitems import LaserImageItem
+from pewpew.graphics.imageitems import LaserImageItem, ScaledImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
 
@@ -30,7 +30,7 @@ from pewpew.widgets.tools.overlays import OverlayTool
 from pewpew.widgets.tools.standards import StandardsTool
 from pewpew.widgets.views import TabView, TabViewWidget
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 
 logger = logging.getLogger(__name__)
@@ -267,6 +267,8 @@ class LaserTabWidget(TabViewWidget):
         layout.addWidget(self.controls, 0)
         self.setLayout(layout)
 
+        self.addImage("/home/tom/Downloads/Cute-dog-and-onion_iphone_1242x2688.jpg")
+
     def addLaser(self, laser: Laser) -> None:
         item = LaserImageItem(laser, self.graphics.options)
 
@@ -289,6 +291,16 @@ class LaserTabWidget(TabViewWidget):
         self.graphics.scene().addItem(item)
         self.graphics.zoomReset()
 
+    def addImage(self, path: Union[str, Path]) -> None:
+        if isinstance(path, Path):
+            path = str(path.absolute())
+        image = QtGui.QImage(path)
+
+        item = ScaledImageItem(image, QtCore.QRectF(0, 0, image.width(), image.height()))
+        item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
+        self.graphics.scene().addItem(item)
+        self.graphics.zoomReset()
+
     def laserItems(self) -> List[LaserImageItem]:
         return [
             item
@@ -308,12 +320,14 @@ class LaserTabWidget(TabViewWidget):
         old: Optional[QtWidgets.QGraphicsItem] = None,
         reason: QtCore.Qt.FocusReason = QtCore.Qt.NoFocusReason,
     ) -> None:
-        if old == new:
+        if old == new or new is None:
             return
         if isinstance(new, LaserImageItem):
             self.controls.setCurrentWidget(self.laser_controls)
 
             self.laser_controls.setItem(new)
+        elif isinstance(new, ScaledImageItem):  # Todo: maybe add a proper class?
+            pass
         else:
             raise ValueError(f"updateForItem: Unknown item type {type(new)}.")
 

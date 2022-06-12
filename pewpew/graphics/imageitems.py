@@ -26,6 +26,13 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
     selectionChanged = QtCore.Signal()
     imageChanged = QtCore.Signal()
 
+    def __init__(self, parent: Optional[QtWidgets.QGraphicsItem] = None):
+        super().__init__(parent)
+
+        self.action_close = qAction(
+            "view-close", "Close", "Close the image.", self.close
+        )
+
     def itemChange(
         self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
     ) -> Any:
@@ -70,6 +77,11 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         x = round(pos.x() / pixel.width()) * pixel.width()
         y = round(pos.y() / pixel.height()) * pixel.height()
         return QtCore.QPointF(x, y)
+
+    def close(self) -> None:
+        self.deleteLater()
+        if self.scene() is not None:
+            self.scene().removeItem(self)
 
     def orderRaise(self) -> None:
         stack = [
@@ -710,6 +722,10 @@ class LaserImageItem(SnapImageItem):
             menu.addAction(self.action_show_label_name)
         if not self.element_label.isVisible():
             menu.addAction(self.action_show_label_element)
+
+        if not mask_context:
+            menu.addSeparator()
+            menu.addAction(self.action_close)
 
         menu.exec_(event.screenPos())
         event.accept()
