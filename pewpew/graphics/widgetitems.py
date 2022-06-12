@@ -222,6 +222,7 @@ class ImageSliceWidgetItem(WidgetItem):
         QtWidgets.QApplication.clipboard().setMimeData(mime)
 
     def createSlicePoly(self) -> None:
+        # All pos in scene coordinates
         def connect_nd(ends):
             d = np.diff(ends, axis=0)[0]
             j = np.argmax(np.abs(d))
@@ -229,8 +230,8 @@ class ImageSliceWidgetItem(WidgetItem):
             aD = np.abs(D)
             return ends[0] + (np.outer(np.arange(aD + 1), d) + (aD >> 1)) // aD
 
-        p1 = self.item.mapToData(self.line.p1())
-        p2 = self.item.mapToData(self.line.p2())
+        p1 = self.item.mapToData(self.item.mapFromScene(self.line.p1()))
+        p2 = self.item.mapToData(self.item.mapFromScene(self.line.p2()))
 
         if self.line.dx() < 0.0:
             p1, p2 = p2, p1
@@ -323,7 +324,7 @@ class ImageSliceWidgetItem(WidgetItem):
         menu.exec_(event.screenPos())
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        self.item = None
+        # All pos in scene coordinates
         if not event.buttons() & QtCore.Qt.LeftButton:
             return
 
@@ -342,9 +343,10 @@ class ImageSliceWidgetItem(WidgetItem):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        # All pos in scene coordinates
         if event.buttons() & QtCore.Qt.LeftButton and self.item is not None:
             pos = self.line.p2()
-            rect = self.item.boundingRect()
+            rect = self.item.sceneBoundingRect()
             if rect.left() < event.pos().x() < rect.right():
                 pos.setX(event.pos().x())
             if rect.top() < event.pos().y() < rect.bottom():
