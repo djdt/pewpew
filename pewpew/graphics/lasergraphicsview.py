@@ -121,3 +121,16 @@ class LaserGraphicsView(OverlayGraphicsView):
     def updateOverlayVisibility(self) -> None:
         self.scalebar.setVisible(self.options.scalebar)
         self.scalebar.requestPaint()
+
+    def zoomReset(self) -> None:
+        # Compute a reasonable estimate of the bounding rect
+        rect = QtCore.QRectF()
+        for item in self.items():
+            if isinstance(item, SnapImageItem) and item.isVisible():
+                rect = rect.united(item.sceneBoundingRect())
+        self.fitInView(rect.marginsAdded(QtCore.QMarginsF(50, 50, 50, 50)), QtCore.Qt.KeepAspectRatio)
+
+        # Get the actual bounding rect
+        rect = self.itemsBoundingRect()
+        self.scene().setSceneRect(rect)
+        self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
