@@ -211,7 +211,7 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
     def zoomToArea(self, rect: QtCore.QRectF) -> None:
         self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
 
-    def itemsBoundingRect(self) ->QtCore.QRectF:
+    def itemsBoundingRect(self) -> QtCore.QRectF:
         rect = QtCore.QRectF(0, 0, 0, 0)
         for item in self.scene().items():
             if not isinstance(item, (OverlayItem, OverlayParentItem)) and item.isVisible():
@@ -224,15 +224,18 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
         return rect
 
     def zoomReset(self) -> None:
+        self.fitInView(self.itemsBoundingRect(), QtCore.Qt.KeepAspectRatio)
         view_rect = self.viewport().size()
         cx = self.transform().m11()
-        while True:
+        iter = 0
+        while iter < 100:
             rect = self.itemsBoundingRect()
             sx = view_rect.width() / rect.width()
-            if abs(cx - sx) < 1e-6:
+            if cx > sx or abs(cx - sx) < 1e-6:
                 break
             self.setTransform(QtGui.QTransform.fromScale(sx, sx))
             cx = sx
+            iter += 1
 
         self.scene().setSceneRect(rect)
         self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
