@@ -29,6 +29,33 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
     def __init__(self, parent: Optional[QtWidgets.QGraphicsItem] = None):
         super().__init__(parent)
 
+        self.actions_order = [
+            qAction(
+                "object-order-front",
+                "Send to Front",
+                "Order the image in front of all others.",
+                self.orderFirst,
+            ),
+            qAction(
+                "object-order-raise",
+                "Send Forwards",
+                "Raise the images stacking order.",
+                self.orderRaise,
+            ),
+            qAction(
+                "object-order-lower",
+                "Send Backwards",
+                "Lower the images stacking order.",
+                self.orderLower,
+            ),
+            qAction(
+                "object-order-back",
+                "Send to Back",
+                "Order the image behind all others.",
+                self.orderLast,
+            ),
+        ]
+
         self.action_close = qAction(
             "view-close", "Close", "Close the image.", self.close
         )
@@ -179,6 +206,16 @@ class ScaledImageItem(SnapImageItem):
             image.setColorTable(colortable)
             image.setColorCount(len(colortable))
         return cls(image, rect, parent)
+    
+    def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
+        menu = QtWidgets.QMenu()
+
+        menu.addActions(self.actions_order)
+        menu.addSeparator()
+        menu.addAction(self.action_close)
+
+        menu.exec_(event.screenPos())
+        event.accept()
 
 
 class LaserImageItem(SnapImageItem):
@@ -566,32 +603,6 @@ class LaserImageItem(SnapImageItem):
             ),
         ]
 
-        self.actions_order = [
-            qAction(
-                "object-order-front",
-                "Send to Front",
-                "Order the image in front of all others.",
-                self.orderFirst,
-            ),
-            qAction(
-                "object-order-raise",
-                "Send Forwards",
-                "Raise the images stacking order.",
-                self.orderRaise,
-            ),
-            qAction(
-                "object-order-lower",
-                "Send Backwards",
-                "Lower the images stacking order.",
-                self.orderLower,
-            ),
-            qAction(
-                "object-order-back",
-                "Send to Back",
-                "Order the image behind all others.",
-                self.orderLast,
-            ),
-        ]
 
     def copySelectionToText(self) -> None:
         """Copies the currently selected data to the system clipboard."""
@@ -714,6 +725,7 @@ class LaserImageItem(SnapImageItem):
         menu.addAction(self.action_config)
         menu.addAction(self.action_information)
 
+        menu.addSection("words")
         menu.addSeparator()
 
         if not self.colorbar.isVisible():
