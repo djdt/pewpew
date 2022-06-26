@@ -179,6 +179,20 @@ class ScaledImageItem(SnapImageItem):
         self.image = image
         self.rect = rect
 
+        self.action_copy_image = qAction(
+            "insert-image",
+            "Copy &Image",
+            "Copy image to clipboard.",
+            self.copyToClipboard,
+        )
+
+        self.action_pixel_size = qAction(
+            "zoom-pixels",
+            "Pixel Size",
+            "Set the pixel width and height of the image.",
+            None,
+        )
+
     def imageSize(self) -> QtCore.QSize:
         return self.image.size()
 
@@ -193,6 +207,10 @@ class ScaledImageItem(SnapImageItem):
     ) -> None:
         painter.drawImage(self.rect, self.image)
 
+    def copyToClipboard(self) -> None:
+        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard.setImage(self.image)
+
     @classmethod
     def fromArray(
         cls,
@@ -206,7 +224,7 @@ class ScaledImageItem(SnapImageItem):
             image.setColorTable(colortable)
             image.setColorCount(len(colortable))
         return cls(image, rect, parent)
-    
+
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
         menu = QtWidgets.QMenu()
 
@@ -602,7 +620,6 @@ class LaserImageItem(SnapImageItem):
                 lambda: self.requestTool.emit("Standards", self),
             ),
         ]
-
 
     def copySelectionToText(self) -> None:
         """Copies the currently selected data to the system clipboard."""
