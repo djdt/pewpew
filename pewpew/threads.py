@@ -1,4 +1,4 @@
-from PySide2 import QtCore
+from PySide2 import QtCore, QtGui
 from pathlib import Path
 import logging
 import time
@@ -50,13 +50,27 @@ class ImportThread(QtCore.QThread):
                 break
             self.progressChanged.emit(i)
             self.importStarted.emit(f"Importing {path.name}...")
-            try:
-                laser = self.importPath(path)
-                self.importFinished.emit(laser)
-                logger.info(f"Imported {path.name}.")
-            except Exception as e:
-                logger.exception(e)
-                self.importFailed.emit(f"Unable to import {path.name}.")
+
+            # mime = QtCore.QMimeDatabase().mimeTypeForFile(str(path.absolute()))
+
+            if QtGui.QImageReader.imageFormat(str(path.absolute())):  #mime in QtGui.QImageReader.supportedMimeTypes():
+                try:
+                    image = QtGui.QImage(str(path))
+                    self.importFinished.emit(image)
+                except Exception as e:
+                    logger.exception(e)
+                    self.importFailed.emit(f"Unable to import {path.name}.")
+                else:
+                    logger.info(f"Imported image from {path.name}.")
+            else:
+                try:
+                    laser = self.importPath(path)
+                    self.importFinished.emit(laser)
+                except Exception as e:
+                    logger.exception(e)
+                    self.importFailed.emit(f"Unable to import {path.name}.")
+                else:
+                    logger.info(f"Imported laser from {path.name}.")
         self.progressChanged.emit(len(self.paths))
 
     def importPath(self, path: Path) -> Laser:

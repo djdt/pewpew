@@ -45,18 +45,30 @@ class LaserTabView(TabView):
         self.config = Config()
         self.options = GraphicsOptions()
 
-    def addLaser(self, laser: Laser) -> "LaserTabWidget":
-        """Open image of a laser in a new tab."""
+    # def addLaser(self, laser: Laser) -> "LaserTabWidget":
+    #     """Open image of a laser in a new tab."""
+    #     if len(self.widgets()) > 0:
+    #         widget = self.widgets()[0]
+    #         widget.addLaser(laser)
+    #     else:
+    #         widget = LaserTabWidget(self.options, self)
+    #         widget.addLaser(laser)
+    #         name = laser.info.get("Name", "<No Name>")
+    #         self.addTab(name, widget)
+
+    #     return widget
+
+    def importFile(self, data: Union[Laser, QtGui.QImage]) -> "LaserTabWidget":
         if len(self.widgets()) > 0:
             widget = self.widgets()[0]
-            widget.addLaser(laser)
         else:
             widget = LaserTabWidget(self.options, self)
-            widget.addLaser(laser)
-            name = laser.info.get("Name", "<No Name>")
-            self.addTab(name, widget)
+            self.addTab("1", widget)
 
-        return widget
+        if isinstance(data, Laser):
+            widget.addLaser(data)
+        else:
+            widget.addImage(data)
 
     # Events
     # def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
@@ -96,7 +108,7 @@ class LaserTabView(TabView):
         thread.importStarted.connect(progress.setLabelText)
         thread.progressChanged.connect(progress.setValue)
 
-        thread.importFinished.connect(self.addLaser)
+        thread.importFinished.connect(self.importFile)
         thread.importFailed.connect(logger.exception)
         thread.finished.connect(progress.close)
 
@@ -118,7 +130,7 @@ class LaserTabView(TabView):
                     item.applyConfig(config)
 
     # Actions
-    def actionOpen(self) -> QtWidgets.QDialog:
+    def actionOpenLaser(self) -> QtWidgets.QDialog:
         """Opens a file dialog for loading new lasers."""
         dlg = QtWidgets.QFileDialog(
             self,
@@ -266,8 +278,6 @@ class LaserTabWidget(TabViewWidget):
         layout.addWidget(self.graphics, 1)
         layout.addWidget(self.controls, 0)
         self.setLayout(layout)
-
-        self.addImage("/home/tom/Downloads/Cute-dog-and-onion_iphone_1242x2688.jpg")
 
     def addLaser(self, laser: Laser) -> None:
         item = LaserImageItem(laser, self.graphics.options)
