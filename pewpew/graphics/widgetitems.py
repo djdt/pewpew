@@ -242,6 +242,8 @@ class ImageSliceWidgetItem(WidgetItem):
         points = connect_nd([[p1.x(), p1.y()], [p2.x(), p2.y()]])
         if points.size > 3:
             self.sliced = self.item.rawData()[points[:, 1], points[:, 0]]
+            if self.sliced.ndim > 1:  # for RGB and other images
+                self.sliced = np.mean(self.sliced, axis=1)
 
             xs = np.linspace(0.0, self.line.length(), self.sliced.size)
             try:
