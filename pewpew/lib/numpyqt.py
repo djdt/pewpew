@@ -37,12 +37,17 @@ def array_to_image(array: np.ndarray) -> QtGui.QImage:
     return image
 
 
-def polygonf_to_array(polygon: QtGui.QPolygonF) -> np.ndarray:
-    """Converts a Qt polygon to a numpy array of shape (n, 2)."""
-    buf = (ctypes.c_double * 2 * polygon.length()).from_address(
-        shiboken2.getCppPointer(polygon.data())[0]  # type: ignore
-    )
-    return np.frombuffer(buf, dtype=np.float64).reshape(-1, 2)
+def image_to_array(image: QtGui.QImage, grey: bool = True) -> np.ndarray:
+    if image.isGrayscale():
+        image = image.convertToFormat(QtGui.QImage.Format_Grayscale8)
+        channels = 1
+    else:
+        image = image.convertToFormat(QtGui.QImage.Format_RGB32)
+        channels = 4
+    
+    array = np.array(image.constBits(), np.uint8).reshape((image.height(), image.width(), channels))
+
+    return array
 
 
 def array_to_polygonf(array: np.ndarray) -> QtGui.QPolygonF:
@@ -59,6 +64,14 @@ def array_to_polygonf(array: np.ndarray) -> QtGui.QPolygonF:
     memory = np.frombuffer(buf, np.float64)
     memory[:] = array.ravel()
     return polygon
+
+
+def polygonf_to_array(polygon: QtGui.QPolygonF) -> np.ndarray:
+    """Converts a Qt polygon to a numpy array of shape (n, 2)."""
+    buf = (ctypes.c_double * 2 * polygon.length()).from_address(
+        shiboken2.getCppPointer(polygon.data())[0]  # type: ignore
+    )
+    return np.frombuffer(buf, dtype=np.float64).reshape(-1, 2)
 
 
 class NumpyArrayTableModel(QtCore.QAbstractTableModel):

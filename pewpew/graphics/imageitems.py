@@ -10,7 +10,7 @@ from pewlib.config import Config
 
 # from pewlib.srr.config import SRRConfig
 
-from pewpew.lib.numpyqt import array_to_image
+from pewpew.lib.numpyqt import array_to_image, image_to_array
 
 from pewpew.graphics import colortable
 from pewpew.graphics.options import GraphicsOptions
@@ -178,6 +178,7 @@ class ScaledImageItem(SnapImageItem):
 
         self.image = image
         self.rect = rect
+        self._raw_data = None
 
         self.action_copy_image = qAction(
             "insert-image",
@@ -195,6 +196,11 @@ class ScaledImageItem(SnapImageItem):
 
     def imageSize(self) -> QtCore.QSize:
         return self.image.size()
+
+    def rawData(self) -> np.ndarray:
+        if self._raw_data is None:
+            self._raw_data = image_to_array(self.image)
+        return self._raw_data
 
     def boundingRect(self) -> QtCore.QRectF:
         return self.rect
