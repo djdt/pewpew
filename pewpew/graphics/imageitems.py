@@ -742,7 +742,6 @@ class LaserImageItem(SnapImageItem):
         menu.addAction(self.action_config)
         menu.addAction(self.action_information)
 
-        menu.addSection("words")
         menu.addSeparator()
 
         if not self.colorbar.isVisible():
