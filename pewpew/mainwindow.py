@@ -330,7 +330,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self,
             "Open File(s).",
             "",
-            "CSV Documents(*.csv *.txt *.text);;Numpy Archives(*.npz);;All files(*)",
+            "CSV Documents(*.csv *.txt *.text);;Images(*.bmp *.jpg *.jpeg *.png);;Numpy Archives(*.npz);;All files(*)",
         )
         dlg.selectNameFilter("All files(*)")
         dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)

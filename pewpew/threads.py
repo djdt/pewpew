@@ -19,7 +19,7 @@ class ImportThread(QtCore.QThread):
     """Threaded file importer.
 
     To use connect importFinished and call 'run'.
-    
+
     Args:
         paths: list of paths to import
         config: default config to apply
@@ -51,9 +51,9 @@ class ImportThread(QtCore.QThread):
             self.progressChanged.emit(i)
             self.importStarted.emit(f"Importing {path.name}...")
 
-            # mime = QtCore.QMimeDatabase().mimeTypeForFile(str(path.absolute()))
-
-            if QtGui.QImageReader.imageFormat(str(path.absolute())):  #mime in QtGui.QImageReader.supportedMimeTypes():
+            if QtGui.QImageReader.imageFormat(
+                str(path.absolute())
+            ):  # mime in QtGui.QImageReader.supportedMimeTypes():
                 try:
                     image = QtGui.QImage(str(path))
                     self.importFinished.emit(image)
@@ -96,9 +96,11 @@ class ImportThread(QtCore.QThread):
         if path.is_dir():
             if path.suffix.lower() == ".b":
                 data = None
-                for methods in [['batch_xml', 'batch_csv'], ['acq_method_xml']]:
+                for methods in [["batch_xml", "batch_csv"], ["acq_method_xml"]]:
                     try:
-                        data, params = io.agilent.load(path, collection_methods=methods, full=True)
+                        data, params = io.agilent.load(
+                            path, collection_methods=methods, full=True
+                        )
                         info.update(io.agilent.load_info(path))
                         break
                     except ValueError as e:
