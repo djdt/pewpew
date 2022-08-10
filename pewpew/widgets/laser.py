@@ -15,7 +15,7 @@ from pewlib.config import Config
 from pewpew.actions import qAction
 from pewpew.events import DragDropRedirectFilter
 
-from pewpew.graphics.imageitems import LaserImageItem, ScaledImageItem
+from pewpew.graphics.imageitems import ImageOverlayItem, LaserImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
 
@@ -34,6 +34,9 @@ from typing import Dict, List, Optional, Union
 
 
 logger = logging.getLogger(__name__)
+
+
+# @todo, add button to toolbars to lock the current item as active
 
 
 class LaserTabView(TabView):
@@ -130,19 +133,19 @@ class LaserTabView(TabView):
                     item.applyConfig(config)
 
     # Actions
-    def actionOpenLaser(self) -> QtWidgets.QDialog:
-        """Opens a file dialog for loading new lasers."""
-        dlg = QtWidgets.QFileDialog(
-            self,
-            "Open File(s).",
-            "",
-            "CSV Documents(*.csv *.txt *.text);;Numpy Archives(*.npz);;All files(*)",
-        )
-        dlg.selectNameFilter("All files(*)")
-        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-        dlg.filesSelected.connect(self.openDocument)
-        dlg.open()
-        return dlg
+    # def actionOpenLaser(self) -> QtWidgets.QDialog:
+    #     """Opens a file dialog for loading new lasers."""
+    #     dlg = QtWidgets.QFileDialog(
+    #         self,
+    #         "Open File(s).",
+    #         "",
+    #         "CSV Documents(*.csv *.txt *.text);;Numpy Archives(*.npz);;All files(*)",
+    #     )
+    #     dlg.selectNameFilter("All files(*)")
+    #     dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+    #     dlg.filesSelected.connect(self.openDocument)
+    #     dlg.open()
+    #     return dlg
 
 
 # class LaserComboBox(QtWidgets.QComboBox):
@@ -273,7 +276,6 @@ class LaserTabWidget(TabViewWidget):
         # self.laser_controls.elements.installEventFilter(self)
         self.controls.installEventFilter(self)
 
-
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.graphics, 1)
         layout.addWidget(self.controls, 0)
@@ -306,8 +308,11 @@ class LaserTabWidget(TabViewWidget):
             path = str(path.absolute())
         image = QtGui.QImage(path)
 
-        item = ScaledImageItem(image, QtCore.QRectF(0, 0, image.width(), image.height()))
+        item = ImageOverlayItem(
+            image, QtCore.QRectF(0, 0, image.width(), image.height())
+        )
         item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
+        item.requestDialog.connect(self.openDialog)
         self.graphics.scene().addItem(item)
         self.graphics.zoomReset()
 
@@ -330,13 +335,14 @@ class LaserTabWidget(TabViewWidget):
         old: Optional[QtWidgets.QGraphicsItem] = None,
         reason: QtCore.Qt.FocusReason = QtCore.Qt.NoFocusReason,
     ) -> None:
+        # Todo: test if lock active
         if old == new or new is None:
             return
         if isinstance(new, LaserImageItem):
             self.controls.setCurrentWidget(self.laser_controls)
 
             self.laser_controls.setItem(new)
-        elif isinstance(new, ScaledImageItem):  # Todo: maybe add a proper class?
+        elif isinstance(new, ImageOverlayItem):  # Todo: maybe add a proper class?
             pass
         else:
             raise ValueError(f"updateForItem: Unknown item type {type(new)}.")
@@ -392,13 +398,21 @@ class LaserTabWidget(TabViewWidget):
     def openDialog(
         self,
         dialog: str,
-        item: Optional[LaserImageItem] = None,
+        item: Optional[Union[ImageOverlayItem, LaserImageItem]] = None,
         selection: bool = False,
     ) -> QtWidgets.QDialog:
         if item is None:
             item = self.graphics.scene().focusItem()
 
-        if dialog == "Calibration":
+        # Shared dialogs
+        if dialog == "Pixel Size":
+            dlg = dialogs.PixelSizeDialog(item.pixelSize(), parent=self)
+            dlg.sizeSelected.connect(item.setPixelSize)
+            print("pixelsize")
+        elif not isinstance(item, LaserImageItem):
+            raise ValueError(f"Item {item} is not a LaserImageItem, dialog {dialog} invalid.")
+        # Laser dialogs
+        elif dialog == "Calibration":
             dlg = dialogs.CalibrationDialog(
                 item.laser.calibration, item.element(), parent=self
             )
@@ -458,7 +472,6 @@ class LaserTabWidget(TabViewWidget):
         self.view.addTab(f"Tool: {tool}", widget)
         self.view.setActiveWidget(widget)
         return widget
-
 
     def dialogExport(self, item: Optional[LaserImageItem] = None) -> QtWidgets.QDialog:
         if item is None:

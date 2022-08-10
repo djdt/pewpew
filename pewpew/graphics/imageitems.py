@@ -187,13 +187,6 @@ class ScaledImageItem(SnapImageItem):
             self.copyToClipboard,
         )
 
-        self.action_pixel_size = qAction(
-            "zoom-pixels",
-            "Pixel Size",
-            "Set the pixel width and height of the image.",
-            None,
-        )
-
     def imageSize(self) -> QtCore.QSize:
         return self.image.size()
 
@@ -231,9 +224,44 @@ class ScaledImageItem(SnapImageItem):
             image.setColorCount(len(colortable))
         return cls(image, rect, parent)
 
+
+class ImageOverlayItem(ScaledImageItem):
+    requestDialog = QtCore.Signal(
+        str, QtWidgets.QGraphicsItem, bool
+    )  # type, self, use selection
+    """Interactive ScaledImageItem class for overlay images."""
+
+    def __init__(
+        self,
+        image: QtGui.QImage,
+        rect: QtCore.QRectF,
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
+    ):
+        super().__init__(image, rect, parent=parent)
+
+        self.action_pixel_size = qAction(
+            "zoom-pixels",
+            "Pixel Size",
+            "Set the pixel width and height of the image.",
+            lambda: self.requestDialog.emit("Pixel Size", self, False),
+        )
+
+    def setPixelSize(self, size: QtCore.QSizeF) -> None:
+        image_size = self.imageSize()
+        self.prepareGeometryChange()
+        self.rect = QtCore.QRectF(
+            self.rect.topLeft(),
+            QtCore.QSizeF(
+                size.width() * image_size.width(), size.height() * image_size.height()
+            ),
+        )
+
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
         menu = QtWidgets.QMenu()
 
+        menu.addAction(self.action_copy_image)
+        menu.addAction(self.action_pixel_size)
+        menu.addSeparator()
         menu.addActions(self.actions_order)
         menu.addSeparator()
         menu.addAction(self.action_close)
@@ -243,7 +271,9 @@ class ScaledImageItem(SnapImageItem):
 
 
 class LaserImageItem(SnapImageItem):
-    requestDialog = QtCore.Signal(str, QtWidgets.QGraphicsItem, bool)
+    requestDialog = QtCore.Signal(
+        str, QtWidgets.QGraphicsItem, bool
+    )  # type, self, use selection
 
     requestExport = QtCore.Signal(QtWidgets.QGraphicsItem)
     requestSave = QtCore.Signal(QtWidgets.QGraphicsItem)

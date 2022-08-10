@@ -406,7 +406,10 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
     """Plots a calibration."""
 
     def __init__(
-        self, title: str, calibration: Calibration, parent: Optional[QtWidgets.QWidget] = None
+        self,
+        title: str,
+        calibration: Calibration,
+        parent: Optional[QtWidgets.QWidget] = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Calibration Curve")
@@ -821,7 +824,9 @@ class InformationDialog(QtWidgets.QDialog):
 
     read_only_items = ["Name", "File Path", "File Version"]
 
-    def __init__(self, info: Dict[str, str], parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(
+        self, info: Dict[str, str], parent: Optional[QtWidgets.QWidget] = None
+    ):
         super().__init__(parent)
 
         self.setMinimumSize(400, 400)
@@ -957,6 +962,38 @@ class NameEditDialog(QtWidgets.QDialog):
             self.addName(name)
 
 
+class PixelSizeDialog(ApplyDialog):
+    sizeSelected = QtCore.Signal(QtCore.QSizeF)
+
+    def __init__(self, size: QtCore.QSizeF, parent: Optional[QtWidgets.QWidget] = None):
+        super().__init__(parent)
+
+        self.xsize = QtWidgets.QLineEdit(str(size.width()))
+        self.xsize.setValidator(DecimalValidator(0.001, 999.999, 3))
+
+        self.ysize = QtWidgets.QLineEdit(str(size.height()))
+        self.ysize.setValidator(DecimalValidator(0.001, 999.999, 3))
+
+        layoutx = QtWidgets.QHBoxLayout()
+        layoutx.addWidget(self.xsize, 1)
+        layoutx.addWidget(QtWidgets.QLabel("μm"), 0, QtCore.Qt.AlignRight)
+        layouty = QtWidgets.QHBoxLayout()
+        layouty.addWidget(self.ysize, 1)
+        layouty.addWidget(QtWidgets.QLabel("μm"), 0, QtCore.Qt.AlignRight)
+
+        layout_form = QtWidgets.QFormLayout()
+        layout_form.addRow("x:", layoutx)
+        layout_form.addRow("y:", layouty)
+
+        self.layout_main.addLayout(layout_form)
+
+    def size(self) -> QtCore.QSizeF:
+        return QtCore.QSizeF(float(self.xsize.text()), float(self.ysize.text()))
+
+    def apply(self) -> None:
+        self.sizeSelected.emit(self.size())
+
+
 class SelectionDialog(ApplyDialog):
     """Dialog for theshold based selection of data."""
 
@@ -971,7 +1008,9 @@ class SelectionDialog(ApplyDialog):
     }
     COMPARISION = {">": np.greater, "<": np.less, "=": np.equal}
 
-    def __init__(self, item: LaserImageItem, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(
+        self, item: LaserImageItem, parent: Optional[QtWidgets.QWidget] = None
+    ):
         super().__init__(parent)
         self.setWindowTitle("Selection")
 
