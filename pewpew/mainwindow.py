@@ -320,9 +320,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tabview.options.colortable = text
         self.tabview.refresh()
 
+    # def actionOpen(self) -> QtWidgets.QDialog:
+    #     view = self.tabview.activeView()
+    #     return view.actionOpen()
+
     def actionOpen(self) -> QtWidgets.QDialog:
-        view = self.tabview.activeView()
-        return view.actionOpen()
+        """Opens a file dialog for loading new lasers."""
+        dlg = QtWidgets.QFileDialog(
+            self,
+            "Open File(s).",
+            "",
+            "CSV Documents(*.csv *.txt *.text);;Numpy Archives(*.npz);;All files(*)",
+        )
+        dlg.selectNameFilter("All files(*)")
+        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+        dlg.filesSelected.connect(self.tabview.openDocument)
+        dlg.open()
+        return dlg
 
     def openTool(self, tool: ToolWidget, name: str) -> None:
         widget = self.tabview.activeWidget()
