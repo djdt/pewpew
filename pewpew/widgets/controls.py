@@ -15,6 +15,9 @@ class ControlBar(QtWidgets.QWidget):
     def minimumSizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(256, 32)
 
+    def locked(self) -> bool:
+        return False
+
 
 class LaserControlBar(ControlBar):
     alphaChanged = QtCore.Signal(float)

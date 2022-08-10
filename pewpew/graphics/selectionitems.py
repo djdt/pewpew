@@ -55,10 +55,17 @@ class SnapImageSelectionItem(SelectionItem):
         self.item: Optional[SnapImageItem] = None
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        item = self.scene().itemAt(event.scenePos(), QtGui.QTransform())
-        if not isinstance(item, SnapImageItem):
-            return
-        self.item = item
+        try:
+            self.item = next(
+                item
+                for item in self.scene().items(
+                    event.scenePos(), QtCore.Qt.IntersectsItemBoundingRect
+                )
+                if isinstance(item, SnapImageItem)
+                and item.acceptedMouseButtons() & event.button()
+            )
+        except StopIteration:
+            self.item = None
 
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         self.item = None

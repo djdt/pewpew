@@ -312,7 +312,9 @@ class LaserTabWidget(TabViewWidget):
             image, QtCore.QRectF(0, 0, image.width(), image.height())
         )
         item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
+        item.setAcceptedMouseButtons(QtCore.Qt.RightButton)
         item.requestDialog.connect(self.openDialog)
+
         self.graphics.scene().addItem(item)
         self.graphics.zoomReset()
 
@@ -338,6 +340,7 @@ class LaserTabWidget(TabViewWidget):
         # Todo: test if lock active
         if old == new or new is None:
             return
+
         if isinstance(new, LaserImageItem):
             self.controls.setCurrentWidget(self.laser_controls)
 
