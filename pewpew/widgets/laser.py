@@ -47,6 +47,7 @@ class LaserTabView(TabView):
 
         self.config = Config()
         self.options = GraphicsOptions()
+        self.tabs.setAutoHide(True)
 
     # def addLaser(self, laser: Laser) -> "LaserTabWidget":
     #     """Open image of a laser in a new tab."""
@@ -66,7 +67,7 @@ class LaserTabView(TabView):
             widget = self.widgets()[0]
         else:
             widget = LaserTabWidget(self.options, self)
-            self.addTab("1", widget)
+            self.addTab("Tab 1", widget)
 
         if isinstance(data, Laser):
             widget.addLaser(data)
@@ -277,9 +278,11 @@ class LaserTabWidget(TabViewWidget):
         self.controls.installEventFilter(self)
 
         layout = QtWidgets.QVBoxLayout()
+        layout.setSpacing(0)
         layout.addWidget(self.graphics, 1)
         layout.addWidget(self.controls, 0)
         self.setLayout(layout)
+        self.show()  # Call show here so that zoomReset works
 
     def addLaser(self, laser: Laser) -> None:
         item = LaserImageItem(laser, self.graphics.options)
@@ -299,6 +302,7 @@ class LaserTabWidget(TabViewWidget):
 
         item.redraw()
         item.setActive(True)
+
         self.updateForItem(item)
         self.graphics.scene().addItem(item)
         self.graphics.zoomReset()
@@ -413,7 +417,9 @@ class LaserTabWidget(TabViewWidget):
             dlg.sizeSelected.connect(item.setPixelSize)
             print("pixelsize")
         elif not isinstance(item, LaserImageItem):
-            raise ValueError(f"Item {item} is not a LaserImageItem, dialog {dialog} invalid.")
+            raise ValueError(
+                f"Item {item} is not a LaserImageItem, dialog {dialog} invalid."
+            )
         # Laser dialogs
         elif dialog == "Calibration":
             dlg = dialogs.CalibrationDialog(
