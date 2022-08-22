@@ -68,3 +68,42 @@ class LaserControlBar(ControlBar):
         self.elementChanged.connect(lambda e: [item.setElement(e), item.redraw()])
 
         self.blockSignals(False)
+
+
+class ImageControlBar(ControlBar):
+    alphaChanged = QtCore.Signal(float)
+
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+        super().__init__(parent)
+
+        self.toolbar = QtWidgets.QToolBar()
+
+        self.alpha = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.alpha.setRange(0, 100)
+        self.alpha.setValue(100)
+        self.alpha.valueChanged.connect(lambda i: self.alphaChanged.emit(i / 100.0))
+
+        layout = QtWidgets.QHBoxLayout()
+
+        layout.addWidget(self.toolbar, 0)
+        layout.addStretch(1)
+        layout.addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
+        layout.addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
+        self.setLayout(layout)
+
+    def setItem(self, item: LaserImageItem) -> None:
+        self.blockSignals(True)
+
+        # Disconnect
+        try:
+            self.alphaChanged.disconnect()
+        except RuntimeError:
+            pass
+
+        # Set current values
+        self.alpha.setValue(int(item.opacity() * 100.0))
+
+        # Connect
+        self.alphaChanged.connect(item.setOpacity)
+
+        self.blockSignals(False)

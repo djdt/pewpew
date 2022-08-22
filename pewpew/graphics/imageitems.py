@@ -239,6 +239,11 @@ class ImageOverlayItem(ScaledImageItem):
     ):
         super().__init__(image, rect, parent=parent)
 
+        self.setFlags(
+            QtWidgets.QGraphicsItem.ItemIsMovable
+            | QtWidgets.QGraphicsItem.ItemIsFocusable
+            | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges
+        )
         self.action_pixel_size = qAction(
             "zoom-pixels",
             "Pixel Size",

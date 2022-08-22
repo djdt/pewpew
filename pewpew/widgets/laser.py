@@ -22,7 +22,7 @@ from pewpew.graphics.options import GraphicsOptions
 from pewpew.threads import ImportThread
 
 from pewpew.widgets import dialogs, exportdialogs
-from pewpew.widgets.controls import LaserControlBar
+from pewpew.widgets.controls import LaserControlBar, ImageControlBar
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.tools.calculator import CalculatorTool
 from pewpew.widgets.tools.filtering import FilteringTool
@@ -255,8 +255,10 @@ class LaserTabWidget(TabViewWidget):
 
         self.controls = QtWidgets.QStackedWidget()
         self.laser_controls = LaserControlBar()
+        self.image_controls = ImageControlBar()
 
         self.controls.addWidget(self.laser_controls)
+        self.controls.addWidget(self.image_controls)
 
         self.laser_controls.toolbar.addActions(
             [
@@ -269,6 +271,10 @@ class LaserTabWidget(TabViewWidget):
         self.laser_controls.toolbar.addActions([self.action_ruler, self.action_slice])
         self.laser_controls.toolbar.addSeparator()
         self.laser_controls.toolbar.addActions([self.action_zoom_out])
+
+        self.image_controls.toolbar.addActions([self.action_ruler])
+        self.image_controls.toolbar.addSeparator()
+        self.image_controls.toolbar.addActions([self.action_zoom_out])
 
         self.graphics.viewport().installEventFilter(DragDropRedirectFilter(self))
         # Filters for setting active view
@@ -312,9 +318,9 @@ class LaserTabWidget(TabViewWidget):
             image, QtCore.QRectF(0, 0, image.width(), image.height())
         )
         item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
-        item.setAcceptedMouseButtons(QtCore.Qt.RightButton)
         item.requestDialog.connect(self.openDialog)
 
+        self.updateForItem(item)
         self.graphics.scene().addItem(item)
         self.graphics.zoomReset()
 
@@ -343,10 +349,10 @@ class LaserTabWidget(TabViewWidget):
 
         if isinstance(new, LaserImageItem):
             self.controls.setCurrentWidget(self.laser_controls)
-
             self.laser_controls.setItem(new)
         elif isinstance(new, ImageOverlayItem):  # Todo: maybe add a proper class?
-            pass
+            self.controls.setCurrentWidget(self.image_controls)
+            self.image_controls.setItem(new)
         else:
             raise ValueError(f"updateForItem: Unknown item type {type(new)}.")
 
