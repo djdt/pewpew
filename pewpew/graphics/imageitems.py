@@ -250,6 +250,20 @@ class ImageOverlayItem(ScaledImageItem):
             "Set the pixel width and height of the image.",
             lambda: self.requestDialog.emit("Pixel Size", self, False),
         )
+        self.action_lock = qAction("folder-locked", "Lock Image", "Locks the image, preventing interaction.", self.lock)
+        self.action_unlock = qAction("folder-unlocked", "Unlock Image", "unlocks the image, allowing interaction.", self.unlock)
+
+    def lock(self) -> None:
+        """Locking is performed by preventing focus and use of left mouse button."""
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, False)
+        self.setAcceptedMouseButtons(self.acceptedMouseButtons() & ~QtCore.Qt.LeftButton)
+
+    def unlock(self) -> None:
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, True)
+        self.setAcceptedMouseButtons(self.acceptedMouseButtons() | QtCore.Qt.LeftButton)
+
+    def isLocked(self) -> bool:
+        return bool(self.acceptedMouseButtons() & QtCore.Qt.LeftButton)
 
     def setPixelSize(self, size: QtCore.QSizeF) -> None:
         image_size = self.imageSize()
@@ -269,6 +283,8 @@ class ImageOverlayItem(ScaledImageItem):
         menu.addSeparator()
         menu.addActions(self.actions_order)
         menu.addSeparator()
+        if self.isLocked():
+            menu.addAction(self.action_unlock)
         menu.addAction(self.action_close)
 
         menu.exec_(event.screenPos())
