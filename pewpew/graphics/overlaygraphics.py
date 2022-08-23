@@ -105,6 +105,8 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
+        self.setResizeAnchor(QtWidgets.QGraphicsView.AnchorViewCenter)
+
         self.cursors = {
             "drag": QtCore.Qt.ClosedHandCursor,
         }
@@ -153,12 +155,14 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
         super().mouseReleaseEvent(event)
 
     def resizeEvent(self, event: QtGui.QResizeEvent):
+        # current_view = self.mapToScene(self.viewport().rect()).boundingRect()
         super().resizeEvent(event)
-        rect = self.mapFromScene(self.sceneRect()).boundingRect()
-        rect.moveTo(0, 0)
-        oldrect = QtCore.QRect(QtCore.QPoint(0, 0), event.oldSize())
-        if oldrect.contains(rect):
-            self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
+        # rect = self.mapFromScene(self.sceneRect()).boundingRect()
+        # rect.moveTo(0, 0)
+        # oldrect = QtCore.QRect(QtCore.QPoint(0, 0), event.oldSize())
+        # if oldrect.contains(rect):
+        #     self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
+        # self.ensureVisible(current_view, 0, 0)
 
         self.viewSizeChanged.emit(self.viewport().rect())
 
@@ -225,5 +229,5 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
 
     def zoomReset(self) -> None:
         rect = self.itemsBoundingRect()
-        self.scene().setSceneRect(rect)
         self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+        self.viewScaleChanged.emit()

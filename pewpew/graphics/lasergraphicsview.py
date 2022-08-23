@@ -32,7 +32,7 @@ class LaserGraphicsView(OverlayGraphicsView):
         self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None
     ):
         super().__init__(
-            QtWidgets.QGraphicsScene(QtCore.QRectF(0, 0, 1000, 1000), parent), parent
+            QtWidgets.QGraphicsScene(QtCore.QRectF(-1e5, -1e5, 2e5, 2e5), parent), parent
         )
 
         self.options = options
@@ -50,6 +50,14 @@ class LaserGraphicsView(OverlayGraphicsView):
         self.options.visiblityOptionsChanged.connect(self.updateOverlayVisibility)
         self.viewScaleChanged.connect(self.scalebar.requestPaint)
 
+        # self.shown = False
+
+    # def showEvent(self, event: QtGui.QShowEvent) -> None:
+        # super().showEvent(event)
+        # if not self.shown:
+        #     print('shown')
+        #     self.zoomReset()
+        #     self.shown = True
 
     def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
         self.clearFocus()
@@ -131,6 +139,4 @@ class LaserGraphicsView(OverlayGraphicsView):
         self.fitInView(rect.marginsAdded(QtCore.QMarginsF(50, 50, 50, 50)), QtCore.Qt.KeepAspectRatio)
 
         # Get the actual bounding rect
-        rect = self.itemsBoundingRect()
-        self.scene().setSceneRect(rect)
-        self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+        super().zoomReset()
