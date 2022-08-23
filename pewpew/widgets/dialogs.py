@@ -1229,7 +1229,6 @@ class StatsDialog(QtWidgets.QDialog):
             nd = self.data[name]
             unit = self.units.get(str(name), "")
             nd = nd[~np.isnan(nd)]
-            print(nd)
 
             data += (
                 f"<tr><td>{name}</td><td>{unit}</td><td>{np.min(nd)}</td>"

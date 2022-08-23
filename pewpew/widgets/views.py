@@ -228,7 +228,6 @@ class TabViewBar(QtWidgets.QTabBar):
 
     def minimumTabSizeHint(self, index: int) -> QtCore.QSize:
         size = super().minimumTabSizeHint(index)
-        print(size)
         return QtCore.QSize(160, size.height())
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:

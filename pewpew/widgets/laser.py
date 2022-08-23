@@ -421,7 +421,6 @@ class LaserTabWidget(TabViewWidget):
         if dialog == "Pixel Size":
             dlg = dialogs.PixelSizeDialog(item.pixelSize(), parent=self)
             dlg.sizeSelected.connect(item.setPixelSize)
-            print("pixelsize")
         elif not isinstance(item, LaserImageItem):
             raise ValueError(
                 f"Item {item} is not a LaserImageItem, dialog {dialog} invalid."
