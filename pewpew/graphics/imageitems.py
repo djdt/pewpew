@@ -256,14 +256,14 @@ class ImageOverlayItem(ScaledImageItem):
     def lock(self) -> None:
         """Locking is performed by preventing focus and use of left mouse button."""
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, False)
-        self.setAcceptedMouseButtons(self.acceptedMouseButtons() & ~QtCore.Qt.LeftButton)
+        self.setAcceptedMouseButtons(self.acceptedMouseButtons() & (~QtCore.Qt.LeftButton))
 
     def unlock(self) -> None:
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, True)
         self.setAcceptedMouseButtons(self.acceptedMouseButtons() | QtCore.Qt.LeftButton)
 
     def isLocked(self) -> bool:
-        return bool(self.acceptedMouseButtons() & QtCore.Qt.LeftButton)
+        return not self.acceptedMouseButtons() & QtCore.Qt.LeftButton
 
     def setPixelSize(self, size: QtCore.QSizeF) -> None:
         image_size = self.imageSize()
@@ -285,6 +285,9 @@ class ImageOverlayItem(ScaledImageItem):
         menu.addSeparator()
         if self.isLocked():
             menu.addAction(self.action_unlock)
+        else:
+            menu.addAction(self.action_lock)
+        menu.addSeparator()
         menu.addAction(self.action_close)
 
         menu.exec_(event.screenPos())
