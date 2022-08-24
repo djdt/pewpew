@@ -33,7 +33,7 @@ setup(
     },
     packages=find_packages(include=["pewpew", "pewpew.*"]),
     install_requires=[
-        "numpy!=1.19.4",
+        "numpy>=1.22",
         "pewlib>=0.8.0",
         "PySide2",
     ],
