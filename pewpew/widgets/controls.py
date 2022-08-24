@@ -11,6 +11,12 @@ class ControlBar(QtWidgets.QWidget):
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding
         )
+        self.toolbar = QtWidgets.QToolBar()
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(self.toolbar, 0)
+        layout.addStretch(1)
+        self.setLayout(layout)
 
     def minimumSizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(256, 32)
@@ -26,8 +32,6 @@ class LaserControlBar(ControlBar):
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
 
-        self.toolbar = QtWidgets.QToolBar()
-
         self.alpha = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.alpha.setRange(0, 100)
         self.alpha.setValue(100)
@@ -37,14 +41,9 @@ class LaserControlBar(ControlBar):
         self.elements.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.elements.currentTextChanged.connect(self.elementChanged)
 
-        layout = QtWidgets.QHBoxLayout()
-
-        layout.addWidget(self.toolbar, 0)
-        layout.addStretch(1)
-        layout.addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
-        layout.addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
-        layout.addWidget(self.elements, 0, QtCore.Qt.AlignRight)
-        self.setLayout(layout)
+        self.layout().addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
+        self.layout().addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
+        self.layout().addWidget(self.elements, 0, QtCore.Qt.AlignRight)
 
     def setItem(self, item: LaserImageItem) -> None:
         self.blockSignals(True)
@@ -76,20 +75,13 @@ class ImageControlBar(ControlBar):
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
 
-        self.toolbar = QtWidgets.QToolBar()
-
         self.alpha = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.alpha.setRange(0, 100)
         self.alpha.setValue(100)
         self.alpha.valueChanged.connect(lambda i: self.alphaChanged.emit(i / 100.0))
 
-        layout = QtWidgets.QHBoxLayout()
-
-        layout.addWidget(self.toolbar, 0)
-        layout.addStretch(1)
-        layout.addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
-        layout.addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
-        self.setLayout(layout)
+        self.layout().addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
+        self.layout().addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
 
     def setItem(self, item: LaserImageItem) -> None:
         self.blockSignals(True)

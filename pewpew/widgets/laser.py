@@ -22,7 +22,7 @@ from pewpew.graphics.options import GraphicsOptions
 from pewpew.threads import ImportThread
 
 from pewpew.widgets import dialogs, exportdialogs
-from pewpew.widgets.controls import LaserControlBar, ImageControlBar
+from pewpew.widgets.controls import ControlBar, LaserControlBar, ImageControlBar
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.tools.calculator import CalculatorTool
 from pewpew.widgets.tools.filtering import FilteringTool
@@ -255,11 +255,17 @@ class LaserTabWidget(TabViewWidget):
         )
 
         self.controls = QtWidgets.QStackedWidget()
+        self.no_controls = ControlBar()
         self.laser_controls = LaserControlBar()
         self.image_controls = ImageControlBar()
 
+        self.controls.addWidget(self.no_controls)
         self.controls.addWidget(self.laser_controls)
         self.controls.addWidget(self.image_controls)
+
+        for index in range(self.controls.count()):
+            self.controls.widget(index).toolbar.addActions([self.action_zoom_out])
+            self.controls.widget(index).toolbar.addSeparator()
 
         self.laser_controls.toolbar.addActions(
             [
@@ -268,20 +274,22 @@ class LaserTabWidget(TabViewWidget):
                 self.action_select_dialog,
             ]
         )
-        self.laser_controls.toolbar.addSeparator()
         self.laser_controls.toolbar.addActions([self.action_ruler, self.action_slice])
-        self.laser_controls.toolbar.addSeparator()
-        self.laser_controls.toolbar.addActions([self.action_zoom_out])
+        # self.laser_controls.toolbar.addSeparator()
+        # self.laser_controls.toolbar.addActions([self.action_zoom_out])
 
         self.image_controls.toolbar.addActions([self.action_ruler])
-        self.image_controls.toolbar.addSeparator()
-        self.image_controls.toolbar.addActions([self.action_zoom_out])
+        # self.image_controls.toolbar.addSeparator()
+        # self.image_controls.toolbar.addActions([self.action_zoom_out])
 
         self.graphics.viewport().installEventFilter(DragDropRedirectFilter(self))
         # Filters for setting active view
         self.graphics.viewport().installEventFilter(self)
         # self.laser_controls.elements.installEventFilter(self)
         self.controls.installEventFilter(self)
+
+        self.view_toolbar = QtWidgets.QToolBar()
+        self.view_toolbar.addActions([self.action_zoom_out])
 
         layout = QtWidgets.QVBoxLayout()
         layout.setSpacing(0)
@@ -348,7 +356,10 @@ class LaserTabWidget(TabViewWidget):
         reason: QtCore.Qt.FocusReason = QtCore.Qt.NoFocusReason,
     ) -> None:
         # Todo: test if lock active
-        if old == new or new is None:
+        if old == new:
+            return
+        if new is None:
+            self.controls.setCurrentWidget(self.no_controls)
             return
 
         if isinstance(new, LaserImageItem):
