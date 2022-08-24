@@ -161,7 +161,7 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        self.setCursor(QtCore.Qt.ArrowCursor)
+        self.unsetCursor()
         super().mouseReleaseEvent(event)
 
 
