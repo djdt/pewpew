@@ -146,8 +146,9 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
             self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + dx)
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() + dy)
             self._last_pos = event.pos()
-            return
-        super().mouseMoveEvent(event)
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         if "drag" in self.interaction_flags:
