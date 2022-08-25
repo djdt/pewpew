@@ -7,6 +7,7 @@ from pewpew.graphics.selectionitems import (
     RectImageSelectionItem,
     SnapImageSelectionItem,
 )
+from pewpew.graphics.transformitems import TransformHandles
 from pewpew.graphics.widgetitems import (
     ImageSliceWidgetItem,
     RulerWidgetItem,
@@ -125,6 +126,24 @@ class LaserGraphicsView(OverlayGraphicsView):
             if isinstance(item, WidgetItem):
                 self.scene().removeItem(item)
         self.setInteractionFlag("widget", False)
+
+    def startTransformScale(self, item: Optional[SnapImageItem]) -> None:
+        item = self.scene().focusItem()
+        # print(item)
+        if not isinstance(item, SnapImageItem):
+            return
+
+        widget = TransformHandles(item=item)
+        print(widget)
+        self.scene().addItem(widget)
+        widget.grabMouse()
+        self.setInteractionFlag("transform")
+
+    def endTransform(self) -> None:
+        for item in self.items():
+            if isinstance(item, TransformHandles):
+                self.scene().removeItem(item)
+        self.setInteractionFlag("transform", False)
 
     def updateOverlayVisibility(self) -> None:
         self.scalebar.setVisible(self.options.scalebar)

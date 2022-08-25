@@ -1,12 +1,7 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 import numpy as np
 
-import logging
-
-from typing import Tuple
-
-
-logger = logging.getLogger(__name__)
+from typing import List, Optional, Tuple
 
 
 def rectf_to_polygonf(rect: QtCore.QRectF) -> QtGui.QPolygonF:
@@ -26,16 +21,21 @@ class TransformHandles(QtWidgets.QGraphicsObject):
     }
 
     def __init__(
-        self, item: QtWidgets.QGraphicsItem, parent: QtWidgets.QGraphicsItem = None
+        self,
+        item: QtWidgets.QGraphicsItem,
+        anchors: List[str] = ["translate", "scale", "rotate"],
+        parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         super().__init__(parent)
         self.item = item
         # self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.MiddleButton)
-        self.setZValue(self.item.zValue() + 1.0)
+        self.setZValue(self.item.zValue() + 10.0)
 
-        self.transform_mode: str = None
-        self.transform_anchor: str = None
+        self.use_anchors = anchors
+
+        self.transform_mode: str = "none"
+        self.transform_anchor: str = "none"
 
         self.handle_size = 12
 
@@ -92,7 +92,7 @@ class TransformHandles(QtWidgets.QGraphicsObject):
         )
         return self.item.transform().map(poly)
 
-    def closest_point(self, pos: QtCore.QPointF) -> Tuple[str, str, QtCore.QPointF]:
+    def closest_point(self, pos: QtCore.QPointF) -> Tuple[str, str, float]:
         result = ("center", "center", QtCore.QLineF(pos, self.center()).length())
 
         for corner, name in zip(self.corners(), self.corner_order):
@@ -108,13 +108,10 @@ class TransformHandles(QtWidgets.QGraphicsObject):
         return result
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        self.transform_mode = None
-        self.transform_anchor = None
-        print(event.button())
-        if event.button() & QtCore.Qt.MiddleButton:
-            self.transform_mode = "translate"
-            event.accept()
-        elif event.button() & QtCore.Qt.LeftButton:
+        self.transform_mode = "none"
+        self.transform_anchor = "none"
+
+        if event.button() & QtCore.Qt.LeftButton:
             closest = self.closest_point(event.scenePos())
 
             view = next(iter(self.scene().views()))
@@ -129,13 +126,15 @@ class TransformHandles(QtWidgets.QGraphicsObject):
             else:
                 event.ignore()
                 return
+
             if closest[2] < max_dist:
-                if closest[0] == "center":
+                if closest[0] == "center" and "translate" in self.use_anchors:  # Dont use translate
                     self.transform_mode = "translate"
-                elif closest[0] == "corner":
+                    self.transform_anchor = "center"
+                elif closest[0] == "corner" and "scale" in self.use_anchors:
                     self.transform_mode = "scale"
                     self.transform_anchor = closest[1]
-                elif closest[0] == "edge":
+                elif closest[0] == "edge" and "rotate" in self.use_anchors:
                     self.transform_mode = "rotate"
                     self.transform_anchor = closest[1]
                 event.accept()
@@ -147,7 +146,7 @@ class TransformHandles(QtWidgets.QGraphicsObject):
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if not event.buttons() & (QtCore.Qt.LeftButton | QtCore.Qt.MiddleButton):
             return
-        if self.transform_mode is None:
+        if self.transform_mode == "none":
             return
 
         dx = event.scenePos().x() - event.lastScenePos().x()
@@ -218,13 +217,13 @@ class TransformHandles(QtWidgets.QGraphicsObject):
         if event.button() not in [QtCore.Qt.LeftButton, QtCore.Qt.MiddleButton]:
             return
         self.setCursor(QtCore.Qt.ArrowCursor)
-        self.transform_mode = None
+        self.transform_mode = "none"
 
     def paint(
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: Optional[QtWidgets.QWidget] = None,
     ):
         painter.save()
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -237,23 +236,29 @@ class TransformHandles(QtWidgets.QGraphicsObject):
         pen.setCosmetic(True)
 
         painter.setPen(pen)
-        painter.drawPoint(center)
-        painter.drawPoints(corners)
+        if "translate" in self.use_anchors:
+            painter.drawPoint(center)
+        if "scale" in self.use_anchors:
+            painter.drawPoints(corners)
 
-        pen.setCapStyle(QtCore.Qt.RoundCap)
-        painter.setPen(pen)
-        painter.drawPoints(edges)
+        if "rotate" in self.use_anchors:
+            pen.setCapStyle(QtCore.Qt.RoundCap)
+            painter.setPen(pen)
+            painter.drawPoints(edges)
 
         pen.setCapStyle(QtCore.Qt.SquareCap)
         pen.setColor(QtGui.QColor(255, 255, 255))
         pen.setWidth(self.handle_size)
         painter.setPen(pen)
-        painter.drawPoint(center)
-        painter.drawPoints(corners)
+        if "transform" in self.use_anchors:
+            painter.drawPoint(center)
+        if "scale" in self.use_anchors:
+            painter.drawPoints(corners)
 
-        pen.setCapStyle(QtCore.Qt.RoundCap)
-        painter.setPen(pen)
-        painter.drawPoints(edges)
+        if "rotate" in self.use_anchors:
+            pen.setCapStyle(QtCore.Qt.RoundCap)
+            painter.setPen(pen)
+            painter.drawPoints(edges)
 
         pen.setWidth(1)
         painter.setPen(pen)

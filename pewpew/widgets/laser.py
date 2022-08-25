@@ -15,9 +15,10 @@ from pewlib.config import Config
 from pewpew.actions import qAction
 from pewpew.events import DragDropRedirectFilter
 
-from pewpew.graphics.imageitems import ImageOverlayItem, LaserImageItem
+from pewpew.graphics.imageitems import ImageOverlayItem, LaserImageItem, SnapImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
+from pewpew.graphics.transformitems import TransformHandles
 
 from pewpew.threads import ImportThread
 
@@ -246,12 +247,12 @@ class LaserTabWidget(TabViewWidget):
             "Select and display a 1-dimensional slice of the image.",
             self.graphics.startSliceWidget,
         )
-        # self.action_resize = qAction(
-        #     "transform-scale",
-        #     "Resize",
-        #     "Resize the image.",
-        #     self.graphics.startResizeWidget,
-        # )
+        self.action_tranform_resize = qAction(
+            "transform-scale",
+            "Scale",
+            "Scale the image, this will not affect the pixel size!",
+            self.graphics.startTransformScale,
+        )
 
         # === Toolbart view actions ===
 
@@ -285,6 +286,7 @@ class LaserTabWidget(TabViewWidget):
         self.laser_controls.toolbar.addSeparator()
         self.laser_controls.toolbar.addActions([self.action_ruler, self.action_slice])
 
+        self.image_controls.toolbar.addActions([self.action_tranform_resize])
         self.image_controls.toolbar.addActions([self.action_ruler])
 
         self.graphics.viewport().installEventFilter(DragDropRedirectFilter(self))
@@ -569,6 +571,7 @@ class LaserTabWidget(TabViewWidget):
         if event.matches(QtGui.QKeySequence.Cancel):
             self.graphics.endSelection()
             self.graphics.endWidget()
+            self.graphics.endTransform()
         elif event.matches(QtGui.QKeySequence.Paste):
             mime = QtWidgets.QApplication.clipboard().mimeData()
             if mime.hasFormat("arplication/x-pew2config"):
