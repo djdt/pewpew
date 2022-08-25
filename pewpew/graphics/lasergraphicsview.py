@@ -1,7 +1,7 @@
 import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 
-from pewpew.graphics.imageitems import SnapImageItem
+from pewpew.graphics.imageitems import LaserImageItem, SnapImageItem
 from pewpew.graphics.selectionitems import (
     LassoImageSelectionItem,
     RectImageSelectionItem,
@@ -69,7 +69,7 @@ class LaserGraphicsView(OverlayGraphicsView):
             if isinstance(item, SnapImageSelectionItem):
                 self.scene().removeItem(item)
 
-        selection_item = LassoImageSelectionItem(parent=None)
+        selection_item = LassoImageSelectionItem(allowed_item_types=LaserImageItem, parent=None)
         self.scene().addItem(selection_item)
         selection_item.grabMouse()
         self.setInteractionFlag("selection")
@@ -80,7 +80,7 @@ class LaserGraphicsView(OverlayGraphicsView):
             if isinstance(item, SnapImageSelectionItem):
                 self.scene().removeItem(item)
 
-        selection_item = RectImageSelectionItem(parent=None)
+        selection_item = RectImageSelectionItem(allowed_item_types=LaserImageItem, parent=None)
         self.scene().addItem(selection_item)
         selection_item.grabMouse()
         self.setInteractionFlag("selection")

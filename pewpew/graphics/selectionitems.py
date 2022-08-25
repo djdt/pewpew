@@ -7,7 +7,7 @@ from pewpew.graphics.util import polygonf_contains_points
 
 from pewpew.lib.numpyqt import polygonf_to_array
 
-from typing import Dict, Generator, Optional
+from typing import Dict, Generator, Optional, Tuple
 
 
 class SelectionItem(QtWidgets.QGraphicsObject):
@@ -45,6 +45,7 @@ class SnapImageSelectionItem(SelectionItem):
     def __init__(
         self,
         modes: Optional[Dict[QtCore.Qt.KeyboardModifier, str]] = None,
+        allowed_item_types: Tuple[type] = (SnapImageItem),
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         _modes = {QtCore.Qt.ShiftModifier: "add", QtCore.Qt.ControlModifier: "subtract"}
@@ -53,6 +54,7 @@ class SnapImageSelectionItem(SelectionItem):
         super().__init__(modes=_modes, parent=parent)
 
         self.item: Optional[SnapImageItem] = None
+        self.allowed_item_types = allowed_item_types
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         try:
@@ -61,7 +63,7 @@ class SnapImageSelectionItem(SelectionItem):
                 for item in self.scene().items(
                     event.scenePos(), QtCore.Qt.IntersectsItemBoundingRect
                 )
-                if isinstance(item, SnapImageItem)
+                if isinstance(item, self.allowed_item_types)
                 and item.acceptedMouseButtons() & event.button()
             )
         except StopIteration:
@@ -78,9 +80,10 @@ class LassoImageSelectionItem(SnapImageSelectionItem):
         self,
         modes: Optional[Dict[QtCore.Qt.KeyboardModifier, str]] = None,
         pen: Optional[QtGui.QPen] = None,
+        allowed_item_types: Tuple[type] = (SnapImageItem),
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
-        super().__init__(modes=modes, parent=parent)
+        super().__init__(modes=modes, allowed_item_types=allowed_item_types, parent=parent)
 
         if pen is None:
             pen = QtGui.QPen(QtCore.Qt.white, 2.0)
@@ -180,9 +183,10 @@ class RectImageSelectionItem(SnapImageSelectionItem):
         self,
         modes: Optional[Dict[QtCore.Qt.KeyboardModifier, str]] = None,
         pen: Optional[QtGui.QPen] = None,
+        allowed_item_types: Tuple[type] = (SnapImageItem),
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
-        super().__init__(modes=modes, parent=parent)
+        super().__init__(modes=modes, allowed_item_types=allowed_item_types, parent=parent)
 
         if pen is None:
             pen = QtGui.QPen(QtCore.Qt.white, 2.0)
