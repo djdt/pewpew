@@ -212,7 +212,7 @@ class LaserTabWidget(TabViewWidget):
             self.dialogExportAll,
         )
 
-        # === Toolbar actions ===
+        # === Toolbar selections actions ===
         self.action_select_rect = qAction(
             "draw-rectangle",
             "Rectangle Selector",
@@ -233,7 +233,7 @@ class LaserTabWidget(TabViewWidget):
             "Start the selection dialog.",
             lambda: self.openDialog("Selection", None),
         )
-
+        # === Toolbar widget actions ===
         self.action_ruler = qAction(
             "tool-measure",
             "Measure",
@@ -246,6 +246,14 @@ class LaserTabWidget(TabViewWidget):
             "Select and display a 1-dimensional slice of the image.",
             self.graphics.startSliceWidget,
         )
+        # self.action_resize = qAction(
+        #     "transform-scale",
+        #     "Resize",
+        #     "Resize the image.",
+        #     self.graphics.startResizeWidget,
+        # )
+
+        # === Toolbart view actions ===
 
         self.action_zoom_out = qAction(
             "zoom-fit-best",
@@ -274,13 +282,10 @@ class LaserTabWidget(TabViewWidget):
                 self.action_select_dialog,
             ]
         )
+        self.laser_controls.toolbar.addSeparator()
         self.laser_controls.toolbar.addActions([self.action_ruler, self.action_slice])
-        # self.laser_controls.toolbar.addSeparator()
-        # self.laser_controls.toolbar.addActions([self.action_zoom_out])
 
         self.image_controls.toolbar.addActions([self.action_ruler])
-        # self.image_controls.toolbar.addSeparator()
-        # self.image_controls.toolbar.addActions([self.action_zoom_out])
 
         self.graphics.viewport().installEventFilter(DragDropRedirectFilter(self))
         # Filters for setting active view
