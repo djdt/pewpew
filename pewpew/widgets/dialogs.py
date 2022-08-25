@@ -967,6 +967,7 @@ class PixelSizeDialog(ApplyDialog):
 
     def __init__(self, size: QtCore.QSizeF, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
+        self.setWindowTitle("Set Pixel Size")
 
         self.xsize = QtWidgets.QLineEdit(str(size.width()))
         self.xsize.setValidator(DecimalValidator(0.001, 999.999, 3))
