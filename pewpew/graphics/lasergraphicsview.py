@@ -7,7 +7,7 @@ from pewpew.graphics.selectionitems import (
     RectImageSelectionItem,
     SnapImageSelectionItem,
 )
-from pewpew.graphics.transformitems import TransformHandles
+from pewpew.graphics.transformitems import TransformHandlesItem
 from pewpew.graphics.widgetitems import (
     ImageSliceWidgetItem,
     RulerWidgetItem,
@@ -133,7 +133,7 @@ class LaserGraphicsView(OverlayGraphicsView):
         if not isinstance(item, SnapImageItem):
             return
 
-        widget = TransformHandles(item=item)
+        widget = TransformHandlesItem(item=item)
         print(widget)
         self.scene().addItem(widget)
         widget.grabMouse()
@@ -141,7 +141,7 @@ class LaserGraphicsView(OverlayGraphicsView):
 
     def endTransform(self) -> None:
         for item in self.items():
-            if isinstance(item, TransformHandles):
+            if isinstance(item, TransformHandlesItem):
                 self.scene().removeItem(item)
         self.setInteractionFlag("transform", False)
 

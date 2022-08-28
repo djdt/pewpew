@@ -5,17 +5,21 @@ from typing import List, Optional, Tuple
 
 
 def rectf_to_polygonf(rect: QtCore.QRectF) -> QtGui.QPolygonF:
-    return QtGui.QPolygonF(
-        [rect.topLeft(), rect.topRight(), rect.bottomRight(), rect.bottomLeft()]
-    )
+    # QtGui.QPolygonF(rect) returns 5 points, not per qt documentation
+    # topLeft, topRight, bottomRight, bottomLeft
+    poly =  QtGui.QPolygonF(rect)
+    poly.removeLast()
+    return poly
 
 
-class TransformHandles(QtWidgets.QGraphicsObject):
+class TransformHandlesItem(QtWidgets.QGraphicsObject):
+    """Creates the selected transform handles over an items bounding box.
+    These will affect the item.transform()"""
+
     corner_order = ["topLeft", "topRight", "bottomRight", "bottomLeft"]
     edge_order = ["top", "right", "bottom", "left"]
 
     transform_cursors = {
-        "translate": QtCore.Qt.ClosedHandCursor,
         "scale": QtCore.Qt.SizeAllCursor,
         "rotate": QtCore.Qt.PointingHandCursor,
     }
@@ -26,11 +30,7 @@ class TransformHandles(QtWidgets.QGraphicsObject):
         anchors: List[str] = ["translate", "scale", "rotate"],
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
-        super().__init__(parent)
-        self.item = item
         # self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
-        self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.MiddleButton)
-        self.setZValue(self.item.zValue() + 10.0)
 
         self.use_anchors = anchors
 
@@ -38,6 +38,9 @@ class TransformHandles(QtWidgets.QGraphicsObject):
         self.transform_anchor: str = "none"
 
         self.handle_size = 12
+        super().__init__(item)
+        self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.MiddleButton)
+        self.setZValue(item.zValue() + 10.0)
 
     def shape(self) -> QtGui.QPainterPath:
         corners = self.corners()
@@ -60,27 +63,26 @@ class TransformHandles(QtWidgets.QGraphicsObject):
         return path
 
     def center(self) -> QtCore.QPointF:
-        return self.item.transform().mapRect(self.item.boundingRect()).center()
+        return self.parentItem().boundingRect().center()
 
     def boundingRect(self) -> QtCore.QRectF:
-        rect = self.item.boundingRect()
-        view = next(iter(self.scene().views()))
-        if view is not None:
-            adjust = view.mapToScene(
-                QtCore.QRect(0, 0, self.handle_size, self.handle_size)
-            ).boundingRect()
-            rect = rect.adjusted(
-                -adjust.width(), -adjust.height(), adjust.width(), adjust.height()
-            )
-        return self.item.transform().mapRect(rect).normalized()
+        return self.parentItem().boundingRect()
+        # rect = self.item.boundingRect()
+        # view = next(iter(self.scene().views()))
+        # if view is not None:
+        #     adjust = view.mapToScene(
+        #         QtCore.QRect(0, 0, self.handle_size, self.handle_size)
+        #     ).boundingRect()
+        #     rect = rect.adjusted(
+        #         -adjust.width(), -adjust.height(), adjust.width(), adjust.height()
+        #     )
+        # return self.item.transform().mapRect(rect).normalized()
 
     def corners(self) -> QtGui.QPolygonF:
-        # QPolygonF(rect) return 5 points
-        poly = rectf_to_polygonf(self.item.boundingRect())
-        return self.item.transform().map(poly)
+        return rectf_to_polygonf(self.parentItem().boundingRect())
 
     def edges(self) -> QtGui.QPolygonF:
-        rect = self.item.boundingRect()
+        rect = self.parentItem().boundingRect()
         center = rect.center()
         poly = QtGui.QPolygonF(
             [
@@ -90,7 +92,7 @@ class TransformHandles(QtWidgets.QGraphicsObject):
                 QtCore.QPointF(rect.left(), center.y()),
             ]
         )
-        return self.item.transform().map(poly)
+        return poly
 
     def closest_point(self, pos: QtCore.QPointF) -> Tuple[str, str, float]:
         result = ("center", "center", QtCore.QLineF(pos, self.center()).length())
@@ -112,7 +114,7 @@ class TransformHandles(QtWidgets.QGraphicsObject):
         self.transform_anchor = "none"
 
         if event.button() & QtCore.Qt.LeftButton:
-            closest = self.closest_point(event.scenePos())
+            closest = self.closest_point(event.pos())
 
             view = next(iter(self.scene().views()))
             if view is not None:
@@ -154,8 +156,8 @@ class TransformHandles(QtWidgets.QGraphicsObject):
 
         self.setCursor(self.transform_cursors[self.transform_mode])
 
-        poly = self.corners()
-        transform = self.item.transform()
+        poly = self.parentItem().mapToScene(self.corners())
+        # transform = self.item.transform()
         if self.transform_mode == "translate":
             poly.translate(dx, dy)
         elif self.transform_mode == "scale":
@@ -183,7 +185,7 @@ class TransformHandles(QtWidgets.QGraphicsObject):
             center = self.center()
             edge = self.edges()[self.edge_order.index(self.transform_anchor)]
             angle = QtCore.QLineF(center, edge).angleTo(
-                QtCore.QLineF(center, event.scenePos())
+                QtCore.QLineF(center, event.pos())
             )
             if QtCore.Qt.ShiftModifier == event.modifiers():
                 angle = np.round(angle / 45.0) * 45.0
@@ -193,7 +195,7 @@ class TransformHandles(QtWidgets.QGraphicsObject):
                 line.setAngle(line.angle() + angle)
             poly = QtGui.QPolygonF([line.p2() for line in lines])
 
-        rect = self.item.boundingRect()
+        rect = self.parentItem().boundingRect()
         transform = QtGui.QTransform.quadToQuad(rectf_to_polygonf(rect), poly)
         if transform is None:
             logger.warning("Invalid quadToQuad transformation.")
@@ -209,9 +211,9 @@ class TransformHandles(QtWidgets.QGraphicsObject):
                 transform.dx(),
                 transform.dy(),
             )
-        self.item.setTransform(transform)
+        self.parentItem().setTransform(transform)
 
-        self.prepareGeometryChange()
+        # self.prepareGeometryChange()
 
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if event.button() not in [QtCore.Qt.LeftButton, QtCore.Qt.MiddleButton]:

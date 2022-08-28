@@ -15,10 +15,9 @@ from pewlib.config import Config
 from pewpew.actions import qAction
 from pewpew.events import DragDropRedirectFilter
 
-from pewpew.graphics.imageitems import ImageOverlayItem, LaserImageItem, SnapImageItem
+from pewpew.graphics.imageitems import ImageOverlayItem, LaserImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
-from pewpew.graphics.transformitems import TransformHandles
 
 from pewpew.threads import ImportThread
 
