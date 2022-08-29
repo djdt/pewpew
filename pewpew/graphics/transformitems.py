@@ -7,7 +7,7 @@ from typing import List, Optional, Tuple
 def rectf_to_polygonf(rect: QtCore.QRectF) -> QtGui.QPolygonF:
     # QtGui.QPolygonF(rect) returns 5 points, not per qt documentation
     # topLeft, topRight, bottomRight, bottomLeft
-    poly =  QtGui.QPolygonF(rect)
+    poly = QtGui.QPolygonF(rect)
     poly.removeLast()
     return poly
 
@@ -19,28 +19,31 @@ class TransformHandlesItem(QtWidgets.QGraphicsObject):
     corner_order = ["topLeft", "topRight", "bottomRight", "bottomLeft"]
     edge_order = ["top", "right", "bottom", "left"]
 
-    transform_cursors = {
-        "scale": QtCore.Qt.SizeAllCursor,
-        "rotate": QtCore.Qt.PointingHandCursor,
+    cursors = {
+        "left": QtCore.Qt.SizeHorCursor,
+        "right": QtCore.Qt.SizeHorCursor,
+        "top": QtCore.Qt.SizeVerCursor,
+        "bottom": QtCore.Qt.SizeVerCursor,
+        "topLeft": QtCore.Qt.SizeFDiagCursor,
+        "topRight": QtCore.Qt.SizeBDiagCursor,
+        "bottomLeft": QtCore.Qt.SizeBDiagCursor,
+        "bottomRight": QtCore.Qt.SizeFDiagCursor,
     }
 
     def __init__(
         self,
         item: QtWidgets.QGraphicsItem,
-        anchors: List[str] = ["translate", "scale", "rotate"],
+        handle_size: int = 12,
         parent: Optional[QtWidgets.QGraphicsItem] = None,
     ):
         # self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
 
-        self.use_anchors = anchors
-
-        self.transform_mode: str = "none"
-        self.transform_anchor: str = "none"
-
-        self.handle_size = 12
+        self.transform_handle: Optional[Tuple[str, str]] = None
+        self.handle_size = handle_size
         super().__init__(item)
+
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.MiddleButton)
-        self.setZValue(item.zValue() + 10.0)
+        self.setZValue(item.zValue() + 1.0)
 
     def shape(self) -> QtGui.QPainterPath:
         corners = self.corners()
@@ -66,17 +69,16 @@ class TransformHandlesItem(QtWidgets.QGraphicsObject):
         return self.parentItem().boundingRect().center()
 
     def boundingRect(self) -> QtCore.QRectF:
-        return self.parentItem().boundingRect()
+        rect = self.parentItem().boundingRect()
+        adjust = self.maxHandleDist()
         # rect = self.item.boundingRect()
         # view = next(iter(self.scene().views()))
         # if view is not None:
         #     adjust = view.mapToScene(
         #         QtCore.QRect(0, 0, self.handle_size, self.handle_size)
         #     ).boundingRect()
-        #     rect = rect.adjusted(
-        #         -adjust.width(), -adjust.height(), adjust.width(), adjust.height()
-        #     )
-        # return self.item.transform().mapRect(rect).normalized()
+        rect = rect.adjusted(-adjust, -adjust, adjust, adjust)
+        return rect
 
     def corners(self) -> QtGui.QPolygonF:
         return rectf_to_polygonf(self.parentItem().boundingRect())
@@ -94,132 +96,153 @@ class TransformHandlesItem(QtWidgets.QGraphicsObject):
         )
         return poly
 
-    def closest_point(self, pos: QtCore.QPointF) -> Tuple[str, str, float]:
-        result = ("center", "center", QtCore.QLineF(pos, self.center()).length())
+    def maxHandleDist(self) -> float:
+        view = next(iter(self.scene().views()))
+        if view is None:
+            return self.handle_size
+        return (
+            self.parentItem()
+            .deviceTransform(view.transform())
+            .inverted()[0]
+            .mapRect(QtCore.QRect(0, 0, self.handle_size, self.handle_size))
+            .width()
+        )
+
+    def handleAt(self, pos: QtCore.QPointF) -> Optional[Tuple[str, str]]:
+        max_dist = self.maxHandleDist()
+
+        result = None
 
         for corner, name in zip(self.corners(), self.corner_order):
             dist = QtCore.QLineF(pos, corner).length()
-            if dist < result[2]:
-                result = ("corner", name, dist)
+            if dist < max_dist:
+                result = ("corner", name)
+                max_dist = dist
 
         for edge, name in zip(self.edges(), self.edge_order):
             dist = QtCore.QLineF(pos, edge).length()
-            if dist < result[2]:
-                result = ("edge", name, dist)
+            if dist < max_dist:
+                result = ("edge", name)
+                max_dist = dist
 
         return result
 
-    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        self.transform_mode = "none"
-        self.transform_anchor = "none"
-
-        if event.button() & QtCore.Qt.LeftButton:
-            closest = self.closest_point(event.pos())
-
-            view = next(iter(self.scene().views()))
-            if view is not None:
-                max_dist = (
-                    view.mapToScene(
-                        QtCore.QRect(0, 0, self.handle_size, self.handle_size)
-                    )
-                    .boundingRect()
-                    .width()
-                )
-            else:
-                event.ignore()
-                return
-
-            if closest[2] < max_dist:
-                if closest[0] == "center" and "translate" in self.use_anchors:  # Dont use translate
-                    self.transform_mode = "translate"
-                    self.transform_anchor = "center"
-                elif closest[0] == "corner" and "scale" in self.use_anchors:
-                    self.transform_mode = "scale"
-                    self.transform_anchor = closest[1]
-                elif closest[0] == "edge" and "rotate" in self.use_anchors:
-                    self.transform_mode = "rotate"
-                    self.transform_anchor = closest[1]
-                event.accept()
-            else:
-                event.ignore()
+    def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        handle = self.handleAt(event.pos())
+        if handle is None:
+            self.unsetCursor()
         else:
-            event.ignore()
+            self.setCursor(self.cursors[handle[1]])
+        super().hoverMoveEvent(event)
+
+    def hoverLeaveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        # self.unsetCursor()
+        super().hoverLeaveEvent(event)
+
+    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        if event.button() & QtCore.Qt.LeftButton:
+            self.transformHandle = self.handleAt(event.pos())
+            if self.transformHandle is not None:
+                event.accept()
+                self.setCursor(self.cursors[self.transformHandle[1]])
+                return
+        super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if not event.buttons() & (QtCore.Qt.LeftButton | QtCore.Qt.MiddleButton):
             return
-        if self.transform_mode == "none":
+        if self.transformHandle is None:
             return
 
         dx = event.scenePos().x() - event.lastScenePos().x()
         dy = event.scenePos().y() - event.lastScenePos().y()
 
-        self.setCursor(self.transform_cursors[self.transform_mode])
-
-        poly = self.parentItem().mapToScene(self.corners())
-        # transform = self.item.transform()
-        if self.transform_mode == "translate":
-            poly.translate(dx, dy)
-        elif self.transform_mode == "scale":
-            square = QtGui.QTransform.quadToSquare(poly)
-            if square is None:
-                logger.warning("Invalid quadToSquare transformation.")
-                return
-            new_pos = square.map(event.scenePos())
-            unit_rect = QtCore.QRectF(0.0, 0.0, 1.0, 1.0)
-
-            if self.transform_anchor == "topLeft":
-                unit_rect.setTopLeft(new_pos)
-            elif self.transform_anchor == "topRight":
-                unit_rect.setTopRight(new_pos)
-            elif self.transform_anchor == "bottomRight":
-                unit_rect.setBottomRight(new_pos)
-            elif self.transform_anchor == "bottomLeft":
-                unit_rect.setBottomLeft(new_pos)
-            invert, ok = square.inverted()
-            if not ok:
-                logger.warning("Invalid inverse square transformation.")
-                return
-            poly = invert.map(rectf_to_polygonf(unit_rect))
-        elif self.transform_mode == "rotate":
-            center = self.center()
-            edge = self.edges()[self.edge_order.index(self.transform_anchor)]
-            angle = QtCore.QLineF(center, edge).angleTo(
-                QtCore.QLineF(center, event.pos())
-            )
-            if QtCore.Qt.ShiftModifier == event.modifiers():
-                angle = np.round(angle / 45.0) * 45.0
-
-            lines = [QtCore.QLineF(center, p) for p in poly]
-            for line in lines:
-                line.setAngle(line.angle() + angle)
-            poly = QtGui.QPolygonF([line.p2() for line in lines])
-
         rect = self.parentItem().boundingRect()
-        transform = QtGui.QTransform.quadToQuad(rectf_to_polygonf(rect), poly)
-        if transform is None:
-            logger.warning("Invalid quadToQuad transformation.")
+        poly = self.parentItem().mapToScene(self.corners())
+
+        square = QtGui.QTransform.quadToSquare(poly)
+        new_pos = square.map(event.scenePos())
+        unit_rect = QtCore.QRectF(0.0, 0.0, 1.0, 1.0)
+
+        if self.transformHandle[1] == "topLeft":
+            unit_rect.setTopLeft(new_pos)
+        elif self.transformHandle[1] == "topRight":
+            unit_rect.setTopRight(new_pos)
+        elif self.transformHandle[1] == "bottomRight":
+            unit_rect.setBottomRight(new_pos)
+        elif self.transformHandle[1] == "bottomLeft":
+            unit_rect.setBottomLeft(new_pos)
+        invert, ok = square.inverted()
+        if not ok:
+            logger.warning("Invalid inverse square transformation.")
             return
-        # Discard non affine transforms
-        if not transform.isAffine():
-            logger.info("Not affine transform, discarding m31, m32, m33.")
-            transform = QtGui.QTransform(
-                transform.m11(),
-                transform.m12(),
-                transform.m21(),
-                transform.m22(),
-                transform.dx(),
-                transform.dy(),
-            )
+        poly = invert.map(rectf_to_polygonf(unit_rect))
+        transform = QtGui.QTransform.quadToQuad(self.corners(), poly)
         self.parentItem().setTransform(transform)
+        # self.parentItem().prepareGeometryChange()
+        # # transform = self.item.transform()
+        # if self.transform_mode == "translate":
+        #     poly.translate(dx, dy)
+        # elif self.transform_mode == "scale":
+        #     square = QtGui.QTransform.quadToSquare(poly)
+        #     if square is None:
+        #         logger.warning("Invalid quadToSquare transformation.")
+        #         return
+        #     new_pos = square.map(event.pos())
+        #     unit_rect = QtCore.QRectF(0.0, 0.0, 1.0, 1.0)
+
+        #     if self.transform_anchor == "topLeft":
+        #         unit_rect.setTopLeft(new_pos)
+        #     elif self.transform_anchor == "topRight":
+        #         unit_rect.setTopRight(new_pos)
+        #     elif self.transform_anchor == "bottomRight":
+        #         unit_rect.setBottomRight(new_pos)
+        #     elif self.transform_anchor == "bottomLeft":
+        #         unit_rect.setBottomLeft(new_pos)
+        #     invert, ok = square.inverted()
+        #     if not ok:
+        #         logger.warning("Invalid inverse square transformation.")
+        #         return
+        #     poly = invert.map(rectf_to_polygonf(unit_rect))
+        # elif self.transform_mode == "rotate":
+        #     center = self.center()
+        #     edge = self.edges()[self.edge_order.index(self.transform_anchor)]
+        #     angle = QtCore.QLineF(center, edge).angleTo(
+        #         QtCore.QLineF(center, event.pos())
+        #     )
+        #     if QtCore.Qt.ShiftModifier == event.modifiers():
+        #         angle = np.round(angle / 45.0) * 45.0
+
+        #     lines = [QtCore.QLineF(center, p) for p in poly]
+        #     for line in lines:
+        #         line.setAngle(line.angle() + angle)
+        #     poly = QtGui.QPolygonF([line.p2() for line in lines])
+
+        # rect = self.parentItem().boundingRect()
+        # transform = QtGui.QTransform.quadToQuad(rectf_to_polygonf(rect), poly)
+        # if transform is None:
+        #     logger.warning("Invalid quadToQuad transformation.")
+        #     return
+        # # Discard non affine transforms
+        # if not transform.isAffine():
+        #     logger.info("Not affine transform, discarding m31, m32, m33.")
+        #     transform = QtGui.QTransform(
+        #         transform.m11(),
+        #         transform.m12(),
+        #         transform.m21(),
+        #         transform.m22(),
+        #         transform.dx(),
+        #         transform.dy(),
+        #     )
+        # self.parentItem().setTransform(transform)
 
         # self.prepareGeometryChange()
 
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if event.button() not in [QtCore.Qt.LeftButton, QtCore.Qt.MiddleButton]:
             return
-        self.setCursor(QtCore.Qt.ArrowCursor)
-        self.transform_mode = "none"
+        self.unsetCursor()
+        self.transformHandle = None
 
     def paint(
         self,
@@ -238,29 +261,29 @@ class TransformHandlesItem(QtWidgets.QGraphicsObject):
         pen.setCosmetic(True)
 
         painter.setPen(pen)
-        if "translate" in self.use_anchors:
-            painter.drawPoint(center)
-        if "scale" in self.use_anchors:
-            painter.drawPoints(corners)
+        # if "translate" in self.use_anchors:
+        #     painter.drawPoint(center)
+        # if "scale" in self.use_anchors:
+        painter.drawPoints(corners)
 
-        if "rotate" in self.use_anchors:
-            pen.setCapStyle(QtCore.Qt.RoundCap)
-            painter.setPen(pen)
-            painter.drawPoints(edges)
+        # if "rotate" in self.use_anchors:
+        pen.setCapStyle(QtCore.Qt.RoundCap)
+        painter.setPen(pen)
+        painter.drawPoints(edges)
 
         pen.setCapStyle(QtCore.Qt.SquareCap)
         pen.setColor(QtGui.QColor(255, 255, 255))
         pen.setWidth(self.handle_size)
         painter.setPen(pen)
-        if "transform" in self.use_anchors:
-            painter.drawPoint(center)
-        if "scale" in self.use_anchors:
-            painter.drawPoints(corners)
+        # if "transform" in self.use_anchors:
+        # painter.drawPoint(center)
+        # if "scale" in self.use_anchors:
+        painter.drawPoints(corners)
 
-        if "rotate" in self.use_anchors:
-            pen.setCapStyle(QtCore.Qt.RoundCap)
-            painter.setPen(pen)
-            painter.drawPoints(edges)
+        # if "rotate" in self.use_anchors:
+        pen.setCapStyle(QtCore.Qt.RoundCap)
+        painter.setPen(pen)
+        painter.drawPoints(edges)
 
         pen.setWidth(1)
         painter.setPen(pen)

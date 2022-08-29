@@ -66,8 +66,6 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         if change == QtWidgets.QGraphicsItem.ItemPositionChange:
             pos = QtCore.QPointF(value)
             return self.snapPos(pos)
-        else:
-            print(change, value)
         return super().itemChange(change, value)
 
     def dataAt(self, pos: QtCore.QPointF) -> float:
