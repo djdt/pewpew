@@ -365,7 +365,7 @@ class StandardsTable(BasicTableView):
             return False
         if (
             np.count_nonzero(
-                np.nan_to_num(self.model().array[:, StandardsTable.COLUMN_CONC])
+                ~np.isnan(self.model().array[:, StandardsTable.COLUMN_CONC])
             )
             < 2
         ):
