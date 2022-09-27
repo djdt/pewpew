@@ -89,6 +89,7 @@ class ImportThread(QtCore.QThread):
             "Import Version pewlib": pewlib_version,
             "Import Version pew2": pewpew_version,
         }
+        params = {}
 
         if not path.exists():
             raise FileNotFoundError(f"{path.name} not found.")
@@ -125,10 +126,8 @@ class ImportThread(QtCore.QThread):
                     info["Instrument Vendor"] = "Thermo"
                 else:
                     data = io.textimage.load(path, name="_element_")
-                    params = {}
             elif path.suffix.lower() in [".txt", ".text"]:
                 data = io.textimage.load(path, name="_element_")
-                params = {}
             else:  # pragma: no cover
                 raise ValueError(f"{path.name}: Unknown extention '{path.suffix}'.")
 
