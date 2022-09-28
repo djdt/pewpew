@@ -106,9 +106,9 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         return QtCore.QPointF(x, y)
 
     def close(self) -> None:
-        self.deleteLater()
         if self.scene() is not None:
             self.scene().removeItem(self)
+        self.deleteLater()
 
     def orderRaise(self) -> None:
         stack = [

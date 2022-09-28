@@ -48,12 +48,12 @@ class LaserControlBar(ControlBar):
     def setItem(self, item: LaserImageItem) -> None:
         self.blockSignals(True)
 
-        # Disconnect
-        try:
-            self.alphaChanged.disconnect()
-            self.elementChanged.disconnect()
-        except RuntimeError:
-            pass
+        # Disconnect throws a RuntimeError if not connected...
+        for signal in [self.alphaChanged, self.elementChanged]:
+            try:
+                signal.disconnect()
+            except RuntimeError:
+                pass
 
         # Set current values
         self.alpha.setValue(int(item.opacity() * 100.0))
@@ -64,7 +64,8 @@ class LaserControlBar(ControlBar):
 
         # Connect
         self.alphaChanged.connect(item.setOpacity)
-        self.elementChanged.connect(lambda e: [item.setElement(e), item.redraw()])
+        self.on_element_changed = lambda e: [item.setElement(e), item.redraw()]
+        self.elementChanged.connect(self.on_element_changed)
 
         self.blockSignals(False)
 
@@ -86,7 +87,7 @@ class ImageControlBar(ControlBar):
     def setItem(self, item: LaserImageItem) -> None:
         self.blockSignals(True)
 
-        # Disconnect
+        # Disconnect throws a RuntimeError if not connected...
         try:
             self.alphaChanged.disconnect()
         except RuntimeError:
