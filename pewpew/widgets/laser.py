@@ -567,6 +567,8 @@ class LaserTabWidget(TabViewWidget):
         event.accept()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        item = self.graphics.scene().focusItem()
+
         if event.matches(QtGui.QKeySequence.Cancel):
             self.graphics.endSelection()
             self.graphics.endWidget()
@@ -586,4 +588,11 @@ class LaserTabWidget(TabViewWidget):
                     npy = np.load(fp)
                     calibrations = {k: Calibration.from_array(npy[k]) for k in npy}
                 self.applyCalibration(calibrations)
+        elif event.matches(QtGui.QKeySequence.Save) and isinstance(item, LaserImageItem):
+            self.dialogSave(item)
+        elif event.matches(QtGui.QKeySequence.SaveAs) and isinstance(item, LaserImageItem):
+            self.dialogExport(item)
+        elif event.matches(QtGui.QKeySequence.Close) and item is not None:
+            item.close()
+
         super().keyPressEvent(event)

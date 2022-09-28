@@ -59,6 +59,7 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         self.action_close = qAction(
             "view-close", "Close", "Close the image.", self.close
         )
+        self.action_close.setShortcut(QtGui.QKeySequence.Close)
 
     def itemChange(
         self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
@@ -250,13 +251,25 @@ class ImageOverlayItem(ScaledImageItem):
             "Set the pixel width and height of the image.",
             lambda: self.requestDialog.emit("Pixel Size", self, False),
         )
-        self.action_lock = qAction("folder-locked", "Lock Image", "Locks the image, preventing interaction.", self.lock)
-        self.action_unlock = qAction("folder-unlocked", "Unlock Image", "unlocks the image, allowing interaction.", self.unlock)
+        self.action_lock = qAction(
+            "folder-locked",
+            "Lock Image",
+            "Locks the image, preventing interaction.",
+            self.lock,
+        )
+        self.action_unlock = qAction(
+            "folder-unlocked",
+            "Unlock Image",
+            "unlocks the image, allowing interaction.",
+            self.unlock,
+        )
 
     def lock(self) -> None:
         """Locking is performed by preventing focus and use of left mouse button."""
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, False)
-        self.setAcceptedMouseButtons(self.acceptedMouseButtons() & (~QtCore.Qt.LeftButton))
+        self.setAcceptedMouseButtons(
+            self.acceptedMouseButtons() & (~QtCore.Qt.LeftButton)
+        )
 
     def unlock(self) -> None:
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, True)
@@ -536,14 +549,14 @@ class LaserImageItem(SnapImageItem):
             "Export laser data to a variety of formats.",
             lambda: self.requestExport.emit(self),
         )
-        self.action_export.setShortcut("Ctrl+X")
+        self.action_export.setShortcut(QtGui.QKeySequence.SaveAs)
         self.action_save = qAction(
             "document-save",
             "&Save",
             "Save document to numpy archive.",
             lambda: self.requestSave.emit(self),
         )
-        self.action_save.setShortcut("Ctrl+S")
+        self.action_save.setShortcut(QtGui.QKeySequence.Save)
 
         # === Dialogs requests ===
         self.action_calibration = qAction(
