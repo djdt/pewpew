@@ -16,15 +16,17 @@ def collect_icons(path: Path) -> Set[str]:
     return icons
 
 
-def write_qrc(qrc: Path, icons: Path, reroot: Path, icon_names: List[str]):
+def write_qrc(qrc: Path, icons: Path, reroot: Path, exclude: List[Path], icon_names: List[str]):
     with qrc.open("w") as fp:
-        fp.write('<RCC>\n')
+        fp.write("<RCC>\n")
         fp.write("<qresource>\n")
 
         theme = list(icons.glob("**/index.theme"))[0]
         fp.write(f'\t<file alias="{theme.relative_to(reroot)}">{theme}</file>\n')
 
         for path in sorted(icons.glob("**/*.svg")):
+            if any(parent in exclude for parent in path.parents) :
+                continue
             if path.stem in icon_names or path.name == "index.theme":
                 fp.write(f'\t<file alias="{path.relative_to(reroot)}">{path}</file>\n')
         fp.write("</qresource>\n")
@@ -46,7 +48,10 @@ if __name__ == "__main__":
         default="/usr/share",
         help="Path to remove, relative to icon paths.",
     )
+    parser.add_argument(
+        "--exclude", type=Path, nargs="+", help="Exclude icons from any given paths."
+    )
     args = parser.parse_args(sys.argv[1:])
 
     icon_names = collect_icons(args.project)
-    write_qrc(Path("icons.qrc"), args.icons, args.reroot, list(icon_names))
+    write_qrc(Path("icons.qrc"), args.icons, args.reroot, args.exclude, list(icon_names))
