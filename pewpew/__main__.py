@@ -10,7 +10,7 @@ import pewlib
 from pewpew import __version__
 
 from pewpew.mainwindow import MainWindow
-# from pewpew import resources  # noqa: F401
+from pewpew import resources  # noqa: F401
 
 from typing import List
 
