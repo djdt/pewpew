@@ -1,5 +1,5 @@
 import numpy as np
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewlib.laser import Laser
 from pewlib.srr import SRRConfig
@@ -90,7 +90,7 @@ class LaserGraphicsView(OverlayView):
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         super().mouseMoveEvent(event)
-        pos = self.mapToScene(event.pos())
+        pos = self.mapToScene(event.position().toPoint())
         if (
             self.image is not None
             and self.image.rect.left() < pos.x() < self.image.rect.right()

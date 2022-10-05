@@ -1,7 +1,7 @@
 import numpy as np
 
-from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtCharts import QtCharts
+from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCharts
 
 from pewpew.charts.base import BaseChart
 from pewpew.charts.colors import light_theme, sequential
@@ -134,10 +134,10 @@ class DriftGuideRectItem(ResizeableRectItem):
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if self.selected_edge in ["top", "bottom"]:
-            if self.selected_edge == "top" and event.pos().y() < self.bottom:
-                self.top = event.pos().y() - event.pos().y() % self.py
-            elif self.selected_edge == "bottom" and event.pos().y() > self.top:
-                self.bottom = event.pos().y() - event.pos().y() % self.py
+            if self.selected_edge == "top" and event.position().y() < self.bottom:
+                self.top = event.position().y() - event.pos().y() % self.py
+            elif self.selected_edge == "bottom" and event.position().y() > self.top:
+                self.bottom = event.position().y() - event.pos().y() % self.py
             self.changed = True
             self.update()
         else:

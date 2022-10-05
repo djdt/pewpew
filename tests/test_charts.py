@@ -1,5 +1,5 @@
-from PySide2 import QtCore, QtGui
-from PySide2.QtCharts import QtCharts
+from PySide6 import QtCore, QtGui
+from PySide6 import QtCharts
 
 import numpy as np
 

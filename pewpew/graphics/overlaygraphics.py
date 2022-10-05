@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pathlib import Path
 
@@ -92,7 +92,6 @@ class OverlayScene(QtWidgets.QGraphicsScene):
         parent: QtWidgets.QWidget = None,
     ):
         super().__init__(x, y, width, height, parent)
-        self.setSortCacheEnabled(True)
         self.setItemIndexMethod(
             QtWidgets.QGraphicsScene.NoIndex
         )  # Turn off BSP indexing, it causes a crash on item removal
@@ -202,7 +201,7 @@ class OverlayView(QtWidgets.QGraphicsView):
 
     def mousePressEvent(self, event: QtGui.QMouseEvent):
         if "zoom" in self.interaction_flags and event.button() == QtCore.Qt.LeftButton:
-            self._last_pos = event.pos()
+            self._last_pos = event.position()
             self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
             super().mousePressEvent(event)
         elif (
@@ -215,8 +214,8 @@ class OverlayView(QtWidgets.QGraphicsView):
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         if "drag" in self.interaction_flags:
-            dx = self._last_pos.x() - event.pos().x()
-            dy = self._last_pos.y() - event.pos().y()
+            dx = self._last_pos.x() - event.position().x()
+            dy = self._last_pos.y() - event.position().y()
             self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + dx)
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() + dy)
             self._last_pos = event.pos()
@@ -228,7 +227,7 @@ class OverlayView(QtWidgets.QGraphicsView):
             self.setInteractionFlag("drag", False)
         if "zoom" in self.interaction_flags:
             self.setInteractionFlag("zoom", False)
-            rect = QtCore.QRect(self._last_pos, event.pos())
+            rect = QtCore.QRect(self._last_pos.toPoint(), event.position().toPoint())
             rect = self.mapToScene(rect).boundingRect()
             self.zoomToArea(rect)
             self.setDragMode(QtWidgets.QGraphicsView.NoDrag)

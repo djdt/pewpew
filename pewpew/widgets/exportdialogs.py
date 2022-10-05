@@ -1,7 +1,7 @@
 from pathlib import Path
 import logging
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewlib import io
 from pewlib.laser import Laser
@@ -178,8 +178,8 @@ class _ExportDialogBase(QtWidgets.QDialog):
         self.button_directory.clicked.connect(self.selectDirectory)
         self.lineedit_filename = QtWidgets.QLineEdit()
 
-        filename_regexp = QtCore.QRegExp(f"[^{self.invalid_chars}]+")
-        self.lineedit_filename.setValidator(QtGui.QRegExpValidator(filename_regexp))
+        filename_regexp = QtCore.QRegularExpression(f"[^{self.invalid_chars}]+")
+        self.lineedit_filename.setValidator(QtGui.QRegularExpressionValidator(filename_regexp))
         self.lineedit_filename.textChanged.connect(self.filenameChanged)
         self.lineedit_filename.textChanged.connect(self.validate)
 
@@ -460,8 +460,8 @@ class ExportAllDialog(ExportDialog):
         self.combo_element = QtWidgets.QComboBox()
         self.combo_element.addItems(elements)
         self.lineedit_prefix = QtWidgets.QLineEdit("")
-        prefix_regexp = QtCore.QRegExp(f"[^{self.invalid_chars}]+")
-        self.lineedit_prefix.setValidator(QtGui.QRegExpValidator(prefix_regexp))
+        prefix_regexp = QtCore.QRegularExpression(f"[^{self.invalid_chars}]+")
+        self.lineedit_prefix.setValidator(QtGui.QRegularExpressionValidator(prefix_regexp))
         self.lineedit_prefix.textChanged.connect(self.updatePreview)
 
         super().__init__(widgets[0], parent)

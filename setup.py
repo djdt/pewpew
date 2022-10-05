@@ -35,7 +35,7 @@ setup(
     install_requires=[
         "numpy!=1.19.4",
         "pewlib>=0.7.3",
-        "PySide2",
+        "PySide6",
     ],
     entry_points={"console_scripts": ["pewpew=pewpew.__main__:main"]},
     tests_require=["pytest", "pytest-qt"],

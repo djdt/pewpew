@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 import logging
 
@@ -46,7 +46,7 @@ class ViewSpace(QtWidgets.QSplitter):
         self.action_close_view = qAction(
             "view-close", "Close View", "Closes the current view.", self.closeActiveView
         )
-        # self.action_close_others = QtWidgets.QAction(
+        # self.action_close_others = QtGui.QAction(
         #     QtGui.QIcon.fromTheme("view-right-close"), "Close Other Views"
         # )
         # self.action_close_view.triggered.connect(self.closeOtherViews)
@@ -443,17 +443,17 @@ class ViewTabBar(QtWidgets.QTabBar):
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         if event.button() == QtCore.Qt.LeftButton:
-            self.drag_start_pos = event.pos()
+            self.drag_start_pos = event.position()
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:  # pragma: no cover
         if (
             not event.buttons() & QtCore.Qt.LeftButton
-            or (event.pos() - self.drag_start_pos).manhattanLength()
+            or (event.position() - self.drag_start_pos).manhattanLength()
             < QtWidgets.QApplication.startDragDistance()
         ):
             return super().mouseMoveEvent(event)
-        index = self.tabAt(event.pos())
+        index = self.tabAt(event.position())
         if index == -1:
             return super().mouseMoveEvent(event)
 
@@ -474,14 +474,14 @@ class ViewTabBar(QtWidgets.QTabBar):
 
     def mouseDoubleClickEvent(self, event: QtGui.QContextMenuEvent) -> None:
         if event.button() == QtCore.Qt.LeftButton:
-            index = self.tabAt(event.pos())
+            index = self.tabAt(event.position())
             self.tabRenameDialog(index)
         else:
             super().mouseDoubleClickEvent(event)
 
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         event.accept()
-        index = self.tabAt(event.pos())
+        index = self.tabAt(event.position())
         menu = QtWidgets.QMenu(self)
         menu.addAction(self.action_close_all)
         if index != -1:
@@ -494,7 +494,7 @@ class ViewTabBar(QtWidgets.QTabBar):
             event.acceptProposedAction()
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:  # pragma: no cover
-        dest = self.tabAt(event.pos())
+        dest = self.tabAt(event.position())
         src, ok = event.mimeData().data("application/x-pew2tabbar").toInt()
         if ok and event.source() == self:
             self.moveTab(src, dest)

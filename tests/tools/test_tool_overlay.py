@@ -2,7 +2,7 @@ from pathlib import Path
 import numpy as np
 import tempfile
 
-from PySide2 import QtGui
+from PySide6 import QtGui
 from pytestqt.qtbot import QtBot
 
 from pewlib.laser import Laser

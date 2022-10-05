@@ -4,13 +4,13 @@ import multiprocessing
 from pathlib import Path
 import sys
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 import pewlib
 from pewpew import __version__
 
 from pewpew.mainwindow import MainWindow
-from pewpew import resources  # noqa: F401
+# from pewpew import resources  # noqa: F401
 
 from typing import List
 

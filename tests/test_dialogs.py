@@ -4,7 +4,7 @@ from io import BytesIO
 
 from pytestqt.qtbot import QtBot
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewlib.config import Config
 from pewlib.calibration import Calibration

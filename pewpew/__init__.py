@@ -1,6 +1,6 @@
 import logging
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 __version__ = "1.3.3"
 __loglevel__ = logging.DEBUG

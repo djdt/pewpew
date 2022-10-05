@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.widgets.views import _ViewWidget
 
@@ -76,7 +76,7 @@ class ToolWidget(_ViewWidget):
 
     def contextMenuEvent(self, event: QtCore.QEvent) -> None:
         event.accept()
-        action_copy_image = QtWidgets.QAction(
+        action_copy_image = QtGui.QAction(
             QtGui.QIcon.fromTheme("insert-image"), "Copy To Clipboard", self
         )
         action_copy_image.setStatusTip("Copy the graphics view to the clipboard.")

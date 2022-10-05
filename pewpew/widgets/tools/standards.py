@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewlib import Calibration
 
@@ -461,7 +461,7 @@ class CalibrationRectItem(ResizeableRectItem):
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         eventpos = self.itemChange(
-            QtWidgets.QGraphicsItem.ItemPositionChange, event.pos()
+            QtWidgets.QGraphicsItem.ItemPositionChange, event.position()
         )
         if self.selected_edge is None:
             super().mouseMoveEvent(event)

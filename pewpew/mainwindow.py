@@ -1,7 +1,7 @@
 import sys
 import logging
 
-from PySide2 import QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 from pewlib.config import SpotConfig
 
@@ -260,7 +260,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.open()
         return dlg
 
-    def actionGroupColortable(self, action: QtWidgets.QAction) -> None:
+    def actionGroupColortable(self, action: QtGui.QAction) -> None:
         text = action.text().replace("&", "")
         self.viewspace.options.colortable = text
         self.viewspace.refresh()

@@ -1,7 +1,7 @@
 from pathlib import Path
 import time
 
-from PySide2 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from pewlib import __version__ as pewlib_version
 from pewlib import io

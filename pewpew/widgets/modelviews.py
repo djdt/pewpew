@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from typing import List
 
@@ -7,13 +7,13 @@ class BasicTableView(QtWidgets.QTableView):
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         event.accept()
         menu = QtWidgets.QMenu(self)
-        cut_action = QtWidgets.QAction(QtGui.QIcon.fromTheme("edit-cut"), "Cut", self)
+        cut_action = QtGui.QAction(QtGui.QIcon.fromTheme("edit-cut"), "Cut", self)
         cut_action.triggered.connect(self._cut)
-        copy_action = QtWidgets.QAction(
+        copy_action = QtGui.QAction(
             QtGui.QIcon.fromTheme("edit-copy"), "Copy", self
         )
         copy_action.triggered.connect(self._copy)
-        paste_action = QtWidgets.QAction(
+        paste_action = QtGui.QAction(
             QtGui.QIcon.fromTheme("edit-paste"), "Paste", self
         )
         paste_action.triggered.connect(self._paste)
@@ -99,13 +99,13 @@ class BasicTable(QtWidgets.QTableWidget):
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         event.accept()
         menu = QtWidgets.QMenu(self)
-        cut_action = QtWidgets.QAction(QtGui.QIcon.fromTheme("edit-cut"), "Cut", self)
+        cut_action = QtGui.QAction(QtGui.QIcon.fromTheme("edit-cut"), "Cut", self)
         cut_action.triggered.connect(self._cut)
-        copy_action = QtWidgets.QAction(
+        copy_action = QtGui.QAction(
             QtGui.QIcon.fromTheme("edit-copy"), "Copy", self
         )
         copy_action.triggered.connect(self._copy)
-        paste_action = QtWidgets.QAction(
+        paste_action = QtGui.QAction(
             QtGui.QIcon.fromTheme("edit-paste"), "Paste", self
         )
         paste_action.triggered.connect(self._paste)
