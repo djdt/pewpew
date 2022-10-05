@@ -5,7 +5,7 @@ import numpy as np
 from pathlib import Path
 import logging
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewlib.laser import Laser
 from pewlib.srr import SRRConfig

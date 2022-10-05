@@ -2,7 +2,7 @@ import sys
 import logging
 from typing import Optional
 
-from PySide2 import QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets
 
 from pewlib.config import SpotConfig
 
@@ -315,7 +315,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.open()
         return dlg
 
-    def actionGroupColortable(self, action: QtWidgets.QAction) -> None:
+    def actionGroupColortable(self, action: QtGui.QAction) -> None:
         text = action.text().replace("&", "")
         self.tabview.options.colortable = text
         self.tabview.refresh()

@@ -1,4 +1,4 @@
-from PySide2 import QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from typing import Callable, Optional, Tuple
 
@@ -165,7 +165,7 @@ class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
     Item inputs are also validated using a QDoubleValidator.
     """
 
-    def __init__(self, decimals: int, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, decimals: int, parent: Optional[QtCore.QObject] = None):
         super().__init__(parent)
         self.decimals = decimals
 
@@ -179,7 +179,7 @@ class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
         lineedit.setValidator(QtGui.QDoubleValidator())
         return lineedit
 
-    def displayText(self, value: str, locale: str) -> str:
+    def displayText(self, value: str, locale: QtCore.QLocale) -> str:
         """Attempts to display text as a float with 'decimal' places."""
         try:
             num = float(value)
@@ -193,7 +193,7 @@ class DoubleSignificantFiguresDelegate(QtWidgets.QStyledItemDelegate):
 
     Item inputs are also validated using a QDoubleValidator.
     """
-    def __init__(self, sigfigs: int, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, sigfigs: int, parent: Optional[QtCore.QObject] = None):
         super().__init__(parent)
         self.sigfigs = sigfigs
 
@@ -207,7 +207,7 @@ class DoubleSignificantFiguresDelegate(QtWidgets.QStyledItemDelegate):
         lineedit.setValidator(QtGui.QDoubleValidator())
         return lineedit
 
-    def displayText(self, value: str, locale: str) -> str:
+    def displayText(self, value: str, locale: QtCore.QLocale) -> str:
         """Attempts to display text as a float with 'sigfigs' places."""
         try:
             num = float(value)

@@ -1,10 +1,18 @@
 import numpy as np
 from pytestqt.qtbot import QtBot
-from PySide2 import QtCore, QtGui
+from PySide6 import QtCore, QtGui
 
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 
+def left_click_at(pos: QtCore.QPointF) -> QtGui.QMouseEvent:
+    return QtGui.QMouseEvent(
+        QtCore.QEvent.MouseButtonPress,
+        pos,
+        QtCore.Qt.LeftButton,
+        QtCore.Qt.LeftButton,
+        QtCore.Qt.NoModifier,
+    )
 
 def test_laser_graphics_selection(qtbot: QtBot):
     graphics = LaserGraphicsView(GraphicsOptions())
@@ -18,16 +26,9 @@ def test_laser_graphics_selection(qtbot: QtBot):
     # Test rectangle selector and center pixel selecting
     graphics.startRectangleSelection()
 
-    event = QtGui.QMouseEvent(
-        QtCore.QEvent.MouseButtonPress,
-        graphics.mapFromScene(QtCore.QPointF(1, 1)),
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.NoModifier,
-    )
-
+    event = left_click_at(graphics.mapFromScene(QtCore.QPointF(1, 1)))
     graphics.mousePressEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(9, 9)))
+    event = left_click_at(graphics.mapFromScene(QtCore.QPointF(9, 9)))
     graphics.mouseMoveEvent(event)
     graphics.mouseReleaseEvent(event)
 
@@ -43,24 +44,17 @@ def test_laser_graphics_selection(qtbot: QtBot):
     # Test lasso works
     graphics.startLassoSelection()
 
-    event = QtGui.QMouseEvent(
-        QtCore.QEvent.MouseButtonPress,
-        graphics.mapFromScene(QtCore.QPointF(1, 1)),
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.NoModifier,
-    )
-
+    event = left_click_at(graphics.mapFromScene(QtCore.QPointF(1, 1)))
     graphics.mousePressEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(99, 1)))
+    event = left_click_at(graphics.mapFromScene(QtCore.QPointF(99, 1)))
     graphics.mouseMoveEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(99, 99)))
+    event = left_click_at(graphics.mapFromScene(QtCore.QPointF(99, 99)))
     graphics.mouseMoveEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(91, 99)))
+    event = left_click_at(graphics.mapFromScene(QtCore.QPointF(91, 99)))
     graphics.mouseMoveEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(91, 11)))
+    event = left_click_at(graphics.mapFromScene(QtCore.QPointF(91, 11)))
     graphics.mouseMoveEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(1, 11)))
+    event = left_click_at(graphics.mapFromScene(QtCore.QPointF(1, 11)))
     graphics.mouseMoveEvent(event)
     graphics.mouseReleaseEvent(event)
 
@@ -83,15 +77,9 @@ def test_laser_graphics_widgets(qtbot: QtBot):
 
     graphics.startRulerWidget()
     assert graphics.widget is not None
-    event = QtGui.QMouseEvent(
-        QtCore.QEvent.MouseButtonPress,
-        graphics.mapFromScene(QtCore.QPointF(0, 0)),
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.NoModifier,
-    )
+    event = left_click_at(graphics.mapFromScene(QtCore.QPointF(0, 0)))
     graphics.mousePressEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(100, 100)))
+    event = left_click_at(graphics.mapFromScene(QtCore.QPointF(100, 100)))
     graphics.mouseMoveEvent(event)
     graphics.mouseReleaseEvent(event)
 
@@ -102,15 +90,9 @@ def test_laser_graphics_widgets(qtbot: QtBot):
 
     graphics.startSliceWidget()
     assert graphics.widget is not None
-    event = QtGui.QMouseEvent(
-        QtCore.QEvent.MouseButtonPress,
-        graphics.mapFromScene(QtCore.QPointF(5, 5)),
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.NoModifier,
-    )
+    event = left_click_at(graphics.mapFromScene(QtCore.QPointF(5, 5)))
     graphics.mousePressEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(95, 5)))
+    event = left_click_at(graphics.mapFromScene(QtCore.QPointF(95, 5)))
     graphics.mouseMoveEvent(event)
     graphics.mouseReleaseEvent(event)
 
@@ -128,16 +110,9 @@ def test_laser_graphics_zoom(qtbot: QtBot):
 
     graphics.zoomStart()
 
-    event = QtGui.QMouseEvent(
-        QtCore.QEvent.MouseButtonPress,
-        graphics.mapFromScene(QtCore.QPointF(20, 20)),
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.LeftButton,
-        QtCore.Qt.NoModifier,
-    )
-
+    event = left_click_at(graphics.mapFromScene(QtCore.QPointF(20, 20)))
     graphics.mousePressEvent(event)
-    event.setLocalPos(graphics.mapFromScene(QtCore.QPointF(40, 40)))
+    event = left_click_at(graphics.mapFromScene(QtCore.QPointF(40, 40)))
     graphics.mouseMoveEvent(event)
     graphics.mouseReleaseEvent(event)
 

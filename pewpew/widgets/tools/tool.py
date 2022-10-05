@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.graphics.imageitems import SnapImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
@@ -97,7 +97,7 @@ class ToolWidget(TabViewWidget):
         if not self.graphics.underMouse():
             return
 
-        action_copy_image = QtWidgets.QAction(
+        action_copy_image = QtGui.QAction(
             QtGui.QIcon.fromTheme("insert-image"), "Copy Scene &Image", self
         )
         action_copy_image.setStatusTip("Copy scene to clipboard.")

@@ -1,6 +1,6 @@
 from pytestqt.qtbot import QtBot
 
-from PySide2 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from pewpew.widgets.views import ViewSpace, View, _ViewWidget
 

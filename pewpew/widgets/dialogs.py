@@ -4,7 +4,7 @@ import copy
 from io import BytesIO
 import numpy as np
 
-from PySide2 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from pewlib import Calibration, Config
 from pewlib.config import SpotConfig

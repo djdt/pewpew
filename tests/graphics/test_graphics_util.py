@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtGui
+from PySide6 import QtCore, QtGui
 from pewpew.graphics.util import polygonf_contains_points
 
 import numpy as np

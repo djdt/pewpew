@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewlib import Calibration
 from pewpew.graphics import colortable

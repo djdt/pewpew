@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtGui
+from PySide6 import QtCore, QtGui
 import numpy as np
 
 from typing import Dict, Tuple, Union

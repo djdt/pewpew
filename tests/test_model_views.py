@@ -1,7 +1,7 @@
 import numpy as np
 from pytestqt.qtbot import QtBot
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 from pewpew.widgets.modelviews import BasicTableView, BasicTable

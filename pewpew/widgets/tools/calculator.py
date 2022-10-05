@@ -1,6 +1,6 @@
 import numpy as np
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu

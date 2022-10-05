@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 import numpy as np
 import logging
 from pathlib import Path
@@ -177,8 +177,8 @@ class _ExportDialogBase(QtWidgets.QDialog):
         self.button_directory.clicked.connect(self.selectDirectory)
         self.lineedit_filename = QtWidgets.QLineEdit()
 
-        filename_regexp = QtCore.QRegExp(f"[^{self.invalid_chars}]+")
-        self.lineedit_filename.setValidator(QtGui.QRegExpValidator(filename_regexp))
+        filename_regexp = QtCore.QRegularExpression(f"[^{self.invalid_chars}]+")
+        self.lineedit_filename.setValidator(QtGui.QRegularExpressionValidator(filename_regexp))
         self.lineedit_filename.textChanged.connect(self.filenameChanged)
         self.lineedit_filename.textChanged.connect(self.validate)
 
@@ -440,7 +440,7 @@ class ExportAllDialog(ExportDialog):
 
         self.lineedit_prefix = QtWidgets.QLineEdit("")
         self.lineedit_prefix.setValidator(
-            QtGui.QRegExpValidator(QtCore.QRegExp(f"[^{self.invalid_chars}]+"))
+            QtGui.QRegExpValidator(QtCore.QRegularExpression(f"[^{self.invalid_chars}]+"))
         )
         self.lineedit_prefix.textChanged.connect(self.updatePreview)
 

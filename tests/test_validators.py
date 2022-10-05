@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtGui
+from PySide6 import QtCore, QtGui
 
 from pewpew import validators
 
@@ -72,26 +72,28 @@ def test_percent_or_decimal_validator():
 
 def test_double_precision_delegate():
     delegate = validators.DoublePrecisionDelegate(4)
+    locale = QtCore.QLocale()
     # General
-    assert delegate.displayText("1", "en") == "1.0000"
-    assert delegate.displayText("1.11e1", "en") == "11.1000"
+    assert delegate.displayText("1", locale) == "1.0000"
+    assert delegate.displayText("1.11e1", locale) == "11.1000"
     # Rounding
-    assert delegate.displayText("1.00001", "en") == "1.0000"
-    assert delegate.displayText("1.00009", "en") == "1.0001"
+    assert delegate.displayText("1.00001", locale) == "1.0000"
+    assert delegate.displayText("1.00009", locale) == "1.0001"
     # Passes text
-    assert delegate.displayText("a", "en") == "a"
+    assert delegate.displayText("a", locale) == "a"
 
 
 def test_double_significant_figures_delegate():
     delegate = validators.DoubleSignificantFiguresDelegate(4)
+    locale = QtCore.QLocale()
     # General
-    assert delegate.displayText("1", "en") == "1.000"
-    assert delegate.displayText("10", "en") == "10.00"
-    assert delegate.displayText("100", "en") == "100.0"
-    assert delegate.displayText("1000", "en") == "1000"
-    assert delegate.displayText("1.1e3", "en") == "1100"
+    assert delegate.displayText("1", locale) == "1.000"
+    assert delegate.displayText("10", locale) == "10.00"
+    assert delegate.displayText("100", locale) == "100.0"
+    assert delegate.displayText("1000", locale) == "1000"
+    assert delegate.displayText("1.1e3", locale) == "1100"
     # Exponent and rounding
-    assert delegate.displayText("10101", "en") == "1.010e+04"
-    assert delegate.displayText("10109", "en") == "1.011e+04"
+    assert delegate.displayText("10101", locale) == "1.010e+04"
+    assert delegate.displayText("10109", locale) == "1.011e+04"
     # Passes text
-    assert delegate.displayText("a", "en") == "a"
+    assert delegate.displayText("a", locale) == "a"

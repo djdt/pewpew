@@ -1,4 +1,4 @@
-from PySide2 import QtGui
+from PySide6 import QtGui
 
 cyan = {
     10: QtGui.QColor(0xE5, 0xF6, 0xFF),

@@ -18,7 +18,7 @@ def collect_icons(path: Path) -> Set[str]:
 
 def write_qrc(qrc: Path, icons: Path, reroot: Path, icon_names: List[str]):
     with qrc.open("w") as fp:
-        fp.write('<!DOCTYPE RCC><RCC version="1.0">\n')
+        fp.write('<RCC>\n')
         fp.write("<qresource>\n")
 
         theme = list(icons.glob("**/index.theme"))[0]

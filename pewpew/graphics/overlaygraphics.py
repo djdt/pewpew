@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pathlib import Path
 
@@ -135,14 +135,14 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
             super().mousePressEvent(event)
         elif event.button() == QtCore.Qt.MiddleButton:
             self.setInteractionFlag("drag")
-            self._last_pos = event.pos()
+            self._last_pos = event.position()
         else:
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         if "drag" in self.interaction_flags:
-            dx = self._last_pos.x() - event.pos().x()
-            dy = self._last_pos.y() - event.pos().y()
+            dx = self._last_pos.x() - event.position().x()
+            dy = self._last_pos.y() - event.position().y()
             self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() + dx)
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() + dy)
             self._last_pos = event.pos()

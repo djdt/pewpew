@@ -1,8 +1,8 @@
-from PySide2 import QtCore, QtGui
+from PySide6 import QtCore, QtGui
 
 import ctypes
 import numpy as np
-import shiboken2
+import shiboken6
 
 from typing import Any, Optional, Tuple
 
@@ -55,10 +55,11 @@ def array_to_polygonf(array: np.ndarray) -> QtGui.QPolygonF:
     assert array.ndim == 2
     assert array.shape[1] == 2
 
-    polygon = QtGui.QPolygonF(array.shape[0])
+    polygon = QtGui.QPolygonF()
+    polygon.resize(array.shape[0])
 
     buf = (ctypes.c_double * array.size).from_address(
-        shiboken2.getCppPointer(polygon.data())[0]  # type: ignore
+        shiboken6.getCppPointer(polygon.data())[0]  # type: ignore
     )
 
     memory = np.frombuffer(buf, np.float64)
@@ -69,7 +70,7 @@ def array_to_polygonf(array: np.ndarray) -> QtGui.QPolygonF:
 def polygonf_to_array(polygon: QtGui.QPolygonF) -> np.ndarray:
     """Converts a Qt polygon to a numpy array of shape (n, 2)."""
     buf = (ctypes.c_double * 2 * polygon.length()).from_address(
-        shiboken2.getCppPointer(polygon.data())[0]  # type: ignore
+        shiboken6.getCppPointer(polygon.data())[0]  # type: ignore
     )
     return np.frombuffer(buf, dtype=np.float64).reshape(-1, 2)
 

@@ -1,7 +1,7 @@
 import numpy as np
 from pytestqt.qtbot import QtBot
 
-from PySide2 import QtCore, QtGui
+from PySide6 import QtCore, QtGui
 
 from pewpew.lib.numpyqt import (
     array_to_image,
