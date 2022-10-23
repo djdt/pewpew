@@ -19,8 +19,6 @@ logger = logging.getLogger()
 
 
 def parse_args(argv: List[str]) -> argparse.Namespace:
-    if argv is None:
-        print("It is none really")
     parser = argparse.ArgumentParser(
         prog="pew²",
         description="GUI for visualisation and manipulation of LA-ICP-MS data.",
