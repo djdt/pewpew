@@ -40,11 +40,13 @@ class GraphicsOptions(QtCore.QObject):
         self.color_ranges: Dict[str, Tuple[Union[float, str], Union[float, str]]] = {}
         self.color_range_default = (0.0, "99%")
 
+        self.nan_color = QtGui.QColor(0, 0, 0)
+
         self.scalebar = True
         self.highlight_focus = True
         self.smoothing = False
 
-        self.font = QtGui.QFont("sans", 16.0)
+        self.font = QtGui.QFont("sans", 16)
         self.font_color = QtGui.QColor(255, 255, 255)
 
         self.calibrate = True

@@ -423,6 +423,7 @@ class LaserImageItem(SnapImageItem):
             self.element(), self.raw_data
         )
         table = colortable.get_table(self.options.colortable)
+        table[0] = self.options.nan_color.rgba()
 
         data = np.clip(self.raw_data, self.vmin, self.vmax)
         if self.vmin != self.vmax:  # Avoid div 0

@@ -69,9 +69,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_about = qAction(
             "help-about", "&About", "About pew².", self.actionAbout
         )
-        self.action_help = qAction(
-            "help-contents", "&Help", "Show the help contents.", self.help.open
-        )
+
         self.action_colortable_range = qAction(
             "format-number-percent",
             "Set &Range",
@@ -79,6 +77,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.dialogColortableRange,
         )
         self.action_colortable_range.setShortcut("Ctrl+R")
+
         self.action_config = qAction(
             "document-edit",
             "Default Config",
@@ -106,6 +105,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "Set the font size in points.",
             self.dialogFontsize,
         )
+
         self.action_group_colortable = qActionGroup(
             self,
             list(self.tabview.options.colortables.keys()),
@@ -113,6 +113,32 @@ class MainWindow(QtWidgets.QMainWindow):
             checked=self.tabview.options.colortable,
             statuses=list(self.tabview.options.colortables.values()),
         )
+
+        self.action_help = qAction(
+            "help-contents", "&Help", "Show the help contents.", self.help.open
+        )
+
+        self.action_log = qAction(
+            "clock", "&Show Log", "Show the pew² event and error log.", self.log.open
+        )
+
+        self.action_nan_color = qAction(
+            "color-picker",
+            "Set NaN Color",
+            "Set the color of not-a-number values in images.",
+            self.actionDialogNaNColor,
+        )
+
+        self.action_open = qAction(
+            "document-open", "&Open", "Open new document(s).", self.actionOpen
+        )
+        self.action_open.setShortcut("Ctrl+O")
+
+        self.action_refresh = qAction(
+            "view-refresh", "Refresh", "Redraw documents.", self.tabview.refresh
+        )
+        self.action_refresh.setShortcut("F5")
+
         self.action_smooth = qAction(
             "smooth",
             "&Smooth",
@@ -121,31 +147,6 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_smooth.setCheckable(True)
         self.action_smooth.setChecked(self.tabview.options.smoothing)
-        self.action_wizard_import = qAction(
-            "",
-            "Import Wizard",
-            "Start the line-wise import wizard. .",
-            self.actionWizardImport,
-        )
-        self.action_wizard_spot = qAction(
-            "",
-            "Spotwise Wizard",
-            "Start the import wizard for data collected spot-wise.",
-            self.actionWizardSpot,
-        )
-        self.action_wizard_srr = qAction(
-            "",
-            "Kriss Kross Wizard",
-            "Start the Super-Resolution-Reconstruction import wizard.",
-            self.actionWizardSRR,
-        )
-        self.action_log = qAction(
-            "clock", "&Show Log", "Show the pew² event and error log.", self.log.open
-        )
-        self.action_open = qAction(
-            "document-open", "&Open", "Open new document(s).", self.actionOpen
-        )
-        self.action_open.setShortcut("Ctrl+O")
 
         self.action_toggle_calibrate = qAction(
             "go-top",
@@ -160,7 +161,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_toggle_calibrate.setCheckable(True)
         self.action_toggle_calibrate.setChecked(self.tabview.options.calibrate)
 
-        self.action_toggle_scalebar = qAction("", "Show Scalebar", "Toggle the visibility of the scalebar.", self.tabview.options.setScalebarVisible)
+        self.action_toggle_scalebar = qAction(
+            "",
+            "Show Scalebar",
+            "Toggle the visibility of the scalebar.",
+            self.tabview.options.setScalebarVisible,
+        )
         self.action_toggle_scalebar.setCheckable(True)
         self.action_toggle_scalebar.setChecked(self.tabview.options.scalebar)
 
@@ -201,10 +207,24 @@ class MainWindow(QtWidgets.QMainWindow):
             ),
         ]
 
-        self.action_refresh = qAction(
-            "view-refresh", "Refresh", "Redraw documents.", self.tabview.refresh
+        self.action_wizard_import = qAction(
+            "",
+            "Import Wizard",
+            "Start the line-wise import wizard. .",
+            self.actionWizardImport,
         )
-        self.action_refresh.setShortcut("F5")
+        self.action_wizard_spot = qAction(
+            "",
+            "Spotwise Wizard",
+            "Start the import wizard for data collected spot-wise.",
+            self.actionWizardSpot,
+        )
+        self.action_wizard_srr = qAction(
+            "",
+            "Kriss Kross Wizard",
+            "Start the Super-Resolution-Reconstruction import wizard.",
+            self.actionWizardSRR,
+        )
 
     def createMenus(self) -> None:
         # File
@@ -247,6 +267,10 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_cmap.addActions(self.action_group_colortable.actions())
         menu_cmap.addAction(self.action_colortable_range)
 
+        menu_view.addSeparator()
+
+        menu_view.addAction(self.action_nan_color)
+
         # View - interpolation
         menu_view.addAction(self.action_smooth)
 
@@ -284,6 +308,17 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         dlg.combo_element.currentTextChanged.connect(self.setCurrentElement)
         dlg.applyPressed.connect(applyDialog)
+        dlg.open()
+        return dlg
+
+    def actionDialogNaNColor(self) -> QtWidgets.QDialog:
+        def applyDialog(color: QtGui.QColor) -> None:
+            if color != self.tabview.options.nan_color:
+                self.tabview.options.nan_color = color
+                self.tabview.refresh()
+
+        dlg = QtWidgets.QColorDialog(self.tabview.options.nan_color, parent=self)
+        dlg.colorSelected.connect(applyDialog)  # type: ignore
         dlg.open()
         return dlg
 
