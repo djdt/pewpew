@@ -258,6 +258,12 @@ class ImageOverlayItem(ScaledImageItem):
             "Locks the image, preventing interaction.",
             self.lock,
         )
+        # self.action_transform_scale = qAction(
+        #     "transform-scale",
+        #     "Scale Image",
+        #     "Scale the image.",
+        #     self.startScale,
+        # )
         self.action_unlock = qAction(
             "folder-unlocked",
             "Unlock Image",

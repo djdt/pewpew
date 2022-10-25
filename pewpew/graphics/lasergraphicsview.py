@@ -33,7 +33,8 @@ class LaserGraphicsView(OverlayGraphicsView):
         self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None
     ):
         super().__init__(
-            QtWidgets.QGraphicsScene(QtCore.QRectF(-1e5, -1e5, 2e5, 2e5), parent), parent
+            QtWidgets.QGraphicsScene(QtCore.QRectF(-1e5, -1e5, 2e5, 2e5), parent),
+            parent,
         )
 
         self.options = options
@@ -54,11 +55,11 @@ class LaserGraphicsView(OverlayGraphicsView):
         # self.shown = False
 
     # def showEvent(self, event: QtGui.QShowEvent) -> None:
-        # super().showEvent(event)
-        # if not self.shown:
-        #     print('shown')
-        #     self.zoomReset()
-        #     self.shown = True
+    # super().showEvent(event)
+    # if not self.shown:
+    #     print('shown')
+    #     self.zoomReset()
+    #     self.shown = True
 
     def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
         self.clearFocus()
@@ -70,7 +71,9 @@ class LaserGraphicsView(OverlayGraphicsView):
             if isinstance(item, SnapImageSelectionItem):
                 self.scene().removeItem(item)
 
-        selection_item = LassoImageSelectionItem(allowed_item_types=LaserImageItem, parent=None)
+        selection_item = LassoImageSelectionItem(
+            allowed_item_types=LaserImageItem, parent=None
+        )
         self.scene().addItem(selection_item)
         selection_item.grabMouse()
         self.setInteractionFlag("selection")
@@ -81,7 +84,9 @@ class LaserGraphicsView(OverlayGraphicsView):
             if isinstance(item, SnapImageSelectionItem):
                 self.scene().removeItem(item)
 
-        selection_item = RectImageSelectionItem(allowed_item_types=LaserImageItem, parent=None)
+        selection_item = RectImageSelectionItem(
+            allowed_item_types=LaserImageItem, parent=None
+        )
         self.scene().addItem(selection_item)
         selection_item.grabMouse()
         self.setInteractionFlag("selection")
@@ -127,17 +132,24 @@ class LaserGraphicsView(OverlayGraphicsView):
                 self.scene().removeItem(item)
         self.setInteractionFlag("widget", False)
 
-    def startTransformScale(self, item: Optional[SnapImageItem]) -> None:
-        item = self.scene().focusItem()
-        # print(item)
+    def startTransformScale(self, item: Optional[SnapImageItem] = None) -> None:
+        if item is None:
+            item = self.scene().focusItem()
         if not isinstance(item, SnapImageItem):
             return
 
         widget = TransformHandlesItem(item=item)
-        print(widget)
         self.scene().addItem(widget)
         widget.grabMouse()
         self.setInteractionFlag("transform")
+
+    def resetTransform(self, item: Optional[SnapImageItem] = None) -> None:
+        self.endTransform()
+        if item is None:
+            item = self.scene().focusItem()
+        if not isinstance(item, SnapImageItem):
+            return
+        item.resetTransform()
 
     def endTransform(self) -> None:
         for item in self.items():
@@ -155,7 +167,10 @@ class LaserGraphicsView(OverlayGraphicsView):
         for item in self.items():
             if isinstance(item, SnapImageItem) and item.isVisible():
                 rect = rect.united(item.sceneBoundingRect())
-        self.fitInView(rect.marginsAdded(QtCore.QMarginsF(50, 50, 50, 50)), QtCore.Qt.KeepAspectRatio)
+        self.fitInView(
+            rect.marginsAdded(QtCore.QMarginsF(50, 50, 50, 50)),
+            QtCore.Qt.KeepAspectRatio,
+        )
 
         # Get the actual bounding rect
         super().zoomReset()

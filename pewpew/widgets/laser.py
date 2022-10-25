@@ -246,11 +246,20 @@ class LaserTabWidget(TabViewWidget):
             "Select and display a 1-dimensional slice of the image.",
             self.graphics.startSliceWidget,
         )
+
+
+        # === Toolbar transform actions ===
         self.action_tranform_resize = qAction(
-            "transform-scale",
-            "Scale",
+            "node-transform",
+            "Scale and Rotate",
             "Scale the image, this will not affect the pixel size!",
-            self.graphics.startTransformScale,
+            lambda: self.graphics.startTransformScale(None),
+        )
+        self.action_tranform_reset = qAction(
+            "edit-reset",
+            "Reset Transform",
+            "Resets the image transformation.",
+            lambda: self.graphics.resetTransform(None),
         )
 
         # === Toolbart view actions ===
@@ -285,7 +294,7 @@ class LaserTabWidget(TabViewWidget):
         self.laser_controls.toolbar.addSeparator()
         self.laser_controls.toolbar.addActions([self.action_ruler, self.action_slice])
 
-        self.image_controls.toolbar.addActions([self.action_tranform_resize])
+        self.image_controls.toolbar.addActions([self.action_tranform_resize, self.action_tranform_reset])
         self.image_controls.toolbar.addActions([self.action_ruler])
 
         self.graphics.viewport().installEventFilter(DragDropRedirectFilter(self))
@@ -338,9 +347,12 @@ class LaserTabWidget(TabViewWidget):
         item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
         item.requestDialog.connect(self.openDialog)
 
+
         self.updateForItem(item)
         self.graphics.scene().addItem(item)
         self.graphics.zoomReset()
+
+        self.graphics.startTransformScale(item)
 
     def laserItems(self) -> List[LaserImageItem]:
         return [
