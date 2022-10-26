@@ -1,6 +1,7 @@
 from PySide6 import QtCore, QtGui, QtWidgets
+import numpy as np
 
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 
 def rectf_to_polygonf(rect: QtCore.QRectF) -> QtGui.QPolygonF:
@@ -11,61 +12,22 @@ def rectf_to_polygonf(rect: QtCore.QRectF) -> QtGui.QPolygonF:
     return poly
 
 
-class TransformHandlesItem(QtWidgets.QGraphicsObject):
-    """Creates the selected transform handles over an items bounding box.
-    These will affect the item.transform()"""
-
-    corner_order = ["topLeft", "topRight", "bottomRight", "bottomLeft"]
-    edge_order = ["top", "right", "bottom", "left"]
-
-    cursors = {
-        "left": QtCore.Qt.ClosedHandCursor,
-        "right": QtCore.Qt.ClosedHandCursor,
-        "top": QtCore.Qt.ClosedHandCursor,
-        "bottom": QtCore.Qt.ClosedHandCursor,
-        "topLeft": QtCore.Qt.SizeFDiagCursor,
-        "topRight": QtCore.Qt.SizeBDiagCursor,
-        "bottomLeft": QtCore.Qt.SizeBDiagCursor,
-        "bottomRight": QtCore.Qt.SizeFDiagCursor,
-    }
-
-    def __init__(self, item: QtWidgets.QGraphicsItem, handle_size: int = 12):
+class TransformItem(QtWidgets.QGraphicsObject):
+    def __init__(self, item: QtWidgets.QGraphicsItem, handle_size: int):
         super().__init__(item)
 
-        self.transform_handle: Optional[Tuple[str, str]] = None
         self.handle_size = handle_size
+        self.initial_transform = QtGui.QTransform(self.parentItem().transform())
 
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton | QtCore.Qt.MiddleButton)
         self.setZValue(item.zValue() + 1.0)
 
-    def shape(self) -> QtGui.QPainterPath:
-        corners = self.corners()
-        edges = self.edges()
-        path = QtGui.QPainterPath()
-        path.setFillRule(QtCore.Qt.WindingFill)
-        path.addPolygon(corners)
-
-        view = next(iter(self.scene().views()))
-        if view is not None:
-            adjust = (
-                view.mapToScene(QtCore.QRect(0, 0, self.handle_size, self.handle_size))
-                .boundingRect()
-                .width()
-            )
-
-            for point in corners + edges:
-                path.addEllipse(point, adjust, adjust)
-
-        return path
+    def boundingRect(self) -> QtCore.QRectF:
+        rect = self.parentItem().boundingRect()
+        return rect
 
     def center(self) -> QtCore.QPointF:
         return self.parentItem().boundingRect().center()
-
-    def boundingRect(self) -> QtCore.QRectF:
-        rect = self.parentItem().boundingRect()
-        adjust = self.maxHandleDist()
-        rect = rect.adjusted(-adjust, -adjust, adjust, adjust)
-        return rect
 
     def corners(self) -> QtGui.QPolygonF:
         return rectf_to_polygonf(self.parentItem().boundingRect())
@@ -91,9 +53,212 @@ class TransformHandlesItem(QtWidgets.QGraphicsObject):
             self.parentItem()
             .deviceTransform(view.transform())
             .inverted()[0]
-            .mapRect(QtCore.QRect(0, 0, self.handle_size, self.handle_size))
+            .mapRect(QtCore.QRect(0, 0, self.handle_size, self.handle_size))  # type: ignore
             .width()
         )
+
+
+class TransformAffineItem(TransformItem):
+    def __init__(self, item: QtWidgets.QGraphicsItem, handle_size: int = 12):
+        super().__init__(item, handle_size)
+
+        # List of (start, end) points for affine transform
+        self.handles: List[QtCore.QPointF] = []
+        self.transform_handle: Optional[int] = None
+
+    def boundingRect(self) -> QtCore.QRectF:
+        adjust = self.maxHandleDist()
+        poly = self.parentItem().mapFromScene(self.handles)
+        return (
+            super()
+            .boundingRect()
+            .united(poly.boundingRect())
+            .adjusted(-adjust, -adjust, adjust, adjust)
+        )
+
+    def shape(self) -> QtGui.QPainterPath:
+        corners = self.corners()
+        path = QtGui.QPainterPath()
+        path.setFillRule(QtCore.Qt.WindingFill)
+        path.addPolygon(corners)
+
+        view = next(iter(self.scene().views()))
+        if view is not None:
+            adjust = (
+                view.mapToScene(QtCore.QRect(0, 0, self.handle_size, self.handle_size))
+                .boundingRect()
+                .width()
+            )
+
+            poly = self.parentItem().mapFromScene(self.handles)
+            for point in poly:  # type: ignore
+                path.addEllipse(point, adjust, adjust)
+
+        return path
+
+    def handleAt(self, pos: QtCore.QPointF) -> Optional[int]:
+        max_dist = self.maxHandleDist()
+        result = None
+
+        for i, point in enumerate(self.handles):
+            dist = QtCore.QLineF(pos, point).length()
+            if dist - 1e-5 < max_dist:
+                result = i
+                max_dist = dist
+
+        return result
+
+    def calculateTransform(self) -> QtGui.QTransform:
+        if len(self.handles) != 6:
+            return QtGui.QTransform()
+
+        xs = [p.x() for p in self.handles[::2]]
+        ys = [p.y() for p in self.handles[::2]]
+        us = [p.x() for p in self.handles[1::2]]
+        vs = [p.y() for p in self.handles[1::2]]
+
+        A = np.array([xs, ys, np.ones(3)])
+        B = np.array([us, vs, np.ones(3)])
+        C = np.dot(B, np.linalg.inv(A))
+
+        return QtGui.QTransform(C[0, 0], C[1, 0], C[0, 1], C[1, 1], C[0, 2], C[1, 2])
+
+    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        if event.button() & QtCore.Qt.LeftButton:
+            if len(self.handles) < 6:
+                self.handles.extend([event.scenePos(), event.scenePos()])
+                self.prepareGeometryChange()
+                event.accept()
+                return
+
+            self.transform_handle = self.handleAt(event.scenePos())
+            if self.transform_handle is not None:
+                event.accept()
+                return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        if not event.buttons() & (QtCore.Qt.LeftButton | QtCore.Qt.MiddleButton):
+            return
+
+        if self.transform_handle is None:
+            return
+
+        self.handles[self.transform_handle] = event.scenePos()
+
+        if self.transform_handle % 2 == 1:
+            self.parentItem().setTransform(self.calculateTransform())
+        else:
+            self.parentItem().setTransform(self.initial_transform)
+
+        self.prepareGeometryChange()
+
+    def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        if event.button() not in [QtCore.Qt.LeftButton, QtCore.Qt.MiddleButton]:
+            return
+        if self.transform_handle is not None and self.transform_handle % 2 == 0:
+            self.parentItem().setTransform(self.calculateTransform())
+            self.prepareGeometryChange()
+
+        self.unsetCursor()
+        self.transform_handle = None
+
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: Optional[QtWidgets.QWidget] = None,
+    ):
+        painter.save()
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        starts = self.parentItem().mapFromScene(self.handles[::2])
+        ends = self.parentItem().mapFromScene(self.handles[1::2])
+
+        pen = QtGui.QPen(QtGui.QColor(0, 0, 0), 2.0, QtCore.Qt.DotLine)
+        pen.setCosmetic(True)
+
+        painter.setPen(pen)
+        for s, e in zip(starts, ends):  # type: ignore
+            painter.drawLine(s, e)
+
+        pen.setWidth(self.handle_size + 2)
+
+        pen.setCapStyle(QtCore.Qt.RoundCap)
+        painter.setPen(pen)
+        painter.drawPoints(starts)
+
+        pen.setCapStyle(QtCore.Qt.SquareCap)
+        painter.setPen(pen)
+        painter.drawPoints(ends)
+
+        pen.setWidth(self.handle_size)
+
+        pen.setColor(QtGui.QColor(128, 128, 128))
+        pen.setCapStyle(QtCore.Qt.RoundCap)
+        painter.setPen(pen)
+        painter.drawPoints(starts)
+
+        pen.setColor(QtGui.QColor(255, 255, 255))
+        pen.setCapStyle(QtCore.Qt.SquareCap)
+        painter.setPen(pen)
+        painter.drawPoints(ends)
+
+        pen.setWidth(1)
+        pen.setStyle(QtCore.Qt.SolidLine)
+        painter.setPen(pen)
+        painter.drawConvexPolygon(rectf_to_polygonf(self.parentItem().boundingRect()))
+
+        painter.restore()
+
+
+class TransformScaleRotateItem(TransformItem):
+    """Creates the selected transform handles over an items bounding box.
+    These will affect the item.transform()"""
+
+    corner_order = ["topLeft", "topRight", "bottomRight", "bottomLeft"]
+    edge_order = ["top", "right", "bottom", "left"]
+
+    cursors = {
+        "left": QtCore.Qt.ClosedHandCursor,
+        "right": QtCore.Qt.ClosedHandCursor,
+        "top": QtCore.Qt.ClosedHandCursor,
+        "bottom": QtCore.Qt.ClosedHandCursor,
+        "topLeft": QtCore.Qt.SizeFDiagCursor,
+        "topRight": QtCore.Qt.SizeBDiagCursor,
+        "bottomLeft": QtCore.Qt.SizeBDiagCursor,
+        "bottomRight": QtCore.Qt.SizeFDiagCursor,
+    }
+
+    def __init__(self, item: QtWidgets.QGraphicsItem, handle_size: int = 12):
+        super().__init__(item, handle_size)
+
+        self.transform_handle: Optional[Tuple[str, str]] = None
+
+    def shape(self) -> QtGui.QPainterPath:
+        corners = self.corners()
+        edges = self.edges()
+        path = QtGui.QPainterPath()
+        path.setFillRule(QtCore.Qt.WindingFill)
+        path.addPolygon(corners)
+
+        view = next(iter(self.scene().views()))
+        if view is not None:
+            adjust = (
+                view.mapToScene(QtCore.QRect(0, 0, self.handle_size, self.handle_size))
+                .boundingRect()
+                .width()
+            )
+
+            for point in corners + edges:
+                path.addEllipse(point, adjust, adjust)
+
+        return path
+
+    def boundingRect(self) -> QtCore.QRectF:
+        rect = self.parentItem().boundingRect()
+        adjust = self.maxHandleDist()
+        rect = rect.adjusted(-adjust, -adjust, adjust, adjust)
+        return rect
 
     def handleAt(self, pos: QtCore.QPointF) -> Optional[Tuple[str, str]]:
         max_dist = self.maxHandleDist()
@@ -116,10 +281,10 @@ class TransformHandlesItem(QtWidgets.QGraphicsObject):
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if event.button() & QtCore.Qt.LeftButton:
-            self.transformHandle = self.handleAt(event.pos())
-            if self.transformHandle is not None:
+            self.transform_handle = self.handleAt(event.pos())
+            if self.transform_handle is not None:
                 event.accept()
-                self.setCursor(self.cursors[self.transformHandle[1]])
+                self.setCursor(self.cursors[self.transform_handle[1]])
                 return
         super().mousePressEvent(event)
 
@@ -127,32 +292,32 @@ class TransformHandlesItem(QtWidgets.QGraphicsObject):
         if not event.buttons() & (QtCore.Qt.LeftButton | QtCore.Qt.MiddleButton):
             return
 
-        if self.transformHandle is None:
+        if self.transform_handle is None:
             dx = event.scenePos().x() - event.lastScenePos().x()
             dy = event.scenePos().y() - event.lastScenePos().y()
             self.parentItem().moveBy(dx, dy)
             return
 
         poly = self.parentItem().mapToScene(self.corners())
-        if self.transformHandle[0] == "corner":
+        if self.transform_handle[0] == "corner":
             square = QtGui.QTransform.quadToSquare(poly)
             new_pos = square.map(event.scenePos())  # type: ignore
             unit_rect = QtCore.QRectF(0.0, 0.0, 1.0, 1.0)
-            if self.transformHandle[1] == "topLeft":
+            if self.transform_handle[1] == "topLeft":
                 unit_rect.setTopLeft(new_pos)
-            elif self.transformHandle[1] == "topRight":
+            elif self.transform_handle[1] == "topRight":
                 unit_rect.setTopRight(new_pos)
-            elif self.transformHandle[1] == "bottomRight":
+            elif self.transform_handle[1] == "bottomRight":
                 unit_rect.setBottomRight(new_pos)
-            elif self.transformHandle[1] == "bottomLeft":
+            elif self.transform_handle[1] == "bottomLeft":
                 unit_rect.setBottomLeft(new_pos)
 
             if not QtCore.Qt.ShiftModifier & event.modifiers():
-                if "top" in self.transformHandle[1]:
+                if "top" in self.transform_handle[1]:
                     unit_rect.setWidth(unit_rect.height())
                 else:
                     unit_rect.setHeight(unit_rect.width())
-                if self.transformHandle[1] == "topLeft":
+                if self.transform_handle[1] == "topLeft":
                     unit_rect.moveBottomRight(QtCore.QPointF(1.0, 1.0))
 
             invert, ok = square.inverted()  # type: ignore
@@ -161,10 +326,10 @@ class TransformHandlesItem(QtWidgets.QGraphicsObject):
 
             poly = invert.map(rectf_to_polygonf(unit_rect))
 
-        elif self.transformHandle[0] == "edge":
+        elif self.transform_handle[0] == "edge":
             center = self.parentItem().mapToScene(self.center())
             edge = self.parentItem().mapToScene(
-                self.edges().at(self.edge_order.index(self.transformHandle[1]))
+                self.edges().at(self.edge_order.index(self.transform_handle[1]))
             )
 
             line_to = QtCore.QLineF(center, event.scenePos())
@@ -187,7 +352,7 @@ class TransformHandlesItem(QtWidgets.QGraphicsObject):
         if event.button() not in [QtCore.Qt.LeftButton, QtCore.Qt.MiddleButton]:
             return
         self.unsetCursor()
-        self.transformHandle = None
+        self.transform_handle = None
 
     def paint(
         self,
@@ -205,27 +370,21 @@ class TransformHandlesItem(QtWidgets.QGraphicsObject):
         pen = QtGui.QPen(QtGui.QColor(0, 0, 0), self.handle_size + 2)
         pen.setCosmetic(True)
 
+        # Outside
         painter.setPen(pen)
-        # if "translate" in self.use_anchors:
-        #     painter.drawPoint(center)
-        # if "scale" in self.use_anchors:
         painter.drawPoints(corners)
 
-        # if "rotate" in self.use_anchors:
         pen.setCapStyle(QtCore.Qt.RoundCap)
         painter.setPen(pen)
         painter.drawPoints(edges)
 
+        # Inside
         pen.setCapStyle(QtCore.Qt.SquareCap)
         pen.setColor(QtGui.QColor(255, 255, 255))
         pen.setWidth(self.handle_size)
         painter.setPen(pen)
-        # if "transform" in self.use_anchors:
-        # painter.drawPoint(center)
-        # if "scale" in self.use_anchors:
         painter.drawPoints(corners)
 
-        # if "rotate" in self.use_anchors:
         pen.setCapStyle(QtCore.Qt.RoundCap)
         painter.setPen(pen)
         painter.drawPoints(edges)
