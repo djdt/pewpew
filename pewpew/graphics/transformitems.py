@@ -134,10 +134,9 @@ class TransformHandlesItem(QtWidgets.QGraphicsObject):
             return
 
         poly = self.parentItem().mapToScene(self.corners())
-
         if self.transformHandle[0] == "corner":
             square = QtGui.QTransform.quadToSquare(poly)
-            new_pos = square.map(event.scenePos())
+            new_pos = square.map(event.scenePos())  # type: ignore
             unit_rect = QtCore.QRectF(0.0, 0.0, 1.0, 1.0)
             if self.transformHandle[1] == "topLeft":
                 unit_rect.setTopLeft(new_pos)
@@ -147,9 +146,19 @@ class TransformHandlesItem(QtWidgets.QGraphicsObject):
                 unit_rect.setBottomRight(new_pos)
             elif self.transformHandle[1] == "bottomLeft":
                 unit_rect.setBottomLeft(new_pos)
-            invert, ok = square.inverted()
+
+            if not QtCore.Qt.ShiftModifier & event.modifiers():
+                if "top" in self.transformHandle[1]:
+                    unit_rect.setWidth(unit_rect.height())
+                else:
+                    unit_rect.setHeight(unit_rect.width())
+                if self.transformHandle[1] == "topLeft":
+                    unit_rect.moveBottomRight(QtCore.QPointF(1.0, 1.0))
+
+            invert, ok = square.inverted()  # type: ignore
             if not ok:
                 raise ValueError("Invalid inverse square transformation.")
+
             poly = invert.map(rectf_to_polygonf(unit_rect))
 
         elif self.transformHandle[0] == "edge":
@@ -157,9 +166,12 @@ class TransformHandlesItem(QtWidgets.QGraphicsObject):
             edge = self.parentItem().mapToScene(
                 self.edges().at(self.edge_order.index(self.transformHandle[1]))
             )
-            angle = QtCore.QLineF(center, edge).angleTo(
-                QtCore.QLineF(center, event.scenePos())
-            )
+
+            line_to = QtCore.QLineF(center, event.scenePos())
+            if QtCore.Qt.ShiftModifier & event.modifiers():
+                line_to.setAngle(line_to.angle() - line_to.angle() % 45)
+            angle = QtCore.QLineF(center, edge).angleTo(line_to)
+
             lines = [QtCore.QLineF(center, p) for p in poly]
             for line in lines:
                 line.setAngle(line.angle() + angle)
