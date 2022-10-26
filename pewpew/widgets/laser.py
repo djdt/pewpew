@@ -247,15 +247,20 @@ class LaserTabWidget(TabViewWidget):
             self.graphics.startSliceWidget,
         )
 
-
         # === Toolbar transform actions ===
-        self.action_tranform_resize = qAction(
-            "node-transform",
+        self.action_transform_affine = qAction(
+            "node-segment-line",
+            "3-Point Affine",
+            "Use an affine point tool for transformation, this will not affect the pixel size!",
+            lambda: self.graphics.startTransformAffine(None),
+        )
+        self.action_transform_scale = qAction(
+            "transform-rotate",
             "Scale and Rotate",
-            "Scale the image, this will not affect the pixel size!",
+            "Scale and rotate image, this will not affect the pixel size!",
             lambda: self.graphics.startTransformScale(None),
         )
-        self.action_tranform_reset = qAction(
+        self.action_transform_reset = qAction(
             "edit-reset",
             "Reset Transform",
             "Resets the image transformation.",
@@ -294,7 +299,13 @@ class LaserTabWidget(TabViewWidget):
         self.laser_controls.toolbar.addSeparator()
         self.laser_controls.toolbar.addActions([self.action_ruler, self.action_slice])
 
-        self.image_controls.toolbar.addActions([self.action_tranform_resize, self.action_tranform_reset])
+        self.image_controls.toolbar.addActions(
+            [
+                self.action_transform_affine,
+                self.action_transform_scale,
+                self.action_transform_reset,
+            ]
+        )
         self.image_controls.toolbar.addActions([self.action_ruler])
 
         self.graphics.viewport().installEventFilter(DragDropRedirectFilter(self))
@@ -347,12 +358,9 @@ class LaserTabWidget(TabViewWidget):
         item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
         item.requestDialog.connect(self.openDialog)
 
-
         self.updateForItem(item)
         self.graphics.scene().addItem(item)
         self.graphics.zoomReset()
-
-        self.graphics.startTransformScale(item)
 
     def laserItems(self) -> List[LaserImageItem]:
         return [
@@ -600,9 +608,13 @@ class LaserTabWidget(TabViewWidget):
                     npy = np.load(fp)
                     calibrations = {k: Calibration.from_array(npy[k]) for k in npy}
                 self.applyCalibration(calibrations)
-        elif event.matches(QtGui.QKeySequence.Save) and isinstance(item, LaserImageItem):
+        elif event.matches(QtGui.QKeySequence.Save) and isinstance(
+            item, LaserImageItem
+        ):
             self.dialogSave(item)
-        elif event.matches(QtGui.QKeySequence.SaveAs) and isinstance(item, LaserImageItem):
+        elif event.matches(QtGui.QKeySequence.SaveAs) and isinstance(
+            item, LaserImageItem
+        ):
             self.dialogExport(item)
         elif event.matches(QtGui.QKeySequence.Close) and item is not None:
             item.close()

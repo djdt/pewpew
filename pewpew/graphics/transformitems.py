@@ -3,6 +3,7 @@ import numpy as np
 
 from typing import List, Optional, Tuple
 
+# Todo affine transform not work with position change
 
 def rectf_to_polygonf(rect: QtCore.QRectF) -> QtGui.QPolygonF:
     # QtGui.QPolygonF(rect) returns 5 points, not per qt documentation
@@ -58,7 +59,7 @@ class TransformItem(QtWidgets.QGraphicsObject):
         )
 
 
-class TransformAffineItem(TransformItem):
+class AffineTransformItem(TransformItem):
     def __init__(self, item: QtWidgets.QGraphicsItem, handle_size: int = 12):
         super().__init__(item, handle_size)
 
@@ -211,7 +212,7 @@ class TransformAffineItem(TransformItem):
         painter.restore()
 
 
-class TransformScaleRotateItem(TransformItem):
+class ScaleRotateTransformItem(TransformItem):
     """Creates the selected transform handles over an items bounding box.
     These will affect the item.transform()"""
 

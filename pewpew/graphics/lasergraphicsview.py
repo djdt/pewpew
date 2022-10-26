@@ -7,7 +7,11 @@ from pewpew.graphics.selectionitems import (
     RectImageSelectionItem,
     SnapImageSelectionItem,
 )
-from pewpew.graphics.transformitems import TransformAffineItem, TransformScaleRotateItem
+from pewpew.graphics.transformitems import (
+    TransformItem,
+    AffineTransformItem,
+    ScaleRotateTransformItem,
+)
 from pewpew.graphics.widgetitems import (
     ImageSliceWidgetItem,
     RulerWidgetItem,
@@ -132,13 +136,24 @@ class LaserGraphicsView(OverlayGraphicsView):
                 self.scene().removeItem(item)
         self.setInteractionFlag("widget", False)
 
+    def startTransformAffine(self, item: Optional[SnapImageItem] = None) -> None:
+        if item is None:
+            item = self.scene().focusItem()
+        if not isinstance(item, SnapImageItem):
+            return
+
+        widget = AffineTransformItem(item)
+        self.scene().addItem(widget)
+        widget.grabMouse()
+        self.setInteractionFlag("transform")
+
     def startTransformScale(self, item: Optional[SnapImageItem] = None) -> None:
         if item is None:
             item = self.scene().focusItem()
         if not isinstance(item, SnapImageItem):
             return
 
-        widget = TransformAffineItem(item=item)
+        widget = ScaleRotateTransformItem(item)
         self.scene().addItem(widget)
         widget.grabMouse()
         self.setInteractionFlag("transform")
@@ -153,7 +168,7 @@ class LaserGraphicsView(OverlayGraphicsView):
 
     def endTransform(self) -> None:
         for item in self.items():
-            if isinstance(item, TransformHandlesItem):
+            if isinstance(item, TransformItem):
                 self.scene().removeItem(item)
         self.setInteractionFlag("transform", False)
 
