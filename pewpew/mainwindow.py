@@ -4,7 +4,7 @@ from typing import Optional
 
 from PySide6 import QtGui, QtWidgets
 
-from pewlib.config import SpotConfig
+from pewlib.config import Config, SpotConfig
 
 from pewpew import __version__
 
@@ -65,6 +65,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar().addPermanentWidget(self.button_status_index)
 
         self.updateActionAvailablity()
+
+        self.default_config = Config()
 
     def createActions(self) -> None:
         self.action_about = qAction(
@@ -451,7 +453,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def dialogConfig(self) -> QtWidgets.QDialog:
         """Open a `:class:pewpew.widgets.dialogs.ConfigDialog` and apply result."""
         # Todo Potential config item
-        dlg = dialogs.ConfigDialog(self.config, parent=self)
+        dlg = dialogs.ConfigDialog(self.default_config, parent=self)
         dlg.check_all.setChecked(True)
         dlg.check_all.setEnabled(False)
         dlg.configApplyAll.connect(self.tabview.applyConfig)
