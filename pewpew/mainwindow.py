@@ -9,6 +9,7 @@ from pewlib.config import SpotConfig
 from pewpew import __version__
 
 from pewpew.actions import qAction, qActionGroup
+from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.log import LoggingDialog
 from pewpew.help import HelpDialog
 from pewpew.widgets import dialogs
@@ -170,14 +171,31 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_toggle_scalebar.setCheckable(True)
         self.action_toggle_scalebar.setChecked(self.tabview.options.scalebar)
 
-        self.action_tools = [
+        self.actions_tools = [
             qAction(
-                icon or "document-properties",
-                name,
-                desc,
-                lambda: self.openTool(tool, name),
-            )
-            for name, (tool, icon, desc) in self.ENABLED_TOOLS.items()
+                "folder-calculate",
+                "Calculator",
+                "Open the calculator tool for the current laser image.",
+                lambda: self.openTool("Calculator"),
+            ),
+            qAction(
+                "view-filter",
+                "Filter",
+                "Apply various windowed filters to remove noise.",
+                lambda: self.openTool("Filtering"),
+            ),
+            qAction(
+                "dialog-layers",
+                "Overlay",
+                "Tool for visualising multiple elements at once.",
+                lambda: self.openTool("Overlay"),
+            ),
+            qAction(
+                "labplot-xy-fit-curve",
+                "Standards",
+                "Create calibrations from areas of the current laser.",
+                lambda: self.openTool("Standards"),
+            ),
         ]
 
         self.action_transforms = [
@@ -256,7 +274,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Tools
         menu_tools = self.menuBar().addMenu("&Tools")
-        for action in self.action_tools:
+        for action in self.actions_tools:
             menu_tools.addAction(action)
 
         # View
@@ -373,18 +391,13 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.open()
         return dlg
 
-    def openTool(self, tool: ToolWidget, name: str) -> None:
+    def openTool(self, name: str) -> None:
         widget = self.tabview.activeWidget()
-        if widget is None:
+        if widget is None or not isinstance(widget, LaserTabWidget):
             return
-        index = widget.index
-        if isinstance(widget, ToolWidget):
-            widget = widget.widget
-        tool = tool(widget)
-        name = f"{name}: {widget.laserName()}"
-        widget.view.removeTab(index)
-        widget.view.insertTab(index, name, tool)
-        tool.activate()
+        item = widget.graphics.scene().focusItem()
+        if isinstance(item, LaserImageItem):
+            widget.openTool(name, item)
 
     def actionTransform(
         self, flip: Optional[str] = None, rotate: Optional[str] = None
@@ -416,16 +429,18 @@ class MainWindow(QtWidgets.QMainWindow):
     def dialogColortableRange(self) -> QtWidgets.QDialog:
         """Open a `:class:pewpew.widgets.dialogs.ColorRangeDialog` and apply result."""
 
-        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
+        def applyDialog(dialog: dialogs.ColorRangeDialog) -> None:
             self.tabview.options.color_ranges = dialog.ranges
             self.tabview.options.color_range_default = dialog.default_range
             self.tabview.refresh()
 
+        item = self.tabview.focusLaserItem()
+
         dlg = dialogs.ColorRangeDialog(
             self.tabview.options.color_ranges,
             self.tabview.options.color_range_default,
-            self.uniqueElements(),
-            current_element=self.currentElement(),
+            self.tabview.uniqueElements(),
+            current_element=item.element() if item is not None else None,
             parent=self,
         )
         dlg.combo_element.currentTextChanged.connect(self.setCurrentElement)
@@ -435,10 +450,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def dialogConfig(self) -> QtWidgets.QDialog:
         """Open a `:class:pewpew.widgets.dialogs.ConfigDialog` and apply result."""
+        # Todo Potential config item
         dlg = dialogs.ConfigDialog(self.config, parent=self)
         dlg.check_all.setChecked(True)
         dlg.check_all.setEnabled(False)
-        dlg.configApplyAll.connect(self.applyConfig)
+        dlg.configApplyAll.connect(self.tabview.applyConfig)
         dlg.open()
         return dlg
 
@@ -464,14 +480,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def updateActionAvailablity(self) -> None:
         """Enables tools if at least one view is present."""
-        enabled = self.tabview.tabs.count() > 0
-        self.action_export_all.setEnabled(enabled)
+        items = self.tabview.laserItems()
+        self.action_export_all.setEnabled(len(items) > 0)
 
         # Tools require an active view
-        enabled = enabled and self.tabview.tabs.count() > 0
-
-        for action in self.action_tools:
-            action.setEnabled(enabled)
+        focus_item = self.tabview.focusLaserItem()
+        for action in self.actions_tools:
+            action.setEnabled(len(items) > 0 and focus_item is not None)
 
     def exceptHook(
         self, etype: type, value: BaseException, tb: TracebackType

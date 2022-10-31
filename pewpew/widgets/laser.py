@@ -133,6 +133,23 @@ class LaserTabView(TabView):
                 for item in widget.laserItems():
                     item.applyConfig(config)
 
+    def laserItems(self) -> List[LaserImageItem]:
+        items = []
+        for widget in self.widgets():
+            if isinstance(widget, LaserTabWidget):
+                items.extend(widget.laserItems())
+        return items
+    
+    def focusLaserItem(self) -> Optional[LaserImageItem]:
+        widget = self.activeWidget()
+        if isinstance(widget, LaserTabWidget):
+            item = widget.graphics.scene().focusItem()
+            if isinstance(item, LaserImageItem):
+                return item
+
+        return None
+
+
     # Actions
     # def actionOpenLaser(self) -> QtWidgets.QDialog:
     #     """Opens a file dialog for loading new lasers."""
@@ -178,6 +195,10 @@ class LaserTabView(TabView):
 
 
 class LaserTabWidget(TabViewWidget):
+    # Todo connect to graphics scene num changed?
+    numberImageItemsChanged = QtCore.Signal(int)
+    numberLaserItemsChanged = QtCore.Signal(int)
+
     """Class that stores and displays a laser image.
 
     Tracks modification of the data, config, calibration and information.
