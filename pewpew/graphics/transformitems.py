@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple
 
 # Todo affine transform not work with position change
 
+
 def rectf_to_polygonf(rect: QtCore.QRectF) -> QtGui.QPolygonF:
     # QtGui.QPolygonF(rect) returns 5 points, not per qt documentation
     # topLeft, topRight, bottomRight, bottomLeft
@@ -113,10 +114,13 @@ class AffineTransformItem(TransformItem):
         if len(self.handles) != 6:
             return QtGui.QTransform()
 
-        xs = [p.x() for p in self.handles[::2]]
-        ys = [p.y() for p in self.handles[::2]]
-        us = [p.x() for p in self.handles[1::2]]
-        vs = [p.y() for p in self.handles[1::2]]
+        # Remove position offset
+        pos = self.parentItem().pos()
+
+        xs = [p.x() - pos.x() for p in self.handles[::2]]
+        ys = [p.y() - pos.y() for p in self.handles[::2]]
+        us = [p.x() - pos.x() for p in self.handles[1::2]]
+        vs = [p.y() - pos.y() for p in self.handles[1::2]]
 
         A = np.array([xs, ys, np.ones(3)])
         B = np.array([us, vs, np.ones(3)])
