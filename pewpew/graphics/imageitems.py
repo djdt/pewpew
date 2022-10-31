@@ -418,6 +418,7 @@ class LaserImageItem(SnapImageItem):
         return self.raw_data
 
     def redraw(self) -> None:
+        # Todo clear old bounding box
         data = self.laser.get(
             self.element(), calibrate=self.options.calibrate, flat=True
         )
@@ -441,6 +442,8 @@ class LaserImageItem(SnapImageItem):
 
         # self.colortableChanged.emit(table, self.vmin, self.vmax, unit)
         self.colorbar.updateTable(table, self.vmin, self.vmax, unit)
+        # Update the colorbar position in case the image aspect has changed
+        self.colorbar.setPos(self.boundingRect().bottomLeft())
         self.imageChanged.emit()
         self.update()
 
