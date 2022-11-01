@@ -437,7 +437,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tabview.refresh()
 
         item = self.tabview.focusLaserItem()
-
         dlg = dialogs.ColorRangeDialog(
             self.tabview.options.color_ranges,
             self.tabview.options.color_range_default,
@@ -445,7 +444,7 @@ class MainWindow(QtWidgets.QMainWindow):
             current_element=item.element() if item is not None else None,
             parent=self,
         )
-        dlg.combo_element.currentTextChanged.connect(self.setCurrentElement)
+        dlg.combo_element.currentTextChanged.connect(self.tabview.setElement)
         dlg.applyPressed.connect(applyDialog)
         dlg.open()
         return dlg

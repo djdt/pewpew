@@ -139,7 +139,7 @@ class LaserTabView(TabView):
             if isinstance(widget, LaserTabWidget):
                 items.extend(widget.laserItems())
         return items
-    
+
     def focusLaserItem(self) -> Optional[LaserImageItem]:
         widget = self.activeWidget()
         if isinstance(widget, LaserTabWidget):
@@ -149,6 +149,17 @@ class LaserTabView(TabView):
 
         return None
 
+    def uniqueElements(self) -> List[str]:
+        elements = set([])
+        for widget in self.widgets():
+            if isinstance(widget, LaserTabWidget):
+                elements.update(widget.uniqueElements())
+        return list(elements)
+
+    def setElement(self, element: str) -> None:
+        for widget in self.widgets():
+            if isinstance(widget, LaserTabWidget):
+                widget.laser_controls.elements.setCurrentText(element)
 
     # Actions
     # def actionOpenLaser(self) -> QtWidgets.QDialog:
