@@ -38,7 +38,7 @@ class GraphicsOptions(QtCore.QObject):
         # Todo: maybe alignments here?
         self.colortable = "viridis"
         self.color_ranges: Dict[str, Tuple[Union[float, str], Union[float, str]]] = {}
-        self.color_range_default = (0.0, "99%")
+        self.color_range_default: Tuple[Union[float, str], Union[float, str]] = (0.0, "99%")
 
         self.nan_color = QtGui.QColor(0, 0, 0)
 
