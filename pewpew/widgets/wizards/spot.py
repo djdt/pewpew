@@ -458,8 +458,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self._infos = infos
         self.infoChanged.emit()
 
-
-    def getPeaks(self) -> [np.ndarray]:
+    def getPeaks(self) -> np.ndarray | None:
         return self.peaks
 
     def setPeaks(self, peaks: np.ndarray) -> None:
@@ -672,7 +671,11 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
 
 
 class SpotImagePage(QtWidgets.QWizardPage):
-    def __init__(self, options: GraphicsOptions | None = None, parent: [QtWidgets.QWidget] = None):
+    def __init__(
+        self,
+        options: GraphicsOptions | None = None,
+        parent: QtWidgets.QWidget | None = None,
+    ):
         super().__init__(parent)
         self.setWindowTitle("Spot Image Preview")
 

@@ -98,7 +98,7 @@ class AffineTransformItem(TransformItem):
 
         return path
 
-    def handleAt(self, pos: QtCore.QPointF) -> [int]:
+    def handleAt(self, pos: QtCore.QPointF) -> int | None:
         max_dist = self.maxHandleDist()
         result = None
 
@@ -237,7 +237,7 @@ class ScaleRotateTransformItem(TransformItem):
     def __init__(self, item: QtWidgets.QGraphicsItem, handle_size: int = 12):
         super().__init__(item, handle_size)
 
-        self.transform_handle: [Tuple[str, str]] = None
+        self.transform_handle: Tuple[str, str] | None = None
 
     def shape(self) -> QtGui.QPainterPath:
         corners = self.corners()
@@ -265,7 +265,7 @@ class ScaleRotateTransformItem(TransformItem):
         rect = rect.adjusted(-adjust, -adjust, adjust, adjust)
         return rect
 
-    def handleAt(self, pos: QtCore.QPointF) -> [Tuple[str, str]]:
+    def handleAt(self, pos: QtCore.QPointF) -> Tuple[str, str] | None:
         max_dist = self.maxHandleDist()
 
         result = None

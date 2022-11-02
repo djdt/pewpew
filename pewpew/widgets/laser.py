@@ -140,13 +140,12 @@ class LaserTabView(TabView):
                 items.extend(widget.laserItems())
         return items
 
-    def focusLaserItem(self) -> [LaserImageItem]:
+    def focusLaserItem(self) -> LaserImageItem | None:
         widget = self.activeWidget()
         if isinstance(widget, LaserTabWidget):
             item = widget.graphics.scene().focusItem()
             if isinstance(item, LaserImageItem):
                 return item
-
         return None
 
     def uniqueElements(self) -> List[str]:
@@ -480,7 +479,7 @@ class LaserTabWidget(TabViewWidget):
     def openDialog(
         self,
         dialog: str,
-        item: [ImageOverlayItem | LaserImageItem] = None,
+        item: ImageOverlayItem | LaserImageItem | None = None,
         selection: bool = False,
     ) -> QtWidgets.QDialog:
         if item is None:
@@ -572,7 +571,7 @@ class LaserTabWidget(TabViewWidget):
 
     def dialogSave(
         self, item: LaserImageItem | None = None
-    ) -> [QtWidgets.QDialog]:
+    ) -> QtWidgets.QDialog | None:
         """Save the document to an '.npz' file.
 
         If not already associated with an '.npz' path a dialog is opened to select one.

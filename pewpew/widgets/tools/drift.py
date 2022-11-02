@@ -112,7 +112,7 @@ class DriftGuideRectItem(ResizeableRectItem):
 
         self.changed = False
 
-    def edgeAt(self, pos: QtCore.QPointF) -> [str]:
+    def edgeAt(self, pos: QtCore.QPointF) -> str | None:
         view = next(iter(self.scene().views()), None)
         if view is None:
             return None
@@ -216,7 +216,7 @@ class DriftGraphicsView(LaserGraphicsView):
         self.guide.setZValue(self.image.zValue() + 1)
         self.scene().addItem(self.guide)
 
-    def driftData(self) -> [np.ndarray]:
+    def driftData(self) -> np.ndarray | None:
         if self.guide is None:
             return None
         rect = self.guide.rect()

@@ -345,7 +345,7 @@ class CalculatorTool(ToolWidget):
             return False
         return True
 
-    def previewData(self, data: np.ndarray) -> [np.ndarray]:
+    def previewData(self, data: np.ndarray) -> np.ndarray | None:
         self.reducer.variables = {name: data[name] for name in data.dtype.names}
         try:
             result = self.reducer.reduce(self.formula.expr)

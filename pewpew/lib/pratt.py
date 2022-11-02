@@ -19,7 +19,7 @@ class ReducerException(Exception):
 class Expr(object):
     """Stores expressions for conversion to string."""
 
-    def __init__(self, value: str, children: [List["Expr"]] = None):
+    def __init__(self, value: str, children: List["Expr"] | None = None):
         self.value = value
         self.children = children
 
@@ -252,7 +252,7 @@ class Parser(object):
     operator_token = "[+\\-\\*/^!=<>?:]+"
     base_tokens = "|".join([function_token, null_token, number_token, operator_token])
 
-    def __init__(self, variables: List[str] = None):
+    def __init__(self, variables: List[str] | None = None):
         self.regexp_number = re.compile(Parser.number_token)
         self.regexp_tokenise = re.compile(f"\\s*({Parser.base_tokens})\\s*")
 

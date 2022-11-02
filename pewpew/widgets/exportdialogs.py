@@ -85,7 +85,7 @@ class ExportOptions(QtWidgets.QWidget):
 
     def __init__(
         self,
-        options: [List[OptionsBox]] = None,
+        options: List[OptionsBox] | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)

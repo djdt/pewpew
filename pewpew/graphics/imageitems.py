@@ -217,7 +217,7 @@ class ScaledImageItem(SnapImageItem):
         cls,
         array: np.ndarray,
         rect: QtCore.QRectF,
-        colortable: [List[int]] = None,
+        colortable: List[int] | None = None,
         parent: QtWidgets.QGraphicsItem | None = None,
     ) -> "ScaledImageItem":
         image = array_to_image(array)
@@ -757,9 +757,7 @@ class LaserImageItem(SnapImageItem):
 
         # new_widget.activate()
 
-    def transform(
-        self, flip: str | None = None, rotate: [str] = None
-    ) -> None:
+    def transform(self, flip: str | None = None, rotate: str | None = None) -> None:
         """Transform the laser data.
 
         Args:

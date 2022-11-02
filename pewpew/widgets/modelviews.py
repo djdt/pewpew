@@ -189,13 +189,13 @@ class BasicTable(QtWidgets.QTableWidget):
             self.item(row, column).text() for column in range(0, self.columnCount())
         ]
 
-    def setColumnText(self, column: int, text: List[str] = None) -> None:
+    def setColumnText(self, column: int, text: List[str] | None = None) -> None:
         if text is not None:
             assert len(text) <= self.rowCount()
         for row in range(0, self.rowCount()):
             self.item(row, column).setText(text[row] if text is not None else "")
 
-    def setRowText(self, row: int, text: List[str] = None) -> None:
+    def setRowText(self, row: int, text: List[str] | None = None) -> None:
         if text is not None:
             assert len(text) <= self.columnCount()
         for column in range(0, self.columnCount()):

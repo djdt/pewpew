@@ -6,7 +6,7 @@ from pewlib.calibration import Calibration
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 
-from typing import Any,  Tuple
+from typing import Any, Tuple
 
 
 class CalibrationPointsTableModel(NumpyArrayTableModel):
@@ -80,7 +80,9 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
 
         self.endResetModel()
 
-    def data(self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole) -> [str]:
+    def data(
+        self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole
+    ) -> str | None:
         """Map np.nan to 'nan'."""
         value = super().data(index, role)
         if value == "nan":
@@ -113,7 +115,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
 
     def headerData(
         self, section: int, orientation: QtCore.Qt.Orientation, role: int
-    ) -> [str]:
+    ) -> str | None:
         if role != QtCore.Qt.DisplayRole:  # pragma: no cover
             return None
 

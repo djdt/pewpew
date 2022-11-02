@@ -299,7 +299,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsObject):
         painter.drawRect(self.rect)
         painter.restore()
 
-    def edgeAt(self, pos: QtCore.QPointF) -> [str]:
+    def edgeAt(self, pos: QtCore.QPointF) -> str | None:
         view = next(iter(self.scene().views()))
         dist = (
             view.mapToScene(QtCore.QRect(0, 0, self.cursor_dist, 1))

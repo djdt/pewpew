@@ -211,7 +211,7 @@ class TabViewBar(QtWidgets.QTabBar):
             super().setTabText(index, text)
             self.tabTextChanged.emit(index, text)
 
-    def tabRenameDialog(self, index: int) -> [QtWidgets.QDialog]:
+    def tabRenameDialog(self, index: int) -> QtWidgets.QDialog | None:
         if index == -1 or not self.view.stack.widget(index).editable:
             return
         dlg = QtWidgets.QInputDialog(self)

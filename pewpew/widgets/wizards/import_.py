@@ -137,7 +137,7 @@ class FormatPage(QtWidgets.QWizardPage):
     def __init__(
         self,
         text: str,
-        page_id_dict: Dict[str, int] = None,
+        page_id_dict: Dict[str, int] | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)

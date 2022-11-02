@@ -4,7 +4,7 @@ import ctypes
 import numpy as np
 import shiboken6
 
-from typing import Any,  Tuple
+from typing import Any, Tuple
 
 
 def array_to_image(array: np.ndarray) -> QtGui.QImage:
@@ -47,8 +47,10 @@ def image_to_array(image: QtGui.QImage, grey: bool = True) -> np.ndarray:
     else:
         image = image.convertToFormat(QtGui.QImage.Format_RGB32)
         channels = 4
-    
-    array = np.array(image.constBits(), np.uint8).reshape((image.height(), image.width(), channels))
+
+    array = np.array(image.constBits(), np.uint8).reshape(
+        (image.height(), image.width(), channels)
+    )
 
     return array
 
@@ -185,7 +187,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
     # Data
     def data(
         self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole
-    ) -> [str]:
+    ) -> str | None:
         if not index.isValid():
             return None
 
@@ -224,7 +226,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         section: int,
         orientation: QtCore.Qt.Orientation,
         role: QtCore.Qt.ItemDataRole,
-    ) -> [str]:
+    ) -> str | None:
         if role != QtCore.Qt.DisplayRole:  # pragma: no cover
             return None
 

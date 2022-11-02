@@ -15,7 +15,7 @@ class SelectionItem(QtWidgets.QGraphicsObject):
 
     def __init__(
         self,
-        modes: [Dict[QtCore.Qt.KeyboardModifier, str]] = None,
+        modes: Dict[QtCore.Qt.KeyboardModifier, str] | None = None,
         parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent)
@@ -44,7 +44,7 @@ class SnapImageSelectionItem(SelectionItem):
 
     def __init__(
         self,
-        modes: [Dict[QtCore.Qt.KeyboardModifier, str]] = None,
+        modes: Dict[QtCore.Qt.KeyboardModifier, str] | None = None,
         allowed_item_types: Tuple[type] = (SnapImageItem),
         parent: QtWidgets.QGraphicsItem | None = None,
     ):
@@ -78,7 +78,7 @@ class LassoImageSelectionItem(SnapImageSelectionItem):
 
     def __init__(
         self,
-        modes: [Dict[QtCore.Qt.KeyboardModifier, str]] = None,
+        modes: Dict[QtCore.Qt.KeyboardModifier, str] | None = None,
         pen: QtGui.QPen | None = None,
         allowed_item_types: Tuple[type] = (SnapImageItem),
         parent: QtWidgets.QGraphicsItem | None = None,
@@ -181,7 +181,7 @@ class RectImageSelectionItem(SnapImageSelectionItem):
 
     def __init__(
         self,
-        modes: [Dict[QtCore.Qt.KeyboardModifier, str]] = None,
+        modes: Dict[QtCore.Qt.KeyboardModifier, str] | None = None,
         pen: QtGui.QPen | None = None,
         allowed_item_types: Tuple[type] = (SnapImageItem),
         parent: QtWidgets.QGraphicsItem | None = None,

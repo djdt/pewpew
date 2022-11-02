@@ -264,7 +264,7 @@ class OverlayItemRow(QtWidgets.QWidget):
         vmax: int,
         color: QtGui.QColor,
         color_pickable: bool = False,
-        parent: ["OverlayRows"] = None,
+        parent: "OverlayRows" | None = None,
     ):
         super().__init__(parent)
 

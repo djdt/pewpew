@@ -401,7 +401,7 @@ class MainWindow(QtWidgets.QMainWindow):
             widget.openTool(name, item)
 
     def actionTransform(
-        self, flip: str | None = None, rotate: [str] = None
+        self, flip: str | None = None, rotate: str | None = None
     ) -> None:
         widget = self.tabview.activeWidget()
         if widget is None:

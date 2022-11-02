@@ -557,7 +557,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self,
         data: np.ndarray,
         mask: np.ndarray | None = None,
-        # colors: List[Tuple[float, ...]] = None,
+        # colors: List[Tuple[float, ...]] | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
         assert data.dtype.names is not None
@@ -1141,7 +1141,7 @@ class StatsDialog(QtWidgets.QDialog):
         mask: np.ndarray,
         units: Dict[str, str],
         element: str,
-        pixel_size: Tuple[float, float] = None,
+        pixel_size: Tuple[float, float] | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
