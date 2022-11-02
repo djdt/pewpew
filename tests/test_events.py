@@ -9,7 +9,7 @@ from pytestqt.qtbot import QtBot
 class EventTestWidget(QtWidgets.QWidget):
     eventSuccess = QtCore.Signal()
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setAcceptDrops(True)
 

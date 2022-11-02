@@ -3,7 +3,7 @@ from PySide6 import QtCharts
 
 import numpy as np
 
-from typing import Dict, Optional
+from typing import Dict
 
 
 class NiceValueAxis(QtCharts.QValueAxis):
@@ -14,7 +14,7 @@ class NiceValueAxis(QtCharts.QValueAxis):
 
     nicenums = [1.0, 1.5, 2.0, 2.5, 3.0, 5.0, 7.5]
 
-    def __init__(self, nticks: int = 6, parent: Optional[QtCore.QObject] = None):
+    def __init__(self, nticks: int = 6, parent: QtCore.QObject | None = None):
         super().__init__(parent)
         self.nticks = nticks
 
@@ -62,12 +62,12 @@ class BaseChart(QtCharts.QChartView):
         chart: QtCharts.QChart,
         theme: Dict[str, QtGui.QColor],
         allow_navigation: bool = False,
-        parent: Optional[QtWidgets.QWidget] = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         self.theme = theme
         self.allow_navigation = allow_navigation
 
-        self.nav_pos: Optional[QtCore.QPointF] = None
+        self.nav_pos: QtCore.QPointF | None = None
 
         chart.setBackgroundBrush(QtGui.QBrush(self.theme["background"]))
         chart.setBackgroundPen(QtGui.QPen(self.theme["background"]))

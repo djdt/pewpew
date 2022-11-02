@@ -4,7 +4,7 @@ import ctypes
 import numpy as np
 import shiboken6
 
-from typing import Any, Optional, Tuple
+from typing import Any,  Tuple
 
 
 def array_to_image(array: np.ndarray) -> QtGui.QImage:
@@ -93,7 +93,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         array: np.ndarray,
         axes: Tuple[int, int] = (0, 1),
         fill_value: float = 0.0,
-        parent: Optional[QtCore.QObject] = None,
+        parent: QtCore.QObject | None = None,
     ):
         array = np.atleast_2d(array)
         assert array.ndim == 2
@@ -104,10 +104,10 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         self.fill_value = fill_value
 
     # Rows and Columns
-    def columnCount(self, parent: Optional[QtCore.QModelIndex] = None) -> int:
+    def columnCount(self, parent: QtCore.QModelIndex | None = None) -> int:
         return self.array.shape[self.axes[1]]
 
-    def rowCount(self, parent: Optional[QtCore.QModelIndex] = None) -> int:
+    def rowCount(self, parent: QtCore.QModelIndex | None = None) -> int:
         return self.array.shape[self.axes[0]]
 
     def insertRows(
@@ -185,7 +185,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
     # Data
     def data(
         self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole
-    ) -> Optional[str]:
+    ) -> [str]:
         if not index.isValid():
             return None
 
@@ -224,7 +224,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         section: int,
         orientation: QtCore.Qt.Orientation,
         role: QtCore.Qt.ItemDataRole,
-    ) -> Optional[str]:
+    ) -> [str]:
         if role != QtCore.Qt.DisplayRole:  # pragma: no cover
             return None
 

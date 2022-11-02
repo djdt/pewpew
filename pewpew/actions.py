@@ -1,6 +1,6 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from typing import Callable, List, Optional
+from typing import Callable, List
 
 
 def qAction(icon: str, label: str, status: str, func: Callable) -> QtGui.QAction:
@@ -23,8 +23,8 @@ def qActionGroup(
     parent: QtWidgets.QWidget,
     actions: List[str],
     func: Callable,
-    statuses: Optional[List[str]] = None,
-    checked: Optional[str] = None,
+    statuses: List[str] | None = None,
+    checked: str | None = None,
 ) -> QtGui.QActionGroup:
     """Create a QActionGroup.
 
@@ -49,10 +49,10 @@ def qActionGroup(
 
 
 def qToolButton(
-    icon: Optional[str] = None,
-    text: Optional[str] = None,
-    action: Optional[QtGui.QAction] = None,
-    parent: Optional[QtWidgets.QWidget] = None,
+    icon: str | None = None,
+    text: str | None = None,
+    action: QtGui.QAction | None = None,
+    parent: QtWidgets.QWidget | None = None,
 ) -> QtWidgets.QToolButton:
     """Create a styled QToolButton.
     If 'action' is provided then the actions 'icon and 'text are displayed,

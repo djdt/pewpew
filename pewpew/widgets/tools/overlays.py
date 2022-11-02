@@ -17,14 +17,14 @@ from pewpew.widgets.prompts import OverwriteFilePrompt
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.views import TabView
 
-from typing import Iterator, Generator, List, Optional, Tuple
+from typing import Iterator, Generator, List,  Tuple
 
 
 class OverlayLabelItem(OverlayItem):
     def __init__(
         self,
-        font: Optional[QtGui.QFont] = None,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        font: QtGui.QFont | None = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent)
 
@@ -52,7 +52,7 @@ class OverlayLabelItem(OverlayItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         painter.save()
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -76,7 +76,7 @@ class OverlayTool(ToolWidget):
 
     model_type = {"any": "additive", "cmyk": "subtractive", "rgb": "additive"}
 
-    def __init__(self, item: LaserImageItem, view: Optional[TabView] = None):
+    def __init__(self, item: LaserImageItem, view: TabView | None = None):
         super().__init__(
             item,
             control_label="",
@@ -86,7 +86,7 @@ class OverlayTool(ToolWidget):
         )
         self.setWindowTitle("Image Overlay")
 
-        self.image: Optional[ScaledImageItem] = None
+        self.image: ScaledImageItem | None = None
 
         self.label = OverlayLabelItem(self.item.options.font)
         self.label.setPos(10, 10)
@@ -264,7 +264,7 @@ class OverlayItemRow(QtWidgets.QWidget):
         vmax: int,
         color: QtGui.QColor,
         color_pickable: bool = False,
-        parent: Optional["OverlayRows"] = None,
+        parent: ["OverlayRows"] = None,
     ):
         super().__init__(parent)
 
@@ -361,7 +361,7 @@ class OverlayRows(QtWidgets.QScrollArea):
         QtGui.QColor.fromCmykF(0.0, 0.0, 1.0, 0.0),
     ]
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.rows: List[OverlayItemRow] = []
         self.color_model = "rgb"
@@ -448,7 +448,7 @@ class OverlayExportDialog(_ExportDialogBase):
         self,
         default_path: Path,
         image: ScaledImageItem,
-        row_images: List[Optional[np.ndarray]],
+        row_images: List[np.ndarray],
         color_model: str,
         parent: OverlayTool,
     ):

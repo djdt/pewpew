@@ -23,8 +23,6 @@ from pewpew.graphics.overlayitems import (
     MetricScaleBarOverlay,
 )
 
-from typing import Optional
-
 
 class LaserGraphicsView(OverlayGraphicsView):
     """The pewpew laser view.
@@ -34,7 +32,7 @@ class LaserGraphicsView(OverlayGraphicsView):
     """
 
     def __init__(
-        self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None
+        self, options: GraphicsOptions, parent: QtWidgets.QWidget | None = None
     ):
         super().__init__(
             QtWidgets.QGraphicsScene(QtCore.QRectF(-1e5, -1e5, 2e5, 2e5), parent),
@@ -136,7 +134,7 @@ class LaserGraphicsView(OverlayGraphicsView):
                 self.scene().removeItem(item)
         self.setInteractionFlag("widget", False)
 
-    def startTransformAffine(self, item: Optional[SnapImageItem] = None) -> None:
+    def startTransformAffine(self, item: SnapImageItem | None = None) -> None:
         if item is None:
             item = self.scene().focusItem()
         if not isinstance(item, SnapImageItem):
@@ -147,7 +145,7 @@ class LaserGraphicsView(OverlayGraphicsView):
         widget.grabMouse()
         self.setInteractionFlag("transform")
 
-    def startTransformScale(self, item: Optional[SnapImageItem] = None) -> None:
+    def startTransformScale(self, item: SnapImageItem | None = None) -> None:
         if item is None:
             item = self.scene().focusItem()
         if not isinstance(item, SnapImageItem):
@@ -158,7 +156,7 @@ class LaserGraphicsView(OverlayGraphicsView):
         widget.grabMouse()
         self.setInteractionFlag("transform")
 
-    def resetTransform(self, item: Optional[SnapImageItem] = None) -> None:
+    def resetTransform(self, item: SnapImageItem | None = None) -> None:
         self.endTransform()
         if item is None:
             item = self.scene().focusItem()

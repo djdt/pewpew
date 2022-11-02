@@ -14,7 +14,7 @@ from pewpew.lib.numpyqt import array_to_image
 from pewpew.widgets.prompts import OverwriteFilePrompt
 from pewpew.validators import PercentOrDecimalValidator
 
-from typing import List, Optional, Set, Tuple
+from typing import List,  Set, Tuple
 
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class OptionsBox(QtWidgets.QGroupBox):
         filetype: str,
         ext: str,
         visible: bool = False,
-        parent: Optional[QtWidgets.QWidget] = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__("Format Options", parent)
         self.filetype = filetype
@@ -43,7 +43,7 @@ class VtiOptionsBox(OptionsBox):
     def __init__(
         self,
         spacing: Tuple[float, float, float],
-        parent: Optional[QtWidgets.QWidget] = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__("VTK Images", ".vti", visible=True, parent=parent)
         self.lineedits = [QtWidgets.QLineEdit(str(dim)) for dim in spacing]
@@ -85,8 +85,8 @@ class ExportOptions(QtWidgets.QWidget):
 
     def __init__(
         self,
-        options: Optional[List[OptionsBox]] = None,
-        parent: Optional[QtWidgets.QWidget] = None,
+        options: [List[OptionsBox]] = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setSizePolicy(
@@ -160,7 +160,7 @@ class _ExportDialogBase(QtWidgets.QDialog):
     invalid_map = str.maketrans(invalid_chars, "_" * len(invalid_chars))
 
     def __init__(
-        self, options: List[OptionsBox], parent: Optional[QtWidgets.QWidget] = None
+        self, options: List[OptionsBox], parent: QtWidgets.QWidget | None = None
     ):
         super().__init__(parent)
         self.setWindowTitle("Export")
@@ -266,7 +266,7 @@ class ExportDialog(_ExportDialogBase):
     def __init__(
         self,
         item: LaserImageItem,
-        parent: Optional[QtWidgets.QWidget] = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         spacing = (
             item.laser.config.get_pixel_width(),
@@ -364,8 +364,8 @@ class ExportDialog(_ExportDialogBase):
         self,
         path: Path,
         laser: Laser,
-        element: Optional[str] = None,
-        graphics_options: Optional[GraphicsOptions] = None,
+        element: str | None = None,
+        graphics_options: GraphicsOptions | None = None,
     ) -> None:
         option = self.options.currentOption()
 
@@ -428,7 +428,7 @@ class ExportDialog(_ExportDialogBase):
 
 class ExportAllDialog(ExportDialog):
     def __init__(
-        self, items: List[LaserImageItem], parent: Optional[QtWidgets.QWidget] = None
+        self, items: List[LaserImageItem], parent: QtWidgets.QWidget | None = None
     ):
         unique: Set[str] = set()
         for item in items:

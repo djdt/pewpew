@@ -4,7 +4,7 @@ import numpy as np
 from pewpew.actions import qAction
 from pewpew.graphics.aligneditems import UnscaledAlignedTextItem
 
-from typing import List, Optional
+from typing import List
 
 
 class ColorBarItem(QtWidgets.QGraphicsObject):
@@ -31,11 +31,11 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
     def __init__(
         self,
         parent: QtWidgets.QGraphicsItem,
-        font: Optional[QtGui.QFont] = None,
-        brush: Optional[QtGui.QBrush] = None,
-        pen: Optional[QtGui.QPen] = None,
+        font: QtGui.QFont | None = None,
+        brush: QtGui.QBrush | None = None,
+        pen: QtGui.QPen | None = None,
         # checkmarks: bool = False,
-        orientation: Optional[QtCore.Qt.Orientation] = QtCore.Qt.Horizontal,
+        orientation: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
     ):
         super().__init__(parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
@@ -110,7 +110,7 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         painter.save()
         fm = painter.fontMetrics()
@@ -191,10 +191,10 @@ class EditableLabelItem(UnscaledAlignedTextItem):
         parent: QtWidgets.QGraphicsItem,
         text: str,
         label_text: str,
-        alignment: Optional[QtCore.Qt.Alignment] = None,
-        font: Optional[QtGui.QFont] = None,
-        brush: Optional[QtGui.QBrush] = None,
-        pen: Optional[QtGui.QPen] = None,
+        alignment: QtCore.Qt.Alignment | None = None,
+        font: QtGui.QFont | None = None,
+        brush: QtGui.QBrush | None = None,
+        pen: QtGui.QPen | None = None,
     ):
         super().__init__(parent, text, alignment, font, brush, pen)
         self.label = label_text
@@ -252,7 +252,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsObject):
         self,
         rect: QtCore.QRectF,
         cursor_dist: int = 6,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent)
         self.setFlags(
@@ -266,7 +266,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsObject):
         self.pen = QtGui.QPen()
         self.brush = QtGui.QBrush()
 
-        self.selected_edge: Optional[str] = None
+        self.selected_edge: str | None = None
         self.cursor_dist = cursor_dist
 
     def setBrush(self, brush: QtGui.QBrush) -> None:
@@ -291,7 +291,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsObject):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         painter.save()
         painter.setPen(self.pen)
@@ -299,7 +299,7 @@ class ResizeableRectItem(QtWidgets.QGraphicsObject):
         painter.drawRect(self.rect)
         painter.restore()
 
-    def edgeAt(self, pos: QtCore.QPointF) -> Optional[str]:
+    def edgeAt(self, pos: QtCore.QPointF) -> [str]:
         view = next(iter(self.scene().views()))
         dist = (
             view.mapToScene(QtCore.QRect(0, 0, self.cursor_dist, 1))

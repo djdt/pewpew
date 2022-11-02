@@ -30,7 +30,7 @@ from pewpew.widgets.tools.overlays import OverlayTool
 from pewpew.widgets.tools.standards import StandardsTool
 from pewpew.widgets.views import TabView, TabViewWidget
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List
 
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 class LaserTabView(TabView):
     """Tabbed view for displaying laser images."""
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
 
         self.config = Config()
@@ -62,7 +62,7 @@ class LaserTabView(TabView):
 
     #     return widget
 
-    def importFile(self, data: Union[Laser, QtGui.QImage]) -> "LaserTabWidget":
+    def importFile(self, data: Laser | QtGui.QImage) -> "LaserTabWidget":
         if len(self.widgets()) > 0:
             widget = self.widgets()[0]
         else:
@@ -140,7 +140,7 @@ class LaserTabView(TabView):
                 items.extend(widget.laserItems())
         return items
 
-    def focusLaserItem(self) -> Optional[LaserImageItem]:
+    def focusLaserItem(self) -> [LaserImageItem]:
         widget = self.activeWidget()
         if isinstance(widget, LaserTabWidget):
             item = widget.graphics.scene().focusItem()
@@ -182,7 +182,7 @@ class LaserTabView(TabView):
 
 #     namesSelected = QtCore.Signal(dict)
 
-#     def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+#     def __init__(self, parent: QtWidgets.QWidget | None = None):
 #         super().__init__(parent)
 #         self.action_edit_names = qAction(
 #             "document-edit",
@@ -221,7 +221,7 @@ class LaserTabWidget(TabViewWidget):
         view: parent view
     """
 
-    def __init__(self, options: GraphicsOptions, view: Optional[LaserTabView] = None):
+    def __init__(self, options: GraphicsOptions, view: LaserTabView | None = None):
         super().__init__(view)
 
         self.graphics = LaserGraphicsView(options, parent=self)
@@ -379,7 +379,7 @@ class LaserTabWidget(TabViewWidget):
         self.graphics.scene().addItem(item)
         self.graphics.zoomReset()
 
-    def addImage(self, path: Union[str, Path]) -> None:
+    def addImage(self, path: str | Path) -> None:
         if isinstance(path, Path):
             path = str(path.absolute())
         image = QtGui.QImage(path)
@@ -410,7 +410,7 @@ class LaserTabWidget(TabViewWidget):
     def updateForItem(
         self,
         new: QtWidgets.QGraphicsItem,
-        old: Optional[QtWidgets.QGraphicsItem] = None,
+        old: QtWidgets.QGraphicsItem | None = None,
         reason: QtCore.Qt.FocusReason = QtCore.Qt.NoFocusReason,
     ) -> None:
         # Todo: test if lock active
@@ -480,7 +480,7 @@ class LaserTabWidget(TabViewWidget):
     def openDialog(
         self,
         dialog: str,
-        item: Optional[Union[ImageOverlayItem, LaserImageItem]] = None,
+        item: [ImageOverlayItem | LaserImageItem] = None,
         selection: bool = False,
     ) -> QtWidgets.QDialog:
         if item is None:
@@ -556,7 +556,7 @@ class LaserTabWidget(TabViewWidget):
         self.view.setActiveWidget(widget)
         return widget
 
-    def dialogExport(self, item: Optional[LaserImageItem] = None) -> QtWidgets.QDialog:
+    def dialogExport(self, item: LaserImageItem | None = None) -> QtWidgets.QDialog:
         if item is None:
             item = self.graphics.scene().focusItem()
             assert item is not None
@@ -571,8 +571,8 @@ class LaserTabWidget(TabViewWidget):
         return dlg
 
     def dialogSave(
-        self, item: Optional[LaserImageItem] = None
-    ) -> Optional[QtWidgets.QDialog]:
+        self, item: LaserImageItem | None = None
+    ) -> [QtWidgets.QDialog]:
         """Save the document to an '.npz' file.
 
         If not already associated with an '.npz' path a dialog is opened to select one.

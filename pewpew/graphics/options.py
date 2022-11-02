@@ -1,7 +1,7 @@
 from PySide6 import QtCore, QtGui
 import numpy as np
 
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple
 
 
 class GraphicsOptions(QtCore.QObject):
@@ -37,8 +37,8 @@ class GraphicsOptions(QtCore.QObject):
         super().__init__()
         # Todo: maybe alignments here?
         self.colortable = "viridis"
-        self.color_ranges: Dict[str, Tuple[Union[float, str], Union[float, str]]] = {}
-        self.color_range_default: Tuple[Union[float, str], Union[float, str]] = (0.0, "99%")
+        self.color_ranges: Dict[str, Tuple[float | str, float | str]] = {}
+        self.color_range_default: Tuple[float | str, float | str] = (0.0, "99%")
 
         self.nan_color = QtGui.QColor(0, 0, 0)
 
@@ -108,7 +108,7 @@ class GraphicsOptions(QtCore.QObject):
         return vmin, vmax  # type: ignore
 
     # def set_colorrange(
-    #     self, name: str, colorrange: Tuple[Union[float, str], Union[float, str]]
+    #     self, name: str, colorrange: Tuple[float | str, Union[float, str]]
     # ) -> None:
     #     """Set colorrange for 'name'."""
     #     self._colorranges[name] = colorrange

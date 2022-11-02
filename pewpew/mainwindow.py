@@ -1,6 +1,5 @@
 import sys
 import logging
-from typing import Optional
 
 from PySide6 import QtGui, QtWidgets
 
@@ -42,7 +41,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # "Overlay": (OverlayTool, None, "Overlay elements as RGB images."),
     }
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.resize(1280, 800)
 
@@ -402,7 +401,7 @@ class MainWindow(QtWidgets.QMainWindow):
             widget.openTool(name, item)
 
     def actionTransform(
-        self, flip: Optional[str] = None, rotate: Optional[str] = None
+        self, flip: str | None = None, rotate: [str] = None
     ) -> None:
         widget = self.tabview.activeWidget()
         if widget is None:

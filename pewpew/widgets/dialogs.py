@@ -33,7 +33,7 @@ from pewpew.widgets.modelviews import BasicTableView
 
 from pewpew.validators import DoubleSignificantFiguresDelegate
 
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List,  Tuple
 
 
 class ApplyDialog(QtWidgets.QDialog):
@@ -47,7 +47,7 @@ class ApplyDialog(QtWidgets.QDialog):
 
     applyPressed = QtCore.Signal(QtCore.QObject)
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.layout_main = QtWidgets.QVBoxLayout()
         self.layout_buttons = QtWidgets.QHBoxLayout()
@@ -204,7 +204,7 @@ class CalibrationDialog(ApplyDialog):
         self,
         calibrations: Dict[str, Calibration],
         current_element: str,
-        parent: Optional[QtWidgets.QWidget] = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Calibration")
@@ -409,7 +409,7 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
         self,
         title: str,
         calibration: Calibration,
-        parent: Optional[QtWidgets.QWidget] = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Calibration Curve")
@@ -451,11 +451,11 @@ class ColorRangeDialog(ApplyDialog):
 
     def __init__(
         self,
-        ranges: Dict[str, Tuple[Union[float, str], Union[float, str]]],
-        default_range: Tuple[Union[float, str], Union[float, str]],
+        ranges: Dict[str, Tuple[float | str, float | str]],
+        default_range: Tuple[float | str, float | str],
         elements: List[str],
-        current_element: Optional[str] = None,
-        parent: Optional[QtWidgets.QWidget] = None,
+        current_element: str | None = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.default_range = default_range
@@ -526,7 +526,7 @@ class ColorRangeDialog(ApplyDialog):
         self.updateLineEdits()
         self.previous_element = self.combo_element.currentText()
 
-    def updateRange(self, element: Optional[str] = None) -> None:
+    def updateRange(self, element: str | None = None) -> None:
         tmin, tmax = self.lineedit_min.text(), self.lineedit_max.text()
         vmin, vmax = self.ranges.get(element or "", self.default_range)
 
@@ -556,9 +556,9 @@ class ColocalisationDialog(QtWidgets.QDialog):
     def __init__(
         self,
         data: np.ndarray,
-        mask: Optional[np.ndarray] = None,
+        mask: np.ndarray | None = None,
         # colors: List[Tuple[float, ...]] = None,
-        parent: Optional[QtWidgets.QWidget] = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         assert data.dtype.names is not None
         super().__init__(parent)
@@ -694,7 +694,7 @@ class ConfigDialog(ApplyDialog):
     configSelected = QtCore.Signal(Config)
     configApplyAll = QtCore.Signal(Config)
 
-    def __init__(self, config: Config, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, config: Config, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle("Configuration")
         self.config = copy.copy(config)
@@ -825,7 +825,7 @@ class InformationDialog(QtWidgets.QDialog):
     read_only_items = ["Name", "File Path", "File Version"]
 
     def __init__(
-        self, info: Dict[str, str], parent: Optional[QtWidgets.QWidget] = None
+        self, info: Dict[str, str], parent: QtWidgets.QWidget | None = None
     ):
         super().__init__(parent)
 
@@ -914,7 +914,7 @@ class NameEditDialog(QtWidgets.QDialog):
         self,
         names: List[str],
         allow_remove: bool = False,
-        parent: Optional[QtWidgets.QWidget] = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Edit Names")
@@ -965,7 +965,7 @@ class NameEditDialog(QtWidgets.QDialog):
 class PixelSizeDialog(ApplyDialog):
     sizeSelected = QtCore.Signal(QtCore.QSizeF)
 
-    def __init__(self, size: QtCore.QSizeF, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, size: QtCore.QSizeF, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle("Set Pixel Size")
 
@@ -1010,7 +1010,7 @@ class SelectionDialog(ApplyDialog):
     COMPARISION = {">": np.greater, "<": np.less, "=": np.equal}
 
     def __init__(
-        self, item: LaserImageItem, parent: Optional[QtWidgets.QWidget] = None
+        self, item: LaserImageItem, parent: QtWidgets.QWidget | None = None
     ):
         super().__init__(parent)
         self.setWindowTitle("Selection")
@@ -1142,7 +1142,7 @@ class StatsDialog(QtWidgets.QDialog):
         units: Dict[str, str],
         element: str,
         pixel_size: Tuple[float, float] = None,
-        parent: Optional[QtWidgets.QWidget] = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Statistics")

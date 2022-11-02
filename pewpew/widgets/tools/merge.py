@@ -18,7 +18,7 @@ from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.laser import LaserTabWidget
 
 
-from typing import List, Optional, Tuple
+from typing import List,  Tuple
 
 # TODO: possible off by one on overlap
 # shared range
@@ -27,7 +27,7 @@ from typing import List, Optional, Tuple
 
 
 class MergeGraphicsView(OverlayGraphicsView):
-    def __init__(self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget | None = None):
         self.options = options
         self._scene = QtWidgets.QGraphicsScene(-1e6, -1e6, 2e6, 2e6)
         self._scene.setBackgroundBrush(QtGui.QBrush(QtCore.Qt.black))
@@ -90,7 +90,7 @@ class MergeRowItem(QtWidgets.QWidget):
         super().__init__(parent)
 
         self.laser = laser
-        self.image: Optional[SnapImageItem] = None
+        self.image: SnapImageItem | None = None
         self.item = item
 
         self.action_close = qAction(
@@ -166,7 +166,7 @@ class MergeLaserList(QtWidgets.QListWidget):
     rowAlphaChanged = QtCore.Signal("QWidget*")
     rowElementChanged = QtCore.Signal("QWidget*")
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         # Allow reorder
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)

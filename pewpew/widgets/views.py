@@ -4,7 +4,7 @@ import logging
 
 from pewpew.actions import qAction
 
-from typing import List, Optional
+from typing import List
 
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ class TabView(QtWidgets.QWidget):
 
     icon_modified = QtGui.QIcon.fromTheme("document-save")
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setAcceptDrops(True)
@@ -55,7 +55,7 @@ class TabView(QtWidgets.QWidget):
         self.setLayout(layout)
 
     # Stack
-    def activeWidget(self) -> Optional["TabViewWidget"]:
+    def activeWidget(self) -> ["TabViewWidget"]:
         """The current visable tabbed widget."""
         if self.stack.count() == 0:
             return None
@@ -161,7 +161,7 @@ class TabViewBar(QtWidgets.QTabBar):
 
     tabTextChanged = QtCore.Signal(int, str)
 
-    def __init__(self, view: TabView, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, view: TabView, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
 
         self.view = view
@@ -211,7 +211,7 @@ class TabViewBar(QtWidgets.QTabBar):
             super().setTabText(index, text)
             self.tabTextChanged.emit(index, text)
 
-    def tabRenameDialog(self, index: int) -> Optional[QtWidgets.QDialog]:
+    def tabRenameDialog(self, index: int) -> [QtWidgets.QDialog]:
         if index == -1 or not self.view.stack.widget(index).editable:
             return
         dlg = QtWidgets.QInputDialog(self)
@@ -312,7 +312,7 @@ class TabViewWidget(QtWidgets.QWidget):
 
     refreshed = QtCore.Signal()
 
-    def __init__(self, view: Optional[TabView], editable: bool = True):
+    def __init__(self, view: [TabView], editable: bool = True):
         super().__init__(view)
 
         self.view = view

@@ -20,14 +20,14 @@ from pewpew.graphics.items import ColorBarItem, EditableLabelItem
 
 from pewpew.actions import qAction
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List
 
 
 class SnapImageItem(QtWidgets.QGraphicsObject):
     selectionChanged = QtCore.Signal()
     imageChanged = QtCore.Signal()
 
-    def __init__(self, parent: Optional[QtWidgets.QGraphicsItem] = None):
+    def __init__(self, parent: QtWidgets.QGraphicsItem | None = None):
         super().__init__(parent)
 
         self.actions_order = [
@@ -172,7 +172,7 @@ class ScaledImageItem(SnapImageItem):
         self,
         image: QtGui.QImage,
         rect: QtCore.QRectF,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent=parent)
         self.setAcceptHoverEvents(True)
@@ -204,7 +204,7 @@ class ScaledImageItem(SnapImageItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ) -> None:
         painter.drawImage(self.rect, self.image)
 
@@ -217,8 +217,8 @@ class ScaledImageItem(SnapImageItem):
         cls,
         array: np.ndarray,
         rect: QtCore.QRectF,
-        colortable: Optional[List[int]] = None,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        colortable: [List[int]] = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ) -> "ScaledImageItem":
         image = array_to_image(array)
         if colortable is not None:
@@ -237,7 +237,7 @@ class ImageOverlayItem(ScaledImageItem):
         self,
         image: QtGui.QImage,
         rect: QtCore.QRectF,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(image, rect, parent=parent)
 
@@ -335,8 +335,8 @@ class LaserImageItem(SnapImageItem):
         self,
         laser: Laser,
         options: GraphicsOptions,
-        current_element: Optional[str] = None,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        current_element: str | None = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent=parent)
         self.setFlags(
@@ -352,8 +352,8 @@ class LaserImageItem(SnapImageItem):
         self.options = options
         self.current_element = current_element or self.laser.elements[0]
 
-        self.image: Optional[QtGui.QImage] = None
-        self.mask_image: Optional[QtGui.QImage] = None
+        self.image: QtGui.QImage | None = None
+        self.mask_image: QtGui.QImage | None = None
 
         self.raw_data: np.ndarray = np.array([])
         self.vmin, self.vmax = 0.0, 0.0
@@ -483,7 +483,7 @@ class LaserImageItem(SnapImageItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         painter.save()
         if self.options.smoothing:
@@ -539,7 +539,7 @@ class LaserImageItem(SnapImageItem):
         clipboard = QtWidgets.QApplication.clipboard()
         clipboard.setImage(self.image)
 
-    def saveToFile(self, path: Union[Path, str]) -> None:
+    def saveToFile(self, path: Path | str) -> None:
         path = Path(path)
         io.npz.save(path, self.laser)
         self.laser.info["File Path"] = str(path.resolve())
@@ -758,7 +758,7 @@ class LaserImageItem(SnapImageItem):
         # new_widget.activate()
 
     def transform(
-        self, flip: Optional[str] = None, rotate: Optional[str] = None
+        self, flip: str | None = None, rotate: [str] = None
     ) -> None:
         """Transform the laser data.
 

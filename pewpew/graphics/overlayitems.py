@@ -4,7 +4,7 @@ import numpy as np
 
 from pewpew.graphics.overlaygraphics import OverlayItem
 
-from typing import List, Optional, Tuple
+from typing import List,  Tuple
 
 
 class ColorBarOverlay(OverlayItem):
@@ -35,11 +35,11 @@ class ColorBarOverlay(OverlayItem):
         vmax: float,
         unit: str = "",
         height: int = 16,
-        font: Optional[QtGui.QFont] = None,
-        color: Optional[QtGui.QColor] = None,
+        font: QtGui.QFont | None = None,
+        color: QtGui.QColor | None = None,
         checkmarks: bool = False,
-        alignment: Optional[QtCore.Qt.AlignmentFlag] = None,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        alignment: QtCore.Qt.AlignmentFlag | None = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent)
 
@@ -114,7 +114,7 @@ class ColorBarOverlay(OverlayItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         painter.save()
 
@@ -197,10 +197,10 @@ class MetricScaleBarOverlay(OverlayItem):
         self,
         width: int = 200,
         height: int = 10,
-        font: Optional[QtGui.QFont] = None,
-        color: Optional[QtGui.QColor] = None,
-        alignment: Optional[QtCore.Qt.AlignmentFlag] = None,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        font: QtGui.QFont | None = None,
+        color: QtGui.QColor | None = None,
+        alignment: QtCore.Qt.AlignmentFlag | None = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent)
 
@@ -253,7 +253,7 @@ class MetricScaleBarOverlay(OverlayItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         painter.save()
         painter.setRenderHint(QtGui.QPainter.Antialiasing)

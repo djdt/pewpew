@@ -2,11 +2,11 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from pathlib import Path
 
-from typing import Optional, Set, Union
+from typing import Set
 
 
 class OverlayParentItem(QtWidgets.QGraphicsObject):
-    def __init__(self, parent: Optional[QtWidgets.QGraphicsItem] = None):
+    def __init__(self, parent: QtWidgets.QGraphicsItem | None = None):
         super().__init__(parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
         self.setFlag(QtWidgets.QGraphicsItem.ItemHasNoContents)
@@ -24,7 +24,7 @@ class OverlayParentItem(QtWidgets.QGraphicsObject):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         paint_requested = any(item.paintRequested() for item in self.childItems())
         if (
@@ -50,7 +50,7 @@ class OverlayParentItem(QtWidgets.QGraphicsObject):
 
 
 class OverlayItem(QtWidgets.QGraphicsObject):
-    def __init__(self, parent: Optional[QtWidgets.QGraphicsItem] = None):
+    def __init__(self, parent: QtWidgets.QGraphicsItem | None = None):
         super().__init__(parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
         self.setFlag(QtWidgets.QGraphicsItem.ItemHasNoContents)
@@ -71,7 +71,7 @@ class OverlayItem(QtWidgets.QGraphicsObject):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         self.painted = True
 
@@ -92,7 +92,7 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
     def __init__(
         self,
         scene: QtWidgets.QGraphicsScene,
-        parent: Optional[QtWidgets.QWidget] = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(scene, parent)
         self.scene().setItemIndexMethod(QtWidgets.QGraphicsScene.NoIndex)
@@ -167,7 +167,7 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
 
         self.viewSizeChanged.emit(self.viewport().rect())
 
-    def saveToFile(self, path: Union[str, Path]) -> None:
+    def saveToFile(self, path: str | Path) -> None:
         """Save the current view to a file."""
         if isinstance(path, str):
             path = Path(path)

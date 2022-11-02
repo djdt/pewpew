@@ -16,14 +16,14 @@ from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.widgets.views import TabView
 from pewpew.widgets.tools.tool import ToolWidget
 
-from typing import Any, Optional
+from typing import Any, 
 
 # TODO replace drift chart with a SignalChart
 
 
 class DriftChart(BaseChart):
     """Display the drift data and fit."""
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
         self.setRenderHint(QtGui.QPainter.Antialiasing)
 
@@ -93,7 +93,7 @@ class DriftGuideRectItem(ResizeableRectItem):
         px: float,
         py: float,
         trim_enabled: bool = False,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(rect, parent=parent)
 
@@ -112,7 +112,7 @@ class DriftGuideRectItem(ResizeableRectItem):
 
         self.changed = False
 
-    def edgeAt(self, pos: QtCore.QPointF) -> Optional[str]:
+    def edgeAt(self, pos: QtCore.QPointF) -> [str]:
         view = next(iter(self.scene().views()), None)
         if view is None:
             return None
@@ -162,7 +162,7 @@ class DriftGuideRectItem(ResizeableRectItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         option.state &= ~QtWidgets.QStyle.State_Selected
         super().paint(painter, option, widget)
@@ -190,11 +190,11 @@ class DriftGraphicsView(LaserGraphicsView):
     """Graphics view with drift selection and display."""
     driftChanged = QtCore.Signal()
 
-    def __init__(self, options: GraphicsOptions, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget | None = None):
         super().__init__(options, parent=parent)
         self.setInteractionFlag("tool")
 
-        self.guide: Optional[DriftGuideRectItem] = None
+        self.guide: DriftGuideRectItem | None = None
 
     def drawGuides(self) -> None:
         trim = False
@@ -216,7 +216,7 @@ class DriftGraphicsView(LaserGraphicsView):
         self.guide.setZValue(self.image.zValue() + 1)
         self.scene().addItem(self.guide)
 
-    def driftData(self) -> Optional[np.ndarray]:
+    def driftData(self) -> [np.ndarray]:
         if self.guide is None:
             return None
         rect = self.guide.rect()
@@ -254,7 +254,7 @@ class DriftTool(ToolWidget):
     def __init__(self, item: LaserImageItem, view: TabView):
         super().__init__(item, apply_all=False, view=view)
 
-        self.drift: Optional[np.ndarray] = None
+        self.drift: np.ndarray | None = None
 
         self.graphics = DriftGraphicsView(self.viewspace.options, parent=self)
         self.graphics.driftChanged.connect(self.updateDrift)

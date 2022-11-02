@@ -1,7 +1,7 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 import numpy as np
 
-from typing import List, Optional, Tuple
+from typing import List,  Tuple
 
 # Todo affine transform not work with position change
 
@@ -66,7 +66,7 @@ class AffineTransformItem(TransformItem):
 
         # List of (start, end) points for affine transform
         self.handles: List[QtCore.QPointF] = []
-        self.transform_handle: Optional[int] = None
+        self.transform_handle: int | None = None
 
     def boundingRect(self) -> QtCore.QRectF:
         adjust = self.maxHandleDist()
@@ -98,7 +98,7 @@ class AffineTransformItem(TransformItem):
 
         return path
 
-    def handleAt(self, pos: QtCore.QPointF) -> Optional[int]:
+    def handleAt(self, pos: QtCore.QPointF) -> [int]:
         max_dist = self.maxHandleDist()
         result = None
 
@@ -172,7 +172,7 @@ class AffineTransformItem(TransformItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         painter.save()
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -237,7 +237,7 @@ class ScaleRotateTransformItem(TransformItem):
     def __init__(self, item: QtWidgets.QGraphicsItem, handle_size: int = 12):
         super().__init__(item, handle_size)
 
-        self.transform_handle: Optional[Tuple[str, str]] = None
+        self.transform_handle: [Tuple[str, str]] = None
 
     def shape(self) -> QtGui.QPainterPath:
         corners = self.corners()
@@ -265,7 +265,7 @@ class ScaleRotateTransformItem(TransformItem):
         rect = rect.adjusted(-adjust, -adjust, adjust, adjust)
         return rect
 
-    def handleAt(self, pos: QtCore.QPointF) -> Optional[Tuple[str, str]]:
+    def handleAt(self, pos: QtCore.QPointF) -> [Tuple[str, str]]:
         max_dist = self.maxHandleDist()
 
         result = None
@@ -363,7 +363,7 @@ class ScaleRotateTransformItem(TransformItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         painter.save()
         painter.setRenderHint(QtGui.QPainter.Antialiasing)

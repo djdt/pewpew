@@ -14,7 +14,7 @@ from pewpew.validators import DecimalValidator
 from pewpew.widgets.wizards.import_ import ConfigPage, FormatPage
 from pewpew.widgets.wizards.options import PathAndOptionsPage
 
-from typing import List, Optional
+from typing import List
 
 
 class SRRImportWizard(QtWidgets.QWizard):
@@ -30,8 +30,8 @@ class SRRImportWizard(QtWidgets.QWizard):
     def __init__(
         self,
         paths: List[Path] = [],
-        config: Optional[Config] = None,
-        parent: Optional[QtWidgets.QWidget] = None,
+        config: Config | None = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("SRR Import Wizard")
@@ -133,7 +133,7 @@ class SRRImportWizard(QtWidgets.QWizard):
 
 
 class SRRConfigPage(ConfigPage):
-    def __init__(self, config: SRRConfig, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, config: SRRConfig, parent: QtWidgets.QWidget | None = None):
         super().__init__(config, parent)
 
         # Krisskross params
@@ -187,7 +187,7 @@ class SRRPathAndOptionsPage(PathAndOptionsPage):
         paths: List[Path],
         format: str,
         nextid: int,
-        parent: Optional[QtWidgets.QWidget] = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(
             paths, format, multiplepaths=True, nextid=nextid, parent=parent

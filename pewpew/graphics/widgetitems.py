@@ -9,7 +9,7 @@ from pewpew.lib.numpyqt import array_to_polygonf
 
 from pewpew.graphics.imageitems import SnapImageItem
 
-from typing import Optional, Tuple
+from typing import  Tuple
 
 
 class WidgetItem(QtWidgets.QGraphicsObject):
@@ -20,10 +20,10 @@ class SnapImageWidgetItem(WidgetItem):
     def __init__(
         self,
         allowed_item_types: Tuple[type] = (SnapImageItem),
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent=parent)
-        self.item: Optional[SnapImageItem] = None
+        self.item: SnapImageItem | None = None
         self.allowed_item_types = allowed_item_types
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
@@ -57,10 +57,10 @@ class RulerWidgetItem(WidgetItem):
 
     def __init__(
         self,
-        pen: Optional[QtGui.QPen] = None,
-        font: Optional[QtGui.QFont] = None,
+        pen: QtGui.QPen | None = None,
+        font: QtGui.QFont | None = None,
         unit: str = "μm",
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent)
 
@@ -121,7 +121,7 @@ class RulerWidgetItem(WidgetItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         view = next(iter(self.scene().views()))
 
@@ -179,9 +179,9 @@ class ImageSliceWidgetItem(WidgetItem):
 
     def __init__(
         self,
-        pen: Optional[QtGui.QPen] = None,
-        font: Optional[QtGui.QFont] = None,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        pen: QtGui.QPen | None = None,
+        font: QtGui.QFont | None = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent)
 
@@ -193,8 +193,8 @@ class ImageSliceWidgetItem(WidgetItem):
         if font is None:
             font = QtGui.QFont()
 
-        self.image: Optional[SnapImageItem] = None
-        self.sliced: Optional[np.ndarray] = None
+        self.image: SnapImageItem | None = None
+        self.sliced: np.ndarray | None = None
 
         self.pen = pen
         self.font = font
@@ -300,7 +300,7 @@ class ImageSliceWidgetItem(WidgetItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
 
         painter.save()

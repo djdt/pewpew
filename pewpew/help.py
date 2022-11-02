@@ -2,7 +2,7 @@ from PySide6 import QtCore, QtGui, QtHelp, QtWidgets
 import logging
 from pathlib import Path
 
-from typing import Any, Optional
+from typing import Any
 
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ def createHelpEngine() -> QtHelp.QHelpEngine:
 
 class HelpBrowser(QtWidgets.QTextBrowser):
     """Text browser for a QHelpEngine."""
-    def __init__(self, engine: QtHelp.QHelpEngine, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, engine: QtHelp.QHelpEngine, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setMinimumSize(1000, 800)
         self.engine = engine
@@ -45,7 +45,7 @@ class HelpBrowser(QtWidgets.QTextBrowser):
 
 class HelpDialog(QtWidgets.QDialog):
     """Dialog to display the pewpew help files."""
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
 
         self.engine = createHelpEngine()

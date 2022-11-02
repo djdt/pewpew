@@ -21,7 +21,7 @@ from pewpew.widgets.views import TabView
 
 from .tool import ToolWidget
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 
 class StandardsTool(ToolWidget):
@@ -29,18 +29,18 @@ class StandardsTool(ToolWidget):
 
     WEIGHTINGS = ["Equal", "1/σ²", "x", "1/x", "1/x²", "y", "1/y", "1/y²"]
 
-    def __init__(self, item: LaserImageItem, view: Optional[TabView]):
+    def __init__(self, item: LaserImageItem, view: TabView | None):
         super().__init__(item, control_label="Calibration", apply_all=True, view=view)
         self.setWindowTitle("Calibration Tool")
 
         self.graphics.setInteractionFlag("tool")
         self.graphics.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
-        self.image: Optional[ScaledImageItem] = None
+        self.image: ScaledImageItem | None = None
         self.levels: List[CalibrationRectItem] = []
 
         self.calibration: Dict[str, Calibration] = {}
         self.previous_element = ""
-        self.dlg: Optional[CalibrationCurveDialog] = None
+        self.dlg: CalibrationCurveDialog | None = None
 
         # Left side
         self.spinbox_levels = QtWidgets.QSpinBox()
@@ -300,7 +300,7 @@ class StandardsTool(ToolWidget):
 class StandardsResultsTable(BasicTable):
     LABELS = ["r²", "Gradient", "Intercept", "Sxy", "LOD (3σ)"]
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(2, 5, parent)
         self.setMinimumSize(QtCore.QSize(0, 1))
         self.horizontalHeader().hide()
@@ -345,7 +345,7 @@ class StandardsTable(BasicTableView):
     COLUMN_WEIGHTS = 2
 
     def __init__(
-        self, calibration: Calibration, parent: Optional[QtWidgets.QWidget] = None
+        self, calibration: Calibration, parent: QtWidgets.QWidget | None = None
     ):
         super().__init__(parent)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
@@ -392,7 +392,7 @@ class CalibrationRectItem(ResizeableRectItem):
         rect: QtCore.QRectF,
         label: str,
         item: SnapImageItem,
-        font: Optional[QtGui.QFont] = None,
+        font: QtGui.QFont | None = None,
     ):
         super().__init__(rect, parent=item)
         self.item = item
@@ -411,7 +411,7 @@ class CalibrationRectItem(ResizeableRectItem):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         super().paint(painter, option, widget)
 

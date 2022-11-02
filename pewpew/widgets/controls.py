@@ -1,12 +1,10 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from typing import Optional
-
 from pewpew.graphics.imageitems import LaserImageItem
 
 
 class ControlBar(QtWidgets.QWidget):
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding
@@ -29,7 +27,7 @@ class LaserControlBar(ControlBar):
     alphaChanged = QtCore.Signal(float)
     elementChanged = QtCore.Signal(str)
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
 
         self.alpha = QtWidgets.QSlider(QtCore.Qt.Horizontal)
@@ -73,7 +71,7 @@ class LaserControlBar(ControlBar):
 class ImageControlBar(ControlBar):
     alphaChanged = QtCore.Signal(float)
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
 
         self.alpha = QtWidgets.QSlider(QtCore.Qt.Horizontal)

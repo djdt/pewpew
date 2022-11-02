@@ -13,7 +13,7 @@ from pewpew.widgets.tools import ToolWidget
 
 from pewpew.validators import ConditionalLimitValidator
 
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List,  Tuple
 
 from pewpew.widgets.views import TabView
 
@@ -80,10 +80,10 @@ class FilteringTool(ToolWidget):
         # },
     }
 
-    def __init__(self, item: LaserImageItem, view: Optional[TabView] = None):
+    def __init__(self, item: LaserImageItem, view: TabView | None = None):
         super().__init__(item, graphics_label="Preview", view=view)
 
-        self.image: Optional[ScaledImageItem] = None
+        self.image: ScaledImageItem | None = None
 
         self.action_toggle_filter = qAction(
             "visibility",

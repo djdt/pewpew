@@ -6,8 +6,6 @@ from pewpew.graphics.overlayitems import ColorBarOverlay
 
 from pewpew.widgets.views import TabView, TabViewWidget
 
-from typing import Optional
-
 
 class ToolWidget(TabViewWidget):
     """Base widget for pewpew tools.
@@ -39,7 +37,7 @@ class ToolWidget(TabViewWidget):
         graphics_label: str = "",
         orientation: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
         apply_all: bool = False,
-        view: Optional[TabView] = None,
+        view: TabView | None = None,
     ):
         super().__init__(editable=False, view=view)
         self._shown = False

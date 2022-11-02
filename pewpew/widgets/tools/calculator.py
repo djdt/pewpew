@@ -16,7 +16,7 @@ from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.views import TabView
 
-from typing import List, Optional
+from typing import List
 
 
 def segment_image(x: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
@@ -37,7 +37,7 @@ class CalculatorName(ValidColorLineEdit):
         text: str,
         badnames: List[str],
         badparser: List[str],
-        parent: Optional[QtWidgets.QWidget] = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(text, parent=parent)
 
@@ -69,11 +69,11 @@ class CalculatorFormula(ValidColorTextEdit):
         self,
         text: str,
         variables: List[str],
-        parent: Optional[QtWidgets.QWidget] = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(text, parent)
 
-        self.completer: Optional[QtWidgets.QCompleter] = None
+        self.completer: QtWidgets.QCompleter | None = None
 
         self.textChanged.disconnect(self.revalidate)
         self.textChanged.connect(self.calculate)
@@ -230,10 +230,10 @@ class CalculatorTool(ToolWidget):
         ),
     }
 
-    def __init__(self, item: LaserImageItem, view: Optional[TabView] = None):
+    def __init__(self, item: LaserImageItem, view: TabView | None = None):
         super().__init__(item, graphics_label="Preview", view=view)
 
-        self.image: Optional[ScaledImageItem] = None
+        self.image: ScaledImageItem | None = None
 
         self.output = QtWidgets.QLineEdit("Result")
         self.output.setEnabled(False)
@@ -345,7 +345,7 @@ class CalculatorTool(ToolWidget):
             return False
         return True
 
-    def previewData(self, data: np.ndarray) -> Optional[np.ndarray]:
+    def previewData(self, data: np.ndarray) -> [np.ndarray]:
         self.reducer.variables = {name: data[name] for name in data.dtype.names}
         try:
             result = self.reducer.reduce(self.formula.expr)

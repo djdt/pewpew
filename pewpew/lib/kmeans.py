@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 
-from typing import Callable, Optional
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -171,7 +171,7 @@ def kmedians(
 
 
 def kmeans1d(
-    x: np.ndarray, k: int, method: str = "ckmeans1d", method_kws: Optional[dict] = None
+    x: np.ndarray, k: int, method: str = "ckmeans1d", method_kws: dict | None = None
 ) -> np.ndarray:
     """1-dim k-means clustering.
     Uses Ckmeans.1d.dp through ``ckwrap`` if it is installed and `method` is

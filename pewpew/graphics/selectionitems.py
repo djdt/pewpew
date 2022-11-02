@@ -7,7 +7,7 @@ from pewpew.graphics.util import polygonf_contains_points
 
 from pewpew.lib.numpyqt import polygonf_to_array
 
-from typing import Dict, Generator, Optional, Tuple
+from typing import Dict, Generator,  Tuple
 
 
 class SelectionItem(QtWidgets.QGraphicsObject):
@@ -15,8 +15,8 @@ class SelectionItem(QtWidgets.QGraphicsObject):
 
     def __init__(
         self,
-        modes: Optional[Dict[QtCore.Qt.KeyboardModifier, str]] = None,
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        modes: [Dict[QtCore.Qt.KeyboardModifier, str]] = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent)
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
@@ -44,16 +44,16 @@ class SnapImageSelectionItem(SelectionItem):
 
     def __init__(
         self,
-        modes: Optional[Dict[QtCore.Qt.KeyboardModifier, str]] = None,
+        modes: [Dict[QtCore.Qt.KeyboardModifier, str]] = None,
         allowed_item_types: Tuple[type] = (SnapImageItem),
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         _modes = {QtCore.Qt.ShiftModifier: "add", QtCore.Qt.ControlModifier: "subtract"}
         if modes is not None:
             _modes.update(modes)
         super().__init__(modes=_modes, parent=parent)
 
-        self.item: Optional[SnapImageItem] = None
+        self.item: SnapImageItem | None = None
         self.allowed_item_types = allowed_item_types
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
@@ -78,10 +78,10 @@ class LassoImageSelectionItem(SnapImageSelectionItem):
 
     def __init__(
         self,
-        modes: Optional[Dict[QtCore.Qt.KeyboardModifier, str]] = None,
-        pen: Optional[QtGui.QPen] = None,
+        modes: [Dict[QtCore.Qt.KeyboardModifier, str]] = None,
+        pen: QtGui.QPen | None = None,
         allowed_item_types: Tuple[type] = (SnapImageItem),
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(modes=modes, allowed_item_types=allowed_item_types, parent=parent)
 
@@ -164,7 +164,7 @@ class LassoImageSelectionItem(SnapImageSelectionItem):
         self,
         painter: QtGui.QPainter,
         options: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         painter.save()
 
@@ -181,10 +181,10 @@ class RectImageSelectionItem(SnapImageSelectionItem):
 
     def __init__(
         self,
-        modes: Optional[Dict[QtCore.Qt.KeyboardModifier, str]] = None,
-        pen: Optional[QtGui.QPen] = None,
+        modes: [Dict[QtCore.Qt.KeyboardModifier, str]] = None,
+        pen: QtGui.QPen | None = None,
         allowed_item_types: Tuple[type] = (SnapImageItem),
-        parent: Optional[QtWidgets.QGraphicsItem] = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(modes=modes, allowed_item_types=allowed_item_types, parent=parent)
 
@@ -254,7 +254,7 @@ class RectImageSelectionItem(SnapImageSelectionItem):
         self,
         painter: QtGui.QPainter,
         options: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         painter.save()
 

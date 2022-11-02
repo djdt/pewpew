@@ -1,7 +1,5 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from typing import Optional
-
 
 class AlignedTextItem(QtWidgets.QGraphicsObject):
     """Draws a label with a black outline for increased visibility."""
@@ -10,10 +8,10 @@ class AlignedTextItem(QtWidgets.QGraphicsObject):
         self,
         parent: QtWidgets.QGraphicsItem,
         text: str,
-        alignment: Optional[QtCore.Qt.Alignment] = None,
-        font: Optional[QtGui.QFont] = None,
-        brush: Optional[QtGui.QBrush] = None,
-        pen: Optional[QtGui.QPen] = None,
+        alignment: QtCore.Qt.Alignment | None = None,
+        font: QtGui.QFont | None = None,
+        brush: QtGui.QBrush | None = None,
+        pen: QtGui.QPen | None = None,
     ):
         super().__init__(parent)
 
@@ -63,7 +61,7 @@ class AlignedTextItem(QtWidgets.QGraphicsObject):
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: Optional[QtWidgets.QWidget] = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         painter.save()
 
@@ -95,10 +93,10 @@ class UnscaledAlignedTextItem(AlignedTextItem):
         self,
         parent: QtWidgets.QGraphicsItem,
         text: str,
-        alignment: Optional[QtCore.Qt.Alignment] = None,
-        font: Optional[QtGui.QFont] = None,
-        brush: Optional[QtGui.QBrush] = None,
-        pen: Optional[QtGui.QPen] = None,
+        alignment: QtCore.Qt.Alignment | None = None,
+        font: QtGui.QFont | None = None,
+        brush: QtGui.QBrush | None = None,
+        pen: QtGui.QPen | None = None,
     ):
         super().__init__(parent, text, alignment, font, brush, pen)
 
