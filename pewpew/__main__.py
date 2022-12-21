@@ -1,19 +1,16 @@
 import argparse
 import logging
 import multiprocessing
-from pathlib import Path
 import sys
-
-from PySide6 import QtCore, QtGui, QtWidgets
-
-import pewlib
-from pewpew import __version__
-
-from pewpew.mainwindow import MainWindow
-from pewpew import resources  # noqa: F401
-
+from pathlib import Path
 from typing import List
 
+import pewlib
+from PySide6 import QtCore, QtGui, QtWidgets
+
+from pewpew import resources  # noqa: F401
+from pewpew import __version__
+from pewpew.mainwindow import MainWindow
 
 logger = logging.getLogger()
 

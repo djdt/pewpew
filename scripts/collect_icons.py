@@ -21,7 +21,7 @@ def write_index_theme(path: Path, sizes: List[int]):
     directories = [f"{size}x{size}" for size in sizes]
     directories.extend([dir + "@2" for dir in directories])
     with path.open("w") as fp:
-        fp.write("[Icon Theme]\nName=spcal\nComment=Icons from KDE theme Breeze\n")
+        fp.write("[Icon Theme]\nName=pewpew\nComment=Icons from KDE theme Breeze\n")
         fp.write(f"Directories={','.join(directories)}\n")
         fp.write("\n")
         for size in sizes:
@@ -38,7 +38,7 @@ def write_qrc(
 ):
     with qrc.open("w") as fp:
         fp.write('<RCC version="1.0">\n')
-        fp.write('<qresource prefix="icons/spcal/">\n')
+        fp.write('<qresource prefix="icons/pewpew/">\n')
 
         fp.write(f'\t<file alias="index.theme">{index}</file>\n')
         for icon in sorted(icon_names):
