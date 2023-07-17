@@ -74,6 +74,8 @@ class LaserTabView(TabView):
         else:
             widget.addImage(data)
 
+        return widget
+
     # Events
     # def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
     #     menu = QtWidgets.QMenu(self)
