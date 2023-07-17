@@ -2,38 +2,32 @@
 
 import copy
 from io import BytesIO
+from typing import Dict, List, Tuple
+
 import numpy as np
-
-from PySide6 import QtCore, QtWidgets
-
 from pewlib import Calibration, Config
 from pewlib.config import SpotConfig
 from pewlib.process import colocal
 from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
 from pewlib.srr import SRRConfig
+from PySide6 import QtCore, QtWidgets
 
 from pewpew.actions import qAction, qToolButton
-from pewpew.graphics.imageitems import LaserImageItem
-from pewpew.lib import kmeans
-from pewpew.validators import (
-    DecimalValidator,
-    DecimalValidatorNoZero,
-    PercentOrDecimalValidator,
-)
-
 from pewpew.charts.calibration import CalibrationChart
 from pewpew.charts.colocal import ColocalisationChart
 from pewpew.charts.histogram import HistogramChart
-
+from pewpew.graphics.imageitems import LaserImageItem
+from pewpew.lib import kmeans
 from pewpew.models import CalibrationPointsTableModel
-
+from pewpew.validators import (
+    DecimalValidator,
+    DecimalValidatorNoZero,
+    DoubleSignificantFiguresDelegate,
+    PercentOrDecimalValidator,
+)
 from pewpew.widgets.ext import CollapsableWidget
 from pewpew.widgets.modelviews import BasicTableView
-
-from pewpew.validators import DoubleSignificantFiguresDelegate
-
-from typing import Dict, List,  Tuple
 
 
 class ApplyDialog(QtWidgets.QDialog):
@@ -824,9 +818,7 @@ class InformationDialog(QtWidgets.QDialog):
 
     read_only_items = ["Name", "File Path", "File Version"]
 
-    def __init__(
-        self, info: Dict[str, str], parent: QtWidgets.QWidget | None = None
-    ):
+    def __init__(self, info: Dict[str, str], parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
 
         self.setMinimumSize(400, 400)
@@ -939,6 +931,13 @@ class NameEditDialog(QtWidgets.QDialog):
     def accept(self) -> None:
         items = [self.list.item(i) for i in range(self.list.count())]
         rename = {}
+        if self.allow_remove and all(
+            item.checkState() == QtCore.Qt.CheckState.Unchecked for item in items
+        ):
+            QtWidgets.QMessageBox.warning(
+                self, "Name Change Dialog", "Unable to remove all elements."
+            )
+            return
         for item in items:
             if not self.allow_remove or (
                 item.flags() & QtCore.Qt.ItemIsUserCheckable
@@ -1009,9 +1008,7 @@ class SelectionDialog(ApplyDialog):
     }
     COMPARISION = {">": np.greater, "<": np.less, "=": np.equal}
 
-    def __init__(
-        self, item: LaserImageItem, parent: QtWidgets.QWidget | None = None
-    ):
+    def __init__(self, item: LaserImageItem, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle("Selection")
 
