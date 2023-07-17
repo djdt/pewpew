@@ -35,6 +35,9 @@ logger = logging.getLogger(__name__)
 class LaserTabView(TabView):
     """Tabbed view for displaying laser images."""
 
+    numImageItemsChanged = QtCore.Signal()
+    numLaserItemsChanged = QtCore.Signal()
+
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
 
@@ -54,6 +57,12 @@ class LaserTabView(TabView):
     #         self.addTab(name, widget)
 
     #     return widget
+
+    def insertTab(self, index: int, text: str, widget: "LaserTabWidget") -> int:
+        index = super().insertTab(index, text, widget)
+        widget.numLaserItemsChanged.connect(self.numLaserItemsChanged)
+        widget.numImageItemsChanged.connect(self.numImageItemsChanged)
+        return index
 
     def importFile(self, data: Laser | QtGui.QImage) -> "LaserTabWidget":
         if len(self.widgets()) > 0:
@@ -173,8 +182,8 @@ class LaserTabView(TabView):
 
 class LaserTabWidget(TabViewWidget):
     # Todo connect to graphics scene num changed?
-    numberImageItemsChanged = QtCore.Signal()
-    numberLaserItemsChanged = QtCore.Signal()
+    numImageItemsChanged = QtCore.Signal()
+    numLaserItemsChanged = QtCore.Signal()
 
     """Class that stores and displays a laser image.
 
@@ -345,7 +354,7 @@ class LaserTabWidget(TabViewWidget):
         self.graphics.scene().addItem(item)
         self.graphics.zoomReset()
 
-        self.numberLaserItemsChanged.emit()
+        self.numLaserItemsChanged.emit()
         return item
 
     def addImage(self, path: str | Path) -> "ImageOverlayItem":
@@ -363,7 +372,7 @@ class LaserTabWidget(TabViewWidget):
         self.graphics.scene().addItem(item)
         self.graphics.zoomReset()
 
-        self.numberItemsChanged.emit()
+        self.numImageItemsChanged.emit()
         return item
 
     def laserItems(self) -> List[LaserImageItem]:

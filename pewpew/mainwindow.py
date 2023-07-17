@@ -13,8 +13,7 @@ from pewpew.log import LoggingDialog
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.laser import LaserTabView, LaserTabWidget
-from pewpew.widgets.tools import ToolWidget
-from pewpew.widgets.wizards import ImportWizard, SpotImportWizard, SRRImportWizard
+from pewpew.widgets.wizards import ImportWizard, SpotImportWizard
 
 logger = logging.getLogger(__name__)
 
@@ -23,19 +22,6 @@ class MainWindow(QtWidgets.QMainWindow):
     """Pewpew mainwindow, holding a Lasertabview.
     Actions for the menu and status bars are created and stored here.
     """
-
-    # ENABLED_TOOLS = {
-        # "Calculator": (CalculatorTool, None, ""),
-        # "Drift": (DriftTool, None, "Correct instrument drift."),
-        # "Filter": (
-        #     FilteringTool,
-        #     None,
-        #     "Remove spikes and instrument noise from data.",
-        # ),
-        # # "Merge": (MergeTool, "align-vertical-top", "Tool for merging multiple images."),
-        # "Calibration": (StandardsTool, None, "Generate calibrations from standards."),
-        # "Overlay": (OverlayTool, None, "Overlay elements as RGB images."),
-    # }
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
@@ -46,6 +32,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.tabview = LaserTabView()
         self.tabview.numTabsChanged.connect(self.updateActionAvailablity)
+        self.tabview.numLaserItemsChanged.connect(self.updateActionAvailablity)
         self.setCentralWidget(self.tabview)
 
         self.createActions()
@@ -355,13 +342,7 @@ class MainWindow(QtWidgets.QMainWindow):
         return dlg
 
     def actionExportAll(self) -> QtWidgets.QDialog:
-        widgets = [
-            w
-            for v in self.tabview.views
-            for w in v.widgets()
-            if isinstance(w, LaserTabWidget)
-        ]
-        dlg = ExportAllDialog(widgets, self)
+        dlg = ExportAllDialog(self.tabview.laserItems(), self)
         dlg.open()
         return dlg
 
@@ -480,7 +461,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_export_all.setEnabled(len(items) > 0)
 
         # Tools require an active view
-        focus_item = self.tabview.focusLaserItem()
+        # focus_item = self.tabview.focusLaserItem()
         # for action in self.actions_tools:
         #     action.setEnabled(len(items) > 0 and focus_item is not None)
 

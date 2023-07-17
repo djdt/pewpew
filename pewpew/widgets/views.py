@@ -1,11 +1,9 @@
-from PySide6 import QtCore, QtGui, QtWidgets
-
 import logging
-
-from pewpew.actions import qAction
-
 from typing import List
 
+from PySide6 import QtCore, QtGui, QtWidgets
+
+from pewpew.actions import qAction
 
 logger = logging.getLogger(__name__)
 
@@ -89,11 +87,7 @@ class TabView(QtWidgets.QWidget):
         Returns:
             index of new tab
         """
-        index = self.tabs.addTab(text)
-        self.stack.insertWidget(index, widget)
-        self.setTabModified(index, widget.isWindowModified())
-        self.numTabsChanged.emit()
-        return index
+        return self.insertTab(self.tabs.count(), text, widget)
 
     def insertTab(self, index: int, text: str, widget: "TabViewWidget") -> int:
         """Add a new tabbed widget at index.
@@ -110,7 +104,7 @@ class TabView(QtWidgets.QWidget):
         self.stack.insertWidget(index, widget)
         widget.view = self
 
-        self.setTabModified(index, widget.modified)
+        self.setTabModified(index, widget.isWindowModified())
         self.numTabsChanged.emit()
         return index
 
