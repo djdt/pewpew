@@ -1,21 +1,18 @@
-from PySide6 import QtCore, QtGui, QtWidgets
-import numpy as np
 import logging
 from pathlib import Path
+from typing import List, Set, Tuple
 
+import numpy as np
 from pewlib import io
 from pewlib.laser import Laser
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.graphics import colortable
 from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.lib.numpyqt import array_to_image
-
-from pewpew.widgets.prompts import OverwriteFilePrompt
 from pewpew.validators import PercentOrDecimalValidator
-
-from typing import List,  Set, Tuple
-
+from pewpew.widgets.prompts import OverwriteFilePrompt
 
 logger = logging.getLogger(__name__)
 
@@ -178,7 +175,9 @@ class _ExportDialogBase(QtWidgets.QDialog):
         self.lineedit_filename = QtWidgets.QLineEdit()
 
         filename_regexp = QtCore.QRegularExpression(f"[^{self.invalid_chars}]+")
-        self.lineedit_filename.setValidator(QtGui.QRegularExpressionValidator(filename_regexp))
+        self.lineedit_filename.setValidator(
+            QtGui.QRegularExpressionValidator(filename_regexp)
+        )
         self.lineedit_filename.textChanged.connect(self.filenameChanged)
         self.lineedit_filename.textChanged.connect(self.validate)
 
@@ -440,7 +439,9 @@ class ExportAllDialog(ExportDialog):
 
         self.lineedit_prefix = QtWidgets.QLineEdit("")
         self.lineedit_prefix.setValidator(
-            QtGui.QRegExpValidator(QtCore.QRegularExpression(f"[^{self.invalid_chars}]+"))
+            QtGui.QRegularExpressionValidator(
+                QtCore.QRegularExpression(f"[^{self.invalid_chars}]+")
+            )
         )
         self.lineedit_prefix.textChanged.connect(self.updatePreview)
 
