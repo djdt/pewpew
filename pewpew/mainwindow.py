@@ -1,24 +1,20 @@
-import sys
 import logging
-
-from PySide6 import QtGui, QtWidgets
+import sys
+from types import TracebackType
 
 from pewlib.config import Config, SpotConfig
+from PySide6 import QtGui, QtWidgets
 
 from pewpew import __version__
-
 from pewpew.actions import qAction, qActionGroup
 from pewpew.graphics.imageitems import LaserImageItem
-from pewpew.log import LoggingDialog
 from pewpew.help import HelpDialog
+from pewpew.log import LoggingDialog
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
-from pewpew.widgets.laser import LaserTabWidget, LaserTabView
-
+from pewpew.widgets.laser import LaserTabView, LaserTabWidget
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.wizards import ImportWizard, SpotImportWizard, SRRImportWizard
-
-from types import TracebackType
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +24,7 @@ class MainWindow(QtWidgets.QMainWindow):
     Actions for the menu and status bars are created and stored here.
     """
 
-    ENABLED_TOOLS = {
+    # ENABLED_TOOLS = {
         # "Calculator": (CalculatorTool, None, ""),
         # "Drift": (DriftTool, None, "Correct instrument drift."),
         # "Filter": (
@@ -39,7 +35,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # # "Merge": (MergeTool, "align-vertical-top", "Tool for merging multiple images."),
         # "Calibration": (StandardsTool, None, "Generate calibrations from standards."),
         # "Overlay": (OverlayTool, None, "Overlay elements as RGB images."),
-    }
+    # }
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
@@ -172,32 +168,32 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_toggle_scalebar.setCheckable(True)
         self.action_toggle_scalebar.setChecked(self.tabview.options.scalebar)
 
-        self.actions_tools = [
-            qAction(
-                "folder-calculate",
-                "Calculator",
-                "Open the calculator tool for the current laser image.",
-                lambda: self.openTool("Calculator"),
-            ),
-            qAction(
-                "view-filter",
-                "Filter",
-                "Apply various windowed filters to remove noise.",
-                lambda: self.openTool("Filtering"),
-            ),
-            qAction(
-                "dialog-layers",
-                "Overlay",
-                "Tool for visualising multiple elements at once.",
-                lambda: self.openTool("Overlay"),
-            ),
-            qAction(
-                "labplot-xy-fit-curve",
-                "Standards",
-                "Create calibrations from areas of the current laser.",
-                lambda: self.openTool("Standards"),
-            ),
-        ]
+        # self.actions_tools = [
+        #     qAction(
+        #         "folder-calculate",
+        #         "Calculator",
+        #         "Open the calculator tool for the current laser image.",
+        #         lambda: self.openTool("Calculator"),
+        #     ),
+        #     qAction(
+        #         "view-filter",
+        #         "Filter",
+        #         "Apply various windowed filters to remove noise.",
+        #         lambda: self.openTool("Filtering"),
+        #     ),
+        #     qAction(
+        #         "dialog-layers",
+        #         "Overlay",
+        #         "Tool for visualising multiple elements at once.",
+        #         lambda: self.openTool("Overlay"),
+        #     ),
+        #     qAction(
+        #         "labplot-xy-fit-curve",
+        #         "Standards",
+        #         "Create calibrations from areas of the current laser.",
+        #         lambda: self.openTool("Standards"),
+        #     ),
+        # ]
 
         self.action_transforms = [
             qAction(
@@ -238,12 +234,12 @@ class MainWindow(QtWidgets.QMainWindow):
             "Start the import wizard for data collected spot-wise.",
             self.actionWizardSpot,
         )
-        self.action_wizard_srr = qAction(
-            "",
-            "Kriss Kross Wizard",
-            "Start the Super-Resolution-Reconstruction import wizard.",
-            self.actionWizardSRR,
-        )
+        # self.action_wizard_srr = qAction(
+        #     "",
+        #     "Kriss Kross Wizard",
+        #     "Start the Super-Resolution-Reconstruction import wizard.",
+        #     self.actionWizardSRR,
+        # )
 
     def createMenus(self) -> None:
         # File
@@ -253,7 +249,7 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_import = menu_file.addMenu("&Import")
         menu_import.addAction(self.action_wizard_import)
         menu_import.addAction(self.action_wizard_spot)
-        menu_import.addAction(self.action_wizard_srr)
+        # menu_import.addAction(self.action_wizard_srr)
 
         menu_file.addSeparator()
 
@@ -273,10 +269,10 @@ class MainWindow(QtWidgets.QMainWindow):
         for action in self.action_transforms:
             menu_edit.addAction(action)
 
-        # Tools
-        menu_tools = self.menuBar().addMenu("&Tools")
-        for action in self.actions_tools:
-            menu_tools.addAction(action)
+        # # Tools
+        # menu_tools = self.menuBar().addMenu("&Tools")
+        # for action in self.actions_tools:
+        #     menu_tools.addAction(action)
 
         # View
         menu_view = self.menuBar().addMenu("&View")
@@ -410,22 +406,22 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionWizardImport(self) -> QtWidgets.QWizard:
         wiz = ImportWizard(config=self.tabview.config, parent=self)
-        wiz.laserImported.connect(self.tabview.activeView().addLaser)
+        wiz.laserImported.connect(self.tabview.importFile)
         wiz.open()
         return wiz
 
     def actionWizardSpot(self) -> QtWidgets.QWizard:
         config = SpotConfig(self.tabview.config.spotsize, self.tabview.config.spotsize)
         wiz = SpotImportWizard(config=config, options=self.tabview.options, parent=self)
-        wiz.laserImported.connect(self.tabview.activeView().addLaser)
+        wiz.laserImported.connect(self.tabview.importFile)
         wiz.open()
         return wiz
 
-    def actionWizardSRR(self) -> QtWidgets.QWizard:
-        wiz = SRRImportWizard(config=self.tabview.config, parent=self)
-        wiz.laserImported.connect(self.tabview.activeView().addLaser)
-        wiz.open()
-        return wiz
+    # def actionWizardSRR(self) -> QtWidgets.QWizard:
+    #     wiz = SRRImportWizard(config=self.tabview.config, parent=self)
+    #     wiz.laserImported.connect(self.tabview.importFile)
+    #     wiz.open()
+    #     return wiz
 
     def dialogColortableRange(self) -> QtWidgets.QDialog:
         """Open a `:class:pewpew.widgets.dialogs.ColorRangeDialog` and apply result."""
@@ -485,8 +481,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Tools require an active view
         focus_item = self.tabview.focusLaserItem()
-        for action in self.actions_tools:
-            action.setEnabled(len(items) > 0 and focus_item is not None)
+        # for action in self.actions_tools:
+        #     action.setEnabled(len(items) > 0 and focus_item is not None)
 
     def exceptHook(
         self, etype: type, value: BaseException, tb: TracebackType
