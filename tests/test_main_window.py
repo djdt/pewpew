@@ -59,3 +59,24 @@ def test_main_window_actions_widget(qtbot: QtBot):
     window.actionToolFilter()
     window.actionToolStandards()
     window.actionToolOverlay()
+
+# def test_laser_view_space_apply_dialogs(qtbot: QtBot):
+#     viewspace = LaserViewSpace()
+#     qtbot.addWidget(viewspace)
+#     viewspace.show()
+
+#     qtbot.addWidget(viewspace)
+#     viewspace.views[0].addLaser(Laser(rand_data("A1")))
+#     viewspace.refresh()
+
+#     dlg = viewspace.configDialog()
+#     dlg.applyPressed.emit(dlg)
+#     dlg.close()
+#     dlg = viewspace.colortableRangeDialog()
+#     dlg.applyPressed.emit(dlg)
+#     dlg.close()
+#     dlg = viewspace.fontsizeDialog()
+#     dlg.intValueSelected.emit(5)
+#     dlg.close()
+
+#     assert viewspace.options.font.pointSize() == 5

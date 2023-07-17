@@ -1,37 +1,30 @@
 import copy
+import logging
 from io import BytesIO
+from pathlib import Path
+from typing import Dict, List
 
 import numpy as np
-from pathlib import Path
-import logging
-
-from PySide6 import QtCore, QtGui, QtWidgets
-
-from pewlib.laser import Laser
-from pewlib.srr import SRRConfig
 from pewlib.calibration import Calibration
 from pewlib.config import Config
+from pewlib.laser import Laser
+from pewlib.srr import SRRConfig
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction
 from pewpew.events import DragDropRedirectFilter
-
 from pewpew.graphics.imageitems import ImageOverlayItem, LaserImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
-
 from pewpew.threads import ImportThread
-
 from pewpew.widgets import dialogs, exportdialogs
-from pewpew.widgets.controls import ControlBar, LaserControlBar, ImageControlBar
+from pewpew.widgets.controls import ControlBar, ImageControlBar, LaserControlBar
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.tools.calculator import CalculatorTool
 from pewpew.widgets.tools.filtering import FilteringTool
 from pewpew.widgets.tools.overlays import OverlayTool
 from pewpew.widgets.tools.standards import StandardsTool
 from pewpew.widgets.views import TabView, TabViewWidget
-
-from typing import Dict, List
-
 
 logger = logging.getLogger(__name__)
 
@@ -180,8 +173,8 @@ class LaserTabView(TabView):
 
 class LaserTabWidget(TabViewWidget):
     # Todo connect to graphics scene num changed?
-    numberImageItemsChanged = QtCore.Signal(int)
-    numberLaserItemsChanged = QtCore.Signal(int)
+    numberImageItemsChanged = QtCore.Signal()
+    numberLaserItemsChanged = QtCore.Signal()
 
     """Class that stores and displays a laser image.
 
@@ -329,7 +322,7 @@ class LaserTabWidget(TabViewWidget):
         self.setLayout(layout)
         self.show()  # Call show here so that zoomReset works
 
-    def addLaser(self, laser: Laser) -> None:
+    def addLaser(self, laser: Laser) -> "LaserImageItem":
         item = LaserImageItem(laser, self.graphics.options)
 
         # Connect dialog requests
@@ -352,7 +345,10 @@ class LaserTabWidget(TabViewWidget):
         self.graphics.scene().addItem(item)
         self.graphics.zoomReset()
 
-    def addImage(self, path: str | Path) -> None:
+        self.numberLaserItemsChanged.emit()
+        return item
+
+    def addImage(self, path: str | Path) -> "ImageOverlayItem":
         if isinstance(path, Path):
             path = str(path.absolute())
         image = QtGui.QImage(path)
@@ -366,6 +362,9 @@ class LaserTabWidget(TabViewWidget):
         self.updateForItem(item)
         self.graphics.scene().addItem(item)
         self.graphics.zoomReset()
+
+        self.numberItemsChanged.emit()
+        return item
 
     def laserItems(self) -> List[LaserImageItem]:
         return [
