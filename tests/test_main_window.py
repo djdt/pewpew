@@ -38,36 +38,16 @@ def test_main_window_actions_widget(qtbot: QtBot):
 
     assert window.action_export_all.isEnabled()
 
-    # window.actionTransformFlipHorz()
-    # window.actionTransformFlipVert()
-    # window.actionTransformRotateLeft()
-    # window.actionTransformRotateRight()
-
     window.actionExportAll()
-    # window.actionToolCalculator()
-    # window.actionToolDrift()
-    # window.actionToolFilter()
-    # window.actionToolStandards()
-    # window.actionToolOverlay()
 
-
-def test_laser_view_space_apply_dialogs(qtbot: QtBot):
-    tabview = Lasertabview()
-    qtbot.addWidget(tabview)
-    tabview.show()
-
-    qtbot.addWidget(tabview)
-    tabview.views[0].addLaser(Laser(rand_data("A1")))
-    tabview.refresh()
-
-    dlg = tabview.configDialog()
+    dlg = window.dialogConfig()
     dlg.applyPressed.emit(dlg)
     dlg.close()
-    dlg = tabview.colortableRangeDialog()
+    dlg = window.dialogColortableRange()
     dlg.applyPressed.emit(dlg)
     dlg.close()
-    dlg = tabview.fontsizeDialog()
+    dlg = window.dialogFontsize()
     dlg.intValueSelected.emit(5)
     dlg.close()
 
-    assert tabview.options.font.pointSize() == 5
+    assert window.tabview.options.font.pointSize() == 5

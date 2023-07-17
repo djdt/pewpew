@@ -1,25 +1,26 @@
 import numpy as np
+from PySide6 import QtCore, QtGui
 from pytestqt.qtbot import QtBot
 
-from PySide6 import QtCore, QtGui
-
 from pewpew.lib.numpyqt import (
+    NumpyArrayTableModel,
     array_to_image,
     array_to_polygonf,
     polygonf_to_array,
-    NumpyArrayTableModel,
 )
 
 
 def test_array_to_image():
     # Float image
     x = np.linspace(0.0, 1.0, 100, endpoint=True).reshape(10, 10).astype(np.float64)
+    x[1, 0] = np.nan
     i = array_to_image(x)
     i.setColorTable(np.arange(256))
     assert i.format() == QtGui.QImage.Format_Indexed8
     assert i.width() == 10
     assert i.height() == 10
-    assert i.pixel(0, 0) == 0
+    assert i.pixel(0, 0) == 1
+    assert i.pixel(0, 1) == 0
     assert i.pixel(9, 9) == 255
 
     # Uint8 image
@@ -35,7 +36,7 @@ def test_array_to_image():
     x = np.stack((x, x, x), axis=2)
     i = array_to_image(x)
     assert i.format() == QtGui.QImage.Format_RGB32
-    assert i.pixel(0, 0) == (255 << 24)
+    assert i.pixel(0, 0) == (255 << 24) + (1 << 16) + (1 << 8) + 1
     assert i.pixel(9, 9) == (255 << 24) + (255 << 16) + (255 << 8) + 255
 
     # RGB image

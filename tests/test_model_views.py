@@ -1,10 +1,9 @@
 import numpy as np
+from PySide6 import QtCore, QtGui, QtWidgets
 from pytestqt.qtbot import QtBot
 
-from PySide6 import QtCore, QtGui, QtWidgets
-
 from pewpew.lib.numpyqt import NumpyArrayTableModel
-from pewpew.widgets.modelviews import BasicTableView, BasicTable
+from pewpew.widgets.modelviews import BasicTable, BasicTableView
 
 
 def test_basic_table_view(qtbot: QtBot):
@@ -33,7 +32,9 @@ def test_basic_table_view(qtbot: QtBot):
     assert x[0, 0] == 2.0
 
     view.contextMenuEvent(
-        QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
+        QtGui.QContextMenuEvent(
+            QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0), QtCore.QPoint(0, 0)
+        )
     )
 
 
@@ -87,5 +88,7 @@ def test_basic_table(qtbot: QtBot):
     assert table.item(1, 1).text() == "4"
 
     table.contextMenuEvent(
-        QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
+        QtGui.QContextMenuEvent(
+            QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0), QtCore.QPoint(0, 0)
+        )
     )

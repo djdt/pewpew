@@ -207,7 +207,7 @@ class TabViewBar(QtWidgets.QTabBar):
 
     def tabRenameDialog(self, index: int) -> QtWidgets.QDialog | None:
         if index == -1 or not self.view.stack.widget(index).editable:
-            return
+            return None
         dlg = QtWidgets.QInputDialog(self)
         dlg.setWindowTitle("Rename")
         dlg.setLabelText("Name:")
