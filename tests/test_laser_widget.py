@@ -139,54 +139,6 @@ def test_laser_tab_widget(qtbot: QtBot):
 #     )
 
 
-# def test_laser_widget_actions(qtbot: QtBot):
-#     viewspace = LaserViewSpace()
-#     qtbot.addWidget(viewspace)
-#     viewspace.show()
-#     view = viewspace.activeView()
-#     view.addLaser(
-#         Laser(rand_data(["a", "b"]), info={"File Path": "/home/pewpew/real.npz"})
-#     )
-#     widget = view.activeWidget()
-
-#     dlg = widget.actionCalibration()
-#     dlg.close()
-#     dlg = widget.actionConfig()
-#     dlg.close()
-#     widget.actionDuplicate()
-#     widget.actionCopyImage()
-#     dlg = widget.actionExport()
-#     dlg.close()
-#     dlg = widget.actionSave()
-#     dlg.close()
-#     dlg = widget.actionStatistics()
-#     dlg.close()
-#     dlg = widget.actionSelectDialog()
-#     dlg.close()
-#     dlg = widget.actionColocal()
-#     dlg.close()
-
-#     widget.contextMenuEvent(
-#         QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
-#     )
-
-#     # Test contextmenu
-#     widget.graphics.mask = np.ones((10, 10), dtype=bool)
-#     widget.contextMenuEvent(
-#         QtGui.QContextMenuEvent(
-#             QtGui.QContextMenuEvent.Mouse,
-#             widget.graphics.mapFromScene(QtCore.QPointF(0, 0)),
-#         )
-#     )
-
-#     widget.actionCopySelectionText()
-#     widget.actionCropSelection()
-#     dlg = widget.actionStatisticsSelection()
-#     dlg.close()
-#     dlg = widget.actionColocalSelection()
-#     dlg.close()
-
-
 def test_laser_widget_cursor(qtbot: QtBot):
     main = QtWidgets.QMainWindow()
     qtbot.addWidget(main)

@@ -15,13 +15,6 @@ from pewpew.graphics.items import ColorBarItem, EditableLabelItem
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.lib.numpyqt import array_to_image, image_to_array
 
-# from pewlib.srr.config import SRRConfig
-
-
-
-
-
-
 
 class SnapImageItem(QtWidgets.QGraphicsObject):
     selectionChanged = QtCore.Signal()
@@ -310,7 +303,7 @@ class ImageOverlayItem(ScaledImageItem):
         menu.addSeparator()
         menu.addAction(self.action_close)
 
-        menu.exec_(event.screenPos())
+        menu.exec(event.screenPos())
         event.accept()
 
 
