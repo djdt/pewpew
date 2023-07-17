@@ -1,26 +1,26 @@
-from PySide6 import QtCore, QtGui, QtWidgets
-
-import numpy as np
 import copy
 from pathlib import Path
+from typing import Any, Dict, List
 
+import numpy as np
 from pewlib import io
-from pewlib.laser import Laser
 from pewlib.calibration import Calibration
 from pewlib.config import Config
+from pewlib.laser import Laser
+from PySide6 import QtCore, QtGui, QtWidgets
+
+from pewpew.actions import qAction
+from pewpew.graphics import colortable
+from pewpew.graphics.items import ColorBarItem, EditableLabelItem
+from pewpew.graphics.options import GraphicsOptions
+from pewpew.lib.numpyqt import array_to_image, image_to_array
 
 # from pewlib.srr.config import SRRConfig
 
-from pewpew.lib.numpyqt import array_to_image, image_to_array
 
-from pewpew.graphics import colortable
-from pewpew.graphics.options import GraphicsOptions
 
-from pewpew.graphics.items import ColorBarItem, EditableLabelItem
 
-from pewpew.actions import qAction
 
-from typing import Any, Dict, List
 
 
 class SnapImageItem(QtWidgets.QGraphicsObject):
@@ -397,6 +397,13 @@ class LaserImageItem(SnapImageItem):
         self.current_element = element
         self.element_label.setText(element)
         self.redraw()
+
+    def renameElements(self, names: Dict[str, str]) -> None:
+        old_names = [x for x in self.laser.elements if x not in names]
+        self.laser.remove(old_names)
+        self.laser.rename(names)
+        self.setElement(self.laser.elements[0])
+        self.modified.emit()
 
     def name(self) -> str:
         return self.laser.info["Name"]

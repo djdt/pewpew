@@ -178,34 +178,6 @@ class LaserTabView(TabView):
     #     return dlg
 
 
-# class LaserComboBox(QtWidgets.QComboBox):
-#     """Combo box with a context menu for editing names."""
-
-#     namesSelected = QtCore.Signal(dict)
-
-#     def __init__(self, parent: QtWidgets.QWidget | None = None):
-#         super().__init__(parent)
-#         self.action_edit_names = qAction(
-#             "document-edit",
-#             "Edit Names",
-#             "Edit image names.",
-#             self.actionNameEditDialog,
-#         )
-
-#     def actionNameEditDialog(self) -> QtWidgets.QDialog:
-#         names = [self.itemText(i) for i in range(self.count())]
-#         dlg = dialogs.NameEditDialog(names, parent=self)
-#         dlg.namesSelected.connect(self.namesSelected)
-#         dlg.open()
-#         return dlg
-
-#     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
-#         event.accept()
-#         menu = QtWidgets.QMenu(self)
-#         menu.addAction(self.action_edit_names)
-#         menu.popup(event.globalPos())
-
-
 class LaserTabWidget(TabViewWidget):
     # Todo connect to graphics scene num changed?
     numberImageItemsChanged = QtCore.Signal(int)

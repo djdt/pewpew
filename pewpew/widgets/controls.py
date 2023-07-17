@@ -1,6 +1,36 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from pewpew.actions import qAction
 from pewpew.graphics.imageitems import LaserImageItem
+from pewpew.widgets.dialogs import NameEditDialog
+
+
+class EditComboBox(QtWidgets.QComboBox):
+    """Combo box with a context menu for editing names."""
+
+    namesSelected = QtCore.Signal(dict)
+
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+        self.action_edit_names = qAction(
+            "document-edit",
+            "Edit Names",
+            "Edit image names.",
+            self.actionNameEditDialog,
+        )
+
+    def actionNameEditDialog(self) -> QtWidgets.QDialog:
+        names = [self.itemText(i) for i in range(self.count())]
+        dlg = NameEditDialog(names, allow_remove=True, parent=self)
+        dlg.namesSelected.connect(self.namesSelected)
+        dlg.open()
+        return dlg
+
+    def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
+        event.accept()
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(self.action_edit_names)
+        menu.popup(event.globalPos())
 
 
 class ControlBar(QtWidgets.QWidget):
@@ -35,7 +65,7 @@ class LaserControlBar(ControlBar):
         self.alpha.setValue(100)
         self.alpha.valueChanged.connect(lambda i: self.alphaChanged.emit(i / 100.0))
 
-        self.elements = QtWidgets.QComboBox()
+        self.elements = EditComboBox()
         self.elements.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.elements.currentTextChanged.connect(self.elementChanged)
 
@@ -47,7 +77,11 @@ class LaserControlBar(ControlBar):
         self.blockSignals(True)
 
         # Disconnect throws a RuntimeError if not connected...
-        for signal in [self.alphaChanged, self.elementChanged]:
+        for signal in [
+            self.alphaChanged,
+            self.elementChanged,
+            self.elements.namesSelected,
+        ]:
             try:
                 signal.disconnect()
             except RuntimeError:
@@ -64,6 +98,8 @@ class LaserControlBar(ControlBar):
         self.alphaChanged.connect(item.setOpacity)
         self.on_element_changed = lambda e: [item.setElement(e), item.redraw()]
         self.elementChanged.connect(self.on_element_changed)
+        self.on_rename = lambda e: [item.renameElements(e), self.setItem(item)]
+        self.elements.namesSelected.connect(self.on_rename)
 
         self.blockSignals(False)
 
