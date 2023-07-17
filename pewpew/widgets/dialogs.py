@@ -1069,16 +1069,13 @@ class SelectionDialog(ApplyDialog):
     def refresh(self) -> None:
         method = self.combo_method.currentText()
         data = self.item.raw_data
-        if data is None:
+        if data is None or len(data) == 0:
             return
         if self.check_limit_threshold.isChecked() and self.item.mask_image is not None:
             data = data[self.item.mask]
 
         # Remove nans
         data = data[~np.isnan(data)]
-
-        # Enable lineedit if manual mode
-        self.lineedit_manual.setEnabled(method == "Manual")
 
         op, var = SelectionDialog.METHODS[method]
 

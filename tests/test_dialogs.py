@@ -1,18 +1,15 @@
 import numpy as np
-
-from io import BytesIO
-
+from pewlib.calibration import Calibration
+from pewlib.config import Config
+from pewlib.laser import Laser
+from pewlib.srr.config import SRRConfig
+from PySide6 import QtCore, QtGui
 from pytestqt.qtbot import QtBot
 
-from PySide6 import QtCore, QtGui, QtWidgets
-
-from pewlib.config import Config
-from pewlib.calibration import Calibration
-from pewlib.srr.config import SRRConfig
-
+from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.graphics.options import GraphicsOptions
-from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.widgets import dialogs
+from pewpew.lib.numpyqt import array_to_image
 
 
 def test_apply_dialog(qtbot: QtBot):
@@ -279,11 +276,13 @@ def test_name_edit_dialog(qtbot: QtBot):
 
 
 def test_selection_dialog(qtbot: QtBot):
-    x = np.random.random((10, 10))
-    graphics = LaserGraphicsView(GraphicsOptions())
-    graphics.drawImage(x, QtCore.QRectF(0, 0, 10, 10), "x")
+    x = np.empty((10, 10), dtype=[("x", float)])
+    x["x"] = np.random.random((10, 10))
+    laser = Laser(data=x, info={"Name": "sel"})
+    item = LaserImageItem(laser, GraphicsOptions())
+    item.redraw()
 
-    dialog = dialogs.SelectionDialog(graphics)
+    dialog = dialogs.SelectionDialog(item)
     qtbot.addWidget(dialog)
     dialog.open()
 
@@ -309,7 +308,7 @@ def test_selection_dialog(qtbot: QtBot):
     # Test correct states and masks emmited
     with qtbot.wait_signal(dialog.maskSelected) as emitted:
         dialog.apply()
-    assert np.all(emitted.args[0] == (x > x.mean()))
+    assert np.all(emitted.args[0] == (x["x"] > x["x"].mean()))
     assert emitted.args[1] == ["intersect"]
 
     dialog.check_limit_selection.setChecked(False)
@@ -319,20 +318,20 @@ def test_selection_dialog(qtbot: QtBot):
 
     with qtbot.wait_signal(dialog.maskSelected) as emitted:
         dialog.apply()
-    assert np.all(emitted.args[0] == (x > 0.9))
+    assert np.all(emitted.args[0] == (x["x"] > 0.9))
     assert emitted.args[1] == [""]
 
-    dialog.graphics.selection = emitted.args[0]
+    dialog.item.selection = emitted.args[0]
 
     # Test limit threshold
     dialog.combo_method.setCurrentText("Mean")
     dialog.check_limit_threshold.setChecked(True)
-    graphics.mask = x > 0.9
+    item.mask_image = array_to_image((x["x"] > 0.9).astype(np.uint8))
     dialog.refresh()
 
     with qtbot.wait_signal(dialog.maskSelected) as emitted:
         dialog.apply()
-    assert np.all(emitted.args[0] == (x > np.mean(x[x > 0.9])))
+    assert np.all(emitted.args[0] == (x["x"] > np.mean(x["x"][x["x"] > 0.9])))
     assert emitted.args[1] == [""]
 
 

@@ -28,7 +28,7 @@ class LaserGraphicsView(OverlayGraphicsView):
     """The pewpew laser view.
 
     Displays the image with correct scaling and an overlay label, sizebar and colorbar.
-    If a selection is made the 'mask' is updated and a highlight is applied to sselected pixels.
+    If a selection is made the 'mask' is updated and a highlight is applied to selected pixels.
     """
 
     def __init__(
