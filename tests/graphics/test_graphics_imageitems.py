@@ -1,18 +1,13 @@
 import numpy as np
+from pewlib.calibration import Calibration
+from pewlib.config import Config
+from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
 from pytestqt.qtbot import QtBot
+from testing import rand_data
 
-# from pewpew.graphics.imageitems import (
-#     ScaledImageItem,
-#     RulerWidgetItem,
-#     ImageSliceWidgetItem,
-# )
-from pewpew.graphics.imageitems import (
-    ImageOverlayItem,
-    LaserImageItem,
-    ScaledImageItem,
-    SnapImageItem,
-)
+from pewpew.graphics.imageitems import ImageOverlayItem, LaserImageItem, ScaledImageItem
+from pewpew.graphics.options import GraphicsOptions
 
 
 class FakeSceneMouseEvent(QtWidgets.QGraphicsSceneMouseEvent):
@@ -70,6 +65,7 @@ def test_scaled_image_item_ordering(qtbot: QtBot):
     items = [ScaledImageItem(image, QtCore.QRectF(0, 0, 100, 100)) for _ in range(3)]
 
     scene = QtWidgets.QGraphicsScene()
+    qtbot.add_widget(scene)
     for item in items:
         scene.addItem(item)
 
@@ -97,7 +93,64 @@ def test_image_overlay_item(qtbot: QtBot):
 
 
 def test_laser_image_item(qtbot: QtBot):
-    pass
+    laser = Laser(data=rand_data(["A", "B", "C"]), info={"Name": "test"})
+    item = LaserImageItem(laser, GraphicsOptions())
+
+    assert np.all(item.mask)
+    assert item.mask_image is None
+
+    assert item.element() == "A"
+    item.setElement("B")
+    assert item.element() == "B"
+    item.renameElements({"A": "a", "B": "B"})
+    assert item.laser.elements == ("a", "B")
+
+    assert item.name() == "test"
+    item.setName("Test")
+    assert item.laser.info["Name"] == "Test"
+
+    assert item.imageSize() == QtCore.QSize(10, 10)
+
+    assert np.all(item.raw_data == laser.data["a"])
+
+    # Selection
+    mask = np.zeros((10, 10), dtype=bool)
+    mask[5:] = True
+    item.select(mask, ["intersect"])
+    assert item.mask_image is not None
+    assert not item.selectedAt(QtCore.QPointF(0, 0))
+    assert item.selectedAt(QtCore.QPointF(0, 50.0 * 5))
+
+    item.select(np.zeros_like(mask), ["add"])
+    assert np.all(item.mask == mask)  # no change
+    item.select(np.ones_like(mask), ["subtract"])
+    assert np.all(item.mask)
+    assert item.mask_image is None
+
+    mask[:] = 0
+    mask[0, 0] = 1
+    item.select(mask, ["intersect"])
+    item.copySelectionToText()
+    mime = QtWidgets.QApplication.clipboard().mimeData()
+    assert mime.text() == f"{laser.data['a'][0][0]:.10f}\n"
+
+
+def test_laser_image_item_actions(qtbot: QtBot):
+    laser = Laser(data=rand_data(["A", "B", "C"]), info={"Name": "test"})
+    item = LaserImageItem(laser, GraphicsOptions())
+
+    item.applyCalibration({"A": Calibration(1.0, 2.0, "c")})
+    assert item.laser.calibration["A"].unit == "c"
+
+    item.applyConfig(Config(10.0, 10.0, 10.0))
+    assert item.laser.config.scantime == 10.0
+    assert item.pixelSize() == QtCore.QSizeF(100.0, 10.0)
+
+    item.applyInformation({"Name": "test", "key": "val"})
+    assert item.laser.info["key"] == "val"
+
+    item.transform("horizontal", "left")
+    item.transform("vertical", "right")
 
 
 # def test_ruler_widget_item(qtbot: QtBot):
