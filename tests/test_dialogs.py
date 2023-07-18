@@ -8,8 +8,8 @@ from pytestqt.qtbot import QtBot
 
 from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.graphics.options import GraphicsOptions
-from pewpew.widgets import dialogs
 from pewpew.lib.numpyqt import array_to_image
+from pewpew.widgets import dialogs
 
 
 def test_apply_dialog(qtbot: QtBot):
@@ -353,7 +353,9 @@ def test_stats_dialog(qtbot: QtBot):
     assert dialog.label_area.text().endswith("9000 cm²")
 
     dialog.contextMenuEvent(
-        QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
+        QtGui.QContextMenuEvent(
+            QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0), QtCore.QPoint(0, 0)
+        )
     )
 
     dialog.copyToClipboard()

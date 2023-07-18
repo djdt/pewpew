@@ -65,7 +65,6 @@ def test_scaled_image_item_ordering(qtbot: QtBot):
     items = [ScaledImageItem(image, QtCore.QRectF(0, 0, 100, 100)) for _ in range(3)]
 
     scene = QtWidgets.QGraphicsScene()
-    qtbot.add_widget(scene)
     for item in items:
         scene.addItem(item)
 

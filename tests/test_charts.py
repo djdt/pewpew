@@ -1,16 +1,11 @@
-from PySide6 import QtCore, QtGui
-from PySide6 import QtCharts
-
 import numpy as np
-
+from PySide6 import QtCharts, QtCore, QtGui
 from pytestqt.qtbot import QtBot
 
-
-from pewpew.charts.colors import light_theme
 from pewpew.charts.base import BaseChart
-
 from pewpew.charts.calibration import CalibrationChart
 from pewpew.charts.colocal import ColocalisationChart
+from pewpew.charts.colors import light_theme
 from pewpew.charts.histogram import HistogramChart
 
 
@@ -27,7 +22,9 @@ def test_base_chart(qtbot: QtBot):
     assert axis.titleBrush().color() == chart.theme["title"]
 
     chart.contextMenuEvent(
-        QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
+        QtGui.QContextMenuEvent(
+            QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0), QtCore.QPoint(0, 0)
+        )
     )
     chart.copyToClipboard()
 

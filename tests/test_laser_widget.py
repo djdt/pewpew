@@ -119,7 +119,7 @@ def test_laser_tab_widget(qtbot: QtBot):
         QtCore.Qt.LeftButton,
         QtCore.Qt.NoModifier,
     )
-    with qtbot.waitSignal(widget.numberLaserItemsChanged):
+    with qtbot.waitSignal(widget.numLaserItemsChanged):
         view.dropEvent(drop_event)
     assert drop_event.isAccepted()
     assert len(widget.laserItems()) == 2
