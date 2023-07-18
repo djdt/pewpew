@@ -96,7 +96,6 @@ def test_laser_graphics_widgets(qtbot: QtBot):
     graphics.scene().addItem(item)
     qtbot.waitExposed(graphics)
 
-
     graphics.startRulerWidget()
     event = left_click_at(graphics.mapFromScene(QtCore.QPointF(0, 0)))
     graphics.mousePressEvent(event)
@@ -132,26 +131,3 @@ def test_laser_graphics_widgets(qtbot: QtBot):
 
     # print(slice.sliced)
     # assert np.all(slice.sliced == item.laser.data["a"][:, 0])
-
-
-# def test_laser_graphics_zoom(qtbot: QtBot):
-#     graphics = LaserGraphicsView(GraphicsOptions())
-#     qtbot.addWidget(graphics)
-
-#     x = np.random.random((10, 10))
-#     graphics.drawImage(x, QtCore.QRectF(0, 0, 100, 100), "x")
-
-#     qtbot.waitExposed(graphics)
-
-#     graphics.zoomStart()
-
-#     event = left_click_at(graphics.mapFromScene(QtCore.QPointF(20, 20)))
-#     graphics.mousePressEvent(event)
-#     event = left_click_at(graphics.mapFromScene(QtCore.QPointF(40, 40)))
-#     graphics.mouseMoveEvent(event)
-#     graphics.mouseReleaseEvent(event)
-
-#     rect = graphics.mapToScene(graphics.viewport().rect()).boundingRect()
-#     assert 29.5 < rect.center().x() < 30.5
-#     assert 29.5 < rect.center().y() < 30.5
-#     assert 19.5 < rect.width() < 20.5 or 19.5 < rect.height() < 20.5
