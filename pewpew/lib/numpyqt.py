@@ -17,7 +17,8 @@ def array_to_image(array: np.ndarray) -> QtGui.QImage:
     if array.dtype in [np.float32, np.float64]:
         nans = np.isnan(array)
         array = np.clip(array, 0.0, 1.0)
-        array = (array * 254.0).astype(np.uint8) + 1
+        with np.errstate(invalid="ignore"):
+            array = (array * 254.0).astype(np.uint8) + 1
         array[nans] = 0
 
     # 3D arrays interpreted as RGB
