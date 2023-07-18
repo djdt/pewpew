@@ -29,7 +29,7 @@ class StandardsTool(ToolWidget):
 
     WEIGHTINGS = ["Equal", "1/σ²", "x", "1/x", "1/x²", "y", "1/y", "1/y²"]
 
-    def __init__(self, item: LaserImageItem, view: TabView | None):
+    def __init__(self, item: LaserImageItem, view: TabView | None = None):
         super().__init__(item, control_label="Calibration", apply_all=True, view=view)
         self.setWindowTitle("Calibration Tool")
 
