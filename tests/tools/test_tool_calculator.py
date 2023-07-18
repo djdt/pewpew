@@ -1,16 +1,14 @@
 import numpy as np
-
-from pytestqt.qtbot import QtBot
-
 from pewlib.laser import Laser
+from pytestqt.qtbot import QtBot
+from testing import rand_data
 
-from pewpew.widgets.laser import LaserViewSpace
+from pewpew.widgets.laser import LaserTabView
 from pewpew.widgets.tools.calculator import (
-    CalculatorName,
     CalculatorFormula,
+    CalculatorName,
     CalculatorTool,
 )
-from testing import rand_data
 
 
 def test_tool_calculator_name(qtbot: QtBot):
@@ -44,25 +42,26 @@ def test_tool_calculator_formula(qtbot: QtBot):
 
 
 def test_tool_calculator(qtbot: QtBot):
-    viewspace = LaserViewSpace()
-    qtbot.addWidget(viewspace)
-    viewspace.show()
+    view = LaserTabView()
+    qtbot.addWidget(view)
+    view.show()
 
-    view = viewspace.activeView()
-    widget = view.addLaser(Laser(rand_data(["a", "b"])))
-    tool = CalculatorTool(view.activeWidget())
+    widget = view.importFile(Laser(rand_data(["a", "b"]), info={"Name": "test"}))
+    item = widget.laserItems()[0]
+    tool = CalculatorTool(item)
     view.addTab("Tool", tool)
-    qtbot.waitExposed(tool)
+    with qtbot.waitExposed(tool):
+        tool.show()
 
     assert tool.lineedit_name.text() == "calc0"
     tool.apply()
-    assert "calc0" in widget.laser.elements
+    assert "calc0" in item.laser.elements
     assert tool.lineedit_name.text() == "calc1"
 
     # overwrite
     tool.lineedit_name.setText("a")
     tool.apply()
-    assert len(widget.laser.elements) == 3
+    assert len(item.laser.elements) == 3
 
     # Inserters
     assert tool.formula.toPlainText() == "a"

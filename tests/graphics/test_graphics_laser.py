@@ -85,6 +85,9 @@ def test_laser_graphics_widgets(qtbot: QtBot):
     win.setCentralWidget(graphics)
     qtbot.addWidget(win)
 
+    with qtbot.wait_exposed(win):
+        win.show()
+
     item = LaserImageItem(
         Laser(
             data=rand_data(["a", "b"]),
@@ -94,7 +97,6 @@ def test_laser_graphics_widgets(qtbot: QtBot):
         graphics.options,
     )
     graphics.scene().addItem(item)
-    qtbot.waitExposed(graphics)
 
     graphics.startRulerWidget()
     event = left_click_at(graphics.mapFromScene(QtCore.QPointF(0, 0)))
@@ -113,21 +115,3 @@ def test_laser_graphics_widgets(qtbot: QtBot):
     assert not any(
         isinstance(item, RulerWidgetItem) for item in graphics.scene().items()
     )
-
-    # This test crashes pytest
-
-    # graphics.startSliceWidget()
-    # slice = next(
-    #     item
-    #     for item in graphics.scene().items()
-    #     if isinstance(item, ImageSliceWidgetItem)
-    # )
-
-    # event = left_click_at(graphics.mapFromScene(QtCore.QPointF(1, 1)))
-    # graphics.mousePressEvent(event)
-    # event = left_click_at(graphics.mapFromScene(QtCore.QPointF(95, 5)))
-    # graphics.mouseMoveEvent(event)
-    # graphics.mouseReleaseEvent(event)
-
-    # print(slice.sliced)
-    # assert np.all(slice.sliced == item.laser.data["a"][:, 0])

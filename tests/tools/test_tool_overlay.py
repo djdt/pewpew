@@ -1,59 +1,54 @@
-from pathlib import Path
-import numpy as np
 import tempfile
+from pathlib import Path
 
+import numpy as np
+from pewlib.laser import Laser
 from PySide6 import QtGui
 from pytestqt.qtbot import QtBot
 
-from pewlib.laser import Laser
-
-from pewpew.widgets.laser import LaserViewSpace
+from pewpew.widgets.laser import LaserTabView
 from pewpew.widgets.tools.overlays import OverlayTool
 
 
 def test_overlay_tool(qtbot: QtBot):
     data = np.zeros((10, 10), dtype=[("r", float), ("g", float), ("b", float)])
     data["r"][:, :] = 1.0
-    data["g"][:10, :] = 1.0
-    data["b"][:, :10] = 1.0
+    data["g"][:5, :] = 1.0
+    data["b"][:, :5] = 1.0
 
-    viewspace = LaserViewSpace()
-    qtbot.addWidget(viewspace)
-    viewspace.show()
-    view = viewspace.activeView()
-    view.addLaser(
-        Laser(data, info={"Name": "real", "File Path": "/home/pewpew/real.npz"})
+    view = LaserTabView()
+    qtbot.add_widget(view)
+    view.show()
+    widget = view.importFile(
+        Laser(data, info={"Name": "test", "File Path": "/home/pewpew/real.npz"})
     )
-    tool = OverlayTool(view.activeWidget())
+    item = widget.laserItems()[0]
+    tool = OverlayTool(item)
     view.addTab("Tool", tool)
-    qtbot.waitExposed(tool)
+    with qtbot.waitExposed(tool):
+        tool.show()
 
     # Test rgb mode
     assert tool.rows.color_model == "rgb"
+    assert tool.image is not None
     tool.comboAdd(1)  # r
-    assert np.all(tool.graphics.data[0, 0] == (255 << 24) + (255 << 16))
+    assert np.all(tool.image.rawData()[0, 0] == [0, 0, 255, 255])
 
     tool.comboAdd(2)  # g
-    assert np.all(tool.graphics.data[:10] == (255 << 24) + (255 << 16) + (255 << 8))
-    assert np.all(tool.graphics.data[10:] == (255 << 24) + (255 << 16))
+    assert np.all(tool.image.rawData()[:5] == [0, 255, 255, 255])
+    assert np.all(tool.image.rawData()[5:] == [0, 0, 255, 255])
 
-    tool.comboAdd(3)  # g
-    assert np.all(
-        tool.graphics.data[:10, :10] == (255 << 24) + (255 << 16) + (255 << 8) + 255
-    )
-    assert np.all(tool.graphics.data[10:, :10] == (255 << 24) + (255 << 16))
-    assert np.all(
-        tool.graphics.data[10:, 10:] == (255 << 24) + (255 << 16) + (255 << 8)
-    )
-    assert np.all(tool.graphics.data[10:, 10:] == (255 << 24) + (255 << 16))
+    tool.comboAdd(3)  # b
+    assert np.all(tool.image.rawData()[:5, :5] == [255, 255, 255, 255])
+    assert np.all(tool.image.rawData()[5:, :5] == [255, 0, 255, 255])
+    assert np.all(tool.image.rawData()[5:, 5:] == [0, 0, 255, 255])
 
     # Test cmyk mode
     tool.radio_cmyk.toggle()
     assert tool.rows.color_model == "cmyk"
-    assert np.all(tool.graphics.data[:10, :10] == (255 << 24))
-    assert np.all(tool.graphics.data[10:, :10] == (255 << 24) + (255 << 8))
-    assert np.all(tool.graphics.data[10:, 10:] == (255 << 25) + 255)
-    assert np.all(tool.graphics.data[10:, 10:] == (255 << 24) + (255 << 8) + 255)
+    assert np.all(tool.image.rawData()[:5, :5] == [0, 0, 0, 255])
+    assert np.all(tool.image.rawData()[5:, :5] == [0, 255, 0, 255])
+    assert np.all(tool.image.rawData()[5:, 5:] == [255, 255, 0, 255])
 
     # Check that the rows are limited to 3
     assert tool.rows.max_rows == 3
@@ -79,10 +74,10 @@ def test_overlay_tool(qtbot: QtBot):
     assert tool.rows.rowCount() == 4
 
     # Test normalise
-    assert np.amin(tool.graphics.data) > (255 << 24)
+    assert np.amax(tool.image.rawData()[:, :, 2]) == 255
     tool.check_normalise.setChecked(True)
     tool.refresh()
-    assert tool.graphics.data.min() == (255 << 24) + (255 << 8) + 255  # No red
+    assert tool.image.rawData()[:, :, 2].max() < 255  # No red
     tool.check_normalise.setChecked(False)
 
     # Test export
@@ -114,7 +109,7 @@ def test_overlay_tool(qtbot: QtBot):
     tool.radio_rgb.toggle()
     with qtbot.wait_signal(tool.rows.rows[0].itemChanged):
         tool.rows.rows[0].button_hide.click()
-    assert np.all(tool.graphics.data <= ((255 << 24) + (255 << 8) + 255))
+    assert np.all(tool.image.rawData()[:, :, 2] == 0)
 
     dlg = tool.rows[0].selectColor()
     dlg.close()

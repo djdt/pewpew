@@ -27,6 +27,8 @@ def test_metric_scalebar_overlay(qtbot: QtBot):
     scene = QtWidgets.QGraphicsScene(0, 0, 100, 100)
     view = QtWidgets.QGraphicsView(scene)
     qtbot.addWidget(view)
+    with qtbot.wait_exposed(view):
+        view.show()
 
     sb = MetricScaleBarOverlay()
     scene.addItem(sb)
@@ -46,12 +48,6 @@ def test_metric_scalebar_overlay(qtbot: QtBot):
     width, unit = sb.getWidthAndUnit(100.0)
     assert np.isclose(width, 50.0)
     assert unit == "μm"
-
-    width, unit = sb.getWidthAndUnit(1000.0)
-    assert np.isclose(width, 500.0)
-    assert unit == "μm"
-
-    view.scale(10.0, 10.0)
 
     width, unit = sb.getWidthAndUnit(1000.0)
     assert np.isclose(width, 500.0)

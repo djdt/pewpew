@@ -16,7 +16,7 @@ from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.widgets.views import TabView
 from pewpew.widgets.tools.tool import ToolWidget
 
-from typing import Any, 
+from typing import Any
 
 # TODO replace drift chart with a SignalChart
 
@@ -251,7 +251,7 @@ class DriftTool(ToolWidget):
     """Drift normalisation tool."""
     normalise_methods = ["Maximum", "Minimum"]
 
-    def __init__(self, item: LaserImageItem, view: TabView):
+    def __init__(self, item: LaserImageItem, view: TabView | None = None):
         super().__init__(item, apply_all=False, view=view)
 
         self.drift: np.ndarray | None = None
