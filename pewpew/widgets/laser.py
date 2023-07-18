@@ -60,8 +60,9 @@ class LaserTabView(TabView):
 
     def insertTab(self, index: int, text: str, widget: "LaserTabWidget") -> int:
         index = super().insertTab(index, text, widget)
-        widget.numLaserItemsChanged.connect(self.numLaserItemsChanged)
-        widget.numImageItemsChanged.connect(self.numImageItemsChanged)
+        if isinstance(widget, LaserTabWidget):
+            widget.numLaserItemsChanged.connect(self.numLaserItemsChanged)
+            widget.numImageItemsChanged.connect(self.numImageItemsChanged)
         return index
 
     def importFile(self, data: Laser | QtGui.QImage) -> "LaserTabWidget":
