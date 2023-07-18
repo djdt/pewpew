@@ -383,7 +383,9 @@ class MainWindow(QtWidgets.QMainWindow):
         widget = self.tabview.activeWidget()
         if widget is None:
             return
-        widget.transform(flip=flip, rotate=rotate)
+        item = widget.graphics.scene().focusItem()
+        if isinstance(item, LaserImageItem):
+            item.transform(flip=flip, rotate=rotate)
 
     def actionWizardImport(self) -> QtWidgets.QWizard:
         wiz = ImportWizard(config=self.tabview.config, parent=self)
