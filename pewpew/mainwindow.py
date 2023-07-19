@@ -128,6 +128,14 @@ class MainWindow(QtWidgets.QMainWindow):
             lambda a: self.tabview.openDocument(a.text())
         )
 
+        self.action_add_tab = qAction(
+            "tab-new",
+            "New Tab",
+            "Create a workspace in a new tab.",
+            self.tabview.newLaserTab,
+        )
+        self.action_add_tab.setShortcut("Ctrl+T")
+
         self.action_refresh = qAction(
             "view-refresh", "Refresh", "Redraw documents.", self.tabview.refresh
         )
@@ -163,60 +171,6 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_toggle_scalebar.setCheckable(True)
         self.action_toggle_scalebar.setChecked(self.tabview.options.scalebar)
-
-        # self.actions_tools = [
-        #     qAction(
-        #         "folder-calculate",
-        #         "Calculator",
-        #         "Open the calculator tool for the current laser image.",
-        #         lambda: self.openTool("Calculator"),
-        #     ),
-        #     qAction(
-        #         "view-filter",
-        #         "Filter",
-        #         "Apply various windowed filters to remove noise.",
-        #         lambda: self.openTool("Filtering"),
-        #     ),
-        #     qAction(
-        #         "dialog-layers",
-        #         "Overlay",
-        #         "Tool for visualising multiple elements at once.",
-        #         lambda: self.openTool("Overlay"),
-        #     ),
-        #     qAction(
-        #         "labplot-xy-fit-curve",
-        #         "Standards",
-        #         "Create calibrations from areas of the current laser.",
-        #         lambda: self.openTool("Standards"),
-        #     ),
-        # ]
-
-        self.action_transforms = [
-            qAction(
-                "object-flip-horizontal",
-                "Flip Horizontal",
-                "Flip the image about vertical axis.",
-                lambda: self.actionTransform(flip="horizontal"),
-            ),
-            qAction(
-                "object-flip-vertical",
-                "Flip Vertical",
-                "Flip the image about horizontal axis.",
-                lambda: self.actionTransform(flip="vertical"),
-            ),
-            qAction(
-                "object-rotate-left",
-                "Rotate Left",
-                "Rotate the image 90° counter clockwise.",
-                lambda: self.actionTransform(rotate="left"),
-            ),
-            qAction(
-                "object-rotate-right",
-                "Rotate Right",
-                "Rotate the image 90° clockwise.",
-                lambda: self.actionTransform(rotate="right"),
-            ),
-        ]
 
         self.action_wizard_import = qAction(
             "",
@@ -267,13 +221,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         menu_edit.addSeparator()
 
-        for action in self.action_transforms:
-            menu_edit.addAction(action)
-
-        # # Tools
-        # menu_tools = self.menuBar().addMenu("&Tools")
-        # for action in self.actions_tools:
-        #     menu_tools.addAction(action)
+        menu_edit.addAction(self.action_add_tab)
 
         # View
         menu_view = self.menuBar().addMenu("&View")
@@ -422,24 +370,6 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.filesSelected.connect(self.tabview.openDocument)
         dlg.open()
         return dlg
-
-    def openTool(self, name: str) -> None:
-        widget = self.tabview.activeWidget()
-        if widget is None or not isinstance(widget, LaserTabWidget):
-            return
-        item = widget.graphics.scene().focusItem()
-        if isinstance(item, LaserImageItem):
-            widget.openTool(name, item)
-
-    def actionTransform(
-        self, flip: str | None = None, rotate: str | None = None
-    ) -> None:
-        widget = self.tabview.activeWidget()
-        if widget is None:
-            return
-        item = widget.graphics.scene().focusItem()
-        if isinstance(item, LaserImageItem):
-            item.transform(flip=flip, rotate=rotate)
 
     def actionWizardImport(self) -> QtWidgets.QWizard:
         wiz = ImportWizard(config=self.tabview.config, parent=self)

@@ -236,7 +236,7 @@ class TabViewBar(QtWidgets.QTabBar):
             < QtWidgets.QApplication.startDragDistance()
         ):
             return super().mouseMoveEvent(event)
-        index = self.tabAt(event.position())
+        index = self.tabAt(event.position().toPoint())
         if index == -1:
             return super().mouseMoveEvent(event)
 
@@ -255,16 +255,16 @@ class TabViewBar(QtWidgets.QTabBar):
         )
         drag.exec_(QtCore.Qt.MoveAction)
 
-    def mouseDoubleClickEvent(self, event: QtGui.QContextMenuEvent) -> None:
+    def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent) -> None:
         if event.button() == QtCore.Qt.LeftButton:
-            index = self.tabAt(event.position())
+            index = self.tabAt(event.position().toPoint())
             self.tabRenameDialog(index)
         else:
             super().mouseDoubleClickEvent(event)
 
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         event.accept()
-        index = self.tabAt(event.position())
+        index = self.tabAt(event.pos())
         menu = QtWidgets.QMenu(self)
         menu.addAction(self.action_close_all)
         if index != -1:
@@ -277,7 +277,7 @@ class TabViewBar(QtWidgets.QTabBar):
             event.acceptProposedAction()
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:  # pragma: no cover
-        dest = self.tabAt(event.position())
+        dest = self.tabAt(event.position().toPoint())
         src, ok = event.mimeData().data("application/x-pew2tabbar").toInt()
         if ok and event.source() == self:
             self.moveTab(src, dest)
