@@ -2,7 +2,7 @@ import copy
 import logging
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 import numpy as np
 from pewlib.calibration import Calibration
@@ -35,7 +35,8 @@ logger = logging.getLogger(__name__)
 class LaserTabView(TabView):
     """Tabbed view for displaying laser images."""
 
-    numImageItemsChanged = QtCore.Signal()
+    fileImported = QtCore.Signal(Path)
+    numImageItemsChanged = QtCore.Signal()  # needs close
     numLaserItemsChanged = QtCore.Signal()
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
@@ -65,18 +66,18 @@ class LaserTabView(TabView):
             widget.numImageItemsChanged.connect(self.numImageItemsChanged)
         return index
 
-    def importFile(self, data: Laser | QtGui.QImage) -> "LaserTabWidget":
+    def importFile(self, path: Path, data: Laser | QtGui.QImage) -> "LaserTabWidget":
         if len(self.widgets()) > 0:
             widget = self.widgets()[0]
         else:
             widget = LaserTabWidget(self.options, self)
             self.addTab("Tab 1", widget)
-
         if isinstance(data, Laser):
             widget.addLaser(data)
         else:
             widget.addImage(data)
 
+        self.fileImported.emit(path)
         return widget
 
     # Events
@@ -102,8 +103,11 @@ class LaserTabView(TabView):
         self.openDocument(paths)
 
     # Callbacks
-    def openDocument(self, paths: List[Path]) -> None:
+    def openDocument(self, paths: List[Path] | Path) -> None:
         """Open `paths` as new laser images."""
+        if isinstance(paths, (Path, str)):
+            paths = [paths]
+
         paths = [Path(path) for path in paths]  # Ensure Path
 
         progress = QtWidgets.QProgressDialog(

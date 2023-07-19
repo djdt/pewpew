@@ -1,9 +1,10 @@
 import logging
 import sys
+from pathlib import Path
 from types import TracebackType
 
 from pewlib.config import Config, SpotConfig
-from PySide6 import QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew import __version__
 from pewpew.actions import qAction, qActionGroup
@@ -19,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(QtWidgets.QMainWindow):
+    max_recent_files = 10
     """Pewpew mainwindow, holding a Lasertabview.
     Actions for the menu and status bars are created and stored here.
     """
@@ -31,6 +33,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.help = HelpDialog()
 
         self.tabview = LaserTabView()
+        self.tabview.fileImported.connect(self.updateRecentFiles)
         self.tabview.numTabsChanged.connect(self.updateActionAvailablity)
         self.tabview.numLaserItemsChanged.connect(self.updateActionAvailablity)
         self.setCentralWidget(self.tabview)
@@ -47,6 +50,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.statusBar().addPermanentWidget(self.button_status_index)
 
         self.updateActionAvailablity()
+        self.updateRecentFiles()
 
         self.default_config = Config()
 
@@ -118,6 +122,11 @@ class MainWindow(QtWidgets.QMainWindow):
             "document-open", "&Open", "Open new document(s).", self.actionOpen
         )
         self.action_open.setShortcut("Ctrl+O")
+
+        self.action_open_recent = QtGui.QActionGroup(self)
+        self.action_open_recent.triggered.connect(
+            lambda a: self.tabview.openDocument(a.text())
+        )
 
         self.action_refresh = qAction(
             "view-refresh", "Refresh", "Redraw documents.", self.tabview.refresh
@@ -232,6 +241,11 @@ class MainWindow(QtWidgets.QMainWindow):
         # File
         menu_file = self.menuBar().addMenu("&File")
         menu_file.addAction(self.action_open)
+
+        self.menu_recent = menu_file.addMenu("Open Recent")
+        self.menu_recent.setIcon(QtGui.QIcon.fromTheme("document-open-recent"))
+        self.menu_recent.setEnabled(False)
+
         # File -> Import
         menu_import = menu_file.addMenu("&Import")
         menu_import.addAction(self.action_wizard_import)
@@ -291,6 +305,40 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_help.addAction(self.action_log)
         menu_help.addAction(self.action_help)
         menu_help.addAction(self.action_about)
+
+    def updateRecentFiles(self, new_path: Path | None = None) -> None:
+        settings = QtCore.QSettings()
+        num = settings.beginReadArray("RecentFiles")
+        paths = []
+        for i in range(num):
+            settings.setArrayIndex(i)
+            path = Path(settings.value("Path"))
+            if path != new_path:
+                paths.append(path)
+        settings.endArray()
+
+        if new_path is not None:
+            paths.insert(0, new_path)
+            paths = paths[: MainWindow.max_recent_files]
+
+            settings.remove("RecentFiles")
+            settings.beginWriteArray("RecentFiles", len(paths))
+            for i, path in enumerate(paths):
+                settings.setArrayIndex(i)
+                settings.setValue("Path", str(path))
+            settings.endArray()
+
+        # Clear old actions
+        self.menu_recent.clear()
+        for action in self.action_open_recent.actions():
+            self.action_open_recent.removeAction(action)
+
+        # Add new
+        self.menu_recent.setEnabled(len(paths) > 0)
+        for path in paths:
+            action = QtGui.QAction(str(path), self)
+            self.action_open_recent.addAction(action)
+            self.menu_recent.addAction(action)
 
     # === Actions ===
     def actionDialogColorTableRange(self) -> QtWidgets.QDialog:
@@ -357,11 +405,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionOpen(self) -> QtWidgets.QDialog:
         """Opens a file dialog for loading new lasers."""
+
+        dir = QtCore.QSettings().value("RecentFiles/1/Path", None)
+        dir = str(Path(dir).parent) if dir is not None else ""
         dlg = QtWidgets.QFileDialog(
             self,
             "Open File(s).",
-            "",
-            "CSV Documents(*.csv *.txt *.text);;Images(*.bmp *.jpg *.jpeg *.png);;Numpy Archives(*.npz);;All files(*)",
+            dir,
+            "CSV Documents(*.csv *.txt *.text);;"
+            "Images(*.bmp *.jpg *.jpeg *.png);;"
+            "Numpy Archives(*.npz);;"
+            "All files(*)",
         )
         dlg.selectNameFilter("All files(*)")
         dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)

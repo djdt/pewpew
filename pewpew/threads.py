@@ -32,7 +32,7 @@ class ImportThread(QtCore.QThread):
     """
 
     importStarted = QtCore.Signal(str)
-    importFinished = QtCore.Signal(object)
+    importFinished = QtCore.Signal(Path, object)
     importFailed = QtCore.Signal(str)
     progressChanged = QtCore.Signal(int)
 
@@ -65,7 +65,7 @@ class ImportThread(QtCore.QThread):
             else:
                 try:
                     laser = self.importPath(path)
-                    self.importFinished.emit(laser)
+                    self.importFinished.emit(path, laser)
                 except Exception as e:
                     logger.exception(e)
                     self.importFailed.emit(f"Unable to import {path.name}.")

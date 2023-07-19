@@ -45,7 +45,9 @@ def main() -> int:
 
     app = QtWidgets.QApplication(args.qtargs)
     app.setApplicationName("pew²")
+    app.setOrganizationName("pew²")
     app.setApplicationVersion(__version__)
+    app.setWindowIcon(QtGui.QIcon(":/app.ico"))
 
     window = MainWindow()
     if not args.nohook:
@@ -55,7 +57,6 @@ def main() -> int:
     logger.info(f"Using Pewlib {pewlib.__version__}.")
 
     window.show()
-    window.setWindowIcon(QtGui.QIcon(":/app.ico"))
 
     # Arguments
     if args.open is not None:
