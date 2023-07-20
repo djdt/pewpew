@@ -2,12 +2,13 @@ import copy
 import logging
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, List
 
 import numpy as np
 from pewlib.calibration import Calibration
 from pewlib.config import Config
 from pewlib.laser import Laser
+from pewlib.process.register import overlap_structured_arrays
 from pewlib.srr import SRRConfig
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -251,6 +252,13 @@ class LaserTabWidget(TabViewWidget):
             self.graphics.alignLaserItemsTopToBottom,
         )
 
+        self.action_merge_all = qAction(
+            "fake",
+            "Merge Images",
+            "Merge all laser images into a single file",
+            self.mergeLaserItems,
+        )
+
         # === Toolbar selections actions ===
         self.action_select_rect = qAction(
             "draw-rectangle",
@@ -409,6 +417,45 @@ class LaserTabWidget(TabViewWidget):
 
     def laserItems(self) -> List[LaserImageItem]:
         return self.graphics.laserItems()
+
+    def mergeLaserItems(self) -> None:
+        items = self.laserItems()
+        if len(items) < 2:
+            return
+
+        merge = items[0].laser.get(calibrate=False)
+        base_pos = items[0].pos()
+        base_size = items[0].pixelSize()
+        base_offset = (
+            int(base_pos.y()) / base_size.height(),
+            int(base_pos.x() / base_size.width()),
+        )
+        for item in items[1:]:
+            pos = item.pos()
+            size = item.pixelSize()
+            offset = (int(pos.y()) / size.height(), int(pos.x() / size.width()))
+            print(base_offset, offset)
+            merge = overlap_structured_arrays(
+                merge,
+                item.laser.get(calibrate=False),
+                offset=np.array(offset) - base_offset,
+            )
+
+        info = items[0].laser.info.copy()
+        info["Name"] = "merge: " + info["Name"]
+        info["Merge File Paths"] = ";".join(
+            item.laser.info["File Path"] for item in items
+        )
+
+        laser = Laser(
+            merge,
+            calibration=items[0].laser.calibration,
+            config=items[0].laser.config,
+            info=info,
+        )
+        for item in items:
+            self.graphics.scene().removeItem(item)
+        self.addLaser(laser)
 
     def uniqueElements(self) -> List[str]:
         elements = set([])
@@ -615,6 +662,8 @@ class LaserTabWidget(TabViewWidget):
             menu.addAction(self.action_align_auto)
             menu.addAction(self.action_align_horz)
             menu.addAction(self.action_align_vert)
+            menu.addSeparator()
+            menu.addAction(self.action_merge_all)
         menu.popup(event.globalPos())
         event.accept()
 

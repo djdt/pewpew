@@ -1,7 +1,7 @@
 from typing import List
 
 import numpy as np
-from pewlib.process.register import fft_register_images
+from pewlib.process.register import fft_register_offset
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.graphics.imageitems import LaserImageItem, SnapImageItem
@@ -73,7 +73,7 @@ class LaserGraphicsView(OverlayGraphicsView):
         items = self.laserItems()
         base = items[0]
         for item in items[1:]:
-            offset = fft_register_images(base.rawData(), item.rawData())
+            offset = fft_register_offset(base.rawData(), item.rawData())
             psize = item.pixelSize()
             item.setPos(
                 base.pos()
