@@ -116,6 +116,7 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         idx = stack.index(self)
         if idx > 0:
             stack[idx - 1].stackBefore(self)
+        self.scene().update(self.boundingRect())
 
     def orderFirst(self) -> None:
         stack = [
@@ -125,6 +126,7 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         ]
         for item in stack:
             item.stackBefore(self)
+        self.scene().update(self.boundingRect())
 
     def orderLower(self) -> None:
         stack = [
@@ -137,6 +139,7 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         idx = stack.index(self)
         if idx + 1 < len(stack):
             self.stackBefore(stack[idx + 1])
+        self.scene().update(self.boundingRect())
 
     def orderLast(self) -> None:
         stack = [
@@ -146,6 +149,7 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         ]
         for item in stack:
             self.stackBefore(item)
+        self.scene().update(self.boundingRect())
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if (
