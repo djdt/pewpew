@@ -1,32 +1,32 @@
+from typing import List
+
 import numpy as np
+from pewlib.process.register import fft_register_images
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.graphics.imageitems import LaserImageItem, SnapImageItem
+from pewpew.graphics.options import GraphicsOptions
+from pewpew.graphics.overlaygraphics import OverlayGraphicsView
+from pewpew.graphics.overlayitems import MetricScaleBarOverlay
 from pewpew.graphics.selectionitems import (
     LassoImageSelectionItem,
     RectImageSelectionItem,
     SnapImageSelectionItem,
 )
 from pewpew.graphics.transformitems import (
-    TransformItem,
     AffineTransformItem,
     ScaleRotateTransformItem,
+    TransformItem,
 )
 from pewpew.graphics.widgetitems import (
     ImageSliceWidgetItem,
     RulerWidgetItem,
     WidgetItem,
 )
-from pewpew.graphics.options import GraphicsOptions
-from pewpew.graphics.overlaygraphics import OverlayGraphicsView
-from pewpew.graphics.overlayitems import (
-    MetricScaleBarOverlay,
-)
 
 
 class LaserGraphicsView(OverlayGraphicsView):
-    """The pewpew laser view.
-    """
+    """The pewpew laser view."""
 
     def __init__(
         self, options: GraphicsOptions, parent: QtWidgets.QWidget | None = None
@@ -59,6 +59,45 @@ class LaserGraphicsView(OverlayGraphicsView):
     #     print('shown')
     #     self.zoomReset()
     #     self.shown = True
+
+    def laserItems(self) -> List[LaserImageItem]:
+        return [
+            item
+            for item in self.scene().items(
+                self.sceneRect(), QtCore.Qt.IntersectsItemBoundingRect
+            )
+            if isinstance(item, LaserImageItem)
+        ]
+
+    def alignLaserItemsFFT(self) -> None:
+        items = self.laserItems()
+        base = items[0]
+        for item in items[1:]:
+            offset = fft_register_images(base.rawData(), item.rawData())
+            psize = item.pixelSize()
+            item.setPos(
+                base.pos()
+                + QtCore.QPointF(offset[1] * psize.width(), offset[0] * psize.height())
+            )
+        self.zoomReset()
+
+    def alignLaserItemsLeftToRight(self) -> None:
+        items = self.laserItems()
+        base = items[0]
+        pos = base.pos() + QtCore.QPointF(base.boundingRect().width(), 0.0)
+        for item in items[1:]:
+            item.setPos(pos)
+            pos.setX(pos.x() + item.boundingRect().width())
+        self.zoomReset()
+
+    def alignLaserItemsTopToBottom(self) -> None:
+        items = self.laserItems()
+        base = items[0]
+        pos = base.pos() + QtCore.QPointF(0.0, base.boundingRect().height())
+        for item in items[1:]:
+            item.setPos(pos)
+            pos.setY(pos.y() + item.boundingRect().height())
+        self.zoomReset()
 
     def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
         self.clearFocus()

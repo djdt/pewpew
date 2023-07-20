@@ -231,6 +231,26 @@ class LaserTabWidget(TabViewWidget):
             self.dialogExportAll,
         )
 
+        # === Alignment actions ===
+        self.action_align_auto = qAction(
+            "view-refresh",
+            "FFT Register",
+            "Register all images to the topmost image.",
+            self.graphics.alignLaserItemsFFT,
+        )
+        self.action_align_horz = qAction(
+            "align-vertical-top",
+            "Align Left to Right",
+            "Layout images in a horizontal line.",
+            self.graphics.alignLaserItemsLeftToRight,
+        )
+        self.action_align_vert = qAction(
+            "align-hotizontal-left",
+            "Align Top to Bottom",
+            "Layout items in a vertical line.",
+            self.graphics.alignLaserItemsTopToBottom,
+        )
+
         # === Toolbar selections actions ===
         self.action_select_rect = qAction(
             "draw-rectangle",
@@ -388,11 +408,7 @@ class LaserTabWidget(TabViewWidget):
         return item
 
     def laserItems(self) -> List[LaserImageItem]:
-        return [
-            item
-            for item in self.graphics.scene().items()
-            if isinstance(item, LaserImageItem)
-        ]
+        return self.graphics.laserItems()
 
     def uniqueElements(self) -> List[str]:
         elements = set([])
@@ -458,16 +474,6 @@ class LaserTabWidget(TabViewWidget):
             status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
         else:
             status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
-
-    # def updateNames(self, rename: dict) -> None:
-    #     """Rename multiple elements."""
-    #     current = self.current_element
-    #     self.laser.rename(rename)
-    #     self.populateElements()
-    #     current = rename[current]
-    #     self.current_element = current
-
-    #     self.setWindowModified(True)
 
     # Callbacks
     def openDialog(
@@ -605,9 +611,10 @@ class LaserTabWidget(TabViewWidget):
         menu.addAction(self.action_copy_image)
         menu.addSeparator()
 
-        if self.graphics.items():  # More than one laser
-            # @Todo add export all
-            pass
+        if len(self.laserItems()) > 1:
+            menu.addAction(self.action_align_auto)
+            menu.addAction(self.action_align_horz)
+            menu.addAction(self.action_align_vert)
         menu.popup(event.globalPos())
         event.accept()
 
