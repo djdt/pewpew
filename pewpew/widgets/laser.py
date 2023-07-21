@@ -386,6 +386,7 @@ class LaserTabWidget(TabViewWidget):
 
         # Modification
         item.modified.connect(lambda: self.setWindowModified(True))
+        item.destroyed.connect(self.numLaserItemsChanged)
 
         item.redraw()
         item.setActive(True)
@@ -423,35 +424,10 @@ class LaserTabWidget(TabViewWidget):
         if len(items) < 2:
             return
 
-        # base_pos = items[0].pos()
-        # min_pos = QtCore.QPointF(
-        #     min(item.pos().x() for item in items), min(item.pos().y() for item in items)
-        # )
-        # for item in items:
-        #     item.setPos(item.pos() - base_pos)
-        #     print(item.pos())
-        merge = items[0].laser.get(calibrate=False)
-
-        # base_size = items[0].pixelSize()
-        # base_offset = (
-        #     int(base_pos.y()) / base_size.height(),
-        #     int(base_pos.x() / base_size.width()),
-        # )
-        x, y = 0, 0
-        last_pos = items[0].pos()
-
-        for item in items[1:]:
-            pos = item.pos()
-            size = item.pixelSize()
-            offset = item.mapToData(pos - last_pos)
-            # a, b = merge, item.laser.get(calibrate=False)
-            # if offset
-            merge = overlap_structured_arrays(
-                merge,
-                item.laser.get(calibrate=False),
-                offset=(offset.y(), offset.x()),
-            )
-            last_pos = pos
+        datas = [item.laser.get(calibrate=False) for item in items]
+        positions = [item.mapToData(item.pos()) for item in items]
+        offsets = [(p.y(), p.x()) for p in positions]
+        merge = overlap_structured_arrays(datas, offsets)
 
         info = items[0].laser.info.copy()
         info["Name"] = "merge: " + info["Name"]
