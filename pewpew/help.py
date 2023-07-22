@@ -1,9 +1,8 @@
-from PySide6 import QtCore, QtGui, QtHelp, QtWidgets
 import logging
 from pathlib import Path
-
 from typing import Any
 
+from PySide6 import QtCore, QtGui, QtHelp, QtWidgets
 
 logger = logging.getLogger(__name__)
 
@@ -25,14 +24,17 @@ def createHelpEngine() -> QtHelp.QHelpEngine:
     if namespace not in engine.registeredDocumentations():
         logger.info("Registering help documentation.")
         if not engine.registerDocumentation(qhc_path):
-            logger.warning("Help registration failed!")
+            logger.warning(f"Help registration failed, '{engine.error()}.'")
 
     return engine
 
 
 class HelpBrowser(QtWidgets.QTextBrowser):
     """Text browser for a QHelpEngine."""
-    def __init__(self, engine: QtHelp.QHelpEngine, parent: QtWidgets.QWidget | None = None):
+
+    def __init__(
+        self, engine: QtHelp.QHelpEngine, parent: QtWidgets.QWidget | None = None
+    ):
         super().__init__(parent)
         self.setMinimumSize(1000, 800)
         self.engine = engine
@@ -45,6 +47,7 @@ class HelpBrowser(QtWidgets.QTextBrowser):
 
 class HelpDialog(QtWidgets.QDialog):
     """Dialog to display the pewpew help files."""
+
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
 
