@@ -85,7 +85,10 @@ if __name__ == "__main__":
         "--rcc", default="/usr/lib/qt6/rcc", help="rcc to generates resources"
     )
     parser.add_argument(
-        "--output", type=Path, default="../pewpew/resources/icons.py", help="output path"
+        "--output",
+        type=Path,
+        default="../pewpew/resources/icons.py",
+        help="output path",
     )
     args = parser.parse_args(sys.argv[1:])
 

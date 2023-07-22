@@ -211,14 +211,14 @@ class LaserTabWidget(TabViewWidget):
             self.graphics.alignLaserItemsLeftToRight,
         )
         self.action_align_vert = qAction(
-            "align-hotizontal-left",
+            "align-horizontal-left",
             "Align Top to Bottom",
             "Layout items in a vertical line.",
             self.graphics.alignLaserItemsTopToBottom,
         )
 
         self.action_merge_all = qAction(
-            "fake",
+            "merge",
             "Merge Images",
             "Merge all laser images into a single file",
             self.mergeLaserItems,
