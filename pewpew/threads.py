@@ -56,7 +56,7 @@ class ImportThread(QtCore.QThread):
             ):  # mime in QtGui.QImageReader.supportedMimeTypes():
                 try:
                     image = QtGui.QImage(str(path))
-                    self.importFinished.emit(image)
+                    self.importFinished.emit(path, image)
                 except Exception as e:
                     logger.exception(e)
                     self.importFailed.emit(f"Unable to import {path.name}.")
