@@ -47,19 +47,6 @@ class LaserTabView(TabView):
         self.options = GraphicsOptions()
         self.tabs.setAutoHide(True)
 
-    # def addLaser(self, laser: Laser) -> "LaserTabWidget":
-    #     """Open image of a laser in a new tab."""
-    #     if len(self.widgets()) > 0:
-    #         widget = self.widgets()[0]
-    #         widget.addLaser(laser)
-    #     else:
-    #         widget = LaserTabWidget(self.options, self)
-    #         widget.addLaser(laser)
-    #         name = laser.info.get("Name", "<No Name>")
-    #         self.addTab(name, widget)
-
-    #     return widget
-
     def insertTab(self, index: int, text: str, widget: "LaserTabWidget") -> int:
         index = super().insertTab(index, text, widget)
         if isinstance(widget, LaserTabWidget):
@@ -89,12 +76,6 @@ class LaserTabView(TabView):
         return widget
 
     # Events
-    # def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
-    #     menu = QtWidgets.QMenu(self)
-    #     menu.addAction(self.action_open)
-    #     menu.popup(event.globalPos())
-    #     event.accept()
-
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
@@ -177,24 +158,8 @@ class LaserTabView(TabView):
             if isinstance(widget, LaserTabWidget):
                 widget.laser_controls.elements.setCurrentText(element)
 
-    # Actions
-    # def actionOpenLaser(self) -> QtWidgets.QDialog:
-    #     """Opens a file dialog for loading new lasers."""
-    #     dlg = QtWidgets.QFileDialog(
-    #         self,
-    #         "Open File(s).",
-    #         "",
-    #         "CSV Documents(*.csv *.txt *.text);;Numpy Archives(*.npz);;All files(*)",
-    #     )
-    #     dlg.selectNameFilter("All files(*)")
-    #     dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-    #     dlg.filesSelected.connect(self.openDocument)
-    #     dlg.open()
-    #     return dlg
-
 
 class LaserTabWidget(TabViewWidget):
-    # Todo connect to graphics scene num changed?
     numImageItemsChanged = QtCore.Signal()
     numLaserItemsChanged = QtCore.Signal()
 
@@ -408,6 +373,7 @@ class LaserTabWidget(TabViewWidget):
         )
         item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
         item.requestDialog.connect(self.openDialog)
+        item.destroyed.connect(self.numImageItemsChanged)
 
         self.updateForItem(item)
         self.graphics.scene().addItem(item)
