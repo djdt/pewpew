@@ -36,6 +36,10 @@ class OptionsBox(QtWidgets.QGroupBox):
         return True
 
 
+class PngOptionsBox(OptionsBox):
+    def __init__(self, item : LaserImageItem, parent: QtWidgets.QWidget | None = None):
+        super().__init__("PNG Images", ".png", visible=True)
+
 class VtiOptionsBox(OptionsBox):
     def __init__(
         self,
