@@ -1,7 +1,7 @@
-from PySide6 import QtCore, QtGui
-import numpy as np
-
 from typing import Dict, Tuple
+
+import numpy as np
+from PySide6 import QtCore, QtGui
 
 
 class GraphicsOptions(QtCore.QObject):
@@ -35,12 +35,8 @@ class GraphicsOptions(QtCore.QObject):
 
     def __init__(self) -> None:
         super().__init__()
-        # Todo: maybe alignments here?
-        self.colortable = "viridis"
         self.color_ranges: Dict[str, Tuple[float | str, float | str]] = {}
         self.color_range_default: Tuple[float | str, float | str] = (0.0, "99%")
-
-        self.nan_color = QtGui.QColor(0, 0, 0)
 
         self.scalebar = True
         self.highlight_focus = True
@@ -51,6 +47,23 @@ class GraphicsOptions(QtCore.QObject):
 
         self.calibrate = True
         self.units = "μm"
+
+    @property
+    def colortable(self) -> str:
+        return QtCore.QSettings().value("Options/Colortable", "viridis")
+
+    @colortable.setter
+    def colortable(self, colortable: str) -> None:
+        assert colortable in GraphicsOptions.colortables.keys()
+        QtCore.QSettings().setValue("Options/Colortable", colortable)
+
+    @property
+    def nan_color(self) -> QtGui.QColor:
+        return QtCore.QSettings().value("Options/NanColor", type=QtGui.QColor)
+
+    @nan_color.setter
+    def nan_color(self, color: QtGui.QColor) -> None:
+        return QtCore.QSettings().setValue("Options/NanColor", color)
 
     def setFont(self, font: QtGui.QFont) -> None:
         self.font = font
