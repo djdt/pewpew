@@ -177,7 +177,7 @@ class ScaledImageItem(SnapImageItem):
 
         self.image = image
         self.rect = rect
-        self._raw_data = None
+        self._raw_data: np.ndarray | None = None
 
         self.action_copy_image = qAction(
             "insert-image",

@@ -390,6 +390,12 @@ class LaserTabWidget(TabViewWidget):
         if len(items) < 2:
             return
 
+        if not all([item.pixelSize() == items[0].pixelSize() for item in items[1:]]):
+            QtWidgets.QMessageBox.warning(
+                self, "Unable to Merge", "All images must have the same pixel size."
+            )
+            return
+
         datas = [item.laser.get(calibrate=False) for item in items]
         positions = [item.mapToData(item.pos()) for item in items]
         offsets = [(p.y(), p.x()) for p in positions]
