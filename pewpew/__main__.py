@@ -44,8 +44,8 @@ def main() -> int:
     args = parse_args(sys.argv)
 
     app = QtWidgets.QApplication(args.qtargs)
-    app.setApplicationName("pew²")
-    app.setOrganizationName("pew²")
+    app.setApplicationName("pewpew")
+    app.setOrganizationName("pewpew")
     app.setApplicationVersion(__version__)
     app.setWindowIcon(QtGui.QIcon(":/app.ico"))
 
