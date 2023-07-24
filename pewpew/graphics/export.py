@@ -60,8 +60,9 @@ def generate_laser_image(
     size = image.size()
     if colorbar:  # make room for colorbar
         size = size.grownBy(
-            QtCore.QMargins(2, 2, 2, 22 + 5 + QtGui.QFontMetrics(options.font).height())
+            QtCore.QMargins(0, 0, 0, 20 + 5 + QtGui.QFontMetrics(options.font).height())
         )
+    size = size.grownBy(QtCore.QMargins(2, 2, 2, 2))
 
     pixmap = QtGui.QPixmap(size)
     pixmap.fill(QtCore.Qt.GlobalColor.transparent)
@@ -85,8 +86,6 @@ def generate_laser_image(
 
         painter.drawImage(rect, cbar)
 
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-
         # Labels and checks
         nmin = closest_nice_value(vmin, mode="upper")
         nmid = closest_nice_value((vmax + vmin) / 2.0, mode="closest")
@@ -97,20 +96,26 @@ def generate_laser_image(
         check_pos_max = rect.width() / (vmax - vmin) * nmax
 
         path = QtGui.QPainterPath()
+        path.addRect(check_pos_min, rect.bottom(), 2, 4)
+        path.addRect(check_pos_max - 1, rect.bottom(), 2, 4)
+        path.addRect(check_pos_mid - 1, rect.bottom(), 2, 4)
+
+        painter.fillPath(path, QtGui.QBrush(QtCore.Qt.GlobalColor.black))
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+
+        path = QtGui.QPainterPath()
         path.addText(
             rect.left(),
             rect.bottom() + painter.fontMetrics().ascent(),
             painter.font(),
             f"{nmin:.2g}",
         )
-        path.addRect(check_pos_min, rect.bottom(), 2, 4)
         path.addText(
             rect.right() - painter.fontMetrics().boundingRect(f"{nmax:.2g}").width(),
             rect.bottom() + painter.fontMetrics().ascent(),
             painter.font(),
             f"{nmax:.2g}",
         )
-        path.addRect(check_pos_max - 1, rect.bottom(), 2, 4)
         path.addText(
             rect.center().x()
             - painter.fontMetrics().boundingRect(f"{nmid:.2g}").width() / 2.0,
@@ -118,8 +123,6 @@ def generate_laser_image(
             painter.font(),
             f"{nmid:.2g}",
         )
-        path.addRect(check_pos_mid - 1, rect.bottom(), 2, 4)
-
         painter.strokePath(path, pen)
         painter.fillPath(path, QtGui.QBrush(QtCore.Qt.GlobalColor.white))
 
