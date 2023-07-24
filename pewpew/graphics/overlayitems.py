@@ -1,10 +1,9 @@
-from PySide6 import QtCore, QtGui, QtWidgets
+from typing import List, Tuple
 
 import numpy as np
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.graphics.overlaygraphics import OverlayItem
-
-from typing import List,  Tuple
 
 
 class ColorBarOverlay(OverlayItem):
@@ -235,19 +234,21 @@ class MetricScaleBarOverlay(OverlayItem):
             )
         return rect
 
-    def getWidthAndUnit(self, desired: float) -> Tuple[float, str]:
-        base = desired * self.units[self.unit]
+    @staticmethod
+    def getWidthAndUnit(desired: float, unit: str) -> Tuple[float, str]:
+        base = desired * MetricScaleBarOverlay.units[unit]
 
-        units = list(self.units.keys())
-        factors = list(self.units.values())
+        units = list(MetricScaleBarOverlay.units.keys())
+        factors = list(MetricScaleBarOverlay.units.values())
         idx = np.max(np.searchsorted(factors, base) - 1, 0)
 
-        new = self.allowed_lengths[
-            np.searchsorted(self.allowed_lengths, base / factors[idx]) - 1
+        new = MetricScaleBarOverlay.allowed_lengths[
+            np.searchsorted(MetricScaleBarOverlay.allowed_lengths, base / factors[idx])
+            - 1
         ]
         new_unit = units[idx]
 
-        return new * factors[idx] / self.units[self.unit], new_unit
+        return new * factors[idx] / MetricScaleBarOverlay.units[unit], new_unit
 
     def paint(
         self,
@@ -260,7 +261,7 @@ class MetricScaleBarOverlay(OverlayItem):
         painter.translate(self.boundingRect().topLeft())
 
         scale = self.parentItem().boundingRect().width() / self.viewport.width()
-        width, unit = self.getWidthAndUnit(self.width * scale)
+        width, unit = self.getWidthAndUnit(self.width * scale, self.unit)
 
         # Current scale
         text = f"{width * self.units[self.unit] / self.units[unit]:.3g} {unit}"

@@ -59,7 +59,9 @@ class GraphicsOptions(QtCore.QObject):
 
     @property
     def nan_color(self) -> QtGui.QColor:
-        return QtCore.QSettings().value("Options/NanColor", type=QtGui.QColor)
+        return QtCore.QSettings().value(
+            "Options/NanColor", QtGui.QColor(0, 0, 0), type=QtGui.QColor
+        )
 
     @nan_color.setter
     def nan_color(self, color: QtGui.QColor) -> None:

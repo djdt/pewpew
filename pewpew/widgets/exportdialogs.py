@@ -2,16 +2,13 @@ import logging
 from pathlib import Path
 from typing import List, Set, Tuple
 
-import numpy as np
 from pewlib import io
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewpew.graphics import colortable
+from pewpew.graphics.export import generate_laser_image
 from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.graphics.options import GraphicsOptions
-from pewpew.lib.numpyqt import array_to_image
-from pewpew.validators import PercentOrDecimalValidator
 from pewpew.widgets.prompts import OverwriteFilePrompt
 
 logger = logging.getLogger(__name__)
@@ -37,8 +34,60 @@ class OptionsBox(QtWidgets.QGroupBox):
 
 
 class PngOptionsBox(OptionsBox):
-    def __init__(self, item : LaserImageItem, parent: QtWidgets.QWidget | None = None):
+    item_positions = {
+        "Top Left": QtCore.Qt.AlignmentFlag.AlignTop
+        | QtCore.Qt.AlignmentFlag.AlignLeft,
+        "Top Right": QtCore.Qt.AlignmentFlag.AlignTop
+        | QtCore.Qt.AlignmentFlag.AlignRight,
+        "Bottom Left": QtCore.Qt.AlignmentFlag.AlignBottom
+        | QtCore.Qt.AlignmentFlag.AlignLeft,
+        "Bottom Right": QtCore.Qt.AlignmentFlag.AlignBottom
+        | QtCore.Qt.AlignmentFlag.AlignRight,
+        "Off": None,
+    }
+
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__("PNG Images", ".png", visible=True)
+
+        self.combo_scalebar = QtWidgets.QComboBox()
+        self.combo_scalebar.addItems(list(PngOptionsBox.item_positions.keys()))
+        self.combo_scalebar.setCurrentText("Top Right")
+
+        self.combo_label = QtWidgets.QComboBox()
+        self.combo_label.addItems(list(PngOptionsBox.item_positions.keys()))
+        self.combo_label.setCurrentText("Top Left")
+
+        self.check_colorbar = QtWidgets.QCheckBox("Show colorbar.")
+        self.check_colorbar.setChecked(True)
+
+        self.check_raw = QtWidgets.QCheckBox("Export raw image data.")
+        self.check_raw.toggled.connect(self.rawStateChanged)
+
+        layout = QtWidgets.QFormLayout()
+        layout.addRow("Scalebar", self.combo_scalebar)
+        layout.addRow("Element Label", self.combo_label)
+        layout.addRow(self.check_colorbar)
+        layout.addRow(self.check_raw)
+        self.setLayout(layout)
+
+    def rawStateChanged(self, state: QtCore.Qt.CheckState) -> None:
+        enabled = state != QtCore.Qt.CheckState.Checked
+        self.combo_scalebar.setEnabled(enabled)
+        self.combo_label.setEnabled(enabled)
+        self.check_colorbar.setEnabled(enabled)
+
+    def labelAlignment(self) -> QtCore.Qt.AlignmentFlag | None:
+        return PngOptionsBox.item_positions[self.combo_label.currentText()]
+
+    def scalebarAlignment(self) -> QtCore.Qt.AlignmentFlag | None:
+        return PngOptionsBox.item_positions[self.combo_scalebar.currentText()]
+
+    def useColorbar(self) -> bool:
+        return self.check_colorbar.isChecked()
+
+    def isRaw(self) -> bool:
+        return self.check_raw.isChecked()
+
 
 class VtiOptionsBox(OptionsBox):
     def __init__(
@@ -279,7 +328,7 @@ class ExportDialog(_ExportDialogBase):
         options = [
             OptionsBox("Numpy Archives", ".npz"),
             OptionsBox("CSV Document", ".csv"),
-            OptionsBox("PNG images", ".png"),
+            PngOptionsBox(),
             VtiOptionsBox(spacing),
         ]
         super().__init__(options, parent)
@@ -378,23 +427,18 @@ class ExportDialog(_ExportDialogBase):
                 io.textimage.save(path, data)
 
         elif option.ext == ".png":
+            assert graphics_options is not None
             if element is not None and element in laser.elements:
-                data = laser.get(element, calibrate=self.isCalibrate(), flat=True)
-                data = np.ascontiguousarray(data)
-
-                vmin, vmax = graphics_options.get_color_range_as_float(element, data)
-                table = colortable.get_table(graphics_options.colortable)
-
-                data = np.clip(data, vmin, vmax)
-                if vmin != vmax:  # Avoid div 0
-                    data = (data - vmin) / (vmax - vmin)
-
-                image = array_to_image(data)
-                image.setColorTable(table)
-                image.setColorCount(len(table))
-
+                image = generate_laser_image(
+                    laser,
+                    element,
+                    graphics_options,
+                    label_alignment=option.labelAlignment(),
+                    scalebar_alignment=option.scalebarAlignment(),
+                    colorbar=option.useColorbar(),
+                    raw=option.isRaw(),
+                )
                 image.save(str(path.absolute()))
-
         elif option.ext == ".vti":
             spacing = option.spacing()
             # Last axis (z) is negative for layer order

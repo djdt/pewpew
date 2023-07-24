@@ -1,10 +1,10 @@
-from PySide6 import QtCore, QtGui, QtWidgets
+from typing import List
+
 import numpy as np
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction
 from pewpew.graphics.aligneditems import UnscaledAlignedTextItem
-
-from typing import List
 
 
 class ColorBarItem(QtWidgets.QGraphicsObject):
@@ -92,18 +92,21 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
             raise NotImplementedError
         return rect
 
-    def niceTextValues(self, n: int = 7, trim: int = 0) -> np.ndarray:
-        vrange = self.vmax - self.vmin
+    @staticmethod
+    def niceTextValues(
+        vmin: float, vmax: float, n: int = 5, trim: int = 0
+    ) -> np.ndarray:
+        vrange = vmax - vmin
         interval = vrange / (n + 2 * trim)
 
         pwr = 10 ** int(np.log10(interval) - (1 if interval < 1.0 else 0))
         interval = interval / pwr
 
-        idx = np.searchsorted(self.nicenums, interval)
-        idx = min(idx, len(self.nicenums) - 1)
+        idx = np.searchsorted(ColorBarItem.nicenums, interval)
+        idx = min(idx, len(ColorBarItem.nicenums) - 1)  # type: ignore
 
-        interval = self.nicenums[idx] * pwr
-        values = np.arange(int(self.vmin / interval) * interval, self.vmax, interval)
+        interval = ColorBarItem.nicenums[idx] * pwr
+        values = np.arange(int(vmin / interval) * interval, vmax, interval)
         return values[trim : values.size - trim]
 
     def paint(
@@ -143,7 +146,7 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
             return
 
         px = 0.0  # Store previous text left pos
-        for value in self.niceTextValues(7, trim=1):
+        for value in ColorBarItem.niceTextValues(self.vmin, self.vmax, 7, trim=1):
             x = length * (value - self.vmin) / vrange
             text = f"{value:.6g}"
             half_width = fm.boundingRect(text).width()
