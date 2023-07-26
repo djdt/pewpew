@@ -54,15 +54,27 @@ def generate_laser_image(
     if raw:
         return laser
 
-    scale_term = 2.0
+    bar_width = 10.0
     pad = 10.0
-    image = image.scaled(image.size() * scale_term)
+    image = image.scaled(image.size() * 2.0)
     size = image.size()
+
     if colorbar:  # make room for colorbar
         size = size.grownBy(
-            QtCore.QMargins(0, 0, 0, 20 + 5 + QtGui.QFontMetrics(options.font).height())
+            QtCore.QMargins(
+                0,
+                0,
+                0,
+                bar_width + pad / 2.0 + QtGui.QFontMetrics(options.font).height(),
+            )
         )
-    size = size.grownBy(QtCore.QMargins(2, 2, 2, 2))
+    colorbar_unit = (
+        colorbar and options.calibrate and laser.calibration[element].unit is not None
+    )
+    if colorbar_unit:
+        size = size.grownBy(
+            QtCore.QMargins(0, 0, 0, 5 + QtGui.QFontMetrics(options.font).height())
+        )
 
     pixmap = QtGui.QPixmap(size)
     pixmap.fill(QtCore.Qt.GlobalColor.transparent)
@@ -72,12 +84,16 @@ def generate_laser_image(
 
     painter = QtGui.QPainter(pixmap)
     painter.setFont(options.font)
+    fm = painter.fontMetrics()
     # Draw the image
     painter.drawImage(image.rect(), image, image.rect())
 
     if colorbar:
         rect = QtCore.QRectF(
-            image.rect().left(), image.rect().bottom() + 5.0, image.width(), 10.0
+            image.rect().left(),
+            image.rect().bottom() + pad / 2.0,
+            image.width(),
+            bar_width,
         )
         _data = np.arange(256, dtype=np.uint8)
         cbar = QtGui.QImage(_data, 256, 1, 256, QtGui.QImage.Format_Indexed8)
@@ -85,6 +101,8 @@ def generate_laser_image(
         cbar.setColorCount(len(table))
 
         painter.drawImage(rect, cbar)
+
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
         # Labels and checks
         nmin = closest_nice_value(vmin, mode="upper")
@@ -96,33 +114,37 @@ def generate_laser_image(
         check_pos_max = rect.width() / (vmax - vmin) * nmax
 
         path = QtGui.QPainterPath()
-        path.addRect(check_pos_min, rect.bottom(), 2, 4)
-        path.addRect(check_pos_max - 1, rect.bottom(), 2, 4)
-        path.addRect(check_pos_mid - 1, rect.bottom(), 2, 4)
+        path.addRect(check_pos_min + 1, rect.bottom() - 2, 2, 4)
+        path.addRect(check_pos_mid, rect.bottom() - 2, 2, 4)
+        path.addRect(check_pos_max, rect.bottom() - 2, 2, 4)
 
-        painter.fillPath(path, QtGui.QBrush(QtCore.Qt.GlobalColor.black))
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.strokePath(path, pen)
+        painter.fillPath(path, QtGui.QBrush(QtCore.Qt.GlobalColor.white))
 
         path = QtGui.QPainterPath()
         path.addText(
-            rect.left(),
-            rect.bottom() + painter.fontMetrics().ascent(),
-            painter.font(),
-            f"{nmin:.2g}",
+            rect.left(), rect.bottom() + fm.ascent(), painter.font(), f"{nmin:.2g}"
         )
         path.addText(
-            rect.right() - painter.fontMetrics().boundingRect(f"{nmax:.2g}").width(),
-            rect.bottom() + painter.fontMetrics().ascent(),
+            rect.right() - fm.boundingRect(f"{nmax:.2g}").width(),
+            rect.bottom() + fm.ascent(),
             painter.font(),
             f"{nmax:.2g}",
         )
         path.addText(
-            rect.center().x()
-            - painter.fontMetrics().boundingRect(f"{nmid:.2g}").width() / 2.0,
-            rect.bottom() + painter.fontMetrics().ascent(),
+            rect.center().x() - fm.boundingRect(f"{nmid:.2g}").width() / 2.0,
+            rect.bottom() + fm.ascent(),
             painter.font(),
             f"{nmid:.2g}",
         )
+        # unit
+        if colorbar_unit:
+            path.addText(
+                rect.right() - fm.boundingRect(laser.calibration[element].unit).width(),
+                rect.bottom() + fm.ascent() + fm.height(),
+                painter.font(),
+                laser.calibration[element].unit,
+            )
         painter.strokePath(path, pen)
         painter.fillPath(path, QtGui.QBrush(QtCore.Qt.GlobalColor.white))
 
@@ -134,18 +156,13 @@ def generate_laser_image(
             image.rect().adjusted(pad, pad, -pad, -pad), label_alignment, element
         )
         path = QtGui.QPainterPath()
-        path.addText(
-            rect.left(),
-            rect.top() + painter.fontMetrics().ascent(),
-            painter.font(),
-            element,
-        )
+        path.addText(rect.left(), rect.top() + fm.ascent(), painter.font(), element)
         painter.strokePath(path, pen)
         painter.fillPath(path, QtGui.QBrush(QtCore.Qt.GlobalColor.white))
 
     # Draw the scale-bar
     if scalebar_alignment is not None:
-        rect = QtCore.QRectF(0, 0, 100.0, painter.fontMetrics().height())
+        rect = QtCore.QRectF(0, 0, 100.0, fm.height())
         rect = position_for_alignment(
             image.rect().adjusted(pad, pad, -pad, -pad), rect, scalebar_alignment
         )
@@ -159,8 +176,8 @@ def generate_laser_image(
 
         path = QtGui.QPainterPath()
         path.addText(
-            rect.center().x() - painter.fontMetrics().boundingRect(text).width() / 2.0,
-            rect.top() + painter.fontMetrics().ascent(),
+            rect.center().x() - fm.boundingRect(text).width() / 2.0,
+            rect.top() + fm.ascent(),
             painter.font(),
             text,
         )
@@ -170,10 +187,7 @@ def generate_laser_image(
 
         # Draw the bar
         bar = QtCore.QRectF(
-            rect.center().x() - width / 2.0,
-            rect.top() + painter.fontMetrics().height(),
-            width,
-            5,
+            rect.center().x() - width / 2.0, rect.top() + fm.height(), width, 5
         )
         painter.setBrush(QtGui.QBrush(QtCore.Qt.GlobalColor.white))
         painter.drawRect(bar)
