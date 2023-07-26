@@ -31,7 +31,7 @@ class ImportWizard(QtWidgets.QWizard):
     page_thermo = 5
     page_config = 6
 
-    laserImported = QtCore.Signal(Laser)
+    laserImported = QtCore.Signal(Path, Laser)
 
     def __init__(
         self,
@@ -129,7 +129,7 @@ class ImportWizard(QtWidgets.QWizard):
                     "Import Version pew2": pewpew_version,
                 }
             )
-            self.laserImported.emit(Laser(data, config=config, info=info))
+            self.laserImported.emit(path, Laser(data, config=config, info=info))
         super().accept()
 
 
