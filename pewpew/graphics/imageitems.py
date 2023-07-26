@@ -316,6 +316,7 @@ class LaserImageItem(SnapImageItem):
         str, QtWidgets.QGraphicsItem, bool
     )  # type, self, use selection
 
+    requestAddLaser = QtCore.Signal(Laser)
     requestExport = QtCore.Signal(QtWidgets.QGraphicsItem)
     requestSave = QtCore.Signal(QtWidgets.QGraphicsItem)
 
@@ -733,33 +734,30 @@ class LaserImageItem(SnapImageItem):
 
         If selection is not rectangular then it is filled with nan.
         """
-        raise NotImplementedError
-        # mask = self.graphics.mask
-        # if mask is None or np.all(mask == 0):  # pragma: no cover
-        #     return
-        # ix, iy = np.nonzero(mask)
-        # x0, x1, y0, y1 = np.min(ix), np.max(ix) + 1, np.min(iy), np.max(iy) + 1
+        if self.mask_image is None:
+            return
+        mask = self.mask
+        ix, iy = np.nonzero(mask)
+        x0, x1, y0, y1 = np.min(ix), np.max(ix) + 1, np.min(iy), np.max(iy) + 1
 
-        # data = self.laser.data
-        # new_data = np.empty((x1 - x0, y1 - y0), dtype=data.dtype)
-        # for name in new_data.dtype.names:
-        #     new_data[name] = np.where(
-        #         mask[x0:x1, y0:y1], data[name][x0:x1, y0:y1], np.nan
-        #     )
+        data = self.laser.data
+        new_data = np.empty((x1 - x0, y1 - y0), dtype=data.dtype)
+        for name in new_data.dtype.names:
+            new_data[name] = np.where(
+                mask[x0:x1, y0:y1], data[name][x0:x1, y0:y1], np.nan
+            )
 
-        # info = self.laser.info.copy()
-        # info["Name"] = self.laserName() + "_cropped"
-        # info["File Path"] = str(Path(info.get("File Path", "")).with_stem(info["Name"]))
-        # new_widget = self.view.addLaser(
-        #     Laser(
-        #         new_data,
-        #         calibration=self.laser.calibration,
-        #         config=self.laser.config,
-        #         info=info,
-        #     )
-        # )
-
-        # new_widget.activate()
+        info = self.laser.info.copy()
+        info["Name"] = info["Name"] + "_cropped"
+        info["File Path"] = str(Path(info.get("File Path", "")).with_stem(info["Name"]))
+        self.requestAddLaser.emit(
+            Laser(
+                new_data,
+                calibration=self.laser.calibration,
+                config=self.laser.config,
+                info=info,
+            )
+        )
 
     def transform(self, flip: str | None = None, rotate: str | None = None) -> None:
         """Transform the laser data.

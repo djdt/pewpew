@@ -343,6 +343,7 @@ class LaserTabWidget(TabViewWidget):
         item.requestDialog.connect(self.openDialog)
         item.requestTool.connect(self.openTool)
 
+        item.requestAddLaser.connect(self.addLaser)
         item.requestExport.connect(self.dialogExport)
         item.requestSave.connect(self.dialogSave)
 
