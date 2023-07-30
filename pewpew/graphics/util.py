@@ -21,7 +21,27 @@ def closest_nice_value(
 ) -> np.ndarray:
     values = np.asarray(values)
     if allowed is None:
-        allowed = np.arange(0, 10, 0.5)
+        allowed = np.array(
+            [
+                0.0,
+                0.25,
+                0.5,
+                0.75,
+                1.0,
+                1.25,
+                1.5,
+                2.0,
+                2.5,
+                3.0,
+                4.0,
+                5.0,
+                6.0,
+                7.0,
+                7.5,
+                8.0,
+                9.0,
+            ]
+        )
     allowed = np.asarray(allowed)
 
     pwrs = 10 ** (np.where(np.abs(values) != 0.0, np.log10(np.abs(values)), 0)).astype(

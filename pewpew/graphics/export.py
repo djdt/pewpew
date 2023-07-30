@@ -122,21 +122,22 @@ def generate_laser_image(
         painter.fillPath(path, QtGui.QBrush(QtCore.Qt.GlobalColor.white))
 
         path = QtGui.QPainterPath()
-        path.addText(
-            rect.left(), rect.bottom() + fm.ascent(), painter.font(), f"{nmin:.2g}"
-        )
-        path.addText(
-            rect.right() - fm.boundingRect(f"{nmax:.2g}").width(),
-            rect.bottom() + fm.ascent(),
-            painter.font(),
-            f"{nmax:.2g}",
-        )
-        path.addText(
-            rect.center().x() - fm.boundingRect(f"{nmid:.2g}").width() / 2.0,
-            rect.bottom() + fm.ascent(),
-            painter.font(),
-            f"{nmid:.2g}",
-        )
+        # Left label
+        text = f"{nmin:.2g}"
+        xpos = check_pos_min - fm.boundingRect(text).width() / 2.0
+        xpos = xpos if xpos > rect.left() else rect.left() + fm.lineWidth()
+        path.addText(xpos, rect.bottom() + fm.ascent(), painter.font(), text)
+        # Right label
+        text = f"{nmax:.2g}"
+        width = fm.boundingRect(text).width()
+        xpos = check_pos_max - width / 2.0
+        if xpos + width > rect.right():
+            xpos = rect.right() - width - fm.lineWidth()
+        path.addText(xpos, rect.bottom() + fm.ascent(), painter.font(), text)
+        # Center label
+        text = f"{nmid:.2g}"
+        xpos = check_pos_mid - fm.boundingRect(text).width() / 2.0
+        path.addText(xpos, rect.bottom() + fm.ascent(), painter.font(), text)
         # unit
         if colorbar_unit:
             path.addText(
