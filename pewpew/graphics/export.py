@@ -24,6 +24,17 @@ def position_for_alignment(
     return rect
 
 
+def shortest_label(fm: QtGui.QFontMetrics, value: float, prec: int = 2) -> str:
+    g_label = f"{value:{prec}g}".strip()
+    if value < 10**prec:
+        return g_label
+    d_label = f"{int(value):{prec}d}".strip()
+    if fm.boundingRect(g_label).width() < fm.boundingRect(d_label).width():
+        return g_label
+    else:
+        return d_label
+
+
 def generate_laser_image(
     laser: Laser,
     element: str,
@@ -116,26 +127,27 @@ def generate_laser_image(
         path = QtGui.QPainterPath()
         path.addRect(check_pos_min + 1, rect.bottom() - 2, 2, 4)
         path.addRect(check_pos_mid, rect.bottom() - 2, 2, 4)
-        path.addRect(check_pos_max, rect.bottom() - 2, 2, 4)
+        path.addRect(check_pos_max - 1, rect.bottom() - 2, 2, 4)
 
         painter.strokePath(path, pen)
         painter.fillPath(path, QtGui.QBrush(QtCore.Qt.GlobalColor.white))
 
         path = QtGui.QPainterPath()
         # Left label
-        text = f"{nmin:.2g}"
+        text = shortest_label(fm, nmin, 2)
         xpos = check_pos_min - fm.boundingRect(text).width() / 2.0
-        xpos = xpos if xpos > rect.left() else rect.left() + fm.lineWidth()
+        if xpos < rect.left():
+            xpos = rect.left() + fm.lineWidth() + fm.leftBearing(text[0])
         path.addText(xpos, rect.bottom() + fm.ascent(), painter.font(), text)
         # Right label
-        text = f"{nmax:.2g}"
+        text = shortest_label(fm, nmax, 2)
         width = fm.boundingRect(text).width()
         xpos = check_pos_max - width / 2.0
         if xpos + width > rect.right():
-            xpos = rect.right() - width - fm.lineWidth()
+            xpos = rect.right() - width - fm.lineWidth() - fm.rightBearing(text[-1])
         path.addText(xpos, rect.bottom() + fm.ascent(), painter.font(), text)
         # Center label
-        text = f"{nmid:.2g}"
+        text = shortest_label(fm, nmid, 2)
         xpos = check_pos_mid - fm.boundingRect(text).width() / 2.0
         path.addText(xpos, rect.bottom() + fm.ascent(), painter.font(), text)
         # unit
