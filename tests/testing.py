@@ -1,6 +1,13 @@
-import numpy as np
-
 from typing import List
+
+import numpy as np
+import pytest
+from PySide6 import QtCore
+
+
+@pytest.fixture(scope="session", autouse=True)
+def clear_settings():
+    QtCore.QSettings().clear()
 
 
 def linear_data(names: str | List[str]) -> np.ndarray:

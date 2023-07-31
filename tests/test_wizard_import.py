@@ -60,7 +60,7 @@ def test_wizard_import_agilent(qtbot: QtBot):
 
     with qtbot.waitSignal(wiz.laserImported) as emit:
         wiz.accept()
-        assert emit.args[0].shape == (5, 5)
+        assert emit.args[1].shape == (5, 5)
 
 
 def test_wizard_import_perkinelemer(qtbot: QtBot):
@@ -86,7 +86,7 @@ def test_wizard_import_perkinelemer(qtbot: QtBot):
 
     with qtbot.waitSignal(wiz.laserImported) as emit:
         wiz.accept()
-        assert emit.args[0].shape == (3, 3)
+        assert emit.args[1].shape == (3, 3)
 
 
 def test_wizard_import_text(qtbot: QtBot):
@@ -109,7 +109,7 @@ def test_wizard_import_text(qtbot: QtBot):
 
     with qtbot.waitSignal(wiz.laserImported) as emit:
         wiz.accept()
-        assert emit.args[0].shape == (5, 5)
+        assert emit.args[1].shape == (5, 5)
 
 
 def test_wizard_import_thermo(qtbot: QtBot):
@@ -133,4 +133,4 @@ def test_wizard_import_thermo(qtbot: QtBot):
 
     with qtbot.waitSignal(wiz.laserImported) as emit:
         wiz.accept()
-        assert emit.args[0].shape == (5, 5)
+        assert emit.args[1].shape == (5, 5)

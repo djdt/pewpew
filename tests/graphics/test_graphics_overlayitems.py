@@ -33,22 +33,22 @@ def test_metric_scalebar_overlay(qtbot: QtBot):
     sb = MetricScaleBarOverlay()
     scene.addItem(sb)
 
-    width, unit = sb.getWidthAndUnit(1.0)
+    width, unit = sb.getWidthAndUnit(1.0, sb.unit)
     assert np.isclose(width, 0.5)
     assert unit == "nm"
 
-    width, unit = sb.getWidthAndUnit(2.0)
+    width, unit = sb.getWidthAndUnit(2.0, sb.unit)
     assert np.isclose(width, 1.0)
     assert unit == "μm"
 
-    width, unit = sb.getWidthAndUnit(4.0)
+    width, unit = sb.getWidthAndUnit(4.0, sb.unit)
     assert np.isclose(width, 2.0)
     assert unit == "μm"
 
-    width, unit = sb.getWidthAndUnit(100.0)
+    width, unit = sb.getWidthAndUnit(100.0, sb.unit)
     assert np.isclose(width, 50.0)
     assert unit == "μm"
 
-    width, unit = sb.getWidthAndUnit(1000.0)
+    width, unit = sb.getWidthAndUnit(1000.0, sb.unit)
     assert np.isclose(width, 500.0)
     assert unit == "μm"

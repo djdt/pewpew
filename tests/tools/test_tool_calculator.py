@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 from pewlib.laser import Laser
 from pytestqt.qtbot import QtBot
@@ -46,7 +48,10 @@ def test_tool_calculator(qtbot: QtBot):
     qtbot.addWidget(view)
     view.show()
 
-    widget = view.importFile(Laser(rand_data(["a", "b"]), info={"Name": "test"}))
+    widget = view.importFile(
+        Path("/home/pewpew/fake.npz"),
+        Laser(rand_data(["a", "b"]), info={"Name": "test"}),
+    )
     item = widget.laserItems()[0]
     tool = CalculatorTool(item)
     view.addTab("Tool", tool)

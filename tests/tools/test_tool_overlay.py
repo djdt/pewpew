@@ -20,7 +20,8 @@ def test_overlay_tool(qtbot: QtBot):
     qtbot.add_widget(view)
     view.show()
     widget = view.importFile(
-        Laser(data, info={"Name": "test", "File Path": "/home/pewpew/real.npz"})
+        Path("/home/pewpew/fake.npz"),
+        Laser(data, info={"Name": "test", "File Path": "/home/pewpew/real.npz"}),
     )
     item = widget.laserItems()[0]
     tool = OverlayTool(item)

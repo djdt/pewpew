@@ -146,7 +146,9 @@ def test_laser_widget_cursor(qtbot: QtBot):
     view = LaserTabView()
     main.setCentralWidget(view)
 
-    view.importFile(Laser(rand_data(["a"]), info={"Name": "test"}))
+    view.importFile(
+        Path("/home/pewpew/fake.npz"), Laser(rand_data(["a"]), info={"Name": "test"})
+    )
     widget = view.activeWidget()
 
     # Cursor

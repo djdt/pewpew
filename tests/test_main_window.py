@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pewlib.laser import Laser
 from pytestqt.qtbot import QtBot
 from testing import rand_data
@@ -30,9 +32,10 @@ def test_main_window_actions_widget(qtbot: QtBot):
     window = MainWindow()
     qtbot.addWidget(window)
     window.tabview.importFile(
+        Path("/home/pewpew/real.npz"),
         Laser(
             rand_data("A1"), info={"File Path": "/home/pewpew/real.npz", "Name": "test"}
-        )
+        ),
     )
     window.tabview.refresh()
 

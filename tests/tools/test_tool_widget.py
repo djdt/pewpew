@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pewlib.laser import Laser
 from PySide6 import QtWidgets
 from pytestqt.qtbot import QtBot
@@ -12,7 +14,10 @@ def test_tool_widget(qtbot: QtBot):
     qtbot.addWidget(view)
     view.show()
 
-    widget = view.importFile(Laser(rand_data(["a", "b"]), info={"Name": "test"}))
+    widget = view.importFile(
+        Path("/home/pewpew/fake.npz"),
+        Laser(rand_data(["a", "b"]), info={"Name": "test"}),
+    )
     item = widget.laserItems()[0]
     tool = ToolWidget(item, apply_all=True)
     view.addTab("Tool", tool)

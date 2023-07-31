@@ -1,13 +1,12 @@
+from pathlib import Path
+
 import numpy as np
-
-from pytestqt.qtbot import QtBot
-
 from pewlib.laser import Laser
+from pytestqt.qtbot import QtBot
+from testing import rand_data
 
 from pewpew.widgets.laser import LaserTabView
 from pewpew.widgets.tools.filtering import FilteringTool
-
-from testing import rand_data
 
 
 def test_tool_filter(qtbot: QtBot):
@@ -15,7 +14,10 @@ def test_tool_filter(qtbot: QtBot):
     qtbot.addWidget(view)
     view.show()
 
-    widget = view.importFile(Laser(rand_data(["a", "b"]), info={"Name": "test"}))
+    widget = view.importFile(
+        Path("/home/pewpew/fake.npz"),
+        Laser(rand_data(["a", "b"]), info={"Name": "test"}),
+    )
     item = widget.laserItems()[0]
     tool = FilteringTool(item)
     view.addTab("Tool", tool)
