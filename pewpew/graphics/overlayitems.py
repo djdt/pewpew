@@ -4,6 +4,7 @@ import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.graphics.overlaygraphics import OverlayItem
+from pewpew.graphics.util import closest_nice_value
 
 
 class ColorBarOverlay(OverlayItem):
@@ -33,7 +34,6 @@ class ColorBarOverlay(OverlayItem):
         vmin: float,
         vmax: float,
         unit: str = "",
-        height: int = 16,
         font: QtGui.QFont | None = None,
         color: QtGui.QColor | None = None,
         checkmarks: bool = False,
@@ -57,7 +57,6 @@ class ColorBarOverlay(OverlayItem):
         self.vmin = vmin
         self.vmax = vmax
         self.unit = unit
-        self.height = height
 
         self.font = font or QtGui.QFont()
         self.color = color or QtCore.Qt.white
@@ -79,7 +78,8 @@ class ColorBarOverlay(OverlayItem):
     def boundingRect(self):
         fm = QtGui.QFontMetrics(self.font)
 
-        rect = QtCore.QRectF(0, 0, self.viewport.width(), self.height + fm.height())
+        height = fm.xHeight()
+        rect = QtCore.QRectF(0, 0, self.viewport.width(), height + fm.height())
 
         if self.alignment & QtCore.Qt.AlignRight:
             rect.moveRight(self.viewport.right())
@@ -95,20 +95,6 @@ class ColorBarOverlay(OverlayItem):
             )
         return rect
 
-    def niceTextValues(self, n: int = 7, trim: int = 0) -> np.ndarray:
-        vrange = self.vmax - self.vmin
-        interval = vrange / (n + 2 * trim)
-
-        pwr = 10 ** int(np.log10(interval) - (1 if interval < 1.0 else 0))
-        interval = interval / pwr
-
-        idx = np.searchsorted(self.nicenums, interval)
-        idx = min(idx, len(self.nicenums) - 1)
-
-        interval = self.nicenums[idx] * pwr
-        values = np.arange(int(self.vmin / interval) * interval, self.vmax, interval)
-        return values[trim : values.size - trim]
-
     def paint(
         self,
         painter: QtGui.QPainter,
@@ -120,8 +106,9 @@ class ColorBarOverlay(OverlayItem):
         painter.translate(self.boundingRect().topLeft())
 
         fm = QtGui.QFontMetrics(self.font, painter.device())
+        xh = fm.xHeight()
 
-        rect = QtCore.QRect(0, fm.height(), self.viewport.width(), self.height)
+        rect = QtCore.QRect(0, fm.height(), self.viewport.width(), xh)
         painter.drawPixmap(rect, self.pixmap)
         painter.setPen(QtGui.QPen(QtCore.Qt.black, 2.0))
         painter.setBrush(QtGui.QBrush(QtCore.Qt.white, QtCore.Qt.NoBrush))
@@ -139,6 +126,16 @@ class ColorBarOverlay(OverlayItem):
         vrange = self.vmax - self.vmin
         if vrange <= 0.0:
             return
+
+        label_values = np.array(
+            [
+                closest_nice_value(x, mode=m)
+                for x, m in zip(
+                    [self.vmin, vrange / 2.0, self.vmax], ["lower", "closest", "upper"]
+                )
+            ]
+        )
+        label_fpos = rect.width() / vrange * label_values
 
         for value in self.niceTextValues(7, trim=1):
             x = self.viewport.width() * (value - self.vmin) / vrange
