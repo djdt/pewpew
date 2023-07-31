@@ -641,7 +641,6 @@ class LaserTabWidget(TabViewWidget):
             self.graphics.endTransform()
         elif event.matches(QtGui.QKeySequence.Paste):
             mime = QtWidgets.QApplication.clipboard().mimeData()
-            print(mime.formats())
             if mime.hasFormat("application/x-pew2laser"):
                 with BytesIO(mime.data("application/x-pew2laser")) as fp:
                     data = np.load(fp)
