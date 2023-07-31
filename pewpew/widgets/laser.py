@@ -664,7 +664,7 @@ class LaserTabWidget(TabViewWidget):
                         array = np.load(fp)
                         info = io.npz.unpack_info(array)
                 else:
-                    info = {"Name": "unknown", "Path": Path("/unknown/")}
+                    info = {"Name": "unknown"}
 
                 laser = Laser(data, config=config, calibration=calibration, info=info)
                 origin = self.graphics.mapFromGlobal(QtGui.QCursor.pos())
