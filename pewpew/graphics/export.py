@@ -24,17 +24,6 @@ def position_for_alignment(
     return rect
 
 
-def shortest_label(fm: QtGui.QFontMetrics, value: float, prec: int = 2) -> str:
-    g_label = f"{value:{prec}g}".strip()
-    if value < 10**prec:
-        return g_label
-    d_label = f"{int(value):{prec}d}".strip()
-    if fm.boundingRect(g_label).width() < fm.boundingRect(d_label).width():
-        return g_label
-    else:
-        return d_label
-
-
 def generate_laser_image(
     laser: Laser,
     element: str,
