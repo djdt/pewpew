@@ -1,4 +1,5 @@
 import copy
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -150,6 +151,14 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         for item in stack:
             self.stackBefore(item)
         self.scene().update(self.boundingRect())
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.matches(QtGui.QKeySequence.StandardKey.Close):
+            self.close()
+        elif event.matches(QtGui.QKeySequence.StandardKey.Copy):
+            self.copyToClipboard()
+        else:
+            super().keyPressEvent(event)
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if (
@@ -543,6 +552,26 @@ class LaserImageItem(SnapImageItem):
     def copyToClipboard(self) -> None:
         clipboard = QtWidgets.QApplication.clipboard()
         clipboard.setImage(self.image)
+        mime = QtCore.QMimeData()
+        with BytesIO() as fp:
+            np.save(fp, self.laser.data)
+            mime.setData("application/x-pew2laser", fp.getvalue())
+        with BytesIO() as fp:
+            np.save(fp, self.laser.config.to_array())
+            mime.setData("application/x-pew2config", fp.getvalue())
+        with BytesIO() as fp:
+            np.savez(
+                fp, **{k: v.to_array() for k, v in self.laser.calibration.items()}
+            )
+            mime.setData("application/x-pew2calibration", fp.getvalue())
+        with BytesIO() as fp:
+            np.save(fp, io.npz.pack_info(self.laser.info))
+            mime.setData("application/x-pew2info", fp.getvalue())
+        clipboard.setMimeData(mime)
+
+    def copyImageToClipboard(self) -> None:
+        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard.setImage(self.image)
 
     def saveToFile(self, path: Path | str) -> None:
         path = Path(path)
@@ -551,11 +580,18 @@ class LaserImageItem(SnapImageItem):
 
     # ==== Actions ===
     def createActions(self) -> None:
+        self.action_copy = qAction(
+            "edit-copy",
+            "Copy",
+            "Copy item to clipboard.",
+            self.copyToClipboard,
+        )
+        self.action_copy.setShortcut(QtGui.QKeySequence.Copy)
         self.action_copy_image = qAction(
             "insert-image",
             "Copy &Image",
-            "Copy image to clipboard.",
-            self.copyToClipboard,
+            "Copy current image to clipboard.",
+            self.copyImageToClipboard,
         )
 
         # === IO requests ===
@@ -565,7 +601,7 @@ class LaserImageItem(SnapImageItem):
             "Export laser data to a variety of formats.",
             lambda: self.requestExport.emit(self),
         )
-        self.action_export.setShortcut(QtGui.QKeySequence.SaveAs)
+        self.action_export.setShortcut(QtGui.QKeySequence.StandardKey.Cut)
         self.action_save = qAction(
             "document-save",
             "&Save",
@@ -636,12 +672,6 @@ class LaserImageItem(SnapImageItem):
             "Un-hide the colortable scale bar.",
             self.colorbar.show,
         )
-        # self.action_duplicate = qAction(
-        #     "edit-copy",
-        #     "Duplicate image",
-        #     "Open a copy of the image.",
-        #     self.actionDuplicate,
-        # )
 
         self.action_selection_copy_text = qAction(
             "insert-table",
@@ -788,6 +818,7 @@ class LaserImageItem(SnapImageItem):
         mask_context = self.mask_image is not None and self.selectedAt(event.pos())
 
         menu = QtWidgets.QMenu()
+        menu.addAction(self.action_copy)
         menu.addAction(self.action_copy_image)
         menu.addSeparator()
 
@@ -841,6 +872,14 @@ class LaserImageItem(SnapImageItem):
 
         menu.exec_(event.screenPos())
         event.accept()
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.matches(QtGui.QKeySequence.StandardKey.Save):
+            self.requestSave.emit(self)
+        elif event.matches(QtGui.QKeySequence.StandardKey.Cut):
+            self.requestExport.emit(self)
+        else:
+            super().keyPressEvent(event)
 
     def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
         pos = self.mapToData(event.pos())

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import numpy as np
+from pewlib import io
 from pewlib.calibration import Calibration
 from pewlib.config import Config
 from pewlib.laser import Laser
@@ -336,7 +337,9 @@ class LaserTabWidget(TabViewWidget):
         self.setLayout(layout)
         self.show()  # Call show here so that zoomReset works
 
-    def addLaser(self, laser: Laser) -> "LaserImageItem":
+    def addLaser(
+        self, laser: Laser, pos: QtCore.QPointF | None = None
+    ) -> "LaserImageItem":
         item = LaserImageItem(laser, self.graphics.options)
 
         # Connect dialog requests
@@ -359,7 +362,10 @@ class LaserTabWidget(TabViewWidget):
 
         self.updateForItem(item)
         self.graphics.scene().addItem(item)
-        self.graphics.zoomReset()
+        if pos is not None:
+            item.setPos(pos)
+        else:
+            self.graphics.zoomReset()
 
         self.numLaserItemsChanged.emit()
         return item
@@ -637,12 +643,38 @@ class LaserTabWidget(TabViewWidget):
             self.graphics.endTransform()
         elif event.matches(QtGui.QKeySequence.Paste):
             mime = QtWidgets.QApplication.clipboard().mimeData()
-            if mime.hasFormat("arplication/x-pew2config"):
+            print(mime.formats())
+            if mime.hasFormat("application/x-pew2laser"):
+                with BytesIO(mime.data("application/x-pew2laser")) as fp:
+                    data = np.load(fp)
+
+                if mime.hasFormat("application/x-pew2config"):
+                    with BytesIO(mime.data("application/x-pew2config")) as fp:
+                        array = np.load(fp)
+                        config = Config.from_array(array)
+                else:
+                    config = None
+
+                if mime.hasFormat("application/x-pew2calibration"):
+                    with BytesIO(mime.data("application/x-pew2calibration")) as fp:
+                        npy = np.load(fp)
+                        calibration = {k: Calibration.from_array(npy[k]) for k in npy}
+                else:
+                    calibration = None
+
+                if mime.hasFormat("application/x-pew2info"):
+                    with BytesIO(mime.data("application/x-pew2info")) as fp:
+                        array = np.load(fp)
+                        info = io.npz.unpack_info(array)
+                else:
+                    info = {"Name": "unknown", "Path": Path("/unknown/")}
+
+                laser = Laser(data, config=config, calibration=calibration, info=info)
+                origin = self.graphics.mapFromGlobal(QtGui.QCursor.pos())
+                self.addLaser(laser, self.graphics.mapToScene(origin))
+            elif mime.hasFormat("application/x-pew2config"):
                 with BytesIO(mime.data("application/x-pew2config")) as fp:
                     array = np.load(fp)
-                if self.is_srr:
-                    config = SRRConfig.from_array(array)
-                else:
                     config = Config.from_array(array)
                 self.applyConfig(config)
             elif mime.hasFormat("application/x-pew2calibration"):
@@ -650,15 +682,5 @@ class LaserTabWidget(TabViewWidget):
                     npy = np.load(fp)
                     calibrations = {k: Calibration.from_array(npy[k]) for k in npy}
                 self.applyCalibration(calibrations)
-        elif event.matches(QtGui.QKeySequence.Save) and isinstance(
-            item, LaserImageItem
-        ):
-            self.dialogSave(item)
-        elif event.matches(QtGui.QKeySequence.SaveAs) and isinstance(
-            item, LaserImageItem
-        ):
-            self.dialogExport(item)
-        elif event.matches(QtGui.QKeySequence.Close) and item is not None:
-            item.close()
 
         super().keyPressEvent(event)
