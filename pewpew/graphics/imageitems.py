@@ -560,12 +560,10 @@ class LaserImageItem(SnapImageItem):
             np.save(fp, self.laser.config.to_array())
             mime.setData("application/x-pew2config", fp.getvalue())
         with BytesIO() as fp:
-            np.savez(
-                fp, **{k: v.to_array() for k, v in self.laser.calibration.items()}
-            )
+            np.savez(fp, **{k: v.to_array() for k, v in self.laser.calibration.items()})
             mime.setData("application/x-pew2calibration", fp.getvalue())
         with BytesIO() as fp:
-            np.save(fp, io.npz.pack_info(self.laser.info))
+            np.save(fp, io.npz.pack_info(self.laser.info, remove_keys=[]))
             mime.setData("application/x-pew2info", fp.getvalue())
         clipboard.setMimeData(mime)
 
