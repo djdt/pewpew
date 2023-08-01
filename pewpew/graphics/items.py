@@ -132,7 +132,6 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         painter.strokePath(path, self.pen)
         painter.fillPath(path, self.brush)
         painter.restore()
-        painter.drawRect(self.boundingRect())
 
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
         # action_edit = qAction(
