@@ -10,7 +10,6 @@ from pewlib.calibration import Calibration
 from pewlib.config import Config
 from pewlib.laser import Laser
 from pewlib.process.register import overlap_structured_arrays
-from pewlib.srr import SRRConfig
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction
@@ -63,9 +62,11 @@ class LaserTabView(TabView):
 
     def importFile(self, path: Path, data: Laser | QtGui.QImage) -> "LaserTabWidget":
         try:
-            widget = next(
-                iter(w for w in self.widgets() if isinstance(w, LaserTabWidget))
-            )
+            widget = self.activeWidget()
+            if not isinstance(widget, LaserTabWidget):
+                widget = next(
+                    iter(w for w in self.widgets() if isinstance(w, LaserTabWidget))
+                )
         except StopIteration:
             widget = self.newLaserTab()
         if isinstance(data, Laser):
