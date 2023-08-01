@@ -75,7 +75,7 @@ def path_for_colorbar_labels(
 
     check_width = fm.xHeight() / 4.0
 
-    for n in np.arange(10, 1, -1):
+    for n in np.arange(7, 1, -1):
         max_text_width = shortest_label(fm, 8.88e88)[1]
         if max_text_width * n < width:
             break
