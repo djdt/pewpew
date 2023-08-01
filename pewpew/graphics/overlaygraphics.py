@@ -216,7 +216,7 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
         self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
 
     def itemsBoundingRect(self) -> QtCore.QRectF:
-        rect = QtCore.QRectF(0, 0, 0, 0)
+        rect = QtCore.QRectF()
         for item in self.scene().items():
             if (
                 not isinstance(item, (OverlayItem, OverlayParentItem))
