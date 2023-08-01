@@ -217,7 +217,7 @@ class LaserGraphicsView(OverlayGraphicsView):
             if isinstance(item, SnapImageItem) and item.isVisible():
                 rect = rect.united(item.sceneBoundingRect())
         self.fitInView(
-            rect.marginsAdded(QtCore.QMarginsF(50, 50, 50, 50)),
+            rect.marginsAdded(QtCore.QMarginsF(100, 100, 100, 100)),
             QtCore.Qt.KeepAspectRatio,
         )
 

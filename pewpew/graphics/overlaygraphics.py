@@ -1,8 +1,7 @@
-from PySide6 import QtCore, QtGui, QtWidgets
-
 from pathlib import Path
-
 from typing import Set
+
+from PySide6 import QtCore, QtGui, QtWidgets
 
 
 class OverlayParentItem(QtWidgets.QGraphicsObject):
@@ -219,16 +218,23 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
     def itemsBoundingRect(self) -> QtCore.QRectF:
         rect = QtCore.QRectF(0, 0, 0, 0)
         for item in self.scene().items():
-            if not isinstance(item, (OverlayItem, OverlayParentItem)) and item.isVisible():
+            if (
+                not isinstance(item, (OverlayItem, OverlayParentItem))
+                and item.isVisible()
+            ):
                 item_rect = item.sceneBoundingRect()
                 if item.flags() & QtWidgets.QGraphicsItem.ItemIgnoresTransformations:
-                    transformed_rect = self.mapToScene(item_rect.toAlignedRect()).boundingRect()
-                    item_rect.setWidth(transformed_rect.width())
-                    item_rect.setHeight(transformed_rect.height())
+                    item_rect = self.mapToScene(
+                        item.boundingRect().toAlignedRect()
+                    ).boundingRect()
+                    item_rect.moveTo(item.scenePos())
                 rect = rect.united(item_rect)
         return rect
 
     def zoomReset(self) -> None:
+        # Just do it twice
+        rect = self.itemsBoundingRect()
+        self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
         rect = self.itemsBoundingRect()
         self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
         self.viewScaleChanged.emit()
