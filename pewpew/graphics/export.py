@@ -5,7 +5,7 @@ from PySide6 import QtCore, QtGui
 from pewpew.graphics import colortable
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.overlayitems import MetricScaleBarOverlay
-from pewpew.graphics.util import closest_nice_value
+from pewpew.graphics.util import path_for_colorbar_labels
 from pewpew.lib.numpyqt import array_to_image
 
 
@@ -65,7 +65,7 @@ def generate_laser_image(
         colorbar and options.calibrate and laser.calibration[element].unit is not None
     )
     if colorbar_unit:
-        size = size.grownBy(QtCore.QMargins(0, 0, 0, xh / 2.0 + fm.height()))
+        size = size.grownBy(QtCore.QMargins(0, 0, 0, fm.height()))
 
     pixmap = QtGui.QPixmap(size)
     pixmap.fill(QtCore.Qt.GlobalColor.transparent)
@@ -91,53 +91,19 @@ def generate_laser_image(
 
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
-        # Labels and checks
-        nmin = closest_nice_value(vmin, mode="upper")
-        nmid = closest_nice_value((vmax + vmin) / 2.0, mode="closest")
-        nmax = closest_nice_value(vmax, mode="lower")
-
-        check_pos_min = rect.width() / (vmax - vmin) * nmin
-        check_pos_mid = rect.width() / (vmax - vmin) * nmid
-        check_pos_max = rect.width() / (vmax - vmin) * nmax
-
-        path = QtGui.QPainterPath()
-        path.addRect(check_pos_min + 1, rect.bottom() - xh / 4.0, xh / 4.0, xh / 2.0)
-        path.addRect(check_pos_mid, rect.bottom() - xh / 4.0, xh / 4.0, xh / 2.0)
-        path.addRect(check_pos_max - 1, rect.bottom() - xh / 4.0, xh / 4.0, xh / 2.0)
-
-        painter.strokePath(path, pen)
-        painter.fillPath(path, QtGui.QBrush(QtCore.Qt.GlobalColor.white))
-
-        path = QtGui.QPainterPath()
-        # Left label
-        text = shortest_label(fm, float(nmin), 2)
-        xpos = check_pos_min - fm.boundingRect(text).width() / 2.0
-        if xpos < rect.left():
-            xpos = rect.left() + fm.lineWidth() + fm.leftBearing(text[0])
-        path.addText(xpos, rect.bottom() + fm.ascent(), painter.font(), text)
-        # Right label
-        text = shortest_label(fm, float(nmax), 2)
-        width = fm.boundingRect(text).width()
-        xpos = check_pos_max - width / 2.0
-        if xpos + width > rect.right():
-            xpos = rect.right() - width - fm.lineWidth() - fm.rightBearing(text[-1])
-        path.addText(xpos, rect.bottom() + fm.ascent(), painter.font(), text)
-        # Center label
-        text = shortest_label(fm, float(nmid), 2)
-        xpos = check_pos_mid - fm.boundingRect(text).width() / 2.0
-        path.addText(xpos, rect.bottom() + fm.ascent(), painter.font(), text)
-        # unit
+        path = path_for_colorbar_labels(options.font, vmin, vmax, rect.width())
         if colorbar_unit:
             text = laser.calibration[element].unit
             path.addText(
-                rect.right()
+                rect.width()
                 - fm.boundingRect(text).width()
                 - fm.lineWidth()
                 - fm.rightBearing(text[-1]),
-                rect.bottom() + fm.ascent() + fm.height(),
+                fm.ascent() + fm.height(),
                 painter.font(),
                 text,
             )
+        path.translate(rect.bottomLeft())
         painter.strokePath(path, pen)
         painter.fillPath(path, QtGui.QBrush(QtCore.Qt.GlobalColor.white))
 

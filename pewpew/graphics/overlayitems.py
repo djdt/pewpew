@@ -4,7 +4,7 @@ import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.graphics.overlaygraphics import OverlayItem
-from pewpew.graphics.util import closest_nice_value
+from pewpew.graphics.util import path_for_colorbar_labels
 
 
 class ColorBarOverlay(OverlayItem):
@@ -36,7 +36,6 @@ class ColorBarOverlay(OverlayItem):
         unit: str = "",
         font: QtGui.QFont | None = None,
         color: QtGui.QColor | None = None,
-        checkmarks: bool = False,
         alignment: QtCore.Qt.AlignmentFlag | None = None,
         parent: QtWidgets.QGraphicsItem | None = None,
     ):
@@ -60,7 +59,6 @@ class ColorBarOverlay(OverlayItem):
 
         self.font = font or QtGui.QFont()
         self.color = color or QtCore.Qt.white
-        self.checkmarks = checkmarks
         self.alignment = alignment
 
     def updateTable(self, colortable: List[int], vmin: float, vmax: float, unit: str):
@@ -79,7 +77,9 @@ class ColorBarOverlay(OverlayItem):
         fm = QtGui.QFontMetrics(self.font)
 
         height = fm.xHeight()
-        rect = QtCore.QRectF(0, 0, self.viewport.width(), height + fm.height())
+        if self.unit is not None and self.unit != "":
+            height += fm.height()
+        rect = QtCore.QRectF(0, 0, self.viewport.width(), height)
 
         if self.alignment & QtCore.Qt.AlignRight:
             rect.moveRight(self.viewport.right())
@@ -102,57 +102,32 @@ class ColorBarOverlay(OverlayItem):
         widget: QtWidgets.QWidget | None = None,
     ):
         painter.save()
+        painter.setFont(self.font)
 
         painter.translate(self.boundingRect().topLeft())
 
-        fm = QtGui.QFontMetrics(self.font, painter.device())
+        fm = painter.fontMetrics()
         xh = fm.xHeight()
 
-        rect = QtCore.QRect(0, fm.height(), self.viewport.width(), xh)
+        rect = QtCore.QRect(0, 0, self.viewport.width(), xh)
         painter.drawPixmap(rect, self.pixmap)
-        painter.setPen(QtGui.QPen(QtCore.Qt.black, 2.0))
-        painter.setBrush(QtGui.QBrush(QtCore.Qt.white, QtCore.Qt.NoBrush))
-        painter.drawRect(rect)
 
         path = QtGui.QPainterPath()
-        # Todo: find a better pad value
-        path.addText(
-            self.viewport.width() - fm.boundingRect(self.unit).width() - 10,
-            fm.ascent(),
-            self.font,
-            self.unit,
-        )
+        path = path_for_colorbar_labels(self.font, self.vmin, self.vmax, rect.width())
 
-        vrange = self.vmax - self.vmin
-        if vrange <= 0.0:
-            return
-
-        label_values = np.array(
-            [
-                closest_nice_value(x, mode=m)
-                for x, m in zip(
-                    [self.vmin, vrange / 2.0, self.vmax], ["lower", "closest", "upper"]
-                )
-            ]
-        )
-        label_fpos = rect.width() / vrange * label_values
-
-        for value in self.niceTextValues(7, trim=1):
-            x = self.viewport.width() * (value - self.vmin) / vrange
-            text = f"{value:.6g}"
+        if self.unit is not None and self.unit != "":
             path.addText(
-                x - fm.boundingRect(text).width() / 2.0,
-                fm.ascent(),
-                self.font,
-                text,
+                rect.width()
+                - fm.boundingRect(self.unit).width()
+                - fm.lineWidth()
+                - fm.rightBearing(self.unit[-1]),
+                fm.ascent() + fm.height(),
+                painter.font(),
+                self.unit,
             )
-            if self.checkmarks:
-                path.addRect(
-                    x - fm.lineWidth() / 2.0,
-                    fm.ascent() + fm.underlinePos(),
-                    fm.lineWidth() * 2.0,
-                    fm.underlinePos(),
-                )
+
+        path.translate(rect.bottomLeft())
+
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
         painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))

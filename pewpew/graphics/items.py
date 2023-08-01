@@ -5,6 +5,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction
 from pewpew.graphics.aligneditems import UnscaledAlignedTextItem
+from pewpew.graphics.util import path_for_colorbar_labels
 
 
 class ColorBarItem(QtWidgets.QGraphicsObject):
@@ -34,7 +35,6 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         font: QtGui.QFont | None = None,
         brush: QtGui.QBrush | None = None,
         pen: QtGui.QPen | None = None,
-        # checkmarks: bool = False,
         orientation: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
     ):
         super().__init__(parent)
@@ -57,13 +57,6 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         self.vmax = 0.0
         self.unit = ""
 
-    # def font(self) -> QtGui.QFont:
-    #     font = QtGui.QFont(self._font)
-    #     if self.scene() is not None:
-    #         view = next(iter(self.scene().views()))
-    #         font.setPointSizeF(font.pointSizeF() / view.transform().m22())
-    #     return font
-
     def updateTable(self, colortable: List[int], vmin: float, vmax: float, unit: str):
         self.vmin = vmin
         self.vmax = vmax
@@ -71,10 +64,12 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
 
         self.image.setColorTable(colortable)
         self.image.setColorCount(len(colortable))
+        self.prepareGeometryChange()
         self.update()
 
     def boundingRect(self):
         fm = QtGui.QFontMetrics(self.font)
+        xh = fm.xHeight()
 
         if self.scene() is not None:
             view = self.scene().views()[0]
@@ -87,27 +82,13 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
             length = 1.0
 
         if self.orientation == QtCore.Qt.Horizontal:
-            rect = QtCore.QRectF(0, 0, length, 5.0 + 10.0 + fm.height())
+            height = xh * 2.0 + fm.height()
+            if self.unit is not None and self.unit != "":
+                height += fm.height()
+            rect = QtCore.QRectF(0.0, 0.0, length, height)
         else:
             raise NotImplementedError
         return rect
-
-    @staticmethod
-    def niceTextValues(
-        vmin: float, vmax: float, n: int = 5, trim: int = 0
-    ) -> np.ndarray:
-        vrange = vmax - vmin
-        interval = vrange / (n + 2 * trim)
-
-        pwr = 10 ** int(np.log10(interval) - (1 if interval < 1.0 else 0))
-        interval = interval / pwr
-
-        idx = np.searchsorted(ColorBarItem.nicenums, interval)
-        idx = min(idx, len(ColorBarItem.nicenums) - 1)  # type: ignore
-
-        interval = ColorBarItem.nicenums[idx] * pwr
-        values = np.arange(int(vmin / interval) * interval, vmax, interval)
-        return values[trim : values.size - trim]
 
     def paint(
         self,
@@ -116,55 +97,42 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         widget: QtWidgets.QWidget | None = None,
     ):
         painter.save()
+        painter.setFont(self.font)
         fm = painter.fontMetrics()
+        xh = fm.xHeight()
 
         view = self.scene().views()[0]
         length = (
             view.mapFromScene(self.parentItem().boundingRect()).boundingRect().width()
         )
 
+        rect = QtCore.QRectF(0.0, xh / 2.0, length, xh)
+
         painter.setFont(self.font)
         painter.rotate(self.parentItem().rotation())
         painter.rotate(self.rotation())
 
-        painter.drawImage(
-            QtCore.QRectF(0.0, 5.0, length, 10.0),
-            self.image,
-        )
+        painter.drawImage(rect, self.image)
+        path = path_for_colorbar_labels(self.font, self.vmin, self.vmax, length)
 
-        path = QtGui.QPainterPath()
-        unit_pos = length - fm.boundingRect(self.unit).width() - fm.maxWidth()
-        path.addText(
-            unit_pos,
-            5.0 + 10.0 + fm.height(),
-            self.font,
-            self.unit,
-        )
+        if self.unit is not None and self.unit != "":
+            path.addText(
+                rect.width()
+                - fm.boundingRect(self.unit).width()
+                - fm.lineWidth()
+                - fm.rightBearing(self.unit[-1]),
+                fm.ascent() + fm.height(),
+                painter.font(),
+                self.unit,
+            )
 
-        vrange = self.vmax - self.vmin
-        if vrange <= 0.0:
-            return
-
-        px = 0.0  # Store previous text left pos
-        for value in ColorBarItem.niceTextValues(self.vmin, self.vmax, 7, trim=1):
-            x = length * (value - self.vmin) / vrange
-            text = f"{value:.6g}"
-            half_width = fm.boundingRect(text).width()
-            if (
-                x - half_width > px and x + half_width < unit_pos
-            ):  # Only add non-overlapping
-                path.addText(
-                    x - half_width,
-                    5.0 + 10.0 + fm.height(),
-                    self.font,
-                    text,
-                )
-                px = x + half_width
+        path.translate(rect.bottomLeft())
 
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.strokePath(path, self.pen)
         painter.fillPath(path, self.brush)
         painter.restore()
+        painter.drawRect(self.boundingRect())
 
     def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
         # action_edit = qAction(
