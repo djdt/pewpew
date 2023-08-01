@@ -44,7 +44,7 @@ def nice_values(vmin: float, vmax: float, n: int = 6) -> np.ndarray:
     lower = closest_nice_value(vmin, mode="upper")
     interval = closest_nice_value(
         (vmax - lower) / n,
-        allowed=np.array([0.0, 1.0, 1.5, 2.0, 2.5, 5.0, 7.5]),
+        allowed=np.array([0.0, 1.0, 2.0, 2.5, 5.0, 7.5]),
         mode="lower",
     )
     return np.arange(lower, vmax * 1.001, interval)
@@ -73,20 +73,29 @@ def path_for_colorbar_labels(
     fm = QtGui.QFontMetrics(font)
     path = QtGui.QPainterPath()
 
-    for n in [9, 7, 5, 4, 3, 2]:
+    check_width = fm.xHeight() / 4.0
+
+    for n in np.arange(10, 1, -1):
         max_text_width = shortest_label(fm, 8.88e88)[1]
-        if max_text_width * n < width * 0.75:
+        if max_text_width * n < width:
             break
 
     values = nice_values(vmin, vmax, n)
     for i, v in enumerate(values):
         text, text_width = shortest_label(fm, v)
         xpos = v * width / vrange
-        xpos -= text_width / 2.0
+        text_pos = xpos - text_width / 2.0
+        if text_pos < 0.0:
+            text_pos = fm.lineWidth() + fm.leftBearing(text[0])
+        elif text_pos + text_width > width:
+            text_pos = width - text_width - fm.lineWidth() - fm.rightBearing(text[-1])
+        path.addText(text_pos, fm.ascent(), font, text)
+
+        xpos -= check_width / 2.0
         if xpos < 0.0:
-            xpos = fm.lineWidth() + fm.leftBearing(text[0])
-        elif xpos + text_width > width:
-            xpos = width - text_width - fm.lineWidth() - fm.rightBearing(text[-1])
-        path.addText(xpos, fm.ascent(), font, text)
+            xpos = 0.0
+        elif xpos + check_width > width:
+            xpos = width - check_width
+        path.addRect(xpos, -check_width, check_width, check_width * 2.0)
 
     return path
