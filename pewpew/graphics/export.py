@@ -83,6 +83,7 @@ def generate_laser_image(
             image.rect().left(), image.rect().bottom() + xh / 2.0, image.width(), xh
         )
         _data = np.arange(256, dtype=np.uint8)
+        _data[0] = 1
         cbar = QtGui.QImage(_data, 256, 1, 256, QtGui.QImage.Format_Indexed8)
         cbar.setColorTable(table)
         cbar.setColorCount(len(table))

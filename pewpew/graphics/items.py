@@ -51,6 +51,7 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         self.orientation = orientation
 
         self._data = np.arange(256, dtype=np.uint8)  # save a reference
+        self._data[0] = 1
         self.image = QtGui.QImage(self._data, 256, 1, 256, QtGui.QImage.Format_Indexed8)
 
         self.vmin = 0.0

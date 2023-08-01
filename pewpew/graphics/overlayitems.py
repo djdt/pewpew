@@ -47,11 +47,9 @@ class ColorBarOverlay(OverlayItem):
         if alignment is None:
             alignment = QtCore.Qt.AlignBottom
 
-        image = QtGui.QImage(
-            np.arange(256, dtype=np.uint8), 256, 1, 256, QtGui.QImage.Format_Indexed8
-        )
-        image.setColorTable(colortable)
-        self.pixmap = QtGui.QPixmap.fromImage(image)
+        self._data = np.arange(256, dtype=np.uint8)  # save a reference
+        self._data[0] = 1
+        self.image = QtGui.QImage(self._data, 256, 1, 256, QtGui.QImage.Format_Indexed8)
 
         self.vmin = vmin
         self.vmax = vmax
@@ -66,17 +64,14 @@ class ColorBarOverlay(OverlayItem):
         self.vmax = vmax
         self.unit = unit
 
-        image = QtGui.QImage(
-            np.arange(256, dtype=np.uint8), 256, 1, 256, QtGui.QImage.Format_Indexed8
-        )
-        image.setColorTable(colortable)
-        self.pixmap = QtGui.QPixmap.fromImage(image)
+        self.image.setColorTable(colortable)
+        self.image.setColorCount(len(colortable))
         self.requestPaint()
 
     def boundingRect(self):
         fm = QtGui.QFontMetrics(self.font)
 
-        height = fm.xHeight()
+        height = fm.xHeight() + fm.height()
         if self.unit is not None and self.unit != "":
             height += fm.height()
         rect = QtCore.QRectF(0, 0, self.viewport.width(), height)
@@ -110,7 +105,7 @@ class ColorBarOverlay(OverlayItem):
         xh = fm.xHeight()
 
         rect = QtCore.QRect(0, 0, self.viewport.width(), xh)
-        painter.drawPixmap(rect, self.pixmap)
+        painter.drawImage(rect, self.image)
 
         path = QtGui.QPainterPath()
         path = path_for_colorbar_labels(self.font, self.vmin, self.vmax, rect.width())
