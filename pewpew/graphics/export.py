@@ -61,11 +61,9 @@ def generate_laser_image(
 
     if colorbar:  # make room for colorbar
         size = size.grownBy(QtCore.QMargins(0, 0, 0, xh + xh / 2.0 + fm.height()))
-    colorbar_unit = (
-        colorbar and options.calibrate and laser.calibration[element].unit is not None
-    )
-    if colorbar_unit:
-        size = size.grownBy(QtCore.QMargins(0, 0, 0, fm.height()))
+        unit = laser.calibration[element].unit
+        if unit is not None and len(unit) > 0:
+            size = size.grownBy(QtCore.QMargins(0, 0, 0, fm.height()))
 
     pixmap = QtGui.QPixmap(size)
     pixmap.fill(QtCore.Qt.GlobalColor.transparent)
@@ -93,17 +91,13 @@ def generate_laser_image(
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
         path = path_for_colorbar_labels(options.font, vmin, vmax, rect.width())
-        if colorbar_unit:
-            text = laser.calibration[element].unit
-            path.addText(
-                rect.width()
-                - fm.boundingRect(text).width()
-                - fm.lineWidth()
-                - fm.rightBearing(text[-1]),
-                fm.ascent() + fm.height(),
-                painter.font(),
-                text,
+        if colorbar and unit is not None and len(unit) > 0:
+            xpos = rect.width() - (
+                fm.boundingRect(unit).width()
+                + fm.lineWidth()
+                + fm.rightBearing(unit[-1])
             )
+            path.addText(xpos, fm.ascent() + fm.height(), painter.font(), unit)
         path.translate(rect.bottomLeft())
         painter.strokePath(path, pen)
         painter.fillPath(path, QtGui.QBrush(QtCore.Qt.GlobalColor.white))
