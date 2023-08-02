@@ -280,12 +280,14 @@ class ImageOverlayItem(ScaledImageItem):
     def lock(self) -> None:
         """Locking is performed by preventing focus and use of left mouse button."""
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, False)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
         self.setAcceptedMouseButtons(
             self.acceptedMouseButtons() & (~QtCore.Qt.LeftButton)
         )
 
     def unlock(self) -> None:
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, True)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
         self.setAcceptedMouseButtons(self.acceptedMouseButtons() | QtCore.Qt.LeftButton)
 
     def isLocked(self) -> bool:
@@ -348,6 +350,7 @@ class LaserImageItem(SnapImageItem):
         super().__init__(parent=parent)
         self.setFlags(
             QtWidgets.QGraphicsItem.ItemIsMovable
+            | QtWidgets.QGraphicsItem.ItemIsSelectable
             | QtWidgets.QGraphicsItem.ItemIsFocusable
             | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges
         )
@@ -512,7 +515,7 @@ class LaserImageItem(SnapImageItem):
             painter.drawImage(rect, self.mask_image)
 
         if (
-            self.hasFocus()
+            self.isSelected()
             and self.options.highlight_focus
             and not isinstance(painter.device(), QtGui.QPixmap)
         ):  # Only paint focus if option is active and not painting to a pixmap

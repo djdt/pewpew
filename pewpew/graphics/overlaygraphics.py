@@ -184,8 +184,10 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
             self.interaction_flags.add(flag)
             if flag in self.cursors:
                 self.viewport().setCursor(self.cursors[flag])
+            self.setDragMode(QtWidgets.QGraphicsView.DragMode.NoDrag)
         else:
             self.interaction_flags.discard(flag)
+            self.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
             self.viewport().setCursor(QtCore.Qt.ArrowCursor)
 
     def scrollContentsBy(self, dx: int, dy: int) -> None:

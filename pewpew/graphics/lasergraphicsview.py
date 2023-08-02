@@ -35,6 +35,7 @@ class LaserGraphicsView(OverlayGraphicsView):
             QtWidgets.QGraphicsScene(QtCore.QRectF(-1e5, -1e5, 2e5, 2e5), parent),
             parent,
         )
+        self.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
 
         self.options = options
         self.cursors["selection"] = QtCore.Qt.ArrowCursor
