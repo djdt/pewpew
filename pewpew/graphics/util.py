@@ -23,7 +23,7 @@ def closest_nice_value(
 ) -> np.ndarray:
     values = np.asarray(values)
     if allowed is None:
-        allowed = np.arange(0, 10, 0.5)
+        allowed = np.concatenate([np.arange(0, 2.0, 0.25), np.arange(2, 10, 0.5)])
     else:
         allowed = np.asarray(allowed)
 
