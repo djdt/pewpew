@@ -154,17 +154,9 @@ class OverlayGraphicsView(QtWidgets.QGraphicsView):
             self.setInteractionFlag("drag", False)
         super().mouseReleaseEvent(event)
 
-    def resizeEvent(self, event: QtGui.QResizeEvent):
-        # current_view = self.mapToScene(self.viewport().rect()).boundingRect()
-        super().resizeEvent(event)
-        # rect = self.mapFromScene(self.sceneRect()).boundingRect()
-        # rect.moveTo(0, 0)
-        # oldrect = QtCore.QRect(QtCore.QPoint(0, 0), event.oldSize())
-        # if oldrect.contains(rect):
-        #     self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
-        # self.ensureVisible(current_view, 0, 0)
-
-        self.viewSizeChanged.emit(self.viewport().rect())
+    # def resizeEvent(self, event: QtGui.QResizeEvent):
+    #     super().resizeEvent(event)
+    #     self.viewSizeChanged.emit(self.viewport().rect())
 
     def saveToFile(self, path: str | Path) -> None:
         """Save the current view to a file."""

@@ -810,8 +810,8 @@ class LaserImageItem(SnapImageItem):
                 self.laser.data = np.rot90(self.laser.data, k=k, axes=(1, 0))
             else:
                 raise ValueError("rotate must be 'left', 'right'.")
+            self.prepareGeometryChange()
 
-        self.prepareGeometryChange()
         self.redraw()
 
     # === Events ===
