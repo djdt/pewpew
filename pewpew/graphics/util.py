@@ -93,9 +93,9 @@ def path_for_colorbar_labels(
 
         xpos -= check_width / 2.0
         if xpos < 0.0:
-            xpos = 0.0
+            xpos = 1.0
         elif xpos + check_width > width:
-            xpos = width - check_width
+            xpos = width - check_width - 1.0
         path.addRect(xpos, -check_width, check_width, check_width * 2.0)
 
     return path
