@@ -1,7 +1,7 @@
 from typing import Tuple
 
 import numpy as np
-from PySide6 import QtCore, QtGui
+from PySide6 import QtGui
 
 import pewpew.lib.polyext
 from pewpew.lib.numpyqt import polygonf_to_array
@@ -27,7 +27,8 @@ def closest_nice_value(
     else:
         allowed = np.asarray(allowed)
 
-    e = np.floor(np.log10(np.abs(values)))
+    with np.errstate(divide="ignore"):
+        e = np.floor(np.log10(np.abs(values)))
     nice = np.divide(values, 10**e, where=values != 0.0)
 
     if mode == "upper":
@@ -46,7 +47,7 @@ def nice_values(vmin: float, vmax: float, n: int = 6) -> np.ndarray:
     if n == 2:
         return np.array([lower, upper])
     interval = closest_nice_value(
-        (upper - lower) / n,
+        (upper - lower) / (n - 1),
         allowed=np.array([0.0, 1.0, 2.0, 2.5, 5.0, 7.5]),
         mode="upper",
     )
