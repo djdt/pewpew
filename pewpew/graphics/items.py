@@ -115,6 +115,7 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
 
         painter.drawImage(rect, self.image)
         path = path_for_colorbar_labels(self.font, self.vmin, self.vmax, length)
+        clip = QtCore.QRectF(0.0, 0.0, length, xh * 2.0 + fm.height())
 
         if self.unit is not None and self.unit != "":
             path.addText(
@@ -126,10 +127,12 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
                 painter.font(),
                 self.unit,
             )
+            clip.setHeight(clip.height() + fm.height())
 
         path.translate(rect.bottomLeft())
 
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setClipRect(clip)
         painter.strokePath(path, self.pen)
         painter.fillPath(path, self.brush)
         painter.restore()
