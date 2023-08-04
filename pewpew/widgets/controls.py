@@ -1,6 +1,6 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewpew.actions import qAction
+from pewpew.actions import qAction, qToolButton
 from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.widgets.dialogs import NameEditDialog
 
@@ -68,6 +68,85 @@ class LaserControlBar(ControlBar):
         self.elements = EditComboBox()
         self.elements.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.elements.currentTextChanged.connect(self.elementChanged)
+
+        self.layout().addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
+        self.layout().addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
+        self.layout().addWidget(self.elements, 0, QtCore.Qt.AlignRight)
+
+    def setItem(self, item: LaserImageItem) -> None:
+        self.blockSignals(True)
+
+        # Disconnect throws a RuntimeError if not connected...
+        for signal in [
+            self.alphaChanged,
+            self.elementChanged,
+            self.elements.namesSelected,
+        ]:
+            try:
+                signal.disconnect()
+            except RuntimeError:
+                pass
+
+        # Set current values
+        self.alpha.setValue(int(item.opacity() * 100.0))
+
+        self.elements.clear()
+        self.elements.addItems(item.laser.elements)
+        self.elements.setCurrentText(item.element())
+
+        # Connect
+        self.alphaChanged.connect(item.setOpacity)
+        self.on_element_changed = lambda e: [item.setElement(e), item.redraw()]
+        self.elementChanged.connect(self.on_element_changed)
+        self.on_rename = lambda e: [item.renameElements(e), self.setItem(item)]
+        self.elements.namesSelected.connect(self.on_rename)
+
+        self.blockSignals(False)
+
+
+class OverlayLaserControl(QtWidgets.QWidget):
+    alphaChanged = QtCore.Signal(float)
+    elementChanged = QtCore.Signal(str)
+    colorChanged = QtCore.Signal(QtGui.QColor)
+    visibilityChanged = QtCore.Signal(bool)
+
+    def __init__(parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+
+        self.alpha = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.alpha.setRange(0, 100)
+        self.alpha.setValue(100)
+        self.alpha.valueChanged.connect(lambda i: self.alphaChanged.emit(i / 100.0))
+
+        self.elements = QtWidgets.QComboBox()
+        self.elements.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        self.elements.currentTextChanged.connect(self.elementChanged)
+
+        self.color = QtWidgets.QToolButton
+
+
+
+class OverlayLaserControlBar(ControlBar):
+    alphaChanged = QtCore.Signal(float)
+    elementChanged = QtCore.Signal(str)
+
+    def __init__(self, color: QtGui.QColor, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+
+        self.alpha = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.alpha.setRange(0, 100)
+        self.alpha.setValue(100)
+        self.alpha.valueChanged.connect(lambda i: self.alphaChanged.emit(i / 100.0))
+
+        self.elements = EditComboBox()
+        self.elements.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        self.elements.currentTextChanged.connect(self.elementChanged)
+
+        self.button_color = qToolButton(action=self.action_color)
+
+        self.effect_color = QtWidgets.QGraphicsColorizeEffect()
+        self.effect_color.setColor(color)
+        self.button_color.setGraphicsEffect(self.effect_color)
 
         self.layout().addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
         self.layout().addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
