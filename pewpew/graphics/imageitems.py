@@ -1,7 +1,7 @@
 import copy
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 from pewlib import io
@@ -320,6 +320,103 @@ class ImageOverlayItem(ScaledImageItem):
 
         menu.exec(event.screenPos())
         event.accept()
+
+
+class RGBLaserImageItem(SnapImageItem):
+    def __init__(
+        self,
+        laser: Laser,
+        image: QtGui.QImage,
+        rect: QtCore.QRectF,
+        parent: QtWidgets.QGraphicsItem | None = None,
+    ):
+        super().__init__(parent=parent)
+        self.setAcceptHoverEvents(True)
+        self._last_hover_pos = QtCore.QPoint(-1, -1)
+
+        self.image = image
+        self.rect = rect
+        self._raw_data: np.ndarray | None = None
+
+        self.action_copy_image = qAction(
+            "insert-image",
+            "Copy &Image",
+            "Copy image to clipboard.",
+            self.copyToClipboard,
+        )
+
+    @classmethod
+    def fromLaser(
+        cls,
+        laser: Laser,
+        elements: Tuple[str, ...],
+        colors: Tuple[QtGui.QColor, ...],
+        ranges: Tuple[Tuple[float, float], ...],
+        subtractive: bool = False,
+    ) -> "RGBLaserImageItem":
+
+        img = np.zeros((*laser.shape[:2], 3), dtype=np.uint8)
+        for i, (element, color, (vmin, vmax)) in enumerate(
+            zip(elements, colors, ranges)
+        ):
+            rgb = np.array(color.getRgb())
+            if subtractive:
+                rgb = 255.0 - rgb
+
+            # Normalise to range
+            data = np.clip(laser.get(element, calibrate=False), vmin, vmax)
+            if vmin != vmax:
+                data = (data - vmin) / (vmax - vmin)
+            # Convert to separate rgb channels
+            img += (data[:, :, None] * rgb).astype(np.uint8)
+
+        if subtractive:
+            img = np.full_like(img, 255) - img
+
+        image = array_to_image(img)
+        return cls(image, rect=)
+
+    def imageSize(self) -> QtCore.QSize:
+        return self.image.size()
+
+    def rawData(self) -> np.ndarray:
+        if self._raw_data is None:
+            self._raw_data = image_to_array(self.image)
+        return self._raw_data
+
+    # GraphicsItem drawing
+    def boundingRect(self) -> QtCore.QRectF:
+        x0, x1, y0, y1 = self.laser.config.data_extent(self.laser.shape)
+        rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
+        rect.moveTopLeft(QtCore.QPointF(0, 0))
+        return rect
+
+
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: QtWidgets.QWidget | None = None,
+    ) -> None:
+        painter.drawImage(self.rect, self.image)
+
+    def copyToClipboard(self) -> None:
+        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard.setImage(self.image)
+
+    @classmethod
+    def fromArray(
+        cls,
+        array: np.ndarray,
+        rect: QtCore.QRectF,
+        colortable: List[int] | None = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
+    ) -> "ScaledImageItem":
+        image = array_to_image(array)
+        if colortable is not None:
+            image.setColorTable(colortable)
+            image.setColorCount(len(colortable))
+        return cls(image, rect, parent)
 
 
 class LaserImageItem(SnapImageItem):

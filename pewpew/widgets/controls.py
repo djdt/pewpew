@@ -104,29 +104,61 @@ class LaserControlBar(ControlBar):
         self.blockSignals(False)
 
 
-class OverlayLaserControl(QtWidgets.QWidget):
+class RGBLaserControl(QtWidgets.QWidget):
     alphaChanged = QtCore.Signal(float)
     elementChanged = QtCore.Signal(str)
     colorChanged = QtCore.Signal(QtGui.QColor)
     visibilityChanged = QtCore.Signal(bool)
 
-    def __init__(parent: QtWidgets.QWidget | None = None):
+    def __init__(self, color: QtGui.QColor, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
 
-        self.alpha = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.alpha.setRange(0, 100)
-        self.alpha.setValue(100)
-        self.alpha.valueChanged.connect(lambda i: self.alphaChanged.emit(i / 100.0))
+        self.action_color = qAction(
+            "color-picker",
+            "Color",
+            "Select the color for this element.",
+            self.selectColor,
+        )
+
+        # self.alpha = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        # self.alpha.setRange(0, 100)
+        # self.alpha.setValue(100)
+        # self.alpha.valueChanged.connect(lambda i: self.alphaChanged.emit(i / 100.0))
 
         self.elements = QtWidgets.QComboBox()
         self.elements.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
         self.elements.currentTextChanged.connect(self.elementChanged)
 
-        self.color = QtWidgets.QToolButton
+        self.button_color = qToolButton(action=self.action_color)
+
+        self.effect_color = QtWidgets.QGraphicsColorizeEffect()
+        self.effect_color.setColor(color)
+        self.button_color.setGraphicsEffect(self.effect_color)
+
+        # self.layout().addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
+        # self.layout().addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
+        layout = QtWidgets.QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.elements, 0, QtCore.Qt.AlignRight)
+        layout.addWidget(self.button_color, 0)
+        self.setLayout(layout)
+
+    def getColor(self) -> QtGui.QColor:
+        return self.effect_color.color()
+
+    def setColor(self, color: QtGui.QColor) -> None:
+        if color != self.effect_color.color():
+            self.effect_color.setColor(color)
+            self.colorChanged.emit(color)
+
+    def selectColor(self) -> QtWidgets.QDialog:
+        dlg = QtWidgets.QColorDialog(self.getColor(), self)
+        dlg.colorSelected.connect(self.setColor)
+        dlg.open()
+        return dlg
 
 
-
-class OverlayLaserControlBar(ControlBar):
+class RGBLaserControlBar(ControlBar):
     alphaChanged = QtCore.Signal(float)
     elementChanged = QtCore.Signal(str)
 
@@ -138,19 +170,19 @@ class OverlayLaserControlBar(ControlBar):
         self.alpha.setValue(100)
         self.alpha.valueChanged.connect(lambda i: self.alphaChanged.emit(i / 100.0))
 
-        self.elements = EditComboBox()
-        self.elements.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
-        self.elements.currentTextChanged.connect(self.elementChanged)
-
-        self.button_color = qToolButton(action=self.action_color)
-
-        self.effect_color = QtWidgets.QGraphicsColorizeEffect()
-        self.effect_color.setColor(color)
-        self.button_color.setGraphicsEffect(self.effect_color)
+        self.controls = [
+            RGBLaserControl(color)
+            for color in [
+                QtGui.QColor(255, 0, 0),
+                QtGui.QColor(0, 255, 0),
+                QtGui.QColor(0, 0, 255),
+            ]
+        ]
 
         self.layout().addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
         self.layout().addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
-        self.layout().addWidget(self.elements, 0, QtCore.Qt.AlignRight)
+        for control in self.controls:
+            self.layout().addWidget(control, 0, QtCore.Qt.AlignRight)
 
     def setItem(self, item: LaserImageItem) -> None:
         self.blockSignals(True)
