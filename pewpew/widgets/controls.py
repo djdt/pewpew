@@ -163,6 +163,7 @@ class RGBLaserControl(QtWidgets.QWidget):
 
 class RGBLaserControlBar(ControlBar):
     alphaChanged = QtCore.Signal(float)
+    colorsChanged = QtCore.Signal(list)
     elementsChanged = QtCore.Signal(list)
 
     def __init__(self, color: QtGui.QColor, parent: QtWidgets.QWidget | None = None):
@@ -181,15 +182,22 @@ class RGBLaserControlBar(ControlBar):
                 QtGui.QColor(0, 0, 255),
             ]
         ]
-        self.controls.elementChanged.connect(self.onElementChanged)
+        for control in self.controls:
+            control.elementChanged.connect(self.onElementChanged)
+            control.colorChanged.connect(self.onColorChanged)
 
         self.layout().addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
         self.layout().addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
         for control in self.controls:
             self.layout().addWidget(control, 0, QtCore.Qt.AlignRight)
 
+    def onColorChanged(self) -> None:
+        self.colorsChanged.emit([c.getColor() for c in self.controls])
+
     def onElementChanged(self) -> None:
-        self.elementsChanged.emit([c.elements.currentText() for c in self.controls])
+        texts = [c.elements.currentText() for c in self.controls]
+        self.elementsChanged.emit([text for text in texts if len(text) > 0])
+
     def setItem(self, item: RGBLaserImageItem) -> None:
         self.blockSignals(True)
 
@@ -207,16 +215,25 @@ class RGBLaserControlBar(ControlBar):
         # Set current values
         self.alpha.setValue(int(item.opacity() * 100.0))
 
-        self.elements.clear()
-        self.elements.addItems(item.laser.elements)
-        self.elements.setCurrentText(item.element())
+        for color, control in zip(item.elementColors(), self.controls):
+            control.setColor(color)
+
+        for control in self.controls:
+            control.elements.clear()
+            control.elements.addItems(item.laser.elements)
+
+        for element, control in zip(item.elements(), self.controls):
+            control.elements.setCurrentText(element)
+
+        for element, control in zip(item.elements(), self.controls):
+            control.elements.setCurrentText(element)
 
         # Connect
         self.alphaChanged.connect(item.setOpacity)
-        self.on_element_changed = lambda e: [item.setElements(e)]
-        self.elementChanged.connect(self.on_element_changed)
-        self.on_rename = lambda e: [item.renameElements(e), self.setItem(item)]
-        self.elements.namesSelected.connect(self.on_rename)
+        self.colorsChanged.connect(item.setElementColors)
+        self.elementsChanged.connect(item.setElements)
+        # self.on_rename = lambda e: [item.renameElements(e), self.setItem(item)]
+        # self.elements.namesSelected.connect(self.on_rename)
 
         self.blockSignals(False)
 
