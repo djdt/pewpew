@@ -1,7 +1,11 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction, qToolButton
-from pewpew.graphics.imageitems import LaserImageItem
+from pewpew.graphics.imageitems import (
+    LaserImageItem,
+    RGBLaserImageItem,
+    ScaledImageItem,
+)
 from pewpew.widgets.dialogs import NameEditDialog
 
 
@@ -96,8 +100,7 @@ class LaserControlBar(ControlBar):
 
         # Connect
         self.alphaChanged.connect(item.setOpacity)
-        self.on_element_changed = lambda e: [item.setElement(e), item.redraw()]
-        self.elementChanged.connect(self.on_element_changed)
+        self.elementChanged.connect(item.setElement)
         self.on_rename = lambda e: [item.renameElements(e), self.setItem(item)]
         self.elements.namesSelected.connect(self.on_rename)
 
@@ -160,7 +163,7 @@ class RGBLaserControl(QtWidgets.QWidget):
 
 class RGBLaserControlBar(ControlBar):
     alphaChanged = QtCore.Signal(float)
-    elementChanged = QtCore.Signal(str)
+    elementsChanged = QtCore.Signal(list)
 
     def __init__(self, color: QtGui.QColor, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
@@ -178,13 +181,16 @@ class RGBLaserControlBar(ControlBar):
                 QtGui.QColor(0, 0, 255),
             ]
         ]
+        self.controls.elementChanged.connect(self.onElementChanged)
 
         self.layout().addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
         self.layout().addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
         for control in self.controls:
             self.layout().addWidget(control, 0, QtCore.Qt.AlignRight)
 
-    def setItem(self, item: LaserImageItem) -> None:
+    def onElementChanged(self) -> None:
+        self.elementsChanged.emit([c.elements.currentText() for c in self.controls])
+    def setItem(self, item: RGBLaserImageItem) -> None:
         self.blockSignals(True)
 
         # Disconnect throws a RuntimeError if not connected...
@@ -207,7 +213,7 @@ class RGBLaserControlBar(ControlBar):
 
         # Connect
         self.alphaChanged.connect(item.setOpacity)
-        self.on_element_changed = lambda e: [item.setElement(e), item.redraw()]
+        self.on_element_changed = lambda e: [item.setElements(e)]
         self.elementChanged.connect(self.on_element_changed)
         self.on_rename = lambda e: [item.renameElements(e), self.setItem(item)]
         self.elements.namesSelected.connect(self.on_rename)
@@ -229,7 +235,7 @@ class ImageControlBar(ControlBar):
         self.layout().addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
         self.layout().addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
 
-    def setItem(self, item: LaserImageItem) -> None:
+    def setItem(self, item: ScaledImageItem) -> None:
         self.blockSignals(True)
 
         # Disconnect throws a RuntimeError if not connected...
