@@ -14,12 +14,22 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction
 from pewpew.events import DragDropRedirectFilter
-from pewpew.graphics.imageitems import ImageOverlayItem, LaserImageItem
+from pewpew.graphics.imageitems import (
+    ImageOverlayItem,
+    LaserImageItem,
+    RGBLaserImageItem,
+    SnapImageItem,
+)
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.threads import ImportThread
 from pewpew.widgets import dialogs, exportdialogs
-from pewpew.widgets.controls import ControlBar, ImageControlBar, LaserControlBar
+from pewpew.widgets.controls import (
+    ControlBar,
+    ImageControlBar,
+    LaserControlBar,
+    RGBLaserControlBar,
+)
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.tools.calculator import CalculatorTool
 from pewpew.widgets.tools.filtering import FilteringTool
@@ -293,10 +303,12 @@ class LaserTabWidget(TabViewWidget):
         self.controls = QtWidgets.QStackedWidget()
         self.no_controls = ControlBar()
         self.laser_controls = LaserControlBar()
+        self.rgb_laser_controls = RGBLaserControlBar()
         self.image_controls = ImageControlBar()
 
         self.controls.addWidget(self.no_controls)
         self.controls.addWidget(self.laser_controls)
+        self.controls.addWidget(self.rgb_laser_controls)
         self.controls.addWidget(self.image_controls)
 
         for index in range(self.controls.count()):
@@ -346,6 +358,7 @@ class LaserTabWidget(TabViewWidget):
         # Connect dialog requests
         item.requestDialog.connect(self.openDialog)
         item.requestTool.connect(self.openTool)
+        item.requestConversion.connect(self.convertImage)
 
         item.requestAddLaser.connect(self.addLaser)
         item.requestExport.connect(self.dialogExport)
@@ -389,6 +402,24 @@ class LaserTabWidget(TabViewWidget):
 
         self.numImageItemsChanged.emit()
         return item
+
+    def convertImage(self, to_type: str, item: SnapImageItem | None = None) -> None:
+        if item is None:
+            item = self.graphics.scene().focusItem()
+
+        if to_type == "RGBLaserImageItem":
+            if not isinstance(item, LaserImageItem):
+                raise ValueError(f"cannot convert {type(item)} to a RGBLaserImageItem")
+            new_item = RGBLaserImageItem.fromLaserImageItem(item, self.graphics.options)
+            new_item.setPos(item.pos())
+        elif to_type == "LaserImageItem":
+            if not isinstance(item, LaserImageItem):
+                raise ValueError(f"cannot convert {type(item)} to a RGBLaserImageItem")
+
+        print(new_item)
+        self.updateForItem(new_item)
+        self.graphics.scene().removeItem(item)
+        self.graphics.scene().addItem(new_item)
 
     def laserItems(self) -> List[LaserImageItem]:
         return self.graphics.laserItems()
@@ -445,8 +476,12 @@ class LaserTabWidget(TabViewWidget):
             return
 
         if isinstance(new, LaserImageItem):
-            self.controls.setCurrentWidget(self.laser_controls)
-            self.laser_controls.setItem(new)
+            if isinstance(new, RGBLaserImageItem):
+                self.controls.setCurrentWidget(self.rgb_laser_controls)
+                self.rgb_laser_controls.setItem(new)
+            else:
+                self.controls.setCurrentWidget(self.laser_controls)
+                self.laser_controls.setItem(new)
         elif isinstance(new, ImageOverlayItem):  # Todo: maybe add a proper class?
             self.controls.setCurrentWidget(self.image_controls)
             self.image_controls.setItem(new)

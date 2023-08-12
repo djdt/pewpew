@@ -24,6 +24,13 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
     def __init__(self, parent: QtWidgets.QGraphicsItem | None = None):
         super().__init__(parent)
 
+        self.setFlags(
+            QtWidgets.QGraphicsItem.ItemIsMovable
+            | QtWidgets.QGraphicsItem.ItemIsFocusable
+            | QtWidgets.QGraphicsItem.ItemIsSelectable
+            | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges
+        )
+
         self.actions_order = [
             qAction(
                 "object-order-front",
@@ -214,6 +221,14 @@ class ScaledImageItem(SnapImageItem):
     ) -> None:
         painter.drawImage(self.rect, self.image)
 
+        if self.isSelected() and not isinstance(
+            painter.device(), QtGui.QPixmap
+        ):  # Only paint focus if option is active and not painting to a pixmap
+            pen = QtGui.QPen(QtGui.QColor(255, 255, 255, 127), 2.0, QtCore.Qt.SolidLine)
+            pen.setCosmetic(True)
+            painter.setPen(pen)
+            painter.drawRect(self.boundingRect())
+
     def copyToClipboard(self) -> None:
         clipboard = QtWidgets.QApplication.clipboard()
         clipboard.setImage(self.image)
@@ -247,11 +262,6 @@ class ImageOverlayItem(ScaledImageItem):
     ):
         super().__init__(image, rect, parent=parent)
 
-        self.setFlags(
-            QtWidgets.QGraphicsItem.ItemIsMovable
-            | QtWidgets.QGraphicsItem.ItemIsFocusable
-            | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges
-        )
         self.action_pixel_size = qAction(
             "zoom-pixels",
             "Pixel Size",
@@ -332,6 +342,7 @@ class LaserImageItem(SnapImageItem):
     requestSave = QtCore.Signal(QtWidgets.QGraphicsItem)
 
     requestTool = QtCore.Signal(str, QtWidgets.QGraphicsItem)
+    requestConversion = QtCore.Signal(str, QtWidgets.QGraphicsItem)
 
     colortableChanged = QtCore.Signal(list, float, float, str)
 
@@ -348,12 +359,6 @@ class LaserImageItem(SnapImageItem):
         parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent=parent)
-        self.setFlags(
-            QtWidgets.QGraphicsItem.ItemIsMovable
-            | QtWidgets.QGraphicsItem.ItemIsSelectable
-            | QtWidgets.QGraphicsItem.ItemIsFocusable
-            | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges
-        )
         self.setAcceptHoverEvents(True)
 
         self._last_hover_pos = QtCore.QPoint(-1, -1)
@@ -367,7 +372,6 @@ class LaserImageItem(SnapImageItem):
 
         self.raw_data: np.ndarray = np.array([])
         self.vmin, self.vmax = 0.0, 0.0
-
         # Name in top left corner
         self.element_label = EditableLabelItem(
             self,
@@ -435,23 +439,20 @@ class LaserImageItem(SnapImageItem):
         return self.raw_data
 
     def redraw(self) -> None:
-        # Todo clear old bounding box
         data = self.laser.get(
             self.element(), calibrate=self.options.calibrate, flat=True
         )
-        unit = self.laser.calibration[self.element()].unit
-
         self.raw_data = np.ascontiguousarray(data)
-
         self.vmin, self.vmax = self.options.get_color_range_as_float(
             self.element(), self.raw_data
         )
-        table = colortable.get_table(self.options.colortable)
-        table[0] = self.options.nan_color.rgba()
-
         data = np.clip(self.raw_data, self.vmin, self.vmax)
         if self.vmin != self.vmax:  # Avoid div 0
             data = (data - self.vmin) / (self.vmax - self.vmin)
+
+        unit = self.laser.calibration[self.element()].unit
+        table = colortable.get_table(self.options.colortable)
+        table[0] = self.options.nan_color.rgba()
 
         self.image = array_to_image(data)
         self.image.setColorTable(table)
@@ -514,10 +515,8 @@ class LaserImageItem(SnapImageItem):
         if self.mask_image is not None:
             painter.drawImage(rect, self.mask_image)
 
-        if (
-            self.isSelected()
-            and self.options.highlight_focus
-            and not isinstance(painter.device(), QtGui.QPixmap)
+        if self.isSelected() and not isinstance(
+            painter.device(), QtGui.QPixmap
         ):  # Only paint focus if option is active and not painting to a pixmap
             pen = QtGui.QPen(QtGui.QColor(255, 255, 255, 127), 2.0, QtCore.Qt.SolidLine)
             pen.setCosmetic(True)
@@ -610,6 +609,13 @@ class LaserImageItem(SnapImageItem):
             lambda: self.requestSave.emit(self),
         )
         self.action_save.setShortcut(QtGui.QKeySequence.Save)
+
+        self.action_convert_rgb = qAction(
+            "rgb",
+            "Convert to RGB",
+            "Change the image to an RGB type display.",
+            lambda: self.requestConversion.emit("RGBLaserImageItem", self),
+        )
 
         # === Dialogs requests ===
         self.action_calibration = qAction(
@@ -828,6 +834,8 @@ class LaserImageItem(SnapImageItem):
 
         menu.addSeparator()
 
+        menu.addAction(self.action_convert_rgb)
+
         if mask_context:
             menu.addAction(self.action_selection_copy_text)
             menu.addAction(self.action_selection_crop)
@@ -895,7 +903,7 @@ class LaserImageItem(SnapImageItem):
         self.hoveredValueCleared.emit()
 
 
-class RGBLaserImageItem(SnapImageItem):
+class RGBLaserImageItem(LaserImageItem):
     requestExport = QtCore.Signal(QtWidgets.QGraphicsItem)
     requestSave = QtCore.Signal(QtWidgets.QGraphicsItem)
 
@@ -908,417 +916,120 @@ class RGBLaserImageItem(SnapImageItem):
 
     modified = QtCore.Signal()
 
+    class RGBElement(object):
+        def __init__(
+            self,
+            element: str,
+            color: QtGui.QColor,
+            prange: Tuple[float, float] = (0.0, 99.0),
+        ):
+            self.element = element
+            self.color = color
+            self.prange = prange
+
     def __init__(
         self,
         laser: Laser,
         options: GraphicsOptions,
-        current_elements: List[str] | None = None,
-        colors: List[QtGui.QColor] | None = None,
+        current_elements: List[RGBElement] | None = None,
         parent: QtWidgets.QGraphicsItem | None = None,
     ):
-        super().__init__(parent=parent)
-        self.setFlags(
-            QtWidgets.QGraphicsItem.ItemIsMovable
-            | QtWidgets.QGraphicsItem.ItemIsSelectable
-            | QtWidgets.QGraphicsItem.ItemIsFocusable
-            | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges
-        )
-        self.setAcceptHoverEvents(True)
-
-        self._last_hover_pos = QtCore.QPoint(-1, -1)
-
-        self.laser = laser
-        self.options = options
-
         if current_elements is None:
-            current_elements = [self.laser.elements[0]]
-        self.current_elements = current_elements
-        if colors is None:
             colors = [
                 QtGui.QColor(255, 0, 0),
                 QtGui.QColor(0, 255, 0),
                 QtGui.QColor(0, 0, 255),
             ]
-        self.element_colors = colors
-        self.ranges = [(0.0, 0.0), (0.0, 0.0), (0.0, 0.0)]
+            current_elements = [
+                RGBLaserImageItem.RGBElement(element, color, (0.0, 99.0))
+                for element, color in zip(laser.elements[:3], colors)
+            ]
+        super().__init__(laser, options, current_elements[0].element)
+        self.setAcceptHoverEvents(False)
+
+        # Disable colorbar
+        self.colorbar.setVisible(False)
+        self.colorbar.setEnabled(False)
 
         self.subtractive = False
-
-        self.image: QtGui.QImage | None = None
-
-        self.raw_data: np.ndarray = np.array([])
-
-        # Name in top left corner
-        self.element_label = EditableLabelItem(
-            self,
-            self.element(),
-            "Element",
-            font=self.options.font,
-        )
-        # self.element_label.labelChanged.connect(self.setElementName)
-        self.label = EditableLabelItem(
-            self,
-            self.laser.info["Name"],
-            "Laser Name",
-            font=self.options.font,
-            alignment=QtCore.Qt.AlignTop | QtCore.Qt.AlignRight,
-        )
-        self.label.labelChanged.connect(self.setName)
-
-        self.colorbar = ColorBarItem(self, font=self.options.font)
-        self.colorbar.setPos(self.boundingRect().bottomLeft())
-
-        self.createActions()
-
-    @property
-    def mask(self) -> np.ndarray:
-        if self.mask_image is None:
-            return np.ones(self.laser.shape, dtype=bool)
-        return self.mask_image._array.astype(bool)
-
-    def elements(self) -> List[str]:
-        return self.current_elements
-
-    def setElements(self, elements: List[str]) -> None:
-        for element in elements:
-            if element not in self.laser.elements:
-                raise ValueError(
-                    f"Unknown element {element}. Expected one of {self.laser.elements}."
-                )
-        self.current_elements = elements
-        self.element_label.setText(elements)
-        self.redraw()
-
-    def elementColors(self) -> List[QtGui.QColor]:
-        return self.element_colors
-
-    def setElementColors(self, colors: List[QtGui.QColor]) -> None:
-        self.element_colors = colors
-        self.redraw()
-
-    def renameElements(self, names: Dict[str, str]) -> None:
-        old_names = [x for x in self.laser.elements if x not in names]
-        self.laser.remove(old_names)
-        self.laser.rename(names)
-        self.setElements(self.laser.elements[:2])
-        self.modified.emit()
-
-    def name(self) -> str:
-        return self.laser.info["Name"]
-
-    def setName(self, name: str) -> None:
-        self.laser.info["Name"] = name
-        self.label.setText(name)
-        self.modified.emit()
-
-    # Virtual SnapImageItem methods
-    def selectedAt(self, pos: QtCore.QPointF) -> bool:
-        pos = self.mapToData(pos)
-        return self.mask[pos.y(), pos.x()]
-
-    def imageSize(self) -> QtCore.QSize:
-        return QtCore.QSize(self.laser.shape[1], self.laser.shape[0])
-
-    def rawData(self) -> np.ndarray:
-        return self.raw_data
+        self.current_elements: List[RGBLaserImageItem.RGBElement] = current_elements
 
     def redraw(self) -> None:
-        # Todo clear old bounding box
-        img = np.zeros((*self.laser.shape[:2], 3), dtype=np.uint8)
-        for i, (element, color, (vmin, vmax)) in enumerate(
-            zip(self.current_elements, self.element_colors, self.ranges)
-        ):
-            rgb = np.array(color.getRgb())
+        data = self.laser.get(
+            self.element(), calibrate=self.options.calibrate, flat=True
+        )
+        self.raw_data = np.ascontiguousarray(data)
+        self.vmin, self.vmax = self.options.get_color_range_as_float(
+            self.element(), self.raw_data
+        )
+        data = np.zeros((*self.laser.shape[:2], 3))
+        for i, element in enumerate(self.current_elements):
+            if element.element not in self.laser.elements:
+                continue
+            rgb = np.array(element.color.getRgbF()[:3])
             if self.subtractive:
                 rgb = 255.0 - rgb
 
             # Normalise to range
-            data = np.clip(self.laser.get(element, calibrate=False), vmin, vmax)
+            x = self.laser.get(element.element, calibrate=False)
+            vmin, vmax = np.percentile(x, element.prange)
+            x = np.clip(x, vmin, vmax)
             if vmin != vmax:
-                data = (data - vmin) / (vmax - vmin)
+                x = (x - vmin) / (vmax - vmin)
             # Convert to separate rgb channels
-            img += (data[:, :, None] * rgb).astype(np.uint8)
+            data += x[:, :, None] * rgb
 
         if self.subtractive:
-            img = np.full_like(img, 255) - img
+            data = np.full_like(data, 255) - data
 
-        self.raw_data = img
-        self.image = array_to_image(img)
+        self.image = array_to_image(data)
+
         self.imageChanged.emit()
         self.update()
 
-    # GraphicsItem drawing
-    def boundingRect(self) -> QtCore.QRectF:
-        x0, x1, y0, y1 = self.laser.config.data_extent(self.laser.shape)
-        rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
-        rect.moveTopLeft(QtCore.QPointF(0, 0))
-        return rect
+    def setElement(self, element: str) -> None:
+        if element not in self.laser.elements:
+            raise ValueError(
+                f"Unknown element {element}. Expected one of {self.laser.elements}."
+            )
 
-    def paint(
-        self,
-        painter: QtGui.QPainter,
-        option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget | None = None,
-    ):
-        painter.save()
-        if self.options.smoothing:
-            painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform)
+        self.current_elements[0].element = element
+        super().setElement(element)
 
-        rect = self.boundingRect()
+    def renameElements(self, names: Dict[str, str]) -> None:
+        super().renameElements(names)
+        for rgb, element in zip(self.current_elements, self.laser.elements[:3]):
+            rgb.element = element
 
-        if self.image is not None:
-            painter.drawImage(rect, self.image)
+    def setCurrentElements(self, elements: List[RGBElement]) -> None:
+        self.current_elements = elements
+        self.setElement(self.current_elements[0].element)
 
-        if (
-            self.isSelected()
-            and self.options.highlight_focus
-            and not isinstance(painter.device(), QtGui.QPixmap)
-        ):  # Only paint focus if option is active and not painting to a pixmap
-            pen = QtGui.QPen(QtGui.QColor(255, 255, 255, 127), 2.0, QtCore.Qt.SolidLine)
-            pen.setCosmetic(True)
-            painter.setPen(pen)
-            painter.drawRect(self.boundingRect())
-
-        painter.restore()
-
-    # === Slots ===
-    def applyCalibration(self, calibrations: Dict[str, Calibration]) -> None:
-        """Set laser calibrations."""
-        modified = False
-        for element in calibrations:
-            if element in self.laser.calibration:
-                self.laser.calibration[element] = copy.copy(calibrations[element])
-                modified = True
-        if modified:
-            self.modified.emit()
-            self.redraw()
-
-    def applyConfig(self, config: Config) -> None:
-        """Set laser configuration."""
-        # Only apply if the type of config is correct
-        if type(config) is type(self.laser.config):  # noqa
-            self.laser.config = copy.copy(config)
-            self.modified.emit()
-            self.redraw()
-
-    def applyInformation(self, info: Dict[str, str]) -> None:
-        """Set laser information."""
-        if self.laser.info != info:
-            self.laser.info = info
-            self.modified.emit()
-
-    def copyToClipboard(self) -> None:
-        clipboard = QtWidgets.QApplication.clipboard()
-        clipboard.setImage(self.image)
-        mime = QtCore.QMimeData()
-        with BytesIO() as fp:
-            np.save(fp, self.laser.data)
-            mime.setData("application/x-pew2laser", fp.getvalue())
-        with BytesIO() as fp:
-            np.save(fp, self.laser.config.to_array())
-            mime.setData("application/x-pew2config", fp.getvalue())
-        with BytesIO() as fp:
-            np.savez(fp, **{k: v.to_array() for k, v in self.laser.calibration.items()})
-            mime.setData("application/x-pew2calibration", fp.getvalue())
-        with BytesIO() as fp:
-            np.save(fp, io.npz.pack_info(self.laser.info, remove_keys=[]))
-            mime.setData("application/x-pew2info", fp.getvalue())
-        clipboard.setMimeData(mime)
-
-    def copyImageToClipboard(self) -> None:
-        clipboard = QtWidgets.QApplication.clipboard()
-        clipboard.setImage(self.image)
-
-    def saveToFile(self, path: Path | str) -> None:
-        path = Path(path)
-        io.npz.save(path, self.laser)
-        self.laser.info["File Path"] = str(path.resolve())
-
-    # ==== Actions ===
-    def createActions(self) -> None:
-        self.action_copy = qAction(
-            "edit-copy",
-            "Copy",
-            "Copy item to clipboard.",
-            self.copyToClipboard,
+    @classmethod
+    def fromLaserImageItem(
+        cls,
+        item: LaserImageItem,
+        options: GraphicsOptions,
+    ) -> "RGBLaserImageItem":
+        pmin, pmax = options.get_color_range_as_percentile(
+            item.current_element, item.raw_data
         )
-        self.action_copy.setShortcut(QtGui.QKeySequence.Copy)
-        self.action_copy_image = qAction(
-            "insert-image",
-            "Copy &Image",
-            "Copy current image to clipboard.",
-            self.copyImageToClipboard,
-        )
-
-        # === IO requests ===
-        self.action_export = qAction(
-            "document-save-as",
-            "E&xport",
-            "Export laser data to a variety of formats.",
-            lambda: self.requestExport.emit(self),
-        )
-        self.action_export.setShortcut(QtGui.QKeySequence.StandardKey.Cut)
-        self.action_save = qAction(
-            "document-save",
-            "&Save",
-            "Save document to numpy archive.",
-            lambda: self.requestSave.emit(self),
-        )
-        self.action_save.setShortcut(QtGui.QKeySequence.Save)
-
-        # === Dialogs requests ===
-        self.action_calibration = qAction(
-            "go-top",
-            "Ca&libration",
-            "Edit the laser calibration.",
-            lambda: self.requestDialog.emit("Calibration", self, False),
-        )
-        self.action_config = qAction(
-            "document-edit",
-            "&Config",
-            "Edit the laser configuration.",
-            lambda: self.requestDialog.emit("Config", self, False),
-        )
-        self.action_colocalisation = qAction(
-            "dialog-information",
-            "Colocalisation",
-            "Open the colocalisation dialog.",
-            lambda: self.requestDialog.emit("Colocalisation", self, False),
-        )
-        self.action_colocalisation_selection = qAction(
-            "dialog-information",
-            "Selection Colocalisation",
-            "Open the colocalisation dialog for the current selected area.",
-            lambda: self.requestDialog.emit("Colocalisation", self, True),
-        )
-        self.action_information = qAction(
-            "documentinfo",
-            "In&formation",
-            "View and edit stored laser information.",
-            lambda: self.requestDialog.emit("Information", self, False),
-        )
-
-        self.action_show_label_name = qAction(
-            "visibility",
-            "Show Name Label",
-            "Un-hide the laser name label.",
-            self.label.show,
-        )
-        self.action_show_label_element = qAction(
-            "visibility",
-            "Show Element Label",
-            "Un-hide the current element label.",
-            self.element_label.show,
-        )
-
-        self.actions_transform = [
-            qAction(
-                "object-flip-horizontal",
-                "Flip Horizontal",
-                "Flip data about the vertical axis.",
-                lambda: self.transform(flip="horizontal"),
+        return cls(
+            Laser(
+                item.laser.data.copy(),
+                config=item.laser.config,
+                calibration=item.laser.calibration,
+                info=item.laser.info,
             ),
-            qAction(
-                "object-flip-vertical",
-                "Flip Vertical",
-                "Flip data about the horizontal axis.",
-                lambda: self.transform(flip="vertical"),
-            ),
-            qAction(
-                "object-rotate-left",
-                "Rotate Left",
-                "Rotate data 90 degrees counter-clockwise.",
-                lambda: self.transform(rotate="left"),
-            ),
-            qAction(
-                "object-rotate-right",
-                "Rotate Right",
-                "Rotate data 90 degrees clockwise.",
-                lambda: self.transform(rotate="right"),
-            ),
-        ]
-
-    def transform(self, flip: str | None = None, rotate: str | None = None) -> None:
-        """Transform the laser data.
-
-        Args:
-            flip: flip the image ['horizontal', 'vertical']
-            rotate: rotate the image 90 degrees ['left', 'right']
-
-        """
-        if flip is not None:
-            if flip in ["horizontal", "vertical"]:
-                axis = 1 if flip == "horizontal" else 0
-                self.laser.data = np.flip(self.laser.data, axis=axis)
-            else:
-                raise ValueError("flip must be 'horizontal', 'vertical'.")
-        if rotate is not None:
-            if rotate in ["left", "right"]:
-                k = 1 if rotate == "right" else 3 if rotate == "left" else 2
-                self.laser.data = np.rot90(self.laser.data, k=k, axes=(1, 0))
-            else:
-                raise ValueError("rotate must be 'left', 'right'.")
-            self.prepareGeometryChange()
-
-        self.redraw()
-
-    # === Events ===
-    def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
-        menu = QtWidgets.QMenu()
-        menu.addAction(self.action_copy)
-        menu.addAction(self.action_copy_image)
-        menu.addSeparator()
-
-        menu.addAction(self.action_save)
-        menu.addAction(self.action_export)
-
-        menu.addSeparator()
-
-        menu.addAction(self.action_colocalisation)
-        menu.addAction(self.action_statistics)
-
-        menu.addSeparator()
-
-        transforms = menu.addMenu(
-            QtGui.QIcon.fromTheme("transform-rotate"), "Transform"
+            options,
+            parent=item.parent,
         )
-        transforms.addActions(self.actions_transform)
-        menu.addSeparator()
-        order = menu.addMenu(QtGui.QIcon.fromTheme(""), "Ordering")
-        order.addActions(self.actions_order)
 
-        menu.addAction(self.action_calibration)
-        menu.addAction(self.action_config)
-        menu.addAction(self.action_information)
 
-        menu.addSeparator()
-
-        if not self.label.isVisible():
-            menu.addAction(self.action_show_label_name)
-        if not self.element_label.isVisible():
-            menu.addAction(self.action_show_label_element)
-
-        menu.addAction(self.action_close)
-
-        menu.exec_(event.screenPos())
-        event.accept()
-
-    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
-        if event.matches(QtGui.QKeySequence.StandardKey.Save):
-            self.requestSave.emit(self)
-        elif event.matches(QtGui.QKeySequence.StandardKey.Cut):
-            self.requestExport.emit(self)
-        else:
-            super().keyPressEvent(event)
-
-    # def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
-    #     pos = self.mapToData(event.pos())
-    #     if pos != self._last_hover_pos:
-    #         self._last_hover_pos = pos
-    #         self.hoveredValueChanged.emit(
-    #             event.pos(), pos, self.rawData()[pos.y(), pos.x()]
-    #         )
-
-    # def hoverLeaveEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
-    #     self._last_hover_pos = QtCore.QPoint(-1, -1)
-    #     self.hoveredValueCleared.emit()
+#     def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
+#         pos = self.mapToData(event.pos())
+#         if pos != self._last_hover_pos:
+#             self._last_hover_pos = pos
+#             self.hoveredValueChanged.emit(
+#                 event.pos(), pos, self.rawData()[pos.y(), pos.x()]
+#             )
