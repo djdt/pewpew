@@ -345,6 +345,7 @@ class LaserImageItem(SnapImageItem):
     requestConversion = QtCore.Signal(str, QtWidgets.QGraphicsItem)
 
     colortableChanged = QtCore.Signal(list, float, float, str)
+    elementsChanged = QtCore.Signal()
 
     hoveredValueChanged = QtCore.Signal(QtCore.QPointF, QtCore.QPoint, float)
     hoveredValueCleared = QtCore.Signal()
@@ -379,7 +380,7 @@ class LaserImageItem(SnapImageItem):
             "Element",
             font=self.options.font,
         )
-        # self.element_label.labelChanged.connect(self.setElementName)
+        self.element_label.labelChanged.connect(self.setElementName)
         self.label = EditableLabelItem(
             self,
             self.laser.info["Name"],
@@ -412,11 +413,20 @@ class LaserImageItem(SnapImageItem):
         self.element_label.setText(element)
         self.redraw()
 
+    def setElementName(self, new: str) -> None:
+        names = {n: n for n in self.laser.elements}
+        names[self.current_element] = new
+        self.renameElements(names)
+
     def renameElements(self, names: Dict[str, str]) -> None:
         old_names = [x for x in self.laser.elements if x not in names]
         self.laser.remove(old_names)
         self.laser.rename(names)
-        self.setElement(self.laser.elements[0])
+        if self.current_element in names:
+            self.setElement(names[self.current_element])
+        else:
+            self.setElement(self.laser.elements[0])
+        self.elementsChanged.emit()
         self.modified.emit()
 
     def name(self) -> str:
@@ -953,6 +963,8 @@ class RGBLaserImageItem(LaserImageItem):
 
         self.subtractive = False
         self.current_elements: List[RGBLaserImageItem.RGBElement] = current_elements
+
+        self.element_labels = [EditableLabelItem]
 
     def redraw(self) -> None:
         data = self.laser.get(

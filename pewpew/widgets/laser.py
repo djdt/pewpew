@@ -354,8 +354,12 @@ class LaserTabWidget(TabViewWidget):
         self, laser: Laser, pos: QtCore.QPointF | None = None
     ) -> "LaserImageItem":
         item = LaserImageItem(laser, self.graphics.options)
+        self.addLaserItem(item)
+        return item
 
-        # Connect dialog requests
+    def addLaserItem(
+        self, item: LaserImageItem, pos: QtCore.QPointF | None = None
+    ) -> None:
         item.requestDialog.connect(self.openDialog)
         item.requestTool.connect(self.openTool)
         item.requestConversion.connect(self.convertImage)
@@ -363,6 +367,8 @@ class LaserTabWidget(TabViewWidget):
         item.requestAddLaser.connect(self.addLaser)
         item.requestExport.connect(self.dialogExport)
         item.requestSave.connect(self.dialogSave)
+
+        item.elementsChanged.connect(lambda: self.updateForItem(item))
 
         item.hoveredValueChanged.connect(self.updateCursorStatus)
         item.hoveredValueCleared.connect(self.clearCursorStatus)
@@ -382,7 +388,6 @@ class LaserTabWidget(TabViewWidget):
             self.graphics.zoomReset()
 
         self.numLaserItemsChanged.emit()
-        return item
 
     def addImage(self, path: str | Path) -> "ImageOverlayItem":
         if isinstance(path, Path):
@@ -411,15 +416,12 @@ class LaserTabWidget(TabViewWidget):
             if not isinstance(item, LaserImageItem):
                 raise ValueError(f"cannot convert {type(item)} to a RGBLaserImageItem")
             new_item = RGBLaserImageItem.fromLaserImageItem(item, self.graphics.options)
-            new_item.setPos(item.pos())
         elif to_type == "LaserImageItem":
-            if not isinstance(item, LaserImageItem):
-                raise ValueError(f"cannot convert {type(item)} to a RGBLaserImageItem")
+            if not isinstance(item, RGBLaserImageItem):
+                raise ValueError(f"cannot convert {type(item)} to a LaserImageItem")
 
-        print(new_item)
-        self.updateForItem(new_item)
         self.graphics.scene().removeItem(item)
-        self.graphics.scene().addItem(new_item)
+        self.addLaserItem(new_item, item.pos())
 
     def laserItems(self) -> List[LaserImageItem]:
         return self.graphics.laserItems()

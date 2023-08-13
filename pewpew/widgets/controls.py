@@ -150,7 +150,8 @@ class RGBLaserControl(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.elements, 0, QtCore.Qt.AlignRight)
-        layout.addWidget(self.button_color, 0)
+        layout.addWidget(self.colorrange, 0)
+        layout.addWidget(self.button_color, 0, QtCore.Qt.AlignLeft)
         self.setLayout(layout)
 
     def getColor(self) -> QtGui.QColor:
@@ -199,6 +200,7 @@ class RGBLaserControlBar(ControlBar):
 
         self.layout().addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
         self.layout().addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
+        self.layout().addWidget(QtWidgets.QLabel("RGB:"), 0, QtCore.Qt.AlignRight)
         for control in self.controls:
             self.layout().addWidget(control, 0, QtCore.Qt.AlignRight)
 
@@ -230,6 +232,7 @@ class RGBLaserControlBar(ControlBar):
 
         for control in self.controls:
             control.elements.clear()
+            control.elements.addItem("")
             control.elements.addItems(item.laser.elements)
 
         for rgb, control in zip(item.current_elements, self.controls):
