@@ -212,6 +212,7 @@ class RGBLaserControlBar(ControlBar):
             for c in self.controls
             if c.elements.currentIndex() != 0
         ]
+        print(rgbs)
         self.elementsChanged.emit(rgbs)
 
     def setItem(self, item: RGBLaserImageItem) -> None:

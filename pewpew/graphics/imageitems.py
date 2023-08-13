@@ -12,7 +12,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction
 from pewpew.graphics import colortable
-from pewpew.graphics.items import ColorBarItem, EditableLabelItem
+from pewpew.graphics.items import ColorBarItem, EditableLabelItem, RGBLabelItem
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.lib.numpyqt import array_to_image, image_to_array
 
@@ -878,11 +878,11 @@ class LaserImageItem(SnapImageItem):
 
         menu.addSeparator()
 
-        if not self.colorbar.isVisible():
+        if not self.colorbar.isVisible() and self.colorbar.isEnabled():
             menu.addAction(self.action_show_colorbar)
-        if not self.label.isVisible():
+        if not self.label.isVisible() and self.label.isEnabled():
             menu.addAction(self.action_show_label_name)
-        if not self.element_label.isVisible():
+        if not self.element_label.isVisible() and self.element_label.isEnabled():
             menu.addAction(self.action_show_label_element)
 
         if not mask_context:
@@ -937,6 +937,9 @@ class RGBLaserImageItem(LaserImageItem):
             self.color = color
             self.prange = prange
 
+        def __repr__(self) -> str:
+            return f"RGBElement({self.element}, {self.color!r}, {self.prange})"
+
     def __init__(
         self,
         laser: Laser,
@@ -957,14 +960,28 @@ class RGBLaserImageItem(LaserImageItem):
         super().__init__(laser, options, current_elements[0].element)
         self.setAcceptHoverEvents(False)
 
+        self.action_convert_rgb.setText("Convert to Single Color")
+        self.action_convert_rgb.triggered.disconnect()
+        self.action_convert_rgb.triggered.connect(
+            lambda: self.requestConversion.emit("LaserImageItem", self)
+        )
+
         # Disable colorbar
         self.colorbar.setVisible(False)
         self.colorbar.setEnabled(False)
+        self.element_label.setVisible(False)
+        self.element_label.setEnabled(False)
 
         self.subtractive = False
         self.current_elements: List[RGBLaserImageItem.RGBElement] = current_elements
 
-        self.element_labels = [EditableLabelItem]
+        self.elements_label = RGBLabelItem(
+            self,
+            [rgb.element for rgb in self.current_elements],
+            [rgb.color for rgb in self.current_elements],
+            font=self.options.font,
+            alignment=QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft,
+        )
 
     def redraw(self) -> None:
         data = self.laser.get(
@@ -1015,6 +1032,8 @@ class RGBLaserImageItem(LaserImageItem):
 
     def setCurrentElements(self, elements: List[RGBElement]) -> None:
         self.current_elements = elements
+        self.elements_label.setTexts([rgb.element for rgb in elements])
+        self.elements_label.colors = [rgb.color for rgb in elements]
         self.setElement(self.current_elements[0].element)
 
     @classmethod

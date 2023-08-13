@@ -419,6 +419,7 @@ class LaserTabWidget(TabViewWidget):
         elif to_type == "LaserImageItem":
             if not isinstance(item, RGBLaserImageItem):
                 raise ValueError(f"cannot convert {type(item)} to a LaserImageItem")
+            new_item = LaserImageItem(item.laser, self.graphics.options)
 
         self.graphics.scene().removeItem(item)
         self.addLaserItem(new_item, item.pos())
