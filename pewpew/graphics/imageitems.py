@@ -347,7 +347,7 @@ class LaserImageItem(SnapImageItem):
     colortableChanged = QtCore.Signal(list, float, float, str)
     elementsChanged = QtCore.Signal()
 
-    hoveredValueChanged = QtCore.Signal(QtCore.QPointF, QtCore.QPoint, float)
+    hoveredValueChanged = QtCore.Signal(QtCore.QPointF, QtCore.QPoint, np.ndarray)
     hoveredValueCleared = QtCore.Signal()
 
     modified = QtCore.Signal()
@@ -958,7 +958,7 @@ class RGBLaserImageItem(LaserImageItem):
                 for element, color in zip(laser.elements[:3], colors)
             ]
         super().__init__(laser, options, current_elements[0].element)
-        self.setAcceptHoverEvents(False)
+        # self.setAcceptHoverEvents(False)
 
         # Redo action
         self.action_convert_rgb.setText("Convert to Colortable")
@@ -988,10 +988,10 @@ class RGBLaserImageItem(LaserImageItem):
         data = self.laser.get(
             self.element(), calibrate=self.options.calibrate, flat=True
         )
-        self.raw_data = np.ascontiguousarray(data)
-        self.vmin, self.vmax = self.options.get_color_range_as_float(
-            self.element(), self.raw_data
-        )
+        # self.raw_data = np.ascontiguousarray(data)
+        # self.vmin, self.vmax = self.options.get_color_range_as_float(
+        #     self.element(), self.raw_data
+        # )
         data = np.zeros((*self.laser.shape[:2], 3))
         for i, element in enumerate(self.current_elements):
             if element.element not in self.laser.elements:
@@ -1013,6 +1013,7 @@ class RGBLaserImageItem(LaserImageItem):
             data = np.full_like(data, 255) - data
 
         self.image = array_to_image(data)
+        self.raw_data = data
 
         self.imageChanged.emit()
         self.update()

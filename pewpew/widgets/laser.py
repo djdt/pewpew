@@ -509,7 +509,7 @@ class LaserTabWidget(TabViewWidget):
             status_bar.clearMessage()
 
     def updateCursorStatus(
-        self, pos: QtCore.QPointF, data_pos: QtCore.QPoint, v: float
+        self, pos: QtCore.QPointF, data_pos: QtCore.QPoint, v: float | np.ndarray | None
     ) -> None:
         """Updates the windows statusbar if it exists."""
         status_bar = self.view.window().statusBar()
@@ -523,10 +523,10 @@ class LaserTabWidget(TabViewWidget):
 
         if v is None:
             status_bar.clearMessage()
-        elif np.isfinite(v):
-            status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
         else:
-            status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
+            v = np.atleast_1d(v)
+            vstr = ",".join([f"{x:.4g}" if np.isfinite(x) else "nan" for x in v])
+            status_bar.showMessage(f"{x:.4g},{y:.4g} [{vstr}]")
 
     # Callbacks
     def openDialog(
