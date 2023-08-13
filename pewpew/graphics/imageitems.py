@@ -621,7 +621,7 @@ class LaserImageItem(SnapImageItem):
         self.action_save.setShortcut(QtGui.QKeySequence.Save)
 
         self.action_convert_rgb = qAction(
-            "rgb",
+            "adjustrgb",
             "Convert to RGB",
             "Change the image to an RGB type display.",
             lambda: self.requestConversion.emit("RGBLaserImageItem", self),
@@ -960,7 +960,8 @@ class RGBLaserImageItem(LaserImageItem):
         super().__init__(laser, options, current_elements[0].element)
         self.setAcceptHoverEvents(False)
 
-        self.action_convert_rgb.setText("Convert to Single Color")
+        # Redo action
+        self.action_convert_rgb.setText("Convert to Colortable")
         self.action_convert_rgb.triggered.disconnect()
         self.action_convert_rgb.triggered.connect(
             lambda: self.requestConversion.emit("LaserImageItem", self)
