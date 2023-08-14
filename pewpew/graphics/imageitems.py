@@ -985,13 +985,14 @@ class RGBLaserImageItem(LaserImageItem):
         )
 
     def redraw(self) -> None:
-        data = self.laser.get(
-            self.element(), calibrate=self.options.calibrate, flat=True
+        self.raw_data = np.stack(
+            [
+                self.laser.get(
+                    element.element, calibrate=self.options.calibrate, flat=True
+                )
+                for element in self.current_elements[:3]
+            ], axis=2
         )
-        # self.raw_data = np.ascontiguousarray(data)
-        # self.vmin, self.vmax = self.options.get_color_range_as_float(
-        #     self.element(), self.raw_data
-        # )
         data = np.zeros((*self.laser.shape[:2], 3))
         for i, element in enumerate(self.current_elements):
             if element.element not in self.laser.elements:
@@ -1001,9 +1002,8 @@ class RGBLaserImageItem(LaserImageItem):
                 rgb = 255.0 - rgb
 
             # Normalise to range
-            x = self.laser.get(element.element, calibrate=False)
-            vmin, vmax = np.percentile(x, element.prange)
-            x = np.clip(x, vmin, vmax)
+            vmin, vmax = np.percentile(self.raw_data[:, :, i], element.prange)
+            x = np.clip(self.raw_data[:, :, i], vmin, vmax)
             if vmin != vmax:
                 x = (x - vmin) / (vmax - vmin)
             # Convert to separate rgb channels
@@ -1013,7 +1013,6 @@ class RGBLaserImageItem(LaserImageItem):
             data = np.full_like(data, 255) - data
 
         self.image = array_to_image(data)
-        self.raw_data = data
 
         self.imageChanged.emit()
         self.update()
