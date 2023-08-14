@@ -921,7 +921,7 @@ class RGBLaserImageItem(LaserImageItem):
 
     colortableChanged = QtCore.Signal(list, float, float, str)
 
-    hoveredValueChanged = QtCore.Signal(QtCore.QPointF, QtCore.QPoint, float)
+    hoveredValueChanged = QtCore.Signal(QtCore.QPointF, QtCore.QPoint, np.ndarray)
     hoveredValueCleared = QtCore.Signal()
 
     modified = QtCore.Signal()
