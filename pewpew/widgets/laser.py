@@ -315,15 +315,16 @@ class LaserTabWidget(TabViewWidget):
             self.controls.widget(index).toolbar.addActions([self.action_zoom_out])
             self.controls.widget(index).toolbar.addSeparator()
 
-        self.laser_controls.toolbar.addActions(
-            [
-                self.action_select_rect,
-                self.action_select_lasso,
-                self.action_select_dialog,
-            ]
-        )
-        self.laser_controls.toolbar.addSeparator()
-        self.laser_controls.toolbar.addActions([self.action_ruler, self.action_slice])
+        for control in [self.laser_controls, self.rgb_laser_controls]:
+            control.toolbar.addActions(
+                [
+                    self.action_select_rect,
+                    self.action_select_lasso,
+                    self.action_select_dialog,
+                ]
+            )
+            control.toolbar.addSeparator()
+            control.toolbar.addActions([self.action_ruler, self.action_slice])
 
         self.image_controls.toolbar.addActions(
             [
