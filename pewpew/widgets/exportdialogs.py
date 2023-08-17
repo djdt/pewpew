@@ -6,7 +6,7 @@ from pewlib import io
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewpew.graphics.export import generate_laser_image
+from pewpew.graphics.export import generate_laser_image, generate_rgb_laser_image
 from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.widgets.prompts import OverwriteFilePrompt

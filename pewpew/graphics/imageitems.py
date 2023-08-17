@@ -991,7 +991,8 @@ class RGBLaserImageItem(LaserImageItem):
                     element.element, calibrate=self.options.calibrate, flat=True
                 )
                 for element in self.current_elements[:3]
-            ], axis=2
+            ],
+            axis=2,
         )
         data = np.zeros((*self.laser.shape[:2], 3))
         for i, element in enumerate(self.current_elements):
@@ -1056,12 +1057,3 @@ class RGBLaserImageItem(LaserImageItem):
             options,
             parent=item.parent,
         )
-
-
-#     def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
-#         pos = self.mapToData(event.pos())
-#         if pos != self._last_hover_pos:
-#             self._last_hover_pos = pos
-#             self.hoveredValueChanged.emit(
-#                 event.pos(), pos, self.rawData()[pos.y(), pos.x()]
-#             )
