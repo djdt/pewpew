@@ -64,6 +64,31 @@ def paint_colorbar(
     painter.restore()
 
 
+def paint_color_venn(
+    painter: QtGui.QPainter,
+    parent_rect: QtCore.QRectF,
+    alignment: QtCore.Qt.AlignmentFlag,
+    colors: List[QtGui.QColor],
+) -> None:
+    radius = painter.fontMetrics().xHeight() * 2.0
+    rect = position_for_alignment(
+        parent_rect, QtCore.QRectF(0, 0, radius * 3, radius * 3), alignment
+    )
+    centers = [
+        QtCore.QPointF(rect.center().x(), rect.top() + radius),
+        QtCore.QPointF(rect.left() + radius, rect.bottom() - radius),
+        QtCore.QPointF(rect.right() - radius, rect.bottom() - radius),
+    ]
+    # Clear with black
+    painter.setBrush(QtGui.QBrush(QtCore.Qt.GlobalColor.black))
+    for center in centers:
+        painter.drawEllipse(center, radius, radius)
+    painter.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_Plus)
+    for color, center in zip(colors, centers):
+        painter.setBrush(QtGui.QBrush(color))
+        painter.drawEllipse(center, radius, radius)
+
+
 def paint_scalebar(
     painter: QtGui.QPainter,
     rect: QtCore.QRectF,
@@ -210,6 +235,9 @@ def generate_rgb_laser_image(
     label_alignment: QtCore.Qt.AlignmentFlag
     | None = QtCore.Qt.AlignmentFlag.AlignTop
     | QtCore.Qt.AlignmentFlag.AlignLeft,
+    venn_alignment: QtCore.Qt.AlignmentFlag
+    | None = QtCore.Qt.AlignmentFlag.AlignTop
+    | QtCore.Qt.AlignmentFlag.AlignLeft,
     raw: bool = False,
     subtractive: bool = False,
 ) -> QtGui.QImage:
@@ -271,6 +299,7 @@ def generate_rgb_laser_image(
             path.addText(pos.x(), pos.y() + fm.ascent(), painter.font(), element)
             painter.strokePath(path, pen)
             painter.fillPath(path, QtGui.QBrush(color))
+            pos.setY(pos.y() + fm.height())
 
     # Draw the scale-bar
     if scalebar_alignment is not None:
@@ -282,6 +311,12 @@ def generate_rgb_laser_image(
             image.rect().adjusted(xh, xh, -xh, -xh),
             scalebar_alignment,
             scale,
+        )
+
+    # Draw the color Venn
+    if venn_alignment is not None:
+        paint_color_venn(
+            painter, image.rect().adjusted(xh, xh, -xh, -xh), venn_alignment, colors
         )
 
     painter.end()
