@@ -7,7 +7,7 @@ from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.graphics.export import generate_laser_image, generate_rgb_laser_image
-from pewpew.graphics.imageitems import LaserImageItem
+from pewpew.graphics.imageitems import LaserImageItem, RGBLaserImageItem
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.widgets.prompts import OverwriteFilePrompt
 
@@ -22,12 +22,23 @@ class OptionsBox(QtWidgets.QGroupBox):
         filetype: str,
         ext: str,
         visible: bool = False,
+        allow_export_all: bool = True,
+        allow_calibrate: bool = True,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__("Format Options", parent)
         self.filetype = filetype
         self.ext = ext
         self.visible = visible
+
+        self.allow_export_all = allow_export_all
+        self.allow_calibrate = allow_calibrate
+
+    def allowCalibrate(self) -> bool:
+        return self.allow_calibrate
+
+    def allowExportAll(self) -> bool:
+        return self.allow_export_all
 
     def isComplete(self) -> bool:
         return True
@@ -89,13 +100,93 @@ class PngOptionsBox(OptionsBox):
         return self.check_raw.isChecked()
 
 
+class RBGOptionsBox(OptionsBox):
+    item_positions = {
+        "Top Left": QtCore.Qt.AlignmentFlag.AlignTop
+        | QtCore.Qt.AlignmentFlag.AlignLeft,
+        "Top Right": QtCore.Qt.AlignmentFlag.AlignTop
+        | QtCore.Qt.AlignmentFlag.AlignRight,
+        "Bottom Left": QtCore.Qt.AlignmentFlag.AlignBottom
+        | QtCore.Qt.AlignmentFlag.AlignLeft,
+        "Bottom Right": QtCore.Qt.AlignmentFlag.AlignBottom
+        | QtCore.Qt.AlignmentFlag.AlignRight,
+        "Off": None,
+    }
+
+    def __init__(
+        self,
+        elements: List[RGBLaserImageItem.RGBElement],
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(
+            "PNG Images",
+            ".png",
+            visible=True,
+            allow_export_all=False,
+            allow_calibrate=False,
+        )
+
+        self.rgb_elements = elements
+
+        self.combo_scalebar = QtWidgets.QComboBox()
+        self.combo_scalebar.addItems(list(PngOptionsBox.item_positions.keys()))
+        self.combo_scalebar.setCurrentText("Top Right")
+
+        self.combo_label = QtWidgets.QComboBox()
+        self.combo_label.addItems(list(PngOptionsBox.item_positions.keys()))
+        self.combo_label.setCurrentText("Top Left")
+
+        self.combo_venn = QtWidgets.QComboBox()
+        self.combo_venn.addItems(list(PngOptionsBox.item_positions.keys()))
+        self.combo_venn.setCurrentText("Bottom Left")
+
+        self.check_raw = QtWidgets.QCheckBox("Export raw image data.")
+        self.check_raw.toggled.connect(self.rawStateChanged)
+
+        layout = QtWidgets.QFormLayout()
+        layout.addRow("Scalebar", self.combo_scalebar)
+        layout.addRow("Element Label", self.combo_label)
+        layout.addRow("Color Venn", self.combo_venn)
+        layout.addRow(self.check_raw)
+        self.setLayout(layout)
+
+    def elements(self) -> List[str]:
+        return [rgb.element for rgb in self.rgb_elements]
+
+    def colors(self) -> List[QtGui.QColor]:
+        return [rgb.color for rgb in self.rgb_elements]
+
+    def ranges(self) -> List[Tuple[float, float]]:
+        return [rgb.prange for rgb in self.rgb_elements]
+
+    def rawStateChanged(self, state: QtCore.Qt.CheckState) -> None:
+        enabled = state != QtCore.Qt.CheckState.Checked
+        self.combo_scalebar.setEnabled(enabled)
+        self.combo_label.setEnabled(enabled)
+        self.combo_venn.setEnabled(enabled)
+
+    def labelAlignment(self) -> QtCore.Qt.AlignmentFlag | None:
+        return PngOptionsBox.item_positions[self.combo_label.currentText()]
+
+    def scalebarAlignment(self) -> QtCore.Qt.AlignmentFlag | None:
+        return PngOptionsBox.item_positions[self.combo_scalebar.currentText()]
+
+    def vennAlignment(self) -> QtCore.Qt.AlignmentFlag | None:
+        return PngOptionsBox.item_positions[self.combo_venn.currentText()]
+
+    def isRaw(self) -> bool:
+        return self.check_raw.isChecked()
+
+
 class VtiOptionsBox(OptionsBox):
     def __init__(
         self,
         spacing: Tuple[float, float, float],
         parent: QtWidgets.QWidget | None = None,
     ):
-        super().__init__("VTK Images", ".vti", visible=True, parent=parent)
+        super().__init__(
+            "VTK Images", ".vti", visible=True, allow_export_all=False, parent=parent
+        )
         self.lineedits = [QtWidgets.QLineEdit(str(dim)) for dim in spacing]
         for le in self.lineedits:
             le.setValidator(QtGui.QDoubleValidator(-1e9, 1e9, 4))
@@ -262,8 +353,10 @@ class _ExportDialogBase(QtWidgets.QDialog):
         self.layout.addWidget(self.button_box)
         self.setLayout(self.layout)
 
-    def getPath(self) -> Path:
-        path = Path(self.lineedit_filename.text())
+    def getPath(self, name: str | None = None) -> Path:
+        if name is None:
+            name = self.lineedit_filename.text()
+        path = Path(name)
         if path.suffix == "":
             path = path.with_suffix(self.options.currentExt())
         return Path(self.lineedit_directory.text()).joinpath(path)
@@ -320,17 +413,25 @@ class ExportDialog(_ExportDialogBase):
         item: LaserImageItem,
         parent: QtWidgets.QWidget | None = None,
     ):
-        spacing = (
-            item.laser.config.get_pixel_width(),
-            item.laser.config.get_pixel_height(),
-            item.laser.config.spotsize / 2.0,
-        )
-        options = [
-            OptionsBox("Numpy Archives", ".npz"),
-            OptionsBox("CSV Document", ".csv"),
-            PngOptionsBox(),
-            VtiOptionsBox(spacing),
-        ]
+        if isinstance(item, RGBLaserImageItem):
+            options = [RBGOptionsBox(item.current_elements)]
+        else:
+            spacing = (
+                item.laser.config.get_pixel_width(),
+                item.laser.config.get_pixel_height(),
+                item.laser.config.spotsize / 2.0,
+            )
+            options = [
+                OptionsBox(
+                    "Numpy Archives",
+                    ".npz",
+                    allow_calibrate=False,
+                    allow_export_all=False,
+                ),
+                OptionsBox("CSV Document", ".csv"),
+                PngOptionsBox(),
+                VtiOptionsBox(spacing),
+            ]
         super().__init__(options, parent)
 
         self.item = item
@@ -360,10 +461,10 @@ class ExportDialog(_ExportDialogBase):
         return path.with_name(laser.info.get("Name", "laser") + ext)
 
     def allowCalibrate(self) -> bool:
-        return self.options.currentExt() != ".npz"
+        return self.options.currentOption().allowCalibrate()
 
     def allowExportAll(self) -> bool:
-        return self.options.currentExt() not in [".npz", ".vti"]
+        return self.options.currentOption().allowExportAll()
 
     def isCalibrate(self) -> bool:
         return self.check_calibrate.isChecked() and self.check_calibrate.isEnabled()
@@ -428,17 +529,32 @@ class ExportDialog(_ExportDialogBase):
 
         elif option.ext == ".png":
             assert graphics_options is not None
-            if element is not None and element in laser.elements:
-                image = generate_laser_image(
-                    laser,
-                    element,
-                    graphics_options,
-                    label_alignment=option.labelAlignment(),
-                    scalebar_alignment=option.scalebarAlignment(),
-                    colorbar=option.useColorbar(),
-                    raw=option.isRaw(),
-                )
-                image.save(str(path.absolute()))
+            if isinstance(option, RBGOptionsBox):
+                if any(x in laser.elements for x in option.elements()):
+                    image = generate_rgb_laser_image(
+                        laser,
+                        option.elements(),
+                        option.colors(),
+                        option.ranges(),
+                        graphics_options,
+                        label_alignment=option.labelAlignment(),
+                        scalebar_alignment=option.scalebarAlignment(),
+                        venn_alignment=option.vennAlignment(),
+                        raw=option.isRaw(),
+                    )
+                    image.save(str(path.absolute()))
+            else:
+                if element is not None and element in laser.elements:
+                    image = generate_laser_image(
+                        laser,
+                        element,
+                        graphics_options,
+                        label_alignment=option.labelAlignment(),
+                        scalebar_alignment=option.scalebarAlignment(),
+                        colorbar=option.useColorbar(),
+                        raw=option.isRaw(),
+                    )
+                    image.save(str(path.absolute()))
         elif option.ext == ".vti":
             spacing = option.spacing()
             # Last axis (z) is negative for layer order
@@ -524,12 +640,8 @@ class ExportAllDialog(ExportDialog):
             path = path.with_name(path.stem + "_<element>" + path.suffix)
         self.lineedit_preview.setText(str(path))
 
-    def getPath(self, name: str) -> Path:
-        path = (
-            Path(self.lineedit_directory.text())
-            .joinpath(name)
-            .with_suffix(Path(self.lineedit_filename.text()).suffix)
-        )
+    def getPath(self, name: str | None = None) -> Path:
+        path = super().getPath(name)
         prefix = self.lineedit_prefix.text()
         if prefix != "":
             path = path.with_name(prefix + "_" + path.name)
