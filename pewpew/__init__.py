@@ -1,6 +1,6 @@
 import logging
 
-__version__ = "1.4.2"
+__version__ = "1.4.3"
 __loglevel__ = logging.DEBUG
 
 logging.captureWarnings(True)
