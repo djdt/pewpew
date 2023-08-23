@@ -83,6 +83,7 @@ def paint_color_venn(
     painter.setBrush(QtGui.QBrush(QtCore.Qt.GlobalColor.black))
     for center in centers:
         painter.drawEllipse(center, radius, radius)
+
     painter.setCompositionMode(QtGui.QPainter.CompositionMode.CompositionMode_Plus)
     for color, center in zip(colors, centers):
         painter.setBrush(QtGui.QBrush(color))

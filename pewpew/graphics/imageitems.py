@@ -1000,7 +1000,7 @@ class RGBLaserImageItem(LaserImageItem):
                 continue
             rgb = np.array(element.color.getRgbF()[:3])
             if self.subtractive:
-                rgb = 255.0 - rgb
+                rgb = 1.0 - rgb
 
             # Normalise to range
             vmin, vmax = np.percentile(self.raw_data[:, :, i], element.prange)
@@ -1011,7 +1011,7 @@ class RGBLaserImageItem(LaserImageItem):
             data += x[:, :, None] * rgb
 
         if self.subtractive:
-            data = np.full_like(data, 255) - data
+            data = 1.0 - data
 
         self.image = array_to_image(data)
 
