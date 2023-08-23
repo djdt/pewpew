@@ -8,12 +8,11 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew import __version__
 from pewpew.actions import qAction, qActionGroup
-from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.help import HelpDialog
 from pewpew.log import LoggingDialog
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
-from pewpew.widgets.laser import LaserTabView, LaserTabWidget
+from pewpew.widgets.laser import LaserTabView
 from pewpew.widgets.wizards import ImportWizard, SpotImportWizard
 
 logger = logging.getLogger(__name__)
