@@ -14,16 +14,25 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction
 from pewpew.events import DragDropRedirectFilter
-from pewpew.graphics.imageitems import ImageOverlayItem, LaserImageItem
+from pewpew.graphics.imageitems import (
+    ImageOverlayItem,
+    LaserImageItem,
+    RGBLaserImageItem,
+    SnapImageItem,
+)
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.threads import ImportThread
 from pewpew.widgets import dialogs, exportdialogs
-from pewpew.widgets.controls import ControlBar, ImageControlBar, LaserControlBar
+from pewpew.widgets.controls import (
+    ControlBar,
+    ImageControlBar,
+    LaserControlBar,
+    RGBLaserControlBar,
+)
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.tools.calculator import CalculatorTool
 from pewpew.widgets.tools.filtering import FilteringTool
-from pewpew.widgets.tools.overlays import OverlayTool
 from pewpew.widgets.tools.standards import StandardsTool
 from pewpew.widgets.views import TabView, TabViewWidget
 
@@ -293,25 +302,28 @@ class LaserTabWidget(TabViewWidget):
         self.controls = QtWidgets.QStackedWidget()
         self.no_controls = ControlBar()
         self.laser_controls = LaserControlBar()
+        self.rgb_laser_controls = RGBLaserControlBar()
         self.image_controls = ImageControlBar()
 
         self.controls.addWidget(self.no_controls)
         self.controls.addWidget(self.laser_controls)
+        self.controls.addWidget(self.rgb_laser_controls)
         self.controls.addWidget(self.image_controls)
 
         for index in range(self.controls.count()):
             self.controls.widget(index).toolbar.addActions([self.action_zoom_out])
             self.controls.widget(index).toolbar.addSeparator()
 
-        self.laser_controls.toolbar.addActions(
-            [
-                self.action_select_rect,
-                self.action_select_lasso,
-                self.action_select_dialog,
-            ]
-        )
-        self.laser_controls.toolbar.addSeparator()
-        self.laser_controls.toolbar.addActions([self.action_ruler, self.action_slice])
+        for control in [self.laser_controls, self.rgb_laser_controls]:
+            control.toolbar.addActions(
+                [
+                    self.action_select_rect,
+                    self.action_select_lasso,
+                    self.action_select_dialog,
+                ]
+            )
+            control.toolbar.addSeparator()
+            control.toolbar.addActions([self.action_ruler, self.action_slice])
 
         self.image_controls.toolbar.addActions(
             [
@@ -342,14 +354,21 @@ class LaserTabWidget(TabViewWidget):
         self, laser: Laser, pos: QtCore.QPointF | None = None
     ) -> "LaserImageItem":
         item = LaserImageItem(laser, self.graphics.options)
+        self.addLaserItem(item)
+        return item
 
-        # Connect dialog requests
+    def addLaserItem(
+        self, item: LaserImageItem, pos: QtCore.QPointF | None = None
+    ) -> None:
         item.requestDialog.connect(self.openDialog)
         item.requestTool.connect(self.openTool)
+        item.requestConversion.connect(self.convertImage)
 
         item.requestAddLaser.connect(self.addLaser)
         item.requestExport.connect(self.dialogExport)
         item.requestSave.connect(self.dialogSave)
+
+        item.elementsChanged.connect(lambda: self.updateForItem(item))
 
         item.hoveredValueChanged.connect(self.updateCursorStatus)
         item.hoveredValueCleared.connect(self.clearCursorStatus)
@@ -369,7 +388,6 @@ class LaserTabWidget(TabViewWidget):
             self.graphics.zoomReset()
 
         self.numLaserItemsChanged.emit()
-        return item
 
     def addImage(self, path: str | Path) -> "ImageOverlayItem":
         if isinstance(path, Path):
@@ -389,6 +407,22 @@ class LaserTabWidget(TabViewWidget):
 
         self.numImageItemsChanged.emit()
         return item
+
+    def convertImage(self, to_type: str, item: SnapImageItem | None = None) -> None:
+        if item is None:
+            item = self.graphics.scene().focusItem()
+
+        if to_type == "RGBLaserImageItem":
+            if not isinstance(item, LaserImageItem):
+                raise ValueError(f"cannot convert {type(item)} to a RGBLaserImageItem")
+            new_item = RGBLaserImageItem.fromLaserImageItem(item, self.graphics.options)
+        elif to_type == "LaserImageItem":
+            if not isinstance(item, RGBLaserImageItem):
+                raise ValueError(f"cannot convert {type(item)} to a LaserImageItem")
+            new_item = LaserImageItem(item.laser, self.graphics.options)
+
+        self.graphics.scene().removeItem(item)
+        self.addLaserItem(new_item, item.pos())
 
     def laserItems(self) -> List[LaserImageItem]:
         return self.graphics.laserItems()
@@ -445,8 +479,12 @@ class LaserTabWidget(TabViewWidget):
             return
 
         if isinstance(new, LaserImageItem):
-            self.controls.setCurrentWidget(self.laser_controls)
-            self.laser_controls.setItem(new)
+            if isinstance(new, RGBLaserImageItem):
+                self.controls.setCurrentWidget(self.rgb_laser_controls)
+                self.rgb_laser_controls.setItem(new)
+            else:
+                self.controls.setCurrentWidget(self.laser_controls)
+                self.laser_controls.setItem(new)
         elif isinstance(new, ImageOverlayItem):  # Todo: maybe add a proper class?
             self.controls.setCurrentWidget(self.image_controls)
             self.image_controls.setItem(new)
@@ -471,7 +509,7 @@ class LaserTabWidget(TabViewWidget):
             status_bar.clearMessage()
 
     def updateCursorStatus(
-        self, pos: QtCore.QPointF, data_pos: QtCore.QPoint, v: float
+        self, pos: QtCore.QPointF, data_pos: QtCore.QPoint, v: float | np.ndarray | None
     ) -> None:
         """Updates the windows statusbar if it exists."""
         status_bar = self.view.window().statusBar()
@@ -485,10 +523,10 @@ class LaserTabWidget(TabViewWidget):
 
         if v is None:
             status_bar.clearMessage()
-        elif np.isfinite(v):
-            status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
         else:
-            status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
+            v = np.atleast_1d(v)
+            vstr = ",".join([f"{x:.4g}" if np.isfinite(x) else "nan" for x in v])
+            status_bar.showMessage(f"{x:.4g},{y:.4g} [{vstr}]")
 
     # Callbacks
     def openDialog(
@@ -558,8 +596,6 @@ class LaserTabWidget(TabViewWidget):
             widget = CalculatorTool(item, view=self.view)
         elif tool == "Filtering":
             widget = FilteringTool(item, view=self.view)
-        elif tool == "Overlay":
-            widget = OverlayTool(item, view=self.view)
         elif tool == "Standards":
             widget = StandardsTool(item, view=self.view)
         else:

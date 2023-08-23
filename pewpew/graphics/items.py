@@ -205,6 +205,94 @@ class EditableLabelItem(UnscaledAlignedTextItem):
         event.accept()
 
 
+class RGBLabelItem(QtWidgets.QGraphicsObject):
+    def __init__(
+        self,
+        parent: QtWidgets.QGraphicsItem,
+        texts: List[str],
+        colors: List[QtGui.QColor],
+        alignment: QtCore.Qt.Alignment | None = None,
+        font: QtGui.QFont | None = None,
+        pen: QtGui.QPen | None = None,
+    ):
+        super().__init__(parent)
+
+        if alignment is None:
+            alignment = QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft
+
+        if pen is None:
+            pen = QtGui.QPen(QtCore.Qt.black, 2.0)
+            pen.setCosmetic(True)
+
+        self.alignment = alignment
+
+        self._texts = texts
+        self._font = font or QtGui.QFont()
+        self.colors = colors
+
+        self.pen = pen
+
+    def font(self) -> QtGui.QFont:
+        font = QtGui.QFont(self._font)
+        if self.scene() is not None:
+            view = next(iter(self.scene().views()))
+            font.setPointSizeF(font.pointSizeF() / view.transform().m22())
+        return font
+
+    def setFont(self, font: QtGui.QFont) -> None:
+        self._font = font
+
+    def texts(self) -> List[str]:
+        return self._texts
+
+    def setTexts(self, texts: List[str]) -> None:
+        self._texts = texts
+        self.prepareGeometryChange()
+
+    def boundingRect(self):
+        fm = QtGui.QFontMetrics(self.font())
+        if len(self.texts()) > 0:
+            width = max(fm.boundingRect(text).width() for text in self.texts())
+        else:
+            width = 0
+        rect = QtCore.QRectF(0, 0, width, fm.height() * len(self.texts()))
+        parent_rect = self.parentItem().boundingRect()
+
+        if self.alignment & QtCore.Qt.AlignRight:
+            rect.moveRight(parent_rect.right())
+        elif self.alignment & QtCore.Qt.AlignHCenter:
+            rect.moveCenter(QtCore.QPointF(parent_rect.center().x(), rect.center().y()))
+        if self.alignment & QtCore.Qt.AlignBottom:
+            rect.moveBottom(parent_rect.bottom())
+        elif self.alignment & QtCore.Qt.AlignVCenter:
+            rect.moveCenter(QtCore.QPointF(rect.center().x(), parent_rect.center().y()))
+        return rect.intersected(parent_rect)
+
+    def paint(
+        self,
+        painter: QtGui.QPainter,
+        option: QtWidgets.QStyleOptionGraphicsItem,
+        widget: QtWidgets.QWidget | None = None,
+    ):
+        painter.save()
+
+        painter.setClipRect(self.parentItem().boundingRect())
+        painter.setFont(self.font())
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+
+        pos = self.boundingRect().topLeft()
+        for text, color in zip(self.texts(), self.colors):
+            path = QtGui.QPainterPath()
+            path.addText(
+                pos.x(), pos.y() + painter.fontMetrics().ascent(), painter.font(), text
+            )
+            painter.strokePath(path, self.pen)
+            painter.fillPath(path, QtGui.QBrush(color))
+            pos.setY(pos.y() + painter.fontMetrics().height())
+
+        painter.restore()
+
+
 class ResizeableRectItem(QtWidgets.QGraphicsObject):
     """A mouse resizable rectangle.
 

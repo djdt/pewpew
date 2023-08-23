@@ -6,7 +6,12 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from pytestqt.qtbot import QtBot
 from testing import rand_data
 
-from pewpew.graphics.imageitems import ImageOverlayItem, LaserImageItem, ScaledImageItem
+from pewpew.graphics.imageitems import (
+    ImageOverlayItem,
+    LaserImageItem,
+    RGBLaserImageItem,
+    ScaledImageItem,
+)
 from pewpew.graphics.options import GraphicsOptions
 
 
@@ -110,7 +115,7 @@ def test_laser_image_item(qtbot: QtBot):
 
     assert item.imageSize() == QtCore.QSize(10, 10)
 
-    assert np.all(item.raw_data == laser.data["a"])
+    assert np.all(item.raw_data == laser.data["B"])
 
     # Selection
     mask = np.zeros((10, 10), dtype=bool)
@@ -131,7 +136,25 @@ def test_laser_image_item(qtbot: QtBot):
     item.select(mask, ["intersect"])
     item.copySelectionToText()
     mime = QtWidgets.QApplication.clipboard().mimeData()
-    assert mime.text() == f"{laser.data['a'][0][0]:.10f}\n"
+    assert mime.text() == f"{laser.data['B'][0][0]:.10f}\n"
+
+
+def test_laser_rgb_image_item(qtbot: QtBot):
+    laser = Laser(data=rand_data(["A", "B", "C"]), info={"Name": "test"})
+    item = RGBLaserImageItem(laser, GraphicsOptions())
+
+    elements = [
+        RGBLaserImageItem.RGBElement("A", QtGui.QColor(255, 0, 0), (0.0, 99.0)),
+        RGBLaserImageItem.RGBElement("B", QtGui.QColor(0, 255, 0), (0.0, 99.0)),
+    ]
+    item.setCurrentElements(elements)
+
+    assert np.all(item.raw_data[:, :, 0] == laser.data["A"])
+    assert np.all(item.raw_data[:, :, 1] == laser.data["B"])
+
+    item.setElement("B")
+
+    assert np.all(item.raw_data[:, :, 0] == laser.data["B"])
 
 
 def test_laser_image_item_actions(qtbot: QtBot):
