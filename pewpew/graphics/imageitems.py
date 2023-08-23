@@ -985,15 +985,18 @@ class RGBLaserImageItem(LaserImageItem):
         )
 
     def redraw(self) -> None:
-        self.raw_data = np.stack(
-            [
-                self.laser.get(
-                    element.element, calibrate=self.options.calibrate, flat=True
-                )
-                for element in self.current_elements[:3]
-            ],
-            axis=2,
-        )
+        if len(self.current_elements) == 0:
+            self.raw_data == np.zeros((*self.laser.shape[:2], 3))
+        else:
+            self.raw_data = np.stack(
+                [
+                    self.laser.get(
+                        element.element, calibrate=self.options.calibrate, flat=True
+                    )
+                    for element in self.current_elements[:3]
+                ],
+                axis=2,
+            )
         data = np.zeros((*self.laser.shape[:2], 3))
         for i, element in enumerate(self.current_elements):
             if element.element not in self.laser.elements:
@@ -1036,7 +1039,10 @@ class RGBLaserImageItem(LaserImageItem):
         self.current_elements = elements
         self.elements_label.setTexts([rgb.element for rgb in elements])
         self.elements_label.colors = [rgb.color for rgb in elements]
-        self.setElement(self.current_elements[0].element)
+        if len(self.current_elements) > 0:
+            self.setElement(self.current_elements[0].element)
+        else:
+            self.redraw()
 
     @classmethod
     def fromLaserImageItem(

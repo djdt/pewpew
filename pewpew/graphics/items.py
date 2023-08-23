@@ -251,7 +251,10 @@ class RGBLabelItem(QtWidgets.QGraphicsObject):
 
     def boundingRect(self):
         fm = QtGui.QFontMetrics(self.font())
-        width = max(fm.boundingRect(text).width() for text in self.texts())
+        if len(self.texts()) > 0:
+            width = max(fm.boundingRect(text).width() for text in self.texts())
+        else:
+            width = 0
         rect = QtCore.QRectF(0, 0, width, fm.height() * len(self.texts()))
         parent_rect = self.parentItem().boundingRect()
 
