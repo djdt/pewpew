@@ -31,7 +31,6 @@ pewlib_.
 
     tools/calculator
     tools/filter
-    tools/overlay
     tools/standards
 
 .. toctree::
