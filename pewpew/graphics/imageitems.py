@@ -744,12 +744,6 @@ class LaserImageItem(SnapImageItem):
                 lambda: self.requestTool.emit("Filtering", self),
             ),
             qAction(
-                "dialog-layers",
-                "Overlay",
-                "Tool for visualising multiple elements at once.",
-                lambda: self.requestTool.emit("Overlay", self),
-            ),
-            qAction(
                 "labplot-xy-fit-curve",
                 "Standards",
                 "Create calibrations from areas of the current laser.",

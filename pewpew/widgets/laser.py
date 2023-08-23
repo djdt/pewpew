@@ -33,7 +33,6 @@ from pewpew.widgets.controls import (
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.tools.calculator import CalculatorTool
 from pewpew.widgets.tools.filtering import FilteringTool
-from pewpew.widgets.tools.overlays import OverlayTool
 from pewpew.widgets.tools.standards import StandardsTool
 from pewpew.widgets.views import TabView, TabViewWidget
 
@@ -597,8 +596,6 @@ class LaserTabWidget(TabViewWidget):
             widget = CalculatorTool(item, view=self.view)
         elif tool == "Filtering":
             widget = FilteringTool(item, view=self.view)
-        elif tool == "Overlay":
-            widget = OverlayTool(item, view=self.view)
         elif tool == "Standards":
             widget = StandardsTool(item, view=self.view)
         else:
