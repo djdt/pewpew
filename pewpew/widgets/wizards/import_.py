@@ -5,7 +5,7 @@ import time
 
 from pathlib import Path
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewlib import __version__ as pewlib_version
 from pewlib.config import Config
@@ -16,7 +16,7 @@ from pewpew.validators import DecimalValidatorNoZero
 from pewpew.widgets.dialogs import NameEditDialog
 from pewpew.widgets.wizards.options import PathAndOptionsPage
 
-from typing import Dict, List, Union
+from typing import Dict, List
 
 
 logger = logging.getLogger(__name__)
@@ -31,13 +31,13 @@ class ImportWizard(QtWidgets.QWizard):
     page_thermo = 5
     page_config = 6
 
-    laserImported = QtCore.Signal(Laser)
+    laserImported = QtCore.Signal(Path, Laser)
 
     def __init__(
         self,
-        path: Union[str, Path] = "",
-        config: Config = None,
-        parent: QtWidgets.QWidget = None,
+        path: str | Path = "",
+        config: Config | None = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Import Wizard")
@@ -129,7 +129,7 @@ class ImportWizard(QtWidgets.QWizard):
                     "Import Version pew2": pewpew_version,
                 }
             )
-            self.laserImported.emit(Laser(data, config=config, info=info))
+            self.laserImported.emit(path, Laser(data, config=config, info=info))
         super().accept()
 
 
@@ -137,8 +137,8 @@ class FormatPage(QtWidgets.QWizardPage):
     def __init__(
         self,
         text: str,
-        page_id_dict: Dict[str, int] = None,
-        parent: QtWidgets.QWidget = None,
+        page_id_dict: Dict[str, int] | None = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setTitle("Import Introduction")
@@ -193,7 +193,7 @@ class ConfigPage(QtWidgets.QWizardPage):
     dataChanged = QtCore.Signal()
     infoChanged = QtCore.Signal()
 
-    def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
+    def __init__(self, config: Config, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setTitle("Elements and Config")
 

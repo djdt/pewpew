@@ -1,9 +1,9 @@
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from typing import Callable, List
 
 
-def qAction(icon: str, label: str, status: str, func: Callable) -> QtWidgets.QAction:
+def qAction(icon: str, label: str, status: str, func: Callable) -> QtGui.QAction:
     """Create a QAction.
 
     Args:
@@ -12,7 +12,7 @@ def qAction(icon: str, label: str, status: str, func: Callable) -> QtWidgets.QAc
         status: status- and tooltip
         func: connected to triggered
     """
-    action = QtWidgets.QAction(QtGui.QIcon.fromTheme(icon), label)
+    action = QtGui.QAction(QtGui.QIcon.fromTheme(icon), label)
     action.setStatusTip(status)
     action.setToolTip(status)
     action.triggered.connect(func)
@@ -23,9 +23,9 @@ def qActionGroup(
     parent: QtWidgets.QWidget,
     actions: List[str],
     func: Callable,
-    statuses: List[str] = None,
-    checked: str = None,
-) -> QtWidgets.QActionGroup:
+    statuses: List[str] | None = None,
+    checked: str | None = None,
+) -> QtGui.QActionGroup:
     """Create a QActionGroup.
 
     Args:
@@ -34,7 +34,7 @@ def qActionGroup(
         statuses: list of status tips
         checked: check action with this label
     """
-    group = QtWidgets.QActionGroup(parent)
+    group = QtGui.QActionGroup(parent)
     for i, name in enumerate(actions):
         action = group.addAction(name)
         if statuses is not None:
@@ -49,10 +49,10 @@ def qActionGroup(
 
 
 def qToolButton(
-    icon: str = None,
-    text: str = None,
-    action: QtWidgets.QAction = None,
-    parent: QtWidgets.QWidget = None,
+    icon: str | None = None,
+    text: str | None = None,
+    action: QtGui.QAction | None = None,
+    parent: QtWidgets.QWidget | None = None,
 ) -> QtWidgets.QToolButton:
     """Create a styled QToolButton.
     If 'action' is provided then the actions 'icon and 'text are displayed,

@@ -1,30 +1,30 @@
-from PySide2 import QtWidgets
-from pytestqt.qtbot import QtBot
+from pathlib import Path
 
 from pewlib.laser import Laser
-
-from pewpew.widgets.laser import LaserViewSpace
-from pewpew.widgets.tools.tool import ToolWidget
-
+from PySide6 import QtWidgets
+from pytestqt.qtbot import QtBot
 from testing import rand_data
+
+from pewpew.widgets.laser import LaserTabView
+from pewpew.widgets.tools.tool import ToolWidget
 
 
 def test_tool_widget(qtbot: QtBot):
-    viewspace = LaserViewSpace()
-    qtbot.addWidget(viewspace)
-    viewspace.show()
+    view = LaserTabView()
+    qtbot.addWidget(view)
+    view.show()
 
-    view = viewspace.activeView()
-    widget = view.addLaser(Laser(rand_data("A1"), info={"Name": "Widget"}))
-    tool = ToolWidget(widget, apply_all=True)
-    index = widget.index
-
-    widget.view.removeTab(index)
-    widget.view.insertTab(index, "Tool", tool)
-    qtbot.waitExposed(tool)
+    widget = view.importFile(
+        Path("/home/pewpew/fake.npz"),
+        Laser(rand_data(["a", "b"]), info={"Name": "test"}),
+    )
+    item = widget.laserItems()[0]
+    tool = ToolWidget(item, apply_all=True)
+    view.addTab("Tool", tool)
+    with qtbot.waitExposed(tool):
+        tool.show()
 
     tool.requestClose()
-    view.tabs.tabText(index) == "Widget"
 
     with qtbot.wait_signal(tool.applyPressed):
         button = tool.button_box.button(QtWidgets.QDialogButtonBox.Apply)

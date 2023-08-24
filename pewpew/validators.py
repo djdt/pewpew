@@ -1,6 +1,6 @@
-from PySide2 import QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
-from typing import Callable, Tuple
+from typing import Callable,  Tuple
 
 
 class DecimalValidator(QtGui.QDoubleValidator):
@@ -11,7 +11,7 @@ class DecimalValidator(QtGui.QDoubleValidator):
         bottom: float,
         top: float,
         decimals: int = 4,
-        parent: QtWidgets.QWidget = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(bottom, top, decimals, parent)
         self.setNotation(QtGui.QDoubleValidator.StandardNotation)
@@ -48,7 +48,7 @@ class LimitValidator(QtGui.QDoubleValidator):
         bottom: float,
         top: float,
         decimals: int = 4,
-        parent: QtWidgets.QWidget = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(bottom, top, decimals, parent)
 
@@ -79,7 +79,7 @@ class ConditionalLimitValidator(LimitValidator):
         top: float,
         decimals: int = 4,
         condition: Callable[[float], bool] = None,
-        parent: QtWidgets.QWidget = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(bottom, top, decimals, parent)
         self.condition = condition
@@ -103,7 +103,7 @@ class ConditionalLimitValidator(LimitValidator):
 class OddIntValidator(QtGui.QIntValidator):
     """QIntValidator that only accepts odd numbers."""
 
-    def __init__(self, bottom: int, top: int, parent: QtWidgets.QWidget = None):
+    def __init__(self, bottom: int, top: int, parent: QtWidgets.QWidget | None = None):
         super().__init__(bottom, top, parent)
 
     def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
@@ -139,7 +139,7 @@ class PercentOrDecimalValidator(DecimalValidator):
         decimals: int = 4,
         percent_bottom: float = 0.0,
         percent_top: float = 100.0,
-        parent: QtWidgets.QWidget = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(bottom, top, decimals, parent)
         self._bottom = bottom
@@ -165,7 +165,7 @@ class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
     Item inputs are also validated using a QDoubleValidator.
     """
 
-    def __init__(self, decimals: int, parent: QtWidgets.QWidget = None):
+    def __init__(self, decimals: int, parent: QtCore.QObject | None = None):
         super().__init__(parent)
         self.decimals = decimals
 
@@ -179,7 +179,7 @@ class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
         lineedit.setValidator(QtGui.QDoubleValidator())
         return lineedit
 
-    def displayText(self, value: str, locale: str) -> str:
+    def displayText(self, value: str, locale: QtCore.QLocale) -> str:
         """Attempts to display text as a float with 'decimal' places."""
         try:
             num = float(value)
@@ -193,7 +193,7 @@ class DoubleSignificantFiguresDelegate(QtWidgets.QStyledItemDelegate):
 
     Item inputs are also validated using a QDoubleValidator.
     """
-    def __init__(self, sigfigs: int, parent: QtWidgets.QWidget = None):
+    def __init__(self, sigfigs: int, parent: QtCore.QObject | None = None):
         super().__init__(parent)
         self.sigfigs = sigfigs
 
@@ -207,7 +207,7 @@ class DoubleSignificantFiguresDelegate(QtWidgets.QStyledItemDelegate):
         lineedit.setValidator(QtGui.QDoubleValidator())
         return lineedit
 
-    def displayText(self, value: str, locale: str) -> str:
+    def displayText(self, value: str, locale: QtCore.QLocale) -> str:
         """Attempts to display text as a float with 'sigfigs' places."""
         try:
             num = float(value)

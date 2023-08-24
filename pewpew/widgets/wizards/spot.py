@@ -5,7 +5,7 @@ import time
 
 from pathlib import Path
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewlib import __version__ as pewlib_version
 from pewlib.config import SpotConfig
@@ -25,7 +25,7 @@ from pewpew.widgets.dialogs import NameEditDialog
 from pewpew.widgets.wizards.import_ import FormatPage
 from pewpew.widgets.wizards.options import PathAndOptionsPage
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List
 
 
 logger = logging.getLogger(__name__)
@@ -47,10 +47,10 @@ class SpotImportWizard(QtWidgets.QWizard):
 
     def __init__(
         self,
-        paths: Union[List[str], List[Path]] = [],
-        config: SpotConfig = None,
-        options: GraphicsOptions = None,
-        parent: QtWidgets.QWidget = None,
+        paths: List[str] | List[Path] = [],
+        config: SpotConfig | None = None,
+        options: GraphicsOptions | None = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Spot Import Wizard")
@@ -198,7 +198,7 @@ class SpotImportWizard(QtWidgets.QWizard):
 class SpotPeakOptions(QtWidgets.QGroupBox):
     optionsChanged = QtCore.Signal()
 
-    def __init__(self, name: str, parent: QtWidgets.QWidget = None):
+    def __init__(self, name: str, parent: QtWidgets.QWidget | None = None):
         super().__init__(name, parent=parent)
         self.setLayout(QtWidgets.QFormLayout())
 
@@ -210,7 +210,7 @@ class SpotPeakOptions(QtWidgets.QGroupBox):
 
 
 class ConstantPeakOptions(SpotPeakOptions):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__("Constant Options", parent)
 
         self.lineedit_minimum = QtWidgets.QLineEdit("0.0")
@@ -229,7 +229,7 @@ class ConstantPeakOptions(SpotPeakOptions):
 
 
 class CWTPeakOptions(SpotPeakOptions):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__("CWT Options", parent)
         self.lineedit_minwidth = QtWidgets.QLineEdit("3")
         self.lineedit_minwidth.setValidator(QtGui.QIntValidator(1, 992))
@@ -281,7 +281,7 @@ class CWTPeakOptions(SpotPeakOptions):
 
 
 class WindowedPeakOptions(SpotPeakOptions):
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__("Window Options", parent)
 
         self.lineedit_window_size = QtWidgets.QLineEdit("9")
@@ -328,13 +328,13 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
     infoChanged = QtCore.Signal()
     peaksChanged = QtCore.Signal()
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle("Spot Peak Detection")
 
         self._datas: List[np.ndarray] = []
         self._infos: List[Dict[str, str]] = []
-        self.peaks: Optional[np.ndarray] = None
+        self.peaks: np.ndarray | None = None
         self.options = {
             "Constant": ConstantPeakOptions(self),
             "CWT": CWTPeakOptions(self),
@@ -458,8 +458,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self._infos = infos
         self.infoChanged.emit()
 
-
-    def getPeaks(self) -> Optional[np.ndarray]:
+    def getPeaks(self) -> np.ndarray | None:
         return self.peaks
 
     def setPeaks(self, peaks: np.ndarray) -> None:
@@ -672,7 +671,11 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
 
 
 class SpotImagePage(QtWidgets.QWizardPage):
-    def __init__(self, options: GraphicsOptions = None, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self,
+        options: GraphicsOptions | None = None,
+        parent: QtWidgets.QWidget | None = None,
+    ):
         super().__init__(parent)
         self.setWindowTitle("Spot Image Preview")
 
@@ -791,7 +794,7 @@ class SpotImagePage(QtWidgets.QWizardPage):
 class SpotConfigPage(QtWidgets.QWizardPage):
     dataChanged = QtCore.Signal()
 
-    def __init__(self, config: SpotConfig, parent: QtWidgets.QWidget = None):
+    def __init__(self, config: SpotConfig, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setTitle("Elements and Config")
 

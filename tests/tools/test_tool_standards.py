@@ -1,26 +1,29 @@
+from pathlib import Path
+
 import numpy as np
-
-from pytestqt.qtbot import QtBot
-
 from pewlib.laser import Laser
-
-from pewpew.widgets.laser import LaserViewSpace
-from pewpew.widgets.tools.standards import StandardsTool
-
+from pytestqt.qtbot import QtBot
 from testing import linear_data
+
+from pewpew.widgets.laser import LaserTabView
+from pewpew.widgets.tools.standards import StandardsTool
 
 
 def test_standards_tool(qtbot: QtBot):
-    viewspace = LaserViewSpace()
-    qtbot.addWidget(viewspace)
-    viewspace.show()
-    view = viewspace.activeView()
     data = linear_data(["A1", "B2"])
     data["B2"][6] = 1.0
-    view.addLaser(Laser(data))
-    tool = StandardsTool(view.activeWidget())
+    view = LaserTabView()
+    qtbot.add_widget(view)
+    view.show()
+    widget = view.importFile(
+        Path("/home/pewpew/fake.npz"),
+        Laser(data, info={"Name": "test", "File Path": "/home/pewpew/real.npz"}),
+    )
+    item = widget.laserItems()[0]
+    tool = StandardsTool(item)
     view.addTab("Tool", tool)
-    qtbot.waitExposed(tool)
+    with qtbot.waitExposed(tool):
+        tool.show()
 
     # Units
     tool.lineedit_units.setText("unit")

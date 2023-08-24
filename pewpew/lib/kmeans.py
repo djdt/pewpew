@@ -171,7 +171,7 @@ def kmedians(
 
 
 def kmeans1d(
-    x: np.ndarray, k: int, method: str = "ckmeans1d", method_kws: dict = None
+    x: np.ndarray, k: int, method: str = "ckmeans1d", method_kws: dict | None = None
 ) -> np.ndarray:
     """1-dim k-means clustering.
     Uses Ckmeans.1d.dp through ``ckwrap`` if it is installed and `method` is

@@ -1,7 +1,7 @@
 from pathlib import Path
 import time
 
-from PySide2 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from pewlib import __version__ as pewlib_version
 from pewlib import io
@@ -30,8 +30,8 @@ class SRRImportWizard(QtWidgets.QWizard):
     def __init__(
         self,
         paths: List[Path] = [],
-        config: Config = None,
-        parent: QtWidgets.QWidget = None,
+        config: Config | None = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("SRR Import Wizard")
@@ -133,7 +133,7 @@ class SRRImportWizard(QtWidgets.QWizard):
 
 
 class SRRConfigPage(ConfigPage):
-    def __init__(self, config: SRRConfig, parent: QtWidgets.QWidget = None):
+    def __init__(self, config: SRRConfig, parent: QtWidgets.QWidget | None = None):
         super().__init__(config, parent)
 
         # Krisskross params
@@ -187,7 +187,7 @@ class SRRPathAndOptionsPage(PathAndOptionsPage):
         paths: List[Path],
         format: str,
         nextid: int,
-        parent: QtWidgets.QWidget = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(
             paths, format, multiplepaths=True, nextid=nextid, parent=parent

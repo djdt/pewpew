@@ -1,24 +1,21 @@
 import argparse
 import logging
 import multiprocessing
-from pathlib import Path
 import sys
-
-from PySide2 import QtCore, QtGui, QtWidgets
-
-import pewlib
-from pewpew import __version__
-
-from pewpew.mainwindow import MainWindow
-from pewpew import resources  # noqa: F401
-
+from pathlib import Path
 from typing import List
 
+import pewlib
+from PySide6 import QtCore, QtGui, QtWidgets
+
+from pewpew import resources  # noqa: F401
+from pewpew import __version__
+from pewpew.mainwindow import MainWindow
 
 logger = logging.getLogger()
 
 
-def parse_args(argv: List[str] = None) -> argparse.Namespace:
+def parse_args(argv: List[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="pew²",
         description="GUI for visualisation and manipulation of LA-ICP-MS data.",
@@ -33,7 +30,7 @@ def parse_args(argv: List[str] = None) -> argparse.Namespace:
     parser.add_argument(
         "qtargs", nargs=argparse.REMAINDER, help="Arguments to pass to Qt."
     )
-    args = parser.parse_args(argv)
+    args = parser.parse_args(argv[1:])
 
     if args.open is not None:
         for path in args.open:
@@ -43,12 +40,14 @@ def parse_args(argv: List[str] = None) -> argparse.Namespace:
     return args
 
 
-def main(argv: List[str] = None) -> int:
-    args = parse_args(argv)
+def main() -> int:
+    args = parse_args(sys.argv)
 
     app = QtWidgets.QApplication(args.qtargs)
-    app.setApplicationName("pew²")
+    app.setApplicationName("pewpew")
+    app.setOrganizationName("pewpew")
     app.setApplicationVersion(__version__)
+    app.setWindowIcon(QtGui.QIcon(":/app.ico"))
 
     window = MainWindow()
     if not args.nohook:
@@ -58,11 +57,10 @@ def main(argv: List[str] = None) -> int:
     logger.info(f"Using Pewlib {pewlib.__version__}.")
 
     window.show()
-    window.setWindowIcon(QtGui.QIcon(":/app.ico"))
 
     # Arguments
     if args.open is not None:
-        window.viewspace.activeView().openDocument(args.open)
+        window.tabview.openDocument(args.open)
 
     # Keep event loop active with timer
     timer = QtCore.QTimer()
@@ -74,4 +72,4 @@ def main(argv: List[str] = None) -> int:
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
-    main(sys.argv[1:])
+    main()

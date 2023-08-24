@@ -1,18 +1,18 @@
-from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtCharts import QtCharts
+from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCharts
 
 import numpy as np
 
 from pewpew.charts.base import BaseChart
 from pewpew.charts.colors import light_theme, sequential
 
-from typing import Union
-
 
 class HistogramChart(BaseChart):
     """BaseChart for drawing a histogram."""
 
-    def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self, title: str | None = None, parent: QtWidgets.QWidget | None = None
+    ):
         super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
         self.setMinimumSize(QtCore.QSize(640, 320))
         self.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -45,7 +45,7 @@ class HistogramChart(BaseChart):
     def setHistogram(
         self,
         data: np.ndarray,
-        bins: Union[int, str] = "auto",
+        bins: int | str = "auto",
         min_bins: int = 16,
         max_bins: int = 128,
     ) -> None:

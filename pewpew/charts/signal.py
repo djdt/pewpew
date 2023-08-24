@@ -1,5 +1,5 @@
-from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtCharts import QtCharts
+from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCharts
 
 import numpy as np
 
@@ -15,7 +15,7 @@ class SignalChart(BaseChart):
     Series are stored in a dictionary variable 'series'.
     """
 
-    def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
+    def __init__(self, title: str | None = None, parent: QtWidgets.QWidget | None = None):
         super().__init__(
             QtCharts.QChart(), theme=light_theme, allow_navigation=True, parent=parent
         )
@@ -37,7 +37,7 @@ class SignalChart(BaseChart):
 
         self.series = {}
 
-    def setSeries(self, name: str, ys: np.ndarray, xs: np.ndarray = None) -> None:
+    def setSeries(self, name: str, ys: np.ndarray, xs: np.ndarray | None = None) -> None:
         if xs is None:
             xs = np.arange(ys.size)
         data = np.stack((xs, ys), axis=1)
@@ -48,10 +48,10 @@ class SignalChart(BaseChart):
         self,
         name: str,
         ys: np.ndarray,
-        xs: np.ndarray = None,
+        xs: np.ndarray | None = None,
         color: QtGui.QColor = QtCore.Qt.black,
         linewidth: float = 1.0,
-        label: str = None,
+        label: str | None = None,
     ) -> None:
         """Add a line plot to the chart.
 
@@ -84,10 +84,10 @@ class SignalChart(BaseChart):
         self,
         name: str,
         ys: np.ndarray,
-        xs: np.ndarray = None,
+        xs: np.ndarray | None = None,
         color: QtGui.QColor = QtCore.Qt.black,
         markersize: float = 10.0,
-        label: str = None,
+        label: str | None = None,
     ) -> None:
         """Add a scatter plot to the chart.
 

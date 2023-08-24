@@ -1,24 +1,28 @@
+from pathlib import Path
+
 import numpy as np
-
-from pytestqt.qtbot import QtBot
-
 from pewlib.laser import Laser
-
-from pewpew.widgets.laser import LaserViewSpace
-from pewpew.widgets.tools.filtering import FilteringTool
-
+from pytestqt.qtbot import QtBot
 from testing import rand_data
+
+from pewpew.widgets.laser import LaserTabView
+from pewpew.widgets.tools.filtering import FilteringTool
 
 
 def test_tool_filter(qtbot: QtBot):
-    viewspace = LaserViewSpace()
-    qtbot.addWidget(viewspace)
-    viewspace.show()
-    view = viewspace.activeView()
-    view.addLaser(Laser(rand_data(["a"])))
-    tool = FilteringTool(view.activeWidget())
+    view = LaserTabView()
+    qtbot.addWidget(view)
+    view.show()
+
+    widget = view.importFile(
+        Path("/home/pewpew/fake.npz"),
+        Laser(rand_data(["a", "b"]), info={"Name": "test"}),
+    )
+    item = widget.laserItems()[0]
+    tool = FilteringTool(item)
     view.addTab("Tool", tool)
-    qtbot.waitExposed(tool)
+    with qtbot.waitExposed(tool):
+        tool.show()
 
     tool.combo_filter.setCurrentText("Mean")
     tool.combo_filter.activated.emit(0)

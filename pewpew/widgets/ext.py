@@ -1,6 +1,6 @@
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
-from typing import List, Tuple
+from typing import List,  Tuple
 
 
 class CollapsableWidget(QtWidgets.QWidget):
@@ -97,7 +97,7 @@ class RangeSlider(QtWidgets.QSlider):
 
     value2Changed = QtCore.Signal(int)
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setOrientation(QtCore.Qt.Horizontal)
 
@@ -153,12 +153,18 @@ class RangeSlider(QtWidgets.QSlider):
         handle = self.style().subControlRect(
             QtWidgets.QStyle.CC_Slider, option, QtWidgets.QStyle.SC_SliderHandle, self
         )
+        # Handle groove is minus 1/2 the handle width each side
         pos = self.style().sliderPositionFromValue(
-            self.minimum(), self.maximum(), self.value2(), groove.width()
+            self.minimum(),
+            self.maximum(),
+            self.value2(),
+            groove.width() - handle.width(),
         )
+        pos += handle.width() // 2
 
         handle.moveCenter(QtCore.QPoint(pos, handle.center().y()))
-        if handle.contains(event.pos()):
+        handle = handle.marginsAdded(QtCore.QMargins(2, 2, 2, 2))
+        if handle.contains(event.position().toPoint()):
             event.accept()
             self._pressed = True
             self.setSliderDown(True)
@@ -167,6 +173,7 @@ class RangeSlider(QtWidgets.QSlider):
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         if self._pressed:
+            pos = event.position().toPoint()
             option = QtWidgets.QStyleOptionSlider()
             self.initStyleOption(option)
             groove = self.style().subControlRect(
@@ -182,15 +189,21 @@ class RangeSlider(QtWidgets.QSlider):
                 self,
             )
             value = self.style().sliderValueFromPosition(
-                self.minimum(), self.maximum(), event.pos().x(), groove.width()
+                self.minimum(),
+                self.maximum(),
+                pos.x() - handle.width() // 2,
+                groove.width() - handle.width(),
             )
-            handle.moveCenter(event.pos())
-            handle = handle.marginsAdded(
-                QtCore.QMargins(
-                    handle.width(), handle.width(), handle.width(), handle.width()
-                )
-            )
+            handle.moveCenter(pos)
             if self.hasTracking():
+                handle = handle.marginsAdded(
+                    QtCore.QMargins(
+                        handle.width() * 3,
+                        handle.width(),
+                        handle.width() * 3,
+                        handle.width(),
+                    )
+                )
                 self.setValue2(value)
                 self.repaint(handle)
         else:
@@ -198,6 +211,7 @@ class RangeSlider(QtWidgets.QSlider):
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
         if self._pressed:
+            pos = event.position().toPoint()
             self._pressed = False
             option = QtWidgets.QStyleOptionSlider()
             self.initStyleOption(option)
@@ -214,16 +228,10 @@ class RangeSlider(QtWidgets.QSlider):
                 self,
             )
             value = self.style().sliderValueFromPosition(
-                self.minimum(), self.maximum(), event.pos().x(), groove.width()
-            )
-            handle.moveCenter(event.pos())
-            handle = handle.marginsAdded(
-                QtCore.QMargins(
-                    handle.width(), handle.width(), handle.width(), handle.width()
-                )
-            )
-            value = self.style().sliderValueFromPosition(
-                self.minimum(), self.maximum(), event.pos().x(), groove.width()
+                self.minimum(),
+                self.maximum(),
+                pos.x() - handle.width() // 2,
+                groove.width() - handle.width(),
             )
             self.setSliderDown(False)
             self.setValue2(value)
@@ -302,7 +310,7 @@ class RangeSlider(QtWidgets.QSlider):
 class ValidColorLineEdit(QtWidgets.QLineEdit):
     """Colors the QLineEdit red when there is non-acceptable input."""
 
-    def __init__(self, text: str = "", parent: QtWidgets.QWidget = None):
+    def __init__(self, text: str = "", parent: QtWidgets.QWidget | None = None):
         super().__init__(text, parent)
         self.textChanged.connect(self.revalidate)
         self.color_good = self.palette().color(QtGui.QPalette.Base)
@@ -327,7 +335,8 @@ class ValidColorLineEdit(QtWidgets.QLineEdit):
 
 class ValidColorTextEdit(QtWidgets.QTextEdit):
     """Colors the QTextEdit red when there is non-acceptable input."""
-    def __init__(self, text: str = "", parent: QtWidgets.QWidget = None):
+
+    def __init__(self, text: str = "", parent: QtWidgets.QWidget | None = None):
         super().__init__(text, parent)
         self.textChanged.connect(self.revalidate)
         self.color_good = self.palette().color(QtGui.QPalette.Base)

@@ -1,4 +1,4 @@
-from PySide2 import QtCore
+from PySide6 import QtCore
 
 
 class DragDropRedirectFilter(QtCore.QObject):  # pragma: no cover

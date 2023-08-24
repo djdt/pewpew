@@ -1,10 +1,10 @@
-from PySide2 import QtCore, QtGui
+from typing import Dict, Tuple
+
 import numpy as np
+from PySide6 import QtCore, QtGui
 
-from typing import Dict, Tuple, Union
 
-
-class GraphicsOptions(object):
+class GraphicsOptions(QtCore.QObject):
     """This object stores information used by pewpew to draw images.
 
     Parameters:
@@ -29,39 +29,72 @@ class GraphicsOptions(object):
         "viridis": "Perceptually uniform colormap.",
     }
 
-    def __init__(self, *args, **kwargs) -> None:
-        # Todo: maybe alignments here?
-        self.items = {
-            "label": True,
-            "scalebar": True,
-            "colorbar": True,
-        }
+    fontOptionsChanged = QtCore.Signal()
+    imageOptionsChanged = QtCore.Signal()
+    visiblityOptionsChanged = QtCore.Signal()
 
-        self.colortable = "viridis"
-        self._colorranges: Dict[str, Tuple[Union[float, str], Union[float, str]]] = {}
-        self.colorrange_default = (0.0, "99%")
+    def __init__(self) -> None:
+        super().__init__()
+        self.color_ranges: Dict[str, Tuple[float | str, float | str]] = {}
+        self.color_range_default: Tuple[float | str, float | str] = (0.0, "99%")
 
+        self.scalebar = True
+        self.highlight_focus = True
         self.smoothing = False
 
-        self.font = QtGui.QFont()
-        self.font.setPointSize(16)
-        self.font_color = QtCore.Qt.white
+        self.font = QtGui.QFont("sans", 16)
+        self.font_color = QtGui.QColor(255, 255, 255)
 
         self.calibrate = True
         self.units = "μm"
 
-    def get_colorrange(self, name: str) -> Tuple[Union[float, str], Union[float, str]]:
-        """Get colorrange for 'name' or a default."""
-        return self._colorranges.get(name, self.colorrange_default)
+    @property
+    def colortable(self) -> str:
+        return QtCore.QSettings().value("Options/Colortable", "viridis")
 
-    def get_colorrange_as_float(
+    @colortable.setter
+    def colortable(self, colortable: str) -> None:
+        assert colortable in GraphicsOptions.colortables.keys()
+        QtCore.QSettings().setValue("Options/Colortable", colortable)
+
+    @property
+    def nan_color(self) -> QtGui.QColor:
+        return QtCore.QSettings().value(
+            "Options/NanColor", QtGui.QColor(0, 0, 0), type=QtGui.QColor
+        )
+
+    @nan_color.setter
+    def nan_color(self, color: QtGui.QColor) -> None:
+        return QtCore.QSettings().setValue("Options/NanColor", color)
+
+    def setFont(self, font: QtGui.QFont) -> None:
+        self.font = font
+        self.fontOptionsChanged.emit()
+
+    def setFontSize(self, size: int) -> None:
+        self.font.setPointSize(size)
+        self.fontOptionsChanged.emit()
+
+    def setHighlightFocus(self, hightlight: bool) -> None:
+        self.highlight_focus = hightlight
+        self.imageOptionsChanged.emit()
+
+    def setScalebarVisible(self, visible: bool) -> None:
+        self.scalebar = visible
+        self.visiblityOptionsChanged.emit()
+
+    def setSmoothing(self, smooth: bool) -> None:
+        self.smoothing = smooth
+        self.imageOptionsChanged.emit()
+
+    def get_color_range_as_float(
         self, name: str, data: np.ndarray
     ) -> Tuple[float, float]:
         """Get colorrange for 'name' or a default.
 
         Converts percentile ranges to float values.
         """
-        vmin, vmax = self.get_colorrange(name)
+        vmin, vmax = self.color_ranges.get(name, self.color_range_default)
         if data.dtype == bool:
             return 0, 1
 
@@ -71,14 +104,14 @@ class GraphicsOptions(object):
             vmax = np.nanpercentile(data, float(vmax.rstrip("%")))
         return vmin, vmax  # type: ignore
 
-    def get_colorrange_as_percentile(
+    def get_color_range_as_percentile(
         self, name: str, data: np.ndarray
     ) -> Tuple[float, float]:
         """Get colorrange for 'name' or a default.
 
         Converts float values to percentile ranges.
         """
-        vmin, vmax = self.get_colorrange(name)
+        vmin, vmax = self.color_ranges.get(name, self.color_range_default)
         if isinstance(vmin, str):
             vmin = float(vmin.rstrip("%"))
         else:
@@ -89,8 +122,8 @@ class GraphicsOptions(object):
             vmin = np.count_nonzero(data < vmax) / data.size * 100
         return vmin, vmax  # type: ignore
 
-    def set_colorrange(
-        self, name: str, colorrange: Tuple[Union[float, str], Union[float, str]]
-    ) -> None:
-        """Set colorrange for 'name'."""
-        self._colorranges[name] = colorrange
+    # def set_colorrange(
+    #     self, name: str, colorrange: Tuple[float | str, Union[float, str]]
+    # ) -> None:
+    #     """Set colorrange for 'name'."""
+    #     self._colorranges[name] = colorrange

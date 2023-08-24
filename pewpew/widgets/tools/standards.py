@@ -1,13 +1,13 @@
 import copy
 import numpy as np
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewlib import Calibration
+from pewpew.graphics import colortable
+from pewpew.graphics.imageitems import LaserImageItem, ScaledImageItem, SnapImageItem
 
-from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.items import ResizeableRectItem
-from pewpew.graphics.options import GraphicsOptions
 
 from pewpew.validators import DoubleSignificantFiguresDelegate
 
@@ -17,69 +17,11 @@ from pewpew.widgets.modelviews import (
     BasicTable,
     BasicTableView,
 )
-from pewpew.widgets.laser import LaserWidget
+from pewpew.widgets.views import TabView
 
 from .tool import ToolWidget
 
-from typing import Any, Dict, List, Optional, Tuple
-
-
-class StandardsGraphicsView(LaserGraphicsView):
-    """Graphics view with rectangle selection of areas."""
-
-    levelsChanged = QtCore.Signal()
-
-    def __init__(self, options: GraphicsOptions, parent: QtWidgets.QWidget = None):
-        super().__init__(options, parent)
-        self.setInteractionFlag("tool")
-        self.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
-
-        self.levels: List[CalibrationRectItem] = []
-
-    def drawLevels(self, labels: str, n: int) -> None:
-        for item in self.levels:
-            self.scene().removeItem(item)
-        self.levels = []
-
-        px = self.image.rect.width() / self.data.shape[1]
-        py = self.image.rect.height() / self.data.shape[0]
-
-        x1 = self.image.rect.x() + 0.1 * self.image.rect.width()
-        x1 = x1 - x1 % px
-        x2 = self.image.rect.x() + 0.9 * self.image.rect.width()
-        x2 = x2 - x2 % px
-
-        height_per_level = self.image.rect.height() / n
-
-        for i in range(n):
-            y1 = self.image.rect.y() + i * height_per_level
-            y1 = y1 - y1 % py
-            y2 = self.image.rect.y() + (i + 1) * height_per_level
-            y2 = y2 - y2 % py
-
-            rect = QtCore.QRectF(x1, y1, x2 - x1, y2 - y1)
-
-            item = CalibrationRectItem(rect, labels[i], px, py, font=self.options.font)
-            item.setZValue(self.image.zValue() + 1)
-            self.levels.append(item)
-            self.scene().addItem(item)
-
-    def currentLevelDataCoords(self) -> List[Tuple[int, int, int, int]]:
-        levels = []
-        for item in self.levels:
-            p1 = self.mapToData(item.mapToScene(item.rect().topLeft()))
-            p2 = self.mapToData(item.mapToScene(item.rect().bottomRight()))
-            levels.append((p1.x(), p1.y(), p2.x(), p2.y()))
-        return levels
-
-    def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
-        for item in self.levels:
-            if item.changed:
-                self.levelsChanged.emit()
-                break
-        for item in self.levels:
-            item.changed = False
-        super().mouseReleaseEvent(event)
+from typing import Any, Dict, List
 
 
 class StandardsTool(ToolWidget):
@@ -87,13 +29,18 @@ class StandardsTool(ToolWidget):
 
     WEIGHTINGS = ["Equal", "1/σ²", "x", "1/x", "1/x²", "y", "1/y", "1/y²"]
 
-    def __init__(self, widget: LaserWidget):
-        super().__init__(widget, control_label="Calibration", apply_all=True)
+    def __init__(self, item: LaserImageItem, view: TabView | None = None):
+        super().__init__(item, control_label="Calibration", apply_all=True, view=view)
         self.setWindowTitle("Calibration Tool")
+
+        self.graphics.setInteractionFlag("tool")
+        self.graphics.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
+        self.image: ScaledImageItem | None = None
+        self.levels: List[CalibrationRectItem] = []
 
         self.calibration: Dict[str, Calibration] = {}
         self.previous_element = ""
-        self.dlg: Optional[CalibrationCurveDialog] = None
+        self.dlg: CalibrationCurveDialog | None = None
 
         # Left side
         self.spinbox_levels = QtWidgets.QSpinBox()
@@ -121,8 +68,8 @@ class StandardsTool(ToolWidget):
         self.button_plot.pressed.connect(self.showCurve)
 
         # Right side
-        self.graphics = StandardsGraphicsView(self.viewspace.options, parent=self)
-        self.graphics.levelsChanged.connect(self.updateCounts)
+        # self.graphics = StandardsGraphicsView(self.viewspace.options, parent=self)
+        # self.levelsChanged.connect(self.updateCounts)
 
         self.combo_element = QtWidgets.QComboBox()
         self.combo_element.currentIndexChanged.connect(self.comboElement)
@@ -133,12 +80,12 @@ class StandardsTool(ToolWidget):
         self.table.model().dataChanged.connect(self.updateResults)
 
         # Initialise
-        self.calibration = copy.deepcopy(self.widget.laser.calibration)
+        self.calibration = copy.deepcopy(self.item.laser.calibration)
         # Prevent currentIndexChanged being emmited
         self.combo_element.blockSignals(True)
         self.combo_element.clear()
-        self.combo_element.addItems(self.widget.laser.elements)
-        self.combo_element.setCurrentText(self.widget.combo_element.currentText())
+        self.combo_element.addItems(self.item.laser.elements)
+        self.combo_element.setCurrentText(self.item.element())
         self.combo_element.blockSignals(False)
 
         element = self.combo_element.currentText()
@@ -160,10 +107,7 @@ class StandardsTool(ToolWidget):
         )
         layout_results.addWidget(self.combo_element, 0, QtCore.Qt.AlignTop)
 
-        layout_graphics = QtWidgets.QVBoxLayout()
-        layout_graphics.addWidget(self.graphics, 1)
-        layout_graphics.addLayout(layout_results)
-        self.box_graphics.setLayout(layout_graphics)
+        self.box_graphics.layout().addLayout(layout_results, 0)
 
         layout_controls = QtWidgets.QVBoxLayout()
         layout_controls.addLayout(layout_cal_form)
@@ -175,34 +119,75 @@ class StandardsTool(ToolWidget):
         self.updateResults()
 
     def apply(self) -> None:
-        self.widget.applyCalibration(self.calibration)  # pragma: no cover
+        self.item.applyCalibration(self.calibration)  # pragma: no cover
 
     def applyAll(self) -> None:
-        self.viewspace.applyCalibration(self.calibration)  # pragma: no cover
+        self.view.applyCalibration(self.calibration)  # pragma: no cover
+
+    def drawLevels(self, labels: str, n: int) -> None:
+        for item in self.levels:
+            self.graphics.scene().removeItem(item)
+        self.levels = []
+
+        x1 = 0.1 * self.image.boundingRect().width()
+        x2 = 0.9 * self.image.boundingRect().width()
+
+        height_per_level = self.image.boundingRect().height() / n
+
+        for i in range(n):
+            y1 = self.image.boundingRect().y() + i * height_per_level
+            y2 = self.image.boundingRect().y() + (i + 1) * height_per_level
+
+            rect = QtCore.QRectF(
+                self.image.snapPos(QtCore.QPointF(x1, y1)),
+                self.image.snapPos(QtCore.QPointF(x2, y2)),
+            )
+            rect.moveTo(0, 0)
+
+            item = CalibrationRectItem(
+                rect, labels[i], self.image, font=self.item.options.font
+            )
+            item.setPos(QtCore.QPointF(x1, y1))
+            item.changed.connect(self.updateCounts)
+            item.setZValue(self.image.zValue() + 1)
+            self.levels.append(item)
 
     def isComplete(self) -> bool:
         return self.table.isComplete()
 
     def refresh(self) -> None:
         element = self.combo_element.currentText()
-        if element not in self.widget.laser.elements:  # pragma: no cover
+        if element not in self.item.laser.elements:  # pragma: no cover
             return
 
-        data = self.widget.laser.get(element, calibrate=False, flat=True)
+        data = self.item.laser.get(element, calibrate=False, flat=True)
 
-        x0, x1, y0, y1 = self.widget.laser.config.data_extent(data.shape)
+        x0, x1, y0, y1 = self.item.laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
-        self.graphics.drawImage(data, rect, self.combo_element.currentText())
+        vmin, vmax = self.item.options.get_color_range_as_float("<calc>", data)
+        data = np.clip(data, vmin, vmax)
+        if vmin != vmax:
+            data = (data - vmin) / (vmax - vmin)
 
-        self.graphics.label.setText(self.combo_element.currentText())
+        table = colortable.get_table(self.item.options.colortable)
 
-        self.graphics.setOverlayItemVisibility()
-        self.graphics.updateForeground()
+        image = ScaledImageItem.fromArray(data, rect, table)
+        self.graphics.scene().addItem(image)
+        for item in self.levels:
+            item.setParentItem(image)
+        if self.image is not None:
+            self.graphics.scene().removeItem(self.image)
+        self.image = image
+
+        self.colorbar.updateTable(
+            table, vmin, vmax, self.item.laser.calibration[element].unit
+        )
+
+        if len(self.levels) != self.spinbox_levels.value():
+            self.drawLevels(self.table.ROW_LABELS, self.spinbox_levels.value())
+
         self.graphics.invalidateScene()
-
-        if len(self.graphics.levels) != self.spinbox_levels.value():
-            self.graphics.drawLevels(self.table.ROW_LABELS, self.spinbox_levels.value())
 
         self.updateCounts()
 
@@ -211,13 +196,17 @@ class StandardsTool(ToolWidget):
         wstr = self.combo_weighting.currentText()
         if wstr == "1/σ²":
             if self.calibration[element].x.size > 0:
-                shape = self.graphics.data.shape
-                levels = self.graphics.currentLevelDataCoords()
                 buckets = []
-                for (x1, y1, x2, y2) in levels:
-                    x1, y1 = max(x1, 0), max(y1, 0)
-                    x2, y2 = min(x2, shape[1]), min(y2, shape[0])
-                    bucket = self.graphics.data[y1:y2, x1:x2]
+                for item in self.levels:
+                    p1 = self.image.mapToData(item.mapToScene(item.rect.topLeft()))
+                    p2 = self.image.mapToData(item.mapToScene(item.rect.bottomRight()))
+                    p1.setX(max(p1.x(), 0))
+                    p2.setX(max(p2.x(), 0))
+                    p1.setY(max(p1.y(), 0))
+                    p2.setY(max(p2.y(), 0))
+                    bucket = self.item.laser.data[element][
+                        p1.y() : p2.y(), p1.x() : p2.x()
+                    ]
                     buckets.append(bucket)
                 weights = 1.0 / np.square(
                     np.array([np.nanstd(bucket) for bucket in buckets])
@@ -233,16 +222,19 @@ class StandardsTool(ToolWidget):
             self.calibration[element].weights = wstr
 
     def updateCounts(self) -> None:
-        if self.graphics.data.size == 0:  # pragma: no cover
+        element = self.combo_element.currentText()
+        if self.image is None:
             return
 
-        shape = self.graphics.data.shape
-        levels = self.graphics.currentLevelDataCoords()
         buckets = []
-        for (x1, y1, x2, y2) in levels:
-            x1, y1 = max(x1, 0), max(y1, 0)
-            x2, y2 = min(x2, shape[1]), min(y2, shape[0])
-            bucket = self.graphics.data[y1:y2, x1:x2]
+        for item in self.levels:
+            p1 = self.image.mapToData(item.mapToScene(item.rect.topLeft()))
+            p2 = self.image.mapToData(item.mapToScene(item.rect.bottomRight()))
+            p1.setX(max(p1.x(), 0))
+            p2.setX(max(p2.x(), 0))
+            p1.setY(max(p1.y(), 0))
+            p2.setY(max(p2.y(), 0))
+            bucket = self.item.laser.data[element][p1.y() : p2.y(), p1.x() : p2.x()]
             buckets.append(bucket)
         self.table.setCounts(np.array([np.nanmean(bucket) for bucket in buckets]))
 
@@ -308,7 +300,7 @@ class StandardsTool(ToolWidget):
 class StandardsResultsTable(BasicTable):
     LABELS = ["r²", "Gradient", "Intercept", "Sxy", "LOD (3σ)"]
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(2, 5, parent)
         self.setMinimumSize(QtCore.QSize(0, 1))
         self.horizontalHeader().hide()
@@ -328,7 +320,11 @@ class StandardsResultsTable(BasicTable):
             self.item(1, i).setText("")
 
     def updateResults(self, calibration: Calibration) -> None:
-        lod = 3.0 * calibration.error / calibration.gradient if calibration.error is not None else np.nan
+        lod = (
+            3.0 * calibration.error / calibration.gradient
+            if calibration.error is not None
+            else np.nan
+        )
         for i, v in enumerate(
             [
                 calibration.rsq,
@@ -348,7 +344,9 @@ class StandardsTable(BasicTableView):
     COLUMN_COUNT = 1
     COLUMN_WEIGHTS = 2
 
-    def __init__(self, calibration: Calibration, parent: QtWidgets.QWidget = None):
+    def __init__(
+        self, calibration: Calibration, parent: QtWidgets.QWidget | None = None
+    ):
         super().__init__(parent)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         model = CalibrationPointsTableModel(calibration, parent=self)
@@ -367,7 +365,7 @@ class StandardsTable(BasicTableView):
             return False
         if (
             np.count_nonzero(
-                np.nan_to_num(self.model().array[:, StandardsTable.COLUMN_CONC])
+                ~np.isnan(self.model().array[:, StandardsTable.COLUMN_CONC])
             )
             < 2
         ):
@@ -387,16 +385,17 @@ class StandardsTable(BasicTableView):
 
 
 class CalibrationRectItem(ResizeableRectItem):
+    changed = QtCore.Signal()
+
     def __init__(
         self,
         rect: QtCore.QRectF,
         label: str,
-        px: float,
-        py: float,
-        font: QtGui.QFont = None,
-        parent: QtWidgets.QGraphicsItem = None,
+        item: SnapImageItem,
+        font: QtGui.QFont | None = None,
     ):
-        super().__init__(rect, parent=parent)
+        super().__init__(rect, parent=item)
+        self.item = item
 
         pen = QtGui.QPen(QtCore.Qt.white, 2.0)
         pen.setCosmetic(True)
@@ -408,30 +407,25 @@ class CalibrationRectItem(ResizeableRectItem):
         self.font = font
         self.label = label
 
-        self.px = px
-        self.py = py
-
-        self.changed = False
-
     def paint(
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
         super().paint(painter, option, widget)
 
         if self.isSelected():
-            painter.fillRect(self.rect(), QtGui.QBrush(QtGui.QColor(255, 255, 255, 32)))
+            painter.fillRect(self.rect, QtGui.QBrush(QtGui.QColor(255, 255, 255, 32)))
 
         painter.setFont(self.font)
         fm = painter.fontMetrics()
 
-        pos = QtCore.QPointF(self.rect().left(), self.rect().top())
+        pos = QtCore.QPointF(self.rect.left(), self.rect.top())
         pos = painter.transform().map(pos)
         painter.save()
         painter.resetTransform()
-        painter.setPen(self.pen())
+        painter.setPen(self.pen)
         painter.drawText(pos.x() + 5, pos.y() + fm.ascent(), self.label)
         painter.restore()
 
@@ -440,43 +434,48 @@ class CalibrationRectItem(ResizeableRectItem):
     ) -> Any:
         if change == QtWidgets.QGraphicsItem.ItemPositionChange:
             pos = QtCore.QPointF(value)
-            pos.setX(pos.x() - pos.x() % self.px)
-            pos.setY(pos.y() - pos.y() % self.py)
-            self.changed = True
+            pos = self.item.snapPos(pos)
+            if self.pos() != pos:
+                self.changed.emit()
             return pos
         elif change == QtWidgets.QGraphicsItem.ItemSelectedChange:
             if value == 1:
-                self.setZValue(self.zValue() + 100)
+                self.setZValue(self.zValue() + 1)
             else:
-                self.setZValue(self.zValue() - 100)
+                self.setZValue(self.zValue() - 1)
             return value
         return super().itemChange(change, value)
 
     def selectedSiblings(self) -> List["CalibrationRectItem"]:
         return [
             item
-            for item in self.scene().selectedItems()
-            if isinstance(item, CalibrationRectItem)
+            for item in self.parentItem().childItems()
+            if isinstance(item, CalibrationRectItem) and item.isSelected()
         ]
 
+
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
-        eventpos = self.itemChange(
-            QtWidgets.QGraphicsItem.ItemPositionChange, event.pos()
-        )
         if self.selected_edge is None:
             super().mouseMoveEvent(event)
         else:
             for item in self.selectedSiblings():
-                pos = item.mapFromItem(self, eventpos)
-                rect = item.rect()
-                if self.selected_edge.startswith("top") and pos.y() < rect.bottom():
-                    rect.setTop(pos.y())
-                elif self.selected_edge.startswith("bottom") and pos.y() > rect.top():
-                    rect.setBottom(pos.y())
-                if self.selected_edge.endswith("left") and pos.x() < rect.right():
-                    rect.setLeft(pos.x())
-                elif self.selected_edge.endswith("right") and pos.x() > rect.left():
-                    rect.setRight(pos.x())
+                pos = item.mapFromItem(self, self.item.snapPos(event.pos()))
+                if (
+                    self.selected_edge.startswith("top")
+                    and pos.y() < item.rect.bottom()
+                ):
+                    item.rect.setTop(pos.y())
+                elif (
+                    self.selected_edge.startswith("bottom")
+                    and pos.y() > item.rect.top()
+                ):
+                    item.rect.setBottom(pos.y())
+                if self.selected_edge.endswith("left") and pos.x() < item.rect.right():
+                    item.rect.setLeft(pos.x())
+                elif (
+                    self.selected_edge.endswith("right") and pos.x() > item.rect.left()
+                ):
+                    item.rect.setRight(pos.x())
 
-                item.setRect(rect)
                 item.prepareGeometryChange()
+            self.changed.emit()

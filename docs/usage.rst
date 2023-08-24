@@ -2,30 +2,24 @@ Basic Usage
 ===========
 .. index:: Basic Usage
 
-.. figure:: ./images/usage_guide.png
+.. figure:: ./images/usage_guide_1.4.3.png
    :align: center
 
-   An open image in |pewpew|. (1) Open image tabs, double click to edit laser name. (2) View controls. (3) Current image name, double click to rename. (4) Scalebar. (5) A selected region. (6) Image right click context menu. (7) Color scale, units on right if available. (8) Selectoin tools and widgets. (9) Current name selection. (10) Cursor unit, (μ = μm, i = pixel).
+   An open image in |pewpew|. (1) Selected element. (2) Image name, right click to rename. (3) Scalebar. (4) Right click context menu. (5) A selected region. (6) Active image is highlighted. (7) Tools for the active image. (8) Options for selected image. (9) Cursor unit, (μ = μm, i = pixel).
 
 
 The first step in using |pewpew| is to load or import data.
 For an example of using the import wizard see :ref:`Example: Importing file-per-line data` or read :ref:`Import Wizard`.
-The image can be navigated by click and dragging with either the left or middle mouse button and using the scroll wheel.
-The layout of images is able to be customised using the View controls (2).
-
-.. figure:: ./images/usage_view_controls.jpg
-   :align: center
-   :width: 300 px
-    
-   View controls allow visualisation of multiple images at once.
+Images can be moved by click and dragging with either the left mouse button and the scene navigated using the middle mouse and scroll wheel.
+New scenes can be added using **Edit -> New Tab**.
 
 Import and export controls are located in the **File** menu,
-parameters and image transforms in the **Edit** menu and tools for calibration, processing and visualisation of data in the **Tools** menu bar.
+parameters in the **Edit** menu and tools for calibration, processing and visualisation of data under **Right Click -> Tools**.
 
 The **View** menu contains options for customising the visual style of images.
-Here you will find controls for the size and visibility of text, the colortable and image smoothing.
+Here you will find controls for the size and visibility of text, the color table and image smoothing.
 Color table ranges are individually editable for each open element via **View -> Colortable -> Set Range** or **Ctrl+R**.
-A range of perceptually uniform (or near) colortables are available.
+A range of perceptually uniform (or near) color tables are available.
 
 Selections
 ~~~~~~~~~~
@@ -41,7 +35,7 @@ Holding **Shift** will **add** to the currently selected region while holding **
 Saving and Exporting
 ~~~~~~~~~~~~~~~~~~~~
 
-Files can be saved as a numpy archive via the right click context menu **Right Click -> Save**.
+Files can be saved as a Numpy archive via the right click context menu **Right Click -> Save**.
 This archive will also include any calibration and configurations applied to the image.
-To export use either the `Export Dialog` **Right Click -> Export** or the batch `Export All Dialog` **File -> Expotr All**.
+To export use either the `Export Dialog` **Right Click -> Export** or the batch `Export All Dialog` **File -> Export All**.
 These dialogs export the current or all images in a range of formats.

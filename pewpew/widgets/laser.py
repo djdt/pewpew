@@ -1,189 +1,92 @@
 import copy
-from io import BytesIO
-import numpy as np
-from pathlib import Path
 import logging
+from io import BytesIO
+from pathlib import Path
+from typing import Dict, List
 
-from PySide2 import QtCore, QtGui, QtWidgets
-
+import numpy as np
 from pewlib import io
-from pewlib.laser import Laser
-from pewlib.srr import SRRLaser, SRRConfig
 from pewlib.calibration import Calibration
 from pewlib.config import Config
+from pewlib.laser import Laser
+from pewlib.process.register import overlap_structured_arrays
+from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewpew.actions import qAction, qToolButton
+from pewpew.actions import qAction
 from pewpew.events import DragDropRedirectFilter
-
+from pewpew.graphics.imageitems import (
+    ImageOverlayItem,
+    LaserImageItem,
+    RGBLaserImageItem,
+    SnapImageItem,
+)
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
-
 from pewpew.threads import ImportThread
-
 from pewpew.widgets import dialogs, exportdialogs
-from pewpew.widgets.views import View, ViewSpace, _ViewWidget
-
-from typing import Dict, List, Optional, Set, Union
-
+from pewpew.widgets.controls import (
+    ControlBar,
+    ImageControlBar,
+    LaserControlBar,
+    RGBLaserControlBar,
+)
+from pewpew.widgets.tools import ToolWidget
+from pewpew.widgets.tools.calculator import CalculatorTool
+from pewpew.widgets.tools.filtering import FilteringTool
+from pewpew.widgets.tools.standards import StandardsTool
+from pewpew.widgets.views import TabView, TabViewWidget
 
 logger = logging.getLogger(__name__)
 
 
-class LaserViewSpace(ViewSpace):
-    """A viewspace for displaying LaserWidget.
-
-    Parameters:
-        config: the default config
-        options: image drawing options
-    """
-
-    def __init__(
-        self,
-        orientaion: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
-        parent: QtWidgets.QWidget = None,
-    ):
-        super().__init__(orientaion, parent)
-        self.config = Config()
-        self.options = GraphicsOptions()
-
-    def uniqueElements(self) -> List[str]:
-        """Return set of unqiue elements from all open images."""
-        elements: Set[str] = set()
-        for view in self.views:
-            for widget in view.widgets():
-                if isinstance(widget, LaserWidget):
-                    elements.update(widget.laser.elements)
-        return sorted(elements)
-
-    def createView(self) -> "LaserView":
-        """Override for ViewSpace."""
-        view = LaserView(self)
-        view.numTabsChanged.connect(self.numTabsChanged)
-        self.views.append(view)
-        self.numViewsChanged.emit()
-        return view
-
-    def currentElement(self) -> Optional[str]:
-        """The active element name from the active image."""
-        widget = self.activeWidget()
-        if widget is None:
-            return None
-        return widget.current_element
-
-    def setCurrentElement(self, element: str) -> None:
-        """Set the active element name in all views."""
-        for view in self.views:
-            view.setCurrentElement(element)
-
-    def applyCalibration(self, calibration: Dict[str, Calibration]) -> None:
-        """Set the calibration in all views."""
-        for view in self.views:
-            view.applyCalibration(calibration)
-
-    def applyConfig(self, config: Config) -> None:
-        """Set the laser configuration in all views."""
-        self.config = copy.copy(config)
-        for view in self.views:
-            view.applyConfig(self.config)
-
-    # Editing options
-    def colortableRangeDialog(self) -> QtWidgets.QDialog:
-        """Open a `:class:pewpew.widgets.dialogs.ColocalisationDialog` and apply result."""
-
-        def applyDialog(dialog: dialogs.ApplyDialog) -> None:
-            self.options._colorranges = dialog.ranges
-            self.options.colorrange_default = dialog.default_range
-            self.refresh()
-
-        dlg = dialogs.ColorRangeDialog(
-            self.options._colorranges,
-            self.options.colorrange_default,
-            self.uniqueElements(),
-            current_element=self.currentElement(),
-            parent=self,
-        )
-        dlg.combo_element.currentTextChanged.connect(self.setCurrentElement)
-        dlg.applyPressed.connect(applyDialog)
-        dlg.open()
-        return dlg
-
-    def configDialog(self) -> QtWidgets.QDialog:
-        """Open a `:class:pewpew.widgets.dialogs.ConfigDialog` and apply result."""
-        dlg = dialogs.ConfigDialog(self.config, parent=self)
-        dlg.check_all.setChecked(True)
-        dlg.check_all.setEnabled(False)
-        dlg.configApplyAll.connect(self.applyConfig)
-        dlg.open()
-        return dlg
-
-    def fontsizeDialog(self) -> QtWidgets.QDialog:
-        """Simple dialog for editing image font size."""
-        dlg = QtWidgets.QInputDialog(self)
-        dlg.setWindowTitle("Fontsize")
-        dlg.setLabelText("Fontisze:")
-        dlg.setIntValue(self.options.font.pointSize())
-        dlg.setIntRange(2, 96)
-        dlg.setInputMode(QtWidgets.QInputDialog.IntInput)
-        dlg.intValueSelected.connect(self.options.font.setPointSize)
-        dlg.intValueSelected.connect(self.refresh)
-        dlg.open()
-        return dlg
-
-    def setColortable(self, table: str) -> None:
-        self.options.colortable = table
-        self.refresh()
-
-    def toggleCalibrate(self, checked: bool) -> None:
-        self.options.calibrate = checked
-        self.refresh()
-
-    def setColorbarVisible(self, visible: bool = False) -> None:
-        self.options.items["colorbar"] = visible
-        self.refresh()
-
-    def setLabelVisible(self, visible: bool) -> None:
-        self.options.items["label"] = visible
-        self.refresh()
-
-    def setScalebarVisible(self, visible: bool) -> None:
-        self.options.items["scalebar"] = visible
-        self.refresh()
-
-    def toggleSmooth(self, checked: bool) -> None:
-        self.options.smoothing = checked
-        self.refresh()
+# @todo, add button to toolbars to lock the current item as active
 
 
-class LaserView(View):
+class LaserTabView(TabView):
     """Tabbed view for displaying laser images."""
 
-    def __init__(self, viewspace: LaserViewSpace):
-        super().__init__(viewspace)
-        self.action_open = qAction(
-            "document-open", "&Open", "Open new document(s).", self.actionOpen
-        )
+    fileImported = QtCore.Signal(Path)
+    numImageItemsChanged = QtCore.Signal()  # needs close
+    numLaserItemsChanged = QtCore.Signal()
 
-    def addLaser(self, laser: Laser) -> "LaserWidget":
-        """Open image of  a laser in a new tab."""
-        widget = LaserWidget(laser, self.viewspace.options, self)
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
 
-        name = laser.info.get("Name", "<No Name>")
-        self.addTab(name, widget)
+        self.config = Config()
+        self.options = GraphicsOptions()
+        self.tabs.setAutoHide(True)
+
+    def insertTab(self, index: int, text: str, widget: "LaserTabWidget") -> int:
+        index = super().insertTab(index, text, widget)
+        if isinstance(widget, LaserTabWidget):
+            widget.numLaserItemsChanged.connect(self.numLaserItemsChanged)
+            widget.numImageItemsChanged.connect(self.numImageItemsChanged)
+        return index
+
+    def newLaserTab(self) -> "LaserTabWidget":
+        widget = LaserTabWidget(self.options, self)
+        number = sum(1 for x in self.widgets() if isinstance(x, LaserTabWidget))
+        self.addTab(f"Tab {number + 1}", widget)
         return widget
 
-    def setCurrentElement(self, element: str) -> None:
-        """Set displayed element in all tabs."""
-        for widget in self.widgets():
-            if element in widget.laser.elements:
-                widget.current_element = element
+    def importFile(self, path: Path, data: Laser | QtGui.QImage) -> "LaserTabWidget":
+        try:
+            widget = self.activeWidget()
+            if not isinstance(widget, LaserTabWidget):
+                widget = next(
+                    iter(w for w in self.widgets() if isinstance(w, LaserTabWidget))
+                )
+        except StopIteration:
+            widget = self.newLaserTab()
+        if isinstance(data, Laser):
+            widget.addLaser(data)
+        else:
+            widget.addImage(data)
+
+        self.fileImported.emit(path)
+        return widget
 
     # Events
-    def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
-        menu = QtWidgets.QMenu(self)
-        menu.addAction(self.action_open)
-        menu.popup(event.globalPos())
-        event.accept()
-
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
@@ -200,8 +103,11 @@ class LaserView(View):
         self.openDocument(paths)
 
     # Callbacks
-    def openDocument(self, paths: List[Path]) -> None:
+    def openDocument(self, paths: List[Path] | Path) -> None:
         """Open `paths` as new laser images."""
+        if isinstance(paths, (Path, str)):
+            paths = [paths]
+
         paths = [Path(path) for path in paths]  # Ensure Path
 
         progress = QtWidgets.QProgressDialog(
@@ -209,13 +115,13 @@ class LaserView(View):
         )
         progress.setWindowTitle("Importing...")
         progress.setMinimumDuration(2000)
-        thread = ImportThread(paths, config=self.viewspace.config, parent=self)
+        thread = ImportThread(paths, config=self.config, parent=self)
 
         progress.canceled.connect(thread.requestInterruption)
         thread.importStarted.connect(progress.setLabelText)
         thread.progressChanged.connect(progress.setValue)
 
-        thread.importFinished.connect(self.addLaser)
+        thread.importFinished.connect(self.importFile)
         thread.importFailed.connect(logger.exception)
         thread.finished.connect(progress.close)
 
@@ -224,60 +130,50 @@ class LaserView(View):
     def applyCalibration(self, calibration: Dict[str, Calibration]) -> None:
         """Set calibrations in all tabs."""
         for widget in self.widgets():
-            if isinstance(widget, LaserWidget):
-                widget.applyCalibration(calibration)
+            if isinstance(widget, LaserTabWidget):
+                for item in widget.laserItems():
+                    item.applyCalibration(calibration)
 
     def applyConfig(self, config: Config) -> None:
         """Set laser configurations in all tabs."""
+        self.config = config
         for widget in self.widgets():
-            if isinstance(widget, LaserWidget):
-                widget.applyConfig(config)
+            if isinstance(widget, LaserTabWidget):
+                for item in widget.laserItems():
+                    item.applyConfig(config)
 
-    # Actions
-    def actionOpen(self) -> QtWidgets.QDialog:
-        """Opens a file dialog for loading new lasers."""
-        dlg = QtWidgets.QFileDialog(
-            self,
-            "Open File(s).",
-            "",
-            "CSV Documents(*.csv *.txt *.text);;Numpy Archives(*.npz);;All files(*)",
-        )
-        dlg.selectNameFilter("All files(*)")
-        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
-        dlg.filesSelected.connect(self.openDocument)
-        dlg.open()
-        return dlg
+    def laserItems(self) -> List[LaserImageItem]:
+        items = []
+        for widget in self.widgets():
+            if isinstance(widget, LaserTabWidget):
+                items.extend(widget.laserItems())
+        return items
 
+    def focusLaserItem(self) -> LaserImageItem | None:
+        widget = self.activeWidget()
+        if isinstance(widget, LaserTabWidget):
+            item = widget.graphics.scene().focusItem()
+            if isinstance(item, LaserImageItem):
+                return item
+        return None
 
-class LaserComboBox(QtWidgets.QComboBox):
-    """Combo box with a context menu for editing names."""
+    def uniqueElements(self) -> List[str]:
+        elements = set([])
+        for widget in self.widgets():
+            if isinstance(widget, LaserTabWidget):
+                elements.update(widget.uniqueElements())
+        return list(elements)
 
-    namesSelected = QtCore.Signal(dict)
-
-    def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
-        self.action_edit_names = qAction(
-            "document-edit",
-            "Edit Names",
-            "Edit image names.",
-            self.actionNameEditDialog,
-        )
-
-    def actionNameEditDialog(self) -> QtWidgets.QDialog:
-        names = [self.itemText(i) for i in range(self.count())]
-        dlg = dialogs.NameEditDialog(names, parent=self)
-        dlg.namesSelected.connect(self.namesSelected)
-        dlg.open()
-        return dlg
-
-    def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
-        event.accept()
-        menu = QtWidgets.QMenu(self)
-        menu.addAction(self.action_edit_names)
-        menu.popup(event.globalPos())
+    def setElement(self, element: str) -> None:
+        for widget in self.widgets():
+            if isinstance(widget, LaserTabWidget):
+                widget.laser_controls.elements.setCurrentText(element)
 
 
-class LaserWidget(_ViewWidget):
+class LaserTabWidget(TabViewWidget):
+    numImageItemsChanged = QtCore.Signal()
+    numLaserItemsChanged = QtCore.Signal()
+
     """Class that stores and displays a laser image.
 
     Tracks modification of the data, config, calibration and information.
@@ -289,109 +185,57 @@ class LaserWidget(_ViewWidget):
         view: parent view
     """
 
-    def __init__(self, laser: Laser, options: GraphicsOptions, view: LaserView = None):
+    def __init__(self, options: GraphicsOptions, view: LaserTabView | None = None):
         super().__init__(view)
-        self.laser = laser
-        self.is_srr = isinstance(laser, SRRLaser)
 
         self.graphics = LaserGraphicsView(options, parent=self)
         self.graphics.setMouseTracking(True)
 
-        self.graphics.cursorValueChanged.connect(self.updateCursorStatus)
-        self.graphics.label.labelChanged.connect(self.renameCurrentElement)
-        self.graphics.colorbar.editRequested.connect(self.actionRequestColorbarEdit)
+        self.graphics.scene().focusItemChanged.connect(self.updateForItem)
+        self.graphics.scene().setStickyFocus(True)
 
-        self.combo_layers = QtWidgets.QComboBox()
-        self.combo_layers.addItem("*")
-        self.combo_layers.addItems([str(i) for i in range(0, self.laser.layers)])
-        self.combo_layers.currentIndexChanged.connect(self.refresh)
-        if not self.is_srr:
-            self.combo_layers.setEnabled(False)
-            self.combo_layers.setVisible(False)
-
-        self.combo_element = LaserComboBox()
-        self.combo_element.namesSelected.connect(self.updateNames)
-        self.combo_element.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
-        self.combo_element.currentIndexChanged.connect(self.refresh)
-        self.populateElements()
-
-        self.action_calibration = qAction(
-            "go-top",
-            "Ca&libration",
-            "Edit the documents calibration.",
-            self.actionCalibration,
-        )
-        self.action_config = qAction(
-            "document-edit", "&Config", "Edit the document's config.", self.actionConfig
-        )
         self.action_copy_image = qAction(
             "insert-image",
-            "Copy &Image",
-            "Copy image to clipboard.",
-            self.actionCopyImage,
+            "Copy Scene &Image",
+            "Copy scene to clipboard.",
+            self.graphics.copyToClipboard,
         )
-        self.action_duplicate = qAction(
-            "edit-copy",
-            "Duplicate image",
-            "Open a copy of the image.",
-            self.actionDuplicate,
-        )
-        self.action_export = qAction(
-            "document-save-as", "E&xport", "Export documents.", self.actionExport
-        )
-        self.action_export.setShortcut("Ctrl+X")
-        # Add the export action so we can use it via shortcut
-        self.addAction(self.action_export)
-        self.action_information = qAction(
-            "documentinfo",
-            "In&formation",
-            "View and edit image information.",
-            self.actionInformation,
-        )
-        self.action_save = qAction(
-            "document-save", "&Save", "Save document to numpy archive.", self.actionSave
-        )
-        self.action_save.setShortcut("Ctrl+S")
-        # Add the save action so we can use it via shortcut
-        self.addAction(self.action_save)
-        self.action_statistics = qAction(
-            "dialog-information",
-            "Statistics",
-            "Open the statisitics dialog.",
-            self.actionStatistics,
-        )
-        self.action_select_statistics = qAction(
-            "dialog-information",
-            "Selection Statistics",
-            "Open the statisitics dialog for the current selection.",
-            self.actionStatisticsSelection,
-        )
-        self.action_colocalisation = qAction(
-            "dialog-information",
-            "Colocalisation",
-            "Open the colocalisation dialog.",
-            self.actionColocal,
-        )
-        self.action_select_colocalisation = qAction(
-            "dialog-information",
-            "Selection Colocalisation",
-            "Open the colocalisation dialog for the current selection.",
-            self.actionColocalSelection,
+        # self.action_open = qAction("document-open", "Open")
+        self.action_export_all = qAction(
+            "document-save-as",
+            "E&xport All",
+            "Export all lasers.",
+            self.dialogExportAll,
         )
 
-        # Toolbar actions
-        self.action_select_none = qAction(
-            "transform-move",
-            "Clear Selection",
-            "Clear any selections.",
-            self.graphics.endSelection,
+        # === Alignment actions ===
+        self.action_align_auto = qAction(
+            "view-refresh",
+            "FFT Register",
+            "Register all images to the topmost image.",
+            self.graphics.alignLaserItemsFFT,
         )
-        self.action_widget_none = qAction(
-            "transform-move",
-            "Clear Widgets",
-            "Closes any open widgets.",
-            self.graphics.endWidget,
+        self.action_align_horz = qAction(
+            "align-vertical-top",
+            "Align Left to Right",
+            "Layout images in a horizontal line.",
+            self.graphics.alignLaserItemsLeftToRight,
         )
+        self.action_align_vert = qAction(
+            "align-horizontal-left",
+            "Align Top to Bottom",
+            "Layout items in a vertical line.",
+            self.graphics.alignLaserItemsTopToBottom,
+        )
+
+        self.action_merge_all = qAction(
+            "merge",
+            "Merge Images",
+            "Merge all laser images into a single file",
+            self.mergeLaserItems,
+        )
+
+        # === Toolbar selections actions ===
         self.action_select_rect = qAction(
             "draw-rectangle",
             "Rectangle Selector",
@@ -407,30 +251,12 @@ class LaserWidget(_ViewWidget):
             self.graphics.startLassoSelection,
         )
         self.action_select_dialog = qAction(
-            "dialog-information",
+            "view-filter",
             "Selection Dialog",
             "Start the selection dialog.",
-            self.actionSelectDialog,
+            lambda: self.openDialog("Selection", None),
         )
-        self.action_select_copy_text = qAction(
-            "insert-table",
-            "Copy Selection as Text",
-            "Copy the current selection to the clipboard as a column of text values.",
-            self.actionCopySelectionText,
-        )
-        self.action_select_crop = qAction(
-            "transform-crop",
-            "Crop to Selection",
-            "Crop the image to the current selection.",
-            self.actionCropSelection,
-        )
-
-        self.selection_button = qToolButton("select", "Selection")
-        self.selection_button.addAction(self.action_select_none)
-        self.selection_button.addAction(self.action_select_rect)
-        self.selection_button.addAction(self.action_select_lasso)
-        self.selection_button.addAction(self.action_select_dialog)
-
+        # === Toolbar widget actions ===
         self.action_ruler = qAction(
             "tool-measure",
             "Measure",
@@ -438,414 +264,410 @@ class LaserWidget(_ViewWidget):
             self.graphics.startRulerWidget,
         )
         self.action_slice = qAction(
-            "tool-measure",
+            "view-object-histogram-linear",
             "1D Slice",
             "Select and display a 1-dimensional slice of the image.",
             self.graphics.startSliceWidget,
         )
-        self.widgets_button = qToolButton("tool-measure", "Widgets")
-        self.widgets_button.addAction(self.action_widget_none)
-        self.widgets_button.addAction(self.action_ruler)
-        self.widgets_button.addAction(self.action_slice)
 
-        self.action_zoom_in = qAction(
-            "zoom-in",
-            "Zoom to Area",
-            "Start zoom area selection.",
-            self.graphics.zoomStart,
+        # === Toolbar transform actions ===
+        self.action_transform_affine = qAction(
+            "node-segment-line",
+            "3-Point Affine",
+            "Use an affine point tool for transformation, this will not affect the pixel size!",
+            lambda: self.graphics.startTransformAffine(None),
         )
+        self.action_transform_scale = qAction(
+            "transform-rotate",
+            "Scale and Rotate",
+            "Scale and rotate image, this will not affect the pixel size!",
+            lambda: self.graphics.startTransformScale(None),
+        )
+        self.action_transform_reset = qAction(
+            "edit-reset",
+            "Reset Transform",
+            "Resets the image transformation.",
+            lambda: self.graphics.resetTransform(None),
+        )
+
+        # === Toolbart view actions ===
+
         self.action_zoom_out = qAction(
-            "zoom-original",
+            "zoom-fit-best",
             "Reset Zoom",
             "Reset zoom to full image extent.",
             self.graphics.zoomReset,
         )
-        self.view_button = qToolButton("zoom", "Zoom")
-        self.view_button.addAction(self.action_zoom_in)
-        self.view_button.addAction(self.action_zoom_out)
+
+        self.controls = QtWidgets.QStackedWidget()
+        self.no_controls = ControlBar()
+        self.laser_controls = LaserControlBar()
+        self.rgb_laser_controls = RGBLaserControlBar()
+        self.image_controls = ImageControlBar()
+
+        self.controls.addWidget(self.no_controls)
+        self.controls.addWidget(self.laser_controls)
+        self.controls.addWidget(self.rgb_laser_controls)
+        self.controls.addWidget(self.image_controls)
+
+        for index in range(self.controls.count()):
+            self.controls.widget(index).toolbar.addActions([self.action_zoom_out])
+            self.controls.widget(index).toolbar.addSeparator()
+
+        for control in [self.laser_controls, self.rgb_laser_controls]:
+            control.toolbar.addActions(
+                [
+                    self.action_select_rect,
+                    self.action_select_lasso,
+                    self.action_select_dialog,
+                ]
+            )
+            control.toolbar.addSeparator()
+            control.toolbar.addActions([self.action_ruler, self.action_slice])
+
+        self.image_controls.toolbar.addActions(
+            [
+                self.action_transform_affine,
+                self.action_transform_scale,
+                self.action_transform_reset,
+            ]
+        )
+        self.image_controls.toolbar.addActions([self.action_ruler])
 
         self.graphics.viewport().installEventFilter(DragDropRedirectFilter(self))
         # Filters for setting active view
         self.graphics.viewport().installEventFilter(self)
-        self.combo_element.installEventFilter(self)
-        self.selection_button.installEventFilter(self)
-        self.widgets_button.installEventFilter(self)
-        self.view_button.installEventFilter(self)
+        # self.laser_controls.elements.installEventFilter(self)
+        self.controls.installEventFilter(self)
 
-        layout_bar = QtWidgets.QHBoxLayout()
-        layout_bar.addWidget(self.selection_button, 0, QtCore.Qt.AlignLeft)
-        layout_bar.addWidget(self.widgets_button, 0, QtCore.Qt.AlignLeft)
-        layout_bar.addWidget(self.view_button, 0, QtCore.Qt.AlignLeft)
-        layout_bar.addStretch(1)
-        layout_bar.addWidget(self.combo_layers, 0, QtCore.Qt.AlignRight)
-        layout_bar.addWidget(self.combo_element, 0, QtCore.Qt.AlignRight)
+        self.view_toolbar = QtWidgets.QToolBar()
+        self.view_toolbar.addActions([self.action_zoom_out])
 
         layout = QtWidgets.QVBoxLayout()
+        layout.setSpacing(0)
         layout.addWidget(self.graphics, 1)
-        layout.addLayout(layout_bar)
+        layout.addWidget(self.controls, 0)
         self.setLayout(layout)
+        self.show()  # Call show here so that zoomReset works
 
-    @property
-    def current_element(self) -> str:
-        return self.combo_element.currentText()
+    def addLaser(
+        self, laser: Laser, pos: QtCore.QPointF | None = None
+    ) -> "LaserImageItem":
+        item = LaserImageItem(laser, self.graphics.options)
+        self.addLaserItem(item, pos=pos)
+        return item
 
-    @current_element.setter
-    def current_element(self, element: str) -> None:
-        self.combo_element.setCurrentText(element)
+    def addLaserItem(
+        self, item: LaserImageItem, pos: QtCore.QPointF | None = None
+    ) -> None:
+        item.requestDialog.connect(self.openDialog)
+        item.requestTool.connect(self.openTool)
+        item.requestConversion.connect(self.convertImage)
 
-    @property
-    def current_layer(self) -> Optional[int]:
-        if not self.is_srr or self.combo_layers.currentIndex() == 0:
-            return None
-        return int(self.combo_layers.currentText())
+        item.requestAddLaser.connect(self.addLaser)
+        item.requestExport.connect(self.dialogExport)
+        item.requestSave.connect(self.dialogSave)
+
+        item.elementsChanged.connect(lambda: self.updateForItem(item))
+
+        item.hoveredValueChanged.connect(self.updateCursorStatus)
+        item.hoveredValueCleared.connect(self.clearCursorStatus)
+
+        # Modification
+        item.modified.connect(lambda: self.setWindowModified(True))
+        item.destroyed.connect(self.numLaserItemsChanged)
+
+        item.redraw()
+        item.setActive(True)
+
+        self.updateForItem(item)
+        self.graphics.scene().addItem(item)
+        if pos is not None:
+            item.setPos(pos)
+        else:
+            self.graphics.zoomReset()
+
+        self.numLaserItemsChanged.emit()
+
+    def addImage(self, path: str | Path) -> "ImageOverlayItem":
+        if isinstance(path, Path):
+            path = str(path.absolute())
+        image = QtGui.QImage(path)
+
+        item = ImageOverlayItem(
+            image, QtCore.QRectF(0, 0, image.width(), image.height())
+        )
+        item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
+        item.requestDialog.connect(self.openDialog)
+        item.destroyed.connect(self.numImageItemsChanged)
+
+        self.updateForItem(item)
+        self.graphics.scene().addItem(item)
+        self.graphics.zoomReset()
+
+        self.numImageItemsChanged.emit()
+        return item
+
+    def convertImage(self, to_type: str, item: SnapImageItem | None = None) -> None:
+        if item is None:
+            item = self.graphics.scene().focusItem()
+
+        if to_type == "RGBLaserImageItem":
+            if not isinstance(item, LaserImageItem):
+                raise ValueError(f"cannot convert {type(item)} to a RGBLaserImageItem")
+            new_item = RGBLaserImageItem.fromLaserImageItem(item, self.graphics.options)
+        elif to_type == "LaserImageItem":
+            if not isinstance(item, RGBLaserImageItem):
+                raise ValueError(f"cannot convert {type(item)} to a LaserImageItem")
+            new_item = LaserImageItem(item.laser, self.graphics.options)
+
+        self.graphics.scene().removeItem(item)
+        self.addLaserItem(new_item, item.pos())
+
+    def laserItems(self) -> List[LaserImageItem]:
+        return self.graphics.laserItems()
+
+    def mergeLaserItems(self) -> None:
+        items = self.laserItems()[::-1]
+        if len(items) < 2:
+            return
+
+        if not all([item.pixelSize() == items[0].pixelSize() for item in items[1:]]):
+            QtWidgets.QMessageBox.warning(
+                self, "Unable to Merge", "All images must have the same pixel size."
+            )
+            return
+
+        datas = [item.laser.get(calibrate=False) for item in items]
+        positions = [item.mapToData(item.pos()) for item in items]
+        offsets = [(p.y(), p.x()) for p in positions]
+        merge = overlap_structured_arrays(datas, offsets)
+
+        info = items[0].laser.info.copy()
+        info["Name"] = "merge: " + info["Name"]
+        info["Merge File Paths"] = ";".join(
+            item.laser.info["File Path"] for item in items
+        )
+
+        laser = Laser(
+            merge,
+            calibration=items[0].laser.calibration,
+            config=items[0].laser.config,
+            info=info,
+        )
+        for item in items:
+            self.graphics.scene().removeItem(item)
+        self.addLaser(laser)
+
+    def uniqueElements(self) -> List[str]:
+        elements = set([])
+        for item in self.laserItems():
+            elements.update(item.laser.elements)
+        return list(elements)
+
+    def updateForItem(
+        self,
+        new: QtWidgets.QGraphicsItem,
+        old: QtWidgets.QGraphicsItem | None = None,
+        reason: QtCore.Qt.FocusReason = QtCore.Qt.NoFocusReason,
+    ) -> None:
+        # Todo: test if lock active
+        if old == new:
+            return
+        if new is None:
+            self.controls.setCurrentWidget(self.no_controls)
+            return
+
+        if isinstance(new, LaserImageItem):
+            if isinstance(new, RGBLaserImageItem):
+                self.controls.setCurrentWidget(self.rgb_laser_controls)
+                self.rgb_laser_controls.setItem(new)
+            else:
+                self.controls.setCurrentWidget(self.laser_controls)
+                self.laser_controls.setItem(new)
+        elif isinstance(new, ImageOverlayItem):  # Todo: maybe add a proper class?
+            self.controls.setCurrentWidget(self.image_controls)
+            self.image_controls.setItem(new)
+        else:
+            raise ValueError(f"updateForItem: Unknown item type {type(new)}.")
 
     # Virtual
     def refresh(self) -> None:
-        """Redraw image."""
-        self.graphics.drawLaser(
-            self.laser, self.current_element, layer=self.current_layer
-        )
-        if self.graphics.widget is not None:
-            self.graphics.widget.imageChanged(self.graphics.image, self.graphics.data)
+        """Redraw images."""
+        for item in self.graphics.items():
+            if isinstance(item, LaserImageItem):
+                item.redraw()
+
         self.graphics.invalidateScene()
         super().refresh()
 
-    def rename(self, text: str) -> None:
-        """Set the 'Name' value of laser information."""
-        self.laser.info["Name"] = text
-        self.modified = True
-
     # Other
-
-    def renameCurrentElement(self, new: str) -> None:
-        """Rename a single element."""
-        self.laser.rename({self.current_element: new})
-        self.modified = True
-        self.populateElements()
-        self.current_element = new
-        self.refresh()
-
-    def laserName(self) -> str:
-        return self.laser.info.get("Name", "<No Name>")
-
-    def laserFilePath(self, ext: str = ".npz") -> Path:
-        path = Path(self.laser.info.get("File Path", ""))
-        return path.with_name(self.laserName() + ext)
-
-    def populateElements(self) -> None:
-        """Repopulate the element combo box."""
-        self.combo_element.blockSignals(True)
-        self.combo_element.clear()
-        self.combo_element.addItems(self.laser.elements)
-        self.combo_element.blockSignals(False)
-
     def clearCursorStatus(self) -> None:
         """Clear window statusbar, if it exists."""
-        status_bar = self.viewspace.window().statusBar()
+        status_bar = self.view.window().statusBar()
         if status_bar is not None:
             status_bar.clearMessage()
 
-    def updateCursorStatus(self, x: float, y: float, v: float) -> None:
+    def updateCursorStatus(
+        self, pos: QtCore.QPointF, data_pos: QtCore.QPoint, v: float | np.ndarray | None
+    ) -> None:
         """Updates the windows statusbar if it exists."""
-        status_bar = self.viewspace.window().statusBar()
+        status_bar = self.view.window().statusBar()
         if status_bar is None:  # pragma: no cover
             return
 
-        if self.viewspace.options.units == "index":  # convert to indices
-            p = self.graphics.mapToData(QtCore.QPointF(x, y))
-            x, y = p.x(), p.y()
+        if self.graphics.options.units == "index":  # convert to indices
+            x, y = data_pos.x(), data_pos.y()
+        else:
+            x, y = pos.x(), pos.y()
 
         if v is None:
             status_bar.clearMessage()
-        elif np.isfinite(v):
-            status_bar.showMessage(f"{x:.4g},{y:.4g} [{v:.4g}]")
         else:
-            status_bar.showMessage(f"{x:.4g},{y:.4g} [nan]")
-
-    def updateNames(self, rename: dict) -> None:
-        """Rename multiple elements."""
-        current = self.current_element
-        self.laser.rename(rename)
-        self.populateElements()
-        current = rename[current]
-        self.current_element = current
-
-        self.modified = True
-
-    # Transformations
-    def cropToSelection(self) -> None:
-        """Crop image to current selection and open in a new tab.
-
-        If selection is not rectangular then it is filled with nan.
-        """
-        if self.is_srr:  # pragma: no cover
-            QtWidgets.QMessageBox.information(
-                self, "Transform", "Unable to transform SRR data."
-            )
-            return
-
-        mask = self.graphics.mask
-        if mask is None or np.all(mask == 0):  # pragma: no cover
-            return
-        ix, iy = np.nonzero(mask)
-        x0, x1, y0, y1 = np.min(ix), np.max(ix) + 1, np.min(iy), np.max(iy) + 1
-
-        data = self.laser.data
-        new_data = np.empty((x1 - x0, y1 - y0), dtype=data.dtype)
-        for name in new_data.dtype.names:
-            new_data[name] = np.where(
-                mask[x0:x1, y0:y1], data[name][x0:x1, y0:y1], np.nan
-            )
-
-        info = self.laser.info.copy()
-        info["Name"] = self.laserName() + "_cropped"
-        info["File Path"] = str(Path(info.get("File Path", "")).with_stem(info["Name"]))
-        new_widget = self.view.addLaser(
-            Laser(
-                new_data,
-                calibration=self.laser.calibration,
-                config=self.laser.config,
-                info=info,
-            )
-        )
-
-        new_widget.activate()
-
-    def transform(self, flip: str = None, rotate: str = None) -> None:
-        """Transform the image.
-
-        Args:
-            flip: flip the image ['horizontal', 'vertical']
-            rotate: rotate the image 90 degrees ['left', 'right']
-
-        """
-        if self.is_srr:  # pragma: no cover
-            QtWidgets.QMessageBox.information(
-                self, "Transform", "Unable to transform SRR data."
-            )
-            return
-        if flip is not None:
-            if flip in ["horizontal", "vertical"]:
-                axis = 1 if flip == "horizontal" else 0
-                self.laser.data = np.flip(self.laser.data, axis=axis)
-            else:
-                raise ValueError("flip must be 'horizontal', 'vertical'.")
-        if rotate is not None:
-            if rotate in ["left", "right"]:
-                k = 1 if rotate == "right" else 3 if rotate == "left" else 2
-                self.laser.data = np.rot90(self.laser.data, k=k, axes=(1, 0))
-            else:
-                raise ValueError("rotate must be 'left', 'right'.")
-        self.modified = True
-        self.refresh()
+            v = np.atleast_1d(v)
+            vstr = ",".join([f"{x:.4g}" if np.isfinite(x) else "nan" for x in v])
+            status_bar.showMessage(f"{x:.4g},{y:.4g} [{vstr}]")
 
     # Callbacks
-    def applyCalibration(self, calibrations: Dict[str, Calibration]) -> None:
-        """Set laser calibrations."""
-        modified = False
-        for element in calibrations:
-            if element in self.laser.calibration:
-                self.laser.calibration[element] = copy.copy(calibrations[element])
-                modified = True
-        if modified:
-            self.modified = True
-            self.refresh()
+    def openDialog(
+        self,
+        dialog: str,
+        item: ImageOverlayItem | LaserImageItem | None = None,
+        selection: bool = False,
+    ) -> QtWidgets.QDialog:
+        if item is None:
+            item = self.graphics.scene().focusItem()
 
-    def applyConfig(self, config: Config) -> None:
-        """Set laser configuration."""
-        # Only apply if the type of config is correct
-        if type(config) is type(self.laser.config):  # noqa
-            self.laser.config = copy.copy(config)
-            self.modified = True
-            self.refresh()
+        # Shared dialogs
+        if dialog == "Pixel Size":
+            dlg = dialogs.PixelSizeDialog(item.pixelSize(), parent=self)
+            dlg.sizeSelected.connect(item.setPixelSize)
+        elif not isinstance(item, LaserImageItem):
+            raise ValueError(
+                f"Item {item} is not a LaserImageItem, dialog {dialog} invalid."
+            )
+        # Laser dialogs
+        elif dialog == "Calibration":
+            dlg = dialogs.CalibrationDialog(
+                item.laser.calibration, item.element(), parent=self
+            )
+            dlg.calibrationSelected.connect(item.applyCalibration)
+            dlg.calibrationApplyAll.connect(self.view.applyCalibration)
+        elif dialog == "Colocalisation":
+            dlg = dialogs.ColocalisationDialog(
+                item.laser.get(flat=True), item.mask if selection else None, parent=self
+            )
+        elif dialog == "Config":
+            dlg = dialogs.ConfigDialog(item.laser.config, parent=self)
+            dlg.configSelected.connect(item.applyConfig)
+            dlg.configApplyAll.connect(self.view.applyConfig)
+        elif dialog == "Information":
+            dlg = dialogs.InformationDialog(item.laser.info, parent=self)
+            dlg.infoChanged.connect(item.applyInformation)
+        elif dialog == "Selection":
+            # item = self.laserItems()[0]
 
-    def applyInformation(self, info: Dict[str, str]) -> None:
-        """Set laser information."""
-        # if self.laser.info["Name"] != info["Name"]:  # pragma: ignore
-        #     self.view.tabs.setTabText(self.index(), info["Name"])
-        if self.laser.info != info:
-            self.laser.info = info
-            self.modified = True
+            dlg = dialogs.SelectionDialog(item, parent=self)
+            dlg.maskSelected.connect(item.select)
+            self.refreshed.connect(dlg.refresh)
+        elif dialog == "Statistics":
+            dlg = dialogs.StatsDialog(
+                item.laser.get(calibrate=item.options.calibrate, flat=True),
+                item.mask if selection else np.ones(item.laser.shape, dtype=bool),
+                {k: v.unit for k, v in item.laser.calibration.items()}
+                if item.options.calibrate
+                else {},
+                item.element(),
+                pixel_size=(
+                    item.laser.config.get_pixel_width(),
+                    item.laser.config.get_pixel_height(),
+                ),
+                parent=self,
+            )
 
-    def saveDocument(self, path: Union[str, Path]) -> None:
-        """Saves the laser to an '.npz' file.
+        else:
+            raise ValueError(f"Dialog type {dialog} is invalid!")
 
-        See Also:
-            `:func:pewlib.io.npz.save`
+        dlg.open()
+        return dlg
+
+    def openTool(self, tool: str, item: LaserImageItem) -> ToolWidget:
+        if tool == "Calculator":
+            widget = CalculatorTool(item, view=self.view)
+        elif tool == "Filtering":
+            widget = FilteringTool(item, view=self.view)
+        elif tool == "Standards":
+            widget = StandardsTool(item, view=self.view)
+        else:
+            raise ValueError(f"Invalid tool type {tool}.")
+
+        widget.itemModified.connect(self.updateForItem)
+        self.view.addTab(f"Tool: {tool}", widget)
+        self.view.setActiveWidget(widget)
+        return widget
+
+    def dialogExport(self, item: LaserImageItem | None = None) -> QtWidgets.QDialog:
+        if item is None:
+            item = self.graphics.scene().focusItem()
+            assert item is not None
+
+        dlg = exportdialogs.ExportDialog(item, parent=self)
+        dlg.open()
+        return dlg
+
+    def dialogExportAll(self) -> QtWidgets.QDialog:
+        dlg = exportdialogs.ExportAllDialog(self.laserItems(), parent=self)
+        dlg.open()
+        return dlg
+
+    def dialogSave(
+        self, item: LaserImageItem | None = None
+    ) -> QtWidgets.QDialog | None:
+        """Save the document to an '.npz' file.
+
+        If not already associated with an '.npz' path a dialog is opened to select one.
         """
-        if isinstance(path, str):
-            path = Path(path)
+        if item is None:
+            item = self.graphics.scene().focusItem()
 
-        io.npz.save(path, self.laser)
-        self.laser.info["File Path"] = str(path.resolve())
-        self.modified = False
+        path = Path(item.laser.info["File Path"])
+        if path.suffix.lower() == ".npz" and path.exists():
+            item.saveToFile(path)
+            # Todo window modifed - 1
+            self.setWindowModified(False)
+            return None
+        else:
+            path = Path(item.laser.info.get("File Path", ""))
+            path = path.with_name(item.name() + ".npz")
 
-    def actionCalibration(self) -> QtWidgets.QDialog:
-        """Open a `:class:pewpew.widgets.dialogs.CalibrationDialog` and applies result."""
-        dlg = dialogs.CalibrationDialog(
-            self.laser.calibration, self.current_element, parent=self
+        dlg = QtWidgets.QFileDialog(
+            self, "Save File", str(path.resolve()), "Numpy archive(*.npz);;All files(*)"
         )
-        dlg.calibrationSelected.connect(self.applyCalibration)
-        dlg.calibrationApplyAll.connect(self.viewspace.applyCalibration)
+        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
+        dlg.fileSelected.connect(item.saveToFile)
+        dlg.fileSelected.connect(lambda _: self.setWindowModified(False))
         dlg.open()
         return dlg
-
-    def actionConfig(self) -> QtWidgets.QDialog:
-        """Open a `:class:pewpew.widgets.dialogs.ConfigDialog` and applies result."""
-        dlg = dialogs.ConfigDialog(self.laser.config, parent=self)
-        dlg.configSelected.connect(self.applyConfig)
-        dlg.configApplyAll.connect(self.viewspace.applyConfig)
-        dlg.open()
-        return dlg
-
-    def actionCopyImage(self) -> None:
-        self.graphics.copyToClipboard()
-
-    def actionCopySelectionText(self) -> None:
-        """Copies the currently selected data to the system clipboard."""
-        data = self.graphics.data[self.graphics.mask].ravel()
-
-        html = (
-            '<meta http-equiv="content-type" content="text/html; charset=utf-8"/>'
-            "<table>"
-        )
-        text = ""
-        for x in data:
-            html += f"<tr><td>{x:.10g}</td></tr>"
-            text += f"{x:.10g}\n"
-        html += "</table>"
-
-        mime = QtCore.QMimeData()
-        mime.setHtml(html)
-        mime.setText(text)
-        QtWidgets.QApplication.clipboard().setMimeData(mime)
-
-    def actionCropSelection(self) -> None:
-        self.cropToSelection()
 
     def actionDuplicate(self) -> None:
         """Duplicate document to a new tab."""
         self.view.addLaser(copy.deepcopy(self.laser))
 
-    def actionExport(self) -> QtWidgets.QDialog:
-        """Opens a `:class:pewpew.exportdialogs.ExportDialog`.
-
-        This can save the document to various formats.
-        """
-        dlg = exportdialogs.ExportDialog(self, parent=self)
-        dlg.open()
-        return dlg
-
-    def actionInformation(self) -> QtWidgets.QDialog:
-        """Opens a `:class:pewpew.widgets.dialogs.InformationDialog`."""
-        dlg = dialogs.InformationDialog(self.laser.info, parent=self)
-        dlg.infoChanged.connect(self.applyInformation)
-        dlg.open()
-        return dlg
-
-    def actionRequestColorbarEdit(self) -> None:
-        if self.viewspace is not None:
-            self.viewspace.colortableRangeDialog()
-
-    def actionSave(self) -> QtWidgets.QDialog:
-        """Save the document to an '.npz' file.
-
-        If not already associated with an '.npz' path a dialog is opened to select one.
-        """
-        path = Path(self.laser.info["File Path"])
-        if path.suffix.lower() == ".npz" and path.exists():
-            self.saveDocument(path)
-            return None
-        else:
-            path = self.laserFilePath()
-        dlg = QtWidgets.QFileDialog(
-            self, "Save File", str(path.resolve()), "Numpy archive(*.npz);;All files(*)"
-        )
-        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptSave)
-        dlg.fileSelected.connect(self.saveDocument)
-        dlg.open()
-        return dlg
-
-    def actionSelectDialog(self) -> QtWidgets.QDialog:
-        """Open a `:class:pewpew.widgets.dialogs.SelectionDialog` and applies selection."""
-        dlg = dialogs.SelectionDialog(self.graphics, parent=self)
-        dlg.maskSelected.connect(self.graphics.drawSelectionImage)
-        self.refreshed.connect(dlg.refresh)
-        dlg.show()
-        return dlg
-
-    def actionStatistics(self, crop_to_selection: bool = False) -> QtWidgets.QDialog:
-        """Open a `:class:pewpew.widgets.dialogs.StatsDialog` with image data.
-
-        Args:
-            crop_to_selection: pass current selection as a mask
-        """
-        data = self.laser.get(calibrate=self.viewspace.options.calibrate, flat=True)
-        mask = self.graphics.mask
-        if mask is None or not crop_to_selection:
-            mask = np.ones(data.shape, dtype=bool)
-
-        units = {}
-        if self.viewspace.options.calibrate:
-            units = {k: v.unit for k, v in self.laser.calibration.items()}
-
-        dlg = dialogs.StatsDialog(
-            data,
-            mask,
-            units,
-            self.current_element,
-            pixel_size=(
-                self.laser.config.get_pixel_width(),
-                self.laser.config.get_pixel_height(),
-            ),
-            parent=self,
-        )
-        dlg.open()
-        return dlg
-
-    def actionStatisticsSelection(self) -> QtWidgets.QDialog:
-        return self.actionStatistics(True)
-
-    def actionColocal(self, crop_to_selection: bool = False) -> QtWidgets.QDialog:
-        """Open a `:class:pewpew.widgets.dialogs.ColocalisationDialog` with image data.
-
-        Args:
-            crop_to_selection: pass current selection as a mask
-        """
-        data = self.laser.get(flat=True)
-        mask = self.graphics.mask if crop_to_selection else None
-
-        dlg = dialogs.ColocalisationDialog(data, mask, parent=self)
-        dlg.open()
-        return dlg
-
-    def actionColocalSelection(self) -> QtWidgets.QDialog:
-        return self.actionColocal(True)
-
     # Events
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent):
+        if not self.graphics.underMouse():
+            return
         menu = QtWidgets.QMenu(self)
         # menu.addAction(self.action_duplicate)
         menu.addAction(self.action_copy_image)
         menu.addSeparator()
 
-        if self.graphics.posInSelection(event.pos()):
-            menu.addAction(self.action_select_copy_text)
-            menu.addAction(self.action_select_crop)
+        if len(self.laserItems()) > 1:
+            menu.addAction(self.action_align_auto)
+            menu.addAction(self.action_align_horz)
+            menu.addAction(self.action_align_vert)
             menu.addSeparator()
-            menu.addAction(self.action_select_statistics)
-            menu.addAction(self.action_select_colocalisation)
-        else:
-            menu.addAction(self.view.action_open)
-            menu.addAction(self.action_save)
-            menu.addAction(self.action_export)
-            menu.addSeparator()
-            menu.addAction(self.action_config)
-            menu.addAction(self.action_calibration)
-            menu.addAction(self.action_information)
-            menu.addSeparator()
-            menu.addAction(self.action_statistics)
-            menu.addAction(self.action_colocalisation)
+            menu.addAction(self.action_merge_all)
         menu.popup(event.globalPos())
         event.accept()
 
@@ -853,14 +675,40 @@ class LaserWidget(_ViewWidget):
         if event.matches(QtGui.QKeySequence.Cancel):
             self.graphics.endSelection()
             self.graphics.endWidget()
+            self.graphics.endTransform()
         elif event.matches(QtGui.QKeySequence.Paste):
             mime = QtWidgets.QApplication.clipboard().mimeData()
-            if mime.hasFormat("arplication/x-pew2config"):
+            if mime.hasFormat("application/x-pew2laser"):
+                with BytesIO(mime.data("application/x-pew2laser")) as fp:
+                    data = np.load(fp)
+
+                if mime.hasFormat("application/x-pew2config"):
+                    with BytesIO(mime.data("application/x-pew2config")) as fp:
+                        array = np.load(fp)
+                        config = Config.from_array(array)
+                else:
+                    config = None
+
+                if mime.hasFormat("application/x-pew2calibration"):
+                    with BytesIO(mime.data("application/x-pew2calibration")) as fp:
+                        npy = np.load(fp)
+                        calibration = {k: Calibration.from_array(npy[k]) for k in npy}
+                else:
+                    calibration = None
+
+                if mime.hasFormat("application/x-pew2info"):
+                    with BytesIO(mime.data("application/x-pew2info")) as fp:
+                        array = np.load(fp)
+                        info = io.npz.unpack_info(array)
+                else:
+                    info = {"Name": "unknown"}
+
+                laser = Laser(data, config=config, calibration=calibration, info=info)
+                origin = self.graphics.mapFromGlobal(QtGui.QCursor.pos())
+                self.addLaser(laser, self.graphics.mapToScene(origin))
+            elif mime.hasFormat("application/x-pew2config"):
                 with BytesIO(mime.data("application/x-pew2config")) as fp:
                     array = np.load(fp)
-                if self.is_srr:
-                    config = SRRConfig.from_array(array)
-                else:
                     config = Config.from_array(array)
                 self.applyConfig(config)
             elif mime.hasFormat("application/x-pew2calibration"):
@@ -868,8 +716,5 @@ class LaserWidget(_ViewWidget):
                     npy = np.load(fp)
                     calibrations = {k: Calibration.from_array(npy[k]) for k in npy}
                 self.applyCalibration(calibrations)
-        super().keyPressEvent(event)
 
-    def showEvent(self, event: QtGui.QShowEvent) -> None:
-        self.refresh()
-        super().showEvent(event)
+        super().keyPressEvent(event)

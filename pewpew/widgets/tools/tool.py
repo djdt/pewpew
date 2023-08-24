@@ -1,9 +1,13 @@
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewpew.widgets.views import _ViewWidget
+from pewpew.graphics.imageitems import SnapImageItem
+from pewpew.graphics.lasergraphicsview import LaserGraphicsView
+from pewpew.graphics.overlayitems import ColorBarOverlay
+
+from pewpew.widgets.views import TabView, TabViewWidget
 
 
-class ToolWidget(_ViewWidget):
+class ToolWidget(TabViewWidget):
     """Base widget for pewpew tools.
 
     Provides a layout with two group boxes, oriented as per `orientation`.
@@ -20,23 +24,32 @@ class ToolWidget(_ViewWidget):
         box_controls: GroupBox for controls
         box_graphics: GroupBox for graphics
     """
+
     applyPressed = QtCore.Signal()
     applyAllPressed = QtCore.Signal()
 
+    itemModified = QtCore.Signal(SnapImageItem)
+
     def __init__(
         self,
-        widget: _ViewWidget,
+        item: SnapImageItem,
         control_label: str = "Controls",
         graphics_label: str = "",
         orientation: QtCore.Qt.Orientation = QtCore.Qt.Horizontal,
         apply_all: bool = False,
+        view: TabView | None = None,
     ):
-        super().__init__(widget.view, editable=False)
-        self.widget = widget
-        self.modified = widget.modified
+        super().__init__(editable=False, view=view)
         self._shown = False
 
-        self.graphics: QtWidgets.QGraphicsView = None
+        self.graphics = LaserGraphicsView(item.options, parent=self)
+        self.colorbar = ColorBarOverlay(
+            [], 0, 1, font=item.options.font, color=item.options.font_color
+        )
+        self.graphics.addOverlayItem(self.colorbar)
+        self.graphics.setMouseTracking(True)
+
+        self.item = item
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Cancel
@@ -57,6 +70,10 @@ class ToolWidget(_ViewWidget):
         self.box_controls = QtWidgets.QGroupBox(control_label)
         self.box_graphics = QtWidgets.QGroupBox(graphics_label)
 
+        layout_graphics = QtWidgets.QVBoxLayout()
+        layout_graphics.addWidget(self.graphics, 1)
+        self.box_graphics.setLayout(layout_graphics)
+
         self.splitter = QtWidgets.QSplitter(orientation)
         if orientation == QtCore.Qt.Horizontal:
             self.splitter.addWidget(self.box_controls)
@@ -75,19 +92,22 @@ class ToolWidget(_ViewWidget):
         self.setLayout(layout)
 
     def contextMenuEvent(self, event: QtCore.QEvent) -> None:
-        event.accept()
-        action_copy_image = QtWidgets.QAction(
-            QtGui.QIcon.fromTheme("insert-image"), "Copy To Clipboard", self
+        if not self.graphics.underMouse():
+            return
+
+        action_copy_image = QtGui.QAction(
+            QtGui.QIcon.fromTheme("insert-image"), "Copy Scene &Image", self
         )
-        action_copy_image.setStatusTip("Copy the graphics view to the clipboard.")
+        action_copy_image.setStatusTip("Copy scene to clipboard.")
         action_copy_image.triggered.connect(self.graphics.copyToClipboard)
 
         menu = QtWidgets.QMenu(self)
         menu.addAction(action_copy_image)
         menu.popup(event.globalPos())
+        event.accept()
 
     def accept(self) -> None:  # pragma: no cover
-        self.restoreWidget()
+        self.view.requestClose(self.index)
 
     def apply(self) -> None:  # pragma: no cover
         pass
@@ -119,42 +139,17 @@ class ToolWidget(_ViewWidget):
     def isComplete(self) -> bool:  # pragma: no cover
         return True
 
-    def onFirstShow(self) -> None:
-        if self.graphics is None:
-            return
-
-        rect = self.widget.graphics.mapToScene(
-            self.widget.graphics.viewport().rect()
-        ).boundingRect()
-        rect = rect.intersected(self.widget.graphics.sceneRect())
-        self.graphics.fitInView(rect, QtCore.Qt.KeepAspectRatio)
-        self.graphics.updateForeground()
-        self.graphics.invalidateScene()
-
     def reject(self) -> None:
-        self.restoreWidget()
+        self.view.requestClose(self.index)
 
-    def restoreWidget(self) -> None:
-        """Remove the tool and replace with it's `widget`."""
-        self.view.removeTab(self.index)
-        self.view.insertTab(self.index, self.widget.laserName(), self.widget)
-        self.widget.modified = self.modified
-        self.widget.activate()
-
-    def requestClose(self) -> bool:
-        self.reject()
-        return False
+    def onFirstShow(self) -> None:
+        self.graphics.zoomReset()
 
     def showEvent(self, event: QtGui.QShowEvent) -> None:
         super().showEvent(event)
         if not self._shown:
             self.onFirstShow()
-            self._shown
+            self._shown = True
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(800, 600)
-
-    def transform(self, **kwargs) -> None:
-        if hasattr(self.widget, "transform"):
-            self.widget.transform(**kwargs)
-        self.refresh()

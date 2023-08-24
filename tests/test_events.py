@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 # from pewpew.events import DragDropRedirectFilter
 from pewpew.events import MousePressRedirectFilter
@@ -9,7 +9,7 @@ from pytestqt.qtbot import QtBot
 class EventTestWidget(QtWidgets.QWidget):
     eventSuccess = QtCore.Signal()
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setAcceptDrops(True)
 

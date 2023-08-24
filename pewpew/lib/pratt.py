@@ -5,7 +5,7 @@ Based on https://www.engr.mun.ca/~theo/Misc/pratt_parsing.htm
 import numpy as np
 import re
 
-from typing import Dict, List, Union
+from typing import Dict, List
 
 
 class ParserException(Exception):
@@ -19,7 +19,7 @@ class ReducerException(Exception):
 class Expr(object):
     """Stores expressions for conversion to string."""
 
-    def __init__(self, value: str, children: List["Expr"] = None):
+    def __init__(self, value: str, children: List["Expr"] | None = None):
         self.value = value
         self.children = children
 
@@ -252,7 +252,7 @@ class Parser(object):
     operator_token = "[+\\-\\*/^!=<>?:]+"
     base_tokens = "|".join([function_token, null_token, number_token, operator_token])
 
-    def __init__(self, variables: List[str] = None):
+    def __init__(self, variables: List[str] | None = None):
         self.regexp_number = re.compile(Parser.number_token)
         self.regexp_tokenise = re.compile(f"\\s*({Parser.base_tokens})\\s*")
 
@@ -347,8 +347,8 @@ class Reducer(object):
         `:func:pewpew.lib.pratt.Reducer`
     """
 
-    def __init__(self, variables: dict = None):
-        self._variables: Dict[str, Union[float, np.ndarray]] = {}
+    def __init__(self, variables: dict | None = None):
+        self._variables: Dict[str, float | np.ndarray] = {}
 
         if variables is not None:
             self.variables = variables
@@ -371,16 +371,16 @@ class Reducer(object):
         }
 
     @property
-    def variables(self) -> Dict[str, Union[float, np.ndarray]]:
+    def variables(self) -> Dict[str, float | np.ndarray]:
         return self._variables
 
     @variables.setter
-    def variables(self, variables: Dict[str, Union[float, np.ndarray]]) -> None:
+    def variables(self, variables: Dict[str, float | np.ndarray]) -> None:
         if any(" " in v for v in variables.keys()):
             raise ValueError("Spaces are not allowed in variable names!")
         self._variables = variables
 
-    def reduceExpr(self, tokens: List[str]) -> Union[float, int, np.ndarray]:
+    def reduceExpr(self, tokens: List[str]) -> float | int | np.ndarray:
         if len(tokens) == 0:
             raise ReducerException("Unexpected end of input.")
         token = tokens.pop(0)
@@ -404,7 +404,7 @@ class Reducer(object):
             except ValueError:
                 raise ReducerException(f"Unexpected input '{token}'.")
 
-    def reduce(self, string: str) -> Union[float, np.ndarray]:
+    def reduce(self, string: str) -> float | np.ndarray:
         """Reduce a parsed string to a value."""
         tokens = string.split(" ")
         result = self.reduceExpr(tokens)

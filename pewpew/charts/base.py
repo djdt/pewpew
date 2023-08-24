@@ -1,5 +1,5 @@
-from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtCharts import QtCharts
+from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCharts
 
 import numpy as np
 
@@ -14,7 +14,7 @@ class NiceValueAxis(QtCharts.QValueAxis):
 
     nicenums = [1.0, 1.5, 2.0, 2.5, 3.0, 5.0, 7.5]
 
-    def __init__(self, nticks: int = 6, parent: QtCore.QObject = None):
+    def __init__(self, nticks: int = 6, parent: QtCore.QObject | None = None):
         super().__init__(parent)
         self.nticks = nticks
 
@@ -62,12 +62,12 @@ class BaseChart(QtCharts.QChartView):
         chart: QtCharts.QChart,
         theme: Dict[str, QtGui.QColor],
         allow_navigation: bool = False,
-        parent: QtWidgets.QWidget = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         self.theme = theme
         self.allow_navigation = allow_navigation
 
-        self.nav_pos: QtCore.QPointF = None
+        self.nav_pos: QtCore.QPointF | None = None
 
         chart.setBackgroundBrush(QtGui.QBrush(self.theme["background"]))
         chart.setBackgroundPen(QtGui.QPen(self.theme["background"]))
@@ -90,16 +90,16 @@ class BaseChart(QtCharts.QChartView):
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         if event.button() == QtCore.Qt.MiddleButton and self.allow_navigation:
-            self.nav_pos = event.pos()
+            self.nav_pos = event.position()
         else:
             super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
         if self.nav_pos is not None and self.allow_navigation:
-            pos = event.pos()
+            pos = event.position()
             offset = self.nav_pos - pos
             self.chart().scroll(offset.x(), -offset.y())
-            self.nav_pos = event.pos()
+            self.nav_pos = event.position()
         else:
             super().mouseMoveEvent(event)
 
@@ -114,13 +114,13 @@ class BaseChart(QtCharts.QChartView):
         super().wheelEvent(event)
 
     def contextMenuEvent(self, event: QtCore.QEvent) -> None:
-        action_copy_image = QtWidgets.QAction(
+        action_copy_image = QtGui.QAction(
             QtGui.QIcon.fromTheme("insert-image"), "Copy To Clipboard", self
         )
         action_copy_image.setStatusTip("Copy the graphics view to the clipboard.")
         action_copy_image.triggered.connect(self.copyToClipboard)
 
-        action_reset_zoom = QtWidgets.QAction(
+        action_reset_zoom = QtGui.QAction(
             QtGui.QIcon.fromTheme("zoom-original"), "Reset Zoom", self
         )
         action_reset_zoom.setStatusTip("Reset the chart to the orignal view.")

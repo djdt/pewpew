@@ -1,90 +1,13 @@
-from PySide2 import QtCore, QtGui, QtWidgets
-
-import numpy as np
-
-from pewpew.actions import qAction
-
 from typing import List, Tuple
 
+import numpy as np
+from PySide6 import QtCore, QtGui, QtWidgets
 
-class LabelOverlay(QtWidgets.QGraphicsObject):
-    """Draws a label with a black outline for increased visibility."""
-
-    labelChanged = QtCore.Signal(str)
-
-    def __init__(
-        self,
-        text: str,
-        font: QtGui.QFont = None,
-        color: QtGui.QColor = None,
-        parent: QtWidgets.QGraphicsItem = None,
-    ):
-        super().__init__(parent)
-
-        if font is None:
-            font = QtGui.QFont()
-        if color is None:
-            color = QtCore.Qt.white
-
-        self._text = text
-        self.font = font
-        self.color = color
-
-        self.action_edit_label = qAction(
-            "edit-rename",
-            "Rename",
-            "Rename the current element.",
-            self.editLabel,
-        )
-
-    def text(self) -> str:
-        return self._text
-
-    def setText(self, text: str) -> None:
-        self._text = text
-        self.prepareGeometryChange()
-
-    def boundingRect(self):
-        fm = QtGui.QFontMetrics(self.font)
-        return QtCore.QRectF(0, 0, fm.boundingRect(self._text).width(), fm.height())
-
-    def paint(
-        self,
-        painter: QtGui.QPainter,
-        option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
-    ):
-
-        fm = QtGui.QFontMetrics(self.font, painter.device())
-        path = QtGui.QPainterPath()
-        path.addText(0, fm.ascent(), self.font, self.text())
-
-        painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
-        painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
-
-    def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        self.editLabel()
-        super().mouseDoubleClickEvent(event)
-
-    def editLabel(self) -> QtWidgets.QInputDialog:
-        """Simple dialog for editing the label (and element name)."""
-        dlg = QtWidgets.QInputDialog(self.scene().views()[0])
-        dlg.setWindowTitle("Edit Name")
-        dlg.setInputMode(QtWidgets.QInputDialog.TextInput)
-        dlg.setTextValue(self.text())
-        dlg.setLabelText("Rename:")
-        dlg.textValueSelected.connect(self.labelChanged)
-        dlg.open()
-        return dlg
-
-    def contextMenuEvent(self, event: QtWidgets.QGraphicsSceneContextMenuEvent) -> None:
-        menu = QtWidgets.QMenu()
-        menu.addAction(self.action_edit_label)
-        menu.exec_(event.screenPos())
-        event.accept()
+from pewpew.graphics.overlaygraphics import OverlayItem
+from pewpew.graphics.util import path_for_colorbar_labels
 
 
-class ColorBarOverlay(QtWidgets.QGraphicsObject):
+class ColorBarOverlay(OverlayItem):
     """Draw a colorbar.
 
     Ticks are formatted at easily readable intervals.
@@ -111,125 +34,108 @@ class ColorBarOverlay(QtWidgets.QGraphicsObject):
         vmin: float,
         vmax: float,
         unit: str = "",
-        height: int = 16,
-        font: QtGui.QFont = None,
-        color: QtGui.QColor = None,
-        checkmarks: bool = False,
-        parent: QtWidgets.QGraphicsItem = None,
+        font: QtGui.QFont | None = None,
+        color: QtGui.QColor | None = None,
+        alignment: QtCore.Qt.AlignmentFlag | None = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent)
 
         if font is None:
             font = QtGui.QFont()
             font.setPointSize(16)
+        if alignment is None:
+            alignment = QtCore.Qt.AlignBottom
 
-        image = QtGui.QImage(
-            np.arange(256, dtype=np.uint8), 256, 1, 256, QtGui.QImage.Format_Indexed8
-        )
-        image.setColorTable(colortable)
-        self.pixmap = QtGui.QPixmap.fromImage(image)
+        self._data = np.arange(256, dtype=np.uint8)  # save a reference
+        self._data[0] = 1
+        self.image = QtGui.QImage(self._data, 256, 1, 256, QtGui.QImage.Format_Indexed8)
 
         self.vmin = vmin
         self.vmax = vmax
         self.unit = unit
-        self.height = height
 
-        if font is None:
-            font = QtGui.QFont()
-        if color is None:
-            color = QtCore.Qt.white
+        self.font = font or QtGui.QFont()
+        self.color = color or QtCore.Qt.white
+        self.alignment = alignment
 
-        self.font = font
-        self.color = color
-        self.checkmarks = checkmarks
-
-    def updateTable(self, colortable: List[int], vmin: float, vmax: float):
+    def updateTable(self, colortable: List[int], vmin: float, vmax: float, unit: str):
         self.vmin = vmin
         self.vmax = vmax
+        self.unit = unit
 
-        image = QtGui.QImage(
-            np.arange(256, dtype=np.uint8), 256, 1, 256, QtGui.QImage.Format_Indexed8
-        )
-        image.setColorTable(colortable)
-        self.pixmap = QtGui.QPixmap.fromImage(image)
+        self.image.setColorTable(colortable)
+        self.image.setColorCount(len(colortable))
+        self.requestPaint()
 
-    def boundingRect(self) -> QtCore.QRectF:
+    def boundingRect(self):
         fm = QtGui.QFontMetrics(self.font)
-        if self.scene() is None:
-            return QtCore.QRectF(0, 0, 100, self.height + fm.height())
 
-        view = next(iter(self.scene().views()))
-        rect = QtCore.QRectF(0, 0, view.viewport().width(), self.height + fm.height())
+        height = fm.xHeight() + fm.height()
+        if self.unit is not None and self.unit != "":
+            height += fm.height()
+        rect = QtCore.QRectF(0, 0, self.viewport.width(), height)
+
+        if self.alignment & QtCore.Qt.AlignRight:
+            rect.moveRight(self.viewport.right())
+        elif self.alignment & QtCore.Qt.AlignHCenter:
+            rect.moveCenter(
+                QtCore.QPointF(self.viewport.center().x(), rect.center().y())
+            )
+        if self.alignment & QtCore.Qt.AlignBottom:
+            rect.moveBottom(self.viewport.bottom())
+        elif self.alignment & QtCore.Qt.AlignVCenter:
+            rect.moveCenter(
+                QtCore.QPointF(rect.center().x(), self.viewport.center().y())
+            )
         return rect
-
-    def niceTextValues(self, n: int = 7, trim: int = 0) -> np.ndarray:
-        vrange = self.vmax - self.vmin
-        interval = vrange / (n + 2 * trim)
-
-        pwr = 10 ** int(np.log10(interval) - (1 if interval < 1.0 else 0))
-        interval = interval / pwr
-
-        idx = np.searchsorted(self.nicenums, interval)
-        idx = min(idx, len(self.nicenums) - 1)
-
-        interval = self.nicenums[idx] * pwr
-        values = np.arange(int(self.vmin / interval) * interval, self.vmax, interval)
-        return values[trim : values.size - trim]
 
     def paint(
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
-        width = painter.viewport().width()
+        painter.save()
+        painter.setFont(self.font)
 
-        fm = QtGui.QFontMetrics(self.font, painter.device())
+        painter.translate(self.boundingRect().topLeft())
 
-        rect = QtCore.QRect(0, fm.height(), width, self.height)
-        painter.drawPixmap(rect, self.pixmap)
-        painter.setPen(QtGui.QPen(QtCore.Qt.black, 2.0))
-        painter.setBrush(QtGui.QBrush(QtCore.Qt.white, QtCore.Qt.NoBrush))
-        painter.drawRect(rect)
+        fm = painter.fontMetrics()
+        xh = fm.xHeight()
+
+        rect = QtCore.QRect(0, 0, self.viewport.width(), xh)
+        painter.drawImage(rect, self.image)
 
         path = QtGui.QPainterPath()
-        # Todo: find a better pad value
-        path.addText(
-            width - fm.boundingRect(self.unit).width() - 10,
-            fm.ascent(),
-            self.font,
-            self.unit,
-        )
+        path = path_for_colorbar_labels(self.font, self.vmin, self.vmax, rect.width())
 
-        vrange = self.vmax - self.vmin
-        if vrange <= 0.0:
-            return
-
-        for value in self.niceTextValues(7, trim=1):
-            x = width * (value - self.vmin) / vrange
-            text = f"{value:.6g}"
+        if self.unit is not None and self.unit != "":
             path.addText(
-                x - fm.boundingRect(text).width() / 2.0,
-                fm.ascent(),
-                self.font,
-                text,
+                rect.width()
+                - fm.boundingRect(self.unit).width()
+                - fm.lineWidth()
+                - fm.rightBearing(self.unit[-1]),
+                fm.ascent() + fm.height(),
+                painter.font(),
+                self.unit,
             )
-            if self.checkmarks:
-                path.addRect(
-                    x - fm.lineWidth() / 2.0,
-                    fm.ascent() + fm.underlinePos(),
-                    fm.lineWidth() * 2.0,
-                    fm.underlinePos(),
-                )
+
+        path.translate(rect.bottomLeft())
+
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.strokePath(path, QtGui.QPen(QtCore.Qt.black, 2.0))
         painter.fillPath(path, QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
+        painter.restore()
+
+        super().paint(painter, option, widget)
 
     def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         self.editRequested.emit()
         super().mouseDoubleClickEvent(event)
 
 
-class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):
+class MetricScaleBarOverlay(OverlayItem):
     """Draw a scalebar.
 
     Uses metric units with a base of 1 pixel = 1 μm.
@@ -257,9 +163,10 @@ class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):
         self,
         width: int = 200,
         height: int = 10,
-        font: QtGui.QFont = None,
-        color: QtGui.QColor = None,
-        parent: QtWidgets.QGraphicsItem = None,
+        font: QtGui.QFont | None = None,
+        color: QtGui.QColor | None = None,
+        alignment: QtCore.Qt.AlignmentFlag | None = None,
+        parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent)
 
@@ -269,42 +176,63 @@ class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):
 
         if font is None:
             font = QtGui.QFont()
-        if color is None:
-            color = QtCore.Qt.white
+        if alignment is None:
+            alignment = QtCore.Qt.AlignTop | QtCore.Qt.AlignRight
 
         self.font = font
-        self.color = color
+        self.color = color or QtCore.Qt.white
+        self.alignment = alignment
 
     def boundingRect(self):
         fm = QtGui.QFontMetrics(self.font)
-        return QtCore.QRectF(0, 0, self.width, self.height + fm.height())
+        rect = QtCore.QRectF(0, 0, self.width, self.height + fm.height())
 
-    def getWidthAndUnit(self, desired: float) -> Tuple[float, str]:
-        base = desired * self.units[self.unit]
+        if self.alignment & QtCore.Qt.AlignRight:
+            rect.moveRight(self.viewport.right())
+        elif self.alignment & QtCore.Qt.AlignHCenter:
+            rect.moveCenter(
+                QtCore.QPointF(self.viewport.center().x(), rect.center().y())
+            )
+        if self.alignment & QtCore.Qt.AlignBottom:
+            rect.moveBottom(self.viewport.bottom())
+        elif self.alignment & QtCore.Qt.AlignVCenter:
+            rect.moveCenter(
+                QtCore.QPointF(rect.center().x(), self.viewport.center().y())
+            )
+        return rect
 
-        units = list(self.units.keys())
-        factors = list(self.units.values())
+    @staticmethod
+    def getWidthAndUnit(desired: float, unit: str) -> Tuple[float, str]:
+        base = desired * MetricScaleBarOverlay.units[unit]
+
+        units = list(MetricScaleBarOverlay.units.keys())
+        factors = list(MetricScaleBarOverlay.units.values())
         idx = np.max(np.searchsorted(factors, base) - 1, 0)
 
-        new = self.allowed_lengths[
-            np.searchsorted(self.allowed_lengths, base / factors[idx]) - 1
+        new = MetricScaleBarOverlay.allowed_lengths[
+            np.searchsorted(MetricScaleBarOverlay.allowed_lengths, base / factors[idx])
+            - 1
         ]
         new_unit = units[idx]
 
-        return new * factors[idx] / self.units[self.unit], new_unit
+        return new * factors[idx] / MetricScaleBarOverlay.units[unit], new_unit
 
     def paint(
         self,
         painter: QtGui.QPainter,
         option: QtWidgets.QStyleOptionGraphicsItem,
-        widget: QtWidgets.QWidget = None,
+        widget: QtWidgets.QWidget | None = None,
     ):
-        view = self.scene().views()[0]
-        view_width = view.mapToScene(0, 0, self.width, 1).boundingRect().width()
-        width, unit = self.getWidthAndUnit(view_width)
+        painter.save()
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.translate(self.boundingRect().topLeft())
+
+        scale = self.parentItem().boundingRect().width() / self.viewport.width()
+        width, unit = self.getWidthAndUnit(self.width * scale, self.unit)
+
         # Current scale
         text = f"{width * self.units[self.unit] / self.units[unit]:.3g} {unit}"
-        width = width * view.transform().m11()
+        width = width / scale
 
         fm = QtGui.QFontMetrics(self.font, painter.device())
         path = QtGui.QPainterPath()
@@ -325,3 +253,6 @@ class MetricScaleBarOverlay(QtWidgets.QGraphicsItem):
         painter.setPen(QtGui.QPen(QtCore.Qt.black, 1.0))
         painter.setBrush(QtGui.QBrush(self.color, QtCore.Qt.SolidPattern))
         painter.drawRect(rect)
+        painter.restore()
+
+        super().paint(painter, option, widget)

@@ -8,4 +8,5 @@ docs/_build/
 pewpew.egg-info/
 venv/
 pewpew/lib/*.so
-typings/
+typings
+icons.qrc

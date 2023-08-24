@@ -1,5 +1,5 @@
-from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtCharts import QtCharts
+from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCharts
 
 import numpy as np
 
@@ -12,7 +12,7 @@ from pewpew.lib.numpyqt import array_to_polygonf
 class ColocalisationChart(BaseChart):
     """BaseChart for displaying a scatter plot of two arrays."""
 
-    def __init__(self, title: str = None, parent: QtWidgets.QWidget = None):
+    def __init__(self, title: str | None = None, parent: QtWidgets.QWidget | None = None):
         super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
         self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
         self.setMinimumSize(QtCore.QSize(640, 480))

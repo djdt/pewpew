@@ -1,26 +1,21 @@
-from pathlib import Path
 import tempfile
-
-from pytestqt.qtbot import QtBot
+from pathlib import Path
 
 from pewlib.laser import Laser
-
-from pewpew.widgets.exportdialogs import (
-    ExportDialog,
-    ExportAllDialog,
-    PngOptionsBox,
-    VtiOptionsBox,
-)
-from pewpew.widgets.laser import LaserViewSpace
-
+from pytestqt.qtbot import QtBot
 from testing import rand_data
+
+from pewpew.graphics.imageitems import LaserImageItem
+from pewpew.graphics.lasergraphicsview import LaserGraphicsView
+from pewpew.graphics.options import GraphicsOptions
+from pewpew.widgets.exportdialogs import ExportAllDialog, ExportDialog, VtiOptionsBox
 
 
 def test_export_options(qtbot: QtBot):
-    png = PngOptionsBox()
-    assert not png.raw()
-    png.check_raw.setChecked(True)
-    assert png.raw()
+    # png = PngOptionsBox()
+    # assert not png.raw()
+    # png.check_raw.setChecked(True)
+    # assert png.raw()
 
     vti = VtiOptionsBox((10.0, 20.0, 30.0))
     assert vti.lineedits[0].text() == "10.0"
@@ -32,16 +27,13 @@ def test_export_options(qtbot: QtBot):
 
 
 def test_export_dialog(qtbot: QtBot):
-    viewspace = LaserViewSpace()
-    qtbot.addWidget(viewspace)
-    view = viewspace.activeView()
-
-    widget = view.addLaser(
+    item = LaserImageItem(
         Laser(
             rand_data("A1"), info={"Name": "laser", "File Path": "/home/user/laser.npz"}
-        )
+        ),
+        GraphicsOptions(),
     )
-    dlg = ExportDialog(widget)
+    dlg = ExportDialog(item)
     dlg.open()
 
     assert dlg.lineedit_directory.text() == "/home/user"
@@ -82,9 +74,9 @@ def test_export_dialog(qtbot: QtBot):
         # Test export
         dlg.lineedit_directory.setText(tempdir)
         dlg.lineedit_filename.setText("temp.npz")
-        paths = dlg.generatePaths(dlg.widget)
-        assert paths == [(Path(tempdir, "temp.npz"), "A1", None)]
-        dlg.export(paths[0][0], paths[0][1], None, dlg.widget)
+        paths = dlg.generatePaths(item)
+        assert paths == [(Path(tempdir, "temp.npz"), "A1")]
+        dlg.export(paths[0][0], item.laser, paths[0][1])
         assert Path(tempdir, "temp.npz").exists()
         # Test export all elements and png
 
@@ -104,24 +96,21 @@ def test_export_dialog(qtbot: QtBot):
 
 
 def test_export_dialog_names(qtbot: QtBot):
-    viewspace = LaserViewSpace()
-    qtbot.addWidget(viewspace)
-    view = viewspace.activeView()
-
-    widget = view.addLaser(
+    item = LaserImageItem(
         Laser(
             rand_data(["A", "\\B", "C>_<"]),
             info={"Name": "inv@|d", "File Path": "/invalid.npz"},
-        )
+        ),
+        GraphicsOptions(),
     )
-    dlg = ExportDialog(widget)
+    dlg = ExportDialog(item)
     dlg.lineedit_directory.setText(str(Path(".")))
     assert dlg.isComplete()
     dlg.lineedit_filename.setText("invalid.csv")
     assert dlg.isComplete()
     dlg.check_export_all.setChecked(True)
 
-    paths = dlg.generatePaths(widget.laser)
+    paths = dlg.generatePaths(item)
 
     assert paths[0][0].name == "invalid_A.csv"
     assert paths[1][0].name == "invalid__B.csv"
@@ -129,10 +118,6 @@ def test_export_dialog_names(qtbot: QtBot):
 
 
 def test_export_all_dialog(qtbot: QtBot):
-    viewspace = LaserViewSpace()
-    qtbot.addWidget(viewspace)
-    view = viewspace.activeView()
-
     lasers = [
         Laser(
             rand_data("A1"),
@@ -151,9 +136,10 @@ def test_export_all_dialog(qtbot: QtBot):
             info={"Name": "laser4", "File Path": "/fake/directory/laser4.npz"},
         ),
     ]
-    widgets = [view.addLaser(laser) for laser in lasers]
+    options = GraphicsOptions()
+    items = [LaserImageItem(laser, options) for laser in lasers]
 
-    dlg = ExportAllDialog(widgets)
+    dlg = ExportAllDialog(items)
     dlg.open()
 
     assert dlg.lineedit_directory.text() == "/fake/directory"

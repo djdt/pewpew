@@ -1,0 +1,10 @@
+[run]
+source = pewpew/
+omit = 
+    pewpew/resources/*
+    */__init__.py
+    */__main__.py
+
+[report]
+show_missing = true
+sort = Miss

@@ -2,39 +2,32 @@
 
 import copy
 from io import BytesIO
+from typing import Dict, List, Tuple
+
 import numpy as np
-
-from PySide2 import QtCore, QtWidgets
-
 from pewlib import Calibration, Config
 from pewlib.config import SpotConfig
 from pewlib.process import colocal
 from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
 from pewlib.srr import SRRConfig
+from PySide6 import QtCore, QtWidgets
 
 from pewpew.actions import qAction, qToolButton
-from pewpew.lib import kmeans
-from pewpew.validators import (
-    DecimalValidator,
-    DecimalValidatorNoZero,
-    PercentOrDecimalValidator,
-)
-
 from pewpew.charts.calibration import CalibrationChart
 from pewpew.charts.colocal import ColocalisationChart
 from pewpew.charts.histogram import HistogramChart
-
-from pewpew.graphics.lasergraphicsview import LaserGraphicsView
-
+from pewpew.graphics.imageitems import LaserImageItem
+from pewpew.lib import kmeans
 from pewpew.models import CalibrationPointsTableModel
-
+from pewpew.validators import (
+    DecimalValidator,
+    DecimalValidatorNoZero,
+    DoubleSignificantFiguresDelegate,
+    PercentOrDecimalValidator,
+)
 from pewpew.widgets.ext import CollapsableWidget
 from pewpew.widgets.modelviews import BasicTableView
-
-from pewpew.validators import DoubleSignificantFiguresDelegate
-
-from typing import Dict, List, Tuple, Union
 
 
 class ApplyDialog(QtWidgets.QDialog):
@@ -48,7 +41,7 @@ class ApplyDialog(QtWidgets.QDialog):
 
     applyPressed = QtCore.Signal(QtCore.QObject)
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.layout_main = QtWidgets.QVBoxLayout()
         self.layout_buttons = QtWidgets.QHBoxLayout()
@@ -205,7 +198,7 @@ class CalibrationDialog(ApplyDialog):
         self,
         calibrations: Dict[str, Calibration],
         current_element: str,
-        parent: QtWidgets.QWidget = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Calibration")
@@ -407,7 +400,10 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
     """Plots a calibration."""
 
     def __init__(
-        self, title: str, calibration: Calibration, parent: QtWidgets.QWidget = None
+        self,
+        title: str,
+        calibration: Calibration,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Calibration Curve")
@@ -449,11 +445,11 @@ class ColorRangeDialog(ApplyDialog):
 
     def __init__(
         self,
-        ranges: Dict[str, Tuple[Union[float, str], Union[float, str]]],
-        default_range: Tuple[Union[float, str], Union[float, str]],
+        ranges: Dict[str, Tuple[float | str, float | str]],
+        default_range: Tuple[float | str, float | str],
         elements: List[str],
-        current_element: str = None,
-        parent: QtWidgets.QWidget = None,
+        current_element: str | None = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.default_range = default_range
@@ -524,7 +520,7 @@ class ColorRangeDialog(ApplyDialog):
         self.updateLineEdits()
         self.previous_element = self.combo_element.currentText()
 
-    def updateRange(self, element: str = None) -> None:
+    def updateRange(self, element: str | None = None) -> None:
         tmin, tmax = self.lineedit_min.text(), self.lineedit_max.text()
         vmin, vmax = self.ranges.get(element or "", self.default_range)
 
@@ -554,9 +550,9 @@ class ColocalisationDialog(QtWidgets.QDialog):
     def __init__(
         self,
         data: np.ndarray,
-        mask: np.ndarray = None,
-        # colors: List[Tuple[float, ...]] = None,
-        parent: QtWidgets.QWidget = None,
+        mask: np.ndarray | None = None,
+        # colors: List[Tuple[float, ...]] | None = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         assert data.dtype.names is not None
         super().__init__(parent)
@@ -692,7 +688,7 @@ class ConfigDialog(ApplyDialog):
     configSelected = QtCore.Signal(Config)
     configApplyAll = QtCore.Signal(Config)
 
-    def __init__(self, config: Config, parent: QtWidgets.QWidget = None):
+    def __init__(self, config: Config, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle("Configuration")
         self.config = copy.copy(config)
@@ -820,9 +816,9 @@ class InformationDialog(QtWidgets.QDialog):
 
     infoChanged = QtCore.Signal(dict)
 
-    read_only_items = ["Name", "File Path"]
+    read_only_items = ["Name", "File Path", "File Version"]
 
-    def __init__(self, info: Dict[str, str], parent: QtWidgets.QWidget = None):
+    def __init__(self, info: Dict[str, str], parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
 
         self.setMinimumSize(400, 400)
@@ -910,7 +906,7 @@ class NameEditDialog(QtWidgets.QDialog):
         self,
         names: List[str],
         allow_remove: bool = False,
-        parent: QtWidgets.QWidget = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Edit Names")
@@ -935,6 +931,13 @@ class NameEditDialog(QtWidgets.QDialog):
     def accept(self) -> None:
         items = [self.list.item(i) for i in range(self.list.count())]
         rename = {}
+        if self.allow_remove and all(
+            item.checkState() == QtCore.Qt.CheckState.Unchecked for item in items
+        ):
+            QtWidgets.QMessageBox.warning(
+                self, "Name Change Dialog", "Unable to remove all elements."
+            )
+            return
         for item in items:
             if not self.allow_remove or (
                 item.flags() & QtCore.Qt.ItemIsUserCheckable
@@ -958,6 +961,39 @@ class NameEditDialog(QtWidgets.QDialog):
             self.addName(name)
 
 
+class PixelSizeDialog(ApplyDialog):
+    sizeSelected = QtCore.Signal(QtCore.QSizeF)
+
+    def __init__(self, size: QtCore.QSizeF, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+        self.setWindowTitle("Set Pixel Size")
+
+        self.xsize = QtWidgets.QLineEdit(str(size.width()))
+        self.xsize.setValidator(DecimalValidator(0.001, 999.999, 3))
+
+        self.ysize = QtWidgets.QLineEdit(str(size.height()))
+        self.ysize.setValidator(DecimalValidator(0.001, 999.999, 3))
+
+        layoutx = QtWidgets.QHBoxLayout()
+        layoutx.addWidget(self.xsize, 1)
+        layoutx.addWidget(QtWidgets.QLabel("μm"), 0, QtCore.Qt.AlignRight)
+        layouty = QtWidgets.QHBoxLayout()
+        layouty.addWidget(self.ysize, 1)
+        layouty.addWidget(QtWidgets.QLabel("μm"), 0, QtCore.Qt.AlignRight)
+
+        layout_form = QtWidgets.QFormLayout()
+        layout_form.addRow("x:", layoutx)
+        layout_form.addRow("y:", layouty)
+
+        self.layout_main.addLayout(layout_form)
+
+    def size(self) -> QtCore.QSizeF:
+        return QtCore.QSizeF(float(self.xsize.text()), float(self.ysize.text()))
+
+    def apply(self) -> None:
+        self.sizeSelected.emit(self.size())
+
+
 class SelectionDialog(ApplyDialog):
     """Dialog for theshold based selection of data."""
 
@@ -972,11 +1008,11 @@ class SelectionDialog(ApplyDialog):
     }
     COMPARISION = {">": np.greater, "<": np.less, "=": np.equal}
 
-    def __init__(self, graphics: LaserGraphicsView, parent: QtWidgets.QWidget = None):
+    def __init__(self, item: LaserImageItem, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle("Selection")
 
-        self.graphics = graphics
+        self.item = item
 
         self.threshold: float = 0.0
 
@@ -1003,7 +1039,7 @@ class SelectionDialog(ApplyDialog):
         self.lineedit_manual.textEdited.connect(self.refresh)
 
         self.check_limit_selection = QtWidgets.QCheckBox(
-            "Interscet selection with current selection."
+            "Intersect selection with current selection."
         )
         self.check_limit_threshold = QtWidgets.QCheckBox(
             "Limit thresholding to selected values."
@@ -1029,17 +1065,14 @@ class SelectionDialog(ApplyDialog):
 
     def refresh(self) -> None:
         method = self.combo_method.currentText()
-        data = self.graphics.data
-        if data is None:
+        data = self.item.raw_data
+        if data is None or len(data) == 0:
             return
-        if self.check_limit_threshold.isChecked() and self.graphics.mask is not None:
-            data = data[self.graphics.mask]
+        if self.check_limit_threshold.isChecked() and self.item.mask_image is not None:
+            data = data[self.item.mask]
 
         # Remove nans
         data = data[~np.isnan(data)]
-
-        # Enable lineedit if manual mode
-        self.lineedit_manual.setEnabled(method == "Manual")
 
         op, var = SelectionDialog.METHODS[method]
 
@@ -1073,7 +1106,7 @@ class SelectionDialog(ApplyDialog):
 
     def apply(self) -> None:
         comparison = self.COMPARISION[self.combo_comparison.currentText()]
-        data = self.graphics.data
+        data = self.item.raw_data
         if data is None:
             return
         mask = comparison(data, self.threshold)
@@ -1102,8 +1135,8 @@ class StatsDialog(QtWidgets.QDialog):
         mask: np.ndarray,
         units: Dict[str, str],
         element: str,
-        pixel_size: Tuple[float, float] = None,
-        parent: QtWidgets.QWidget = None,
+        pixel_size: Tuple[float, float] | None = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Statistics")
@@ -1191,7 +1224,6 @@ class StatsDialog(QtWidgets.QDialog):
             nd = self.data[name]
             unit = self.units.get(str(name), "")
             nd = nd[~np.isnan(nd)]
-            print(nd)
 
             data += (
                 f"<tr><td>{name}</td><td>{unit}</td><td>{np.min(nd)}</td>"

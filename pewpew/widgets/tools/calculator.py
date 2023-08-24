@@ -1,21 +1,22 @@
 import numpy as np
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
+from pewpew.graphics import colortable
 
 from pewpew.lib import kmeans
 from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
 from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
 
-from pewpew.graphics.lasergraphicsview import LaserGraphicsView
+from pewpew.graphics.imageitems import ScaledImageItem, LaserImageItem
 
 from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
-from pewpew.widgets.laser import LaserWidget
 from pewpew.widgets.tools import ToolWidget
+from pewpew.widgets.views import TabView
 
-from typing import List, Optional
+from typing import List
 
 
 def segment_image(x: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
@@ -36,9 +37,9 @@ class CalculatorName(ValidColorLineEdit):
         text: str,
         badnames: List[str],
         badparser: List[str],
-        parent: QtWidgets.QWidget = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
-        super().__init__(text, parent)
+        super().__init__(text, parent=parent)
 
         self.badnames = badnames
         self.badchars = [" ", "\t", "\n"]
@@ -68,11 +69,11 @@ class CalculatorFormula(ValidColorTextEdit):
         self,
         text: str,
         variables: List[str],
-        parent: QtWidgets.QWidget = None,
+        parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(text, parent)
 
-        self.completer: QtWidgets.QCompleter = None
+        self.completer: QtWidgets.QCompleter | None = None
 
         self.textChanged.disconnect(self.revalidate)
         self.textChanged.connect(self.calculate)
@@ -229,12 +230,10 @@ class CalculatorTool(ToolWidget):
         ),
     }
 
-    def __init__(self, widget: LaserWidget):
-        super().__init__(widget, graphics_label="Preview")
+    def __init__(self, item: LaserImageItem, view: TabView | None = None):
+        super().__init__(item, graphics_label="Preview", view=view)
 
-        self.graphics = LaserGraphicsView(self.viewspace.options, parent=self)
-        self.graphics.cursorValueChanged.connect(self.widget.updateCursorStatus)
-        self.graphics.setMouseTracking(True)
+        self.image: ScaledImageItem | None = None
 
         self.output = QtWidgets.QLineEdit("Result")
         self.output.setEnabled(False)
@@ -276,10 +275,6 @@ class CalculatorTool(ToolWidget):
         layout_combos.addWidget(self.combo_element)
         layout_combos.addWidget(self.combo_function)
 
-        layout_graphics = QtWidgets.QVBoxLayout()
-        layout_graphics.addWidget(self.graphics)
-        self.box_graphics.setLayout(layout_graphics)
-
         layout_controls = QtWidgets.QFormLayout()
         layout_controls.addRow("Name:", self.lineedit_name)
         layout_controls.addRow("Insert:", layout_combos)
@@ -290,20 +285,19 @@ class CalculatorTool(ToolWidget):
         self.initialise()  # refreshes
 
     def apply(self) -> None:
-        self.modified = True
         name = self.lineedit_name.text()
         data = self.reducer.reduce(self.formula.expr)
-        if name in self.widget.laser.elements:
-            self.widget.laser.data[name] = data
+        if name in self.item.laser.elements:
+            self.item.laser.data[name] = data
         else:
-            self.widget.laser.add(self.lineedit_name.text(), data)
+            self.item.laser.add(self.lineedit_name.text(), data)
         # Make sure to repop elements
-        self.widget.populateElements()
+        self.itemModified.emit(self.item)
 
         self.initialise()
 
     def initialise(self) -> None:
-        elements = self.widget.laser.elements
+        elements = self.item.laser.elements
         self.combo_element.clear()
         self.combo_element.addItem("Elements")
         self.combo_element.addItems(elements)
@@ -322,7 +316,11 @@ class CalculatorTool(ToolWidget):
             )
         )
         self.formula.valid = True
-        self.formula.setText(self.widget.combo_element.currentText())  # refreshes
+        self.formula.setText(self.item.element())  # refreshes
+
+        # x0, x1, y0, y1 = self.item.laser.config.data_extent(self.item.laser.shape)
+        # rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
+        # self.graphics.fitInView(rect, QtCore.Qt.KeepAspectRatio)
 
     def insertFunction(self, index: int) -> None:
         if index == 0:
@@ -347,7 +345,7 @@ class CalculatorTool(ToolWidget):
             return False
         return True
 
-    def previewData(self, data: np.ndarray) -> Optional[np.ndarray]:
+    def previewData(self, data: np.ndarray) -> np.ndarray | None:
         self.reducer.variables = {name: data[name] for name in data.dtype.names}
         try:
             result = self.reducer.reduce(self.formula.expr)
@@ -368,16 +366,23 @@ class CalculatorTool(ToolWidget):
         if not self.isComplete():  # Not ready for update to preview
             return
 
-        data = self.previewData(self.widget.laser.get(flat=True, calibrated=False))
+        data = self.previewData(self.item.laser.get(flat=True, calibrated=False))
         if data is None:
             return
-        x0, x1, y0, y1 = self.widget.laser.config.data_extent(data.shape)
+        x0, x1, y0, y1 = self.item.laser.config.data_extent(data.shape)
         rect = QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
 
-        self.graphics.drawImage(data, rect, self.lineedit_name.text())
+        vmin, vmax = self.item.options.get_color_range_as_float("<calc>", data)
+        data = np.clip(data, vmin, vmax)
+        if vmin != vmax:
+            data = (data - vmin) / (vmax - vmin)
 
-        self.graphics.label.setText(self.lineedit_name.text())
+        table = colortable.get_table(self.item.options.colortable)
 
-        self.graphics.setOverlayItemVisibility()
-        self.graphics.updateForeground()
+        if self.image is not None:
+            self.graphics.scene().removeItem(self.image)
+        self.image = ScaledImageItem.fromArray(data, rect, table)
+        self.graphics.scene().addItem(self.image)
+        
+        self.colorbar.updateTable(table, vmin, vmax, "")
         self.graphics.invalidateScene()

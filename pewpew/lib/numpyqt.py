@@ -1,10 +1,10 @@
-from PySide2 import QtCore, QtGui
+from PySide6 import QtCore, QtGui
 
 import ctypes
 import numpy as np
-import shiboken2
+import shiboken6
 
-from typing import Any, Optional, Tuple
+from typing import Any, Tuple
 
 
 def array_to_image(array: np.ndarray) -> QtGui.QImage:
@@ -13,9 +13,13 @@ def array_to_image(array: np.ndarray) -> QtGui.QImage:
     array = np.atleast_2d(array)
 
     # Clip float arrays to 0.0 - 1.0 then convert to uint8
+    # Data is set to 1 - 255, NaNs are set to 0
     if array.dtype in [np.float32, np.float64]:
+        nans = np.isnan(array)
         array = np.clip(array, 0.0, 1.0)
-        array = (array * 255.0).astype(np.uint8)
+        with np.errstate(invalid="ignore"):
+            array = (array * 254.0).astype(np.uint8) + 1
+        array[nans] = 0
 
     # 3D arrays interpreted as RGB
     if array.ndim == 3:
@@ -37,12 +41,19 @@ def array_to_image(array: np.ndarray) -> QtGui.QImage:
     return image
 
 
-def polygonf_to_array(polygon: QtGui.QPolygonF) -> np.ndarray:
-    """Converts a Qt polygon to a numpy array of shape (n, 2)."""
-    buf = (ctypes.c_double * 2 * polygon.length()).from_address(
-        shiboken2.getCppPointer(polygon.data())[0]  # type: ignore
+def image_to_array(image: QtGui.QImage, grey: bool = True) -> np.ndarray:
+    if image.isGrayscale():
+        image = image.convertToFormat(QtGui.QImage.Format_Grayscale8)
+        channels = 1
+    else:
+        image = image.convertToFormat(QtGui.QImage.Format_RGB32)
+        channels = 4
+
+    array = np.array(image.constBits(), np.uint8).reshape(
+        (image.height(), image.width(), channels)
     )
-    return np.frombuffer(buf, dtype=np.float64).reshape(-1, 2)
+
+    return array
 
 
 def array_to_polygonf(array: np.ndarray) -> QtGui.QPolygonF:
@@ -50,15 +61,24 @@ def array_to_polygonf(array: np.ndarray) -> QtGui.QPolygonF:
     assert array.ndim == 2
     assert array.shape[1] == 2
 
-    polygon = QtGui.QPolygonF(array.shape[0])
+    polygon = QtGui.QPolygonF()
+    polygon.resize(array.shape[0])
 
     buf = (ctypes.c_double * array.size).from_address(
-        shiboken2.getCppPointer(polygon.data())[0]  # type: ignore
+        shiboken6.getCppPointer(polygon.data())[0]  # type: ignore
     )
 
     memory = np.frombuffer(buf, np.float64)
     memory[:] = array.ravel()
     return polygon
+
+
+def polygonf_to_array(polygon: QtGui.QPolygonF) -> np.ndarray:
+    """Converts a Qt polygon to a numpy array of shape (n, 2)."""
+    buf = (ctypes.c_double * 2 * polygon.length()).from_address(
+        shiboken6.getCppPointer(polygon.data())[0]  # type: ignore
+    )
+    return np.frombuffer(buf, dtype=np.float64).reshape(-1, 2)
 
 
 class NumpyArrayTableModel(QtCore.QAbstractTableModel):
@@ -76,7 +96,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         array: np.ndarray,
         axes: Tuple[int, int] = (0, 1),
         fill_value: float = 0.0,
-        parent: QtCore.QObject = None,
+        parent: QtCore.QObject | None = None,
     ):
         array = np.atleast_2d(array)
         assert array.ndim == 2
@@ -87,10 +107,10 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         self.fill_value = fill_value
 
     # Rows and Columns
-    def columnCount(self, parent: QtCore.QModelIndex = None) -> int:
+    def columnCount(self, parent: QtCore.QModelIndex | None = None) -> int:
         return self.array.shape[self.axes[1]]
 
-    def rowCount(self, parent: QtCore.QModelIndex = None) -> int:
+    def rowCount(self, parent: QtCore.QModelIndex | None = None) -> int:
         return self.array.shape[self.axes[0]]
 
     def insertRows(
@@ -168,7 +188,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
     # Data
     def data(
         self, index: QtCore.QModelIndex, role: int = QtCore.Qt.DisplayRole
-    ) -> Optional[str]:
+    ) -> str | None:
         if not index.isValid():
             return None
 
@@ -207,7 +227,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
         section: int,
         orientation: QtCore.Qt.Orientation,
         role: QtCore.Qt.ItemDataRole,
-    ) -> Optional[str]:
+    ) -> str | None:
         if role != QtCore.Qt.DisplayRole:  # pragma: no cover
             return None
 
