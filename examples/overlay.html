@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>4. Example: De-noising an image &mdash; pewpew  documentation</title>
+  <title>7. Example: Selecting ROIs from an Image &mdash; pewpew  documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -19,8 +19,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="5. Example: Quantifying a sample" href="standards.html" />
-    <link rel="prev" title="2. Example: Thresholded division of elements" href="calculator.html" /> 
+    <link rel="prev" title="6. Example: Mean of a region" href="stats.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -65,10 +64,10 @@
 <li class="toctree-l1"><a class="reference internal" href="import.html">1. Example: Importing file-per-line data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="calculator.html">2. Example: Thresholded division of elements</a></li>
 <li class="toctree-l1"><a class="reference internal" href="calculator.html#example-image-segmentation">3. Example: Image Segmentation</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">4. Example: De-noising an image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filter.html">4. Example: De-noising an image</a></li>
 <li class="toctree-l1"><a class="reference internal" href="standards.html">5. Example: Quantifying a sample</a></li>
 <li class="toctree-l1"><a class="reference internal" href="stats.html">6. Example: Mean of a region</a></li>
-<li class="toctree-l1"><a class="reference internal" href="overlay.html">7. Example: Selecting ROIs from an Image</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">7. Example: Selecting ROIs from an Image</a></li>
 </ul>
 
         </div>
@@ -85,9 +84,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active"><span class="section-number">4. </span>Example: De-noising an image</li>
+      <li class="breadcrumb-item active"><span class="section-number">7. </span>Example: Selecting ROIs from an Image</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/examples/filter.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/examples/overlay.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -95,49 +94,61 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="example-de-noising-an-image">
-<h1><span class="section-number">4. </span>Example: De-noising an image<a class="headerlink" href="#example-de-noising-an-image" title="Link to this heading"></a></h1>
-<p>In this example we remove instrument noise from an image.
-See also <a class="reference internal" href="../tools/filter.html#filtering-tool"><span class="std std-ref">Filtering Tool</span></a>.</p>
+  <section id="example-selecting-rois-from-an-image">
+<h1><span class="section-number">7. </span>Example: Selecting ROIs from an Image<a class="headerlink" href="#example-selecting-rois-from-an-image" title="Link to this heading"></a></h1>
+<p>Data selection can be guided by loading an image into pew², most image formats are supported.</p>
+<p>pew² implements two different tools for manual region selection,
+the <cite>Rectangle Selector</cite> and <cite>Lasso Selector</cite>.
+These tools function similarly to selection tools in other programs,
+with regions selected by clicking and dragging on the image.</p>
+<p>Holding <strong>Shift</strong> will <strong>add</strong> to the currently selected region while holding <strong>Ctrl</strong> will <strong>subtract</strong> from it.</p>
 <figure class="align-center" id="id1">
-<a class="reference internal image-reference" href="../_images/tutorial_filter_pre.jpg"><img alt="../_images/tutorial_filter_pre.jpg" src="../_images/tutorial_filter_pre.jpg" style="width: 400px;" /></a>
+<a class="reference internal image-reference" href="../_images/tutorial_overlay_images.png"><img alt="../_images/tutorial_overlay_images.png" src="../_images/tutorial_overlay_images.png" style="width: 400px;" /></a>
 <figcaption>
-<p><span class="caption-text">Negative spikes (-33) are visible due the to instrument missing an acquisition
-cycle.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+<p><span class="caption-text">A loaded laser and overlay image.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <ol class="arabic simple">
 <li><dl class="simple">
-<dt>Using the <cite>Filtering</cite> tool select the appropriate filter.</dt><dd><p>Available filters are <cite>Rolling Mean</cite> and <cite>Rolling Median</cite>.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>Select appropriate filter size.</dt><dd><p>Typical window sizes are 3, 5 or 7. A larger window size will be more
-sensitive in detecting outlying data but is more likely to introduce artifacts.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>Select the appropriate filter threshold.</dt><dd><p>An ideal threshold will change invalid data while leaving valid data untouched.</p>
+<dt>Load a laser and image file.</dt><dd><p>Both types of image can be loaded using drag-and-drop or the <a class="reference internal" href="../dialogs/import.html#import-wizard"><span class="std std-ref">Import Wizard</span></a>.</p>
 </dd>
 </dl>
 </li>
 </ol>
 <figure class="align-center" id="id2">
-<a class="reference internal image-reference" href="../_images/tutorial_filter_post.jpg"><img alt="../_images/tutorial_filter_post.jpg" src="../_images/tutorial_filter_post.jpg" style="width: 400px;" /></a>
+<a class="reference internal image-reference" href="../_images/tutorial_overlay_images_2.png"><img alt="../_images/tutorial_overlay_images_2.png" src="../_images/tutorial_overlay_images_2.png" style="width: 400px;" /></a>
 <figcaption>
-<p><span class="caption-text">A rolling median filter replaces the invalid values with the local median.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
+<p><span class="caption-text">Aligned images.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
 </figcaption>
 </figure>
+<ol class="arabic simple" start="2">
+<li><dl class="simple">
+<dt>Align the images manually.</dt><dd><p>Overlay image scale can be set via the <cite>Pixel Size</cite> in the image context menu,
+or by using the affine or scale-rotate controls.</p>
+</dd>
+</dl>
+</li>
+</ol>
+<figure class="align-center" id="id3">
+<a class="reference internal image-reference" href="../_images/tutorial_overlay_images_selection.png"><img alt="../_images/tutorial_overlay_images_selection.png" src="../_images/tutorial_overlay_images_selection.png" style="width: 400px;" /></a>
+<figcaption>
+<p><span class="caption-text">Locking images allows selection through them.</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<ol class="arabic simple" start="3">
+<li><dl class="simple">
+<dt>Select region using the selection tools.</dt><dd><p>Lock the overlay image to prevent interaction. See <a class="reference internal" href="../usage.html#basic-usage"><span class="std std-ref">Basic Usage</span></a> for details on selection tools.</p>
+</dd>
+</dl>
+</li>
+</ol>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="calculator.html" class="btn btn-neutral float-left" title="2. Example: Thresholded division of elements" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="standards.html" class="btn btn-neutral float-right" title="5. Example: Quantifying a sample" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="stats.html" class="btn btn-neutral float-left" title="6. Example: Mean of a region" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

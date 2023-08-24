@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Basic Usage &mdash; pewpew  documentation</title>
@@ -11,10 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/doctools.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -27,11 +28,15 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> pewpew
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            pewpew
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -56,9 +61,7 @@
 <p class="caption" role="heading"><span class="caption-text">Tools</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="tools/calculator.html">Calculator</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tools/drift.html">Drift Compensation Tool</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/filter.html">Filtering Tool</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tools/overlay.html">Overlay Tool</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tools/standards.html">Standards Tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
@@ -66,10 +69,10 @@
 <li class="toctree-l1"><a class="reference internal" href="examples/import.html">1. Example: Importing file-per-line data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/calculator.html">2. Example: Thresholded division of elements</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/calculator.html#example-image-segmentation">3. Example: Image Segmentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/drift.html">4. Example: Compensating laser drift</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/filter.html">5. Example: De-noising an image</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/standards.html">6. Example: Quantifying a sample</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/stats.html">7. Example: Mean of a region</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/filter.html">4. Example: De-noising an image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/standards.html">5. Example: Quantifying a sample</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/stats.html">6. Example: Mean of a region</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/overlay.html">7. Example: Selecting ROIs from an Image</a></li>
 </ul>
 
         </div>
@@ -85,8 +88,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Basic Usage</li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Basic Usage</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/usage.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -97,31 +100,25 @@
            <div itemprop="articleBody">
              
   <section id="basic-usage">
-<h1>Basic Usage<a class="headerlink" href="#basic-usage" title="Permalink to this headline"></a></h1>
+<h1>Basic Usage<a class="headerlink" href="#basic-usage" title="Link to this heading"></a></h1>
 <figure class="align-center" id="id1">
-<span id="index-0"></span><img alt="_images/usage_guide.png" src="_images/usage_guide.png" />
+<span id="index-0"></span><img alt="_images/usage_guide_1.4.3.png" src="_images/usage_guide_1.4.3.png" />
 <figcaption>
-<p><span class="caption-text">An open image in pew². (1) Open image tabs, double click to edit laser name. (2) View controls. (3) Current image name, double click to rename. (4) Scalebar. (5) A selected region. (6) Image right click context menu. (7) Color scale, units on right if available. (8) Selectoin tools and widgets. (9) Current name selection. (10) Cursor unit, (μ = μm, i = pixel).</span><a class="headerlink" href="#id1" title="Permalink to this image"></a></p>
+<p><span class="caption-text">An open image in pew². (1) Selected element. (2) Image name, right click to rename. (3) Scalebar. (4) Right click context menu. (5) A selected region. (6) Active image is highlighted. (7) Tools for the active image. (8) Options for selected image. (9) Cursor unit, (μ = μm, i = pixel).</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <p>The first step in using pew² is to load or import data.
 For an example of using the import wizard see <a class="reference internal" href="examples/import.html#example-importing-file-per-line-data"><span class="std std-ref">Example: Importing file-per-line data</span></a> or read <a class="reference internal" href="dialogs/import.html#import-wizard"><span class="std std-ref">Import Wizard</span></a>.
-The image can be navigated by click and dragging with either the left or middle mouse button and using the scroll wheel.
-The layout of images is able to be customised using the View controls (2).</p>
-<figure class="align-center" id="id2">
-<a class="reference internal image-reference" href="_images/usage_view_controls.jpg"><img alt="_images/usage_view_controls.jpg" src="_images/usage_view_controls.jpg" style="width: 300px;" /></a>
-<figcaption>
-<p><span class="caption-text">View controls allow visualisation of multiple images at once.</span><a class="headerlink" href="#id2" title="Permalink to this image"></a></p>
-</figcaption>
-</figure>
+Images can be moved by click and dragging with either the left mouse button and the scene navigated using the middle mouse and scroll wheel.
+New scenes can be added using <strong>Edit -&gt; New Tab</strong>.</p>
 <p>Import and export controls are located in the <strong>File</strong> menu,
-parameters and image transforms in the <strong>Edit</strong> menu and tools for calibration, processing and visualisation of data in the <strong>Tools</strong> menu bar.</p>
+parameters in the <strong>Edit</strong> menu and tools for calibration, processing and visualisation of data under <strong>Right Click -&gt; Tools</strong>.</p>
 <p>The <strong>View</strong> menu contains options for customising the visual style of images.
-Here you will find controls for the size and visibility of text, the colortable and image smoothing.
+Here you will find controls for the size and visibility of text, the color table and image smoothing.
 Color table ranges are individually editable for each open element via <strong>View -&gt; Colortable -&gt; Set Range</strong> or <strong>Ctrl+R</strong>.
-A range of perceptually uniform (or near) colortables are available.</p>
+A range of perceptually uniform (or near) color tables are available.</p>
 <section id="selections">
-<h2>Selections<a class="headerlink" href="#selections" title="Permalink to this headline"></a></h2>
+<h2>Selections<a class="headerlink" href="#selections" title="Link to this heading"></a></h2>
 <p>pew² implements two different tools for manual region selection,
 the <cite>Rectangle Selector</cite> and <cite>Lasso Selector</cite>.
 These tools function similarly to selection tools in other programs,
@@ -129,10 +126,10 @@ with regions selected by clicking and dragging on the image.</p>
 <p>Holding <strong>Shift</strong> will <strong>add</strong> to the currently selected region while holding <strong>Ctrl</strong> will <strong>subtract</strong> from it.</p>
 </section>
 <section id="saving-and-exporting">
-<h2>Saving and Exporting<a class="headerlink" href="#saving-and-exporting" title="Permalink to this headline"></a></h2>
-<p>Files can be saved as a numpy archive via the right click context menu <strong>Right Click -&gt; Save</strong>.
+<h2>Saving and Exporting<a class="headerlink" href="#saving-and-exporting" title="Link to this heading"></a></h2>
+<p>Files can be saved as a Numpy archive via the right click context menu <strong>Right Click -&gt; Save</strong>.
 This archive will also include any calibration and configurations applied to the image.
-To export use either the <cite>Export Dialog</cite> <strong>Right Click -&gt; Export</strong> or the batch <cite>Export All Dialog</cite> <strong>File -&gt; Expotr All</strong>.
+To export use either the <cite>Export Dialog</cite> <strong>Right Click -&gt; Export</strong> or the batch <cite>Export All Dialog</cite> <strong>File -&gt; Export All</strong>.
 These dialogs export the current or all images in a range of formats.</p>
 </section>
 </section>

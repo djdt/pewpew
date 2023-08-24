@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Selection Dialog &mdash; pewpew  documentation</title>
@@ -11,10 +11,11 @@
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/jquery.js"></script>
-        <script src="../_static/underscore.js"></script>
-        <script src="../_static/doctools.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
@@ -28,11 +29,15 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../index.html" class="icon icon-home"> pewpew
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            pewpew
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
@@ -53,9 +58,7 @@
 <p class="caption" role="heading"><span class="caption-text">Tools</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../tools/calculator.html">Calculator</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tools/drift.html">Drift Compensation Tool</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tools/filter.html">Filtering Tool</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tools/overlay.html">Overlay Tool</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tools/standards.html">Standards Tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
@@ -63,10 +66,10 @@
 <li class="toctree-l1"><a class="reference internal" href="../examples/import.html">1. Example: Importing file-per-line data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../examples/calculator.html">2. Example: Thresholded division of elements</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../examples/calculator.html#example-image-segmentation">3. Example: Image Segmentation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/drift.html">4. Example: Compensating laser drift</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/filter.html">5. Example: De-noising an image</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/standards.html">6. Example: Quantifying a sample</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../examples/stats.html">7. Example: Mean of a region</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/filter.html">4. Example: De-noising an image</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/standards.html">5. Example: Quantifying a sample</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/stats.html">6. Example: Mean of a region</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/overlay.html">7. Example: Selecting ROIs from an Image</a></li>
 </ul>
 
         </div>
@@ -82,8 +85,8 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
-      <li>Selection Dialog</li>
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Selection Dialog</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/dialogs/selection.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -94,7 +97,7 @@
            <div itemprop="articleBody">
              
   <section id="selection-dialog">
-<h1>Selection Dialog<a class="headerlink" href="#selection-dialog" title="Permalink to this headline"></a></h1>
+<h1>Selection Dialog<a class="headerlink" href="#selection-dialog" title="Link to this heading"></a></h1>
 <p id="index-0">The <cite>Selection Dialog</cite> selects a region based on a given threshold value or method.
 The <cite>Method</cite> and <cite>Comparison</cite> combo-boxes selects the method for creating the thresholding value and
 to compare the data to it.
@@ -107,7 +110,7 @@ to the thresholding method.</p>
 <figure class="align-center" id="id1">
 <a class="reference internal image-reference" href="../_images/tutorial_selection_otsu.png"><img alt="../_images/tutorial_selection_otsu.png" src="../_images/tutorial_selection_otsu.png" style="width: 400px;" /></a>
 <figcaption>
-<p><span class="caption-text">Extraction of tissue from background using the <cite>Selection Dialog</cite> and Otsu’s method.</span><a class="headerlink" href="#id1" title="Permalink to this image"></a></p>
+<p><span class="caption-text">Extraction of tissue from background using the <cite>Selection Dialog</cite> and Otsu’s method.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
 </figcaption>
 </figure>
 <div class="admonition seealso">

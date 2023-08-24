@@ -30,9 +30,7 @@ pewlib_.
     :caption: Tools
 
     tools/calculator
-    tools/drift
     tools/filter
-    tools/overlay
     tools/standards
 
 .. toctree::
@@ -42,10 +40,10 @@ pewlib_.
 
     examples/import
     examples/calculator
-    examples/drift
     examples/filter
     examples/standards
     examples/stats
+    examples/overlay
 
 
 .. _pewlib: https://github.com/djdt/pewlib
