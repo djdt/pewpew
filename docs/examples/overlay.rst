@@ -18,7 +18,7 @@ Holding **Shift** will **add** to the currently selected region while holding **
 
 
 1. Load a laser and image file.
-    Both type sof image can be loaded using drag-and-drop or the :ref:`Import Wizard`.
+    Both types of image can be loaded using drag-and-drop or the :ref:`Import Wizard`.
 
 .. figure:: ../images/tutorial_overlay_images_2.png
     :width: 400px
