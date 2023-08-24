@@ -354,7 +354,7 @@ class LaserTabWidget(TabViewWidget):
         self, laser: Laser, pos: QtCore.QPointF | None = None
     ) -> "LaserImageItem":
         item = LaserImageItem(laser, self.graphics.options)
-        self.addLaserItem(item)
+        self.addLaserItem(item, pos=pos)
         return item
 
     def addLaserItem(
