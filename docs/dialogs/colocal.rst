@@ -22,8 +22,3 @@ This will limit the inputs to that region.
 
 
 .. _Costes: https://doi.org/10.1529/biophysj.103.038422
-
-
-.. seealso::
-   :ref:`Overlay Tool`
-    Tool for creating RGB overlays of images.
