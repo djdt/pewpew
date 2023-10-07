@@ -57,8 +57,20 @@ class PngOptionsBox(OptionsBox):
         "Off": None,
     }
 
-    def __init__(self, parent: QtWidgets.QWidget | None = None):
+    def __init__(self, size: QtCore.QSize, parent: QtWidgets.QWidget | None = None):
         super().__init__("PNG Images", ".png", visible=True)
+
+        self.base_size = size
+        self.label_x = QtWidgets.QLabel()
+        self.label_y = QtWidgets.QLabel()
+
+        self.spin_scale = QtWidgets.QSpinBox()
+        self.spin_scale.valueChanged.connect(self.updateSizeLabel)
+        self.spin_scale.setValue(int(600.0 / size.width()))
+        self.spin_scale.setRange(1, 100)
+
+        self.le_dpi = QtWidgets.QLineEdit("96")
+        self.le_dpi.setValidator(QtGui.QIntValidator(1, 1000))
 
         self.combo_scalebar = QtWidgets.QComboBox()
         self.combo_scalebar.addItems(list(PngOptionsBox.item_positions.keys()))
@@ -74,15 +86,35 @@ class PngOptionsBox(OptionsBox):
         self.check_raw = QtWidgets.QCheckBox("Export raw image data.")
         self.check_raw.toggled.connect(self.rawStateChanged)
 
+        layout_scale = QtWidgets.QHBoxLayout()
+        layout_scale.addWidget(self.spin_scale, 2)
+        layout_scale.addWidget(self.label_x, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout_scale.addWidget(QtWidgets.QLabel("x"), 0)
+        layout_scale.addWidget(self.label_y, 1)
+
         layout = QtWidgets.QFormLayout()
+        layout.addRow("Scale", layout_scale)
+        layout.addRow("DPI", self.le_dpi)
         layout.addRow("Scalebar", self.combo_scalebar)
         layout.addRow("Element Label", self.combo_label)
         layout.addRow(self.check_colorbar)
         layout.addRow(self.check_raw)
         self.setLayout(layout)
 
+    def updateSizeLabel(self) -> None:
+        self.label_x.setText(f"{self.base_size.width() * self.spin_scale.value()}")
+        self.label_y.setText(f"{self.base_size.height() * self.spin_scale.value()}")
+
+    def scale(self) -> int:
+        return self.spin_scale.value()
+
+    def dpi(self) -> int:
+        return int(self.le_dpi.text())
+
     def rawStateChanged(self, state: QtCore.Qt.CheckState) -> None:
-        enabled = state != QtCore.Qt.CheckState.Checked
+        enabled = not self.check_raw.isChecked()
+        self.spin_scale.setEnabled(enabled)
+        self.le_dpi.setEnabled(enabled)
         self.combo_scalebar.setEnabled(enabled)
         self.combo_label.setEnabled(enabled)
         self.check_colorbar.setEnabled(enabled)
@@ -98,6 +130,9 @@ class PngOptionsBox(OptionsBox):
 
     def isRaw(self) -> bool:
         return self.check_raw.isChecked()
+
+    def isComplete(self) -> bool:
+        return self.le_dpi.hasAcceptableInput()
 
 
 class RBGOptionsBox(OptionsBox):
@@ -115,6 +150,7 @@ class RBGOptionsBox(OptionsBox):
 
     def __init__(
         self,
+        size: QtCore.QSize,
         elements: List[RGBLaserImageItem.RGBElement],
         parent: QtWidgets.QWidget | None = None,
     ):
@@ -127,6 +163,18 @@ class RBGOptionsBox(OptionsBox):
         )
 
         self.rgb_elements = elements
+
+        self.base_size = size
+        self.label_x = QtWidgets.QLabel()
+        self.label_y = QtWidgets.QLabel()
+
+        self.spin_scale = QtWidgets.QSpinBox()
+        self.spin_scale.valueChanged.connect(self.updateSizeLabel)
+        self.spin_scale.setValue(int(600.0 / size.width()))
+        self.spin_scale.setRange(1, 100)
+
+        self.le_dpi = QtWidgets.QLineEdit("96")
+        self.le_dpi.setValidator(QtGui.QIntValidator(1, 1000))
 
         self.combo_scalebar = QtWidgets.QComboBox()
         self.combo_scalebar.addItems(list(PngOptionsBox.item_positions.keys()))
@@ -143,7 +191,15 @@ class RBGOptionsBox(OptionsBox):
         self.check_raw = QtWidgets.QCheckBox("Export raw image data.")
         self.check_raw.toggled.connect(self.rawStateChanged)
 
+        layout_scale = QtWidgets.QHBoxLayout()
+        layout_scale.addWidget(self.spin_scale, 2)
+        layout_scale.addWidget(self.label_x, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout_scale.addWidget(QtWidgets.QLabel("x"), 0)
+        layout_scale.addWidget(self.label_y, 1)
+
         layout = QtWidgets.QFormLayout()
+        layout.addRow("Scale", layout_scale)
+        layout.addRow("DPI", self.le_dpi)
         layout.addRow("Scalebar", self.combo_scalebar)
         layout.addRow("Element Label", self.combo_label)
         layout.addRow("Color Venn", self.combo_venn)
@@ -159,8 +215,20 @@ class RBGOptionsBox(OptionsBox):
     def ranges(self) -> List[Tuple[float, float]]:
         return [rgb.prange for rgb in self.rgb_elements]
 
+    def updateSizeLabel(self) -> None:
+        self.label_x.setText(f"{self.base_size.width() * self.spin_scale.value()}")
+        self.label_y.setText(f"{self.base_size.height() * self.spin_scale.value()}")
+
+    def scale(self) -> int:
+        return self.spin_scale.value()
+
+    def dpi(self) -> int:
+        return int(self.le_dpi.text())
+
     def rawStateChanged(self, state: QtCore.Qt.CheckState) -> None:
-        enabled = state != QtCore.Qt.CheckState.Checked
+        enabled = not self.check_raw.isChecked()
+        self.spin_scale.setEnabled(enabled)
+        self.le_dpi.setEnabled(enabled)
         self.combo_scalebar.setEnabled(enabled)
         self.combo_label.setEnabled(enabled)
         self.combo_venn.setEnabled(enabled)
@@ -176,6 +244,9 @@ class RBGOptionsBox(OptionsBox):
 
     def isRaw(self) -> bool:
         return self.check_raw.isChecked()
+
+    def isComplete(self) -> bool:
+        return self.le_dpi.hasAcceptableInput()
 
 
 class VtiOptionsBox(OptionsBox):
@@ -414,7 +485,7 @@ class ExportDialog(_ExportDialogBase):
         parent: QtWidgets.QWidget | None = None,
     ):
         if isinstance(item, RGBLaserImageItem):
-            options = [RBGOptionsBox(item.current_elements)]
+            options = [RBGOptionsBox(item.imageSize(), item.current_elements)]
         else:
             spacing = (
                 item.laser.config.get_pixel_width(),
@@ -429,7 +500,7 @@ class ExportDialog(_ExportDialogBase):
                     allow_export_all=False,
                 ),
                 OptionsBox("CSV Document", ".csv"),
-                PngOptionsBox(),
+                PngOptionsBox(item.imageSize()),
                 VtiOptionsBox(spacing),
             ]
         super().__init__(options, parent)
@@ -530,6 +601,7 @@ class ExportDialog(_ExportDialogBase):
         elif option.ext == ".png":
             assert graphics_options is not None
             if isinstance(option, RBGOptionsBox):
+                size = QtCore.QSize(laser.shape[1], laser.shape[0]) * option.scale()
                 if any(x in laser.elements for x in option.elements()):
                     image = generate_rgb_laser_image(
                         laser,
@@ -541,10 +613,13 @@ class ExportDialog(_ExportDialogBase):
                         scalebar_alignment=option.scalebarAlignment(),
                         venn_alignment=option.vennAlignment(),
                         raw=option.isRaw(),
+                        size=size,
+                        dpi=option.dpi(),
                     )
                     image.save(str(path.absolute()))
             else:
                 if element is not None and element in laser.elements:
+                    size = QtCore.QSize(laser.shape[1], laser.shape[0]) * option.scale()
                     image = generate_laser_image(
                         laser,
                         element,
@@ -553,6 +628,8 @@ class ExportDialog(_ExportDialogBase):
                         scalebar_alignment=option.scalebarAlignment(),
                         colorbar=option.useColorbar(),
                         raw=option.isRaw(),
+                        size=size,
+                        dpi=option.dpi(),
                     )
                     image.save(str(path.absolute()))
         elif option.ext == ".vti":
