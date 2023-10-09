@@ -90,9 +90,9 @@ def path_for_colorbar_labels(
         xpos = v * width / vrange
         text_pos = xpos - text_width / 2.0
         if text_pos < 0.0:
-            text_pos = fm.lineWidth() + fm.leftBearing(text[0])
+            text_pos = fm.lineWidth()
         elif text_pos + text_width > width:
-            text_pos = width - text_width - fm.lineWidth() - fm.rightBearing(text[-1])
+            text_pos = width - text_width - fm.lineWidth()
         path.addText(text_pos, fm.ascent(), font, text)
 
         xpos -= check_width / 2.0
