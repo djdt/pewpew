@@ -45,7 +45,9 @@ def paint_colorbar(
     painter.setRenderHint(QtGui.QPainter.Antialiasing)
     fm = painter.fontMetrics()
 
-    path = path_for_colorbar_labels(painter.font(), vrange[0], vrange[1], rect.width())
+    path = path_for_colorbar_labels(
+        painter.font(), vrange[0], vrange[1], rect.width(), painter.pen().widthF()
+    )
     if unit is not None and len(unit) > 0:
         xpos = rect.width() - (
             fm.boundingRect(unit).width() + fm.lineWidth() + fm.rightBearing(unit[-1])
@@ -86,7 +88,7 @@ def paint_color_venn(
 
 def paint_scalebar(
     painter: QtGui.QPainter,
-    rect: QtCore.QRectF,
+    length: float,
     parent_rect: QtCore.QRectF,
     alignment: QtCore.Qt.AlignmentFlag,
     scale: float,
@@ -94,13 +96,18 @@ def paint_scalebar(
     painter.save()
     painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
 
-    rect = position_for_alignment(parent_rect, rect, alignment)
+    fm = painter.fontMetrics()
 
-    width, unit = MetricScaleBarOverlay.getWidthAndUnit(rect.width() * scale, "μm")
+    width, unit = MetricScaleBarOverlay.getWidthAndUnit(length * scale, "μm")
     text = f"{width * 1e-6 / MetricScaleBarOverlay.units[unit]:.3g} {unit}"
     width = width / scale
 
-    fm = painter.fontMetrics()
+    text_width = max(width, fm.boundingRect(text).width())
+
+    rect = position_for_alignment(
+        parent_rect, QtCore.QRectF(0, 0, text_width, fm.height()), alignment
+    )
+
     path = QtGui.QPainterPath()
     path.addText(
         rect.center().x() - fm.boundingRect(text).width() / 2.0,
@@ -215,13 +222,7 @@ def generate_laser_image(
     if scalebar_alignment is not None:
         x0, x1, y0, y1 = laser.extent
         scale = (x1 - x0) / pixmap.width()
-        paint_scalebar(
-            painter,
-            QtCore.QRectF(0, 0, xh * 10.0, fm.height()),
-            text_bounds,
-            scalebar_alignment,
-            scale,
-        )
+        paint_scalebar(painter, xh * 10.0, text_bounds, scalebar_alignment, scale)
 
     painter.end()
     return pixmap.toImage()
@@ -321,13 +322,7 @@ def generate_rgb_laser_image(
     if scalebar_alignment is not None:
         x0, x1, y0, y1 = laser.extent
         scale = (x1 - x0) / image.rect().width()
-        paint_scalebar(
-            painter,
-            QtCore.QRectF(0, 0, xh * 10.0, fm.height()),
-            text_bounds,
-            scalebar_alignment,
-            scale,
-        )
+        paint_scalebar(painter, xh * 10.0, text_bounds, scalebar_alignment, scale)
 
     # Draw the color Venn
     if venn_alignment is not None:
