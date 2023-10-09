@@ -616,6 +616,8 @@ class ExportDialog(_ExportDialogBase):
                         size=size,
                         dpi=option.dpi(),
                     )
+                    image.setDotsPerMeterX(option.dpi() * 39.37007874)
+                    image.setDotsPerMeterY(option.dpi() * 39.37007874)
                     image.save(str(path.absolute()))
             else:
                 if element is not None and element in laser.elements:
@@ -631,6 +633,8 @@ class ExportDialog(_ExportDialogBase):
                         size=size,
                         dpi=option.dpi(),
                     )
+                    image.setDotsPerMeterX(option.dpi() * 39.37007874)
+                    image.setDotsPerMeterY(option.dpi() * 39.37007874)
                     image.save(str(path.absolute()))
         elif option.ext == ".vti":
             spacing = option.spacing()
