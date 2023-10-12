@@ -678,6 +678,18 @@ class LaserTabWidget(TabViewWidget):
             self.graphics.endTransform()
         elif event.matches(QtGui.QKeySequence.Paste):
             mime = QtWidgets.QApplication.clipboard().mimeData()
+
+            # Get all selected items, or the focussed item
+            items = [
+                item
+                for item in self.graphics.scene().selectedItems()
+                if isinstance(item, LaserImageItem)
+            ]
+            if len(items) == 0 and isinstance(
+                self.graphics.scene().focusItem(), LaserImageItem
+            ):
+                items.append(self.graphics.scene().focusItem())
+
             if mime.hasFormat("application/x-pew2laser"):
                 with BytesIO(mime.data("application/x-pew2laser")) as fp:
                     data = np.load(fp)
@@ -710,11 +722,13 @@ class LaserTabWidget(TabViewWidget):
                 with BytesIO(mime.data("application/x-pew2config")) as fp:
                     array = np.load(fp)
                     config = Config.from_array(array)
-                self.applyConfig(config)
+                for item in items:
+                    item.applyConfig(config)
             elif mime.hasFormat("application/x-pew2calibration"):
                 with BytesIO(mime.data("application/x-pew2calibration")) as fp:
                     npy = np.load(fp)
                     calibrations = {k: Calibration.from_array(npy[k]) for k in npy}
-                self.applyCalibration(calibrations)
+                for item in items:
+                    item.applyCalibration(calibrations)
 
         super().keyPressEvent(event)
