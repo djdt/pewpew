@@ -71,7 +71,7 @@ def shortest_label(
 
 
 def path_for_colorbar_labels(
-    font: QtGui.QFont, vmin: float, vmax: float, width: float
+    font: QtGui.QFont, vmin: float, vmax: float, width: float, pen_width: float = 1.0
 ) -> QtGui.QPainterPath:
     vrange = vmax - vmin
     fm = QtGui.QFontMetrics(font)
@@ -90,16 +90,16 @@ def path_for_colorbar_labels(
         xpos = v * width / vrange
         text_pos = xpos - text_width / 2.0
         if text_pos < 0.0:
-            text_pos = fm.lineWidth() + fm.leftBearing(text[0])
+            text_pos = fm.lineWidth()
         elif text_pos + text_width > width:
-            text_pos = width - text_width - fm.lineWidth() - fm.rightBearing(text[-1])
+            text_pos = width - text_width - fm.lineWidth()
         path.addText(text_pos, fm.ascent(), font, text)
 
         xpos -= check_width / 2.0
         if xpos < 0.0:
-            xpos = 1.0
+            xpos = pen_width / 2.0
         elif xpos + check_width > width:
-            xpos = width - check_width - 1.0
+            xpos = width - check_width - pen_width / 2.0
         path.addRect(xpos, -check_width, check_width, check_width * 2.0)
 
     return path
