@@ -1,20 +1,15 @@
+from typing import Callable, List, Tuple
+
 import numpy as np
-
-from PySide6 import QtCore, QtGui, QtWidgets
-
 from pewlib.process import filters
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction, qToolButton
 from pewpew.graphics import colortable
 from pewpew.graphics.imageitems import LaserImageItem, ScaledImageItem
-
+from pewpew.validators import ConditionalLimitValidator
 from pewpew.widgets.ext import ValidColorLineEdit
 from pewpew.widgets.tools import ToolWidget
-
-from pewpew.validators import ConditionalLimitValidator
-
-from typing import Callable, List,  Tuple
-
 from pewpew.widgets.views import TabView
 
 
@@ -140,7 +135,10 @@ class FilteringTool(ToolWidget):
             self.item.laser.data[name] = self.filtered_data
 
         proc = self.item.laser.info.get("Processing", "")
-        params = [f"{p[0]}={v}" for p, v in zip(FilteringTool.methods[method]["params"], self.fparams)]
+        params = [
+            f"{p[0]}={v}"
+            for p, v in zip(FilteringTool.methods[method]["params"], self.fparams)
+        ]
         pstr = ",".join(params)
         proc += f"Filter({name},{self.combo_filter.currentText()},{pstr});"
 
