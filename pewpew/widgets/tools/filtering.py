@@ -130,13 +130,21 @@ class FilteringTool(ToolWidget):
 
     def apply(self) -> None:
         name = self.combo_element.currentText()
+        method = self.combo_filter.currentText()
         if self.button_hide_filter.isChecked():
-            filter_ = FilteringTool.methods[self.combo_filter.currentText()]["filter"]
+            filter_ = FilteringTool.methods[method]["filter"]
             self.item.laser.data[name] = filter_(
                 self.item.laser.data[name], *self.fparams
             )
         else:
             self.item.laser.data[name] = self.filtered_data
+
+        proc = self.item.laser.info.get("Processing", "")
+        params = [f"{p[0]}={v}" for p, v in zip(FilteringTool.methods[method]["params"], self.fparams)]
+        pstr = ",".join(params)
+        proc += f"Filter({name},{self.combo_filter.currentText()},{pstr});"
+
+        self.item.laser.info["Processing"] = proc
 
         self.item.redraw()
         self.initialise()
