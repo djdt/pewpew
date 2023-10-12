@@ -78,7 +78,7 @@ class ConditionalLimitValidator(LimitValidator):
         bottom: float,
         top: float,
         decimals: int = 4,
-        condition: Callable[[float], bool] = None,
+        condition: Callable[[float], bool] | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(bottom, top, decimals, parent)
