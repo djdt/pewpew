@@ -993,6 +993,62 @@ class PixelSizeDialog(ApplyDialog):
     def apply(self) -> None:
         self.sizeSelected.emit(self.size())
 
+class ProcessItemWidget(QtWidgets.QWidget):
+    closeRequested = QtCore.Signal(QtWidgets.QWidget)
+
+    def __init__(
+        self,
+        names: List[str],
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(parent)
+
+        self.names = QtWidgets.QComboBox()
+        self.names.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContentsOnFirstShow)
+        self.names.addItems(names)
+        self.names.addItem("*")
+
+        self.process = QtWidgets.QComboBox()
+        self.process.addItems(ProcessingDialog.pipelines.keys())
+
+
+class ProcessingDialog(QtWidgets.QDialog):
+    pipelines = {"Filter": {}, "Calculator": {}}
+
+    def __init__(
+        self,
+        item: LaserImageItem | None = None,
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(parent)
+        self.setWindowTitle("Processing Pipeline")
+
+        self.action_add = qAction(
+            "list-add",
+            "Add Process",
+            "Add a new process to the pipeline.",
+            self.addProcess,
+        )
+
+        self.button_load = QtWidgets.QPushButton("Load from Image")
+
+        self.proc_list = QtWidgets.QListWidget()
+
+        self.button_add = qToolButton(action=self.action_add)
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok,
+            self,
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addLayout(self.layout_main)
+        layout.addLayout(self.button_box)
+        self.setLayout(layout)
+
+    def addProcess(self) -> None:
 
 class SelectionDialog(ApplyDialog):
     """Dialog for theshold based selection of data."""
