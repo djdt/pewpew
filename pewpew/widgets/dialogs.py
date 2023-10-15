@@ -2,7 +2,7 @@
 
 import copy
 from io import BytesIO
-from typing import Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import numpy as np
 from pewlib import Calibration, Config
@@ -21,13 +21,16 @@ from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.lib import kmeans
 from pewpew.models import CalibrationPointsTableModel
 from pewpew.validators import (
+    ConditionalLimitValidator,
     DecimalValidator,
     DecimalValidatorNoZero,
     DoubleSignificantFiguresDelegate,
     PercentOrDecimalValidator,
 )
-from pewpew.widgets.ext import CollapsableWidget
+from pewpew.widgets.ext import CollapsableWidget, ValidColorLineEdit
 from pewpew.widgets.modelviews import BasicTableView
+from pewpew.widgets.tools.calculator import CalculatorFormula
+from pewpew.widgets.tools.filtering import FilteringTool
 
 
 class ApplyDialog(QtWidgets.QDialog):
@@ -993,6 +996,7 @@ class PixelSizeDialog(ApplyDialog):
     def apply(self) -> None:
         self.sizeSelected.emit(self.size())
 
+
 class ProcessItemWidget(QtWidgets.QWidget):
     closeRequested = QtCore.Signal(QtWidgets.QWidget)
 
@@ -1003,38 +1007,111 @@ class ProcessItemWidget(QtWidgets.QWidget):
     ):
         super().__init__(parent)
 
-        self.names = QtWidgets.QComboBox()
-        self.names.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContentsOnFirstShow)
-        self.names.addItems(names)
-        self.names.addItem("*")
+        self.action_close = qAction(
+            "view-close",
+            "Close Process",
+            "Remove this process from the pipeline.",
+            lambda: self.closeRequested.emit(self),
+        )
+        self.button_hide_filter = qToolButton(action=self.action_close)
 
-        self.process = QtWidgets.QComboBox()
-        self.process.addItems(ProcessingDialog.pipelines.keys())
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(self.button_hide_filter, 0, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.setLayout(layout)
+
+
+class ProcessFilterItemWidget(ProcessItemWidget):
+    def __init__(
+        self,
+        names: List[str],
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(names, parent)
+
+        self.combo_filter = QtWidgets.QComboBox()
+        self.combo_filter.addItems(FilteringTool.methods.keys())
+        self.combo_filter.setCurrentText("Rolling Median")
+        self.combo_filter.activated.connect(self.filterChanged)
+
+        self.combo_names = QtWidgets.QComboBox()
+        self.combo_names.addItems(names)
+        self.combo_names.addItem("*")
+
+        nparams = np.amax([len(f["params"]) for f in FilteringTool.methods.values()])
+        self.label_fparams = [QtWidgets.QLabel() for _ in range(nparams)]
+        self.lineedit_fparams = [ValidColorLineEdit() for _ in range(nparams)]
+        for le in self.lineedit_fparams:
+            le.setValidator(ConditionalLimitValidator(0.0, 0.0, 4, condition=None))
+
+        layout_controls = QtWidgets.QHBoxLayout()
+        layout_controls.addWidget(self.combo_filter)
+        layout_controls.addWidget(self.combo_names)
+        for i in range(len(self.label_fparams)):
+            layout_controls.addWidget(
+                self.label_fparams[i], 0, QtCore.Qt.AlignmentFlag.AlignRight
+            )
+            layout_controls.addWidget(self.lineedit_fparams[i])
+
+        self.layout().insertLayout(0, layout_controls, 1)
+        self.filterChanged()
+
+    def filterChanged(self) -> None:
+        filter_ = FilteringTool.methods[self.combo_filter.currentText()]
+        # Clear all the current params
+        for le in self.label_fparams:
+            le.setVisible(False)
+        for le in self.lineedit_fparams:
+            le.setVisible(False)
+
+        params: List[Tuple[str, float, Tuple, Callable[[float], bool]]] = filter_[
+            "params"
+        ]
+
+        for i, (symbol, default, range, condition) in enumerate(params):
+            self.label_fparams[i].setText(f"{symbol}:")
+            self.label_fparams[i].setVisible(True)
+            self.lineedit_fparams[i].validator().setRange(range[0], range[1], 4)
+            self.lineedit_fparams[i].validator().setCondition(condition)
+            self.lineedit_fparams[i].setVisible(True)
+            self.lineedit_fparams[i].setToolTip(filter_["desc"][i])
+            # keep input that's still valid
+            if not self.lineedit_fparams[i].hasAcceptableInput():
+                self.lineedit_fparams[i].setText(str(default))
+                self.lineedit_fparams[i].revalidate()
 
 
 class ProcessingDialog(QtWidgets.QDialog):
-    pipelines = {"Filter": {}, "Calculator": {}}
-
     def __init__(
         self,
+        names: List[str],
         item: LaserImageItem | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Processing Pipeline")
+        self.setMinimumWidth(600)
 
-        self.action_add = qAction(
+        self.names = names
+
+        self.action_add_calculator = qAction(
             "list-add",
-            "Add Process",
+            "Add Caluculator Process",
             "Add a new process to the pipeline.",
-            self.addProcess,
+            self.addCalculatorProcess,
+        )
+        self.action_add_filter = qAction(
+            "list-add",
+            "Add Filter Process",
+            "Add a new process to the pcipeline.",
+            self.addFilterProcess,
         )
 
         self.button_load = QtWidgets.QPushButton("Load from Image")
 
-        self.proc_list = QtWidgets.QListWidget()
+        self.list = QtWidgets.QListWidget()
 
-        self.button_add = qToolButton(action=self.action_add)
+        self.button_add = qToolButton(action=self.action_add_calculator)
+        self.button_add.addAction(self.action_add_filter)
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok,
@@ -1044,11 +1121,32 @@ class ProcessingDialog(QtWidgets.QDialog):
         self.button_box.rejected.connect(self.reject)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addLayout(self.layout_main)
-        layout.addLayout(self.button_box)
+        layout.addWidget(self.button_add)
+        layout.addWidget(self.list)
+        layout.addWidget(self.button_box)
         self.setLayout(layout)
 
-    def addProcess(self) -> None:
+    def addCalculatorProcess(self) -> None:
+        pass
+
+    def addFilterProcess(self) -> None:
+        widget = ProcessFilterItemWidget(self.names)
+        widget.closeRequested.connect(self.removeProcess)
+        item = QtWidgets.QListWidgetItem()
+        self.list.insertItem(self.list.count(), item)
+        self.list.setItemWidget(item, widget)
+        item.setSizeHint(widget.sizeHint())
+
+    def removeProcess(self, widget: ProcessFilterItemWidget) -> None:
+        for i in range(self.list.count()):
+            item = self.list.item(i)
+            if self.list.itemWidget(item) == widget:
+                self.list.takeItem(i)
+                break
+
+    def accept(self) -> None:
+        super().accept()
+
 
 class SelectionDialog(ApplyDialog):
     """Dialog for theshold based selection of data."""
