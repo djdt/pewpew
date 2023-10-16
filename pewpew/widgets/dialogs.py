@@ -29,7 +29,7 @@ from pewpew.validators import (
 )
 from pewpew.widgets.ext import CollapsableWidget, ValidColorLineEdit
 from pewpew.widgets.modelviews import BasicTableView
-from pewpew.widgets.tools.calculator import CalculatorFormula
+from pewpew.widgets.tools.calculator import CalculatorFormula, CalculatorTool
 from pewpew.widgets.tools.filtering import FilteringTool
 
 
@@ -1002,7 +1002,6 @@ class ProcessItemWidget(QtWidgets.QWidget):
 
     def __init__(
         self,
-        names: List[str],
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
@@ -1020,13 +1019,44 @@ class ProcessItemWidget(QtWidgets.QWidget):
         self.setLayout(layout)
 
 
+class ProcessCalculatorItemWidget(ProcessItemWidget):
+    def __init__(
+        self,
+        names: List[str],
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(parent)
+
+        # self.lineedit_name = QtWidgets.QLineEdit()
+        # self.lineedit_name.setText("")
+
+        self.formula = CalculatorFormula("", variables=names)
+        self.formula.parser.nulls.update(
+            {k: v[0][0] for k, v in CalculatorTool.functions.items()}
+        )
+        self.formula.setCompleter(
+            QtWidgets.QCompleter(
+                list(self.formula.parser.variables)
+                + [k + "(" for k in CalculatorTool.functions.keys()]
+            )
+        )
+        self.formula.setFixedHeight(QtWidgets.QLineEdit("8").sizeHint().height())
+
+        layout_controls = QtWidgets.QHBoxLayout()
+        layout_controls.addWidget(self.formula)
+        self.layout().insertLayout(0, layout_controls, 1)
+
+    def isComplete(self) -> bool:
+        return self.formula.hasAcceptableInput()
+
+
 class ProcessFilterItemWidget(ProcessItemWidget):
     def __init__(
         self,
         names: List[str],
         parent: QtWidgets.QWidget | None = None,
     ):
-        super().__init__(names, parent)
+        super().__init__(parent)
 
         self.combo_filter = QtWidgets.QComboBox()
         self.combo_filter.addItems(FilteringTool.methods.keys())
@@ -1127,7 +1157,12 @@ class ProcessingDialog(QtWidgets.QDialog):
         self.setLayout(layout)
 
     def addCalculatorProcess(self) -> None:
-        pass
+        widget = ProcessCalculatorItemWidget(self.names)
+        widget.closeRequested.connect(self.removeProcess)
+        item = QtWidgets.QListWidgetItem()
+        self.list.insertItem(self.list.count(), item)
+        self.list.setItemWidget(item, widget)
+        item.setSizeHint(widget.sizeHint())
 
     def addFilterProcess(self) -> None:
         widget = ProcessFilterItemWidget(self.names)
