@@ -127,6 +127,13 @@ class MainWindow(QtWidgets.QMainWindow):
             lambda a: self.tabview.openDocument(a.text())
         )
 
+        self.action_process = qAction(
+            "prco",
+            "Process Pipeline",
+            "Apply processing to multiple images.",
+            self.actionDialogProcess,
+        )
+
         self.action_add_tab = qAction(
             "tab-new",
             "New Tab",
@@ -217,6 +224,10 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_edit = self.menuBar().addMenu("&Edit")
         menu_edit.addAction(self.action_config)
         menu_edit.addAction(self.action_toggle_calibrate)
+
+        menu_edit.addSeparator()
+
+        menu_edit.addAction(self.action_process)
 
         menu_edit.addSeparator()
 
@@ -318,6 +329,11 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.colorSelected.connect(applyDialog)  # type: ignore
         dlg.open()
         return dlg
+
+    def actionDialogProcess(self) -> dialogs.ProcessingDialog:
+        item = self.tabview.focusLaserItem()
+        dlg = dialogs.ProcessingDialog(self.tabview.uniqueElements(), item, parent=self)
+        dlg.open()
 
     def actionAbout(self) -> QtWidgets.QDialog:
         dlg = QtWidgets.QMessageBox(
