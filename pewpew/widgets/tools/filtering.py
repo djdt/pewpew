@@ -98,6 +98,8 @@ class FilteringTool(ToolWidget):
             self.combo_element, 0, QtCore.Qt.AlignRight
         )
 
+        self.checkbox_all_elements = QtWidgets.QCheckBox("Filter all elements.")
+
         self.combo_filter = QtWidgets.QComboBox()
         self.combo_filter.addItems(FilteringTool.methods.keys())
         self.combo_filter.setCurrentText("Rolling Median")
@@ -118,29 +120,34 @@ class FilteringTool(ToolWidget):
         for i in range(len(self.label_fparams)):
             layout_controls.addRow(self.label_fparams[i], self.lineedit_fparams[i])
         layout_controls.addWidget(self.button_hide_filter)
+        layout_controls.addRow(self.checkbox_all_elements)
 
         self.box_controls.setLayout(layout_controls)
 
         self.initialise()
 
     def apply(self) -> None:
-        name = self.combo_element.currentText()
         method = self.combo_filter.currentText()
-        if self.button_hide_filter.isChecked():
-            filter_ = FilteringTool.methods[method]["filter"]
-            self.item.laser.data[name] = filter_(
-                self.item.laser.data[name], *self.fparams
-            )
-        else:
-            self.item.laser.data[name] = self.filtered_data
-
+        filter_ = FilteringTool.methods[method]["filter"]
         proc = self.item.laser.info.get("Processing", "")
         params = [
             f"{p[0]}={v}"
             for p, v in zip(FilteringTool.methods[method]["params"], self.fparams)
         ]
         pstr = ",".join(params)
-        proc += f"Filter({name},{self.combo_filter.currentText()},{pstr});"
+
+        if self.checkbox_all_elements.isChecked():
+            for name in self.item.laser.elements:
+                self.item.laser.data[name] = filter_(
+                    self.item.laser.data[name], *self.fparams
+                )
+            proc += f"Filter(*,{self.combo_filter.currentText()},{pstr});"
+        else:
+            name = self.combo_element.currentText()
+            self.item.laser.data[name] = filter_(
+                self.item.laser.data[name], *self.fparams
+            )
+            proc += f"Filter({name},{self.combo_filter.currentText()},{pstr});"
 
         self.item.laser.info["Processing"] = proc
 
