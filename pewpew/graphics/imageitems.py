@@ -404,7 +404,11 @@ class LaserImageItem(SnapImageItem):
     def element(self) -> str:
         return self.current_element
 
-    def setElement(self, element: str) -> None:
+    def setElement(self, element: str, set_sibling_items: bool = False) -> None:
+        """Sets the currently displayed element and redraws the item.
+        if 'set_sibling_items' then also sets sibling LaserImageItems that
+        share the element.
+        """
         if element not in self.laser.elements:
             raise ValueError(
                 f"Unknown element {element}. Expected one of {self.laser.elements}."
@@ -412,6 +416,15 @@ class LaserImageItem(SnapImageItem):
         self.current_element = element
         self.element_label.setText(element)
         self.redraw()
+
+        if set_sibling_items:
+            for item in self.scene().items():
+                if (
+                    isinstance(item, LaserImageItem)
+                    and item is not self
+                    and element in item.laser.elements
+                ):
+                    item.setElement(element, False)
 
     def setElementName(self, new: str) -> None:
         names = {n: n for n in self.laser.elements}
