@@ -62,7 +62,7 @@ class ControlBar(QtWidgets.QWidget):
 
 class LaserControlBar(ControlBar):
     alphaChanged = QtCore.Signal(float)
-    elementChanged = QtCore.Signal(str)
+    elementChanged = QtCore.Signal(str, bool)
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
@@ -74,11 +74,25 @@ class LaserControlBar(ControlBar):
 
         self.elements = EditComboBox()
         self.elements.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
-        self.elements.currentTextChanged.connect(self.elementChanged)
+        self.elements.currentTextChanged.connect(self.onElementChanged)
+
+        self.element_lock = qToolButton("link", "Link")
+        self.element_lock.setToolButtonStyle(
+            QtCore.Qt.ToolButtonStyle.ToolButtonIconOnly
+        )
+        self.element_lock.setCheckable(True)
+        self.element_lock.setChecked(True)
 
         self.layout().addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
         self.layout().addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
         self.layout().addWidget(self.elements, 0, QtCore.Qt.AlignRight)
+        self.layout().addWidget(self.element_lock, 0, QtCore.Qt.AlignRight)
+
+    def onElementChanged(self) -> None:
+        """Pass 'set_sibling_items' if element lock on."""
+        self.elementChanged.emit(
+            self.elements.currentText(), self.element_lock.isChecked()
+        )
 
     def setItem(self, item: LaserImageItem) -> None:
         self.blockSignals(True)
