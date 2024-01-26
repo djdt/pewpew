@@ -1028,13 +1028,16 @@ class RGBLaserImageItem(LaserImageItem):
         self.imageChanged.emit()
         self.update()
 
-    def setElement(self, element: str) -> None:
+    def setElement(self, element: str, set_sibling_items: bool = False) -> None:
         if element not in self.laser.elements:
             raise ValueError(
                 f"Unknown element {element}. Expected one of {self.laser.elements}."
             )
 
         self.current_elements[0].element = element
+        current_texts = self.elements_label.texts()
+        current_texts[0] = element
+        self.elements_label.setTexts(current_texts)
         super().setElement(element)
 
     def renameElements(self, names: Dict[str, str]) -> None:
