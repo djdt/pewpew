@@ -25,7 +25,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
     def __init__(
         self,
         calibration: Calibration,
-        axes: Tuple[int, int] = (0, 1),
+        axes: tuple[int, int] = (0, 1),
         counts_editable: bool = False,
         parent: QtCore.QObject | None = None,
     ):

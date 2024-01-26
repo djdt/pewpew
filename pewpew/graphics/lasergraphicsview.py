@@ -61,7 +61,7 @@ class LaserGraphicsView(OverlayGraphicsView):
     #     self.zoomReset()
     #     self.shown = True
 
-    def laserItems(self) -> List[LaserImageItem]:
+    def laserItems(self) -> list[LaserImageItem]:
         return [
             item
             for item in self.scene().items(

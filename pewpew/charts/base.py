@@ -60,7 +60,7 @@ class BaseChart(QtCharts.QChartView):
     def __init__(
         self,
         chart: QtCharts.QChart,
-        theme: Dict[str, QtGui.QColor],
+        theme: dict[str, QtGui.QColor],
         allow_navigation: bool = False,
         parent: QtWidgets.QWidget | None = None,
     ):

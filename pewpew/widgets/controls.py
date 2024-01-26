@@ -176,10 +176,10 @@ class RGBLaserControl(QtWidgets.QWidget):
             self.effect_color.setColor(color)
             self.controlChanged.emit()
 
-    def getRange(self) -> Tuple[float, float]:
+    def getRange(self) -> tuple[float, float]:
         return float(self.colorrange.left()), float(self.colorrange.right())
 
-    def setRange(self, range: Tuple[float, float]) -> None:
+    def setRange(self, range: tuple[float, float]) -> None:
         self.colorrange.setRange(*range)
 
     def selectColor(self) -> QtWidgets.QDialog:

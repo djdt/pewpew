@@ -142,7 +142,7 @@ class FilteringTool(ToolWidget):
         self.initialise()
 
     @property
-    def fparams(self) -> List[float]:
+    def fparams(self) -> list[float]:
         return [float(le.text()) for le in self.lineedit_fparams if le.isEnabled()]
 
     def filterChanged(self) -> None:
@@ -153,7 +153,7 @@ class FilteringTool(ToolWidget):
         for le in self.lineedit_fparams:
             le.setVisible(False)
 
-        params: List[Tuple[str, float, Tuple, Callable[[float], bool]]] = filter_[
+        params: list[tuple[str, float, Tuple, Callable[[float], bool]]] = filter_[
             "params"
         ]
 

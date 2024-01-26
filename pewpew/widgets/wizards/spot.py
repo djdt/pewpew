@@ -47,7 +47,7 @@ class SpotImportWizard(QtWidgets.QWizard):
 
     def __init__(
         self,
-        paths: List[str] | List[Path] = [],
+        paths: list[str] | list[Path] = [],
         config: SpotConfig | None = None,
         options: GraphicsOptions | None = None,
         parent: QtWidgets.QWidget | None = None,
@@ -332,8 +332,8 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.setWindowTitle("Spot Peak Detection")
 
-        self._datas: List[np.ndarray] = []
-        self._infos: List[Dict[str, str]] = []
+        self._datas: list[np.ndarray] = []
+        self._infos: list[dict[str, str]] = []
         self.peaks: np.ndarray | None = None
         self.options = {
             "Constant": ConstantPeakOptions(self),
@@ -442,19 +442,19 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             return False
         return True
 
-    def getData(self) -> List[np.ndarray]:
+    def getData(self) -> list[np.ndarray]:
         if len(self._datas) == 0:
             return [np.array([], dtype=[("", np.float64)])]
         return np.concatenate([d.ravel() for d in self._datas], axis=0)
 
-    def setData(self, datas: List[np.ndarray]) -> None:
+    def setData(self, datas: list[np.ndarray]) -> None:
         self._datas = datas
         self.dataChanged.emit()
 
-    def getInfo(self) -> List[dict]:
+    def getInfo(self) -> list[dict]:
         return self._infos
 
-    def setInfo(self, infos: List[dict]) -> None:
+    def setInfo(self, infos: list[dict]) -> None:
         self._infos = infos
         self.infoChanged.emit()
 
@@ -798,7 +798,7 @@ class SpotConfigPage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.setTitle("Elements and Config")
 
-        self._datas: List[np.ndarray] = []
+        self._datas: list[np.ndarray] = []
         self.label_elements = QtWidgets.QLabel()
         self.button_elements = QtWidgets.QPushButton("Edit Names")
         self.button_elements.pressed.connect(self.buttonNamesPressed)
@@ -844,7 +844,7 @@ class SpotConfigPage(QtWidgets.QWizardPage):
         self.registerField("speed", self)
         self.registerField("scantime", self)
 
-    def getNames(self) -> List[str]:
+    def getNames(self) -> list[str]:
         data = self.field("peaks")
         return data.dtype.names
 
@@ -872,7 +872,7 @@ class SpotConfigPage(QtWidgets.QWizardPage):
             return False
         return True
 
-    def setElidedNames(self, names: List[str]) -> None:
+    def setElidedNames(self, names: list[str]) -> None:
         text = ", ".join(name for name in names)
         fm = QtGui.QFontMetrics(self.label_elements.font())
         text = fm.elidedText(text, QtCore.Qt.ElideRight, self.label_elements.width())

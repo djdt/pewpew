@@ -137,7 +137,7 @@ class FormatPage(QtWidgets.QWizardPage):
     def __init__(
         self,
         text: str,
-        page_id_dict: Dict[str, int] | None = None,
+        page_id_dict: dict[str, int] | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
@@ -197,8 +197,8 @@ class ConfigPage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.setTitle("Elements and Config")
 
-        self._datas: List[np.ndarray] = []
-        self._infos: List[dict] = []
+        self._datas: list[np.ndarray] = []
+        self._infos: list[dict] = []
 
         self.label_elements = QtWidgets.QLabel()
         self.button_elements = QtWidgets.QPushButton("Edit Names")
@@ -257,21 +257,21 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.registerField("laserdata", self, "data_prop")
         self.registerField("laserinfo", self, "info_prop")
 
-    def getData(self) -> List[np.ndarray]:
+    def getData(self) -> list[np.ndarray]:
         return self._datas
 
-    def setData(self, datas: List[np.ndarray]) -> None:
+    def setData(self, datas: list[np.ndarray]) -> None:
         self._datas = datas
         self.dataChanged.emit()
 
-    def getInfo(self) -> List[dict]:
+    def getInfo(self) -> list[dict]:
         return self._infos
 
-    def setInfo(self, infos: List[dict]) -> None:
+    def setInfo(self, infos: list[dict]) -> None:
         self._infos = infos
         self.infoChanged.emit()
 
-    def getNames(self) -> List[str]:
+    def getNames(self) -> list[str]:
         data = self.field("laserdata")[0]
         return data.dtype.names if data is not None else []
 
@@ -305,7 +305,7 @@ class ConfigPage(QtWidgets.QWizardPage):
             return False
         return True
 
-    def setElidedNames(self, names: List[str]) -> None:
+    def setElidedNames(self, names: list[str]) -> None:
         text = ", ".join(name for name in names)
         fm = QtGui.QFontMetrics(self.label_elements.font())
         text = fm.elidedText(text, QtCore.Qt.ElideRight, self.label_elements.width())

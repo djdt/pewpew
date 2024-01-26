@@ -78,7 +78,7 @@ class MultipleDirDialog(QtWidgets.QFileDialog):
     @staticmethod
     def getExistingDirectories(
         parent: QtWidgets.QWidget, title: str, directory: str
-    ) -> List[str]:
+    ) -> list[str]:
         """Return a list of selected directories.
 
         If the dialog is closed then an empty list is returned."""
@@ -126,7 +126,7 @@ class RangeSlider(QtWidgets.QSlider):
         else:
             self.setValue2(value)
 
-    def values(self) -> Tuple[int, int]:
+    def values(self) -> tuple[int, int]:
         """Returns the values (left, right)."""
         return self.left(), self.right()
 

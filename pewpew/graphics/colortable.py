@@ -6,7 +6,7 @@ r << 16 + g << 8 + b << 0 + a << 24
 from typing import Dict, List
 
 
-colortables: Dict[str, List[int]] = {
+colortables: dict[str, list[int]] = {
     "balance": [
         4279704642, 4279770437, 4279836488, 4279902283,
         4279968078, 4280034129, 4280099925, 4280165976,
@@ -604,11 +604,11 @@ colortables: Dict[str, List[int]] = {
 }
 
 
-def list_tables() -> List[str]:
+def list_tables() -> list[str]:
     """List available tables."""
     return list(colortables.keys())
 
 
-def get_table(name: str) -> List[int]:
+def get_table(name: str) -> list[int]:
     """Get a colortable."""
     return colortables[name]

@@ -19,7 +19,7 @@ class WidgetItem(QtWidgets.QGraphicsObject):
 class SnapImageWidgetItem(WidgetItem):
     def __init__(
         self,
-        allowed_item_types: Tuple[type] = (SnapImageItem),
+        allowed_item_types: tuple[type] = (SnapImageItem),
         parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(parent=parent)

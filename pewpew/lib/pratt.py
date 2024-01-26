@@ -19,7 +19,7 @@ class ReducerException(Exception):
 class Expr(object):
     """Stores expressions for conversion to string."""
 
-    def __init__(self, value: str, children: List["Expr"] | None = None):
+    def __init__(self, value: str, children: list["Expr"] | None = None):
         self.value = value
         self.children = children
 
@@ -36,7 +36,7 @@ class Null(object):
 
     rbp = -1
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
+    def nud(self, parser: "Parser", tokens: list[str]) -> Expr:
         """Null denotation."""
         raise ParserException("Invalid token.")
 
@@ -44,7 +44,7 @@ class Null(object):
 class Parens(Null):
     """Parse input within parenthesis."""
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
+    def nud(self, parser: "Parser", tokens: list[str]) -> Expr:
         expr = parser.parseExpr(tokens)
         if len(tokens) == 0 or tokens.pop(0) != ")":
             raise ParserException("Mismatched parenthesis.")
@@ -57,14 +57,14 @@ class Value(Null):
     def __init__(self, value: str):
         self.value = value
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
+    def nud(self, parser: "Parser", tokens: list[str]) -> Expr:
         return Expr(self.value)
 
 
 class NaN(Null):
     """NaN value."""
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
+    def nud(self, parser: "Parser", tokens: list[str]) -> Expr:
         return Expr("nan")
 
 
@@ -75,7 +75,7 @@ class Unary(Null):
         self.value = value
         self.rbp = rbp
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
+    def nud(self, parser: "Parser", tokens: list[str]) -> Expr:
         expr = parser.parseExpr(tokens, self.rbp)
         return Expr(self.value, children=[expr])
 
@@ -88,7 +88,7 @@ class Binary(Null):
         self.div = div
         self.rbp = rbp
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
+    def nud(self, parser: "Parser", tokens: list[str]) -> Expr:
         expr = parser.parseExpr(tokens)
         if len(tokens) == 0 or tokens.pop(0) != self.div:
             raise ParserException(f"Missing '{self.div}' statement.")
@@ -105,7 +105,7 @@ class Ternary(Null):
         self.div2 = div2
         self.rbp = rbp
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
+    def nud(self, parser: "Parser", tokens: list[str]) -> Expr:
         lexpr = parser.parseExpr(tokens)
         if len(tokens) == 0 or tokens.pop(0) != self.div:
             raise ParserException(f"Missing '{self.div}' statement.")
@@ -122,7 +122,7 @@ class UnaryFunction(Unary):
     def __init__(self, value: str):
         super().__init__(value, 0)
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
+    def nud(self, parser: "Parser", tokens: list[str]) -> Expr:
         if len(tokens) == 0 or tokens.pop(0) != "(":
             raise ParserException("Missing opening parenthesis.")
         result = super().nud(parser, tokens)
@@ -137,7 +137,7 @@ class BinaryFunction(Binary):
     def __init__(self, value: str):
         super().__init__(value, ",", 0)
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
+    def nud(self, parser: "Parser", tokens: list[str]) -> Expr:
         if len(tokens) == 0 or tokens.pop(0) != "(":
             raise ParserException("Missing opening parenthesis.")
         result = super().nud(parser, tokens)
@@ -152,7 +152,7 @@ class TernaryFunction(Ternary):
     def __init__(self, value: str):
         super().__init__(value, ",", ",", 0)
 
-    def nud(self, parser: "Parser", tokens: List[str]) -> Expr:
+    def nud(self, parser: "Parser", tokens: list[str]) -> Expr:
         if len(tokens) == 0 or tokens.pop(0) != "(":
             raise ParserException("Missing opening parenthesis.")
         result = super().nud(parser, tokens)
@@ -172,7 +172,7 @@ class Left(object):
         """The right binding power fo the token."""
         return self.lbp + 1
 
-    def led(self, parser: "Parser", tokens: List[str], expr: Expr) -> Expr:
+    def led(self, parser: "Parser", tokens: list[str], expr: Expr) -> Expr:
         """Left denotation, uses the current `expr`."""
         raise ParserException("Invalid token.")  # pragma: no cover
 
@@ -192,7 +192,7 @@ class LeftBinary(Left):
     def rbp(self):
         return self.lbp + (0 if self.right else 1)
 
-    def led(self, parser: "Parser", tokens: List[str], expr: Expr) -> Expr:
+    def led(self, parser: "Parser", tokens: list[str], expr: Expr) -> Expr:
         rexpr = parser.parseExpr(tokens, self.rbp)
         return Expr(self.value, children=[expr, rexpr])
 
@@ -205,7 +205,7 @@ class LeftTernary(Left):
         self.div = div
         self.lbp = lbp
 
-    def led(self, parser: "Parser", tokens: List[str], lexpr: Expr) -> Expr:
+    def led(self, parser: "Parser", tokens: list[str], lexpr: Expr) -> Expr:
         expr = parser.parseExpr(tokens)
         if len(tokens) == 0 or tokens.pop(0) != self.div:
             raise ParserException(f"Missing '{self.div}' statement.")
@@ -220,7 +220,7 @@ class LeftIndex(Left):
         self.value = value
         self.lbp = lbp
 
-    def led(self, parser: "Parser", tokens: List[str], expr: Expr) -> Expr:
+    def led(self, parser: "Parser", tokens: list[str], expr: Expr) -> Expr:
         rexpr = parser.parseExpr(tokens, 0)
         if len(tokens) == 0 or tokens.pop(0) != "]":
             raise ParserException("Mismatched bracket ']'.")
@@ -252,21 +252,21 @@ class Parser(object):
     operator_token = "[+\\-\\*/^!=<>?:]+"
     base_tokens = "|".join([function_token, null_token, number_token, operator_token])
 
-    def __init__(self, variables: List[str] | None = None):
+    def __init__(self, variables: list[str] | None = None):
         self.regexp_number = re.compile(Parser.number_token)
         self.regexp_tokenise = re.compile(f"\\s*({Parser.base_tokens})\\s*")
 
-        self._variables: List[str] = []
+        self._variables: list[str] = []
         if variables is not None:
             self.variables = variables
 
-        self.nulls: Dict[str, Null] = {
+        self.nulls: dict[str, Null] = {
             "(": Parens(),
             "if": Ternary("?", "then", "else", 11),
             "nan": NaN(),
             "-": Unary("u-", 30),
         }
-        self.lefts: Dict[str, Left] = {
+        self.lefts: dict[str, Left] = {
             "?": LeftTernary("?", ":", 10),
             "<": LeftBinary("<", 10),
             "<=": LeftBinary("<=", 10),
@@ -284,11 +284,11 @@ class Parser(object):
         }
 
     @property
-    def variables(self) -> List[str]:
+    def variables(self) -> list[str]:
         return self._variables
 
     @variables.setter
-    def variables(self, variables: List[str]) -> None:
+    def variables(self, variables: list[str]) -> None:
         variable_token = "|".join(re.escape(v) for v in variables)
         self.regexp_tokenise = re.compile(
             f"\\s*({variable_token}|{Parser.base_tokens})\\s*"
@@ -307,7 +307,7 @@ class Parser(object):
             return self.lefts[token]
         return Left()
 
-    def parseExpr(self, tokens: List[str], prec: int = 0) -> Expr:
+    def parseExpr(self, tokens: list[str], prec: int = 0) -> Expr:
         if len(tokens) == 0:
             raise ParserException("Unexpected end of input.")
 
@@ -348,7 +348,7 @@ class Reducer(object):
     """
 
     def __init__(self, variables: dict | None = None):
-        self._variables: Dict[str, float | np.ndarray] = {}
+        self._variables: dict[str, float | np.ndarray] = {}
 
         if variables is not None:
             self.variables = variables
@@ -371,16 +371,16 @@ class Reducer(object):
         }
 
     @property
-    def variables(self) -> Dict[str, float | np.ndarray]:
+    def variables(self) -> dict[str, float | np.ndarray]:
         return self._variables
 
     @variables.setter
-    def variables(self, variables: Dict[str, float | np.ndarray]) -> None:
+    def variables(self, variables: dict[str, float | np.ndarray]) -> None:
         if any(" " in v for v in variables.keys()):
             raise ValueError("Spaces are not allowed in variable names!")
         self._variables = variables
 
-    def reduceExpr(self, tokens: List[str]) -> float | int | np.ndarray:
+    def reduceExpr(self, tokens: list[str]) -> float | int | np.ndarray:
         if len(tokens) == 0:
             raise ReducerException("Unexpected end of input.")
         token = tokens.pop(0)

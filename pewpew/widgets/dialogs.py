@@ -196,7 +196,7 @@ class CalibrationDialog(ApplyDialog):
 
     def __init__(
         self,
-        calibrations: Dict[str, Calibration],
+        calibrations: dict[str, Calibration],
         current_element: str,
         parent: QtWidgets.QWidget | None = None,
     ):
@@ -445,9 +445,9 @@ class ColorRangeDialog(ApplyDialog):
 
     def __init__(
         self,
-        ranges: Dict[str, Tuple[float | str, float | str]],
-        default_range: Tuple[float | str, float | str],
-        elements: List[str],
+        ranges: dict[str, tuple[float | str, float | str]],
+        default_range: tuple[float | str, float | str],
+        elements: list[str],
         current_element: str | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
@@ -551,7 +551,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self,
         data: np.ndarray,
         mask: np.ndarray | None = None,
-        # colors: List[Tuple[float, ...]] | None = None,
+        # colors: list[tuple[float, ...]] | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
         assert data.dtype.names is not None
@@ -818,7 +818,7 @@ class InformationDialog(QtWidgets.QDialog):
 
     read_only_items = ["Name", "File Path", "File Version"]
 
-    def __init__(self, info: Dict[str, str], parent: QtWidgets.QWidget | None = None):
+    def __init__(self, info: dict[str, str], parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
 
         self.setMinimumSize(400, 400)
@@ -879,7 +879,7 @@ class InformationDialog(QtWidgets.QDialog):
         keys = list(filter("".__ne__, keys))  # Remove empty
         return len(keys) == len(set(keys))  # Ensure all unqiue
 
-    def setInformation(self, info: Dict[str, str]) -> None:
+    def setInformation(self, info: dict[str, str]) -> None:
         for i, (key, val) in enumerate(info.items()):
             items = QtWidgets.QTableWidgetItem(key), QtWidgets.QTableWidgetItem(val)
             if key in InformationDialog.read_only_items:
@@ -887,7 +887,7 @@ class InformationDialog(QtWidgets.QDialog):
             self.table.setItem(i, 0, items[0])
             self.table.setItem(i, 1, items[1])
 
-    def information(self) -> Dict[str, str]:
+    def information(self) -> dict[str, str]:
         info = {}
         for i in range(self.table.rowCount()):
             key = self.table.item(i, 0).text()
@@ -904,7 +904,7 @@ class NameEditDialog(QtWidgets.QDialog):
 
     def __init__(
         self,
-        names: List[str],
+        names: list[str],
         allow_remove: bool = False,
         parent: QtWidgets.QWidget | None = None,
     ):
@@ -956,7 +956,7 @@ class NameEditDialog(QtWidgets.QDialog):
             item.setCheckState(QtCore.Qt.Checked)
         self.list.addItem(item)
 
-    def addNames(self, names: List[str]) -> None:
+    def addNames(self, names: list[str]) -> None:
         for name in names:
             self.addName(name)
 
@@ -1133,9 +1133,9 @@ class StatsDialog(QtWidgets.QDialog):
         self,
         data: np.ndarray,
         mask: np.ndarray,
-        units: Dict[str, str],
+        units: dict[str, str],
         element: str,
-        pixel_size: Tuple[float, float] | None = None,
+        pixel_size: tuple[float, float] | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)

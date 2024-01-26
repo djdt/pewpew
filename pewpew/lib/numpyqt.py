@@ -94,7 +94,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
     def __init__(
         self,
         array: np.ndarray,
-        axes: Tuple[int, int] = (0, 1),
+        axes: tuple[int, int] = (0, 1),
         fill_value: float = 0.0,
         parent: QtCore.QObject | None = None,
     ):

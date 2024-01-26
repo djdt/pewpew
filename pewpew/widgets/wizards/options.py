@@ -21,7 +21,7 @@ class _OptionsBase(QtWidgets.QGroupBox):  # pragma: no cover
         self,
         filetype: str,
         filemode: str,
-        exts: List[str],
+        exts: list[str],
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__("Import Options", parent)
@@ -29,7 +29,7 @@ class _OptionsBase(QtWidgets.QGroupBox):  # pragma: no cover
         self.filemode = filemode
         self.exts = exts
 
-    def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
+    def fieldArgs(self) -> list[tuple[str, QtWidgets.QWidget, str, str]]:
         return []
 
     def isComplete(self) -> bool:
@@ -108,7 +108,7 @@ class AgilentOptions(_OptionsBase):
                 f"{self.actual_datafiles} ({self.expected_datafiles} expected)"
             )
 
-    def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
+    def fieldArgs(self) -> list[tuple[str, QtWidgets.QWidget, str, str]]:
         return [
             (
                 "method",
@@ -153,7 +153,7 @@ class AgilentOptions(_OptionsBase):
 class CsvLinesOptions(_OptionsBase):
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__("CSV Lines", "Directory", [""], parent)
-        self.csvs: List[Path] = []
+        self.csvs: list[Path] = []
         self.lines = 0
 
         self.option = io.csv.GenericOption()
@@ -203,7 +203,7 @@ class CsvLinesOptions(_OptionsBase):
         layout.addRow(self.check_remove_empty_rows)
         self.setLayout(layout)
 
-    def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
+    def fieldArgs(self) -> list[tuple[str, QtWidgets.QWidget, str, str]]:
         return [
             ("skipHeader", self.spinbox_header, "value", "valueChanged"),
             ("skipFooter", self.spinbox_footer, "value", "valueChanged"),
@@ -263,7 +263,7 @@ class NumpyOptions(_OptionsBase):
         layout.addWidget(self.check_calibration)
         self.setLayout(layout)
 
-    def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
+    def fieldArgs(self) -> list[tuple[str, QtWidgets.QWidget, str, str]]:
         return [("useCalibration", self.check_calibration, "checked", "toggled")]
 
 
@@ -297,7 +297,7 @@ class TextOptions(_OptionsBase):
 
         self.setLayout(layout)
 
-    def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
+    def fieldArgs(self) -> list[tuple[str, QtWidgets.QWidget, str, str]]:
         return [("name", self.lineedit_name, "text", "textChanged")]
 
     def isComplete(self) -> bool:
@@ -331,7 +331,7 @@ class ThermoOptions(_OptionsBase):
         layout.addRow(self.check_use_analog)
         self.setLayout(layout)
 
-    def fieldArgs(self) -> List[Tuple[str, QtWidgets.QWidget, str, str]]:
+    def fieldArgs(self) -> list[tuple[str, QtWidgets.QWidget, str, str]]:
         return [
             ("delimiter", self.combo_delimiter, "currentText", "currentTextChanged"),
             ("decimal", self.combo_decimal, "currentText", "currentTextChanged"),
@@ -343,7 +343,7 @@ class ThermoOptions(_OptionsBase):
     def isComplete(self) -> bool:
         return self.radio_rows.isChecked() or self.radio_columns.isChecked()
 
-    def preprocessFile(self, path: Path) -> Tuple[str, str, bool]:
+    def preprocessFile(self, path: Path) -> tuple[str, str, bool]:
         method = "unknown"
         has_analog = False
         with path.open("r", encoding="utf-8-sig") as fp:
@@ -391,7 +391,7 @@ class _PathSelectBase(QtWidgets.QWidget):
     def __init__(
         self,
         filetype: str,
-        exts: List[str],
+        exts: list[str],
         mode: str = "File",
         parent: QtWidgets.QWidget | None = None,
     ):
@@ -413,17 +413,17 @@ class _PathSelectBase(QtWidgets.QWidget):
         return Path(self._path)
 
     @QtCore.Property("QStringList")
-    def _paths(self) -> List[str]:  # pragma: no cover
+    def _paths(self) -> list[str]:  # pragma: no cover
         raise NotImplementedError
 
     @property
-    def paths(self) -> List[Path]:
+    def paths(self) -> list[Path]:
         return [Path(p) for p in self._paths]
 
     def addPath(self, path: str | Path) -> None:  # pragma: no cover
         raise NotImplementedError
 
-    def addPaths(self, paths: List[str] | List[Path]) -> None:  # pragma: no cover
+    def addPaths(self, paths: list[str] | list[Path]) -> None:  # pragma: no cover
         raise NotImplementedError
 
     def selectPath(self) -> QtWidgets.QFileDialog:
@@ -502,7 +502,7 @@ class PathSelectWidget(_PathSelectBase):
         self,
         path: Path,
         filetype: str,
-        exts: List[str],
+        exts: list[str],
         mode: str = "File",
         parent: QtWidgets.QWidget | None = None,
     ):
@@ -527,7 +527,7 @@ class PathSelectWidget(_PathSelectBase):
         return self.lineedit_path.text()
 
     @QtCore.Property("QStringList")
-    def _paths(self) -> List[str]:
+    def _paths(self) -> list[str]:
         return [self.lineedit_path.text()]
 
     def addPath(self, path: str | Path) -> None:
@@ -539,9 +539,9 @@ class PathSelectWidget(_PathSelectBase):
 class MultiplePathSelectWidget(_PathSelectBase):
     def __init__(
         self,
-        paths: List[Path],
+        paths: list[Path],
         filetype: str,
-        exts: List[str],
+        exts: list[str],
         mode: str = "File",
         parent: QtWidgets.QWidget | None = None,
     ):
@@ -584,7 +584,7 @@ class MultiplePathSelectWidget(_PathSelectBase):
         return first.text() if first is not None else ""
 
     @QtCore.Property("QStringList")
-    def _paths(self) -> List[str]:
+    def _paths(self) -> list[str]:
         return [self.list.item(i).text() for i in range(0, self.list.count())]
 
     def addPath(self, path: str | Path) -> None:
@@ -592,7 +592,7 @@ class MultiplePathSelectWidget(_PathSelectBase):
             path = str(path.resolve())
         self.list.addItem(path)
 
-    def addPaths(self, paths: List[str] | List[Path]) -> None:
+    def addPaths(self, paths: list[str] | list[Path]) -> None:
         for path in paths:
             if isinstance(path, Path):
                 path = str(path.resolve())
@@ -674,7 +674,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
 
     def __init__(
         self,
-        paths: List[Path],
+        paths: list[Path],
         format: str,
         multiplepaths: bool = False,
         nextid: int | None = None,
@@ -769,8 +769,8 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         return True
 
     def readMultiple(
-        self, func: Callable[[Path], Tuple[np.ndarray, Dict[str, Any], Dict[str, str]]], paths: List[Path]
-    ) -> Tuple[List[np.ndarray], Dict[str, Any], List[Dict[str, str]]]:
+        self, func: Callable[[Path], tuple[np.ndarray, dict[str, Any], dict[str, str]]], paths: list[Path]
+    ) -> tuple[list[np.ndarray], dict[str, Any], list[dict[str, str]]]:
         data, params, info = func(paths[0])
         datas = [data]
         infos = [info]
@@ -780,7 +780,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             infos.append(info)
         return datas, params, infos
 
-    def readAgilent(self, path: Path) -> Tuple[np.ndarray, Dict[str, Any], Dict[str, str]]:
+    def readAgilent(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         agilent_method = self.field("agilent.method")
         if agilent_method == "Alphabetical Order":  # pragma: no cover
             method = ["alphabetical"]  # Fallback to alphabetical
@@ -802,7 +802,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         info = io.agilent.load_info(path)
         return data, params, info
 
-    def readCsv(self, path: Path) -> Tuple[np.ndarray, Dict[str, Any], Dict[str, str]]:
+    def readCsv(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         delimiter = self.field("csv.delimiter")
         if delimiter == "Tab":
             delimiter = "\t"
@@ -839,7 +839,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         data, params = io.csv.load(path, option=option, full=True)
         return data, params, {}
 
-    def readNumpy(self, path: Path) -> Tuple[np.ndarray, Dict[str, Any], Dict[str, str]]:
+    def readNumpy(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         laser = io.npz.load(path)
         param = dict(
             scantime=laser.config.scantime,
@@ -848,15 +848,15 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         )
         return laser.data, param, laser.info
 
-    def readPerkinElmer(self, path: Path) -> Tuple[np.ndarray, Dict[str, Any], Dict[str, str]]:
+    def readPerkinElmer(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         data, params = io.perkinelmer.load(path, full=True)
         return data, params, {"Instrument Vendor": "PerkinElemer"}
 
-    def readText(self, path: Path) -> Tuple[np.ndarray, Dict[str, Any], Dict[str, str]]:
+    def readText(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         data = io.textimage.load(path, name=self.field("text.name"))
         return data, {}, {}
 
-    def readThermo(self, path: Path) -> Tuple[np.ndarray, Dict[str, Any], Dict[str, str]]:
+    def readThermo(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         kwargs = dict(
             delimiter=self.field("thermo.delimiter"),
             comma_decimal=self.field("thermo.decimal") == ",",

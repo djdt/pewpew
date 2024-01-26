@@ -151,7 +151,7 @@ class RBGOptionsBox(OptionsBox):
     def __init__(
         self,
         size: QtCore.QSize,
-        elements: List[RGBLaserImageItem.RGBElement],
+        elements: list[RGBLaserImageItem.RGBElement],
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(
@@ -206,13 +206,13 @@ class RBGOptionsBox(OptionsBox):
         layout.addRow(self.check_raw)
         self.setLayout(layout)
 
-    def elements(self) -> List[str]:
+    def elements(self) -> list[str]:
         return [rgb.element for rgb in self.rgb_elements]
 
-    def colors(self) -> List[QtGui.QColor]:
+    def colors(self) -> list[QtGui.QColor]:
         return [rgb.color for rgb in self.rgb_elements]
 
-    def ranges(self) -> List[Tuple[float, float]]:
+    def ranges(self) -> list[tuple[float, float]]:
         return [rgb.prange for rgb in self.rgb_elements]
 
     def updateSizeLabel(self) -> None:
@@ -252,7 +252,7 @@ class RBGOptionsBox(OptionsBox):
 class VtiOptionsBox(OptionsBox):
     def __init__(
         self,
-        spacing: Tuple[float, float, float],
+        spacing: tuple[float, float, float],
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(
@@ -279,7 +279,7 @@ class VtiOptionsBox(OptionsBox):
     def isComplete(self) -> bool:
         return all(le.hasAcceptableInput() for le in self.lineedits)
 
-    def spacing(self) -> Tuple[float, float, float]:
+    def spacing(self) -> tuple[float, float, float]:
         return tuple(float(le.text()) for le in self.lineedits)  # type: ignore
 
 
@@ -297,7 +297,7 @@ class ExportOptions(QtWidgets.QWidget):
 
     def __init__(
         self,
-        options: List[OptionsBox] | None = None,
+        options: list[OptionsBox] | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
@@ -372,7 +372,7 @@ class _ExportDialogBase(QtWidgets.QDialog):
     invalid_map = str.maketrans(invalid_chars, "_" * len(invalid_chars))
 
     def __init__(
-        self, options: List[OptionsBox], parent: QtWidgets.QWidget | None = None
+        self, options: list[OptionsBox], parent: QtWidgets.QWidget | None = None
     ):
         super().__init__(parent)
         self.setWindowTitle("Export")
@@ -573,8 +573,8 @@ class ExportDialog(_ExportDialogBase):
     # def getPathForLayer(self, path: Path, layer: int) -> Path:
     #     return path.with_name(path.stem + "_layer" + str(layer) + path.suffix)
 
-    def generatePaths(self, item: LaserImageItem) -> List[Tuple[Path, str]]:
-        paths: List[Tuple[Path, str]] = [(self.getPath(), item.element())]
+    def generatePaths(self, item: LaserImageItem) -> list[tuple[Path, str]]:
+        paths: list[tuple[Path, str]] = [(self.getPath(), item.element())]
         if self.isExportAll():
             paths = [
                 (self.getPathForElement(p, i), i)
@@ -672,7 +672,7 @@ class ExportDialog(_ExportDialogBase):
 
 class ExportAllDialog(ExportDialog):
     def __init__(
-        self, items: List[LaserImageItem], parent: QtWidgets.QWidget | None = None
+        self, items: list[LaserImageItem], parent: QtWidgets.QWidget | None = None
     ):
         unique: Set[str] = set()
         for item in items:
@@ -728,8 +728,8 @@ class ExportAllDialog(ExportDialog):
             path = path.with_name(prefix + "_" + path.name)
         return path
 
-    def generatePaths(self, item: LaserImageItem) -> List[Tuple[Path, str]]:
-        paths: List[Tuple[Path, str]] = [
+    def generatePaths(self, item: LaserImageItem) -> list[tuple[Path, str]]:
+        paths: list[tuple[Path, str]] = [
             (self.getPath(item.laser.info["Name"]), item.element())
         ]
         if self.isExportAll():

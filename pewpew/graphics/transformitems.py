@@ -65,7 +65,7 @@ class AffineTransformItem(TransformItem):
         super().__init__(item, handle_size)
 
         # List of (start, end) points for affine transform
-        self.handles: List[QtCore.QPointF] = []
+        self.handles: list[QtCore.QPointF] = []
         self.transform_handle: int | None = None
 
     def boundingRect(self) -> QtCore.QRectF:
@@ -237,7 +237,7 @@ class ScaleRotateTransformItem(TransformItem):
     def __init__(self, item: QtWidgets.QGraphicsItem, handle_size: int = 12):
         super().__init__(item, handle_size)
 
-        self.transform_handle: Tuple[str, str] | None = None
+        self.transform_handle: tuple[str, str] | None = None
 
     def shape(self) -> QtGui.QPainterPath:
         corners = self.corners()
@@ -265,7 +265,7 @@ class ScaleRotateTransformItem(TransformItem):
         rect = rect.adjusted(-adjust, -adjust, adjust, adjust)
         return rect
 
-    def handleAt(self, pos: QtCore.QPointF) -> Tuple[str, str] | None:
+    def handleAt(self, pos: QtCore.QPointF) -> tuple[str, str] | None:
         max_dist = self.maxHandleDist()
 
         result = None

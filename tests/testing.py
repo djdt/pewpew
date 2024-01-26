@@ -10,7 +10,7 @@ def clear_settings():
     QtCore.QSettings().clear()
 
 
-def linear_data(names: str | List[str]) -> np.ndarray:
+def linear_data(names: str | list[str]) -> np.ndarray:
     names = names if isinstance(names, list) else [names]
     dtype = [(name, float) for name in names]
     data = np.empty((10, 10), dtype=dtype)
@@ -21,7 +21,7 @@ def linear_data(names: str | List[str]) -> np.ndarray:
     return data
 
 
-def rand_data(names: str | List[str]) -> np.ndarray:
+def rand_data(names: str | list[str]) -> np.ndarray:
     names = names if isinstance(names, list) else [names]
     dtype = [(name, float) for name in names]
     data = np.empty((10, 10), dtype=dtype)

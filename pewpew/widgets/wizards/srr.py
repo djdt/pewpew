@@ -29,7 +29,7 @@ class SRRImportWizard(QtWidgets.QWizard):
 
     def __init__(
         self,
-        paths: List[Path] = [],
+        paths: list[Path] = [],
         config: Config | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
@@ -184,7 +184,7 @@ class SRRConfigPage(ConfigPage):
 class SRRPathAndOptionsPage(PathAndOptionsPage):
     def __init__(
         self,
-        paths: List[Path],
+        paths: list[Path],
         format: str,
         nextid: int,
         parent: QtWidgets.QWidget | None = None,

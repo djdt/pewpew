@@ -15,7 +15,7 @@ from pewpew.mainwindow import MainWindow
 logger = logging.getLogger()
 
 
-def parse_args(argv: List[str]) -> argparse.Namespace:
+def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="pew²",
         description="GUI for visualisation and manipulation of LA-ICP-MS data.",

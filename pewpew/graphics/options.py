@@ -35,8 +35,8 @@ class GraphicsOptions(QtCore.QObject):
 
     def __init__(self) -> None:
         super().__init__()
-        self.color_ranges: Dict[str, Tuple[float | str, float | str]] = {}
-        self.color_range_default: Tuple[float | str, float | str] = (0.0, "99%")
+        self.color_ranges: dict[str, tuple[float | str, float | str]] = {}
+        self.color_range_default: tuple[float | str, float | str] = (0.0, "99%")
 
         self.scalebar = True
         self.highlight_focus = True
@@ -89,7 +89,7 @@ class GraphicsOptions(QtCore.QObject):
 
     def get_color_range_as_float(
         self, name: str, data: np.ndarray
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Get colorrange for 'name' or a default.
 
         Converts percentile ranges to float values.
@@ -106,7 +106,7 @@ class GraphicsOptions(QtCore.QObject):
 
     def get_color_range_as_percentile(
         self, name: str, data: np.ndarray
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Get colorrange for 'name' or a default.
 
         Converts float values to percentile ranges.
@@ -123,7 +123,7 @@ class GraphicsOptions(QtCore.QObject):
         return vmin, vmax  # type: ignore
 
     # def set_colorrange(
-    #     self, name: str, colorrange: Tuple[float | str, Union[float, str]]
+    #     self, name: str, colorrange: tuple[float | str, Union[float, str]]
     # ) -> None:
     #     """Set colorrange for 'name'."""
     #     self._colorranges[name] = colorrange
