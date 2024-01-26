@@ -1,7 +1,7 @@
 import copy
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import numpy as np
 from pewlib import io
@@ -84,7 +84,7 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
     def rawData(self) -> np.ndarray:
         raise NotImplementedError
 
-    def select(self, mask: np.ndarray, modes: List[str]) -> None:
+    def select(self, mask: np.ndarray, modes: list[str]) -> None:
         self.selectionChanged.emit()
 
     def mapToData(self, pos: QtCore.QPointF) -> QtCore.QPoint:
@@ -238,7 +238,7 @@ class ScaledImageItem(SnapImageItem):
         cls,
         array: np.ndarray,
         rect: QtCore.QRectF,
-        colortable: List[int] | None = None,
+        colortable: list[int] | None = None,
         parent: QtWidgets.QGraphicsItem | None = None,
     ) -> "ScaledImageItem":
         image = array_to_image(array)
@@ -431,7 +431,7 @@ class LaserImageItem(SnapImageItem):
         names[self.current_element] = new
         self.renameElements(names)
 
-    def renameElements(self, names: Dict[str, str]) -> None:
+    def renameElements(self, names: dict[str, str]) -> None:
         old_names = [x for x in self.laser.elements if x not in names]
         self.laser.remove(old_names)
         self.laser.rename(names)
@@ -488,7 +488,7 @@ class LaserImageItem(SnapImageItem):
         self.imageChanged.emit()
         self.update()
 
-    def select(self, mask: np.ndarray, modes: List[str]) -> None:
+    def select(self, mask: np.ndarray, modes: list[str]) -> None:
         current_mask = self.mask
 
         if "add" in modes:
@@ -549,7 +549,7 @@ class LaserImageItem(SnapImageItem):
         painter.restore()
 
     # === Slots ===
-    def applyCalibration(self, calibrations: Dict[str, Calibration]) -> None:
+    def applyCalibration(self, calibrations: dict[str, Calibration]) -> None:
         """Set laser calibrations."""
         modified = False
         for element in calibrations:
@@ -568,7 +568,7 @@ class LaserImageItem(SnapImageItem):
             self.modified.emit()
             self.redraw()
 
-    def applyInformation(self, info: Dict[str, str]) -> None:
+    def applyInformation(self, info: dict[str, str]) -> None:
         """Set laser information."""
         if self.laser.info != info:
             self.laser.info = info
@@ -938,7 +938,7 @@ class RGBLaserImageItem(LaserImageItem):
             self,
             element: str,
             color: QtGui.QColor,
-            prange: Tuple[float, float] = (0.0, 99.0),
+            prange: tuple[float, float] = (0.0, 99.0),
         ):
             self.element = element
             self.color = color
@@ -951,7 +951,7 @@ class RGBLaserImageItem(LaserImageItem):
         self,
         laser: Laser,
         options: GraphicsOptions,
-        current_elements: List[RGBElement] | None = None,
+        current_elements: list[RGBElement] | None = None,
         parent: QtWidgets.QGraphicsItem | None = None,
     ):
         if current_elements is None:
@@ -981,7 +981,7 @@ class RGBLaserImageItem(LaserImageItem):
         self.element_label.setEnabled(False)
 
         self.subtractive = False
-        self.current_elements: List[RGBLaserImageItem.RGBElement] = current_elements
+        self.current_elements: list[RGBLaserImageItem.RGBElement] = current_elements
 
         self.elements_label = RGBLabelItem(
             self,
@@ -1040,12 +1040,12 @@ class RGBLaserImageItem(LaserImageItem):
         self.elements_label.setTexts(current_texts)
         super().setElement(element)
 
-    def renameElements(self, names: Dict[str, str]) -> None:
+    def renameElements(self, names: dict[str, str]) -> None:
         super().renameElements(names)
         for rgb, element in zip(self.current_elements, self.laser.elements[:3]):
             rgb.element = element
 
-    def setCurrentElements(self, elements: List[RGBElement]) -> None:
+    def setCurrentElements(self, elements: list[RGBElement]) -> None:
         self.current_elements = elements
         self.elements_label.setTexts([rgb.element for rgb in elements])
         self.elements_label.colors = [rgb.color for rgb in elements]

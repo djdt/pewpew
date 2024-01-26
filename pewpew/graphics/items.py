@@ -1,4 +1,3 @@
-from typing import List
 
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -58,7 +57,7 @@ class ColorBarItem(QtWidgets.QGraphicsObject):
         self.vmax = 0.0
         self.unit = ""
 
-    def updateTable(self, colortable: List[int], vmin: float, vmax: float, unit: str):
+    def updateTable(self, colortable: list[int], vmin: float, vmax: float, unit: str):
         self.vmin = vmin
         self.vmax = vmax
         self.unit = unit
@@ -209,8 +208,8 @@ class RGBLabelItem(QtWidgets.QGraphicsObject):
     def __init__(
         self,
         parent: QtWidgets.QGraphicsItem,
-        texts: List[str],
-        colors: List[QtGui.QColor],
+        texts: list[str],
+        colors: list[QtGui.QColor],
         alignment: QtCore.Qt.Alignment | None = None,
         font: QtGui.QFont | None = None,
         pen: QtGui.QPen | None = None,
@@ -242,10 +241,10 @@ class RGBLabelItem(QtWidgets.QGraphicsObject):
     def setFont(self, font: QtGui.QFont) -> None:
         self._font = font
 
-    def texts(self) -> List[str]:
+    def texts(self) -> list[str]:
         return self._texts
 
-    def setTexts(self, texts: List[str]) -> None:
+    def setTexts(self, texts: list[str]) -> None:
         self._texts = texts
         self.prepareGeometryChange()
 

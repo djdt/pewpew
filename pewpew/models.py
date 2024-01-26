@@ -6,7 +6,7 @@ from pewlib.calibration import Calibration
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 
-from typing import Any, Tuple
+from typing import Any
 
 
 class CalibrationPointsTableModel(NumpyArrayTableModel):
@@ -25,7 +25,7 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
     def __init__(
         self,
         calibration: Calibration,
-        axes: Tuple[int, int] = (0, 1),
+        axes: tuple[int, int] = (0, 1),
         counts_editable: bool = False,
         parent: QtCore.QObject | None = None,
     ):

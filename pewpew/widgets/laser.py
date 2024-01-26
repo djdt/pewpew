@@ -2,7 +2,6 @@ import copy
 import logging
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, List
 
 import numpy as np
 from pewlib import io
@@ -103,7 +102,7 @@ class LaserTabView(TabView):
         self.openDocument(paths)
 
     # Callbacks
-    def openDocument(self, paths: List[Path] | Path) -> None:
+    def openDocument(self, paths: list[Path] | Path) -> None:
         """Open `paths` as new laser images."""
         if isinstance(paths, (Path, str)):
             paths = [paths]
@@ -127,7 +126,7 @@ class LaserTabView(TabView):
 
         thread.start()
 
-    def applyCalibration(self, calibration: Dict[str, Calibration]) -> None:
+    def applyCalibration(self, calibration: dict[str, Calibration]) -> None:
         """Set calibrations in all tabs."""
         for widget in self.widgets():
             if isinstance(widget, LaserTabWidget):
@@ -142,7 +141,7 @@ class LaserTabView(TabView):
                 for item in widget.laserItems():
                     item.applyConfig(config)
 
-    def laserItems(self) -> List[LaserImageItem]:
+    def laserItems(self) -> list[LaserImageItem]:
         items = []
         for widget in self.widgets():
             if isinstance(widget, LaserTabWidget):
@@ -157,7 +156,7 @@ class LaserTabView(TabView):
                 return item
         return None
 
-    def uniqueElements(self) -> List[str]:
+    def uniqueElements(self) -> list[str]:
         elements = set([])
         for widget in self.widgets():
             if isinstance(widget, LaserTabWidget):
@@ -424,7 +423,7 @@ class LaserTabWidget(TabViewWidget):
         self.graphics.scene().removeItem(item)
         self.addLaserItem(new_item, item.pos())
 
-    def laserItems(self) -> List[LaserImageItem]:
+    def laserItems(self) -> list[LaserImageItem]:
         return self.graphics.laserItems()
 
     def mergeLaserItems(self) -> None:
@@ -459,7 +458,7 @@ class LaserTabWidget(TabViewWidget):
             self.graphics.scene().removeItem(item)
         self.addLaser(laser)
 
-    def uniqueElements(self) -> List[str]:
+    def uniqueElements(self) -> list[str]:
         elements = set([])
         for item in self.laserItems():
             elements.update(item.laser.elements)

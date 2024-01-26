@@ -4,7 +4,7 @@ import ctypes
 import numpy as np
 import shiboken6
 
-from typing import Any, Tuple
+from typing import Any
 
 
 def array_to_image(array: np.ndarray) -> QtGui.QImage:
@@ -94,7 +94,7 @@ class NumpyArrayTableModel(QtCore.QAbstractTableModel):
     def __init__(
         self,
         array: np.ndarray,
-        axes: Tuple[int, int] = (0, 1),
+        axes: tuple[int, int] = (0, 1),
         fill_value: float = 0.0,
         parent: QtCore.QObject | None = None,
     ):

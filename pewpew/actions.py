@@ -1,6 +1,6 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from typing import Callable, List
+from typing import Callable
 
 
 def qAction(icon: str, label: str, status: str, func: Callable) -> QtGui.QAction:
@@ -21,9 +21,9 @@ def qAction(icon: str, label: str, status: str, func: Callable) -> QtGui.QAction
 
 def qActionGroup(
     parent: QtWidgets.QWidget,
-    actions: List[str],
+    actions: list[str],
     func: Callable,
-    statuses: List[str] | None = None,
+    statuses: list[str] | None = None,
     checked: str | None = None,
 ) -> QtGui.QActionGroup:
     """Create a QActionGroup.

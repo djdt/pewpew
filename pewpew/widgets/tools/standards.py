@@ -21,7 +21,7 @@ from pewpew.widgets.views import TabView
 
 from .tool import ToolWidget
 
-from typing import Any, Dict, List
+from typing import Any
 
 
 class StandardsTool(ToolWidget):
@@ -36,9 +36,9 @@ class StandardsTool(ToolWidget):
         self.graphics.setInteractionFlag("tool")
         self.graphics.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
         self.image: ScaledImageItem | None = None
-        self.levels: List[CalibrationRectItem] = []
+        self.levels: list[CalibrationRectItem] = []
 
-        self.calibration: Dict[str, Calibration] = {}
+        self.calibration: dict[str, Calibration] = {}
         self.previous_element = ""
         self.dlg: CalibrationCurveDialog | None = None
 
@@ -446,7 +446,7 @@ class CalibrationRectItem(ResizeableRectItem):
             return value
         return super().itemChange(change, value)
 
-    def selectedSiblings(self) -> List["CalibrationRectItem"]:
+    def selectedSiblings(self) -> list["CalibrationRectItem"]:
         return [
             item
             for item in self.parentItem().childItems()

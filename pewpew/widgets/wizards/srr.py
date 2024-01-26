@@ -14,7 +14,6 @@ from pewpew.validators import DecimalValidator
 from pewpew.widgets.wizards.import_ import ConfigPage, FormatPage
 from pewpew.widgets.wizards.options import PathAndOptionsPage
 
-from typing import List
 
 
 class SRRImportWizard(QtWidgets.QWizard):
@@ -29,7 +28,7 @@ class SRRImportWizard(QtWidgets.QWizard):
 
     def __init__(
         self,
-        paths: List[Path] = [],
+        paths: list[Path] = [],
         config: Config | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
@@ -184,7 +183,7 @@ class SRRConfigPage(ConfigPage):
 class SRRPathAndOptionsPage(PathAndOptionsPage):
     def __init__(
         self,
-        paths: List[Path],
+        paths: list[Path],
         format: str,
         nextid: int,
         parent: QtWidgets.QWidget | None = None,

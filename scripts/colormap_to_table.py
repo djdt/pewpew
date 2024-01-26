@@ -2087,11 +2087,11 @@ if __name__ == "__main__":
 
     header = (
         "import numpy as np\nfrom typing import Dict, List\n\n\n"
-        "colortables: Dict[str, np.ndarray] = {\n"
+        "colortables: dict[str, np.ndarray] = {\n"
     )
 
     footer = (
-        "}\n\n\ndef list_tables() -> List[str]:\n"
+        "}\n\n\ndef list_tables() -> list[str]:\n"
         "    return list(colortables.keys())\n\n\n"
         "def get_table(name: str) -> np.ndarray:\n"
         "    return colortables[name]"

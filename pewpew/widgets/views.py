@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -72,7 +71,7 @@ class TabView(QtWidgets.QWidget):
         """Rename a tabbed widget."""
         self.stack.widget(index).rename(text)
 
-    def widgets(self) -> List["TabViewWidget"]:
+    def widgets(self) -> list["TabViewWidget"]:
         """List of all tabbed widgets."""
         return [self.stack.widget(i) for i in range(self.stack.count())]
 

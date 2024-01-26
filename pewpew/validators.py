@@ -1,6 +1,6 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from typing import Callable,  Tuple
+from typing import Callable
 
 
 class DecimalValidator(QtGui.QDoubleValidator):
@@ -16,7 +16,7 @@ class DecimalValidator(QtGui.QDoubleValidator):
         super().__init__(bottom, top, decimals, parent)
         self.setNotation(QtGui.QDoubleValidator.StandardNotation)
 
-    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
+    def validate(self, input: str, pos: int) -> tuple[QtGui.QValidator.State, str, int]:
         result, _, _ = super().validate(input, pos)
         if result == QtGui.QValidator.Intermediate:
             try:
@@ -30,7 +30,7 @@ class DecimalValidator(QtGui.QDoubleValidator):
 class DecimalValidatorNoZero(DecimalValidator):
     """DecimalValidator that also forbids zeros."""
 
-    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
+    def validate(self, input: str, pos: int) -> tuple[QtGui.QValidator.State, str, int]:
         result = super().validate(input, pos)
         if result[0] == QtGui.QValidator.Acceptable and float(input) == 0.0:
             result = (QtGui.QValidator.Intermediate, input, pos)
@@ -52,7 +52,7 @@ class LimitValidator(QtGui.QDoubleValidator):
     ):
         super().__init__(bottom, top, decimals, parent)
 
-    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
+    def validate(self, input: str, pos: int) -> tuple[QtGui.QValidator.State, str, int]:
         result, _, _ = super().validate(input, pos)
         if result == QtGui.QValidator.Acceptable:
             try:
@@ -88,7 +88,7 @@ class ConditionalLimitValidator(LimitValidator):
         """Set the valid condition."""
         self.condition = condition
 
-    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
+    def validate(self, input: str, pos: int) -> tuple[QtGui.QValidator.State, str, int]:
         result, _, _ = super().validate(input, pos)
         if result == QtGui.QValidator.Acceptable:
             try:
@@ -106,7 +106,7 @@ class OddIntValidator(QtGui.QIntValidator):
     def __init__(self, bottom: int, top: int, parent: QtWidgets.QWidget | None = None):
         super().__init__(bottom, top, parent)
 
-    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
+    def validate(self, input: str, pos: int) -> tuple[QtGui.QValidator.State, str, int]:
         result, _, _ = super().validate(input, pos)
         if result == QtGui.QValidator.Acceptable:
             try:
@@ -147,7 +147,7 @@ class PercentOrDecimalValidator(DecimalValidator):
         self.percent_bottom = percent_bottom
         self.percent_top = percent_top
 
-    def validate(self, input: str, pos: int) -> Tuple[QtGui.QValidator.State, str, int]:
+    def validate(self, input: str, pos: int) -> tuple[QtGui.QValidator.State, str, int]:
         # Treat as percent
         if "%" in input:
             if not input.endswith("%") or input.count("%") > 1:

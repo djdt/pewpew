@@ -1,4 +1,3 @@
-from typing import List, Tuple
 
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -30,7 +29,7 @@ class ColorBarOverlay(OverlayItem):
 
     def __init__(
         self,
-        colortable: List[int],
+        colortable: list[int],
         vmin: float,
         vmax: float,
         unit: str = "",
@@ -59,7 +58,7 @@ class ColorBarOverlay(OverlayItem):
         self.color = color or QtCore.Qt.white
         self.alignment = alignment
 
-    def updateTable(self, colortable: List[int], vmin: float, vmax: float, unit: str):
+    def updateTable(self, colortable: list[int], vmin: float, vmax: float, unit: str):
         self.vmin = vmin
         self.vmax = vmax
         self.unit = unit
@@ -202,7 +201,7 @@ class MetricScaleBarOverlay(OverlayItem):
         return rect
 
     @staticmethod
-    def getWidthAndUnit(desired: float, unit: str) -> Tuple[float, str]:
+    def getWidthAndUnit(desired: float, unit: str) -> tuple[float, str]:
         base = desired * MetricScaleBarOverlay.units[unit]
 
         units = list(MetricScaleBarOverlay.units.keys())

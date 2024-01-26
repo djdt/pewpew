@@ -16,7 +16,6 @@ from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.views import TabView
 
-from typing import List
 
 
 def segment_image(x: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
@@ -35,8 +34,8 @@ class CalculatorName(ValidColorLineEdit):
     def __init__(
         self,
         text: str,
-        badnames: List[str],
-        badparser: List[str],
+        badnames: list[str],
+        badparser: list[str],
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(text, parent=parent)
@@ -68,7 +67,7 @@ class CalculatorFormula(ValidColorTextEdit):
     def __init__(
         self,
         text: str,
-        variables: List[str],
+        variables: list[str],
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(text, parent)

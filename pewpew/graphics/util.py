@@ -1,4 +1,3 @@
-from typing import Tuple
 
 import numpy as np
 from PySide6 import QtGui
@@ -58,7 +57,7 @@ def nice_values(vmin: float, vmax: float, n: int = 6) -> np.ndarray:
 
 def shortest_label(
     fm: QtGui.QFontMetrics, value: float, prec: int = 2
-) -> Tuple[str, float]:
+) -> tuple[str, float]:
     g_label = f"{value:{prec}g}".strip()
     g_width = fm.boundingRect(g_label).width()
     if value < 10**prec:

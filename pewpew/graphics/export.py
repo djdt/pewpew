@@ -1,4 +1,3 @@
-from typing import List, Tuple
 
 import numpy as np
 from pewlib.laser import Laser
@@ -29,8 +28,8 @@ def position_for_alignment(
 def paint_colorbar(
     painter: QtGui.QPainter,
     rect: QtCore.QRectF,
-    table: List[int],
-    vrange: Tuple[float, float],
+    table: list[int],
+    vrange: tuple[float, float],
     unit: str | None = None,
 ) -> None:
     _data = np.arange(256, dtype=np.uint8)
@@ -64,7 +63,7 @@ def paint_color_venn(
     painter: QtGui.QPainter,
     parent_rect: QtCore.QRectF,
     alignment: QtCore.Qt.AlignmentFlag,
-    colors: List[QtGui.QColor],
+    colors: list[QtGui.QColor],
 ) -> None:
     radius = painter.fontMetrics().xHeight() * 2.0
     rect = position_for_alignment(
@@ -230,9 +229,9 @@ def generate_laser_image(
 
 def generate_rgb_laser_image(
     laser: Laser,
-    elements: List[str],
-    colors: List[QtGui.QColor],
-    ranges: List[Tuple[float, float]],
+    elements: list[str],
+    colors: list[QtGui.QColor],
+    ranges: list[tuple[float, float]],
     options: GraphicsOptions,
     scalebar_alignment: QtCore.Qt.AlignmentFlag
     | None = QtCore.Qt.AlignmentFlag.AlignTop

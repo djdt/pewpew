@@ -2,7 +2,6 @@ import logging
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from typing import List
 
 
 class LogRecordSignaller(QtCore.QObject):
@@ -14,7 +13,7 @@ class QtListHandler(logging.Handler):
         super().__init__()
 
         self.signal = LogRecordSignaller()
-        self.records: List[logging.LogRecord] = []
+        self.records: list[logging.LogRecord] = []
 
     def emit(self, record: logging.LogRecord) -> None:
         self.records.append(record)

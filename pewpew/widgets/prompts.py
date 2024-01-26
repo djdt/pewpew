@@ -2,7 +2,6 @@ from pathlib import Path
 
 from PySide6 import QtCore, QtWidgets
 
-from typing import List
 
 
 class DetailedError(QtWidgets.QMessageBox):
@@ -151,7 +150,7 @@ class OverwriteFilePrompt(QtWidgets.QMessageBox):
 
 
 class OverwriteFilesPrompt(QtWidgets.QMessageBox):
-    def __init__(self, paths: List[Path], parent: QtWidgets.QWidget | None = None):
+    def __init__(self, paths: list[Path], parent: QtWidgets.QWidget | None = None):
         buttons = QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
         super().__init__(
             QtWidgets.QMessageBox.Warning,

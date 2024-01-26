@@ -1,4 +1,3 @@
-from typing import List
 
 import numpy as np
 from pewlib.process.register import fft_register_offset
@@ -61,7 +60,7 @@ class LaserGraphicsView(OverlayGraphicsView):
     #     self.zoomReset()
     #     self.shown = True
 
-    def laserItems(self) -> List[LaserImageItem]:
+    def laserItems(self) -> list[LaserImageItem]:
         return [
             item
             for item in self.scene().items(
