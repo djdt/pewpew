@@ -3,7 +3,6 @@ import logging
 import multiprocessing
 import sys
 from pathlib import Path
-from typing import List
 
 import pewlib
 from PySide6 import QtCore, QtGui, QtWidgets

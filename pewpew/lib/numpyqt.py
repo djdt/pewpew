@@ -4,7 +4,7 @@ import ctypes
 import numpy as np
 import shiboken6
 
-from typing import Any, Tuple
+from typing import Any
 
 
 def array_to_image(array: np.ndarray) -> QtGui.QImage:

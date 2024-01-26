@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List, Set, Tuple
+from typing import Set
 
 from pewlib import io
 from pewlib.laser import Laser

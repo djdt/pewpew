@@ -1,4 +1,3 @@
-from typing import Dict, Tuple
 
 import numpy as np
 from PySide6 import QtCore, QtGui

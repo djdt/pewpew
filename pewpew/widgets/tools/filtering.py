@@ -13,7 +13,7 @@ from pewpew.widgets.tools import ToolWidget
 
 from pewpew.validators import ConditionalLimitValidator
 
-from typing import Callable, List,  Tuple
+from typing import Callable, Tuple
 
 from pewpew.widgets.views import TabView
 

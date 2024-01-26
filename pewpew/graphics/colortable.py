@@ -3,7 +3,6 @@
 Each colortable is created from 4 shifted int8.
 r << 16 + g << 8 + b << 0 + a << 24
 """
-from typing import Dict, List
 
 
 colortables: dict[str, list[int]] = {

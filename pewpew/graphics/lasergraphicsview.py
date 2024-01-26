@@ -1,4 +1,3 @@
-from typing import List
 
 import numpy as np
 from pewlib.process.register import fft_register_offset

@@ -2,7 +2,6 @@ import copy
 import logging
 from io import BytesIO
 from pathlib import Path
-from typing import Dict, List
 
 import numpy as np
 from pewlib import io

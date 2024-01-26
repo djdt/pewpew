@@ -3,7 +3,6 @@ from PySide6 import QtCharts
 
 import numpy as np
 
-from typing import Dict
 
 
 class NiceValueAxis(QtCharts.QValueAxis):

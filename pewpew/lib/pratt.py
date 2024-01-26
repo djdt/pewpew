@@ -5,7 +5,6 @@ Based on https://www.engr.mun.ca/~theo/Misc/pratt_parsing.htm
 import numpy as np
 import re
 
-from typing import Dict, List
 
 
 class ParserException(Exception):

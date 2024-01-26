@@ -16,7 +16,6 @@ from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.views import TabView
 
-from typing import List
 
 
 def segment_image(x: np.ndarray, thresholds: np.ndarray) -> np.ndarray:

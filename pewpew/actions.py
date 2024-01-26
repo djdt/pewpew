@@ -1,6 +1,6 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from typing import Callable, List
+from typing import Callable
 
 
 def qAction(icon: str, label: str, status: str, func: Callable) -> QtGui.QAction:

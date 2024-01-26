@@ -1,7 +1,6 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 import numpy as np
 
-from typing import List,  Tuple
 
 # Todo affine transform not work with position change
 

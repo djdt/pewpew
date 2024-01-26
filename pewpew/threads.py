@@ -9,7 +9,6 @@ from pewlib import io
 from pewlib import Config
 from pewlib.laser import Laser
 
-from typing import List
 
 
 logger = logging.getLogger(__name__)

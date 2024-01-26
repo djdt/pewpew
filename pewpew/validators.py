@@ -1,6 +1,6 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from typing import Callable,  Tuple
+from typing import Callable
 
 
 class DecimalValidator(QtGui.QDoubleValidator):

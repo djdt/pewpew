@@ -1,7 +1,7 @@
 import copy
 from io import BytesIO
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 import numpy as np
 from pewlib import io

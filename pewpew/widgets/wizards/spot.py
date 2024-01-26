@@ -25,7 +25,6 @@ from pewpew.widgets.dialogs import NameEditDialog
 from pewpew.widgets.wizards.import_ import FormatPage
 from pewpew.widgets.wizards.options import PathAndOptionsPage
 
-from typing import Dict, List
 
 
 logger = logging.getLogger(__name__)

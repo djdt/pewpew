@@ -9,7 +9,6 @@ from pewpew.lib.numpyqt import array_to_polygonf
 
 from pewpew.graphics.imageitems import SnapImageItem
 
-from typing import  Tuple
 
 
 class WidgetItem(QtWidgets.QGraphicsObject):

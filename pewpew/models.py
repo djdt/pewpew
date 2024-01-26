@@ -6,7 +6,7 @@ from pewlib.calibration import Calibration
 
 from pewpew.lib.numpyqt import NumpyArrayTableModel
 
-from typing import Any, Tuple
+from typing import Any
 
 
 class CalibrationPointsTableModel(NumpyArrayTableModel):

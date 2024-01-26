@@ -1,4 +1,4 @@
-from typing import Dict, Generator, Tuple
+from typing import Generator
 
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets

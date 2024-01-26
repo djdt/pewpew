@@ -2,7 +2,6 @@ from pathlib import Path
 
 from PySide6 import QtCore, QtWidgets
 
-from typing import List
 
 
 class DetailedError(QtWidgets.QMessageBox):

@@ -21,7 +21,7 @@ from pewpew.widgets.views import TabView
 
 from .tool import ToolWidget
 
-from typing import Any, Dict, List
+from typing import Any
 
 
 class StandardsTool(ToolWidget):

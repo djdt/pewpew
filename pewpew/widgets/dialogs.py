@@ -2,7 +2,6 @@
 
 import copy
 from io import BytesIO
-from typing import Dict, List, Tuple
 
 import numpy as np
 from pewlib import Calibration, Config

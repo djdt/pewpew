@@ -4,7 +4,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import List, Set
+from typing import Set
 
 
 def collect_icons(path: Path) -> Set[str]:

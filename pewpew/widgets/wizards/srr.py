@@ -14,7 +14,6 @@ from pewpew.validators import DecimalValidator
 from pewpew.widgets.wizards.import_ import ConfigPage, FormatPage
 from pewpew.widgets.wizards.options import PathAndOptionsPage
 
-from typing import List
 
 
 class SRRImportWizard(QtWidgets.QWizard):

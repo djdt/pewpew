@@ -11,7 +11,7 @@ from pewlib import io
 from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog
 
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable
 
 
 class _OptionsBase(QtWidgets.QGroupBox):  # pragma: no cover
