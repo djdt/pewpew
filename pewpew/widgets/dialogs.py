@@ -11,7 +11,7 @@ from pewlib.process import colocal
 from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
 from pewlib.srr import SRRConfig
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction, qToolButton
 from pewpew.charts.calibration import CalibrationChart
@@ -1113,8 +1113,8 @@ class ProcessFilterItemWidget(ProcessItemWidget):
 class ProcessingDialog(QtWidgets.QDialog):
     def __init__(
         self,
-        names: List[str],
-        item: LaserImageItem | None = None,
+        names: list[str],
+        item: list[LaserImageItem] | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
@@ -1122,6 +1122,7 @@ class ProcessingDialog(QtWidgets.QDialog):
         self.setMinimumWidth(600)
 
         self.names = names
+        self.item = item
 
         self.action_add_calculator = qAction(
             "list-add",
@@ -1135,10 +1136,13 @@ class ProcessingDialog(QtWidgets.QDialog):
             "Add a new process to the pcipeline.",
             self.addFilterProcess,
         )
-
-        self.button_load = QtWidgets.QPushButton("Load from Image")
-
         self.list = QtWidgets.QListWidget()
+
+        self.button_load_from_laser = QtWidgets.QPushButton(
+            QtGui.QIcon.fromTheme("document-open"), "Load From Laser"
+        )
+        self.button_load_from_laser.pressed.connect(self.dialogLoadFromLaser)
+        self.button_load_from_laser.setEnabled(self.item is not None)
 
         self.button_add = qToolButton(action=self.action_add_calculator)
         self.button_add.addAction(self.action_add_filter)
@@ -1150,10 +1154,16 @@ class ProcessingDialog(QtWidgets.QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
 
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.addWidget(
+            self.button_load_from_laser, 0, QtCore.Qt.AlignmentFlag.AlignLeft
+        )
+        button_layout.addWidget(self.button_box, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.button_add)
         layout.addWidget(self.list)
-        layout.addWidget(self.button_box)
+        layout.addLayout(button_layout)
         self.setLayout(layout)
 
     def addCalculatorProcess(self) -> None:
@@ -1178,6 +1188,21 @@ class ProcessingDialog(QtWidgets.QDialog):
             if self.list.itemWidget(item) == widget:
                 self.list.takeItem(i)
                 break
+
+    def dialogLoadFromLaser(self) -> None:
+        print(self.item)
+        if self.item is None:
+            return
+        items = {
+            item.laser.name: item
+            for item in self.item.scene().items()
+            if isinstance(item, LaserImageItem)
+        }
+        if len(items) == 0:
+            return
+        item, ok = QtWidgets.QInputDialog.getItem(list(items.values()))
+        if ok and item is not None:
+            self.loadFromLaser(items[item].laser)
 
     def accept(self) -> None:
         super().accept()
