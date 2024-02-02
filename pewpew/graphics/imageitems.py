@@ -1013,7 +1013,7 @@ class RGBLaserImageItem(LaserImageItem):
                 rgb = 1.0 - rgb
 
             # Normalise to range
-            vmin, vmax = np.percentile(self.raw_data[:, :, i], element.prange)
+            vmin, vmax = np.nanpercentile(self.raw_data[:, :, i], element.prange)
             x = np.clip(self.raw_data[:, :, i], vmin, vmax)
             if vmin != vmax:
                 x = (x - vmin) / (vmax - vmin)
