@@ -1,4 +1,3 @@
-
 import numpy as np
 from PySide6 import QtGui
 
@@ -72,6 +71,9 @@ def shortest_label(
 def path_for_colorbar_labels(
     font: QtGui.QFont, vmin: float, vmax: float, width: float, pen_width: float = 1.0
 ) -> QtGui.QPainterPath:
+    # Choose a deafult if equal
+    if vmax == vmin:
+        vmax = vmin + 1.0
     vrange = vmax - vmin
     fm = QtGui.QFontMetrics(font)
     path = QtGui.QPainterPath()
