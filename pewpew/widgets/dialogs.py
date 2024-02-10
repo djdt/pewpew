@@ -1114,7 +1114,7 @@ class ProcessingDialog(QtWidgets.QDialog):
     def __init__(
         self,
         names: list[str],
-        item: list[LaserImageItem] | None = None,
+        items: list[LaserImageItem] | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
@@ -1122,7 +1122,7 @@ class ProcessingDialog(QtWidgets.QDialog):
         self.setMinimumWidth(600)
 
         self.names = names
-        self.item = item
+        self.items = items or []
 
         self.action_add_calculator = qAction(
             "list-add",
@@ -1142,7 +1142,7 @@ class ProcessingDialog(QtWidgets.QDialog):
             QtGui.QIcon.fromTheme("document-open"), "Load From Laser"
         )
         self.button_load_from_laser.pressed.connect(self.dialogLoadFromLaser)
-        self.button_load_from_laser.setEnabled(self.item is not None)
+        self.button_load_from_laser.setEnabled(len(self.items) > 0)
 
         self.button_add = qToolButton(action=self.action_add_calculator)
         self.button_add.addAction(self.action_add_filter)
@@ -1166,21 +1166,23 @@ class ProcessingDialog(QtWidgets.QDialog):
         layout.addLayout(button_layout)
         self.setLayout(layout)
 
-    def addCalculatorProcess(self) -> None:
+    def addCalculatorProcess(self) -> ProcessCalculatorItemWidget:
         widget = ProcessCalculatorItemWidget(self.names)
         widget.closeRequested.connect(self.removeProcess)
         item = QtWidgets.QListWidgetItem()
         self.list.insertItem(self.list.count(), item)
         self.list.setItemWidget(item, widget)
         item.setSizeHint(widget.sizeHint())
+        return widget
 
-    def addFilterProcess(self) -> None:
+    def addFilterProcess(self) -> ProcessFilterItemWidget:
         widget = ProcessFilterItemWidget(self.names)
         widget.closeRequested.connect(self.removeProcess)
         item = QtWidgets.QListWidgetItem()
         self.list.insertItem(self.list.count(), item)
         self.list.setItemWidget(item, widget)
         item.setSizeHint(widget.sizeHint())
+        return widget
 
     def removeProcess(self, widget: ProcessFilterItemWidget) -> None:
         for i in range(self.list.count()):
@@ -1189,20 +1191,25 @@ class ProcessingDialog(QtWidgets.QDialog):
                 self.list.takeItem(i)
                 break
 
+    def loadFromString(self, proc_string: str) -> None:
+        processes = proc_string.split(";")
+        for proc in processes:
+            proc_type = proc[: proc.find("(")]
+            if proc_type == "Calculator":
+                widget = self.addCalculatorProcess()
+                widget.formula.setText(proc[proc.find("(") + 1 :])
+            elif proc_type == "Filter":
+                widget = self.addFilterProcess()
+            else:
+                raise ValueError(f"unknown processing type '{proc_type}'")
+
     def dialogLoadFromLaser(self) -> None:
-        print(self.item)
-        if self.item is None:
-            return
-        items = {
-            item.laser.name: item
-            for item in self.item.scene().items()
-            if isinstance(item, LaserImageItem)
-        }
-        if len(items) == 0:
-            return
-        item, ok = QtWidgets.QInputDialog.getItem(list(items.values()))
-        if ok and item is not None:
-            self.loadFromLaser(items[item].laser)
+        item_names = {item.laser.name: item for item in self.items}
+        name, ok = QtWidgets.QInputDialog.getItem(list(item_names.values()))
+        if ok and name is not None:
+            laser = item_names[name].laser
+            if "Processing" in laser.info:
+                self.loadFromString(laser.info["Processing"])
 
     def accept(self) -> None:
         super().accept()
