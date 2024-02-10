@@ -332,7 +332,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionDialogProcess(self) -> dialogs.ProcessingDialog:
         item = self.tabview.focusLaserItem()
-        print(item)
         dlg = dialogs.ProcessingDialog(self.tabview.uniqueElements(), item, parent=self)
         dlg.open()
 
