@@ -26,6 +26,19 @@ def rolling_median(x: np.ndarray, size: int, threshold: float) -> np.ndarray:
     return filters.rolling_median(x, (size, size), threshold)
 
 
+def gaussian_filter(x: np.ndarray, sigma: float) -> np.ndarray:
+    size = int(2.0 * sigma * 5.0)
+    if size % 2 == 0:
+        size += 1
+    xs = np.linspace(-sigma * 5.0, sigma * 5.0, size)
+    psf = 1.0 / (sigma * np.sqrt(2.0 * np.pi)) * np.exp(-0.5 * (xs / sigma) ** 2)
+    psf /= psf.sum()
+
+    x = np.apply_along_axis(np.convolve, 0, x, psf, mode="same")
+    x = np.apply_along_axis(np.convolve, 1, x, psf, mode="same")
+    return x
+
+
 # def simple_highpass(x: np.ndarray, limit: float, replace: float) -> np.ndarray:
 #     return np.where(x < limit, replace, x)
 
@@ -38,7 +51,7 @@ class FilteringTool(ToolWidget):
     """View and calculate mean and meidan filtered images."""
 
     methods: dict = {
-        "Rolling Mean": {
+        "Local Mean": {
             "filter": rolling_mean,
             "params": [
                 ("size", 5, (2.5, 99), lambda x: (x + 1) % 2 == 0),
@@ -46,7 +59,7 @@ class FilteringTool(ToolWidget):
             ],
             "desc": ["Window size for local mean.", "Filter if > σ stddevs from mean."],
         },
-        "Rolling Median": {
+        "Local Median": {
             "filter": rolling_median,
             "params": [
                 ("size", 5, (2.5, 99), lambda x: (x + 1) % 2 == 0),
@@ -56,6 +69,13 @@ class FilteringTool(ToolWidget):
                 "Window size for local median.",
                 "Filter if median absolute deviation > k stddevs",
             ],
+        },
+        "Gaussian": {
+            "filter": gaussian_filter,
+            "params": [
+                ("σ", 0.5, (0.0, np.inf), None),
+            ],
+            "desc": ["Gaussian filter for smoothing."],
         },
         # "Simple High-pass": {
         #     "filter": simple_highpass,
@@ -165,6 +185,7 @@ class FilteringTool(ToolWidget):
             le.setVisible(False)
         for le in self.lineedit_fparams:
             le.setVisible(False)
+            le.setEnabled(False)
 
         params: list[tuple[str, float, tuple, Callable[[float], bool]]] = filter_[
             "params"
@@ -176,6 +197,7 @@ class FilteringTool(ToolWidget):
             self.lineedit_fparams[i].validator().setRange(range[0], range[1], 4)
             self.lineedit_fparams[i].validator().setCondition(condition)
             self.lineedit_fparams[i].setVisible(True)
+            self.lineedit_fparams[i].setEnabled(True)
             self.lineedit_fparams[i].setToolTip(filter_["desc"][i])
             # keep input that's still valid
             if not self.lineedit_fparams[i].hasAcceptableInput():
