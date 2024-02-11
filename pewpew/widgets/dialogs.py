@@ -1060,7 +1060,7 @@ class ProcessFilterItemWidget(ProcessItemWidget):
 
         self.combo_filter = QtWidgets.QComboBox()
         self.combo_filter.addItems(FilteringTool.methods.keys())
-        self.combo_filter.setCurrentText("Rolling Median")
+        self.combo_filter.setCurrentText("Local Median")
         self.combo_filter.activated.connect(self.filterChanged)
 
         self.combo_names = QtWidgets.QComboBox()
@@ -1194,18 +1194,34 @@ class ProcessingDialog(QtWidgets.QDialog):
     def loadFromString(self, proc_string: str) -> None:
         processes = proc_string.split(";")
         for proc in processes:
+            if len(proc) == 0:
+                continue
             proc_type = proc[: proc.find("(")]
+            proc_params = proc[proc.find("(") + 1 : proc.find(")")]
             if proc_type == "Calculator":
                 widget = self.addCalculatorProcess()
-                widget.formula.setText(proc[proc.find("(") + 1 :])
+                widget.formula.setText(proc_params)
             elif proc_type == "Filter":
                 widget = self.addFilterProcess()
+                print(proc_params.split(","))
+                name, filter_type, *filter_pstr = proc_params.split(",")
+                widget.combo_names.setCurrentText(name)
+                widget.combo_filter.setCurrentText(filter_type)
+                widget.filterChanged()
+                for pstr, le in zip(
+                    filter_pstr,
+                    [le for le in widget.lineedit_fparams if le.isVisible()],
+                ):
+                    _, p = pstr.split("=")
+                    le.setText(p)
             else:
                 raise ValueError(f"unknown processing type '{proc_type}'")
 
     def dialogLoadFromLaser(self) -> None:
-        item_names = {item.laser.name: item for item in self.items}
-        name, ok = QtWidgets.QInputDialog.getItem(list(item_names.values()))
+        item_names = {item.name(): item for item in self.items}
+        name, ok = QtWidgets.QInputDialog.getItem(
+            self, "Select Laser", "Laser item:", list(item_names.keys()), editable=False
+        )
         if ok and name is not None:
             laser = item_names[name].laser
             if "Processing" in laser.info:
