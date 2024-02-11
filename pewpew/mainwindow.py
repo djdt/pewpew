@@ -331,9 +331,11 @@ class MainWindow(QtWidgets.QMainWindow):
         return dlg
 
     def actionDialogProcess(self) -> dialogs.ProcessingDialog:
-        item = self.tabview.focusLaserItem()
-        dlg = dialogs.ProcessingDialog(self.tabview.uniqueElements(), item, parent=self)
+        dlg = dialogs.ProcessingDialog(
+            self.tabview.uniqueElements(), self.tabview.laserItems(), parent=self
+        )
         dlg.open()
+        return dlg
 
     def actionAbout(self) -> QtWidgets.QDialog:
         dlg = QtWidgets.QMessageBox(
