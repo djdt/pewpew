@@ -427,7 +427,7 @@ class _ExportDialogBase(QtWidgets.QDialog):
     def getPath(self, name: str | None = None) -> Path:
         if name is None:
             name = self.lineedit_filename.text()
-        path =Path(name)
+        path = Path(name)
         path = path.with_suffix(path.suffix + self.options.currentExt())
         return Path(self.lineedit_directory.text()).joinpath(path)
 
