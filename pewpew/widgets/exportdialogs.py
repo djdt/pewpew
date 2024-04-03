@@ -428,8 +428,7 @@ class _ExportDialogBase(QtWidgets.QDialog):
         if name is None:
             name = self.lineedit_filename.text()
         path = Path(name)
-        if path.suffix == "":
-            path = path.with_suffix(self.options.currentExt())
+        path = path.with_suffix(path.suffix + self.options.currentExt())
         return Path(self.lineedit_directory.text()).joinpath(path)
 
     def sizeHint(self) -> QtCore.QSize:
@@ -730,7 +729,7 @@ class ExportAllDialog(ExportDialog):
 
     def generatePaths(self, item: LaserImageItem) -> list[tuple[Path, str]]:
         paths: list[tuple[Path, str]] = [
-            (self.getPath(item.laser.info["Name"]), item.element())
+            (self.getPath(item.laser.info["Name"]), self.combo_element.currentText())
         ]
         if self.isExportAll():
             paths = [
