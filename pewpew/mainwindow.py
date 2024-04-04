@@ -344,7 +344,7 @@ class MainWindow(QtWidgets.QMainWindow):
             (
                 "Import, process and export of LA-ICP-MS data.\n"
                 f"Version {__version__}\n"
-                "Developed by the Atomic Medicine Initiative.\n"
+                "Developed by the Hyphenated Mass Spectrometry Laboratory.\n"
                 "https://github.com/djdt/pewpew"
             ),
             parent=self,
