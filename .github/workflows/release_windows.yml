@@ -22,6 +22,9 @@ jobs:
       id: build-exec
       run: |
         pyinstaller --clean -y pewpew.spec
+    - name: Set output version
+      id: set-output
+      run : |
         echo "PEWPEW_VERSION=$(python -c "from importlib.metadata import version; print(version('pewpew'))")" >> "$GITHUB_OUTPUT"
     - name: Upload binary
       id: upload
@@ -29,5 +32,5 @@ jobs:
         gh release upload "$TAG_NAME" "./dist/pewpew_$PEWPEW_VERSION.exe"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        PEWPEW_VERSION: ${{ steps.build-exec.outputs.PEWPEW_VERSION}}
+        PEWPEW_VERSION: ${{ steps.set-output.outputs.PEWPEW_VERSION }}
         TAG_NAME: ${{ github.event.release.tag_name }}
