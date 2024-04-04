@@ -999,6 +999,7 @@ class PixelSizeDialog(ApplyDialog):
 
 
 class ProcessItemWidget(QtWidgets.QWidget):
+    completeChanged = QtCore.Signal()
     closeRequested = QtCore.Signal(QtWidgets.QWidget)
 
     def __init__(
@@ -1013,11 +1014,14 @@ class ProcessItemWidget(QtWidgets.QWidget):
             "Remove this process from the pipeline.",
             lambda: self.closeRequested.emit(self),
         )
-        self.button_hide_filter = qToolButton(action=self.action_close)
+        self.button_close = qToolButton(action=self.action_close)
 
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(self.button_hide_filter, 0, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.button_close, 0, QtCore.Qt.AlignmentFlag.AlignRight)
         self.setLayout(layout)
+
+    def isComplete(self) -> bool:
+        return False
 
 
 class ProcessCalculatorItemWidget(ProcessItemWidget):
@@ -1029,7 +1033,9 @@ class ProcessCalculatorItemWidget(ProcessItemWidget):
         super().__init__(parent)
 
         self.lineedit_name = QtWidgets.QLineEdit()
+        self.lineedit_name.textChanged.connect(self.completeChanged)
         self.lineedit_expr = QtWidgets.QLineEdit()
+        self.lineedit_expr.textChanged.connect(self.completeChanged)
 
         layout_controls = QtWidgets.QHBoxLayout()
         layout_controls.addWidget(QtWidgets.QLabel("Name:"))
@@ -1075,6 +1081,7 @@ class ProcessFilterItemWidget(ProcessItemWidget):
         self.lineedit_fparams = [ValidColorLineEdit() for _ in range(nparams)]
         for le in self.lineedit_fparams:
             le.setValidator(ConditionalLimitValidator(0.0, 0.0, 4, condition=None))
+            le.textChanged.connect(self.completeChanged)
 
         layout_controls = QtWidgets.QHBoxLayout()
         layout_controls.addWidget(self.combo_filter)
@@ -1102,6 +1109,12 @@ class ProcessFilterItemWidget(ProcessItemWidget):
     @property
     def fparams(self) -> list[float]:
         return [float(le.text()) for le in self.lineedit_fparams if le.isEnabled()]
+
+    def isComplete(self) -> bool:
+        for le in self.lineedit_fparams:
+            if le.isEnabled() and not le.hasAcceptableInput():
+                return False
+        return True
 
     def filterChanged(self) -> None:
         filter_ = FilteringTool.methods[self.combo_filter.currentText()]
@@ -1144,7 +1157,7 @@ class ProcessingDialog(QtWidgets.QDialog):
 
         self.action_add_calculator = qAction(
             "list-add",
-            "Caluculator Process",
+            "Calculator Process",
             "Add a new process to the pipeline.",
             self.addCalculatorProcess,
         )
@@ -1155,6 +1168,10 @@ class ProcessingDialog(QtWidgets.QDialog):
             self.addFilterProcess,
         )
         self.list = QtWidgets.QListWidget()
+        # do manually as has to be emitted after item widget is set
+        # self.list.model().rowsInserted.connect(self.completeChanged)
+        self.list.model().rowsRemoved.connect(self.completeChanged)
+
         self.action_add_laser = qAction(
             "list-add",
             "Add Image",
@@ -1168,6 +1185,8 @@ class ProcessingDialog(QtWidgets.QDialog):
             self.addAllApplyLaser,
         )
         self.apply_list = QtWidgets.QListWidget()
+        self.apply_list.model().rowsInserted.connect(self.completeChanged)
+        self.apply_list.model().rowsRemoved.connect(self.completeChanged)
 
         self.button_load_from_laser = QtWidgets.QPushButton(
             QtGui.QIcon.fromTheme("document-open"), "Load From Laser"
@@ -1186,6 +1205,7 @@ class ProcessingDialog(QtWidgets.QDialog):
             QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok,
             self,
         )
+        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
 
@@ -1227,20 +1247,24 @@ class ProcessingDialog(QtWidgets.QDialog):
 
     def addCalculatorProcess(self) -> ProcessCalculatorItemWidget:
         widget = ProcessCalculatorItemWidget(self.names)
+        widget.completeChanged.connect(self.completeChanged)
         widget.closeRequested.connect(self.removeProcess)
         item = QtWidgets.QListWidgetItem()
         self.list.insertItem(self.list.count(), item)
         self.list.setItemWidget(item, widget)
         item.setSizeHint(widget.sizeHint())
+        self.completeChanged()
         return widget
 
     def addFilterProcess(self) -> ProcessFilterItemWidget:
         widget = ProcessFilterItemWidget(self.names)
+        widget.completeChanged.connect(self.completeChanged)
         widget.closeRequested.connect(self.removeProcess)
         item = QtWidgets.QListWidgetItem()
         self.list.insertItem(self.list.count(), item)
         self.list.setItemWidget(item, widget)
         item.setSizeHint(widget.sizeHint())
+        self.completeChanged()
         return widget
 
     def removeProcess(self, widget: ProcessFilterItemWidget) -> None:
@@ -1307,6 +1331,19 @@ class ProcessingDialog(QtWidgets.QDialog):
         if ok and name is not None:
             return item_names[name]
         return None
+
+    def completeChanged(self) -> None:
+        button = self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Ok)
+        button.setEnabled(self.isComplete())
+
+    def isComplete(self) -> bool:
+        if self.list.count() == 0 or self.apply_list.count() == 0:
+            return False
+        for i in range(self.list.count()):
+            widget = self.list.itemWidget(self.list.item(i))
+            if widget is not None and not widget.isComplete():
+                return False
+        return True
 
     def loadProcessingFromLaser(self) -> None:
         item = self.dialogLoadFromLaser()
