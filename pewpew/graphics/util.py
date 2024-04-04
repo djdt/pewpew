@@ -49,6 +49,8 @@ def nice_values(vmin: float, vmax: float, n: int = 6) -> np.ndarray:
         allowed=np.array([0.0, 1.0, 2.0, 2.5, 5.0, 7.5]),
         mode="upper",
     )
+    if not np.isfinite(vmax):
+        return np.array([])
     return np.arange(lower, vmax * 1.001, interval)
 
 

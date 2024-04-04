@@ -293,6 +293,10 @@ class CalculatorTool(ToolWidget):
         # Make sure to repop elements
         self.itemModified.emit(self.item)
 
+        proc = self.item.laser.info.get("Processing", "")
+        proc += f"Calculator({name},{self.formula.expr});"
+        self.item.laser.info["Processing"] = proc
+
         self.initialise()
 
     def initialise(self) -> None:

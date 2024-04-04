@@ -1,20 +1,15 @@
+from typing import Callable
+
 import numpy as np
-
-from PySide6 import QtCore, QtGui, QtWidgets
-
 from pewlib.process import filters
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction, qToolButton
 from pewpew.graphics import colortable
 from pewpew.graphics.imageitems import LaserImageItem, ScaledImageItem
-
+from pewpew.validators import ConditionalLimitValidator
 from pewpew.widgets.ext import ValidColorLineEdit
 from pewpew.widgets.tools import ToolWidget
-
-from pewpew.validators import ConditionalLimitValidator
-
-from typing import Callable, Tuple
-
 from pewpew.widgets.views import TabView
 
 
@@ -31,6 +26,19 @@ def rolling_median(x: np.ndarray, size: int, threshold: float) -> np.ndarray:
     return filters.rolling_median(x, (size, size), threshold)
 
 
+def gaussian_filter(x: np.ndarray, sigma: float) -> np.ndarray:
+    size = int(2.0 * sigma * 5.0)
+    if size % 2 == 0:
+        size += 1
+    xs = np.linspace(-sigma * 5.0, sigma * 5.0, size)
+    psf = 1.0 / (sigma * np.sqrt(2.0 * np.pi)) * np.exp(-0.5 * (xs / sigma) ** 2)
+    psf /= psf.sum()
+
+    x = np.apply_along_axis(np.convolve, 0, x, psf, mode="same")
+    x = np.apply_along_axis(np.convolve, 1, x, psf, mode="same")
+    return x
+
+
 # def simple_highpass(x: np.ndarray, limit: float, replace: float) -> np.ndarray:
 #     return np.where(x < limit, replace, x)
 
@@ -43,7 +51,7 @@ class FilteringTool(ToolWidget):
     """View and calculate mean and meidan filtered images."""
 
     methods: dict = {
-        "Rolling Mean": {
+        "Local Mean": {
             "filter": rolling_mean,
             "params": [
                 ("size", 5, (2.5, 99), lambda x: (x + 1) % 2 == 0),
@@ -51,7 +59,7 @@ class FilteringTool(ToolWidget):
             ],
             "desc": ["Window size for local mean.", "Filter if > σ stddevs from mean."],
         },
-        "Rolling Median": {
+        "Local Median": {
             "filter": rolling_median,
             "params": [
                 ("size", 5, (2.5, 99), lambda x: (x + 1) % 2 == 0),
@@ -61,6 +69,13 @@ class FilteringTool(ToolWidget):
                 "Window size for local median.",
                 "Filter if median absolute deviation > k stddevs",
             ],
+        },
+        "Gaussian": {
+            "filter": gaussian_filter,
+            "params": [
+                ("σ", 0.5, (0.0, np.inf), None),
+            ],
+            "desc": ["Gaussian filter for smoothing."],
         },
         # "Simple High-pass": {
         #     "filter": simple_highpass,
@@ -103,6 +118,8 @@ class FilteringTool(ToolWidget):
             self.combo_element, 0, QtCore.Qt.AlignRight
         )
 
+        self.checkbox_all_elements = QtWidgets.QCheckBox("Filter all elements.")
+
         self.combo_filter = QtWidgets.QComboBox()
         self.combo_filter.addItems(FilteringTool.methods.keys())
         self.combo_filter.setCurrentText("Rolling Median")
@@ -123,23 +140,45 @@ class FilteringTool(ToolWidget):
         for i in range(len(self.label_fparams)):
             layout_controls.addRow(self.label_fparams[i], self.lineedit_fparams[i])
         layout_controls.addWidget(self.button_hide_filter)
+        layout_controls.addRow(self.checkbox_all_elements)
 
         self.box_controls.setLayout(layout_controls)
 
         self.initialise()
 
     def apply(self) -> None:
-        name = self.combo_element.currentText()
-        if self.button_hide_filter.isChecked():
-            filter_ = FilteringTool.methods[self.combo_filter.currentText()]["filter"]
-            self.item.laser.data[name] = filter_(
-                self.item.laser.data[name], *self.fparams
-            )
-        else:
-            self.item.laser.data[name] = self.filtered_data
+        method = self.combo_filter.currentText()
+        name = (
+            None
+            if self.checkbox_all_elements.isChecked()
+            else self.combo_element.currentText()
+        )
+        FilteringTool.filterLaser(self.item.laser, name, method, self.fparams)
 
         self.item.redraw()
         self.initialise()
+
+    @staticmethod
+    def filterLaser(
+        laser, name: str | None, method: str, method_args: list[float]
+    ) -> None:
+        filter_ = FilteringTool.methods[method]["filter"]
+        proc = laser.info.get("Processing", "")
+        params = [
+            f"{p[0]}={v}"
+            for p, v in zip(FilteringTool.methods[method]["params"], method_args)
+        ]
+        pstr = ",".join(params)
+
+        if name is None:
+            for name in laser.elements:
+                laser.data[name] = filter_(laser.data[name], *method_args)
+            proc += f"Filter(*,{method},{pstr});"
+        else:
+            laser.data[name] = filter_(laser.data[name], *method_args)
+            proc += f"Filter({name},{method},{pstr});"
+
+        laser.info["Processing"] = proc
 
     @property
     def fparams(self) -> list[float]:
@@ -152,8 +191,9 @@ class FilteringTool(ToolWidget):
             le.setVisible(False)
         for le in self.lineedit_fparams:
             le.setVisible(False)
+            le.setEnabled(False)
 
-        params: list[tuple[str, float, Tuple, Callable[[float], bool]]] = filter_[
+        params: list[tuple[str, float, tuple, Callable[[float], bool]]] = filter_[
             "params"
         ]
 
@@ -163,6 +203,7 @@ class FilteringTool(ToolWidget):
             self.lineedit_fparams[i].validator().setRange(range[0], range[1], 4)
             self.lineedit_fparams[i].validator().setCondition(condition)
             self.lineedit_fparams[i].setVisible(True)
+            self.lineedit_fparams[i].setEnabled(True)
             self.lineedit_fparams[i].setToolTip(filter_["desc"][i])
             # keep input that's still valid
             if not self.lineedit_fparams[i].hasAcceptableInput():

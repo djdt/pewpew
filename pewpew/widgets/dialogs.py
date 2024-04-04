@@ -2,15 +2,16 @@
 
 import copy
 from io import BytesIO
+from typing import Callable
 
 import numpy as np
-from pewlib import Calibration, Config
+from pewlib import Calibration, Config, Laser
 from pewlib.config import SpotConfig
 from pewlib.process import colocal
 from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
 from pewlib.srr import SRRConfig
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction, qToolButton
 from pewpew.charts.calibration import CalibrationChart
@@ -18,15 +19,19 @@ from pewpew.charts.colocal import ColocalisationChart
 from pewpew.charts.histogram import HistogramChart
 from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.lib import kmeans
+from pewpew.lib.pratt import Reducer
 from pewpew.models import CalibrationPointsTableModel
 from pewpew.validators import (
+    ConditionalLimitValidator,
     DecimalValidator,
     DecimalValidatorNoZero,
     DoubleSignificantFiguresDelegate,
     PercentOrDecimalValidator,
 )
-from pewpew.widgets.ext import CollapsableWidget
+from pewpew.widgets.ext import CollapsableWidget, ValidColorLineEdit
 from pewpew.widgets.modelviews import BasicTableView
+from pewpew.widgets.tools.calculator import CalculatorFormula, CalculatorTool
+from pewpew.widgets.tools.filtering import FilteringTool
 
 
 class ApplyDialog(QtWidgets.QDialog):
@@ -815,7 +820,7 @@ class InformationDialog(QtWidgets.QDialog):
 
     infoChanged = QtCore.Signal(dict)
 
-    read_only_items = ["Name", "File Path", "File Version"]
+    read_only_items = ["Name", "File Path", "File Version", "Processing"]
 
     def __init__(self, info: dict[str, str], parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
@@ -991,6 +996,371 @@ class PixelSizeDialog(ApplyDialog):
 
     def apply(self) -> None:
         self.sizeSelected.emit(self.size())
+
+
+class ProcessItemWidget(QtWidgets.QWidget):
+    completeChanged = QtCore.Signal()
+    closeRequested = QtCore.Signal(QtWidgets.QWidget)
+
+    def __init__(
+        self,
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(parent)
+
+        self.action_close = qAction(
+            "view-close",
+            "Close Process",
+            "Remove this process from the pipeline.",
+            lambda: self.closeRequested.emit(self),
+        )
+        self.button_close = qToolButton(action=self.action_close)
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(self.button_close, 0, QtCore.Qt.AlignmentFlag.AlignRight)
+        self.setLayout(layout)
+
+    def isComplete(self) -> bool:
+        return False
+
+
+class ProcessCalculatorItemWidget(ProcessItemWidget):
+    def __init__(
+        self,
+        names: list[str],
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(parent)
+
+        self.lineedit_name = QtWidgets.QLineEdit()
+        self.lineedit_name.textChanged.connect(self.completeChanged)
+        self.lineedit_expr = QtWidgets.QLineEdit()
+        self.lineedit_expr.textChanged.connect(self.completeChanged)
+
+        layout_controls = QtWidgets.QHBoxLayout()
+        layout_controls.addWidget(QtWidgets.QLabel("Name:"))
+        layout_controls.addWidget(self.lineedit_name)
+        layout_controls.addWidget(QtWidgets.QLabel("Expr:"))
+        layout_controls.addWidget(self.lineedit_expr)
+        self.layout().insertLayout(0, layout_controls, 1)
+
+    @property
+    def name(self) -> str:
+        return self.lineedit_name.text()
+
+    @property
+    def expr(self) -> str:
+        return self.lineedit_expr.text()
+
+    def isComplete(self) -> bool:
+        for le in [self.lineedit_name, self.lineedit_expr]:
+            if le.text() == "" or not le.hasAcceptableInput():
+                return False
+        return True
+
+
+class ProcessFilterItemWidget(ProcessItemWidget):
+    def __init__(
+        self,
+        names: list[str],
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(parent)
+
+        self.combo_filter = QtWidgets.QComboBox()
+        self.combo_filter.addItems(FilteringTool.methods.keys())
+        self.combo_filter.setCurrentText("Local Median")
+        self.combo_filter.activated.connect(self.filterChanged)
+
+        self.combo_names = QtWidgets.QComboBox()
+        self.combo_names.addItems(names)
+        self.combo_names.addItem("*")
+
+        nparams = np.amax([len(f["params"]) for f in FilteringTool.methods.values()])
+        self.label_fparams = [QtWidgets.QLabel() for _ in range(nparams)]
+        self.lineedit_fparams = [ValidColorLineEdit() for _ in range(nparams)]
+        for le in self.lineedit_fparams:
+            le.setValidator(ConditionalLimitValidator(0.0, 0.0, 4, condition=None))
+            le.textChanged.connect(self.completeChanged)
+
+        layout_controls = QtWidgets.QHBoxLayout()
+        layout_controls.addWidget(self.combo_filter)
+        layout_controls.addWidget(self.combo_names)
+        for i in range(len(self.label_fparams)):
+            layout_controls.addWidget(
+                self.label_fparams[i], 0, QtCore.Qt.AlignmentFlag.AlignRight
+            )
+            layout_controls.addWidget(self.lineedit_fparams[i])
+
+        self.layout().insertLayout(0, layout_controls, 1)
+        self.filterChanged()
+
+    @property
+    def method(self) -> str:
+        return self.combo_filter.currentText()
+
+    @property
+    def name(self) -> str | None:
+        name = self.combo_names.currentText()
+        if name == "*":
+            return None
+        return name
+
+    @property
+    def fparams(self) -> list[float]:
+        return [float(le.text()) for le in self.lineedit_fparams if le.isEnabled()]
+
+    def isComplete(self) -> bool:
+        for le in self.lineedit_fparams:
+            if le.isEnabled() and not le.hasAcceptableInput():
+                return False
+        return True
+
+    def filterChanged(self) -> None:
+        filter_ = FilteringTool.methods[self.combo_filter.currentText()]
+        # Clear all the current params
+        for le in self.label_fparams:
+            le.setVisible(False)
+        for le in self.lineedit_fparams:
+            le.setVisible(False)
+
+        params: list[tuple[str, float, tuple, Callable[[float], bool]]] = filter_[
+            "params"
+        ]
+
+        for i, (symbol, default, range, condition) in enumerate(params):
+            self.label_fparams[i].setText(f"{symbol}:")
+            self.label_fparams[i].setVisible(True)
+            self.lineedit_fparams[i].validator().setRange(range[0], range[1], 4)
+            self.lineedit_fparams[i].validator().setCondition(condition)
+            self.lineedit_fparams[i].setVisible(True)
+            self.lineedit_fparams[i].setToolTip(filter_["desc"][i])
+            # keep input that's still valid
+            if not self.lineedit_fparams[i].hasAcceptableInput():
+                self.lineedit_fparams[i].setText(str(default))
+                self.lineedit_fparams[i].revalidate()
+
+
+class ProcessingDialog(QtWidgets.QDialog):
+    def __init__(
+        self,
+        names: list[str],
+        items: list[LaserImageItem] | None = None,
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(parent)
+        self.setWindowTitle("Processing Pipeline")
+        self.setMinimumWidth(600)
+
+        self.names = names
+        self.items = items or []
+
+        self.action_add_calculator = qAction(
+            "list-add",
+            "Calculator Process",
+            "Add a new process to the pipeline.",
+            self.addCalculatorProcess,
+        )
+        self.action_add_filter = qAction(
+            "list-add",
+            "Filter Process",
+            "Add a new process to the pipeline.",
+            self.addFilterProcess,
+        )
+        self.list = QtWidgets.QListWidget()
+        # do manually as has to be emitted after item widget is set
+        # self.list.model().rowsInserted.connect(self.completeChanged)
+        self.list.model().rowsRemoved.connect(self.completeChanged)
+
+        self.action_add_laser = qAction(
+            "list-add",
+            "Add Image",
+            "Add image for processing via pipeline.",
+            self.addApplyLaser,
+        )
+        self.action_add_all_laser = qAction(
+            "list-add",
+            "Add All Images",
+            "Add all open images to the processing pipeline.",
+            self.addAllApplyLaser,
+        )
+        self.apply_list = QtWidgets.QListWidget()
+        self.apply_list.model().rowsInserted.connect(self.completeChanged)
+        self.apply_list.model().rowsRemoved.connect(self.completeChanged)
+
+        self.button_load_from_laser = QtWidgets.QPushButton(
+            QtGui.QIcon.fromTheme("document-open"), "Load From Laser"
+        )
+        self.button_load_from_laser.pressed.connect(self.loadProcessingFromLaser)
+        self.button_load_from_laser.setEnabled(len(self.items) > 0)
+
+        self.button_add = qToolButton(action=self.action_add_calculator)
+        self.button_add.addAction(self.action_add_filter)
+
+        self.button_add_laser = qToolButton(action=self.action_add_laser)
+        self.button_add_laser.addAction(self.action_add_all_laser)
+        self.button_add_laser.setEnabled(len(self.items) > 0)
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok,
+            self,
+        )
+        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(False)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.addWidget(
+            self.button_load_from_laser, 0, QtCore.Qt.AlignmentFlag.AlignLeft
+        )
+        button_layout.addWidget(self.button_box, 1, QtCore.Qt.AlignmentFlag.AlignRight)
+
+        process_layout = QtWidgets.QHBoxLayout()
+        process_layout.addWidget(QtWidgets.QLabel("Add process:"), 1)
+        process_layout.addWidget(self.button_add, 4, QtCore.Qt.AlignmentFlag.AlignLeft)
+
+        apply_layout = QtWidgets.QHBoxLayout()
+        apply_layout.addWidget(QtWidgets.QLabel("Apply to:"), 1)
+        apply_layout.addWidget(
+            self.button_add_laser, 4, QtCore.Qt.AlignmentFlag.AlignLeft
+        )
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addLayout(process_layout)
+        layout.addWidget(self.list)
+        layout.addLayout(apply_layout)
+        layout.addWidget(self.apply_list)
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+    def addApplyLaser(self) -> None:
+        laser_item = self.dialogLoadFromLaser()
+        if laser_item is None:
+            return
+        item = QtWidgets.QListWidgetItem(laser_item.name())
+        self.apply_list.addItem(item)
+
+    def addAllApplyLaser(self) -> None:
+        for laser_item in self.items:
+            item = QtWidgets.QListWidgetItem(laser_item.name())
+            self.apply_list.addItem(item)
+
+    def addCalculatorProcess(self) -> ProcessCalculatorItemWidget:
+        widget = ProcessCalculatorItemWidget(self.names)
+        widget.completeChanged.connect(self.completeChanged)
+        widget.closeRequested.connect(self.removeProcess)
+        item = QtWidgets.QListWidgetItem()
+        self.list.insertItem(self.list.count(), item)
+        self.list.setItemWidget(item, widget)
+        item.setSizeHint(widget.sizeHint())
+        self.completeChanged()
+        return widget
+
+    def addFilterProcess(self) -> ProcessFilterItemWidget:
+        widget = ProcessFilterItemWidget(self.names)
+        widget.completeChanged.connect(self.completeChanged)
+        widget.closeRequested.connect(self.removeProcess)
+        item = QtWidgets.QListWidgetItem()
+        self.list.insertItem(self.list.count(), item)
+        self.list.setItemWidget(item, widget)
+        item.setSizeHint(widget.sizeHint())
+        self.completeChanged()
+        return widget
+
+    def removeProcess(self, widget: ProcessFilterItemWidget) -> None:
+        for i in range(self.list.count()):
+            item = self.list.item(i)
+            if self.list.itemWidget(item) == widget:
+                self.list.takeItem(i)
+                break
+
+    def applyPipelineToLaser(self, laser: Laser) -> bool:
+        update_required = False
+        data = laser.get(flat=True, calibrated=False)
+        reducer = Reducer(variables={name: data[name] for name in data.dtype.names})
+        reducer.operations.update(
+            {k: v[1] for k, v in CalculatorTool.functions.items()}
+        )
+        for i in range(self.list.count()):
+            proc = self.list.itemWidget(self.list.item(i))
+            if isinstance(proc, ProcessFilterItemWidget):
+                FilteringTool.filterLaser(laser, proc.name, proc.method, proc.fparams)
+            elif isinstance(proc, ProcessCalculatorItemWidget):
+                calc = reducer.reduce(proc.expr)
+                if proc.name in laser.elements:
+                    laser.data[proc.name] = calc
+                else:
+                    update_required = True
+                    laser.add(proc.name, calc)
+            else:
+                raise ValueError("unknown process item type")
+        return update_required
+
+    def loadFromString(self, proc_string: str) -> None:
+        processes = proc_string.split(";")
+        for proc in processes:
+            if len(proc) == 0:
+                continue
+            proc_type = proc[: proc.find("(")]
+            proc_params = proc[proc.find("(") + 1 : proc.find(")")]
+            if proc_type == "Calculator":
+                widget = self.addCalculatorProcess()
+                oname, expr = proc_params.split(",")
+                widget.lineedit_name.setText(oname)
+                widget.lineedit_expr.setText(expr)
+            elif proc_type == "Filter":
+                widget = self.addFilterProcess()
+                name, filter_type, *filter_pstr = proc_params.split(",")
+                widget.combo_names.setCurrentText(name)
+                widget.combo_filter.setCurrentText(filter_type)
+                widget.filterChanged()
+                for pstr, le in zip(
+                    filter_pstr,
+                    [le for le in widget.lineedit_fparams if le.isVisible()],
+                ):
+                    _, p = pstr.split("=")
+                    le.setText(p)
+            else:
+                raise ValueError(f"unknown processing type '{proc_type}'")
+
+    def dialogLoadFromLaser(self) -> LaserImageItem | None:
+        item_names = {item.name(): item for item in self.items}
+        name, ok = QtWidgets.QInputDialog.getItem(
+            self, "Select Laser", "Laser item:", list(item_names.keys()), editable=False
+        )
+        if ok and name is not None:
+            return item_names[name]
+        return None
+
+    def completeChanged(self) -> None:
+        button = self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Ok)
+        button.setEnabled(self.isComplete())
+
+    def isComplete(self) -> bool:
+        if self.list.count() == 0 or self.apply_list.count() == 0:
+            return False
+        for i in range(self.list.count()):
+            widget = self.list.itemWidget(self.list.item(i))
+            if widget is not None and not widget.isComplete():
+                return False
+        return True
+
+    def loadProcessingFromLaser(self) -> None:
+        item = self.dialogLoadFromLaser()
+        if item is not None and "Processing" in item.laser.info:
+            self.loadFromString(item.laser.info["Processing"])
+
+    def accept(self) -> None:
+        item_names = {item.name(): item for item in self.items}
+        for i in range(self.apply_list.count()):
+            item = item_names[self.apply_list.item(i).text()]
+            update_required = self.applyPipelineToLaser(item.laser)
+            if update_required:
+                item.elementsChanged.emit()
+            else:
+                item.redraw()
+
+        super().accept()
 
 
 class SelectionDialog(ApplyDialog):

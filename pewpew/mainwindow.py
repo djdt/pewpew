@@ -127,6 +127,13 @@ class MainWindow(QtWidgets.QMainWindow):
             lambda a: self.tabview.openDocument(a.text())
         )
 
+        self.action_process = qAction(
+            "view-process-tree",
+            "Process Pipeline",
+            "Apply processing to multiple images.",
+            self.actionDialogProcess,
+        )
+
         self.action_add_tab = qAction(
             "tab-new",
             "New Tab",
@@ -217,6 +224,10 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_edit = self.menuBar().addMenu("&Edit")
         menu_edit.addAction(self.action_config)
         menu_edit.addAction(self.action_toggle_calibrate)
+
+        menu_edit.addSeparator()
+
+        menu_edit.addAction(self.action_process)
 
         menu_edit.addSeparator()
 
@@ -319,6 +330,13 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.open()
         return dlg
 
+    def actionDialogProcess(self) -> dialogs.ProcessingDialog:
+        dlg = dialogs.ProcessingDialog(
+            self.tabview.uniqueElements(), self.tabview.laserItems(), parent=self
+        )
+        dlg.open()
+        return dlg
+
     def actionAbout(self) -> QtWidgets.QDialog:
         dlg = QtWidgets.QMessageBox(
             QtWidgets.QMessageBox.Information,
@@ -326,7 +344,7 @@ class MainWindow(QtWidgets.QMainWindow):
             (
                 "Import, process and export of LA-ICP-MS data.\n"
                 f"Version {__version__}\n"
-                "Developed by the Atomic Medicine Initiative.\n"
+                "Developed by the Hyphenated Mass Spectrometry Laboratory.\n"
                 "https://github.com/djdt/pewpew"
             ),
             parent=self,

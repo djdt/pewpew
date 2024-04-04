@@ -275,6 +275,68 @@ def test_name_edit_dialog(qtbot: QtBot):
     assert np.all(list(emit.args[0].keys()) == ["a", "c", "d", "e"])
 
 
+def test_processing_dialog(qtbot: QtBot):
+    x = np.empty((10, 10), dtype=[("x", float), ("y", float)])
+    np.random.seed(86723)  # to make sure filter changes data
+    x["x"] = np.random.random((10, 10))
+    x["y"] = x["x"] + 10
+    laser = Laser(
+        data=x,
+        info={
+            "Name": "proctest",
+            "Processing": "Filter(*,Local Median,size=3,k=1.0);Calculator(y,+ x 10)",
+        },
+    )
+    item = LaserImageItem(laser, GraphicsOptions())
+    item.redraw()
+
+    dialog = dialogs.ProcessingDialog(["x", "y"], [item])
+    qtbot.addWidget(dialog)
+    dialog.open()
+
+    assert not dialog.isComplete()
+    assert dialog.list.count() == 0
+    assert dialog.apply_list.count() == 0
+
+    dialog.action_add_all_laser.trigger()
+    assert dialog.apply_list.count() == 1
+    assert dialog.apply_list.item(0).text() == "proctest"
+
+    # simulate load
+    dialog.loadFromString(laser.info["Processing"])
+    assert dialog.list.count() == 2
+
+    assert dialog.isComplete()
+
+    while dialog.list.count() > 0:
+        w = dialog.list.itemWidget(dialog.list.item(0))
+        assert isinstance(w, dialogs.ProcessItemWidget)
+        w.button_close.defaultAction().trigger()
+
+    assert dialog.list.count() == 0
+    assert not dialog.isComplete()
+
+    proc = dialog.addCalculatorProcess()
+    proc.lineedit_name.setText("z")
+    proc.lineedit_expr.setText("+ x y")
+
+    assert dialog.list.count() == 1
+
+    proc = dialog.addFilterProcess()
+    proc.combo_filter.setCurrentText("Local Mean")
+    proc.combo_names.setCurrentText("y")
+    proc.lineedit_fparams[0].setText("7")
+    proc.lineedit_fparams[1].setText("1.5")
+
+    assert dialog.list.count() == 2
+    assert dialog.isComplete()
+    dialog.accept()
+
+    assert "z" in laser.elements
+    assert np.all(laser.data["z"] == x["x"] + x["y"])
+    assert np.any(laser.data["y"] != x["y"])  # changed
+
+
 def test_selection_dialog(qtbot: QtBot):
     x = np.empty((10, 10), dtype=[("x", float)])
     x["x"] = np.random.random((10, 10))

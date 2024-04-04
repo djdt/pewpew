@@ -671,7 +671,10 @@ class LaserTabWidget(TabViewWidget):
         event.accept()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
-        if event.matches(QtGui.QKeySequence.Cancel):
+        if event.matches(QtGui.QKeySequence.Close):
+            for item in self.graphics.scene().selectedItems():
+                item.close()
+        elif event.matches(QtGui.QKeySequence.Cancel):
             self.graphics.endSelection()
             self.graphics.endWidget()
             self.graphics.endTransform()
