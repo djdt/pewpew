@@ -5,7 +5,7 @@ from io import BytesIO
 from typing import Callable
 
 import numpy as np
-from pewlib import Calibration, Config
+from pewlib import Calibration, Config, Laser
 from pewlib.config import SpotConfig
 from pewlib.process import colocal
 from pewlib.process.calc import normalise
@@ -19,6 +19,7 @@ from pewpew.charts.colocal import ColocalisationChart
 from pewpew.charts.histogram import HistogramChart
 from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.lib import kmeans
+from pewpew.lib.pratt import Reducer
 from pewpew.models import CalibrationPointsTableModel
 from pewpew.validators import (
     ConditionalLimitValidator,
@@ -1027,27 +1028,29 @@ class ProcessCalculatorItemWidget(ProcessItemWidget):
     ):
         super().__init__(parent)
 
-        # self.lineedit_name = QtWidgets.QLineEdit()
-        # self.lineedit_name.setText("")
-
-        self.formula = CalculatorFormula("", variables=names)
-        self.formula.parser.nulls.update(
-            {k: v[0][0] for k, v in CalculatorTool.functions.items()}
-        )
-        self.formula.setCompleter(
-            QtWidgets.QCompleter(
-                list(self.formula.parser.variables)
-                + [k + "(" for k in CalculatorTool.functions.keys()]
-            )
-        )
-        self.formula.setFixedHeight(QtWidgets.QLineEdit("8").sizeHint().height())
+        self.lineedit_name = QtWidgets.QLineEdit()
+        self.lineedit_expr = QtWidgets.QLineEdit()
 
         layout_controls = QtWidgets.QHBoxLayout()
-        layout_controls.addWidget(self.formula)
+        layout_controls.addWidget(QtWidgets.QLabel("Name:"))
+        layout_controls.addWidget(self.lineedit_name)
+        layout_controls.addWidget(QtWidgets.QLabel("Expr:"))
+        layout_controls.addWidget(self.lineedit_expr)
         self.layout().insertLayout(0, layout_controls, 1)
 
+    @property
+    def name(self) -> str:
+        return self.lineedit_name.text()
+
+    @property
+    def expr(self) -> str:
+        return self.lineedit_expr.text()
+
     def isComplete(self) -> bool:
-        return self.formula.hasAcceptableInput()
+        for le in [self.lineedit_name, self.lineedit_expr]:
+            if le.text() == "" or not le.hasAcceptableInput():
+                return False
+        return True
 
 
 class ProcessFilterItemWidget(ProcessItemWidget):
@@ -1084,6 +1087,21 @@ class ProcessFilterItemWidget(ProcessItemWidget):
 
         self.layout().insertLayout(0, layout_controls, 1)
         self.filterChanged()
+
+    @property
+    def method(self) -> str:
+        return self.combo_filter.currentText()
+
+    @property
+    def name(self) -> str | None:
+        name = self.combo_names.currentText()
+        if name == "*":
+            return None
+        return name
+
+    @property
+    def fparams(self) -> list[float]:
+        return [float(le.text()) for le in self.lineedit_fparams if le.isEnabled()]
 
     def filterChanged(self) -> None:
         filter_ = FilteringTool.methods[self.combo_filter.currentText()]
@@ -1154,7 +1172,7 @@ class ProcessingDialog(QtWidgets.QDialog):
         self.button_load_from_laser = QtWidgets.QPushButton(
             QtGui.QIcon.fromTheme("document-open"), "Load From Laser"
         )
-        self.button_load_from_laser.pressed.connect(self.loadProccessingFromLaser)
+        self.button_load_from_laser.pressed.connect(self.loadProcessingFromLaser)
         self.button_load_from_laser.setEnabled(len(self.items) > 0)
 
         self.button_add = qToolButton(action=self.action_add_calculator)
@@ -1223,6 +1241,25 @@ class ProcessingDialog(QtWidgets.QDialog):
                 self.list.takeItem(i)
                 break
 
+    def applyPipelineToLaser(self, laser: Laser) -> None:
+        data = laser.get(flat=True, calibrated=False)
+        reducer = Reducer(variables={name: data[name] for name in data.dtype.names})
+        reducer.operations.update(
+            {k: v[1] for k, v in CalculatorTool.functions.items()}
+        )
+        for i in range(self.list.count()):
+            proc = self.list.itemWidget(self.list.item(i))
+            if isinstance(proc, ProcessFilterItemWidget):
+                FilteringTool.filterLaser(laser, proc.name, proc.method, proc.fparams)
+            elif isinstance(proc, ProcessCalculatorItemWidget):
+                calc = reducer.reduce(proc.expr)
+                if proc.name in laser.elements:
+                    laser.data[proc.name] = calc
+                else:
+                    laser.add(proc.name, calc)
+            else:
+                raise ValueError("unknown process item type")
+
     def loadFromString(self, proc_string: str) -> None:
         processes = proc_string.split(";")
         for proc in processes:
@@ -1232,7 +1269,10 @@ class ProcessingDialog(QtWidgets.QDialog):
             proc_params = proc[proc.find("(") + 1 : proc.find(")")]
             if proc_type == "Calculator":
                 widget = self.addCalculatorProcess()
-                widget.formula.setText(proc_params)
+                oname, expr = proc_params.split(",")
+                widget.lineedit_name.setText(oname)
+                widget.lineedit_expr.setText(expr)
+            #TODO connect to updateForItem
             elif proc_type == "Filter":
                 widget = self.addFilterProcess()
                 name, filter_type, *filter_pstr = proc_params.split(",")
@@ -1257,12 +1297,18 @@ class ProcessingDialog(QtWidgets.QDialog):
             return item_names[name]
         return None
 
-    def loadProccessingFromLaser(self) -> None:
+    def loadProcessingFromLaser(self) -> None:
         item = self.dialogLoadFromLaser()
         if item is not None and "Processing" in item.laser.info:
             self.loadFromString(item.laser.info["Processing"])
 
     def accept(self) -> None:
+        item_names = {item.name(): item for item in self.items}
+        for i in range(self.apply_list.count()):
+            name = self.apply_list.item(i).text()
+            self.applyPipelineToLaser(item_names[name].laser)
+            item_names[name].redraw()
+
         super().accept()
 
 
