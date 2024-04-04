@@ -1133,19 +1133,36 @@ class ProcessingDialog(QtWidgets.QDialog):
         self.action_add_filter = qAction(
             "list-add",
             "Add Filter Process",
-            "Add a new process to the pcipeline.",
+            "Add a new process to the pipeline.",
             self.addFilterProcess,
         )
         self.list = QtWidgets.QListWidget()
+        self.action_add_laser = qAction(
+            "list-add",
+            "Add Image",
+            "Add image for processing via pipeline.",
+            self.addApplyLaser,
+        )
+        self.action_add_all_laser = qAction(
+            "list-add",
+            "Add All Images",
+            "Add all open images to the processing pipeline.",
+            self.addAllApplyLaser,
+        )
+        self.apply_list = QtWidgets.QListWidget()
 
         self.button_load_from_laser = QtWidgets.QPushButton(
             QtGui.QIcon.fromTheme("document-open"), "Load From Laser"
         )
-        self.button_load_from_laser.pressed.connect(self.dialogLoadFromLaser)
+        self.button_load_from_laser.pressed.connect(self.loadProccessingFromLaser)
         self.button_load_from_laser.setEnabled(len(self.items) > 0)
 
         self.button_add = qToolButton(action=self.action_add_calculator)
         self.button_add.addAction(self.action_add_filter)
+
+        self.button_add_laser = qToolButton(action=self.action_add_laser)
+        self.button_add_laser.addAction(self.action_add_all_laser)
+        self.button_add_laser.setEnabled(len(self.items) > 0)
 
         self.button_box = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok,
@@ -1163,8 +1180,23 @@ class ProcessingDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.button_add)
         layout.addWidget(self.list)
+        layout.addWidget(self.button_add_laser)
+        layout.addWidget(QtWidgets.QLabel("Apply to:"), 0, QtCore.Qt.AlignLeft)
+        layout.addWidget(self.apply_list)
         layout.addLayout(button_layout)
         self.setLayout(layout)
+
+    def addApplyLaser(self) -> None:
+        laser_item = self.dialogLoadFromLaser()
+        if laser_item is None:
+            return
+        item = QtWidgets.QListWidgetItem(laser_item.name())
+        self.apply_list.addItem(item)
+
+    def addAllApplyLaser(self) -> None:
+        for laser_item in self.items:
+            item = QtWidgets.QListWidgetItem(laser_item.name())
+            self.apply_list.addItem(item)
 
     def addCalculatorProcess(self) -> ProcessCalculatorItemWidget:
         widget = ProcessCalculatorItemWidget(self.names)
@@ -1203,7 +1235,6 @@ class ProcessingDialog(QtWidgets.QDialog):
                 widget.formula.setText(proc_params)
             elif proc_type == "Filter":
                 widget = self.addFilterProcess()
-                print(proc_params.split(","))
                 name, filter_type, *filter_pstr = proc_params.split(",")
                 widget.combo_names.setCurrentText(name)
                 widget.combo_filter.setCurrentText(filter_type)
@@ -1217,15 +1248,19 @@ class ProcessingDialog(QtWidgets.QDialog):
             else:
                 raise ValueError(f"unknown processing type '{proc_type}'")
 
-    def dialogLoadFromLaser(self) -> None:
+    def dialogLoadFromLaser(self) -> LaserImageItem | None:
         item_names = {item.name(): item for item in self.items}
         name, ok = QtWidgets.QInputDialog.getItem(
             self, "Select Laser", "Laser item:", list(item_names.keys()), editable=False
         )
         if ok and name is not None:
-            laser = item_names[name].laser
-            if "Processing" in laser.info:
-                self.loadFromString(laser.info["Processing"])
+            return item_names[name]
+        return None
+
+    def loadProccessingFromLaser(self) -> None:
+        item = self.dialogLoadFromLaser()
+        if item is not None and "Processing" in item.laser.info:
+            self.loadFromString(item.laser.info["Processing"])
 
     def accept(self) -> None:
         super().accept()
