@@ -1241,7 +1241,8 @@ class ProcessingDialog(QtWidgets.QDialog):
                 self.list.takeItem(i)
                 break
 
-    def applyPipelineToLaser(self, laser: Laser) -> None:
+    def applyPipelineToLaser(self, laser: Laser) -> bool:
+        update_required = False
         data = laser.get(flat=True, calibrated=False)
         reducer = Reducer(variables={name: data[name] for name in data.dtype.names})
         reducer.operations.update(
@@ -1256,9 +1257,11 @@ class ProcessingDialog(QtWidgets.QDialog):
                 if proc.name in laser.elements:
                     laser.data[proc.name] = calc
                 else:
+                    update_required = True
                     laser.add(proc.name, calc)
             else:
                 raise ValueError("unknown process item type")
+        return update_required
 
     def loadFromString(self, proc_string: str) -> None:
         processes = proc_string.split(";")
@@ -1272,7 +1275,6 @@ class ProcessingDialog(QtWidgets.QDialog):
                 oname, expr = proc_params.split(",")
                 widget.lineedit_name.setText(oname)
                 widget.lineedit_expr.setText(expr)
-            #TODO connect to updateForItem
             elif proc_type == "Filter":
                 widget = self.addFilterProcess()
                 name, filter_type, *filter_pstr = proc_params.split(",")
@@ -1305,9 +1307,12 @@ class ProcessingDialog(QtWidgets.QDialog):
     def accept(self) -> None:
         item_names = {item.name(): item for item in self.items}
         for i in range(self.apply_list.count()):
-            name = self.apply_list.item(i).text()
-            self.applyPipelineToLaser(item_names[name].laser)
-            item_names[name].redraw()
+            item = item_names[self.apply_list.item(i).text()]
+            update_required = self.applyPipelineToLaser(item.laser)
+            if update_required:
+                item.elementsChanged.emit()
+            else:
+                item.redraw()
 
         super().accept()
 
