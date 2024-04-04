@@ -1,10 +1,6 @@
 # vim: set ft=python:
 from pathlib import Path
-
-with Path("pewpew", "__init__.py").open() as fp:
-    for line in fp:
-        if line.startswith("__version__"):
-            version = line.split("=")[1].strip().strip('"')
+from importlib.metadata import version
 
 block_cipher = None
 
@@ -29,7 +25,7 @@ exe = EXE(
     a.datas,
     [],
     exclude_binaries=False,
-    name="pewpew" + "_" + version,
+    name="pewpew" + "_" + version("pewpew"),
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

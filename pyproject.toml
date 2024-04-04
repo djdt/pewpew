@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools", "numpy>=1.22"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pewpew"
+version = "1.5.0"
+dependencies = [
+    "numpy>=1.22",
+    "pewlib>=0.8.3",
+    "PySide6",
+]
+description = "GUI for visualisation and manipulation of LA-ICP-MS data."
+readme = "README.md"
+requires-python = ">= 3.7"
+license = {file = "LICENSE"}
+authors = [{name = "Thomas Lockwood", email = "thomas.lockwood@uts.edu.au"}]
+
+[project.optional-dependencies]
+tests = ["pytest", "pytest-qt"]
+
+[project.urls]
+Repository = "https://gtihub.com/djdt/pewpew"
+Documentation = "https://djdt.github.io/pewpew"
+Publication = "https://doi.org/10.1021/acs.analchem.1c02138"
+
+[project.scripts]
+pewpew = "pewpew.__main__:main"
