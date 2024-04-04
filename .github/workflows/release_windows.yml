@@ -15,23 +15,19 @@ jobs:
     - name: Install dependencies
       run: |
           python -m pip install --upgrade pip
-          pip install wheel
-          pip install pyinstaller
-          pip install -r requirements.txt
-          python setup.py build_ext --inplace
+          pip install wheel pyinstaller
           pip install .
+          python setup.py build_ext --inplace
     - name: Build exec
       id: build-exec
       run: |
         pyinstaller --clean -y pewpew.spec
-        echo "::set-output name=version::$(python setup.py --version)"
+        echo "PEWPEW_VERSION=$(python -c "from importlib.metadata import version; print(version('pewpew'))")" >> "$GITHUB_OUTPUT"
     - name: Upload binary
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1
+      id: upload
+      run: |
+        gh release upload "$TAG_NAME" "./dist/pewpew_$PEWPEW_VERSION.exe"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./dist/pewpew_${{ steps.build-exec.outputs.version }}.exe
-        asset_name: pewpew_${{ steps.build-exec.outputs.version }}.exe
-        asset_content_type: application/octet-stream
+        PEWPEW_VERSION: $ {{ steps.build-exec.outputs.PEWPEW_VERSION}}
+        TAG_NAME: ${{ github.event.release.tag_name }}
