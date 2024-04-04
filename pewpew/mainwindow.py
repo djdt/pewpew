@@ -128,7 +128,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
         self.action_process = qAction(
-            "prco",
+            "view-process-tree",
             "Process Pipeline",
             "Apply processing to multiple images.",
             self.actionDialogProcess,
