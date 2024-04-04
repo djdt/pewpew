@@ -1144,13 +1144,13 @@ class ProcessingDialog(QtWidgets.QDialog):
 
         self.action_add_calculator = qAction(
             "list-add",
-            "Add Caluculator Process",
+            "Caluculator Process",
             "Add a new process to the pipeline.",
             self.addCalculatorProcess,
         )
         self.action_add_filter = qAction(
             "list-add",
-            "Add Filter Process",
+            "Filter Process",
             "Add a new process to the pipeline.",
             self.addFilterProcess,
         )
@@ -1195,11 +1195,20 @@ class ProcessingDialog(QtWidgets.QDialog):
         )
         button_layout.addWidget(self.button_box, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
+        process_layout = QtWidgets.QHBoxLayout()
+        process_layout.addWidget(QtWidgets.QLabel("Add process:"), 1)
+        process_layout.addWidget(self.button_add, 4, QtCore.Qt.AlignmentFlag.AlignLeft)
+
+        apply_layout = QtWidgets.QHBoxLayout()
+        apply_layout.addWidget(QtWidgets.QLabel("Apply to:"), 1)
+        apply_layout.addWidget(
+            self.button_add_laser, 4, QtCore.Qt.AlignmentFlag.AlignLeft
+        )
+
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.button_add)
+        layout.addLayout(process_layout)
         layout.addWidget(self.list)
-        layout.addWidget(self.button_add_laser)
-        layout.addWidget(QtWidgets.QLabel("Apply to:"), 0, QtCore.Qt.AlignLeft)
+        layout.addLayout(apply_layout)
         layout.addWidget(self.apply_list)
         layout.addLayout(button_layout)
         self.setLayout(layout)
