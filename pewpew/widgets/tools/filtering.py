@@ -148,31 +148,37 @@ class FilteringTool(ToolWidget):
 
     def apply(self) -> None:
         method = self.combo_filter.currentText()
-        filter_ = FilteringTool.methods[method]["filter"]
-        proc = self.item.laser.info.get("Processing", "")
-        params = [
-            f"{p[0]}={v}"
-            for p, v in zip(FilteringTool.methods[method]["params"], self.fparams)
-        ]
-        pstr = ",".join(params)
-
-        if self.checkbox_all_elements.isChecked():
-            for name in self.item.laser.elements:
-                self.item.laser.data[name] = filter_(
-                    self.item.laser.data[name], *self.fparams
-                )
-            proc += f"Filter(*,{self.combo_filter.currentText()},{pstr});"
-        else:
-            name = self.combo_element.currentText()
-            self.item.laser.data[name] = filter_(
-                self.item.laser.data[name], *self.fparams
-            )
-            proc += f"Filter({name},{self.combo_filter.currentText()},{pstr});"
-
-        self.item.laser.info["Processing"] = proc
+        name = (
+            None
+            if self.checkbox_all_elements.isChecked()
+            else self.combo_element.currentText()
+        )
+        FilteringTool.filterLaser(self.item.laser, name, method, self.fparams)
 
         self.item.redraw()
         self.initialise()
+
+    @staticmethod
+    def filterLaser(
+        laser, name: str | None, method: str, method_args: list[float]
+    ) -> None:
+        filter_ = FilteringTool.methods[method]["filter"]
+        proc = laser.info.get("Processing", "")
+        params = [
+            f"{p[0]}={v}"
+            for p, v in zip(FilteringTool.methods[method]["params"], method_args)
+        ]
+        pstr = ",".join(params)
+
+        if name is None:
+            for name in laser.elements:
+                laser.data[name] = filter_(laser.data[name], *method_args)
+            proc += f"Filter(*,{method},{pstr});"
+        else:
+            laser.data[name] = filter_(laser.data[name], *method_args)
+            proc += f"Filter({name},{method},{pstr});"
+
+        laser.info["Processing"] = proc
 
     @property
     def fparams(self) -> list[float]:
