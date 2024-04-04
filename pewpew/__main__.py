@@ -2,13 +2,12 @@ import argparse
 import logging
 import multiprocessing
 import sys
+from importlib.metadata import version
 from pathlib import Path
 
-import pewlib
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew import resources  # noqa: F401
-from pewpew import __version__
 from pewpew.mainwindow import MainWindow
 
 logger = logging.getLogger()
@@ -45,15 +44,15 @@ def main() -> int:
     app = QtWidgets.QApplication(args.qtargs)
     app.setApplicationName("pewpew")
     app.setOrganizationName("pewpew")
-    app.setApplicationVersion(__version__)
+    app.setApplicationVersion(version("pewpew"))
     app.setWindowIcon(QtGui.QIcon(":/app.ico"))
 
     window = MainWindow()
     if not args.nohook:
         sys.excepthook = window.exceptHook
     logger.addHandler(window.log.handler)
-    logger.info(f"Pew² {__version__} started.")
-    logger.info(f"Using Pewlib {pewlib.__version__}.")
+    logger.info(f"Pew² {app.applicationVersion()} started.")
+    logger.info(f"Using Pewlib {version('pewlib')}.")
 
     window.show()
 

@@ -1,31 +1,24 @@
-import numpy as np
-import numpy.lib.recfunctions as rfn
 import logging
 import time
-
+from importlib.metadata import version
 from pathlib import Path
 
-from PySide6 import QtCore, QtGui, QtWidgets
-
-from pewlib import __version__ as pewlib_version
+import numpy as np
+import numpy.lib.recfunctions as rfn
 from pewlib.config import SpotConfig
 from pewlib.laser import Laser
 from pewlib.process import peakfinding
 from pewlib.process.calc import view_as_blocks
+from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewpew import __version__ as pewpew_version
 from pewpew.charts.colors import sequential
 from pewpew.charts.signal import SignalChart
-from pewpew.graphics.options import GraphicsOptions
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
+from pewpew.graphics.options import GraphicsOptions
 from pewpew.validators import DecimalValidator, DecimalValidatorNoZero, OddIntValidator
-
 from pewpew.widgets.dialogs import NameEditDialog
-
 from pewpew.widgets.wizards.import_ import FormatPage
 from pewpew.widgets.wizards.options import PathAndOptionsPage
-
-
 
 logger = logging.getLogger(__name__)
 
@@ -186,8 +179,8 @@ class SpotImportWizard(QtWidgets.QWizard):
                     "%Y-%m-%dT%H:%M:%S%z", time.localtime(time.time())
                 ),
                 "Import Path": str(path.resolve()),
-                "Import Version pewlib": pewlib_version,
-                "Import Version pew2": pewpew_version,
+                "Import Version pewlib": version("pewlib"),
+                "Import Version pew2": version("pewpew"),
             }
         )
         self.laserImported.emit(Laser(data, config=config, info=info))

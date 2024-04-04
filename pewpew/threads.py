@@ -1,15 +1,11 @@
-from PySide6 import QtCore, QtGui
-from pathlib import Path
 import logging
 import time
+from importlib.metadata import version
+from pathlib import Path
 
-from pewpew import __version__ as pewpew_version
-from pewlib import __version__ as pewlib_version
-from pewlib import io
-from pewlib import Config
+from pewlib import Config, io
 from pewlib.laser import Laser
-
-
+from PySide6 import QtCore, QtGui
 
 logger = logging.getLogger(__name__)
 
@@ -85,8 +81,8 @@ class ImportThread(QtCore.QThread):
                 "%Y-%m-%dT%H:%M:%S%z", time.localtime(time.time())
             ),
             "Import Path": str(path.resolve()),
-            "Import Version pewlib": pewlib_version,
-            "Import Version pew2": pewpew_version,
+            "Import Version pewlib": version("pewlib"),
+            "Import Version pew2": version("pewpew"),
         }
         params = {}
 

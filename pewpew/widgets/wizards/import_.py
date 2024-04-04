@@ -1,22 +1,17 @@
-import numpy as np
-import numpy.lib.recfunctions as rfn
 import logging
 import time
-
+from importlib.metadata import version
 from pathlib import Path
 
-from PySide6 import QtCore, QtGui, QtWidgets
-
-from pewlib import __version__ as pewlib_version
+import numpy as np
+import numpy.lib.recfunctions as rfn
 from pewlib.config import Config
 from pewlib.laser import Laser
+from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewpew import __version__ as pewpew_version
 from pewpew.validators import DecimalValidatorNoZero
 from pewpew.widgets.dialogs import NameEditDialog
 from pewpew.widgets.wizards.options import PathAndOptionsPage
-
-
 
 logger = logging.getLogger(__name__)
 
@@ -124,8 +119,8 @@ class ImportWizard(QtWidgets.QWizard):
                         "%Y-%m-%dT%H:%M:%S%z", time.localtime(time.time())
                     ),
                     "Import Path": str(path.resolve()),
-                    "Import Version pewlib": pewlib_version,
-                    "Import Version pew2": pewpew_version,
+                    "Import Version pewlib": version("pewlib"),
+                    "Import Version pew2": version("pewpew"),
                 }
             )
             self.laserImported.emit(path, Laser(data, config=config, info=info))

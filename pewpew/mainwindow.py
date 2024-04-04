@@ -6,7 +6,6 @@ from types import TracebackType
 from pewlib.config import Config, SpotConfig
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewpew import __version__
 from pewpew.actions import qAction, qActionGroup
 from pewpew.help import HelpDialog
 from pewpew.log import LoggingDialog
@@ -39,7 +38,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.createActions()
         self.createMenus()
-        self.statusBar().showMessage(f"Welcome to pew² version {__version__}.")
+        self.statusBar().showMessage(
+            f"Welcome to pew² version {QtWidgets.QApplication.applicationVersion()}."
+        )
         self.button_status_um = QtWidgets.QRadioButton("μ")
         self.button_status_index = QtWidgets.QRadioButton("i")
         self.button_status_um.setChecked(True)
@@ -343,7 +344,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "About pew²",
             (
                 "Import, process and export of LA-ICP-MS data.\n"
-                f"Version {__version__}\n"
+                f"Version {QtWidgets.QApplication.applicationVersion()}\n"
                 "Developed by the Hyphenated Mass Spectrometry Laboratory.\n"
                 "https://github.com/djdt/pewpew"
             ),
