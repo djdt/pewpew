@@ -12,7 +12,7 @@ from pewpew.log import LoggingDialog
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.laser import LaserTabView
-from pewpew.widgets.wizards import ImportWizard, SpotImportWizard
+from pewpew.widgets.wizards import ImportWizard, SpotImportWizard, LaserLogImportWizard
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateRecentFiles()
 
         self.default_config = Config()
+
+        wizard = LaserLogImportWizard(parent=self)
+        wizard.open()
 
     def createActions(self) -> None:
         self.action_about = qAction(

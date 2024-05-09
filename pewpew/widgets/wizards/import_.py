@@ -135,7 +135,7 @@ class FormatPage(QtWidgets.QWizardPage):
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
-        self.setTitle("Import Introduction")
+        self.setTitle("Import Format")
 
         self.page_id_dict = page_id_dict
 
