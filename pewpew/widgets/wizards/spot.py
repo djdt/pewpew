@@ -696,7 +696,7 @@ class SpotImagePage(QtWidgets.QWizardPage):
         self.check_raster = QtWidgets.QCheckBox("Alternate line raster direction.")
         self.check_raster.toggled.connect(self.updateImage)
 
-        self.graphics = LaserGraphicsView(options)
+        self.graphics = LaserGraphicsView(options, parent=self)
 
         self.combo_element = QtWidgets.QComboBox()
         self.combo_element.currentIndexChanged.connect(self.updateImage)
