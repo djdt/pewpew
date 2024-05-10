@@ -1,18 +1,15 @@
-from PySide6 import QtCore, QtGui, QtWidgets
-
-import numpy as np
-
-from pathlib import Path
 import re
 import time
+from importlib.metadata import version
+from pathlib import Path
+from typing import Any, Callable
 
+import numpy as np
 from pewlib import io
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog
-from importlib.metadata import version
-
-from typing import Any, Callable
 
 
 class _OptionsBase(QtWidgets.QGroupBox):  # pragma: no cover
@@ -770,7 +767,9 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         return True
 
     def readMultiple(
-        self, func: Callable[[Path], tuple[np.ndarray, dict[str, Any], dict[str, str]]], paths: list[Path]
+        self,
+        func: Callable[[Path], tuple[np.ndarray, dict[str, Any], dict[str, str]]],
+        paths: list[Path],
     ) -> tuple[list[np.ndarray], dict[str, Any], list[dict[str, str]]]:
         data, params, info = func(paths[0])
         datas = [data]
@@ -794,7 +793,9 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             )
         return datas, params, infos
 
-    def readAgilent(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
+    def readAgilent(
+        self, path: Path
+    ) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         agilent_method = self.field("agilent.method")
         if agilent_method == "Alphabetical Order":  # pragma: no cover
             method = ["alphabetical"]  # Fallback to alphabetical
@@ -853,7 +854,9 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         data, params = io.csv.load(path, option=option, full=True)
         return data, params, {}
 
-    def readNumpy(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
+    def readNumpy(
+        self, path: Path
+    ) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         laser = io.npz.load(path)
         param = dict(
             scantime=laser.config.scantime,
@@ -862,7 +865,9 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         )
         return laser.data, param, laser.info
 
-    def readPerkinElmer(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
+    def readPerkinElmer(
+        self, path: Path
+    ) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         data, params = io.perkinelmer.load(path, full=True)
         return data, params, {"Instrument Vendor": "PerkinElemer"}
 
@@ -870,7 +875,9 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         data = io.textimage.load(path, name=self.field("text.name"))
         return data, {}, {}
 
-    def readThermo(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
+    def readThermo(
+        self, path: Path
+    ) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         kwargs = dict(
             delimiter=self.field("thermo.delimiter"),
             comma_decimal=self.field("thermo.decimal") == ",",
