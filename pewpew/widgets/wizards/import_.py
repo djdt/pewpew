@@ -65,7 +65,13 @@ class ImportWizard(QtWidgets.QWizard):
         self.setPage(self.page_format, format_page)
         self.setPage(
             self.page_agilent,
-            PathAndOptionsPage([path], "agilent", nextid=self.page_config, parent=self),
+            PathAndOptionsPage(
+                [path],
+                "agilent",
+                nextid=self.page_config,
+                register_laser_fields=True,
+                parent=self,
+            ),
         )
         self.setPage(
             self.page_csv,
@@ -172,9 +178,6 @@ class FormatPage(QtWidgets.QWizardPage):
 
 
 class ConfigPage(QtWidgets.QWizardPage):
-    dataChanged = QtCore.Signal()
-    infoChanged = QtCore.Signal()
-
     def __init__(self, config: Config, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setTitle("Elements and Config")
@@ -236,30 +239,22 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.registerField("speed", self.lineedit_speed)
         self.registerField("scantime", self.lineedit_scantime)
 
-        self.registerField("laserdata", self, "data_prop")
-        self.registerField("laserinfo", self, "info_prop")
+    def initializePage(self) -> None:
+        params = self.field("laserparams")[0]
+        data = self.field("laserdata")[0]
 
-    def getData(self) -> list[np.ndarray]:
-        return self._datas
+        self.setElidedNames(data.dtype.names)
 
-    def setData(self, datas: list[np.ndarray]) -> None:
-        self._datas = datas
-        self.dataChanged.emit()
-
-    def getInfo(self) -> list[dict]:
-        return self._infos
-
-    def setInfo(self, infos: list[dict]) -> None:
-        self._infos = infos
-        self.infoChanged.emit()
+        if "spotsize" in params:
+            self.setField("spotsize", f"{params['spotsize']:.6g}")
+        if "speed" in params:
+            self.setField("speed", f"{params['speed']:.6g}")
+        if "scantime" in params:
+            self.setField("scantime", f"{params['scantime']:.6g}")
 
     def getNames(self) -> list[str]:
         data = self.field("laserdata")[0]
         return data.dtype.names if data is not None else []
-
-    def initializePage(self) -> None:
-        data = self.field("laserdata")[0]
-        self.setElidedNames(data.dtype.names)
 
     def aspectChanged(self) -> None:
         try:
@@ -302,6 +297,3 @@ class ConfigPage(QtWidgets.QWizardPage):
 
         self.setField("laserdata", datas)
         self.setElidedNames(datas[0].dtype.names)
-
-    data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
-    info_prop = QtCore.Property("QVariant", getInfo, setInfo, notify=infoChanged)
