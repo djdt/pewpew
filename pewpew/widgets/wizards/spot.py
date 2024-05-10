@@ -800,8 +800,6 @@ class SpotConfigPage(QtWidgets.QWizardPage):
 
         self.registerField("spotsize", self.lineedit_spotsize_x)
         self.registerField("spotsize_y", self.lineedit_spotsize_y)
-        self.registerField("speed", self)
-        self.registerField("scantime", self)
 
     def getNames(self) -> list[str]:
         data = self.field("peaks")
