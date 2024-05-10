@@ -168,10 +168,9 @@ class SpotImportWizard(QtWidgets.QWizard):
             paths = [Path(p) for p in self.field("thermo.paths")]
         else:  # pragma: no cover
             raise ValueError("Invalid filetype selection.")
-        path = paths[0]
 
         info = self.field("laserinfo")[0]
-        self.laserImported.emit(Laser(data, config=config, info=info))
+        self.laerImported.emit(Laser(data, config=config, info=info))
         super().accept()
 
 
