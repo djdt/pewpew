@@ -3,10 +3,12 @@ from pathlib import Path
 
 import numpy as np
 from pewlib.config import SpotConfig
-from pewlib.io.laser import read_nwi_laser_log
+from pewlib.io.laser import read_nwi_laser_log, sync_data_nwi_laser_log
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from pewpew.graphics.imageitems import LaserImageItem
+from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.widgets.wizards.import_ import FormatPage
 from pewpew.widgets.wizards.options import PathAndOptionsPage, PathSelectWidget
@@ -82,8 +84,7 @@ class LaserGroupListItem(QtWidgets.QListWidgetItem):
 
 
 class LaserGroupsImportPage(QtWidgets.QWizardPage):
-    dataChanged = QtCore.Signal()
-    infoChanged = QtCore.Signal()
+    groupsChanged = QtCore.Signal()
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
@@ -98,13 +99,13 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         self.group_tree.setDragDropMode(
             QtWidgets.QAbstractItemView.DragDropMode.InternalMove
         )
+        self.group_tree.model().dataChanged.connect(self.groupsChanged)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.group_tree)
         self.setLayout(layout)
 
-        self.registerField("laserdata", self, "data_prop")
-        self.registerField("laserinfo", self, "info_prop")
+        self.registerField("groups", self, "groups_prop")
 
     def initializePage(self) -> None:
         log_data = self.field("laserlog")
@@ -122,12 +123,15 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         self.group_tree.clear()
         for row, (seq, comment, num) in enumerate(zip(sequences, comments, num_lines)):
             item = QtWidgets.QTreeWidgetItem()
-            item.setData(0, 0, seq)
+            item.setData(0, QtCore.Qt.ItemDataRole.UserRole, seq)
             item.setText(0, str(seq))
+            item.setCheckState(0, QtCore.Qt.CheckState.Checked)
             item.setText(1, comment)
             item.setText(2, str(num))
             item.setFlags(
-                QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsDropEnabled
+                QtCore.Qt.ItemIsEnabled
+                | QtCore.Qt.ItemFlag.ItemIsDropEnabled
+                | QtCore.Qt.ItemFlag.ItemIsUserCheckable
             )
             self.group_tree.addTopLevelItem(item)
 
@@ -135,7 +139,7 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         for i, info in enumerate(infos):
             item = self.group_tree.topLevelItem(i % self.group_tree.topLevelItemCount())
             child = QtWidgets.QTreeWidgetItem()
-            child.setData(0, 0, i)
+            child.setData(0, QtCore.Qt.ItemDataRole.UserRole, i)
             child.setText(0, "---")
             child.setText(1, "---")
             child.setText(2, "---")
@@ -150,24 +154,87 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
 
         self.group_tree.expandAll()
 
-    def getData(self) -> list[np.ndarray]:
-        if len(self._datas) == 0:
-            return [np.array([], dtype=[("", np.float64)])]
-        return np.concatenate([d.ravel() for d in self._datas], axis=0)
+    def getGroups(self) -> dict[int, list[int]]:
+        """Returns dict of sequence: idx of 'laserdata'"""
+        groups: dict[int, list[int]] = {}
+        for i in range(self.group_tree.topLevelItemCount()):
+            item = self.group_tree.topLevelItem(i)
+            if item.checkState(0) == QtCore.Qt.CheckState.Checked:
+                seq = item.data(0, QtCore.Qt.ItemDataRole.UserRole)
+                idx = [
+                    item.child(j).data(0, QtCore.Qt.ItemDataRole.UserRole)
+                    for j in range(item.childCount())
+                ]
+                if len(idx) > 0:
+                    groups[seq] = idx
+        return groups
 
-    def setData(self, datas: list[np.ndarray]) -> None:
-        self._datas = datas
-        self.dataChanged.emit()
+    groups_prop = QtCore.Property("QVariant", getGroups, notify=groupsChanged)
 
-    def getInfo(self) -> list[dict]:
-        return self._infos
 
-    def setInfo(self, infos: list[dict]) -> None:
-        self._infos = infos
-        self.infoChanged.emit()
+class LaserLogImagePage(QtWidgets.QWizardPage):
+    def __init__(
+        self,
+        options: GraphicsOptions | None = None,
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(parent)
 
-    data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
-    info_prop = QtCore.Property("QVariant", getInfo, setInfo, notify=infoChanged)
+        if options is None:
+            options = GraphicsOptions()
+
+        self.graphics = LaserGraphicsView(options, parent=self)
+        self.graphics.show()
+
+        self.spinbox_delay = QtWidgets.QDoubleSpinBox()
+        self.spinbox_delay.setMinimum(0.0)
+        self.spinbox_delay.setMaximum(10.0)
+        self.spinbox_delay.setDecimals(4)
+        self.spinbox_delay.setSingleStep(0.001)
+
+        self.merge_sequences = QtWidgets.QCheckBox("Merge sequences.")
+        self.merge_sequences.setChecked(True)
+
+        controls_box = QtWidgets.QGroupBox("Import Options")
+        controls_box.setLayout(QtWidgets.QFormLayout())
+        controls_box.layout().addRow("Delay", self.spinbox_delay)
+        controls_box.layout().addWidget(self.merge_sequences)
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(controls_box, 0)
+        layout.addWidget(self.graphics, 1)
+        self.setLayout(layout)
+
+    def initializePage(self) -> None:
+        log = self.field("laserlog")
+        datas = self.field("laserdata")
+        params = self.field("laserparam")
+        infos = self.field("laserinfo")
+        groups = self.field("groups")
+
+        for seq, idx in groups.items():
+            data = np.concatenate([datas[i].flat for i in idx])
+            if all("times" in params[i] for i in idx):
+                times = np.concatenate([params[i]["times"] for i in idx])
+            else:
+                times = params[idx[0]]["scantime"]
+
+            sync, params = sync_data_nwi_laser_log(data, times, log, sequence=seq)
+
+            laser = Laser(
+                sync, info=infos[idx[0]], config=SpotConfig(*params["spotsize"])
+            )
+            laser_item = LaserImageItem(laser, self.graphics.options)
+            laser_item.setFlag(
+                QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False
+            )
+            laser_item.setFlag(
+                QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False
+            )
+            laser_item.redraw()
+            laser_item.setPos(*params["origin"])
+            self.graphics.scene().addItem(laser_item)
+        self.graphics.zoomReset()
 
 
 class LaserLogImportWizard(QtWidgets.QWizard):
@@ -180,8 +247,7 @@ class LaserLogImportWizard(QtWidgets.QWizard):
     page_text = 6
     page_thermo = 7
     page_groups = 8
-    page_spot_image = 9
-    page_spot_config = 10
+    page_image = 9
 
     laserImported = QtCore.Signal(Laser)
 
@@ -228,6 +294,7 @@ class LaserLogImportWizard(QtWidgets.QWizard):
                 "agilent",
                 nextid=self.page_groups,
                 multiplepaths=True,
+                register_laser_fields=True,
                 parent=self,
             ),
         )
@@ -270,3 +337,4 @@ class LaserLogImportWizard(QtWidgets.QWizard):
             ),
         )
         self.setPage(self.page_groups, LaserGroupsImportPage())
+        self.setPage(self.page_image, LaserLogImagePage(options))
