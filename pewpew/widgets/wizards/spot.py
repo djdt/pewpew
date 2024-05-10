@@ -171,18 +171,6 @@ class SpotImportWizard(QtWidgets.QWizard):
         path = paths[0]
 
         info = self.field("laserinfo")[0]
-        info.update(
-            {
-                "Name": path.stem,
-                "File Path": str(path.resolve()),
-                "Import Date": time.strftime(
-                    "%Y-%m-%dT%H:%M:%S%z", time.localtime(time.time())
-                ),
-                "Import Path": str(path.resolve()),
-                "Import Version pewlib": version("pewlib"),
-                "Import Version pew2": version("pewpew"),
-            }
-        )
         self.laserImported.emit(Laser(data, config=config, info=info))
         super().accept()
 

@@ -111,18 +111,6 @@ class ImportWizard(QtWidgets.QWizard):
                 scantime=float(self.field("scantime")),
                 speed=float(self.field("speed")),
             )
-            info.update(
-                {
-                    "Name": path.stem,
-                    "File Path": str(path.resolve()),
-                    "Import Date": time.strftime(
-                        "%Y-%m-%dT%H:%M:%S%z", time.localtime(time.time())
-                    ),
-                    "Import Path": str(path.resolve()),
-                    "Import Version pewlib": version("pewlib"),
-                    "Import Version pew2": version("pewpew"),
-                }
-            )
             self.laserImported.emit(path, Laser(data, config=config, info=info))
         super().accept()
 

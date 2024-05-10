@@ -10,6 +10,7 @@ from pewlib import io
 
 from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog
+from importlib.metadata import version
 
 from typing import Any, Callable
 
@@ -778,6 +779,19 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             data, _, info = func(path)
             datas.append(data)
             infos.append(info)
+        for path, info in zip(paths, infos):
+            info.update(
+                {
+                    "Name": path.stem,
+                    "File Path": str(path.resolve()),
+                    "Import Date": time.strftime(
+                        "%Y-%m-%dT%H:%M:%S%z", time.localtime(time.time())
+                    ),
+                    "Import Path": str(path.resolve()),
+                    "Import Version pewlib": version("pewlib"),
+                    "Import Version pew2": version("pewpew"),
+                }
+            )
         return datas, params, infos
 
     def readAgilent(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
