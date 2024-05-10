@@ -240,7 +240,7 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.registerField("scantime", self.lineedit_scantime)
 
     def initializePage(self) -> None:
-        params = self.field("laserparams")[0]
+        params = self.field("laserparam")[0]
         data = self.field("laserdata")[0]
 
         self.setElidedNames(data.dtype.names)
