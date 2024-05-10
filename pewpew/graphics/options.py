@@ -7,7 +7,6 @@ class GraphicsOptions(QtCore.QObject):
     """This object stores information used by pewpew to draw images.
 
     Parameters:
-        items: dict of item visibilities
         colortable: colortable to draw with, see colortables
         colorrange_default: default colorrange to use
         smoothing: whether to smooth images
