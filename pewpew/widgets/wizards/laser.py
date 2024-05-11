@@ -149,7 +149,7 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
                 )
                 child = QtWidgets.QTreeWidgetItem()
                 child.setText(0, "---")
-                child.setIcon(1, QtGui.QIcon.fromTheme("drag-handle-symbolic"))
+                child.setIcon(1, QtGui.QIcon.fromTheme("handle-sort"))
                 child.setText(1, info["Name"])
                 child.setData(1, QtCore.Qt.ItemDataRole.UserRole, data_idx)
                 if self.checkbox_split.isChecked():
