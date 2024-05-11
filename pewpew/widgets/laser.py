@@ -68,7 +68,9 @@ class LaserTabView(TabView):
         self.addTab(f"Tab {number + 1}", widget)
         return widget
 
-    def importFile(self, path: Path, data: Laser | QtGui.QImage) -> "LaserTabWidget":
+    def importFile(
+        self, path: Path, data: Laser | tuple[Laser, QtCore.QPointF] | QtGui.QImage
+    ) -> "LaserTabWidget":
         try:
             widget = self.activeWidget()
             if not isinstance(widget, LaserTabWidget):
@@ -79,6 +81,10 @@ class LaserTabView(TabView):
             widget = self.newLaserTab()
         if isinstance(data, Laser):
             widget.addLaser(data)
+        elif isinstance(data, tuple):
+            assert isinstance(data[0], Laser)
+            assert isinstance(data[1], QtCore.QPointF)
+            widget.addLaser(data[0], pos=data[1])
         else:
             widget.addImage(data)
 

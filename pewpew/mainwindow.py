@@ -54,9 +54,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.default_config = Config()
 
-        wizard = LaserLogImportWizard(parent=self)
-        wizard.open()
-
     def createActions(self) -> None:
         self.action_about = qAction(
             "help-about", "&About", "About pew².", self.actionAbout
@@ -185,8 +182,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_wizard_import = qAction(
             "",
             "Import Wizard",
-            "Start the line-wise import wizard. .",
+            "Start the line-wise import wizard.",
             self.actionWizardImport,
+        )
+        self.action_wizard_laserlog = qAction(
+            "",
+            "NWI Laser Log Wizard",
+            "Import data and sync to a NWI LaserLog file.",
+            self.actionWizardLaserLog,
         )
         self.action_wizard_spot = qAction(
             "",
@@ -213,6 +216,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # File -> Import
         menu_import = menu_file.addMenu("&Import")
         menu_import.addAction(self.action_wizard_import)
+        menu_import.addAction(self.action_wizard_laserlog)
         menu_import.addAction(self.action_wizard_spot)
         # menu_import.addAction(self.action_wizard_srr)
 
@@ -401,6 +405,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def actionWizardSpot(self) -> QtWidgets.QWizard:
         config = SpotConfig(self.tabview.config.spotsize, self.tabview.config.spotsize)
         wiz = SpotImportWizard(config=config, options=self.tabview.options, parent=self)
+        wiz.laserImported.connect(self.tabview.importFile)
+        wiz.open()
+        return wiz
+
+    def actionWizardLaserLog(self) -> QtWidgets.QWizard:
+        wiz = LaserLogImportWizard(options=self.tabview.options, parent=self)
         wiz.laserImported.connect(self.tabview.importFile)
         wiz.open()
         return wiz
