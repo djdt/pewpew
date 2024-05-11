@@ -141,14 +141,17 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
 
         datas = self.field("laserdata")
         infos = self.field("laserinfo")
-        for i, (info, data) in enumerate(zip(infos, datas)):
-            item = self.group_tree.topLevelItem(i % self.group_tree.topLevelItemCount())
+        tree_idx = 0
+        for data_idx, (info, data) in enumerate(zip(infos, datas)):
             for row in range(data.shape[0] if self.checkbox_split.isChecked() else 1):
+                item = self.group_tree.topLevelItem(
+                    tree_idx % self.group_tree.topLevelItemCount()
+                )
                 child = QtWidgets.QTreeWidgetItem()
                 child.setText(0, "---")
                 child.setIcon(1, QtGui.QIcon.fromTheme("drag-handle-symbolic"))
                 child.setText(1, info["Name"])
-                child.setData(1, QtCore.Qt.ItemDataRole.UserRole, i)
+                child.setData(1, QtCore.Qt.ItemDataRole.UserRole, data_idx)
                 if self.checkbox_split.isChecked():
                     child.setText(2, f"row {row+1}")
                     child.setData(2, QtCore.Qt.ItemDataRole.UserRole, row)
@@ -160,6 +163,7 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
                     | QtCore.Qt.ItemFlag.ItemIsDragEnabled
                 )
                 item.addChild(child)
+                tree_idx += 1
 
         self.group_tree.expandAll()
 
@@ -245,21 +249,22 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
                 else:
                     seq_datas.append(x[r])
             data = np.concatenate(seq_datas)
+            print(params, idx)
             if all("times" in params[i] for i, _ in idx):
                 times = np.concatenate([params[i]["times"] for i, _ in idx])
             else:
                 times = params[idx[0][0]]["scantime"]
 
-            sync, params = sync_data_nwi_laser_log(
+            sync, sync_params = sync_data_nwi_laser_log(
                 data, times, log, delay=delay, sequence=seq
             )
             if delay is None:
                 self.spinbox_delay.setSpecialValueText(
-                    f"Automatic ({params['delay']:.4f})"
+                    f"Automatic ({sync_params['delay']:.4f})"
                 )
 
             laser = Laser(
-                sync, info=infos[idx[0][0]], config=SpotConfig(*params["spotsize"])
+                sync, info=infos[idx[0][0]], config=SpotConfig(*sync_params["spotsize"])
             )
             laser_item = LaserImageItem(laser, self.graphics.options)
             laser_item.setFlag(
@@ -269,7 +274,7 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
                 QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False
             )
             laser_item.setAcceptedMouseButtons(QtCore.Qt.MouseButton.NoButton)
-            laser_item.setPos(*params["origin"])
+            laser_item.setPos(*sync_params["origin"])
             laser_item.redraw()
             laser_item.setEnabled(False)
             self.graphics.scene().addItem(laser_item)
@@ -392,6 +397,8 @@ class LaserLogImportWizard(QtWidgets.QWizard):
     def accept(self) -> None:
         items: list[LaserImageItem] = self.field("laseritems")
         for item in items:
-            self.laserImported.emit(item.laser.info["File Path"], (item.laser, item.pos()))
+            self.laserImported.emit(
+                item.laser.info["File Path"], (item.laser, item.pos())
+            )
 
         super().accept()
