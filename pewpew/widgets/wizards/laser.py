@@ -214,9 +214,13 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
         self.spinbox_delay.setSpecialValueText("Automatic")
         self.spinbox_delay.editingFinished.connect(self.initializePage)
 
+        self.checkbox_collapse = QtWidgets.QCheckBox("Remove space between images.")
+        self.checkbox_collapse.checkStateChanged.connect(self.initializePage)
+
         controls_box = QtWidgets.QGroupBox("Import Options")
         controls_box.setLayout(QtWidgets.QFormLayout())
         controls_box.layout().addRow("Delay", self.spinbox_delay)
+        controls_box.layout().addRow(self.checkbox_collapse)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.graphics, 1)
@@ -240,6 +244,7 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
         else:
             delay = self.spinbox_delay.value()
 
+        extents = QtCore.QRectF()
         for seq, idx in groups.items():
             seq_datas = []
             for i, r in idx:
@@ -249,7 +254,6 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
                 else:
                     seq_datas.append(x[r])
             data = np.concatenate(seq_datas)
-            print(params, idx)
             if all("times" in params[i] for i, _ in idx):
                 times = np.concatenate([params[i]["times"] for i, _ in idx])
             else:
@@ -275,6 +279,20 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
             )
             laser_item.setAcceptedMouseButtons(QtCore.Qt.MouseButton.NoButton)
             laser_item.setPos(*sync_params["origin"])
+            if self.checkbox_collapse.isChecked():
+                if extents.isNull():  # move to first image pos
+                    extents.moveTo(*sync_params["origin"])
+                rect = laser_item.sceneBoundingRect()
+                if rect.left() >= extents.right():
+                    rect.moveLeft(extents.right())
+                elif rect.right() <= extents.left():
+                    rect.moveRight(extents.left())
+                if rect.top() >= extents.bottom():
+                    rect.moveTop(extents.bottom())
+                elif rect.bottom() <= extents.top():
+                    rect.moveBottom(extents.top())
+                extents = extents.united(rect)
+                laser_item.setPos(rect.topLeft())
             laser_item.redraw()
             laser_item.setEnabled(False)
             self.graphics.scene().addItem(laser_item)
