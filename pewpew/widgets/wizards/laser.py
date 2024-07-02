@@ -7,6 +7,7 @@ from pewlib.io.laser import read_nwi_laser_log, sync_data_nwi_laser_log
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from pewpew.events import DragDropRedirectFilter
 from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
@@ -22,6 +23,7 @@ class LaserLogImportPage(QtWidgets.QWizardPage):
     def __init__(self, path: Path, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.setTitle("Import Laser File")
+        self.setAcceptDrops(True)
 
         self._log_data: np.ndarray = np.array([])
 
@@ -40,9 +42,30 @@ class LaserLogImportPage(QtWidgets.QWizardPage):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(label)
         layout.addWidget(self.path)
+        layout.addStretch(1)
         self.setLayout(layout)
 
         self.registerField("laserlog", self, "log_prop")
+
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+        print(event.mimeData())
+        if event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                path = Path(url.toLocalFile())
+                if path.suffix.lower() == ".csv":
+                    event.accept()
+                    return
+        super().dragEnterEvent(event)
+
+    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+        if event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                path = Path(url.toLocalFile())
+                if path.suffix.lower() == ".csv":
+                    event.accept()
+                    self.path.addPath(path)
+                    return
+        super().dropEvent(event)
 
     def isComplete(self) -> bool:
         return self.path.isComplete()
