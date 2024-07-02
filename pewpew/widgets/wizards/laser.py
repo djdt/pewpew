@@ -98,6 +98,9 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         self.group_tree = QtWidgets.QTreeWidget()
         self.group_tree.setColumnCount(3)
         self.group_tree.setHeaderLabels(["Sequence", "Name", "No. Lines"])
+        self.group_tree.header().setSectionResizeMode(
+            QtWidgets.QHeaderView.ResizeMode.ResizeToContents
+        )
         self.group_tree.setDragEnabled(True)
         self.group_tree.setDragDropMode(
             QtWidgets.QAbstractItemView.DragDropMode.InternalMove
@@ -164,6 +167,13 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
                 )
                 item.addChild(child)
                 tree_idx += 1
+
+        item = QtWidgets.QTreeWidgetItem()
+        item.setData(0, QtCore.Qt.ItemDataRole.UserRole, -1)
+        item.setText(0, "None")
+        item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
+        item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsDropEnabled)
+        self.group_tree.addTopLevelItem(item)
 
         self.group_tree.expandAll()
 
