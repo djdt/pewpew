@@ -83,6 +83,9 @@ class MainWindow(QtWidgets.QMainWindow):
             parent=self,
         )
         wiz.laserImported.connect(self.tabview.importFile)
+        wiz.laserImported.connect(
+            lambda: self.tabview.activeWidget().graphics.zoomReset()
+        )
         wiz.open()
         event.acceptProposedAction()
 
@@ -444,6 +447,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def actionWizardLaserLog(self) -> QtWidgets.QWizard:
         wiz = LaserLogImportWizard(options=self.tabview.options, parent=self)
         wiz.laserImported.connect(self.tabview.importFile)
+        wiz.laserImported.connect(
+            lambda: self.tabview.activeWidget().graphics.zoomReset()
+        )
         wiz.open()
         return wiz
 
