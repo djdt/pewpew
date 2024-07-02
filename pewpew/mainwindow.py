@@ -4,6 +4,7 @@ from pathlib import Path
 from types import TracebackType
 
 from pewlib.config import Config, SpotConfig
+from pewlib.io.laser import is_nwi_laser_log
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction, qActionGroup
@@ -12,7 +13,7 @@ from pewpew.log import LoggingDialog
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.laser import LaserTabView
-from pewpew.widgets.wizards import ImportWizard, SpotImportWizard, LaserLogImportWizard
+from pewpew.widgets.wizards import ImportWizard, LaserLogImportWizard, SpotImportWizard
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
         self.resize(1280, 800)
+
+        self.setAcceptDrops(True)
 
         self.log = LoggingDialog()
         self.help = HelpDialog()
@@ -53,6 +56,35 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateRecentFiles()
 
         self.default_config = Config()
+
+    def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+        if event.mimeData().hasUrls():
+            paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
+            if any(is_nwi_laser_log(path) for path in paths):
+                event.acceptProposedAction()
+        super().dragEnterEvent(event)
+
+    def dropEvent(self, event: QtGui.QDropEvent) -> None:
+        if not event.mimeData().hasUrls():
+            return super().dropEvent(event)
+        log_paths = []
+        paths = []
+        for url in event.mimeData().urls():
+            path = Path(url.toLocalFile())
+            if is_nwi_laser_log(path):
+                log_paths.append(path)
+            else:
+                paths.append(path)
+
+        wiz = LaserLogImportWizard(
+            path=log_paths[0],
+            laser_paths=paths,
+            options=self.tabview.options,
+            parent=self,
+        )
+        wiz.laserImported.connect(self.tabview.importFile)
+        wiz.open()
+        event.acceptProposedAction()
 
     def createActions(self) -> None:
         self.action_about = qAction(

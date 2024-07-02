@@ -94,9 +94,11 @@ class LaserTabView(TabView):
     # Events
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-        else:  # pragma: no cover
-            super().dragEnterEvent(event)
+            paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
+            # logs go to mainwindow for wizard
+            if not any(io.laser.is_nwi_laser_log(path) for path in paths):
+                event.acceptProposedAction()
+        super().dragEnterEvent(event)
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
         if not event.mimeData().hasUrls():  # pragma: no cover
@@ -104,7 +106,6 @@ class LaserTabView(TabView):
 
         paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
         event.acceptProposedAction()
-
         self.openDocument(paths)
 
     # Callbacks
@@ -579,9 +580,11 @@ class LaserTabWidget(TabViewWidget):
             dlg = dialogs.StatsDialog(
                 item.laser.get(calibrate=item.options.calibrate, flat=True),
                 item.mask if selection else np.ones(item.laser.shape, dtype=bool),
-                {k: v.unit for k, v in item.laser.calibration.items()}
-                if item.options.calibrate
-                else {},
+                (
+                    {k: v.unit for k, v in item.laser.calibration.items()}
+                    if item.options.calibrate
+                    else {}
+                ),
                 item.element(),
                 pixel_size=(
                     item.laser.config.get_pixel_width(),

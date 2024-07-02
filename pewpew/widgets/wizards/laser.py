@@ -7,7 +7,6 @@ from pewlib.io.laser import read_nwi_laser_log, sync_data_nwi_laser_log
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewpew.events import DragDropRedirectFilter
 from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
