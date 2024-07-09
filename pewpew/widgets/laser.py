@@ -234,7 +234,7 @@ class LaserTabWidget(TabViewWidget):
             self.graphics.alignLaserItemsTopToBottom,
         )
 
-        self.action_merge_all = qAction(
+        self.action_merge = qAction(
             "merge",
             "Merge Images",
             "Merge all laser images into a single file",
@@ -433,8 +433,13 @@ class LaserTabWidget(TabViewWidget):
     def laserItems(self) -> list[LaserImageItem]:
         return self.graphics.laserItems()
 
+    def selectedLaserItems(self) -> list[LaserImageItem]:
+        return self.graphics.selectedLaserItems()
+
     def mergeLaserItems(self) -> None:
-        items = self.laserItems()[::-1]
+        items = self.selectedLaserItems()[::-1]
+        if len(items) == 0:
+            items = self.laserItems()[::-1]
         if len(items) < 2:
             return
 
@@ -675,7 +680,7 @@ class LaserTabWidget(TabViewWidget):
             menu.addAction(self.action_align_horz)
             menu.addAction(self.action_align_vert)
             menu.addSeparator()
-            menu.addAction(self.action_merge_all)
+            menu.addAction(self.action_merge)
         menu.popup(event.globalPos())
         event.accept()
 
@@ -691,11 +696,7 @@ class LaserTabWidget(TabViewWidget):
             mime = QtWidgets.QApplication.clipboard().mimeData()
 
             # Get all selected items, or the focussed item
-            items = [
-                item
-                for item in self.graphics.scene().selectedItems()
-                if isinstance(item, LaserImageItem)
-            ]
+            items = self.selectedLaserItems()
             if len(items) == 0 and isinstance(
                 self.graphics.scene().focusItem(), LaserImageItem
             ):

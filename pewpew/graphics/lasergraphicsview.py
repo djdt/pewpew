@@ -1,4 +1,3 @@
-
 import numpy as np
 from pewlib.process.register import fft_register_offset
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -24,6 +23,14 @@ from pewpew.graphics.widgetitems import (
 )
 
 
+class IgnoreRightButtonScene(QtWidgets.QGraphicsScene):
+    def mousePressEvent(self, event: QtGui.QMouseEvent):
+        if event.button() == QtCore.Qt.MouseButton.RightButton:
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+
 class LaserGraphicsView(OverlayGraphicsView):
     """The pewpew laser view."""
 
@@ -31,7 +38,7 @@ class LaserGraphicsView(OverlayGraphicsView):
         self, options: GraphicsOptions, parent: QtWidgets.QWidget | None = None
     ):
         super().__init__(
-            QtWidgets.QGraphicsScene(QtCore.QRectF(-1e5, -1e5, 2e5, 2e5), parent),
+            IgnoreRightButtonScene(QtCore.QRectF(-1e5, -1e5, 2e5, 2e5), parent),
             parent,
         )
         self.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
@@ -69,8 +76,18 @@ class LaserGraphicsView(OverlayGraphicsView):
             if isinstance(item, LaserImageItem)
         ]
 
+    def selectedLaserItems(self) -> list[LaserImageItem]:
+        return [
+            item
+            for item in self.scene().selectedItems()
+            if isinstance(item, LaserImageItem)
+        ]
+
     def alignLaserItemsFFT(self) -> None:
-        items = self.laserItems()
+        items = self.selectedLaserItems()
+        if len(items) == 0:
+            items = self.laserItems()
+
         base = items[0]
         for item in items[1:]:
             offset = fft_register_offset(base.rawData(), item.rawData())
@@ -82,7 +99,10 @@ class LaserGraphicsView(OverlayGraphicsView):
         self.zoomReset()
 
     def alignLaserItemsLeftToRight(self) -> None:
-        items = self.laserItems()
+        items = self.selectedLaserItems()
+        if len(items) == 0:
+            items = self.laserItems()
+
         base = items[0]
         pos = base.pos() + QtCore.QPointF(base.boundingRect().width(), 0.0)
         for item in items[1:]:
