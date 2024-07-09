@@ -468,7 +468,7 @@ class LaserTabWidget(TabViewWidget):
         )
         for item in items:
             self.graphics.scene().removeItem(item)
-        self.addLaser(laser)
+        self.addLaser(laser, pos=items[0].pos())
 
     def uniqueElements(self) -> list[str]:
         elements = set([])

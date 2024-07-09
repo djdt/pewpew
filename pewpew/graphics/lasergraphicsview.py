@@ -87,7 +87,6 @@ class LaserGraphicsView(OverlayGraphicsView):
                 base.pos()
                 + QtCore.QPointF(offset[1] * psize.width(), offset[0] * psize.height())
             )
-        self.zoomReset()
 
     def alignLaserItemsLeftToRight(self) -> None:
         items = self.selectedLaserItems()
@@ -99,7 +98,6 @@ class LaserGraphicsView(OverlayGraphicsView):
         for item in items[1:]:
             item.setPos(pos)
             pos.setX(pos.x() + item.boundingRect().width())
-        self.zoomReset()
 
     def alignLaserItemsTopToBottom(self) -> None:
         items = self.selectedLaserItems()
@@ -111,7 +109,6 @@ class LaserGraphicsView(OverlayGraphicsView):
         for item in items[1:]:
             item.setPos(pos)
             pos.setY(pos.y() + item.boundingRect().height())
-        self.zoomReset()
 
     def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
         self.clearFocus()
