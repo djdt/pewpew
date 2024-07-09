@@ -58,15 +58,6 @@ class LaserGraphicsView(OverlayGraphicsView):
         self.options.visiblityOptionsChanged.connect(self.updateOverlayVisibility)
         self.viewScaleChanged.connect(self.scalebar.requestPaint)
 
-        # self.shown = False
-
-    # def showEvent(self, event: QtGui.QShowEvent) -> None:
-    # super().showEvent(event)
-    # if not self.shown:
-    #     print('shown')
-    #     self.zoomReset()
-    #     self.shown = True
-
     def laserItems(self) -> list[LaserImageItem]:
         return [
             item
@@ -111,7 +102,10 @@ class LaserGraphicsView(OverlayGraphicsView):
         self.zoomReset()
 
     def alignLaserItemsTopToBottom(self) -> None:
-        items = self.laserItems()
+        items = self.selectedLaserItems()
+        if len(items) == 0:
+            items = self.laserItems()
+
         base = items[0]
         pos = base.pos() + QtCore.QPointF(0.0, base.boundingRect().height())
         for item in items[1:]:
