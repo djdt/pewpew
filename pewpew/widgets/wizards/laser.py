@@ -383,10 +383,10 @@ class LaserLogImportWizard(QtWidgets.QWizard):
             "Select format of laser file(s) for import.",
             page_id_dict={
                 "agilent": self.page_agilent,
-                "csv": self.page_csv,
-                "numpy": self.page_numpy,
+                # "csv": self.page_csv,
+                # "numpy": self.page_numpy,
                 "perkinelmer": self.page_perkinelmer,
-                "text": self.page_text,
+                # "text": self.page_text,
                 "thermo": self.page_thermo,
             },
             parent=self,
@@ -404,34 +404,34 @@ class LaserLogImportWizard(QtWidgets.QWizard):
                 parent=self,
             ),
         )
-        self.setPage(
-            self.page_csv,
-            PathAndOptionsPage(
-                paths, "csv", nextid=self.page_groups, multiplepaths=True, parent=self
-            ),
-        )
+        # self.setPage(
+        #     self.page_csv,
+        #     PathAndOptionsPage(
+        #         paths, "csv", nextid=self.page_groups, multiplepaths=True, parent=self
+        #     ),
+        # )
         self.setPage(
             self.page_numpy,
             PathAndOptionsPage(
                 paths, "numpy", nextid=self.page_groups, multiplepaths=True, parent=self
             ),
         )
-        self.setPage(
-            self.page_perkinelmer,
-            PathAndOptionsPage(
-                paths,
-                "perkinelmer",
-                nextid=self.page_groups,
-                multiplepaths=True,
-                parent=self,
-            ),
-        )
-        self.setPage(
-            self.page_text,
-            PathAndOptionsPage(
-                paths, "text", nextid=self.page_groups, multiplepaths=True, parent=self
-            ),
-        )
+        # self.setPage(
+        #     self.page_perkinelmer,
+        #     PathAndOptionsPage(
+        #         paths,
+        #         "perkinelmer",
+        #         nextid=self.page_groups,
+        #         multiplepaths=True,
+        #         parent=self,
+        #     ),
+        # )
+        # self.setPage(
+        #     self.page_text,
+        #     PathAndOptionsPage(
+        #         paths, "text", nextid=self.page_groups, multiplepaths=True, parent=self
+        #     ),
+        # )
         self.setPage(
             self.page_thermo,
             PathAndOptionsPage(
