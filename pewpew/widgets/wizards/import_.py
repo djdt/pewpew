@@ -166,6 +166,15 @@ class FormatPage(QtWidgets.QWizardPage):
         self.registerField("text", self.radio_text)
         self.registerField("thermo", self.radio_thermo)
 
+    def initializePage(self) -> None:
+        if self.page_id_dict is not None:
+            self.radio_agilent.setVisible("agilent" in self.page_id_dict)
+            self.radio_csv.setVisible("csv" in self.page_id_dict)
+            self.radio_numpy.setVisible("numpy" in self.page_id_dict)
+            self.radio_perkinelmer.setVisible("perkinelmer" in self.page_id_dict)
+            self.radio_text.setVisible("text" in self.page_id_dict)
+            self.radio_thermo.setVisible("thermo" in self.page_id_dict)
+
     def nextId(self) -> int:
         if self.page_id_dict is None:  # pragma: no cover
             return super().nextId()
