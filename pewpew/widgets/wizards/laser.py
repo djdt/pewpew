@@ -279,17 +279,18 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
         extents = QtCore.QRectF()
         for seq, idx in groups.items():
             seq_datas = []
+            seq_times = []
             for i, r in idx:
                 x = datas[i]
+                t = params[i]["times"]
                 if r == -1:
                     seq_datas.append(x.flat)
+                    seq_times.append(t.flat)
                 else:
                     seq_datas.append(x[r])
+                    seq_times.append(t[r])
             data = np.concatenate(seq_datas)
-            if all("times" in params[i] for i, _ in idx):
-                times = np.concatenate([params[i]["times"] for i, _ in idx])
-            else:
-                times = params[idx[0][0]]["scantime"]
+            times = np.concatenate(seq_times)
 
             sync, sync_params = sync_data_nwi_laser_log(
                 data, times, log, delay=delay, sequence=seq
