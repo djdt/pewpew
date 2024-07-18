@@ -77,6 +77,7 @@ class SpotImportWizard(QtWidgets.QWizard):
                 "agilent",
                 nextid=self.page_spot_peaks,
                 multiplepaths=True,
+                register_laser_fields=True,
                 parent=self,
             ),
         )
@@ -168,22 +169,9 @@ class SpotImportWizard(QtWidgets.QWizard):
             paths = [Path(p) for p in self.field("thermo.paths")]
         else:  # pragma: no cover
             raise ValueError("Invalid filetype selection.")
-        path = paths[0]
 
         info = self.field("laserinfo")[0]
-        info.update(
-            {
-                "Name": path.stem,
-                "File Path": str(path.resolve()),
-                "Import Date": time.strftime(
-                    "%Y-%m-%dT%H:%M:%S%z", time.localtime(time.time())
-                ),
-                "Import Path": str(path.resolve()),
-                "Import Version pewlib": version("pewlib"),
-                "Import Version pew2": version("pewpew"),
-            }
-        )
-        self.laserImported.emit(Laser(data, config=config, info=info))
+        self.laerImported.emit(Laser(data, config=config, info=info))
         super().accept()
 
 
@@ -316,8 +304,6 @@ class WindowedPeakOptions(SpotPeakOptions):
 
 
 class SpotPeaksPage(QtWidgets.QWizardPage):
-    dataChanged = QtCore.Signal()
-    infoChanged = QtCore.Signal()
     peaksChanged = QtCore.Signal()
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
@@ -416,8 +402,6 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             "currentTextChanged",
         )
 
-        self.registerField("laserdata", self, "data_prop")
-        self.registerField("laserinfo", self, "info_prop")
         self.registerField("peaks", self, "peaks_prop")
 
     def isComplete(self) -> bool:
@@ -434,22 +418,6 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             return False
         return True
 
-    def getData(self) -> list[np.ndarray]:
-        if len(self._datas) == 0:
-            return [np.array([], dtype=[("", np.float64)])]
-        return np.concatenate([d.ravel() for d in self._datas], axis=0)
-
-    def setData(self, datas: list[np.ndarray]) -> None:
-        self._datas = datas
-        self.dataChanged.emit()
-
-    def getInfo(self) -> list[dict]:
-        return self._infos
-
-    def setInfo(self, infos: list[dict]) -> None:
-        self._infos = infos
-        self.infoChanged.emit()
-
     def getPeaks(self) -> np.ndarray | None:
         return self.peaks
 
@@ -458,7 +426,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.peaksChanged.emit()
 
     def initializePage(self) -> None:
-        data = self.field("laserdata")
+        data = np.concatenate([x.flat for x in self.field("laserdata")], axis=0)
         self.combo_element.blockSignals(True)
         self.combo_element.clear()
         self.combo_element.addItems(data.dtype.names)
@@ -473,7 +441,8 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.updatePeaks()
 
     def onElementChanged(self) -> None:
-        data = self.field("laserdata")[self.combo_element.currentText()]
+        data = np.concatenate([x.flat for x in self.field("laserdata")], axis=0)
+        data = data[self.combo_element.currentText()]
         self.drawSignal(data)
         self.updatePeaks()
 
@@ -542,7 +511,8 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
 
         method = self.combo_peak_method.currentText()
         args = self.options[method].args()
-        data = self.field("laserdata")[self.combo_element.currentText()]
+        data = np.concatenate([x.flat for x in self.field("laserdata")], axis=0)
+        data = data[self.combo_element.currentText()]
 
         if method == "Constant":
             thresholds = {"baseline": np.full(data.size, args["minimum"])}
@@ -636,7 +606,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         if self.peaks is None or self.peaks.size == 0:
             return False
 
-        data = self.field("laserdata")
+        data = np.concatenate([x.flat for x in self.field("laserdata")], axis=0)
         peaks = self.field("peaks")
 
         peakdata = np.empty(
@@ -657,8 +627,6 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.peaks = peakdata
         return True
 
-    data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
-    info_prop = QtCore.Property("QVariant", getInfo, setInfo, notify=infoChanged)
     peaks_prop = QtCore.Property("QVariant", getPeaks, setPeaks, notify=peaksChanged)
 
 
@@ -673,8 +641,6 @@ class SpotImagePage(QtWidgets.QWizardPage):
 
         if options is None:
             options = GraphicsOptions()
-            for item in options.items:
-                options.items[item] = False
 
         self.lineedit_shape_x = QtWidgets.QLineEdit("0")
         self.lineedit_shape_x.setValidator(QtGui.QIntValidator(1, 99999))
@@ -734,7 +700,7 @@ class SpotImagePage(QtWidgets.QWizardPage):
         )
 
     def initializePage(self) -> None:
-        data = self.field("laserdata")
+        data = np.concatenate([x.flat for x in self.field("laserdata")], axis=0)
         self.combo_element.blockSignals(True)
         self.combo_element.clear()
         self.combo_element.addItems(data.dtype.names)
@@ -774,6 +740,7 @@ class SpotImagePage(QtWidgets.QWizardPage):
         if self.check_raster.isChecked():
             image[::2, :] = image[::2, ::-1]
 
+        # todo redo this
         self.graphics.drawImage(
             image,
             rect=QtCore.QRectF(0, 0, x, y),
@@ -833,8 +800,6 @@ class SpotConfigPage(QtWidgets.QWizardPage):
 
         self.registerField("spotsize", self.lineedit_spotsize_x)
         self.registerField("spotsize_y", self.lineedit_spotsize_y)
-        self.registerField("speed", self)
-        self.registerField("scantime", self)
 
     def getNames(self) -> list[str]:
         data = self.field("peaks")
@@ -871,7 +836,7 @@ class SpotConfigPage(QtWidgets.QWizardPage):
         self.label_elements.setText(text)
 
     def updateNames(self, rename: dict) -> None:
-        peaks = self.field("laserdata")
+        peaks = self.field("peaks")
         remove = [name for name in peaks.dtype.names if name not in rename]
         peaks = rfn.drop_fields(peaks, remove, usemask=False)
         peaks = rfn.rename_fields(peaks, rename)

@@ -1,17 +1,15 @@
-from PySide6 import QtCore, QtGui, QtWidgets
-
-import numpy as np
-
-from pathlib import Path
 import re
 import time
+from importlib.metadata import version
+from pathlib import Path
+from typing import Any, Callable
 
+import numpy as np
 from pewlib import io
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog
-
-from typing import Any, Callable
 
 
 class _OptionsBase(QtWidgets.QGroupBox):  # pragma: no cover
@@ -672,18 +670,27 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         ),
     }
 
+    dataChanged = QtCore.Signal()
+    paramsChanged = QtCore.Signal()
+    infoChanged = QtCore.Signal()
+
     def __init__(
         self,
         paths: list[Path],
         format: str,
         multiplepaths: bool = False,
         nextid: int | None = None,
+        register_laser_fields: bool = False,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         (ftype, exts, fmode, fdesc), otype = self.formats[format]
         self.setTitle(ftype + " Import")
         self.nextid = nextid
+
+        self._laser_datas: list[np.ndarray] = []
+        self._laser_params: list[dict] = []
+        self._laser_infos: list[dict] = []
 
         if multiplepaths:
             self.path = MultiplePathSelectWidget(paths, ftype, exts, fmode)
@@ -708,6 +715,11 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
 
         self.registerField(format + ".path", self.path, "_path")
         self.registerField(format + ".paths", self.path, "_paths")
+
+        if register_laser_fields:
+            self.registerField("laserdata", self, "data_prop")
+            self.registerField("laserparam", self, "param_prop")
+            self.registerField("laserinfo", self, "info_prop")
 
     def cleanupPage(self) -> None:
         pass
@@ -757,30 +769,43 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             QtWidgets.QMessageBox.critical(self, "Import Error", str(e))
             return False
 
-        if "spotsize" in params:
-            self.setField("spotsize", f"{params['spotsize']:.6g}")
-        if "speed" in params:
-            self.setField("speed", f"{params['speed']:.6g}")
-        if "scantime" in params:
-            self.setField("scantime", f"{params['scantime']:.6g}")
-
         self.setField("laserdata", datas)
+        self.setField("laserparam", params)
         self.setField("laserinfo", infos)
+
         return True
 
     def readMultiple(
-        self, func: Callable[[Path], tuple[np.ndarray, dict[str, Any], dict[str, str]]], paths: list[Path]
-    ) -> tuple[list[np.ndarray], dict[str, Any], list[dict[str, str]]]:
-        data, params, info = func(paths[0])
-        datas = [data]
-        infos = [info]
-        for path in paths[1:]:
-            data, _, info = func(path)
+        self,
+        func: Callable[[Path], tuple[np.ndarray, dict[str, Any], dict[str, str]]],
+        paths: list[Path],
+    ) -> tuple[list[np.ndarray], list[dict[str, Any]], list[dict[str, str]]]:
+        datas = []
+        params = []
+        infos = []
+        for path in paths:
+            data, param, info = func(path)
             datas.append(data)
+            params.append(param)
             infos.append(info)
+        for path, info in zip(paths, infos):
+            info.update(
+                {
+                    "Name": path.stem,
+                    "File Path": str(path.resolve()),
+                    "Import Date": time.strftime(
+                        "%Y-%m-%dT%H:%M:%S%z", time.localtime(time.time())
+                    ),
+                    "Import Path": str(path.resolve()),
+                    "Import Version pewlib": version("pewlib"),
+                    "Import Version pew2": version("pewpew"),
+                }
+            )
         return datas, params, infos
 
-    def readAgilent(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
+    def readAgilent(
+        self, path: Path
+    ) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         agilent_method = self.field("agilent.method")
         if agilent_method == "Alphabetical Order":  # pragma: no cover
             method = ["alphabetical"]  # Fallback to alphabetical
@@ -839,7 +864,9 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         data, params = io.csv.load(path, option=option, full=True)
         return data, params, {}
 
-    def readNumpy(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
+    def readNumpy(
+        self, path: Path
+    ) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         laser = io.npz.load(path)
         param = dict(
             scantime=laser.config.scantime,
@@ -848,7 +875,9 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         )
         return laser.data, param, laser.info
 
-    def readPerkinElmer(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
+    def readPerkinElmer(
+        self, path: Path
+    ) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         data, params = io.perkinelmer.load(path, full=True)
         return data, params, {"Instrument Vendor": "PerkinElemer"}
 
@@ -856,7 +885,9 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         data = io.textimage.load(path, name=self.field("text.name"))
         return data, {}, {}
 
-    def readThermo(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
+    def readThermo(
+        self, path: Path
+    ) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         kwargs = dict(
             delimiter=self.field("thermo.delimiter"),
             comma_decimal=self.field("thermo.decimal") == ",",
@@ -874,3 +905,28 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             )
             params = io.thermo.icap_csv_columns_read_params(path, **kwargs)
         return data, params, {"Instrument Vendor": "Thermo"}
+
+    def getData(self) -> list[np.ndarray]:
+        return self._laser_datas
+
+    def setData(self, datas: list[np.ndarray]) -> None:
+        self._laser_datas = datas
+        self.dataChanged.emit()
+
+    def getParams(self) -> list[dict]:
+        return self._laser_params
+
+    def setParams(self, params: list[dict]) -> None:
+        self._laser_params = params
+        self.paramsChanged.emit()
+
+    def getInfo(self) -> list[dict]:
+        return self._laser_infos
+
+    def setInfo(self, infos: list[dict]) -> None:
+        self._laser_infos = infos
+        self.infoChanged.emit()
+
+    data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
+    param_prop = QtCore.Property("QVariant", getParams, setParams, notify=paramsChanged)
+    info_prop = QtCore.Property("QVariant", getInfo, setInfo, notify=infoChanged)

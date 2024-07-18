@@ -1,4 +1,3 @@
-
 import numpy as np
 from pewlib.process.register import fft_register_offset
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -24,6 +23,14 @@ from pewpew.graphics.widgetitems import (
 )
 
 
+class IgnoreRightButtonScene(QtWidgets.QGraphicsScene):
+    def mousePressEvent(self, event: QtGui.QMouseEvent):
+        if event.button() == QtCore.Qt.MouseButton.RightButton:
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+
 class LaserGraphicsView(OverlayGraphicsView):
     """The pewpew laser view."""
 
@@ -31,7 +38,7 @@ class LaserGraphicsView(OverlayGraphicsView):
         self, options: GraphicsOptions, parent: QtWidgets.QWidget | None = None
     ):
         super().__init__(
-            QtWidgets.QGraphicsScene(QtCore.QRectF(-1e5, -1e5, 2e5, 2e5), parent),
+            IgnoreRightButtonScene(QtCore.QRectF(-1e5, -1e5, 2e5, 2e5), parent),
             parent,
         )
         self.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
@@ -51,15 +58,6 @@ class LaserGraphicsView(OverlayGraphicsView):
         self.options.visiblityOptionsChanged.connect(self.updateOverlayVisibility)
         self.viewScaleChanged.connect(self.scalebar.requestPaint)
 
-        # self.shown = False
-
-    # def showEvent(self, event: QtGui.QShowEvent) -> None:
-    # super().showEvent(event)
-    # if not self.shown:
-    #     print('shown')
-    #     self.zoomReset()
-    #     self.shown = True
-
     def laserItems(self) -> list[LaserImageItem]:
         return [
             item
@@ -69,8 +67,18 @@ class LaserGraphicsView(OverlayGraphicsView):
             if isinstance(item, LaserImageItem)
         ]
 
+    def selectedLaserItems(self) -> list[LaserImageItem]:
+        return [
+            item
+            for item in self.scene().selectedItems()
+            if isinstance(item, LaserImageItem)
+        ]
+
     def alignLaserItemsFFT(self) -> None:
-        items = self.laserItems()
+        items = self.selectedLaserItems()
+        if len(items) == 0:
+            items = self.laserItems()
+
         base = items[0]
         for item in items[1:]:
             offset = fft_register_offset(base.rawData(), item.rawData())
@@ -79,25 +87,28 @@ class LaserGraphicsView(OverlayGraphicsView):
                 base.pos()
                 + QtCore.QPointF(offset[1] * psize.width(), offset[0] * psize.height())
             )
-        self.zoomReset()
 
     def alignLaserItemsLeftToRight(self) -> None:
-        items = self.laserItems()
+        items = self.selectedLaserItems()
+        if len(items) == 0:
+            items = self.laserItems()
+
         base = items[0]
         pos = base.pos() + QtCore.QPointF(base.boundingRect().width(), 0.0)
         for item in items[1:]:
             item.setPos(pos)
             pos.setX(pos.x() + item.boundingRect().width())
-        self.zoomReset()
 
     def alignLaserItemsTopToBottom(self) -> None:
-        items = self.laserItems()
+        items = self.selectedLaserItems()
+        if len(items) == 0:
+            items = self.laserItems()
+
         base = items[0]
         pos = base.pos() + QtCore.QPointF(0.0, base.boundingRect().height())
         for item in items[1:]:
             item.setPos(pos)
             pos.setY(pos.y() + item.boundingRect().height())
-        self.zoomReset()
 
     def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
         self.clearFocus()

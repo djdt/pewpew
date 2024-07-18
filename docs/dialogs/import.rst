@@ -82,6 +82,47 @@ Parameters from :ref:`laser_parameters` will be automatically read from imports 
    | Scantime  | s    | Acquistion time for each pixel; Total dwell time for all elements. |
    +----------+-------+--------------------------------------------------------------------+
 
+
+LaserLog Import Wizard
+-----------------------
+.. index:: LaserLog Import Wizard
+
+* **File -> Import -> ESL Laser Log Wizard**
+* **Drag-and-Drop -> Log and laser data files**
+
+This wizard guides you through importing ICP-MS data and aligning it with a ESL laser ablation log file.
+ICP-MS data should be collected as one line/sample or one file per laser pattern, multiple batches can be imported per log.
+
+.. note::
+    To use this import make sure to activate the **save Iolite log file** option on the ActiveView2 home page, *before ablating*. 
+
+On the first page open or drag-and-drop the laser log file, this is usually named in the format 'LaserLog_YY-mm-dd_HH-MM-SS.csv'.
+
+The next two pages import laser data and instructions in `Import Wizard` should be followed.
+Only data formats that save the event times are supported (Agilent batches, Perkin-Elmer 'XL' and Thermo iCap CSV).
+
+.. warning:: 
+    Currently only Agilent data has been tested with the importer.
+
+.. figure:: ../images/dialog_nwi_import.png
+    :width: 480px
+    :align: center
+    :name: nwi_laser_group
+
+    The ESL Import groups page. Here both pattern per sample and pattern per file data has been selected for import.
+
+The groups page shows all imported patterns and data files.
+Drag the laser files to match with their corresponding laser log patterns.
+
+Checking the *Split data into rows* can be used if data has been collected as one line/sample per pattern.
+This will add a *row X* parameter to each laser line, as in :ref:`nwi_laser_group`.
+
+Imported data is previewed on the next page, and the back button can be used to make changes to pattern-laser groupings.
+A *Delay* control is provided for instrument setups with a long transport time (time taken for ablations to reach the ICP-MS).
+Laser images are imported with their real world positions and parameters and a final control,
+*Remove space between images*, can be used to collapse any empty space between images and make the scene more compact.
+
+
 Spot-wise Import Wizard
 -----------------------
 .. index:: Spot-wise Import Wizard
@@ -176,16 +217,16 @@ The `Difference` output will show the difference in the shape to the current pea
 Rastered collections should enabled the alternating raster option.
 Once the image is correct the spotsize can be entered on the following page.
 
-Kriss-Kross Import Wizard
--------------------------
-.. index:: Kriss-Kross Import Wizard
-
-* **File -> Import -> Kriss-Kross Import Wizard**
-
-Import of Kriss-Kross_ collected Super-Resolution-Reconstruction images is performed
-using the `Kriss-Kross Import Wizard`. This will guide users through import of the data
-in a simliar manner to the :ref:`Import Wizard`.
-
-.. seealso::
-    :ref:`Example: Importing file-per-line data`.
-     Example showing how to use the import wizard.
+.. Kriss-Kross Import Wizard
+.. -------------------------
+.. .. index:: Kriss-Kross Import Wizard
+..
+.. * **File -> Import -> Kriss-Kross Import Wizard**
+..
+.. Import of Kriss-Kross_ collected Super-Resolution-Reconstruction images is performed
+.. using the `Kriss-Kross Import Wizard`. This will guide users through import of the data
+.. in a simliar manner to the :ref:`Import Wizard`.
+..
+.. .. seealso::
+..     :ref:`Example: Importing file-per-line data`.
+..      Example showing how to use the import wizard.

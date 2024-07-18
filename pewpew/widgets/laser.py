@@ -68,7 +68,9 @@ class LaserTabView(TabView):
         self.addTab(f"Tab {number + 1}", widget)
         return widget
 
-    def importFile(self, path: Path, data: Laser | QtGui.QImage) -> "LaserTabWidget":
+    def importFile(
+        self, path: Path, data: Laser | tuple[Laser, QtCore.QPointF] | QtGui.QImage
+    ) -> "LaserTabWidget":
         try:
             widget = self.activeWidget()
             if not isinstance(widget, LaserTabWidget):
@@ -79,6 +81,10 @@ class LaserTabView(TabView):
             widget = self.newLaserTab()
         if isinstance(data, Laser):
             widget.addLaser(data)
+        elif isinstance(data, tuple):
+            assert isinstance(data[0], Laser)
+            assert isinstance(data[1], QtCore.QPointF)
+            widget.addLaser(data[0], pos=data[1])
         else:
             widget.addImage(data)
 
@@ -88,9 +94,11 @@ class LaserTabView(TabView):
     # Events
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-        else:  # pragma: no cover
-            super().dragEnterEvent(event)
+            paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
+            # logs go to mainwindow for wizard
+            if not any(io.laser.is_nwi_laser_log(path) for path in paths):
+                event.acceptProposedAction()
+        super().dragEnterEvent(event)
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
         if not event.mimeData().hasUrls():  # pragma: no cover
@@ -98,7 +106,6 @@ class LaserTabView(TabView):
 
         paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
         event.acceptProposedAction()
-
         self.openDocument(paths)
 
     # Callbacks
@@ -227,7 +234,7 @@ class LaserTabWidget(TabViewWidget):
             self.graphics.alignLaserItemsTopToBottom,
         )
 
-        self.action_merge_all = qAction(
+        self.action_merge = qAction(
             "merge",
             "Merge Images",
             "Merge all laser images into a single file",
@@ -426,8 +433,13 @@ class LaserTabWidget(TabViewWidget):
     def laserItems(self) -> list[LaserImageItem]:
         return self.graphics.laserItems()
 
+    def selectedLaserItems(self) -> list[LaserImageItem]:
+        return self.graphics.selectedLaserItems()
+
     def mergeLaserItems(self) -> None:
-        items = self.laserItems()[::-1]
+        items = self.selectedLaserItems()[::-1]
+        if len(items) == 0:
+            items = self.laserItems()[::-1]
         if len(items) < 2:
             return
 
@@ -456,7 +468,7 @@ class LaserTabWidget(TabViewWidget):
         )
         for item in items:
             self.graphics.scene().removeItem(item)
-        self.addLaser(laser)
+        self.addLaser(laser, pos=items[0].pos())
 
     def uniqueElements(self) -> list[str]:
         elements = set([])
@@ -573,9 +585,11 @@ class LaserTabWidget(TabViewWidget):
             dlg = dialogs.StatsDialog(
                 item.laser.get(calibrate=item.options.calibrate, flat=True),
                 item.mask if selection else np.ones(item.laser.shape, dtype=bool),
-                {k: v.unit for k, v in item.laser.calibration.items()}
-                if item.options.calibrate
-                else {},
+                (
+                    {k: v.unit for k, v in item.laser.calibration.items()}
+                    if item.options.calibrate
+                    else {}
+                ),
                 item.element(),
                 pixel_size=(
                     item.laser.config.get_pixel_width(),
@@ -666,7 +680,7 @@ class LaserTabWidget(TabViewWidget):
             menu.addAction(self.action_align_horz)
             menu.addAction(self.action_align_vert)
             menu.addSeparator()
-            menu.addAction(self.action_merge_all)
+            menu.addAction(self.action_merge)
         menu.popup(event.globalPos())
         event.accept()
 
@@ -682,11 +696,7 @@ class LaserTabWidget(TabViewWidget):
             mime = QtWidgets.QApplication.clipboard().mimeData()
 
             # Get all selected items, or the focussed item
-            items = [
-                item
-                for item in self.graphics.scene().selectedItems()
-                if isinstance(item, LaserImageItem)
-            ]
+            items = self.selectedLaserItems()
             if len(items) == 0 and isinstance(
                 self.graphics.scene().focusItem(), LaserImageItem
             ):
