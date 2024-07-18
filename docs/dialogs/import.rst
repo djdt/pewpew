@@ -176,11 +176,23 @@ The `Difference` output will show the difference in the shape to the current pea
 Rastered collections should enabled the alternating raster option.
 Once the image is correct the spotsize can be entered on the following page.
 
-Kriss-Kross Import Wizard
--------------------------
-.. index:: Kriss-Kross Import Wizard
+.. Kriss-Kross Import Wizard
+.. -------------------------
+.. .. index:: Kriss-Kross Import Wizard
+..
+.. * **File -> Import -> Kriss-Kross Import Wizard**
+..
+.. Import of Kriss-Kross_ collected Super-Resolution-Reconstruction images is performed
+.. using the `Kriss-Kross Import Wizard`. This will guide users through import of the data
+.. in a simliar manner to the :ref:`Import Wizard`.
+..
+.. .. seealso::
+..     :ref:`Example: Importing file-per-line data`.
+..      Example showing how to use the import wizard.
 
-* **File -> Import -> Kriss-Kross Import Wizard**
+LaserLog Import Wizard
+-----------------------
+.. index:: LaserLog Import Wizard
 
 Import of Kriss-Kross_ collected Super-Resolution-Reconstruction images is performed
 using the `Kriss-Kross Import Wizard`. This will guide users through import of the data
