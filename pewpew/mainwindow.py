@@ -222,8 +222,8 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_wizard_laserlog = qAction(
             "",
-            "NWI Laser Log Wizard",
-            "Import data and sync to a NWI LaserLog file.",
+            "ESL Laser Log Wizard",
+            "Import data and sync to a ESL ActiveView2 log file.",
             self.actionWizardLaserLog,
         )
         self.action_wizard_spot = qAction(
