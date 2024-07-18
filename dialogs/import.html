@@ -51,8 +51,8 @@
 <p class="caption" role="heading"><span class="caption-text">Dialogs and Wizards</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Import Wizard</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#laserlog-import-wizard">LaserLog Import Wizard</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#spot-wise-import-wizard">Spot-wise Import Wizard</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#kriss-kross-import-wizard">Kriss-Kross Import Wizard</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="calibration.html">Calibration Dialog</a></li>
@@ -210,9 +210,43 @@ For programs that export lines as a directory of separate files the ‘.csv’ i
 </tr>
 </tbody>
 </table>
+<section id="laserlog-import-wizard">
+<h2>LaserLog Import Wizard<a class="headerlink" href="#laserlog-import-wizard" title="Link to this heading"></a></h2>
+<ul class="simple" id="index-1">
+<li><p><strong>File -&gt; Import -&gt; ESL Laser Log Wizard</strong></p></li>
+<li><p><strong>Drag-and-Drop -&gt; Log and laser data files</strong></p></li>
+</ul>
+<p>This wizard guides you through importing ICP-MS data and aligning it with a ESL laser ablation log file.
+ICP-MS data should be collected as one line/sample or one file per laser pattern, multiple batches can be imported per log.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To use this import make sure to activate the <strong>save Iolite log file</strong> option on the ActiveView2 home page, <em>before ablating</em>.</p>
+</div>
+<p>On the first page open or drag-and-drop the laser log file, this is usually named in the format ‘LaserLog_YY-mm-dd_HH-MM-SS.csv’.</p>
+<p>The next two pages import laser data and instructions in <cite>Import Wizard</cite> should be followed.
+Only data formats that save the event times are supported (Agilent batches, Perkin-Elmer ‘XL’ and Thermo iCap CSV).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Currently only Agilent data has been tested with the importer.</p>
+</div>
+<figure class="align-center" id="nwi-laser-group">
+<a class="reference internal image-reference" href="../_images/dialog_nwi_import.png"><img alt="../_images/dialog_nwi_import.png" src="../_images/dialog_nwi_import.png" style="width: 480px;" /></a>
+<figcaption>
+<p><span class="caption-text">The ESL Import groups page. Here both pattern per sample and pattern per file data has been selected for import.</span><a class="headerlink" href="#nwi-laser-group" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The groups page shows all imported patterns and data files.
+Drag the laser files to match with their corresponding laser log patterns.</p>
+<p>Checking the <em>Split data into rows</em> can be used if data has been collected as one line/sample per pattern.
+This will add a <em>row X</em> parameter to each laser line, as in <a class="reference internal" href="#nwi-laser-group"><span class="std std-ref">The ESL Import groups page. Here both pattern per sample and pattern per file data has been selected for import.</span></a>.</p>
+<p>Imported data is previewed on the next page, and the back button can be used to make changes to pattern-laser groupings.
+A <em>Delay</em> control is provided for instrument setups with a long transport time (time taken for ablations to reach the ICP-MS).
+Laser images are imported with their real world positions and parameters and a final control,
+<em>Remove space between images</em>, can be used to collapse any empty space between images and make the scene more compact.</p>
+</section>
 <section id="spot-wise-import-wizard">
 <h2>Spot-wise Import Wizard<a class="headerlink" href="#spot-wise-import-wizard" title="Link to this heading"></a></h2>
-<ul class="simple" id="index-1">
+<ul class="simple" id="index-2">
 <li><p><strong>File -&gt; Import -&gt; Spotwise Import Wizard</strong></p></li>
 </ul>
 <p>This wizard allows the import data collected in a spot-wise manner.
@@ -321,22 +355,6 @@ Once the correct number of peaks are obtained continue onto <a class="reference 
 The <cite>Difference</cite> output will show the difference in the shape to the current peak detection count.
 Rastered collections should enabled the alternating raster option.
 Once the image is correct the spotsize can be entered on the following page.</p>
-</section>
-<section id="kriss-kross-import-wizard">
-<h2>Kriss-Kross Import Wizard<a class="headerlink" href="#kriss-kross-import-wizard" title="Link to this heading"></a></h2>
-<ul class="simple" id="index-2">
-<li><p><strong>File -&gt; Import -&gt; Kriss-Kross Import Wizard</strong></p></li>
-</ul>
-<p>Import of <a class="reference external" href="https://doi.org/10.1021/acs.analchem.9b02380">Kriss-Kross</a> collected Super-Resolution-Reconstruction images is performed
-using the <cite>Kriss-Kross Import Wizard</cite>. This will guide users through import of the data
-in a simliar manner to the <a class="reference internal" href="#import-wizard"><span class="std std-ref">Import Wizard</span></a>.</p>
-<div class="admonition seealso">
-<p class="admonition-title">See also</p>
-<dl class="simple">
-<dt><a class="reference internal" href="../examples/import.html#example-importing-file-per-line-data"><span class="std std-ref">Example: Importing file-per-line data</span></a>.</dt><dd><p>Example showing how to use the import wizard.</p>
-</dd>
-</dl>
-</div>
 </section>
 </section>
 
