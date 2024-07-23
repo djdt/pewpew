@@ -2,9 +2,10 @@
 
 Based on https://www.engr.mun.ca/~theo/Misc/pratt_parsing.htm
 """
-import numpy as np
+
 import re
 
+import numpy as np
 
 
 class ParserException(Exception):
@@ -288,7 +289,9 @@ class Parser(object):
 
     @variables.setter
     def variables(self, variables: list[str]) -> None:
-        variable_token = "|".join(re.escape(v) for v in variables)
+        variable_token = "|".join(
+            re.escape(v) for v in sorted(variables, key=lambda s: -len(s))
+        )
         self.regexp_tokenise = re.compile(
             f"\\s*({variable_token}|{Parser.base_tokens})\\s*"
         )
