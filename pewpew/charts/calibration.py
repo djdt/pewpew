@@ -1,11 +1,8 @@
-from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6 import QtCharts
-
 import numpy as np
+from PySide6 import QtCharts, QtCore, QtGui, QtWidgets
 
 from pewpew.charts.base import BaseChart
-from pewpew.charts.colors import light_theme, sequential, highlights
-
+from pewpew.charts.colors import highlights, light_theme, sequential
 from pewpew.lib.numpyqt import array_to_polygonf
 
 
@@ -16,7 +13,9 @@ class CalibrationChart(BaseChart):
     Hovering calibration points reveals their values.
     """
 
-    def __init__(self, title: str | None = None, parent: QtWidgets.QWidget | None = None):
+    def __init__(
+        self, title: str | None = None, parent: QtWidgets.QWidget | None = None
+    ):
         super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
         self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
         self.setMinimumSize(QtCore.QSize(640, 480))
@@ -38,7 +37,8 @@ class CalibrationChart(BaseChart):
         self.label_series.setBrush(QtGui.QBrush(QtCore.Qt.black, QtCore.Qt.NoBrush))
         self.label_series.setPointLabelsFormat("(@xPoint, @yPoint)")
         self.label_series.setPointLabelsColor(light_theme["text"])
-        self.label_series.setVisible(False)
+        self.label_series.setPointLabelsVisible(False)
+        self.label_series.setVisible(True)
 
         self.chart().addSeries(self.label_series)
         self.label_series.attachAxis(self.xaxis)
@@ -100,10 +100,9 @@ class CalibrationChart(BaseChart):
         self.label.setPlainText(text)
 
     def showPointPosition(self, point: QtCore.QPointF, state: bool):
-        self.label_series.setVisible(state)
         self.label_series.setPointLabelsVisible(state)
         if state:
-            self.label_series.replace(0, point.x(), point.y())
+            self.label_series.replace(0, point)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         if event.button() == QtCore.Qt.RightButton:
