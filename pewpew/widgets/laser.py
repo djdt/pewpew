@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 from pewlib import io
 from pewlib.calibration import Calibration
-from pewlib.config import Config
+from pewlib.config import Config, SpotConfig
 from pewlib.laser import Laser
 from pewlib.process.register import overlap_structured_arrays
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -709,7 +709,10 @@ class LaserTabWidget(TabViewWidget):
                 if mime.hasFormat("application/x-pew2config"):
                     with BytesIO(mime.data("application/x-pew2config")) as fp:
                         array = np.load(fp)
-                        config = Config.from_array(array)
+                        if array["spotsize"].size == 2:
+                            config = SpotConfig.from_array(array)
+                        else:
+                            config = Config.from_array(array)
                 else:
                     config = None
 
@@ -733,7 +736,10 @@ class LaserTabWidget(TabViewWidget):
             elif mime.hasFormat("application/x-pew2config"):
                 with BytesIO(mime.data("application/x-pew2config")) as fp:
                     array = np.load(fp)
-                    config = Config.from_array(array)
+                    if array["spotsize"].size == 2:
+                        config = SpotConfig.from_array(array)
+                    else:
+                        config = Config.from_array(array)
                 for item in items:
                     item.applyConfig(config)
             elif mime.hasFormat("application/x-pew2calibration"):
