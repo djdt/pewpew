@@ -1,4 +1,3 @@
-
 import numpy as np
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui
@@ -134,11 +133,11 @@ def generate_laser_image(
     laser: Laser,
     element: str,
     options: GraphicsOptions,
-    scalebar_alignment: QtCore.Qt.AlignmentFlag
-    | None = QtCore.Qt.AlignmentFlag.AlignTop
+    scalebar_alignment: (
+        QtCore.Qt.AlignmentFlag | None
+    ) = QtCore.Qt.AlignmentFlag.AlignTop
     | QtCore.Qt.AlignmentFlag.AlignRight,
-    label_alignment: QtCore.Qt.AlignmentFlag
-    | None = QtCore.Qt.AlignmentFlag.AlignTop
+    label_alignment: QtCore.Qt.AlignmentFlag | None = QtCore.Qt.AlignmentFlag.AlignTop
     | QtCore.Qt.AlignmentFlag.AlignLeft,
     colorbar: bool = True,
     raw: bool = False,
@@ -233,14 +232,13 @@ def generate_rgb_laser_image(
     colors: list[QtGui.QColor],
     ranges: list[tuple[float, float]],
     options: GraphicsOptions,
-    scalebar_alignment: QtCore.Qt.AlignmentFlag
-    | None = QtCore.Qt.AlignmentFlag.AlignTop
+    scalebar_alignment: (
+        QtCore.Qt.AlignmentFlag | None
+    ) = QtCore.Qt.AlignmentFlag.AlignTop
     | QtCore.Qt.AlignmentFlag.AlignRight,
-    label_alignment: QtCore.Qt.AlignmentFlag
-    | None = QtCore.Qt.AlignmentFlag.AlignTop
+    label_alignment: QtCore.Qt.AlignmentFlag | None = QtCore.Qt.AlignmentFlag.AlignTop
     | QtCore.Qt.AlignmentFlag.AlignLeft,
-    venn_alignment: QtCore.Qt.AlignmentFlag
-    | None = QtCore.Qt.AlignmentFlag.AlignTop
+    venn_alignment: QtCore.Qt.AlignmentFlag | None = QtCore.Qt.AlignmentFlag.AlignTop
     | QtCore.Qt.AlignmentFlag.AlignLeft,
     raw: bool = False,
     subtractive: bool = False,
@@ -248,6 +246,7 @@ def generate_rgb_laser_image(
     dpi: int = 96,
 ) -> QtGui.QImage:
     data = np.zeros((*laser.shape[:2], 3))
+
     for i, (element, color, (pmin, pmax)) in enumerate(zip(elements, colors, ranges)):
         if element not in laser.elements:
             continue
@@ -257,7 +256,7 @@ def generate_rgb_laser_image(
 
         # Normalise to range
         x = laser.get(element=element, calibrate=False, flat=True)
-        vmin, vmax = np.percentile(x, (pmin, pmax))
+        vmin, vmax = np.nanpercentile(x, (pmin, pmax))
         x = np.clip(x, vmin, vmax)
         if vmin != vmax:
             x = (x - vmin) / (vmax - vmin)
