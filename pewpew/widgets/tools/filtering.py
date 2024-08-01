@@ -253,6 +253,15 @@ class FilteringTool(ToolWidget):
             self.graphics.scene().removeItem(self.image)
 
         self.image = ScaledImageItem.fromArray(data, rect, table)
+        self.image.setFlag(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False
+        )
+        self.image.setFlag(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsFocusable, False
+        )
+        self.image.setFlag(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False
+        )
         self.graphics.scene().addItem(self.image)
 
         self.colorbar.updateTable(

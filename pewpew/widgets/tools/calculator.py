@@ -1,21 +1,23 @@
 import numpy as np
-
-from PySide6 import QtCore, QtGui, QtWidgets
-
 from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
+from PySide6 import QtCore, QtGui, QtWidgets
+
 from pewpew.graphics import colortable
-
+from pewpew.graphics.imageitems import LaserImageItem, ScaledImageItem
 from pewpew.lib import kmeans
-from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
-from pewpew.lib.pratt import BinaryFunction, UnaryFunction, TernaryFunction
-
-from pewpew.graphics.imageitems import ScaledImageItem, LaserImageItem
-
+from pewpew.lib.pratt import (
+    BinaryFunction,
+    Parser,
+    ParserException,
+    Reducer,
+    ReducerException,
+    TernaryFunction,
+    UnaryFunction,
+)
 from pewpew.widgets.ext import ValidColorLineEdit, ValidColorTextEdit
 from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.views import TabView
-
 
 
 def segment_image(x: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
@@ -385,7 +387,16 @@ class CalculatorTool(ToolWidget):
         if self.image is not None:
             self.graphics.scene().removeItem(self.image)
         self.image = ScaledImageItem.fromArray(data, rect, table)
+        self.image.setFlag(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False
+        )
+        self.image.setFlag(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsFocusable, False
+        )
+        self.image.setFlag(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False
+        )
         self.graphics.scene().addItem(self.image)
-        
+
         self.colorbar.updateTable(table, vmin, vmax, "")
         self.graphics.invalidateScene()

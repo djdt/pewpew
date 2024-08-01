@@ -1,27 +1,20 @@
 import copy
-import numpy as np
+from typing import Any
 
+import numpy as np
+from pewlib import Calibration
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewlib import Calibration
 from pewpew.graphics import colortable
 from pewpew.graphics.imageitems import LaserImageItem, ScaledImageItem, SnapImageItem
-
 from pewpew.graphics.items import ResizeableRectItem
-
-from pewpew.validators import DoubleSignificantFiguresDelegate
-
-from pewpew.widgets.dialogs import CalibrationCurveDialog
 from pewpew.models import CalibrationPointsTableModel
-from pewpew.widgets.modelviews import (
-    BasicTable,
-    BasicTableView,
-)
+from pewpew.validators import DoubleSignificantFiguresDelegate
+from pewpew.widgets.dialogs import CalibrationCurveDialog
+from pewpew.widgets.modelviews import BasicTable, BasicTableView
 from pewpew.widgets.views import TabView
 
 from .tool import ToolWidget
-
-from typing import Any
 
 
 class StandardsTool(ToolWidget):
@@ -173,6 +166,10 @@ class StandardsTool(ToolWidget):
         table = colortable.get_table(self.item.options.colortable)
 
         image = ScaledImageItem.fromArray(data, rect, table)
+        image.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
+        image.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsFocusable, False)
+        image.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
+
         self.graphics.scene().addItem(image)
         for item in self.levels:
             item.setParentItem(image)
@@ -452,7 +449,6 @@ class CalibrationRectItem(ResizeableRectItem):
             for item in self.parentItem().childItems()
             if isinstance(item, CalibrationRectItem) and item.isSelected()
         ]
-
 
     def mouseMoveEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if self.selected_edge is None:
