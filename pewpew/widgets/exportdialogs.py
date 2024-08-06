@@ -494,7 +494,6 @@ class ExportDialog(_ExportDialogBase):
             apparent_size.setWidth(int(apparent_size.width() * aspect))
         elif aspect < 1:
             apparent_size.setHeight(int(apparent_size.height() / aspect))
-        print(aspect, apparent_size, item.imageSize())
 
         if isinstance(item, RGBLaserImageItem):
             options = [RBGOptionsBox(apparent_size, item.current_elements)]
