@@ -142,6 +142,7 @@ def generate_laser_image(
     colorbar: bool = True,
     raw: bool = False,
     size: QtCore.QSize | None = None,
+    scale: float = 1.0,
     dpi: int = 96,
 ) -> QtGui.QImage:
     data = laser.get(element, calibrate=options.calibrate, flat=True)
@@ -219,7 +220,7 @@ def generate_laser_image(
     # Draw the scale-bar
     if scalebar_alignment is not None:
         x0, x1, y0, y1 = laser.extent
-        scale = (x1 - x0) / pixmap.width()
+        scale = (x1 - x0) / pixmap.width() / scale
         paint_scalebar(painter, xh * 10.0, text_bounds, scalebar_alignment, scale)
 
     painter.end()
@@ -243,6 +244,7 @@ def generate_rgb_laser_image(
     raw: bool = False,
     subtractive: bool = False,
     size: QtCore.QSize | None = None,
+    scale: float = 1.0,
     dpi: int = 96,
 ) -> QtGui.QImage:
     data = np.zeros((*laser.shape[:2], 3))
@@ -319,7 +321,7 @@ def generate_rgb_laser_image(
     # Draw the scale-bar
     if scalebar_alignment is not None:
         x0, x1, y0, y1 = laser.extent
-        scale = (x1 - x0) / image.rect().width()
+        scale = (x1 - x0) / image.rect().width() / scale
         paint_scalebar(painter, xh * 10.0, text_bounds, scalebar_alignment, scale)
 
     # Draw the color Venn

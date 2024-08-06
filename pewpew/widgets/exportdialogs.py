@@ -619,6 +619,7 @@ class ExportDialog(_ExportDialogBase):
             assert graphics_options is not None
             if isinstance(option, RBGOptionsBox):
                 size = option.imageSize()
+                scale = option.scale()
                 if any(x in laser.elements for x in option.elements()):
                     image = generate_rgb_laser_image(
                         laser,
@@ -631,14 +632,16 @@ class ExportDialog(_ExportDialogBase):
                         venn_alignment=option.vennAlignment(),
                         raw=option.isRaw(),
                         size=size,
+                        scale=scale,
                         dpi=option.dpi(),
                     )
                     image.setDotsPerMeterX(option.dpi() * 39.37007874)
                     image.setDotsPerMeterY(option.dpi() * 39.37007874)
                     image.save(str(path.absolute()))
             else:
+                size = option.imageSize()
+                scale = option.scale()
                 if element is not None and element in laser.elements:
-                    size = option.imageSize()
                     image = generate_laser_image(
                         laser,
                         element,
@@ -648,6 +651,7 @@ class ExportDialog(_ExportDialogBase):
                         colorbar=option.useColorbar(),
                         raw=option.isRaw(),
                         size=size,
+                        scale=scale,
                         dpi=option.dpi(),
                     )
                     image.setDotsPerMeterX(option.dpi() * 39.37007874)
