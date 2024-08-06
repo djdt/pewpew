@@ -228,6 +228,12 @@ class RBGOptionsBox(OptionsBox):
     def scale(self) -> int:
         return self.spin_scale.value()
 
+    def imageSize(self) -> QtCore.QSize:
+        return QtCore.QSize(
+            self.base_size.width() * self.spin_scale.value(),
+            self.base_size.height() * self.spin_scale.value(),
+        )
+
     def dpi(self) -> int:
         return int(self.le_dpi.text())
 
