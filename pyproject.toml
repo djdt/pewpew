@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pewpew"
-version = "1.6.0"
+version = "1.6.1"
 dependencies = [
     "numpy>=1.22,<2.0",
     "pewlib>=0.9.0",
