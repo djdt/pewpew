@@ -40,9 +40,9 @@ def test_calibration_chart(qtbot: QtBot):
     chart.show()
     qtbot.waitExposed(chart)
 
-    assert not chart.label_series.isVisible()
+    assert not chart.label_series.pointLabelsVisible()
     chart.showPointPosition(QtCore.QPointF(0.0, 1.0), True)
-    assert chart.label_series.isVisible()
+    assert chart.label_series.pointLabelsVisible()
 
 
 def test_colocal_chart(qtbot: QtBot):

@@ -105,6 +105,12 @@ class PngOptionsBox(OptionsBox):
         self.label_x.setText(f"{self.base_size.width() * self.spin_scale.value()}")
         self.label_y.setText(f"{self.base_size.height() * self.spin_scale.value()}")
 
+    def imageSize(self) -> QtCore.QSize:
+        return QtCore.QSize(
+            self.base_size.width() * self.spin_scale.value(),
+            self.base_size.height() * self.spin_scale.value(),
+        )
+
     def scale(self) -> int:
         return self.spin_scale.value()
 
@@ -482,8 +488,16 @@ class ExportDialog(_ExportDialogBase):
         item: LaserImageItem,
         parent: QtWidgets.QWidget | None = None,
     ):
+        aspect = item.pixelSize().width() / item.pixelSize().height()
+        apparent_size = item.imageSize()
+        if aspect > 1:
+            apparent_size.setWidth(int(apparent_size.width() * aspect))
+        elif aspect < 1:
+            apparent_size.setHeight(int(apparent_size.height() / aspect))
+        print(aspect, apparent_size, item.imageSize())
+
         if isinstance(item, RGBLaserImageItem):
-            options = [RBGOptionsBox(item.imageSize(), item.current_elements)]
+            options = [RBGOptionsBox(apparent_size, item.current_elements)]
         else:
             spacing = (
                 item.laser.config.get_pixel_width(),
@@ -498,7 +512,7 @@ class ExportDialog(_ExportDialogBase):
                     allow_export_all=False,
                 ),
                 OptionsBox("CSV Document", ".csv"),
-                PngOptionsBox(item.imageSize()),
+                PngOptionsBox(apparent_size),
                 VtiOptionsBox(spacing),
             ]
         super().__init__(options, parent)
@@ -599,7 +613,7 @@ class ExportDialog(_ExportDialogBase):
         elif option.ext == ".png":
             assert graphics_options is not None
             if isinstance(option, RBGOptionsBox):
-                size = QtCore.QSize(laser.shape[1], laser.shape[0]) * option.scale()
+                size = option.imageSize()
                 if any(x in laser.elements for x in option.elements()):
                     image = generate_rgb_laser_image(
                         laser,
@@ -619,7 +633,7 @@ class ExportDialog(_ExportDialogBase):
                     image.save(str(path.absolute()))
             else:
                 if element is not None and element in laser.elements:
-                    size = QtCore.QSize(laser.shape[1], laser.shape[0]) * option.scale()
+                    size = option.imageSize()
                     image = generate_laser_image(
                         laser,
                         element,

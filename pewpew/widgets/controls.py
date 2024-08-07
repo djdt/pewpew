@@ -162,9 +162,9 @@ class RGBLaserControl(QtWidgets.QWidget):
         # self.layout().addWidget(self.alpha, 0, QtCore.Qt.AlignRight)
         layout = QtWidgets.QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.elements, 0, QtCore.Qt.AlignRight)
         layout.addWidget(self.colorrange, 0)
         layout.addWidget(self.button_color, 0, QtCore.Qt.AlignLeft)
+        layout.addWidget(self.elements, 0, QtCore.Qt.AlignRight)
         self.setLayout(layout)
 
     def getColor(self) -> QtGui.QColor:
