@@ -228,6 +228,12 @@ class RBGOptionsBox(OptionsBox):
     def scale(self) -> int:
         return self.spin_scale.value()
 
+    def imageSize(self) -> QtCore.QSize:
+        return QtCore.QSize(
+            self.base_size.width() * self.spin_scale.value(),
+            self.base_size.height() * self.spin_scale.value(),
+        )
+
     def dpi(self) -> int:
         return int(self.le_dpi.text())
 
@@ -494,7 +500,6 @@ class ExportDialog(_ExportDialogBase):
             apparent_size.setWidth(int(apparent_size.width() * aspect))
         elif aspect < 1:
             apparent_size.setHeight(int(apparent_size.height() / aspect))
-        print(aspect, apparent_size, item.imageSize())
 
         if isinstance(item, RGBLaserImageItem):
             options = [RBGOptionsBox(apparent_size, item.current_elements)]
@@ -614,6 +619,7 @@ class ExportDialog(_ExportDialogBase):
             assert graphics_options is not None
             if isinstance(option, RBGOptionsBox):
                 size = option.imageSize()
+                scale = option.scale()
                 if any(x in laser.elements for x in option.elements()):
                     image = generate_rgb_laser_image(
                         laser,
@@ -626,14 +632,16 @@ class ExportDialog(_ExportDialogBase):
                         venn_alignment=option.vennAlignment(),
                         raw=option.isRaw(),
                         size=size,
+                        scale=scale,
                         dpi=option.dpi(),
                     )
                     image.setDotsPerMeterX(option.dpi() * 39.37007874)
                     image.setDotsPerMeterY(option.dpi() * 39.37007874)
                     image.save(str(path.absolute()))
             else:
+                size = option.imageSize()
+                scale = option.scale()
                 if element is not None and element in laser.elements:
-                    size = option.imageSize()
                     image = generate_laser_image(
                         laser,
                         element,
@@ -643,6 +651,7 @@ class ExportDialog(_ExportDialogBase):
                         colorbar=option.useColorbar(),
                         raw=option.isRaw(),
                         size=size,
+                        scale=scale,
                         dpi=option.dpi(),
                     )
                     image.setDotsPerMeterX(option.dpi() * 39.37007874)
