@@ -19,6 +19,7 @@ class GraphicsOptions(QtCore.QObject):
     colortables = {
         "balance": "Blue to red diverging colormap from cmocean.",
         "cividis": "Perceptually uniform colormap.",
+        "cubehelix": "Perceptually uniform colormap, Green, D. A. 2011.",
         "curl": "Green to red diverging colormap from cmocean.",
         "grey": "Simple black to white gradient.",
         "magma": "Perceptually uniform colormap.",
