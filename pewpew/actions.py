@@ -24,6 +24,7 @@ def qActionGroup(
     actions: list[str],
     func: Callable,
     statuses: list[str] | None = None,
+    icons: list[QtGui.QIcon] | None = None,
     checked: str | None = None,
 ) -> QtGui.QActionGroup:
     """Create a QActionGroup.
@@ -39,6 +40,8 @@ def qActionGroup(
         action = group.addAction(name)
         if statuses is not None:
             action.setStatusTip(statuses[i])
+        if icons is not None:
+            action.setIcon(icons[i])
         if checked is not None:
             action.setCheckable(True)
             if name == checked:
