@@ -14,6 +14,7 @@ from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.laser import LaserTabView
 from pewpew.widgets.wizards import ImportWizard, LaserLogImportWizard, SpotImportWizard
+from pewpew.graphics.colortable import get_icon
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +137,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionGroupColortable,
             checked=self.tabview.options.colortable,
             statuses=list(self.tabview.options.colortables.values()),
+            icons=[get_icon(c) for c in self.tabview.options.colortables.keys()],
         )
 
         self.action_help = qAction(
