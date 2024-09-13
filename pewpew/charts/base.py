@@ -1,135 +1,215 @@
-from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6 import QtCharts
-
 import numpy as np
+import pyqtgraph
+from PySide6 import QtCore, QtGui, QtWidgets
+from pathlib import Path
+
+from pewpew.actions import qAction
 
 
-
-class NiceValueAxis(QtCharts.QValueAxis):
-    """A chart axis that uses easy to read tick intervals.
-
-    Uses *at least* 'nticks' ticks, may be more.
-    """
-
-    nicenums = [1.0, 1.5, 2.0, 2.5, 3.0, 5.0, 7.5]
-
-    def __init__(self, nticks: int = 6, parent: QtCore.QObject | None = None):
-        super().__init__(parent)
-        self.nticks = nticks
-
-        self.setLabelFormat("%.4g")
-        self.setTickType(QtCharts.QValueAxis.TicksDynamic)
-        self.setTickAnchor(0.0)
-        self.setTickInterval(1e3)
-
-    def setRange(self, amin: float, amax: float) -> None:
-        self.fixValues(amin, amax)
-        super().setRange(amin, amax)
-
-    def fixValues(self, amin: float, amax: float) -> None:
-        delta = amax - amin
-
-        interval = delta / self.nticks
-        pwr = 10 ** int(np.log10(interval) - (1 if interval < 1.0 else 0))
-        interval = interval / pwr
-
-        idx = np.searchsorted(NiceValueAxis.nicenums, interval)
-        idx = min(idx, len(NiceValueAxis.nicenums) - 1)
-
-        interval = NiceValueAxis.nicenums[idx] * pwr
-        anchor = int(amin / interval) * interval
-
-        self.setTickAnchor(anchor)
-        self.setTickInterval(interval)
-
-
-class BaseChart(QtCharts.QChartView):
-    """QChartView with basic mouse naviagtion and styling.
-
-    Valid keys for 'theme' are "background", "axis", "grid", "title", "text".
-    A context menu implements copying the chart to the system clipboard and reseting the chart view.
-
-    Args:
-        chart: chart to display
-        theme: dict of theme keys and colors
-        allow_navigation: use mouse navigation
-        parent: parent widget
-    """
-
+class SinglePlotGraphicsView(pyqtgraph.GraphicsView):
     def __init__(
         self,
-        chart: QtCharts.QChart,
-        theme: dict[str, QtGui.QColor],
-        allow_navigation: bool = False,
+        title: str,
+        xlabel: str = "",
+        ylabel: str = "",
+        xunits: str | None = None,
+        yunits: str | None = None,
+        viewbox: pyqtgraph.ViewBox | None = None,
         parent: QtWidgets.QWidget | None = None,
     ):
-        self.theme = theme
-        self.allow_navigation = allow_navigation
+        super().__init__(background="white", parent=parent)
 
-        self.nav_pos: QtCore.QPointF | None = None
+        pen = QtGui.QPen(QtCore.Qt.black, 1.0)
+        pen.setCosmetic(True)
 
-        chart.setBackgroundBrush(QtGui.QBrush(self.theme["background"]))
-        chart.setBackgroundPen(QtGui.QPen(self.theme["background"]))
-        super().__init__(chart, parent)
+        self.export_data: dict[str, np.ndarray] = {}
 
-    def addAxis(
-        self, axis: QtCharts.QAbstractAxis, alignment: QtCore.Qt.Alignment
-    ) -> None:
-        axis.setMinorGridLineVisible(True)
-        axis.setTitleBrush(QtGui.QBrush(self.theme["title"]))
-        axis.setGridLinePen(QtGui.QPen(self.theme["grid"], 1.0))
-        axis.setMinorGridLinePen(QtGui.QPen(self.theme["grid"], 0.5))
-        axis.setLinePen(QtGui.QPen(self.theme["axis"], 1.0))
-        axis.setLabelsColor(self.theme["text"])
-        axis.setShadesColor(self.theme["title"])
+        self.xaxis = pyqtgraph.AxisItem("bottom", pen=pen, textPen=pen, tick_pen=pen)
+        self.xaxis.setLabel(xlabel, units=xunits)
 
-        if isinstance(axis, QtCharts.QValueAxis):
-            axis.setTickCount(6)
-        self.chart().addAxis(axis, alignment)
+        self.yaxis = pyqtgraph.AxisItem("left", pen=pen, textPen=pen, tick_pen=pen)
+        self.yaxis.setLabel(ylabel, units=yunits)
 
-    def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
-        if event.button() == QtCore.Qt.MiddleButton and self.allow_navigation:
-            self.nav_pos = event.position()
-        else:
-            super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
-        if self.nav_pos is not None and self.allow_navigation:
-            pos = event.position()
-            offset = self.nav_pos - pos
-            self.chart().scroll(offset.x(), -offset.y())
-            self.nav_pos = event.position()
-        else:
-            super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
-        self.nav_pos = None
-        super().mouseReleaseEvent(event)
-
-    def wheelEvent(self, event: QtGui.QMouseEvent) -> None:
-        if self.allow_navigation:
-            scale = pow(2, event.angleDelta().y() / 360.0)
-            self.chart().zoom(scale)
-        super().wheelEvent(event)
-
-    def contextMenuEvent(self, event: QtCore.QEvent) -> None:
-        action_copy_image = QtGui.QAction(
-            QtGui.QIcon.fromTheme("insert-image"), "Copy To Clipboard", self
+        self.plot = pyqtgraph.PlotItem(
+            title=title,
+            name="central_plot",
+            axisItems={"bottom": self.xaxis, "left": self.yaxis},
+            viewBox=viewbox,
+            parent=parent,
         )
-        action_copy_image.setStatusTip("Copy the graphics view to the clipboard.")
-        action_copy_image.triggered.connect(self.copyToClipboard)
-
-        action_reset_zoom = QtGui.QAction(
-            QtGui.QIcon.fromTheme("zoom-original"), "Reset Zoom", self
+        # Common options
+        self.plot.setMenuEnabled(False)
+        self.plot.hideButtons()
+        self.plot.addLegend(
+            offset=(-5, 5), verSpacing=-5, colCount=1, labelTextColor="black"
         )
-        action_reset_zoom.setStatusTip("Reset the chart to the orignal view.")
-        action_reset_zoom.triggered.connect(self.chart().zoomReset)
 
-        menu = QtWidgets.QMenu(self.parent())
-        menu.addAction(action_copy_image)
-        menu.addAction(action_reset_zoom)
+        self.setCentralWidget(self.plot)
+
+        self.action_copy_image = qAction(
+            "insert-image",
+            "Copy Image to Clipboard",
+            "Copy an image of the plot to the clipboard.",
+            self.copyToClipboard,
+        )
+
+        self.action_show_legend = qAction(
+            "view-hidden",
+            "Hide Legend",
+            "Toggle visibility of the legend.",
+            lambda: None,
+        )
+
+        self.action_export_data = qAction(
+            "document-export",
+            "Export Data",
+            "Save currently loaded data to file.",
+            self.exportData,
+        )
+
+        self.context_menu_actions: list[QtGui.QAction] = []
+
+    def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(self.action_copy_image)
+        if self.plot.legend is not None:
+            if self.plot.legend.isVisible():
+                self.action_show_legend.setIcon(QtGui.QIcon.fromTheme("view-hidden"))
+                self.action_show_legend.setText("Hide Legend")
+                self.action_show_legend.triggered.connect(
+                    lambda: self.plot.legend.setVisible(False)
+                )
+            else:
+                self.action_show_legend.setIcon(QtGui.QIcon.fromTheme("view-visible"))
+                self.action_show_legend.setText("Show Legend")
+                self.action_show_legend.triggered.connect(
+                    lambda: self.plot.legend.setVisible(True)
+                )
+
+            menu.addAction(self.action_show_legend)
+            if self.readyForExport():
+                menu.addSeparator()
+                menu.addAction(self.action_export_data)
+
+            if len(self.context_menu_actions) > 0:
+                menu.addSeparator()
+            for action in self.context_menu_actions:
+                menu.addAction(action)
+
+        event.accept()
         menu.popup(event.globalPos())
 
     def copyToClipboard(self) -> None:
-        """Copy image of the current chart to the system clipboard."""
-        QtWidgets.QApplication.clipboard().setPixmap(self.grab(self.viewport().rect()))
+        """Copy current view to system clipboard."""
+        pixmap = QtGui.QPixmap(self.viewport().size())
+        painter = QtGui.QPainter(pixmap)
+        self.render(painter)
+        painter.end()
+        QtWidgets.QApplication.clipboard().setPixmap(pixmap)  # type: ignore
+
+    def clear(self) -> None:
+        self.plot.legend.clear()
+        self.plot.clear()
+        self.export_data.clear()
+
+    def dataBounds(self) -> tuple[float, float, float, float]:
+        items = [item for item in self.plot.listDataItems() if item.isVisible()]
+        bx = np.array([item.dataBounds(0) for item in items], dtype=float)
+        by = np.array([item.dataBounds(1) for item in items], dtype=float)
+        bx, by = np.nan_to_num(bx), np.nan_to_num(by)
+        # Just in case
+        if len(bx) == 0 or len(by) == 0:
+            return (0, 1, 0, 1)
+        return (
+            np.amin(bx[:, 0]),
+            np.amax(bx[:, 1]),
+            np.amin(by[:, 0]),
+            np.amax(by[:, 1]),
+        )
+
+    def dataRect(self) -> QtCore.QRectF:
+        x0, x1, y0, y1 = self.dataBounds()
+        return QtCore.QRectF(x0, y0, x1 - x0, y1 - y0)
+
+    def exportData(self) -> None:
+        dir = QtCore.QSettings().value("RecentFiles/1/path", None)
+        dir = str(Path(dir).parent) if dir is not None else ""
+        path, filter = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            "Export Data",
+            dir,
+            "CSV Documents(*.csv);;Numpy archives(*.npz);;All Files(*)",
+        )
+        if path == "":
+            return
+
+        path = Path(path)
+
+        filter_suffix = filter[filter.rfind(".") : -1]
+        if filter_suffix != "":  # append suffix if missing
+            path = path.with_suffix(filter_suffix)
+
+        data = self.dataForExport()
+        names = list(data.keys())
+
+        if path.suffix.lower() == ".csv":
+            header = "\t".join(name for name in names)
+            stack = np.full(
+                (max(d.size for d in data.values()), len(data)),
+                np.nan,
+                dtype=np.float32,
+            )
+            for i, x in enumerate(data.values()):
+                stack[: x.size, i] = x
+            np.savetxt(
+                path, stack, delimiter="\t", comments="", header=header, fmt="%.16g"
+            )
+        elif path.suffix.lower() == ".npz":
+            np.savez_compressed(
+                path,
+                **{k: v for k, v in data.items()},
+            )
+        else:
+            raise ValueError("dialogExportData: file suffix must be '.npz' or '.csv'.")
+
+    def dataForExport(self) -> dict[str, np.ndarray]:
+        return self.export_data
+
+    def readyForExport(self) -> bool:
+        return len(self.export_data) > 0
+
+    def setLimits(self, **kwargs) -> None:
+        self.plot.setLimits(**kwargs)
+
+    def setDataLimits(
+        self,
+        xMin: float | None = None,
+        xMax: float | None = None,
+        yMin: float | None = None,
+        yMax: float | None = None,
+    ) -> None:
+        """Set all plots limits in range 0.0 - 1.0."""
+        bounds = self.dataBounds()
+        dx = bounds[1] - bounds[0]
+        dy = bounds[3] - bounds[2]
+        limits = {}
+        if xMin is not None:
+            limits["xMin"] = bounds[0] + dx * xMin
+        if xMax is not None:
+            limits["xMax"] = bounds[0] + dx * xMax
+        if yMin is not None:
+            limits["yMin"] = bounds[2] + dy * yMin
+        if yMax is not None:
+            limits["yMax"] = bounds[2] + dy * yMax
+        self.setLimits(**limits)
+
+    def zoomReset(self) -> None:
+        x, y = self.plot.vb.state["autoRange"][0], self.plot.vb.state["autoRange"][1]
+        self.plot.autoRange()
+        self.plot.enableAutoRange(x=x, y=y)
+
+        # Reset the legend postion
+        if self.plot.legend is not None:
+            self.plot.legend.anchor(
+                QtCore.QPointF(1, 0), QtCore.QPointF(1, 0), QtCore.QPointF(-10, 10)
+            )
