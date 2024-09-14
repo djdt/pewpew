@@ -7,6 +7,7 @@ from pewlib.io.imzml import ImzML
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from pewpew.charts.spectra import SpectraView
 from pewpew.graphics.colortable import get_table
 from pewpew.graphics.imageitems import ScaledImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
@@ -97,20 +98,28 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
 
         self.graphics = LaserGraphicsView(options, parent=self)
         self.graphics.setMinimumSize(QtCore.QSize(640, 480))
-        self.graphics.show()
 
         self.item = ScaledImageItem(QtGui.QImage(), QtCore.QRectF())
         self.graphics.scene().addItem(self.item)
+
+        self.spectra = SpectraView()
 
         layout_left = QtWidgets.QVBoxLayout()
         layout_left.addWidget(self.mass_list, 1)
         layout_left.addWidget(self.mass_width, 0)
 
+        layout_right  = QtWidgets.QVBoxLayout()
+        layout_right.addWidget(self.graphics, 1)
+        layout_right.addWidget(self.spectra, 0)
+
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(layout_left, 0)
-        layout.addWidget(self.graphics, 1)
+        layout.addLayout(layout_right, 1)
 
         self.setLayout(layout)
+        self.initializePage()
+
+    def initializePage(self) -> None:
         self.drawTIC()
 
     def drawTIC(self) -> None:
@@ -125,10 +134,7 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         self.graphics.scene().removeItem(self.item)
         x = self.imzml.extract_tic()
         x = (x - x.min()) / (x.max() - x.min())
-        import matplotlib.pyplot as plt
 
-        plt.imshow(x)
-        plt.show()
         self.item = ScaledImageItem.fromArray(
             x, rect, list(get_table(self.graphics.options.colortable))
         )
