@@ -76,7 +76,6 @@ class SinglePlotGraphicsView(pyqtgraph.GraphicsView):
             name="central_plot",
             axisItems={"bottom": self.xaxis, "left": self.yaxis},
             viewBox=viewbox,
-            parent=parent,
         )
         # Common options
         self.plot.setMenuEnabled(False)
