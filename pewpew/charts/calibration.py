@@ -18,6 +18,9 @@ class CalibrationView(SinglePlotGraphicsView):
         self.plot.setMouseEnabled(x=False, y=False)
         self.plot.enableAutoRange(x=True, y=True)
 
+    def sizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(480, 480)
+
     def dataForExport(self) -> dict[str, np.ndarray]:
         if self.points is None:
             raise ValueError("no data for export")
