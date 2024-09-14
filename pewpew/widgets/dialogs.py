@@ -14,8 +14,8 @@ from pewlib.srr import SRRConfig
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction, qToolButton
-from pewpew.charts.calibration import CalibrationChart
-from pewpew.charts.colocal import ColocalisationChart
+from pewpew.charts.calibration import CalibrationView
+from pewpew.charts.colocal import ColocalisationView
 from pewpew.charts.histogram import HistogramChart
 from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.lib import kmeans
@@ -411,7 +411,8 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
     ):
         super().__init__(parent)
         self.setWindowTitle("Calibration Curve")
-        self.chart = CalibrationChart(title, parent=self)
+        self.chart = CalibrationView(parent=self)
+        self.chart.plot.setTitle(title)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.chart)
@@ -564,7 +565,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.data = data
         self.mask = mask
 
-        self.chart = ColocalisationChart()
+        self.chart = ColocalisationView()
 
         self.combo_name1 = QtWidgets.QComboBox()
         self.combo_name1.addItems(data.dtype.names)

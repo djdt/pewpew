@@ -3,7 +3,7 @@ import pyqtgraph
 from pewlib.calibration import weighted_linreg
 from PySide6 import QtCore, QtGui
 
-from pewpew.graphs.base import SinglePlotGraphicsView
+from pewpew.charts.base import SinglePlotGraphicsView
 
 
 class CalibrationView(SinglePlotGraphicsView):
@@ -16,6 +16,16 @@ class CalibrationView(SinglePlotGraphicsView):
         self.points = None
         self.plot.setMouseEnabled(x=False, y=False)
         self.plot.enableAutoRange(x=True, y=True)
+
+    def dataForExport(self) -> dict[str, np.ndarray]:
+        if self.points is None:
+            raise ValueError("no data for export")
+
+        x, y = self.points.getData()
+        return {"concentration": x, "response": y}
+
+    def readyForExport(self) -> bool:
+        return self.points is not None
 
     def drawPoints(
         self,
@@ -51,6 +61,9 @@ class CalibrationView(SinglePlotGraphicsView):
     def drawTrendline(
         self, weighting: str = "none", pen: QtGui.QPen | None = None
     ) -> None:
+        if self.points is None:
+            return
+
         if pen is None:
             pen = QtGui.QPen(QtCore.Qt.red, 1.0)
             pen.setCosmetic(True)
