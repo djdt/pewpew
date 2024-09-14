@@ -421,20 +421,11 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
         self.updateChart(calibration)
 
     def updateChart(self, calibration: Calibration) -> None:
-        self.chart.xaxis.setTitleText(calibration.unit)
+        self.chart.xaxis.setLabel(calibration.unit)
         no_nans = ~np.isnan(calibration.points).any(axis=1)
         points = calibration.points[no_nans]
-        self.chart.setPoints(points)
-        self.chart.setLine(
-            0.0,
-            np.nanmax(calibration.x) * 1.1,
-            calibration.gradient,
-            calibration.intercept,
-        )
-        text = f"{calibration.gradient:.4f} × x + {calibration.intercept:.4f}"
-        if calibration.rsq is not None:
-            text += f"\nr² = {calibration.rsq:.4f}"
-        self.chart.setText(text)
+        self.chart.drawPoints(points)
+        self.chart.drawTrendline()
 
 
 class ColorRangeDialog(ApplyDialog):
