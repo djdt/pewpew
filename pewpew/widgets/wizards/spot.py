@@ -1,5 +1,4 @@
 import logging
-import time
 from importlib.metadata import version
 from pathlib import Path
 
@@ -12,7 +11,7 @@ from pewlib.process.calc import view_as_blocks
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.charts.colors import sequential
-from pewpew.charts.signal import SignalChart
+from pewpew.charts.signal import SignalView
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.validators import DecimalValidator, DecimalValidatorNoZero, OddIntValidator
