@@ -34,6 +34,7 @@ def array_to_image(array: np.ndarray) -> QtGui.QImage:
     else:
         raise ValueError(f"Unknown image format for {array.dtype}.")
 
+    array = np.ascontiguousarray(array)
     image = QtGui.QImage(
         array.data, array.shape[1], array.shape[0], array.strides[0], image_format
     )
