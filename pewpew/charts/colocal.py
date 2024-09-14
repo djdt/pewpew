@@ -11,9 +11,13 @@ class ColocalisationView(SinglePlotGraphicsView):
         parent: pyqtgraph.GraphicsWidget | None = None,
     ):
         super().__init__("Calibration", "Concentration", "Response", parent=parent)
+        self.setMinimumSize(320, 320)
 
-        self.plot.setMouseEnabled(x=False, y=False)
+        # self.plot.setMouseEnabled(x=False, y=False)
         self.plot.enableAutoRange(x=True, y=True)
+
+    def sizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(640, 640)
 
     def drawPoints(
         self,
@@ -28,9 +32,6 @@ class ColocalisationView(SinglePlotGraphicsView):
             pen = QtGui.QPen(QtCore.Qt.black, 1.0)
             pen.setCosmetic(True)
 
-        if self.points is not None:
-            self.plot.removeItem(self.points)
-
         points = pyqtgraph.ScatterPlotItem(
             x, y, symbol="o", size=10, pen=pen, brush=brush
         )
@@ -42,7 +43,7 @@ class ColocalisationView(SinglePlotGraphicsView):
             pen = QtGui.QPen(QtCore.Qt.red, 1.0)
             pen.setCosmetic(True)
 
-        line = pyqtgraph.PlotCurveItem([b, 0.0], [1.0, a + b], pen=pen)
+        line = pyqtgraph.PlotCurveItem([b, 1.0], [0.0, a + b], pen=pen)
         self.plot.addItem(line)
 
     def drawThresholds(
@@ -50,10 +51,10 @@ class ColocalisationView(SinglePlotGraphicsView):
     ) -> None:
         """Draw horizontal and vertical lines at 't1' and 't2'."""
         if pen is None:
-            pen = QtGui.QPen(QtCore.Qt.black, 1.0, QtCore.Qt.DashedLine)
+            pen = QtGui.QPen(QtCore.Qt.black, 1.0, QtCore.Qt.PenStyle.DashLine)
             pen.setCosmetic(True)
 
-        line = pyqtgraph.PlotCurveItem([t1, 0.0], [t1, 1.0], pen=pen)
+        line = pyqtgraph.PlotCurveItem([t1, t1], [0.0, 1.0], pen=pen)
         self.plot.addItem(line)
-        line = pyqtgraph.PlotCurveItem([0.0, t2], [1.0, t2], pen=pen)
+        line = pyqtgraph.PlotCurveItem([0.0, 1.0], [t2, t2], pen=pen)
         self.plot.addItem(line)

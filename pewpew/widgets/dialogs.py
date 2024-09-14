@@ -632,6 +632,9 @@ class ColocalisationDialog(QtWidgets.QDialog):
         if self.mask is not None:
             x, y = x[self.mask], y[self.mask]
 
+        x = x[~np.isnan(x)]
+        y = y[~np.isnan(y)]
+
         x, y = normalise(x), normalise(y)
 
         # Pearson
@@ -661,12 +664,13 @@ class ColocalisationDialog(QtWidgets.QDialog):
 
         self.button_p.setEnabled(True)
 
+        self.chart.clear()
         self.chart.drawPoints(x, y)
         self.chart.drawLine(a, b)
         self.chart.drawThresholds(t1, t2)
 
-        self.chart.xaxis.setTitleText(n1)
-        self.chart.yaxis.setTitleText(n2)
+        self.chart.xaxis.setLabel(n1)
+        self.chart.yaxis.setLabel(n2)
 
     def calculatePearsonsProbablity(self) -> None:
         x = self.data[self.combo_name1.currentText()]
