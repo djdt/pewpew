@@ -1,4 +1,5 @@
 import logging
+import re
 import sys
 from pathlib import Path
 from types import TracebackType
@@ -8,15 +9,17 @@ from pewlib.io.laser import is_nwi_laser_log
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction, qActionGroup
+from pewpew.graphics.colortable import get_icon
 from pewpew.help import HelpDialog
 from pewpew.log import LoggingDialog
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.laser import LaserTabView
 from pewpew.widgets.wizards import ImportWizard, LaserLogImportWizard, SpotImportWizard
-from pewpew.graphics.colortable import get_icon
 
 logger = logging.getLogger(__name__)
+
+re_strip_amp = re.compile("\\&(?!\\&)")
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -160,9 +163,10 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_open.setShortcut("Ctrl+O")
 
+        re
         self.action_open_recent = QtGui.QActionGroup(self)
         self.action_open_recent.triggered.connect(
-            lambda a: self.tabview.openDocument(a.text())
+            lambda a: self.tabview.openDocument(re_strip_amp.sub("", a.text()))
         )
 
         self.action_process = qAction(
