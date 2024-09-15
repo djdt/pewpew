@@ -4,7 +4,7 @@ from xml.etree import ElementTree
 
 import numpy as np
 from pewlib.config import SpotConfig
-from pewlib.io.imzml import ImzML
+from pewlib.io.imzml import MZML_NS, ImzML, ParamGroup, ScanSettings, Spectrum
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -106,76 +106,57 @@ class ImzMLImportPage(QtWidgets.QWizardPage):
         ):
             self.path_binary.addPath(self.path.path.with_suffix(".ibd"))
 
+    def validatePage(self) -> bool:
+        file_size = self.path.path.stat().st_size
+        dlg = QtWidgets.QProgressDialog("Parsing imzML", "Cancel", 0, file_size)
+        dlg.setWindowTitle("imzML Import")
+        dlg.setMinimumWidth(320)
+        dlg.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
 
-    @classmethod
-    def from_file_iterative(
-        cls,
-        path: Path | str,
-        external_binary: Path | str,
-        scan_number: int = 1,
-        callback: None = None,
-    ) -> "ImzML":
-        iter = ElementTree.iterparse(path, events=("end",))
+        spectra: dict[tuple[int, int], Spectrum] = {}
 
-        spectra = {}
-
+        fp = self.path.path.open()
+        iter = ElementTree.iterparse(fp, events=("end",))
         for event, elem in iter:
+            if dlg.wasCanceled():
+                return False
             if elem.tag == f"{{{MZML_NS['mz']}}}scanSettingsList":
-                scans = elem.findall("mz:scanSettings", MZML_NS)
-                scan_settings = ScanSettings.from_xml_element(scans[scan_number - 1])
+                scan = elem.find("mz:scanSettings", MZML_NS)
+                scan_settings = ScanSettings.from_xml_element(scan)
                 elem.clear()
             elif elem.tag == f"{{{MZML_NS['mz']}}}referenceableParamGroup":
                 if (
                     elem.find(
-                        f"mz:cvParam[@accession='{CV_PARAMGROUP['MZ_ARRAY']}']", MZML_NS
+                        f"mz:cvParam[@accession='{ParamGroup.mz_array_cv}']", MZML_NS
                     )
                     is not None
                 ):
-                    mz_group = ParamGroup.from_xml_element(elem)
+                    mz_params = ParamGroup.from_xml_element(elem)
                 elif (
                     elem.find(
-                        f"mz:cvParam[@accession='{CV_PARAMGROUP['INTENSITY_ARRAY']}']",
+                        f"mz:cvParam[@accession='{ParamGroup.intensity_array_cv}']",
                         MZML_NS,
                     )
                     is not None
                 ):
-                    intensity_group = ParamGroup.from_xml_element(elem)
+                    intensity_params = ParamGroup.from_xml_element(elem)
                 elem.clear()
             elif elem.tag == f"{{{MZML_NS['mz']}}}spectrum":
                 spectrum = Spectrum.from_xml_element(elem)
                 spectra[(spectrum.x, spectrum.y)] = spectrum
+
+                # Update dialog on spectrum ends
+                dlg.setValue(fp.tell())
                 elem.clear()
-                if callback is not None:
-                    if callback():
-                        return
-        return cls(
+
+        imzml = ImzML(
             scan_settings,
-            mz_group,
-            intensity_group,
+            mz_params,
+            intensity_params,
             spectra,
-            external_binary=external_binary,
+            external_binary=self.path_binary.path,
         )
-
-    def validatePage(self) -> bool:
-        file_size = self.path.path.stat().st_size
-        dlg = QtWidgets.QProgressDialog("Parsing imzML", "Cancel", 0, file_size)
-        dlg.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
-
-        """Callback."""
-        fp = self.path.path.open()
-        def callback():
-            dlg.setValue(fp.tell())
-            return dlg.wasCanceled()
-
-        imzml = ImzML.from_file_iterative(fp, self.path_binary.path, callback=callback)
-        # print("EXITING LOOP", flush=True)
-        # dlg.setValue(dlg.maximum())
-        # imzml = ImzML.from_etree(iter.root, self.path_binary.path)
-        # ElementTree.parse(self.path.path)
-        # imzml = ImzML.from_file(self.path.path, self.path_binary.path)
-        t1= time.time()
-        print("IMZML FIN", t1-t0, flush=True)
-        self.setField("imzML", imzml)
+        self.setField("imzml", imzml)
         return True
 
     def getImzML(self) -> ImzML:
@@ -228,25 +209,20 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
     def initializePage(self) -> None:
         self.drawTIC()
 
-    def drawTIC(self) -> None:
+    def drawImage(self, image: np.ndarray | ClickableImageItem) -> None:
         if self.image is not None:
             self.graphics.scene().removeItem(self.image)
-        # imzml: ImzML = self.field("imzml")
-        # self.imzml = ImzML(
-        #     "/home/tom/Downloads/slide 8 at 19%.imzML",
-        #     "/home/tom/Downloads/slide 8 at 19%.ibd",
-        # )
-        # sx, sy = self.imzml.image_size
-        # px, py = self.imzml.pixel_size
-        # rect = QtCore.QRectF(0, 0, sx * px, sy * py)
-        # x = self.imzml.extract_masses(np.array([768.55]))[:, :, 0]
-        #
-        # x -= np.nanmin(x)
-        # x /= np.nanmax(x)
-        #
-        self.image = ClickableImageItem.fromArray(
-            x, rect, list(get_table(self.graphics.options.colortable))
-        )
+
+        if isinstance(image, np.ndarray):
+            imzml: ImzML = self.field("imzml")
+            sx, sy = imzml.scan_settings.image_size
+            px, py = imzml.scan_settings.pixel_size
+            rect = QtCore.QRectF(0, 0, sx * px, sy * py)
+            image = ClickableImageItem.fromArray(
+                image, rect, list(get_table(self.graphics.options.colortable))
+            )
+
+        self.image = image
         self.image.clickedAtPosition.connect(self.drawSpectraAtPos)
         self.image.setFlag(
             QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False
@@ -260,30 +236,54 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         self.graphics.scene().addItem(self.image)
         self.graphics.zoomReset()
 
+    def drawTIC(self) -> None:
+        imzml: ImzML = self.field("imzml")
+        tic = imzml.extract_tic()
+        tic -= np.nanmin(tic)
+        tic /= np.nanmax(tic)
+
+        self.drawImage(tic)
+
+    def drawMass(self, mz: float) -> None:
+        imzml: ImzML = self.field("imzml")
+        x = imzml.extract_masses(np.array([mz]))[:, :, 0]
+        x -= np.nanmin(x)
+        x /= np.nanmax(x)
+        self.drawImage(x)
+
     def drawSpectraAtPos(self, pos: QtCore.QPoint) -> None:
         self.spectra.clear()
 
+        imzml: ImzML = self.field("imzml")
+
         # convert mapToData pos to stored spectrum pos
-        px, py = pos.x() + 1, self.imzml.image_size[1] - pos.y()
+        px, py = pos.x() + 1, imzml.scan_settings.image_size[1] - pos.y()
         try:
-            spectrum = self.imzml.spectra_map[(px, py)]
+            spectrum = imzml.spectra[(px, py)]
         except KeyError:
             return
 
         x = spectrum.get_binary_data(
-            self.imzml.mz_reference, self.imzml.mz_dtype, self.imzml.external_binary
+            imzml.mz_params.id, imzml.mz_params.dtype, imzml.external_binary
         )
         y = spectrum.get_binary_data(
-            self.imzml.intensity_reference,
-            self.imzml.intensity_dtype,
-            self.imzml.external_binary,
+            imzml.intensity_params.id,
+            imzml.intensity_params.dtype,
+            imzml.external_binary,
         )
         self.spectra.drawCentroidSpectra(x, y)
 
 
+# app = QtWidgets.QApplication()
+# wiz = QtWidgets.QWizard()
+# wiz.addPage(ImzMLImportPage(Path("/home/tom/Downloads/slide 8 at 19%_min.imzML"), Path("/home/tom/Downloads/slide 8 at 19%.ibd")))
+# wiz.addPage(ImzMLTargetMassPage())
+# wiz.show()
+# app.exec()
+
+
 app = QtWidgets.QApplication()
-wiz = QtWidgets.QWizard()
-wiz.addPage(ImzMLImportPage(Path("/home/tom/Downloads/slide 8 at 19%.imzML")))
-wiz.addPage(ImzMLTargetMassPage())
-wiz.show()
+w = SpectraView()
+w.drawCentroidSpectra(np.arange(100), np.random.random(100))
+w.show()
 app.exec()
