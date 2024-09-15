@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+from xml.etree import ElementTree
 
 import numpy as np
 from pewlib.config import SpotConfig
@@ -15,6 +16,39 @@ from pewpew.graphics.options import GraphicsOptions
 from pewpew.widgets.wizards.options import PathSelectWidget
 
 logger = logging.getLogger(__name__)
+
+
+class ClickableImageItem(ScaledImageItem):
+    clickedAtPosition = QtCore.Signal(QtCore.QPoint)
+
+    def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+            pos = self.mapToData(event.pos())
+            self.clickedAtPosition.emit(pos)
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+
+class ElementTreeParserThread(QtCore.QThread):
+    importFinished = QtCore.Signal(ElementTree.ElementTree)
+    importFailed = QtCore.Signal(str)
+    progressChanged = QtCore.Signal(int)
+
+    def __init__(self, path: Path | str, parent: QtCore.QObject | None = None):
+        super().__init__(parent)
+        self.path = Path(path)
+
+    def run(self) -> None:
+        """Start the import thread."""
+        iter = ElementTree.iterparse(self.path)
+
+        for i, (event, elem) in enumerate(iter):
+            if self.isInterruptionRequested():  # pragma: no cover
+                break
+            self.progressChanged.emit(i)
+
+        self.importFinished.emit(elem.root)
 
 
 class ImzMLImportPage(QtWidgets.QWizardPage):
@@ -44,8 +78,10 @@ class ImzMLImportPage(QtWidgets.QWizardPage):
         self.path.pathChanged.connect(self.guessBinaryPath)
         self.path.pathChanged.connect(self.completeChanged)
 
+        if external_binary is None:
+            external_binary = imzml.with_suffix(".ibd")
         self.path_binary = PathSelectWidget(
-            external_binary or Path(), "Binary Data", [".ibd"], "File"
+            external_binary, "Binary Data", [".ibd"], "File"
         )
         self.path_binary.pathChanged.connect(self.completeChanged)
 
@@ -63,13 +99,84 @@ class ImzMLImportPage(QtWidgets.QWizardPage):
     def isComplete(self) -> bool:
         return self.path.isComplete() and self.path_binary.isComplete()
 
-    def guessBinaryPath(self, imzml: Path) -> None:
-        if imzml.with_suffix(".ibd").exists() and self.path_binary.path == "":
-            self.path_binary.addPath(imzml.with_suffix(".ibd"))
+    def guessBinaryPath(self) -> None:
+        if (
+            self.path.path.with_suffix(".ibd").exists()
+            and self.path_binary.path == Path()
+        ):
+            self.path_binary.addPath(self.path.path.with_suffix(".ibd"))
 
-    def validatePage(self):
-        imzml = ImzML(self.path.path, external_binary=self.path.path_binary)
-        self.setField("imzml", imzml)
+
+    @classmethod
+    def from_file_iterative(
+        cls,
+        path: Path | str,
+        external_binary: Path | str,
+        scan_number: int = 1,
+        callback: None = None,
+    ) -> "ImzML":
+        iter = ElementTree.iterparse(path, events=("end",))
+
+        spectra = {}
+
+        for event, elem in iter:
+            if elem.tag == f"{{{MZML_NS['mz']}}}scanSettingsList":
+                scans = elem.findall("mz:scanSettings", MZML_NS)
+                scan_settings = ScanSettings.from_xml_element(scans[scan_number - 1])
+                elem.clear()
+            elif elem.tag == f"{{{MZML_NS['mz']}}}referenceableParamGroup":
+                if (
+                    elem.find(
+                        f"mz:cvParam[@accession='{CV_PARAMGROUP['MZ_ARRAY']}']", MZML_NS
+                    )
+                    is not None
+                ):
+                    mz_group = ParamGroup.from_xml_element(elem)
+                elif (
+                    elem.find(
+                        f"mz:cvParam[@accession='{CV_PARAMGROUP['INTENSITY_ARRAY']}']",
+                        MZML_NS,
+                    )
+                    is not None
+                ):
+                    intensity_group = ParamGroup.from_xml_element(elem)
+                elem.clear()
+            elif elem.tag == f"{{{MZML_NS['mz']}}}spectrum":
+                spectrum = Spectrum.from_xml_element(elem)
+                spectra[(spectrum.x, spectrum.y)] = spectrum
+                elem.clear()
+                if callback is not None:
+                    if callback():
+                        return
+        return cls(
+            scan_settings,
+            mz_group,
+            intensity_group,
+            spectra,
+            external_binary=external_binary,
+        )
+
+    def validatePage(self) -> bool:
+        file_size = self.path.path.stat().st_size
+        dlg = QtWidgets.QProgressDialog("Parsing imzML", "Cancel", 0, file_size)
+        dlg.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
+
+        """Callback."""
+        fp = self.path.path.open()
+        def callback():
+            dlg.setValue(fp.tell())
+            return dlg.wasCanceled()
+
+        imzml = ImzML.from_file_iterative(fp, self.path_binary.path, callback=callback)
+        # print("EXITING LOOP", flush=True)
+        # dlg.setValue(dlg.maximum())
+        # imzml = ImzML.from_etree(iter.root, self.path_binary.path)
+        # ElementTree.parse(self.path.path)
+        # imzml = ImzML.from_file(self.path.path, self.path_binary.path)
+        t1= time.time()
+        print("IMZML FIN", t1-t0, flush=True)
+        self.setField("imzML", imzml)
+        return True
 
     def getImzML(self) -> ImzML:
         return self._imzml
@@ -98,9 +205,9 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
 
         self.graphics = LaserGraphicsView(options, parent=self)
         self.graphics.setMinimumSize(QtCore.QSize(640, 480))
+        self.graphics
 
-        self.item = ScaledImageItem(QtGui.QImage(), QtCore.QRectF())
-        self.graphics.scene().addItem(self.item)
+        self.image: ClickableImageItem | None = None
 
         self.spectra = SpectraView()
 
@@ -108,7 +215,7 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         layout_left.addWidget(self.mass_list, 1)
         layout_left.addWidget(self.mass_width, 0)
 
-        layout_right  = QtWidgets.QVBoxLayout()
+        layout_right = QtWidgets.QVBoxLayout()
         layout_right.addWidget(self.graphics, 1)
         layout_right.addWidget(self.spectra, 0)
 
@@ -117,32 +224,66 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         layout.addLayout(layout_right, 1)
 
         self.setLayout(layout)
-        self.initializePage()
 
     def initializePage(self) -> None:
         self.drawTIC()
 
     def drawTIC(self) -> None:
+        if self.image is not None:
+            self.graphics.scene().removeItem(self.image)
         # imzml: ImzML = self.field("imzml")
-        self.imzml = ImzML(
-            "/home/tom/Downloads/slide 8 at 19%.imzML",
-            "/home/tom/Downloads/slide 8 at 19%.ibd",
-        )
-        sx, sy = self.imzml.image_size
-        px, py = self.imzml.pixel_size
-        rect = QtCore.QRectF(0, 0, sx * px, sy * py)
-        self.graphics.scene().removeItem(self.item)
-        x = self.imzml.extract_tic()
-        x = (x - x.min()) / (x.max() - x.min())
-
-        self.item = ScaledImageItem.fromArray(
+        # self.imzml = ImzML(
+        #     "/home/tom/Downloads/slide 8 at 19%.imzML",
+        #     "/home/tom/Downloads/slide 8 at 19%.ibd",
+        # )
+        # sx, sy = self.imzml.image_size
+        # px, py = self.imzml.pixel_size
+        # rect = QtCore.QRectF(0, 0, sx * px, sy * py)
+        # x = self.imzml.extract_masses(np.array([768.55]))[:, :, 0]
+        #
+        # x -= np.nanmin(x)
+        # x /= np.nanmax(x)
+        #
+        self.image = ClickableImageItem.fromArray(
             x, rect, list(get_table(self.graphics.options.colortable))
         )
-        self.graphics.scene().addItem(self.item)
+        self.image.clickedAtPosition.connect(self.drawSpectraAtPos)
+        self.image.setFlag(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False
+        )
+        self.image.setFlag(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsFocusable, False
+        )
+        self.image.setFlag(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False
+        )
+        self.graphics.scene().addItem(self.image)
         self.graphics.zoomReset()
+
+    def drawSpectraAtPos(self, pos: QtCore.QPoint) -> None:
+        self.spectra.clear()
+
+        # convert mapToData pos to stored spectrum pos
+        px, py = pos.x() + 1, self.imzml.image_size[1] - pos.y()
+        try:
+            spectrum = self.imzml.spectra_map[(px, py)]
+        except KeyError:
+            return
+
+        x = spectrum.get_binary_data(
+            self.imzml.mz_reference, self.imzml.mz_dtype, self.imzml.external_binary
+        )
+        y = spectrum.get_binary_data(
+            self.imzml.intensity_reference,
+            self.imzml.intensity_dtype,
+            self.imzml.external_binary,
+        )
+        self.spectra.drawCentroidSpectra(x, y)
 
 
 app = QtWidgets.QApplication()
-page = ImzMLTargetMassPage()
-page.show()
+wiz = QtWidgets.QWizard()
+wiz.addPage(ImzMLImportPage(Path("/home/tom/Downloads/slide 8 at 19%.imzML")))
+wiz.addPage(ImzMLTargetMassPage())
+wiz.show()
 app.exec()
