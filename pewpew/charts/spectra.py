@@ -18,6 +18,9 @@ class SpectraView(SinglePlotGraphicsView):
             parent=parent,
         )
         self.setMinimumSize(320, 160)
+        self.plot.setMouseEnabled(y=False)
+        self.plot.setAutoVisible(y=True)
+        self.plot.enableAutoRange(y=True)
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(640, 240)
@@ -33,7 +36,7 @@ class SpectraView(SinglePlotGraphicsView):
             pen.setCosmetic(True)
 
         xs = np.repeat(x, 2)
-        ys = np.stack((np.zeros_like(y), y), axis=1).flat
+        ys = np.stack((np.zeros_like(y), y), axis=1).ravel()
         line = pyqtgraph.PlotCurveItem(
             xs, ys, pen=pen, connect="pairs", skipFiniteCheck=True
         )
