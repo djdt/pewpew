@@ -469,7 +469,7 @@ class _PathSelectBase(QtWidgets.QWidget):
     def validPath(self, path: Path) -> bool:
         if not path.exists():
             return False
-        if not path.suffix.lower() in self.exts:
+        if not path.suffix.lower() in [ext.lower() for ext in self.exts]:
             return False
         if self.mode == "File":
             return path.is_file()
