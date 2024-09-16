@@ -22,7 +22,9 @@ class ClickableImageItem(ScaledImageItem):
     clickedAtPosition = QtCore.Signal(QtCore.QPoint)
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        if event.button() == QtCore.Qt.MouseButton.LeftButton:
+        if (
+            event.button() == QtCore.Qt.MouseButton.LeftButton
+        ):
             pos = self.mapToData(event.pos())
             self.clickedAtPosition.emit(pos)
             event.accept()
@@ -127,14 +129,19 @@ class ImzMLImportPage(QtWidgets.QWizardPage):
             elif elem.tag == f"{{{MZML_NS['mz']}}}referenceableParamGroup":
                 if (
                     elem.find(
-                        f"mz:cvParam[@accession='{ParamGroup.mz_array_cv}']", MZML_NS
+                        # todo : fix
+                        "mz:cvParam[@accession='MS:1000514']",
+                        MZML_NS,
+                        # f"mz:cvParam[@accession='{ParamGroup.mz_array_cv}']", MZML_NS
                     )
                     is not None
                 ):
                     mz_params = ParamGroup.from_xml_element(elem)
                 elif (
                     elem.find(
-                        f"mz:cvParam[@accession='{ParamGroup.intensity_array_cv}']",
+                        # todo : fix
+                        # f"mz:cvParam[@accession='{ParamGroup.intensity_array_cv}']",
+                        "mz:cvParam[@accession='MS:1000515']",
                         MZML_NS,
                     )
                     is not None
@@ -209,6 +216,11 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
     def initializePage(self) -> None:
         self.drawTIC()
 
+    def addMassToTable(self, mass: float) -> None:
+        item = QtWidgets.QListWidgetItem(f"{mass:.4f}")
+        item.setData(QtCore.Qt.ItemDataRole.UserRole, mass)
+        self.mass_list.addItem(item)
+
     def drawImage(self, image: np.ndarray | ClickableImageItem) -> None:
         if self.image is not None:
             self.graphics.scene().removeItem(self.image)
@@ -271,19 +283,27 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
             imzml.intensity_params.dtype,
             imzml.external_binary,
         )
-        self.spectra.drawCentroidSpectra(x, y)
-
-
+        spec = self.spectra.drawCentroidSpectra(x, y)
+        spec.mzClicked.connect(self.drawMass)
+        spec.mzClicked.connect(self.addMassToTable)
+#
+#
 # app = QtWidgets.QApplication()
 # wiz = QtWidgets.QWizard()
-# wiz.addPage(ImzMLImportPage(Path("/home/tom/Downloads/slide 8 at 19%_min.imzML"), Path("/home/tom/Downloads/slide 8 at 19%.ibd")))
+# wiz.addPage(
+#     ImzMLImportPage(
+#         Path("/home/tom/Downloads/slide 8 at 19%.imzML"),
+#         Path("/home/tom/Downloads/slide 8 at 19%.ibd"),
+#     )
+# )
 # wiz.addPage(ImzMLTargetMassPage())
 # wiz.show()
 # app.exec()
-
-
-app = QtWidgets.QApplication()
-w = SpectraView()
-w.drawCentroidSpectra(np.arange(100), np.random.random(100))
-w.show()
-app.exec()
+#
+#
+# # app = QtWidgets.QApplication()
+# # w = SpectraView()
+# # w.drawCentroidSpectra(np.arange(100), np.random.random(100))
+# # w.spectra.mzClicked.connect(lambda x: print(x))
+# # w.show()
+# # app.exec()
