@@ -15,6 +15,7 @@ class SpectraItem(pyqtgraph.PlotCurveItem):
         ys = np.stack((np.zeros_like(ys), ys), axis=1).ravel()
 
         super().__init__(xs, ys, *args, **kargs)
+        self.setAcceptHoverEvents(True)
 
         self.text = pyqtgraph.TextItem(anchor=(0.0, 0.5))
         self.text.setParentItem(self)
@@ -93,6 +94,5 @@ class SpectraView(SinglePlotGraphicsView):
             pen.setCosmetic(True)
 
         self.spectra = SpectraItem(x, y, pen=pen, connect="pairs", skipFiniteCheck=True)
-        self.spectra.setAcceptHoverEvents(True)
-        self.plot.addItem(self.spectra)
+        self.setLimits(xMin=np.nanmin(x), xMax=np.nanmax(x))
         return self.spectra
