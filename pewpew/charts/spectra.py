@@ -95,4 +95,6 @@ class SpectraView(SinglePlotGraphicsView):
 
         self.spectra = SpectraItem(x, y, pen=pen, connect="pairs", skipFiniteCheck=True)
         self.setLimits(xMin=np.nanmin(x), xMax=np.nanmax(x))
+        self.plot.addItem(self.spectra)
+        # self.setDataLimits(0.0, 1.0)
         return self.spectra
