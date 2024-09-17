@@ -22,9 +22,7 @@ class ClickableImageItem(ScaledImageItem):
     clickedAtPosition = QtCore.Signal(QtCore.QPoint)
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
-        if (
-            event.button() == QtCore.Qt.MouseButton.LeftButton
-        ):
+        if event.button() == QtCore.Qt.MouseButton.LeftButton:
             pos = self.mapToData(event.pos())
             self.clickedAtPosition.emit(pos)
             event.accept()
@@ -51,6 +49,24 @@ class ElementTreeParserThread(QtCore.QThread):
             self.progressChanged.emit(i)
 
         self.importFinished.emit(elem.root)
+
+
+class MassList(QtWidgets.QListWidget):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+        self.addEmptyItem()
+
+    def addEmptyItem(self) -> None:
+        item = QtWidgets.QListWidgetItem("")
+        item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
+        self.addItem(item)
+
+    def addMass(self, mass: float) -> None:
+        item = QtWidgets.QListWidgetItem(f"{mass:.4f}")
+        item.setData(QtCore.Qt.ItemDataRole.UserRole, mass)
+        item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
+
+        self.addItem(item)
 
 
 class ImzMLImportPage(QtWidgets.QWizardPage):
@@ -186,7 +202,7 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         if options is None:
             options = GraphicsOptions()
 
-        self.mass_list = QtWidgets.QListWidget()
+        self.mass_list = MassList()
 
         self.mass_width = QtWidgets.QLineEdit("10.0")
         self.mass_width.setValidator(QtGui.QDoubleValidator(0.0, 1000.0, 2))
@@ -215,11 +231,6 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
 
     def initializePage(self) -> None:
         self.drawTIC()
-
-    def addMassToTable(self, mass: float) -> None:
-        item = QtWidgets.QListWidgetItem(f"{mass:.4f}")
-        item.setData(QtCore.Qt.ItemDataRole.UserRole, mass)
-        self.mass_list.addItem(item)
 
     def drawImage(self, image: np.ndarray | ClickableImageItem) -> None:
         if self.image is not None:
@@ -285,25 +296,25 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         )
         spec = self.spectra.drawCentroidSpectra(x, y)
         spec.mzClicked.connect(self.drawMass)
-        spec.mzClicked.connect(self.addMassToTable)
+        spec.mzClicked.connect(self.mass_list.addMass)
+
+
+app = QtWidgets.QApplication()
+wiz = QtWidgets.QWizard()
+wiz.addPage(
+    ImzMLImportPage(
+        Path("/home/tom/Downloads/slide 8 at 19%.imzML"),
+        Path("/home/tom/Downloads/slide 8 at 19%.ibd"),
+    )
+)
+wiz.addPage(ImzMLTargetMassPage())
+wiz.show()
+app.exec()
 #
 #
 # app = QtWidgets.QApplication()
-# wiz = QtWidgets.QWizard()
-# wiz.addPage(
-#     ImzMLImportPage(
-#         Path("/home/tom/Downloads/slide 8 at 19%.imzML"),
-#         Path("/home/tom/Downloads/slide 8 at 19%.ibd"),
-#     )
-# )
-# wiz.addPage(ImzMLTargetMassPage())
-# wiz.show()
+# w = SpectraView()
+# w.drawCentroidSpectra(np.arange(100), np.random.random(100))
+# w.spectra.mzClicked.connect(lambda x: print(x))
+# w.show()
 # app.exec()
-#
-#
-# # app = QtWidgets.QApplication()
-# # w = SpectraView()
-# # w.drawCentroidSpectra(np.arange(100), np.random.random(100))
-# # w.spectra.mzClicked.connect(lambda x: print(x))
-# # w.show()
-# # app.exec()
