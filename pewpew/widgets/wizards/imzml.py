@@ -13,6 +13,8 @@ from pewpew.graphics.colortable import get_table
 from pewpew.graphics.imageitems import ScaledImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
+from pewpew.lib.numpyqt import NumpyRecArrayTableModel
+from pewpew.validators import DoublePrecisionDelegate
 from pewpew.widgets.wizards.options import PathSelectWidget
 
 logger = logging.getLogger(__name__)
@@ -30,43 +32,35 @@ class ClickableImageItem(ScaledImageItem):
             super().mousePressEvent(event)
 
 
-class ElementTreeParserThread(QtCore.QThread):
-    importFinished = QtCore.Signal(ElementTree.ElementTree)
-    importFailed = QtCore.Signal(str)
-    progressChanged = QtCore.Signal(int)
-
-    def __init__(self, path: Path | str, parent: QtCore.QObject | None = None):
-        super().__init__(parent)
-        self.path = Path(path)
-
-    def run(self) -> None:
-        """Start the import thread."""
-        iter = ElementTree.iterparse(self.path)
-
-        for i, (event, elem) in enumerate(iter):
-            if self.isInterruptionRequested():  # pragma: no cover
-                break
-            self.progressChanged.emit(i)
-
-        self.importFinished.emit(elem.root)
-
-
-class MassList(QtWidgets.QListWidget):
+class MassTable(QtWidgets.QTableView):
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
-        self.addEmptyItem()
+        array = np.array([np.nan], dtype=[("m/z", float)])
+        self.setModel(NumpyRecArrayTableModel(array))
+        # todo delegate with delete
+        # self.setItemDelegate(DoublePrecisionDelegate(4))
 
-    def addEmptyItem(self) -> None:
-        item = QtWidgets.QListWidgetItem("")
-        item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
-        self.addItem(item)
+        self.model().dataChanged.connect(self.insertOrDeleteLastRows)
+
+        self.verticalHeader().setVisible(False)
+        self.horizontalHeader().setStretchLastSection(True)
+
+    def insertOrDeleteLastRows(self) -> None:
+        array = self.model().array
+        if not np.isnan(array["m/z"][-1]):
+            self.model().insertRow(self.model().rowCount())
+        else:
+            size = self.model().rowCount()
+            last_real = np.argmax(~np.isnan(array["m/z"][::-1]))
+            if last_real != 0:
+                last_real = size - last_real
+            if last_real == size - 1:
+                return
+            self.model().removeRows(last_real, self.model().rowCount() - last_real - 1)
 
     def addMass(self, mass: float) -> None:
-        item = QtWidgets.QListWidgetItem(f"{mass:.4f}")
-        item.setData(QtCore.Qt.ItemDataRole.UserRole, mass)
-        item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsEditable)
-
-        self.addItem(item)
+        index = self.model().index(self.model().rowCount() - 1, 0)
+        self.model().setData(index, mass, QtCore.Qt.ItemDataRole.EditRole)
 
 
 class ImzMLImportPage(QtWidgets.QWizardPage):
@@ -172,6 +166,8 @@ class ImzMLImportPage(QtWidgets.QWizardPage):
                 dlg.setValue(fp.tell())
                 elem.clear()
 
+        dlg.close()
+
         imzml = ImzML(
             scan_settings,
             mz_params,
@@ -202,7 +198,7 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         if options is None:
             options = GraphicsOptions()
 
-        self.mass_list = MassList()
+        self.mass_table = MassTable()
 
         self.mass_width = QtWidgets.QLineEdit("10.0")
         self.mass_width.setValidator(QtGui.QDoubleValidator(0.0, 1000.0, 2))
@@ -216,7 +212,7 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         self.spectra = SpectraView()
 
         layout_left = QtWidgets.QVBoxLayout()
-        layout_left.addWidget(self.mass_list, 1)
+        layout_left.addWidget(self.mass_table, 1)
         layout_left.addWidget(self.mass_width, 0)
 
         layout_right = QtWidgets.QVBoxLayout()
@@ -296,25 +292,29 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         )
         spec = self.spectra.drawCentroidSpectra(x, y)
         spec.mzClicked.connect(self.drawMass)
-        spec.mzClicked.connect(self.mass_list.addMass)
+        spec.mzClicked.connect(self.mass_table.addMass)
 
 
-app = QtWidgets.QApplication()
-wiz = QtWidgets.QWizard()
-wiz.addPage(
-    ImzMLImportPage(
-        Path("/home/tom/Downloads/slide 8 at 19%.imzML"),
-        Path("/home/tom/Downloads/slide 8 at 19%.ibd"),
-    )
-)
-wiz.addPage(ImzMLTargetMassPage())
-wiz.show()
-app.exec()
-#
-#
 # app = QtWidgets.QApplication()
+# wiz = QtWidgets.QWizard()
+# wiz.addPage(
+#     ImzMLImportPage(
+#         Path("/home/tom/Downloads/slide 8 at 19%.imzML"),
+#         Path("/home/tom/Downloads/slide 8 at 19%.ibd"),
+#     )
+# )
+# wiz.addPage(ImzMLTargetMassPage())
+# wiz.show()
+# app.exec()
+#
+#
+app = QtWidgets.QApplication()
 # w = SpectraView()
 # w.drawCentroidSpectra(np.arange(100), np.random.random(100))
 # w.spectra.mzClicked.connect(lambda x: print(x))
 # w.show()
-# app.exec()
+w = QtWidgets.QMainWindow()
+t = MassTable()
+w.setCentralWidget(t)
+w.show()
+app.exec()
