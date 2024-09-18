@@ -37,7 +37,6 @@ class MassTable(QtWidgets.QTableView):
         super().__init__(parent)
         array = np.array([np.nan], dtype=[("m/z", float)])
         self.setModel(NumpyRecArrayTableModel(array))
-        # todo delegate with delete
         self.setItemDelegate(
             DoublePrecisionDelegate(4, validator=DoubleValidatorWithEmpty())
         )
