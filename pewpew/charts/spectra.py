@@ -8,6 +8,7 @@ from pewpew.lib.numpyqt import array_to_polygonf, polygonf_to_array
 
 class SpectraItem(pyqtgraph.PlotCurveItem):
     mzClicked = QtCore.Signal(float)
+    mzDoubleClicked = QtCore.Signal(float)
 
     def __init__(self, xs, ys, *args, **kargs):
 
@@ -16,9 +17,14 @@ class SpectraItem(pyqtgraph.PlotCurveItem):
 
         super().__init__(xs, ys, *args, **kargs)
         self.setAcceptHoverEvents(True)
+        self.setFiltersChildEvents(True)
 
         self.text = pyqtgraph.TextItem(anchor=(0.0, 0.5))
         self.text.setParentItem(self)
+        self.text.setAcceptedMouseButtons(QtCore.Qt.MouseButton.NoButton)
+        self.text.setFlag(
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemStacksBehindParent
+        )
 
     def closestMz(self, pos: QtCore.QPointF) -> int:
         pos = self.mapToDevice(pos)
@@ -29,16 +35,25 @@ class SpectraItem(pyqtgraph.PlotCurveItem):
         dist = np.square(arr[:, 0] - pos.x()) + np.square(arr[:, 1] - pos.y())
         return int(np.argmin(dist) * 2)
 
-    def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+    def mouseClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
         if event.buttons() != QtCore.Qt.MouseButton.LeftButton:
             return
         if self.mouseShape().contains(event.pos()):
             idx = self.closestMz(event.pos())
             self.mzClicked.emit(self.xData[idx])
+            event.accept()
+        else:
+            super().mouseClickEvent(event)
+
+    def mouseDoubleClickEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent):
+        if event.buttons() != QtCore.Qt.MouseButton.LeftButton:
+            return
+        if self.mouseShape().contains(event.pos()):
+            idx = self.closestMz(event.pos())
+            self.mzDoubleClicked.emit(self.xData[idx])
 
     def hoverMoveEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
-        if self.isUnderMouse():
-            # if self.mouseShape().contains(event.pos()):
+        if self.mouseShape().contains(event.pos()):
             idx = self.closestMz(event.pos())
             x, y = self.xData[idx], self.yData[idx]
             if y == 0:
@@ -49,6 +64,9 @@ class SpectraItem(pyqtgraph.PlotCurveItem):
             event.accept()
         else:
             self.text.setVisible(False)
+
+    def hoverLeaveEvent(self, event: QtWidgets.QGraphicsSceneHoverEvent) -> None:
+        self.text.setVisible(False)
 
     # Make some room for the text
     def dataBounds(self, ax, frac=1.0, orthoRange=None):
