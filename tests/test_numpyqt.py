@@ -1,9 +1,9 @@
 import numpy as np
 from PySide6 import QtCore, QtGui
-from pytestqt.qtbot import QtBot
+from pytestqt.modeltest import ModelTester
 
 from pewpew.lib.numpyqt import (
-    NumpyArrayTableModel,
+    NumpyRecArrayTableModel,
     array_to_image,
     array_to_polygonf,
     polygonf_to_array,
@@ -67,68 +67,92 @@ def test_polygonf_to_array():
     assert np.all(x[:, 1] == np.arange(10))
 
 
-def test_numpy_array_table_model(qtbot: QtBot):
-    model = NumpyArrayTableModel(np.random.random((5, 3)))
+def test_numpy_recarray_table_model(qtmodeltester: ModelTester):
+    array = np.empty(10, dtype=[("str", "U16"), ("int", int), ("float", float)])
+    array["str"] = "A"
+    array["int"] = np.arange(10)
+    array["float"] = np.random.random(10)
+
+    model = NumpyRecArrayTableModel(
+        array,
+        fill_values={"U": "0", "i": 0},
+        name_formats={"int": "{:.1f}"},
+        name_flags={"str": ~QtCore.Qt.ItemFlag.ItemIsEditable},
+    )
 
     assert model.columnCount() == 3
-    assert model.rowCount() == 5
-
-    with qtbot.waitSignal(model.rowsInserted):
-        model.insertRows(1, 1)
-    assert model.array.shape == (6, 3)
-    assert np.all(model.array[1, :] == model.fill_value)
-
-    with qtbot.waitSignal(model.rowsRemoved):
-        model.removeRows(1, 1)
-    assert model.array.shape == (5, 3)
-
-    with qtbot.waitSignal(model.columnsInserted):
-        model.insertColumns(0, 2)
-    assert model.array.shape == (5, 5)
-    assert np.all(model.array[:, 0] == model.fill_value)
-
-    with qtbot.waitSignal(model.columnsRemoved):
-        model.removeColumns(0, 2)
-    assert model.array.shape == (5, 3)
-
-    assert model.data(model.index(0, 0)) == str(model.array[0, 0])
-    assert model.data(model.index(0, -1)) is None
-    assert model.data(model.index(0, 4)) is None
-    assert model.data(model.index(10, 0)) is None
-
-    with qtbot.waitSignal(model.dataChanged):
-        assert model.setData(model.index(0, 0), np.nan)
-
-    assert not model.setData(model.index(0, -1), np.nan)
-    assert not model.setData(model.index(0, 3), np.nan)
-    assert not model.setData(model.index(0, 0), np.nan, QtCore.Qt.DisplayRole)
-
-    assert not model.setData(model.index(0, 0), "false")
-
-    assert model.data(model.index(0, 0)) == "nan"
-
-    assert model.flags(model.index(0, 0)) & QtCore.Qt.ItemIsEditable != 0
-
-    assert model.headerData(0, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == "0"
-
-
-def test_numpy_array_table_model_flipped():
-    model = NumpyArrayTableModel(np.random.random((5, 3)), axes=(1, 0))
-
-    assert model.columnCount() == 5
-    assert model.rowCount() == 3
-
-    model.setRowCount(10)
-    model.setColumnCount(10)
     assert model.rowCount() == 10
+    # Header
+    assert model.headerData(0, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole) == "str"
+    assert model.headerData(1, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole) == "int"
+    assert model.headerData(2, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole) == "float"
+
+    for i in range(10):
+        assert model.headerData(i, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == str(i)
+
+    # Col flags
+    assert model.flags(model.index(1, 1)) & QtCore.Qt.ItemFlag.ItemIsEditable
+    assert not model.flags(model.index(1, 0)) & QtCore.Qt.ItemFlag.ItemIsEditable
+
+    # Insert
+    model.insertRows(1, 1)
+    assert model.array.shape == (11,)
+    assert model.array[1]["str"] == "0"
+    assert model.array[1]["int"] == 0
+    assert np.isnan(model.array[1]["float"])
+
+    # Data
+    assert model.data(model.index(1, 1)) == "0.0"
+    assert model.data(model.index(1, 2)) == ""  # nan
+
+    model.setData(model.index(1, 1), 10, QtCore.Qt.EditRole)
+    assert model.array["int"][1] == 10
+
+    qtmodeltester.check(model, force_py=True)
+
+
+def test_numpy_recarray_table_model_horizontal(qtmodeltester: ModelTester):
+    array = np.empty(10, dtype=[("str", "U16"), ("int", int), ("float", float)])
+    array["str"] = "A"
+    array["int"] = np.arange(10)
+    array["float"] = np.random.random(10)
+
+    model = NumpyRecArrayTableModel(
+        array,
+        orientation=QtCore.Qt.Orientation.Horizontal,
+        fill_values={"U": "0", "i": 0},
+        name_formats={"int": "{:.1f}"},
+        name_flags={"str": ~QtCore.Qt.ItemFlag.ItemIsEditable},
+    )
+
     assert model.columnCount() == 10
+    assert model.rowCount() == 3
+    # Header
+    assert model.headerData(0, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == "str"
+    assert model.headerData(1, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == "int"
+    assert model.headerData(2, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == "float"
 
-    model.setRowCount(2)
-    model.setColumnCount(2)
-    assert model.rowCount() == 2
-    assert model.columnCount() == 2
+    for i in range(10):
+        assert model.headerData(i, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole) == str(
+            i
+        )
 
+    # Col flags
+    assert model.flags(model.index(1, 1)) & QtCore.Qt.ItemFlag.ItemIsEditable
+    assert not model.flags(model.index(0, 1)) & QtCore.Qt.ItemFlag.ItemIsEditable
 
-def test_numpy_array_table_model_empty():
-    model = NumpyArrayTableModel(np.random.random(5))
-    assert model.rowCount() == 1
+    # Insert
+    model.insertColumns(1, 1)
+    assert model.array.shape == (11,)
+    assert model.array[1]["str"] == "0"
+    assert model.array[1]["int"] == 0
+    assert np.isnan(model.array[1]["float"])
+
+    # Data
+    assert model.data(model.index(1, 1)) == "0.0"
+    assert model.data(model.index(2, 1)) == ""  # nan
+
+    model.setData(model.index(1, 1), 10, QtCore.Qt.EditRole)
+    assert model.array["int"][1] == 10
+
+    qtmodeltester.check(model, force_py=True)

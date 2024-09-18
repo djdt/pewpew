@@ -1,22 +1,22 @@
 import numpy as np
-
-from PySide6 import QtCore
-
 from pewlib.calibration import Calibration
+from PySide6 import QtCore
 
 from pewpew.models import CalibrationPointsTableModel
 
 
 def test_calibration_points_table_model():
     calibration = Calibration.from_points(np.array([[1.0, 1.0], [2.0, 2.0]]))
-    model = CalibrationPointsTableModel(calibration, axes=(0, 1), counts_editable=True)
+    model = CalibrationPointsTableModel(calibration, counts_editable=True)
 
     # Check starting shape
     assert model.columnCount() == 3
     assert model.rowCount() == 2
-    assert np.all(model.array == [[1.0, 1.0, 1.0], [2.0, 2.0, 1.0]])
+    assert np.all(model.array["x"] == [1.0, 2.0])
+    assert np.all(model.array["y"] == [1.0, 2.0])
+    assert np.all(model.array["weights"] == [1.0, 1.0])
 
-    model.setRowCount(3)
+    model.insertRow(1)
     assert model.rowCount() == 3
     assert calibration.points.shape == (3, 2)
 
@@ -36,7 +36,7 @@ def test_calibration_points_table_model():
 
     model.setData(model.index(0, 1), "nan")
     assert calibration.points.shape == (3, 2)
-    assert np.isnan(model.array[0, 1])
+    assert np.isnan(model.array["y"][0])
     assert model.data(model.index(0, 1)) == ""
 
     # Change calibration
@@ -46,13 +46,8 @@ def test_calibration_points_table_model():
     assert model.rowCount() == 2
 
     # Check header
-    assert (
-        model.headerData(0, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole)
-        == "Concentration"
-    )
-    assert (
-        model.headerData(1, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole) == "Response"
-    )
+    assert model.headerData(0, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole) == "x"
+    assert model.headerData(1, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole) == "y"
     assert model.headerData(0, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == "A"
 
     assert model.flags(model.index(0, 0)) & QtCore.Qt.ItemIsEditable
@@ -62,15 +57,18 @@ def test_calibration_points_table_model():
 def test_calibration_points_table_model_flipped():
     # Starts with empty calibration
     calibration = Calibration()
-    model = CalibrationPointsTableModel(calibration, axes=(1, 0), counts_editable=False)
+    model = CalibrationPointsTableModel(
+        calibration, orientation=QtCore.Qt.Orientation.Horizontal, counts_editable=False
+    )
 
     # Check starting shape
     assert model.columnCount() == 1
     assert model.rowCount() == 3
-    assert np.all(np.isnan(model.array))
+    assert np.all(np.isnan(model.array["x"]))
+    assert np.all(np.isnan(model.array["y"]))
+    assert np.all(np.isnan(model.array["weights"]))
 
-    model.setColumnCount(3)
-    assert model.columnCount() == 3
+    assert model.insertColumns(1, 2)
     assert calibration.points.shape == (3, 2)
 
     # Add data
@@ -93,11 +91,8 @@ def test_calibration_points_table_model_flipped():
     assert model.rowCount() == 3
 
     # Check header
-    assert (
-        model.headerData(0, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole)
-        == "Concentration"
-    )
-    assert model.headerData(1, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == "Response"
+    assert model.headerData(0, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == "x"
+    assert model.headerData(1, QtCore.Qt.Vertical, QtCore.Qt.DisplayRole) == "y"
     assert model.headerData(0, QtCore.Qt.Horizontal, QtCore.Qt.DisplayRole) == "A"
 
     assert model.flags(model.index(0, 0)) & QtCore.Qt.ItemIsEditable
@@ -109,16 +104,18 @@ def test_calibration_points_table_model_weights():
         np.array([[1.0, 1.0], [2.0, 4.0], [3.0, 5.0]]),
         weights=("test", np.array([0.4, 0.4, 0.2])),
     )
-    model = CalibrationPointsTableModel(calibration, axes=(0, 1), counts_editable=False)
+    model = CalibrationPointsTableModel(calibration, counts_editable=False)
 
-    assert np.all(model.array == [[1.0, 1.0, 0.4], [2.0, 4.0, 0.4], [3.0, 5.0, 0.2]])
+    assert np.all(model.array["x"] == [1.0, 2.0, 3.0])
+    assert np.all(model.array["y"] == [1.0, 4.0, 5.0])
+    assert np.all(model.array["weights"] == [0.4, 0.4, 0.2])
     assert model.flags(model.index(0, 2)) & QtCore.Qt.ItemIsEditable
     model.setData(model.index(0, 2), "0.6")
     assert calibration._weights[0] == 0.6
 
     model.setWeighting("x")
 
-    assert np.all(model.array == [[1.0, 1.0, 1.0], [2.0, 4.0, 2.0], [3.0, 5.0, 3.0]])
+    assert np.all(model.array["weights"] == [1.0, 2.0, 3.0])
     assert not model.flags(model.index(0, 2)) & QtCore.Qt.ItemIsEditable
 
     model.setWeighting("test")

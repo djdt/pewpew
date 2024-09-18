@@ -1,15 +1,13 @@
-from PySide6 import QtCore
-
-import numpy as np
-
-from pewlib.calibration import Calibration
-
-from pewpew.lib.numpyqt import NumpyArrayTableModel
-
 from typing import Any
 
+import numpy as np
+from pewlib.calibration import Calibration
+from PySide6 import QtCore
 
-class CalibrationPointsTableModel(NumpyArrayTableModel):
+from pewpew.lib.numpyqt import NumpyRecArrayTableModel
+
+
+class CalibrationPointsTableModel(NumpyRecArrayTableModel):
     """Model for calibration points and weights.
 
     To allow edit of points y (counts / response) set `counts_editable`.
@@ -17,28 +15,38 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
 
     Args:
         calibration
-        axes: (0, 1) for points in columns, (1, 0) for points in rows
         counts_editable: allow edit of points y
+        orientation: direction of array data, vertical = names in columns
         parent: parent object
     """
 
     def __init__(
         self,
         calibration: Calibration,
-        axes: tuple[int, int] = (0, 1),
+        orientation: QtCore.Qt.Orientation = QtCore.Qt.Orientation.Vertical,
         counts_editable: bool = False,
         parent: QtCore.QObject | None = None,
     ):
         self.calibration = calibration
         if self.calibration.points.size == 0:
-            array = np.full((1, 3), np.nan)
-        else:
-            array = np.concatenate(
-                (self.calibration.points, self.calibration.weights[:, None]), axis=1
+            array = np.full(
+                1, np.nan, dtype=[("x", float), ("y", float), ("weights", float)]
             )
+        else:
+            array = np.empty(
+                len(self.calibration.points),
+                dtype=[("x", float), ("y", float), ("weights", float)],
+            )
+            array["x"] = self.calibration.x
+            array["y"] = self.calibration.y
+            array["weights"] = self.calibration.weights
 
-        super().__init__(array, axes=axes, fill_value=np.nan, parent=parent)
-        self.counts_editable = counts_editable
+        flags = QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsSelectable
+        if counts_editable:
+            flags = flags | QtCore.Qt.ItemFlag.ItemIsEditable
+        super().__init__(
+            array, orientation=orientation, name_flags={"y": flags}, parent=parent
+        )
 
         self.dataChanged.connect(self.updateCalibration)
         self.rowsInserted.connect(self.updateCalibration)
@@ -62,19 +70,18 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
             raise ValueError("Calibration points must have shape (n, 2).")
 
         if resize:
-            newshape = (calibration.points.shape[0], 3)
-            self.blockSignals(True)
-            self.setColumnCount(newshape[self.axes[1]])
-            self.setRowCount(newshape[self.axes[0]])
-            self.blockSignals(False)
+            shape = len(calibration.points)
+        else:
+            shape = len(self.array)
 
         self.beginResetModel()
 
-        new_array = np.full(self.array.shape, np.nan)
+        new_array = np.full(shape, np.nan, dtype=self.array.dtype)
         if self.calibration.points.size > 0:
             min_row = np.min((new_array.shape[0], calibration.points.shape[0]))
-            new_array[:min_row, :2] = self.calibration.points[:min_row]
-            new_array[:min_row, 2] = self.calibration.weights[:min_row]
+            new_array["x"][:min_row] = self.calibration.x[:min_row]
+            new_array["y"][:min_row] = self.calibration.y[:min_row]
+            new_array["weights"][:min_row] = self.calibration.weights[:min_row]
 
         self.array = new_array
 
@@ -97,19 +104,20 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
 
     def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlags:
         if not index.isValid():  # pragma: no cover
-            return QtCore.Qt.ItemIsEnabled
+            return 0
 
-        pos = (index.row(), index.column())
+        flags = super().flags(index)
+
+        idx = (
+            index.column()
+            if self.orientation == QtCore.Qt.Orientation.Vertical
+            else index.row()
+        )
+        name = self.array.dtype.names[idx]
 
         weights_editable = self.calibration.weighting not in Calibration.KNOWN_WEIGHTING
-
-        flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
-        if pos[self.axes[1]] == 0:  # Concentrations row / column
-            flags = flags | QtCore.Qt.ItemIsEditable
-        elif pos[self.axes[1]] == 1 and self.counts_editable:  # Repsonses
-            flags = flags | QtCore.Qt.ItemIsEditable
-        elif pos[self.axes[1]] == 2 and weights_editable:  # Weights
-            flags = flags | QtCore.Qt.ItemIsEditable
+        if not weights_editable and name == "weights":
+            flags &= ~QtCore.Qt.ItemFlag.ItemIsEditable
 
         return flags
 
@@ -119,15 +127,12 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         if role != QtCore.Qt.DisplayRole:  # pragma: no cover
             return None
 
-        labels = [
-            ("Concentration", "Response", "Weights"),
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-        ]
+        labels = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-        if orientation == QtCore.Qt.Horizontal:
-            return labels[self.axes[0]][section]
+        if orientation == self.orientation:
+            return labels[section]
         else:
-            return labels[self.axes[1]][section]
+            return self.array.dtype.names[section]
 
     def updateCalibration(self) -> None:
         """Update the internal Calibration, called on model changes."""
@@ -135,9 +140,11 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
             self.calibration._points = np.empty((0, 2), dtype=np.float64)
             self.calibration._weights = np.empty(0, dtype=np.float64)
         else:
-            self.calibration.points = self.array[:, :2]
+            self.calibration.points = np.stack(
+                (self.array["x"], self.array["y"]), axis=1
+            )
             if self.calibration.weighting not in Calibration.KNOWN_WEIGHTING:
-                self.calibration._weights = self.array[:, 2]
+                self.calibration._weights = self.array["weights"]
 
         self.calibration.update_linreg()
 
@@ -149,8 +156,8 @@ class CalibrationPointsTableModel(NumpyArrayTableModel):
         if weighting in Calibration.KNOWN_WEIGHTING:
             self.calibration.weights = weighting
         else:
-            self.calibration.weights = (weighting, self.array[:, 2])
+            self.calibration.weights = (weighting, self.array["weights"])
 
         self.beginResetModel()
-        self.array[:, 2] = self.calibration.weights
+        self.array["weights"] = self.calibration.weights
         self.endResetModel()

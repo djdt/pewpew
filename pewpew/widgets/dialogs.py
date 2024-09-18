@@ -128,7 +128,7 @@ class CalibrationPointsWidget(CollapsableWidget):
 
         self.model = CalibrationPointsTableModel(
             Calibration(),
-            axes=(1, 0),
+            orientation=QtCore.Qt.Orientation.Horizontal,
             counts_editable=True,
             parent=self,
         )
