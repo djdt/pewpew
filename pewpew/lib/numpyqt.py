@@ -1,10 +1,9 @@
-from PySide6 import QtCore, QtGui
-
 import ctypes
+from typing import Any
+
 import numpy as np
 import shiboken6
-
-from typing import Any
+from PySide6 import QtCore, QtGui
 
 
 def array_to_image(array: np.ndarray) -> QtGui.QImage:
@@ -80,7 +79,6 @@ def polygonf_to_array(polygon: QtGui.QPolygonF) -> np.ndarray:
         shiboken6.getCppPointer(polygon.data())[0]  # type: ignore
     )
     return np.frombuffer(buf, dtype=np.float64).reshape(-1, 2)
-
 
 
 class NumpyRecArrayTableModel(QtCore.QAbstractTableModel):
@@ -211,12 +209,12 @@ class NumpyRecArrayTableModel(QtCore.QAbstractTableModel):
             return self.array.dtype.names[section]
 
     def insertColumns(
-        self, pos: int, columns: int, parent: QtCore.QModelIndex = QtCore.QModelIndex()
+        self, pos: int, count: int, parent: QtCore.QModelIndex = QtCore.QModelIndex()
     ) -> bool:
         if self.orientation == QtCore.Qt.Orientation.Vertical:
             raise NotImplementedError("name insert is not implemented")
 
-        self.beginInsertColumns(parent, pos, pos + columns - 1)
+        self.beginInsertColumns(parent, pos, pos + count - 1)
         empty = np.array(
             [
                 tuple(
@@ -226,17 +224,17 @@ class NumpyRecArrayTableModel(QtCore.QAbstractTableModel):
             ],
             dtype=self.array.dtype,
         )
-        self.array = np.insert(self.array, pos, np.full(columns, empty))
+        self.array = np.insert(self.array, pos, np.full(count, empty))
         self.endInsertColumns()
         return True
 
     def insertRows(
-        self, pos: int, rows: int, parent: QtCore.QModelIndex = QtCore.QModelIndex()
+        self, pos: int, count: int, parent: QtCore.QModelIndex = QtCore.QModelIndex()
     ) -> bool:
         if self.orientation == QtCore.Qt.Orientation.Horizontal:
             raise NotImplementedError("name insert is not implemented")
 
-        self.beginInsertRows(parent, pos, pos + rows - 1)
+        self.beginInsertRows(parent, pos, pos + count - 1)
         empty = np.array(
             [
                 tuple(
@@ -246,6 +244,28 @@ class NumpyRecArrayTableModel(QtCore.QAbstractTableModel):
             ],
             dtype=self.array.dtype,
         )
-        self.array = np.insert(self.array, pos, np.full(rows, empty))
+        self.array = np.insert(self.array, pos, np.full(count, empty))
         self.endInsertRows()
+        return True
+
+    def removeColumns(
+        self, pos: int, count: int, parent: QtCore.QModelIndex = QtCore.QModelIndex()
+    ) -> bool:
+        if self.orientation == QtCore.Qt.Orientation.Vertical:
+            raise NotImplementedError("name insert is not implemented")
+
+        self.beginRemoveColumns(parent, pos, pos + count - 1)
+        self.array = np.delete(self.array, np.arange(pos, pos + count))
+        self.endRemoveColumns()
+        return True
+
+    def removeRows(
+        self, pos: int, count: int, parent: QtCore.QModelIndex = QtCore.QModelIndex()
+    ) -> bool:
+        if self.orientation == QtCore.Qt.Orientation.Horizontal:
+            raise NotImplementedError("name insert is not implemented")
+
+        self.beginRemoveRows(parent, pos, pos + count - 1)
+        self.array = np.delete(self.array, np.arange(pos, pos + count))
+        self.endRemoveRows()
         return True
