@@ -14,6 +14,7 @@ from pewpew.graphics.imageitems import ScaledImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.lib.numpyqt import NumpyRecArrayTableModel
+from pewpew.threads import Worker
 from pewpew.validators import DoublePrecisionDelegate, DoubleValidatorWithEmpty
 from pewpew.widgets.wizards.options import PathSelectWidget
 
@@ -141,19 +142,14 @@ class ImzMLImportPage(QtWidgets.QWizardPage):
             elif elem.tag == f"{{{MZML_NS['mz']}}}referenceableParamGroup":
                 if (
                     elem.find(
-                        # todo : fix
-                        "mz:cvParam[@accession='MS:1000514']",
-                        MZML_NS,
-                        # f"mz:cvParam[@accession='{ParamGroup.mz_array_cv}']", MZML_NS
+                        f"mz:cvParam[@accession='{ParamGroup.mz_array_cv}']", MZML_NS
                     )
                     is not None
                 ):
                     mz_params = ParamGroup.from_xml_element(elem)
                 elif (
                     elem.find(
-                        # todo : fix
-                        # f"mz:cvParam[@accession='{ParamGroup.intensity_array_cv}']",
-                        "mz:cvParam[@accession='MS:1000515']",
+                        f"mz:cvParam[@accession='{ParamGroup.intensity_array_cv}']",
                         MZML_NS,
                     )
                     is not None
@@ -304,6 +300,7 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         spec.mzDoubleClicked.connect(self.drawMass)
 
 
+#
 app = QtWidgets.QApplication()
 wiz = QtWidgets.QWizard()
 wiz.addPage(
@@ -315,6 +312,12 @@ wiz.addPage(
 wiz.addPage(ImzMLTargetMassPage())
 wiz.show()
 app.exec()
+
+# import time
+# t= time.time()
+# ImzML.from_file("/home/tom/Downloads/slide 8 at 19%.imzML", "")
+# print(time.time() - t)
+
 #
 #
 # app = QtWidgets.QApplication()
