@@ -168,7 +168,7 @@ class ImzMLImportPage(QtWidgets.QWizardPage):
                 dlg.setValue(fp.tell())
                 elem.clear()
 
-        dlg.close()
+        dlg.hide()
 
         imzml = ImzML(
             scan_settings,
@@ -304,17 +304,17 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         spec.mzDoubleClicked.connect(self.drawMass)
 
 
-# app = QtWidgets.QApplication()
-# wiz = QtWidgets.QWizard()
-# wiz.addPage(
-#     ImzMLImportPage(
-#         Path("/home/tom/Downloads/slide 8 at 19%.imzML"),
-#         Path("/home/tom/Downloads/slide 8 at 19%.ibd"),
-#     )
-# )
-# wiz.addPage(ImzMLTargetMassPage())
-# wiz.show()
-# app.exec()
+app = QtWidgets.QApplication()
+wiz = QtWidgets.QWizard()
+wiz.addPage(
+    ImzMLImportPage(
+        Path("/home/tom/Downloads/slide 8 at 19%.imzML"),
+        Path("/home/tom/Downloads/slide 8 at 19%.ibd"),
+    )
+)
+wiz.addPage(ImzMLTargetMassPage())
+wiz.show()
+app.exec()
 #
 #
 # app = QtWidgets.QApplication()
