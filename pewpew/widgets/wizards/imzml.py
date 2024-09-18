@@ -14,7 +14,7 @@ from pewpew.graphics.imageitems import ScaledImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.lib.numpyqt import NumpyRecArrayTableModel
-from pewpew.validators import DoublePrecisionDelegate
+from pewpew.validators import DoublePrecisionDelegate, DoubleValidatorWithEmpty
 from pewpew.widgets.wizards.options import PathSelectWidget
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,9 @@ class MassTable(QtWidgets.QTableView):
         array = np.array([np.nan], dtype=[("m/z", float)])
         self.setModel(NumpyRecArrayTableModel(array))
         # todo delegate with delete
-        # self.setItemDelegate(DoublePrecisionDelegate(4))
+        self.setItemDelegate(
+            DoublePrecisionDelegate(4, validator=DoubleValidatorWithEmpty())
+        )
 
         self.model().dataChanged.connect(self.insertOrDeleteLastRows)
 
@@ -200,20 +202,27 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
 
         self.mass_table = MassTable()
 
-        self.mass_width = QtWidgets.QLineEdit("10.0")
-        self.mass_width.setValidator(QtGui.QDoubleValidator(0.0, 1000.0, 2))
+        self.mass_width = QtWidgets.QSpinBox()
+        self.mass_width.setRange(0, 1000)
+        self.mass_width.setValue(10)
+        self.mass_width.setSingleStep(10)
+        self.mass_width.setSuffix(" ppm")
 
         self.graphics = LaserGraphicsView(options, parent=self)
         self.graphics.setMinimumSize(QtCore.QSize(640, 480))
-        self.graphics
 
         self.image: ClickableImageItem | None = None
 
         self.spectra = SpectraView()
 
+        layout_mass_width = QtWidgets.QHBoxLayout()
+        layout_mass_width.addWidget(QtWidgets.QLabel("Mass width:"), 0)
+        layout_mass_width.addWidget(self.mass_width, 1)
+
         layout_left = QtWidgets.QVBoxLayout()
+        layout_left.addWidget(QtWidgets.QLabel("Target masses"), 0)
         layout_left.addWidget(self.mass_table, 1)
-        layout_left.addWidget(self.mass_width, 0)
+        layout_left.addLayout(layout_mass_width, 0)
 
         layout_right = QtWidgets.QVBoxLayout()
         layout_right.addWidget(self.graphics, 1)
@@ -291,8 +300,8 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
             imzml.external_binary,
         )
         spec = self.spectra.drawCentroidSpectra(x, y)
-        spec.mzClicked.connect(self.drawMass)
         spec.mzClicked.connect(self.mass_table.addMass)
+        spec.mzDoubleClicked.connect(self.drawMass)
 
 
 # app = QtWidgets.QApplication()
@@ -308,13 +317,13 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
 # app.exec()
 #
 #
-app = QtWidgets.QApplication()
+# app = QtWidgets.QApplication()
 # w = SpectraView()
 # w.drawCentroidSpectra(np.arange(100), np.random.random(100))
-# w.spectra.mzClicked.connect(lambda x: print(x))
+# w.spectra.mzClicked.connect(lambda x: print("click", x, flush=True))
+# w.spectra.mzDoubleClicked.connect(lambda x: print("dbl click", x, flush=True))
 # w.show()
-w = QtWidgets.QMainWindow()
-t = MassTable()
-w.setCentralWidget(t)
-w.show()
-app.exec()
+# w = QtWidgets.QMainWindow()
+# t = MassTable()
+# w.setCentralWidget(t)
+# app.exec()
