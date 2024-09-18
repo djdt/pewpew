@@ -14,7 +14,6 @@ from pewpew.graphics.imageitems import ScaledImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.lib.numpyqt import NumpyRecArrayTableModel
-from pewpew.threads import Worker
 from pewpew.validators import DoublePrecisionDelegate, DoubleValidatorWithEmpty
 from pewpew.widgets.wizards.options import PathSelectWidget
 
