@@ -364,7 +364,7 @@ class ImzMLImportWizard(QtWidgets.QWizard):
         data = imzml.extract_masses(target_masses, mass_width)
 
         data = rfn.unstructured_to_structured(
-            data, names=[str(x) for x in target_masses]
+            data, names=[f"{x:.4f}" for x in target_masses]
         )
 
         laser = Laser(
