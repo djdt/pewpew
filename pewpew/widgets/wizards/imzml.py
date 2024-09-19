@@ -386,31 +386,3 @@ class ImzMLImportWizard(QtWidgets.QWizard):
         self.laserImported.emit(laser.info["File Path"], laser)
 
         super().accept()
-
-
-#
-# app = QtWidgets.QApplication()
-# wiz = ImzMLImportWizard(
-#     Path("/home/tom/Downloads/slide 8 at 19%_min.imzML"),
-#     Path("/home/tom/Downloads/slide 8 at 19%.ibd"),
-# )
-# wiz.show()
-# app.exec()
-#
-# import time
-# t= time.time()
-# ImzML.from_file("/home/tom/Downloads/slide 8 at 19%.imzML", "")
-# print(time.time() - t)
-
-#
-#
-# app = QtWidgets.QApplication()
-# w = SpectraView()
-# w.drawCentroidSpectra(np.arange(100), np.random.random(100))
-# w.spectra.mzClicked.connect(lambda x: print("click", x, flush=True))
-# w.spectra.mzDoubleClicked.connect(lambda x: print("dbl click", x, flush=True))
-# w.show()
-# w = QtWidgets.QMainWindow()
-# t = MassTable()
-# w.setCentralWidget(t)
-# app.exec()
