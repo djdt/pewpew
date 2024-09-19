@@ -506,7 +506,13 @@ class PathSelectWidget(_PathSelectBase):
     ):
         super().__init__(filetype, exts, mode, parent)
 
-        self.lineedit_path = QtWidgets.QLineEdit(str(path.resolve()))
+        # dumb check to see if 'empty' path is used
+        if path == Path():
+            text = ""
+        else:
+            text = str(path.resolve())
+
+        self.lineedit_path = QtWidgets.QLineEdit(text)
         self.lineedit_path.setPlaceholderText(f"Path to {self.mode}...")
         self.lineedit_path.textChanged.connect(self.pathChanged)
         self.lineedit_path.installEventFilter(DragDropRedirectFilter(self))
