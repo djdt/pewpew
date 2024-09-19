@@ -1,12 +1,15 @@
 import logging
+import time
+from importlib.metadata import version
 from pathlib import Path
 from xml.etree import ElementTree
 
 import numpy as np
+import numpy.lib.recfunctions as rfn
 from pewlib.config import SpotConfig
 from pewlib.io.imzml import MZML_NS, ImzML, ParamGroup, ScanSettings, Spectrum
 from pewlib.laser import Laser
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from pewpew.charts.spectra import SpectraView
 from pewpew.graphics.colortable import get_table
@@ -63,6 +66,10 @@ class MassTable(QtWidgets.QTableView):
         index = self.model().index(self.model().rowCount() - 1, 0)
         self.model().setData(index, mass, QtCore.Qt.ItemDataRole.EditRole)
 
+    def targetMasses(self) -> np.ndarray:
+        masses = self.model().array["m/z"]
+        return masses[~np.isnan(masses)]
+
 
 class ImzMLImportPage(QtWidgets.QWizardPage):
     imzmlChanged = QtCore.Signal()
@@ -91,8 +98,10 @@ class ImzMLImportPage(QtWidgets.QWizardPage):
         self.path.pathChanged.connect(self.guessBinaryPath)
         self.path.pathChanged.connect(self.completeChanged)
 
-        if external_binary is None:
+        if external_binary is None and imzml.is_file() and imzml.exists():
             external_binary = imzml.with_suffix(".ibd")
+        if external_binary is None:
+            external_binary = Path("")
         self.path_binary = PathSelectWidget(
             external_binary, "Binary Data", [".ibd"], "File"
         )
@@ -107,6 +116,7 @@ class ImzMLImportPage(QtWidgets.QWizardPage):
         layout.addStretch(1)
         self.setLayout(layout)
 
+        self.registerField("imzml_path", self.path.lineedit_path)
         self.registerField("imzml", self, "imzml_prop")
 
     def isComplete(self) -> bool:
@@ -184,6 +194,8 @@ class ImzMLImportPage(QtWidgets.QWizardPage):
 
 
 class ImzMLTargetMassPage(QtWidgets.QWizardPage):
+    targetMassesChanged = QtCore.Signal()
+
     def __init__(
         self,
         options: GraphicsOptions | None = None,
@@ -195,12 +207,14 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
             options = GraphicsOptions()
 
         self.mass_table = MassTable()
+        self.mass_table.model().dataChanged.connect(self.completeChanged)
 
         self.mass_width = QtWidgets.QSpinBox()
         self.mass_width.setRange(0, 1000)
         self.mass_width.setValue(10)
         self.mass_width.setSingleStep(10)
         self.mass_width.setSuffix(" ppm")
+        self.mass_width.valueChanged.connect(self.completeChanged)
 
         self.graphics = LaserGraphicsView(options, parent=self)
         self.graphics.setMinimumSize(QtCore.QSize(640, 480))
@@ -208,6 +222,9 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         self.image: ClickableImageItem | None = None
 
         self.spectra = SpectraView()
+
+        self.registerField("mass_width", self.mass_width)
+        self.registerField("target_masses", self, "target_masses_prop")
 
         layout_mass_width = QtWidgets.QHBoxLayout()
         layout_mass_width.addWidget(QtWidgets.QLabel("Mass width:"), 0)
@@ -230,6 +247,15 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
 
     def initializePage(self) -> None:
         self.drawTIC()
+
+    def isComplete(self) -> bool:
+        return (
+            self.mass_width.hasAcceptableInput()
+            and len(self.mass_table.targetMasses()) > 0
+        )
+
+    def getTargetMasses(self) -> np.ndarray:
+        return self.mass_table.targetMasses()
 
     def drawImage(self, image: np.ndarray | ClickableImageItem) -> None:
         if self.image is not None:
@@ -297,20 +323,80 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         spec.mzClicked.connect(self.mass_table.addMass)
         spec.mzDoubleClicked.connect(self.drawMass)
 
+    target_masses_prop = QtCore.Property(
+        "QVariant", getTargetMasses, notify=targetMassesChanged
+    )
+
+
+class ImzMLImportWizard(QtWidgets.QWizard):
+    page_imzml = 0
+    page_masses = 1
+
+    laserImported = QtCore.Signal(Path, Laser)
+
+    def __init__(
+        self,
+        path: Path | str = "",
+        binary_path: Path | str | None = None,
+        config: SpotConfig | None = None,
+        options: GraphicsOptions | None = None,
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(parent)
+        self.setWindowTitle("ImzML Import")
+        self.setMinimumSize(860, 680)
+
+        if isinstance(path, str):
+            path = Path(path)
+        if isinstance(binary_path, str):
+            binary_path = Path(binary_path)
+
+        self.setPage(self.page_imzml, ImzMLImportPage(path, binary_path))
+        self.setPage(self.page_masses, ImzMLTargetMassPage(options))
+
+    def accept(self) -> None:
+        path = Path(self.field("imzml_path"))
+        imzml: ImzML = self.field("imzml")
+        target_masses: np.ndarray = self.field("target_masses")
+        target_masses = np.sort(target_masses)
+        mass_width = float(self.field("mass_width"))
+
+        data = imzml.extract_masses(target_masses, mass_width)
+
+        data = rfn.unstructured_to_structured(
+            data, names=[str(x) for x in target_masses]
+        )
+
+        laser = Laser(
+            data,
+            config=SpotConfig(
+                imzml.scan_settings.pixel_size[0], imzml.scan_settings.pixel_size[1]
+            ),
+            info={
+                "Name": path.stem,
+                "File Path": str(path.resolve()),
+                "Import Date": time.strftime(
+                    "%Y-%m-%dT%H:%M:%S%z", time.localtime(time.time())
+                ),
+                "Import Path": str(path.resolve()),
+                "Import Version pewlib": version("pewlib"),
+                "Import Version pew2": version("pewpew"),
+            },
+        )
+        self.laserImported.emit(laser.info["File Path"], laser)
+
+        super().accept()
+
 
 #
-app = QtWidgets.QApplication()
-wiz = QtWidgets.QWizard()
-wiz.addPage(
-    ImzMLImportPage(
-        Path("/home/tom/Downloads/slide 8 at 19%.imzML"),
-        Path("/home/tom/Downloads/slide 8 at 19%.ibd"),
-    )
-)
-wiz.addPage(ImzMLTargetMassPage())
-wiz.show()
-app.exec()
-
+# app = QtWidgets.QApplication()
+# wiz = ImzMLImportWizard(
+#     Path("/home/tom/Downloads/slide 8 at 19%_min.imzML"),
+#     Path("/home/tom/Downloads/slide 8 at 19%.ibd"),
+# )
+# wiz.show()
+# app.exec()
+#
 # import time
 # t= time.time()
 # ImzML.from_file("/home/tom/Downloads/slide 8 at 19%.imzML", "")

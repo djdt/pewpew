@@ -5,6 +5,7 @@ from pathlib import Path
 from types import TracebackType
 
 from pewlib.config import Config, SpotConfig
+from pewlib.io.imzml import is_imzml, is_imzml_binary_data
 from pewlib.io.laser import is_nwi_laser_log
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -15,7 +16,12 @@ from pewpew.log import LoggingDialog
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.laser import LaserTabView
-from pewpew.widgets.wizards import ImportWizard, LaserLogImportWizard, SpotImportWizard
+from pewpew.widgets.wizards import (
+    ImportWizard,
+    ImzMLImportWizard,
+    LaserLogImportWizard,
+    SpotImportWizard,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -66,26 +72,49 @@ class MainWindow(QtWidgets.QMainWindow):
             paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
             if any(is_nwi_laser_log(path) for path in paths):
                 event.acceptProposedAction()
+            elif any(is_imzml(path) for path in paths):
+                event.acceptProposedAction()
         super().dragEnterEvent(event)
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
         if not event.mimeData().hasUrls():
             return super().dropEvent(event)
-        log_paths = []
-        paths = []
-        for url in event.mimeData().urls():
-            path = Path(url.toLocalFile())
-            if is_nwi_laser_log(path):
-                log_paths.append(path)
-            else:
-                paths.append(path)
 
-        wiz = LaserLogImportWizard(
-            path=log_paths[0],
-            laser_paths=paths,
-            options=self.tabview.options,
-            parent=self,
-        )
+        paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
+
+        if any(is_nwi_laser_log(path) for path in paths):
+            # laser log import
+            log_paths, paths = [], []
+            for path in paths:
+                if is_nwi_laser_log(path):
+                    log_paths.append(path)
+                else:
+                    paths.append(path)
+            wiz = LaserLogImportWizard(
+                path=log_paths[0],
+                laser_paths=paths,
+                options=self.tabview.options,
+                parent=self,
+            )
+        elif any(is_imzml(path) for path in paths):
+            # imzml import
+            imzml_paths, binary_paths = [], []
+            for path in paths:
+                if is_imzml(path):
+                    imzml_paths.append(path)
+                elif is_imzml_binary_data(path):
+                    binary_paths.append(path)
+
+            wiz = ImzMLImportWizard(
+                path=paths[0],
+                binary_path=binary_paths[0],
+                options=self.tabview.options,
+                parent=self,
+            )
+        else:
+            event.ignore()
+            return
+
         wiz.laserImported.connect(self.tabview.importFile)
         wiz.laserImported.connect(
             lambda: self.tabview.activeWidget().graphics.zoomReset()
@@ -226,6 +255,12 @@ class MainWindow(QtWidgets.QMainWindow):
             "Start the line-wise import wizard.",
             self.actionWizardImport,
         )
+        self.action_wizard_imzml = qAction(
+            "",
+            "ImzML Wizard",
+            "Import data from a .imzML and binary (.ibd).",
+            self.actionWizardImzML,
+        )
         self.action_wizard_laserlog = qAction(
             "",
             "ESL Laser Log Wizard",
@@ -257,6 +292,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # File -> Import
         menu_import = menu_file.addMenu("&Import")
         menu_import.addAction(self.action_wizard_import)
+        menu_import.addAction(self.action_wizard_imzml)
         menu_import.addAction(self.action_wizard_laserlog)
         menu_import.addAction(self.action_wizard_spot)
         # menu_import.addAction(self.action_wizard_srr)
@@ -349,7 +385,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # === Actions ===
     def actionDialogColorTableRange(self) -> QtWidgets.QDialog:
-        """Open a `:class:pewpew.widgets.dialogs.ColocalisationDialog` and apply result."""
+        """
+        Open a `:class:pewpew.widgets.dialogs.ColocalisationDialog` and apply result.
+        """
 
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
             self.tabview.options._colorranges = dialog.ranges
@@ -439,6 +477,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionWizardImport(self) -> QtWidgets.QWizard:
         wiz = ImportWizard(config=self.tabview.config, parent=self)
+        wiz.laserImported.connect(self.tabview.importFile)
+        wiz.open()
+        return wiz
+
+    def actionWizardImzML(self) -> QtWidgets.QWizard:
+        wiz = ImzMLImportWizard(options=self.tabview.options, parent=self)
         wiz.laserImported.connect(self.tabview.importFile)
         wiz.open()
         return wiz
