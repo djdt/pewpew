@@ -45,11 +45,22 @@ class CalibrationView(SinglePlotGraphicsView):
             pen = QtGui.QPen(QtCore.Qt.black, 1.0)
             pen.setCosmetic(True)
 
+        hover_brush = QtGui.QBrush(brush)
+        hover_brush.setColor(brush.color().lighter())
+
         if self.points is not None:
             self.plot.removeItem(self.points)
 
         self.points = pyqtgraph.ScatterPlotItem(
-            points[:, 0], points[:, 1], symbol="o", size=10, pen=pen, brush=brush
+            points[:, 0],
+            points[:, 1],
+            symbol="o",
+            size=10,
+            pen=pen,
+            brush=brush,
+            hoverBrush=hover_brush,
+            hoverable=True,
+            tip="x: {x:.3g}\ny: {y:.3g}".format
         )
         self.plot.addItem(self.points)
 
