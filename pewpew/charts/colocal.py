@@ -15,6 +15,7 @@ class ColocalisationView(SinglePlotGraphicsView):
 
         # self.plot.setMouseEnabled(x=False, y=False)
         self.plot.enableAutoRange(x=True, y=True)
+        self.plot.setLimits(xMin=-0.05, xMax=1.05, yMin=-0.05, yMax=1.05)
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(640, 640)
