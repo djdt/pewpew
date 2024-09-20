@@ -60,7 +60,7 @@ class CalibrationView(SinglePlotGraphicsView):
             brush=brush,
             hoverBrush=hover_brush,
             hoverable=True,
-            tip="x: {x:.3g}\ny: {y:.3g}".format
+            tip="x: {x:.3g}\ny: {y:.3g}".format,
         )
         self.plot.addItem(self.points)
 
