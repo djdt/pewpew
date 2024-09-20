@@ -218,7 +218,7 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         self.mass_width.valueChanged.connect(self.completeChanged)
 
         self.graphics = LaserGraphicsView(options, parent=self)
-        self.graphics.setMinimumSize(QtCore.QSize(640, 480))
+        self.graphics.setMinimumSize(QtCore.QSize(640, 320))
 
         self.image: ClickableImageItem | None = None
 
@@ -244,9 +244,9 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         layout_left.addLayout(layout_mass_width, 0)
 
         layout_right = QtWidgets.QVBoxLayout()
+        layout_right.addWidget(self.graphics, 3)
         layout_right.addWidget(self.toolbar, 0)
-        layout_right.addWidget(self.graphics, 1)
-        layout_right.addWidget(self.spectra, 0)
+        layout_right.addWidget(self.spectra, 1)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(layout_left, 0)
