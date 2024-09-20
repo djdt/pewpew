@@ -11,6 +11,7 @@ from pewlib.io.imzml import MZML_NS, ImzML, ParamGroup, ScanSettings, Spectrum
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtWidgets
 
+from pewpew.actions import qAction, qToolButton
 from pewpew.charts.spectra import SpectraView
 from pewpew.graphics.colortable import get_table
 from pewpew.graphics.imageitems import ScaledImageItem
@@ -223,6 +224,13 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
 
         self.spectra = SpectraView()
 
+        self.action_tic = qAction(
+            "black_sum", "Draw TIC", "Draw the total-ion-chromatogram.", self.drawTIC
+        )
+        self.toolbar = QtWidgets.QToolBar()
+        self.toolbar.addAction(self.action_tic)
+        self.button_tic = qToolButton
+
         self.registerField("mass_width", self.mass_width)
         self.registerField("target_masses", self, "target_masses_prop")
 
@@ -236,6 +244,7 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         layout_left.addLayout(layout_mass_width, 0)
 
         layout_right = QtWidgets.QVBoxLayout()
+        layout_right.addWidget(self.toolbar, 0)
         layout_right.addWidget(self.graphics, 1)
         layout_right.addWidget(self.spectra, 0)
 
