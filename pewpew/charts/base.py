@@ -93,12 +93,12 @@ class SinglePlotGraphicsView(pyqtgraph.GraphicsView):
             self.copyToClipboard,
         )
 
-        self.action_show_legend = qAction(
-            "view-hidden",
-            "Hide Legend",
-            "Toggle visibility of the legend.",
-            lambda: None,
-        )
+        # self.action_show_legend = qAction(
+        #     "view-hidden",
+        #     "Hide Legend",
+        #     "Toggle visibility of the legend.",
+        #     lambda: None,
+        # )
 
         self.action_export_data = qAction(
             "document-export",
@@ -112,29 +112,29 @@ class SinglePlotGraphicsView(pyqtgraph.GraphicsView):
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         menu = QtWidgets.QMenu(self)
         menu.addAction(self.action_copy_image)
-        if self.plot.legend is not None:
-            if self.plot.legend.isVisible():
-                self.action_show_legend.setIcon(QtGui.QIcon.fromTheme("view-hidden"))
-                self.action_show_legend.setText("Hide Legend")
-                self.action_show_legend.triggered.connect(
-                    lambda: self.plot.legend.setVisible(False)
-                )
-            else:
-                self.action_show_legend.setIcon(QtGui.QIcon.fromTheme("view-visible"))
-                self.action_show_legend.setText("Show Legend")
-                self.action_show_legend.triggered.connect(
-                    lambda: self.plot.legend.setVisible(True)
-                )
+        # if self.plot.legend is not None:
+        #     if self.plot.legend.isVisible():
+        #         self.action_show_legend.setIcon(QtGui.QIcon.fromTheme("view-hidden"))
+        #         self.action_show_legend.setText("Hide Legend")
+        #         self.action_show_legend.triggered.connect(
+        #             lambda: self.plot.legend.setVisible(False)
+        #         )
+        #     else:
+        #         self.action_show_legend.setIcon(QtGui.QIcon.fromTheme("view-visible"))
+        #         self.action_show_legend.setText("Show Legend")
+        #         self.action_show_legend.triggered.connect(
+        #             lambda: self.plot.legend.setVisible(True)
+        #         )
+        #
+        #     menu.addAction(self.action_show_legend)
+        if self.readyForExport():
+            menu.addSeparator()
+            menu.addAction(self.action_export_data)
 
-            menu.addAction(self.action_show_legend)
-            if self.readyForExport():
-                menu.addSeparator()
-                menu.addAction(self.action_export_data)
-
-            if len(self.context_menu_actions) > 0:
-                menu.addSeparator()
-            for action in self.context_menu_actions:
-                menu.addAction(action)
+        if len(self.context_menu_actions) > 0:
+            menu.addSeparator()
+        for action in self.context_menu_actions:
+            menu.addAction(action)
 
         event.accept()
         menu.popup(event.globalPos())
