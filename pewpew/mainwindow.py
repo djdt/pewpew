@@ -68,6 +68,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.default_config = Config()
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+        paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
         if event.mimeData().hasUrls():
             paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
             if any(is_nwi_laser_log(path) for path in paths):
@@ -84,15 +85,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if any(is_nwi_laser_log(path) for path in paths):
             # laser log import
-            log_paths, paths = [], []
+            log_paths, laser_paths = [], []
             for path in paths:
                 if is_nwi_laser_log(path):
                     log_paths.append(path)
                 else:
-                    paths.append(path)
+                    laser_paths.append(path)
             wiz = LaserLogImportWizard(
                 path=log_paths[0],
-                laser_paths=paths,
+                laser_paths=laser_paths,
                 options=self.tabview.options,
                 parent=self,
             )
@@ -106,8 +107,8 @@ class MainWindow(QtWidgets.QMainWindow):
                     binary_paths.append(path)
 
             wiz = ImzMLImportWizard(
-                path=paths[0],
-                binary_path=binary_paths[0],
+                path=imzml_paths[0],
+                binary_path=binary_paths[0] if len(binary_paths) > 0 else None,
                 options=self.tabview.options,
                 parent=self,
             )
