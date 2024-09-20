@@ -1634,7 +1634,9 @@ class StatsDialog(QtWidgets.QDialog):
         self.label_median.setText(f"{np.median(data):.4g} {unit}")
         self.label_stddev.setText(f"{np.std(data):.4g} {unit}")
 
-        self.chart.setHistogram(data)
+        self.chart.clear()
+        self.chart.setHistogram(data.astype(float))
+        self.chart.setDataLimits(xMin=-0.05, xMax=1.05, yMax=1.05)
 
     def isCalibrate(self) -> bool:
         return False  # pragma: no cover

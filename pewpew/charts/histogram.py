@@ -1,6 +1,7 @@
 import numpy as np
 import pyqtgraph
 from PySide6 import QtCore, QtGui, QtWidgets
+
 from pewpew.charts.base import SinglePlotGraphicsView, ViewBoxForceScaleAtZero
 
 
@@ -15,7 +16,7 @@ class HistogramChart(SinglePlotGraphicsView):
             viewbox=ViewBoxForceScaleAtZero(),
             parent=parent,
         )
-        self.plot.setLimits(xMin=0.0, yMin=0.0)
+        self.plot.setLimits(yMin=0.0)
         self.hist: np.ndarray | None = None
         self.edges: np.ndarray | None = None
 
@@ -46,6 +47,16 @@ class HistogramChart(SinglePlotGraphicsView):
             min_bins: minimum number of bins
             max_bins: maximum number of bins
         """
+        if pen is None:
+            pen = QtGui.QPen(QtCore.Qt.black, 1.0)
+            pen.setCosmetic(True)
+
+        if brush is None:
+            brush = QtGui.QBrush(QtCore.Qt.black)
+
+        assert bar_width > 0.0 and bar_width <= 1.0
+        assert bar_offset >= 0.0 and bar_offset < 1.0
+
         vmin, vmax = np.percentile(data, 5), np.percentile(data, 95)
 
         bin_edges = np.histogram_bin_edges(data, bins=bins, range=(vmin, vmax))
