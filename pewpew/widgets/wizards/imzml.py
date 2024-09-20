@@ -229,7 +229,8 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         )
         self.toolbar = QtWidgets.QToolBar()
         self.toolbar.addAction(self.action_tic)
-        self.button_tic = qToolButton
+        self.toolbar.setParent(self.graphics)
+        self.toolbar.widgetForAction(self.action_tic).setAutoFillBackground(True)
 
         self.registerField("mass_width", self.mass_width)
         self.registerField("target_masses", self, "target_masses_prop")
@@ -244,9 +245,9 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         layout_left.addLayout(layout_mass_width, 0)
 
         layout_right = QtWidgets.QVBoxLayout()
-        layout_right.addWidget(self.graphics, 3)
-        layout_right.addWidget(self.toolbar, 0)
-        layout_right.addWidget(self.spectra, 1)
+        # layout_right.addWidget(self.toolbar)
+        layout_right.addWidget(self.graphics, 1)
+        layout_right.addWidget(self.spectra, 0)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(layout_left, 0)
