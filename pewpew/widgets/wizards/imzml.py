@@ -9,7 +9,7 @@ import numpy.lib.recfunctions as rfn
 from pewlib.config import SpotConfig
 from pewlib.io.imzml import MZML_NS, ImzML, ParamGroup, ScanSettings, Spectrum
 from pewlib.laser import Laser
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction, qToolButton
 from pewpew.charts.spectra import SpectraView
@@ -70,6 +70,30 @@ class MassTable(QtWidgets.QTableView):
     def targetMasses(self) -> np.ndarray:
         masses = self.model().array["m/z"]
         return masses[~np.isnan(masses)]
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        if event.matches(QtGui.QKeySequence.StandardKey.Paste):
+            text = QtWidgets.QApplication.clipboard().text("plain")[0]
+            selection = self.selectedIndexes()
+            start_row = min(selection, key=lambda i: i.row()).row()
+
+            for row, row_text in enumerate(text.split("\n")):
+                val = row_text.split("\t", maxsplit=1)[0]
+                if not self.model().hasIndex(start_row + row, 0):
+                    self.model().insertRow(start_row + row)
+                self.model().setData(
+                    self.model().index(start_row + row, 0),
+                    val,
+                    QtCore.Qt.ItemDataRole.EditRole,
+                )
+        elif event.matches(QtGui.QKeySequence.StandardKey.Delete):
+            selection = self.selectedIndexes()
+            indicies = [QtCore.QPersistentModelIndex(i) for i in selection]
+            for index in indicies:
+                self.model().removeRow(index.row())
+            self.clearSelection()
+        else:
+            super().keyPressEvent(event)
 
 
 class ImzMLImportPage(QtWidgets.QWizardPage):
@@ -209,6 +233,7 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
 
         self.mass_table = MassTable()
         self.mass_table.model().dataChanged.connect(self.completeChanged)
+        self.mass_table.model().rowsRemoved.connect(self.completeChanged)
 
         self.mass_width = QtWidgets.QSpinBox()
         self.mass_width.setRange(0, 1000)
