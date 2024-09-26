@@ -112,7 +112,7 @@ class ImzMLImportPage(QtWidgets.QWizardPage):
         self._log_data: np.ndarray = np.array([])
 
         overview = (
-            "This wizard will guide you through importing MSI data stoed in an imzML."
+            "This wizard will guide you through importing MSI data stoed in an imzML. "
             "To begin, select the path to the .imzML and binary (.ibd) file below."
         )
 
@@ -392,9 +392,23 @@ class ImzMLImportWizard(QtWidgets.QWizard):
     def accept(self) -> None:
         path = Path(self.field("imzml_path"))
         imzml: ImzML = self.field("imzml")
-        target_masses: np.ndarray = self.field("target_masses")
-        target_masses = np.sort(target_masses)
         mass_width = float(self.field("mass_width"))
+        target_masses: np.ndarray = self.field("target_masses")
+
+        # cleanup the masses
+        mass_range = imzml.mass_range()
+        target_masses = target_masses[
+            (target_masses > mass_range[0]) & (target_masses < mass_range[1])
+        ]
+        if len(target_masses) == 0:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "No masses to import!",
+                "Check targets are within mass range, "
+                f"{mass_range[0]:.4f} - {mass_range[1]:.4f}.",
+            )
+            return
+        target_masses = np.unique(target_masses)
 
         data = imzml.extract_masses(target_masses, mass_width)
 
