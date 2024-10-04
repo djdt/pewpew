@@ -149,7 +149,8 @@ class ImzMLImportPage(QtWidgets.QWizardPage):
 
     def guessBinaryPath(self) -> None:
         if (
-            self.path.path.with_suffix(".ibd").exists()
+            self.path.path.name != ""
+            and self.path.path.with_suffix(".ibd").exists()
             and self.path_binary.path == Path()
         ):
             self.path_binary.addPath(self.path.path.with_suffix(".ibd"))
