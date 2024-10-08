@@ -195,9 +195,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         re
         self.action_open_recent = QtGui.QActionGroup(self)
-        self.action_open_recent.triggered.connect(
-            lambda a: self.tabview.openDocument(re_strip_amp.sub("", a.text()))
-        )
+        self.action_open_recent.triggered.connect(self.openRecentFile)
 
         self.action_process = qAction(
             "view-process-tree",
@@ -350,6 +348,16 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_help.addAction(self.action_help)
         menu_help.addAction(self.action_about)
 
+    def openRecentFile(self, action: QtGui.QAction) -> None:
+        path = Path(re_strip_amp.sub("", action.text()))
+
+        if is_imzml(path):
+            self.actionWizardImzML(path=path)
+        elif is_nwi_laser_log(path):
+            self.actionWizardLaserLog(path=path)
+        else:
+            self.tabview.openDocument(path)
+
     def updateRecentFiles(self, new_path: Path | None = None) -> None:
         settings = QtCore.QSettings()
         num = settings.beginReadArray("RecentFiles")
@@ -476,27 +484,37 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.open()
         return dlg
 
-    def actionWizardImport(self) -> QtWidgets.QWizard:
-        wiz = ImportWizard(config=self.tabview.config, parent=self)
+    def actionWizardImport(
+        self, checked: bool = False, path: Path | str = ""
+    ) -> QtWidgets.QWizard:
+        wiz = ImportWizard(path, config=self.tabview.config, parent=self)
         wiz.laserImported.connect(self.tabview.importFile)
         wiz.open()
         return wiz
 
-    def actionWizardImzML(self) -> QtWidgets.QWizard:
-        wiz = ImzMLImportWizard(options=self.tabview.options, parent=self)
+    def actionWizardImzML(
+        self, checked: bool = False, path: Path | str = ""
+    ) -> QtWidgets.QWizard:
+        wiz = ImzMLImportWizard(path, options=self.tabview.options, parent=self)
         wiz.laserImported.connect(self.tabview.importFile)
         wiz.open()
         return wiz
 
-    def actionWizardSpot(self) -> QtWidgets.QWizard:
+    def actionWizardSpot(
+        self, checked: bool = False, path: Path | str = ""
+    ) -> QtWidgets.QWizard:
         config = SpotConfig(self.tabview.config.spotsize, self.tabview.config.spotsize)
-        wiz = SpotImportWizard(config=config, options=self.tabview.options, parent=self)
+        wiz = SpotImportWizard(
+            [path], config=config, options=self.tabview.options, parent=self
+        )
         wiz.laserImported.connect(self.tabview.importFile)
         wiz.open()
         return wiz
 
-    def actionWizardLaserLog(self) -> QtWidgets.QWizard:
-        wiz = LaserLogImportWizard(options=self.tabview.options, parent=self)
+    def actionWizardLaserLog(
+        self, checked: bool = False, path: Path | str = ""
+    ) -> QtWidgets.QWizard:
+        wiz = LaserLogImportWizard(path, options=self.tabview.options, parent=self)
         wiz.laserImported.connect(self.tabview.importFile)
         wiz.laserImported.connect(
             lambda: self.tabview.activeWidget().graphics.zoomReset()
