@@ -248,6 +248,23 @@ class CsvLinesOptions(_OptionsBase):
             self.lineedit_header_preview.setText("")
 
     def updateForPath(self, path: Path) -> None:
+        option = io.csv.option_for_path(path)
+        if isinstance(option, io.csv.NuOption):
+            self.lineedit_regex.setText(option.regex.pattern)
+            self.combo_sortkey.setCurrentText("Numerical")
+            self.combo_delimiter.setCurrentText(",")
+            self.spinbox_header.setValue(11)
+        elif isinstance(option, io.csv.TofwerkOption):
+            self.lineedit_regex.setText(option.regex.pattern)
+            self.combo_sortkey.setCurrentText("Timestamp")
+            self.lineedit_sortkey.setText("%Y.%m.%d-%Hh%Mm%Ss")
+            self.spinbox_header.setValue(0)
+        elif isinstance(option, io.csv.ThermoLDROption):
+            self.lineedit_regex.setText(option.regex.pattern)
+            self.combo_delimiter.setCurrentText(",")
+            self.spinbox_header.setValue(13)
+            self.combo_sortkey.setCurrentText("Numerical")
+
         self.csvs = list(path.glob("*.csv"))
         self.regexChanged()
         self.updateHeaderPreview(self.spinbox_header.value())
