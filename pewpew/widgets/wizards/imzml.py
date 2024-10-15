@@ -330,7 +330,9 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
 
     def drawMass(self, mz: float) -> None:
         imzml: ImzML = self.field("imzml")
-        x = imzml.extract_masses(mz)[:, :, 0]
+        x = imzml.extract_masses(mz, mass_width_ppm=float(self.mass_width.value()))[
+            :, :, 0
+        ]
         x -= np.nanmin(x)
         x /= np.nanmax(x)
         self.drawImage(x)
