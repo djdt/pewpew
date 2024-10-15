@@ -4,8 +4,8 @@ from importlib.metadata import version
 from pathlib import Path
 
 from pewlib import io
-from pewlib.laser import Laser
 from pewlib.config import Config, SpotConfig
+from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui
 
 logger = logging.getLogger(__name__)
@@ -122,7 +122,7 @@ class ImportThread(QtCore.QThread):
             else:  # pragma: no cover
                 raise ValueError(f"{path.name}: Unknown extention '{path.suffix}'.")
 
-        if "spotsize" in params and len(params['spotsize'] == 2):
+        if "spotsize" in params and len(params["spotsize"]) == 2:
             config = SpotConfig(*params["spotsize"])
         else:
             config = Config(
