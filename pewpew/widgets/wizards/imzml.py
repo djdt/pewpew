@@ -220,6 +220,37 @@ class ImzMLImportPage(QtWidgets.QWizardPage):
     imzml_prop = QtCore.Property("QVariant", getImzML, setImzML, notify=imzmlChanged)
 
 
+class UntargettedImportDialog(QtWidgets.QDialog):
+    def __init__(self, npixels: int, parent: QtWidgets.QWidget):
+        super().__init__(parent)
+
+        self.spinbox_num = QtWidgets.QSpinBox()
+        self.spinbox_num.setRange(0, 1000)
+        self.spinbox_num.setValue(100)
+
+        self.spinbox_precision = QtWidgets.QDoubleSpinBox()
+        self.spinbox_precision.setRange(1e-6, 10.0)
+        self.spinbox_precision.setValue(0.1)
+        self.spinbox_precision.setStepType(
+            QtWidgets.QAbstractSpinBox.StepType.AdaptiveDecimalStepType
+        )
+
+        self.spinbox_min_pixels = QtWidgets.QSpinBox()
+        self.spinbox_min_pixels.setRange(0, 100)
+        self.spinbox_min_pixels.setValue(10)
+
+        self.spinbox_min_height_fraction = QtWidgets.QSpinBox()
+        self.spinbox_min_height_fraction.setRange(0, 100)
+        self.spinbox_min_height_fraction.setValue(10)
+
+        self.spinbox_min_height_absolute = QtWidgets.QDoubleSpinBox()
+        self.spinbox_min_height_absolute.setRange(0.0, 1e9)
+        self.spinbox_min_height_absolute.setValue(100.0)
+        self.spinbox_min_height_absolute.setStepType(
+            QtWidgets.QAbstractSpinBox.StepType.AdaptiveDecimalStepType
+        )
+
+
 class ImzMLTargetMassPage(QtWidgets.QWizardPage):
     targetMassesChanged = QtCore.Signal()
 
@@ -259,6 +290,7 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         )
         self.toolbar = QtWidgets.QToolBar()
         self.toolbar.addAction(self.action_tic)
+        self.toolbar.addAction(self.action_nontarget)
         self.toolbar.setParent(self.graphics)
         self.toolbar.widgetForAction(self.action_tic).setAutoFillBackground(True)
 
