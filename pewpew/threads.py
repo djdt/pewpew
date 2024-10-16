@@ -122,19 +122,14 @@ class ImportThread(QtCore.QThread):
             else:  # pragma: no cover
                 raise ValueError(f"{path.name}: Unknown extention '{path.suffix}'.")
 
-        if "spotsize" in params and len(params["spotsize"]) == 2:
+        # Check for SpotConfig (x and y in spotsize)
+        try:
             config = SpotConfig(*params["spotsize"])
-        else:
+        except (KeyError, TypeError):
             config = Config(
-                spotsize=self.config.spotsize,
-                speed=self.config.speed,
-                scantime=self.config.scantime,
+                spotsize=params.get("spotsize", self.config.spotsize),
+                speed=params.get("speed", self.config.speed),
+                scantime=params.get("scantime", self.config.scantime),
             )
-            if "spotsize" in params:
-                config.spotsize = params["spotsize"]
-        if "speed" in params:
-            config.speed = params["speed"]
-        if "scantime" in params:
-            config.scantime = params["scantime"]
 
         return Laser(data=data, config=config, info=info)
