@@ -44,6 +44,7 @@ class MassTable(QtWidgets.QTableView):
         self.setItemDelegate(
             DoublePrecisionDelegate(4, validator=DoubleValidatorWithEmpty())
         )
+        self.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
 
         self.model().dataChanged.connect(self.insertOrDeleteLastRows)
 
@@ -232,9 +233,13 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         if options is None:
             options = GraphicsOptions()
 
+        self.image: ClickableImageItem | None = None
+        self.image_cache: dict[float, np.ndarray] = {}
+
         self.mass_table = MassTable()
         self.mass_table.model().dataChanged.connect(self.completeChanged)
         self.mass_table.model().rowsRemoved.connect(self.completeChanged)
+        self.mass_table.clicked.connect(self.massSelected)
 
         self.mass_width = QtWidgets.QSpinBox()
         self.mass_width.setRange(0, 1000)
@@ -242,11 +247,10 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         self.mass_width.setSingleStep(10)
         self.mass_width.setSuffix(" ppm")
         self.mass_width.valueChanged.connect(self.completeChanged)
+        self.mass_width.valueChanged.connect(self.image_cache.clear)
 
         self.graphics = LaserGraphicsView(options, parent=self)
         self.graphics.setMinimumSize(QtCore.QSize(640, 320))
-
-        self.image: ClickableImageItem | None = None
 
         self.spectra = SpectraView()
 
@@ -329,13 +333,18 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         self.drawImage(tic)
 
     def drawMass(self, mz: float) -> None:
-        imzml: ImzML = self.field("imzml")
-        x = imzml.extract_masses(mz, mass_width_ppm=float(self.mass_width.value()))[
-            :, :, 0
-        ]
-        x -= np.nanmin(x)
-        x /= np.nanmax(x)
-        self.drawImage(x)
+        if mz not in self.image_cache:
+            imzml: ImzML = self.field("imzml")
+            img = imzml.extract_masses(
+                mz, mass_width_ppm=float(self.mass_width.value())
+            )[:, :, 0]
+            self.image_cache[mz] = img
+        else:
+            img = self.image_cache[mz]
+
+        img -= np.nanmin(img)
+        img /= np.nanmax(img)
+        self.drawImage(img)
 
     def drawSpectraAtPos(self, pos: QtCore.QPoint) -> None:
         self.spectra.clear()
@@ -364,6 +373,14 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
     target_masses_prop = QtCore.Property(
         "QVariant", getTargetMasses, notify=targetMassesChanged
     )
+
+    def massSelected(self, index: QtCore.QModelIndex) -> None:
+        if not index.isValid():
+            return
+        text = self.mass_table.model().data(index, QtCore.Qt.ItemDataRole.EditRole)
+        if text == "":
+            return
+        self.drawMass(float(text))
 
 
 class ImzMLImportWizard(QtWidgets.QWizard):
