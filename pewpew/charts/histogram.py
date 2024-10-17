@@ -5,7 +5,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from pewpew.charts.base import SinglePlotGraphicsView, ViewBoxForceScaleAtZero
 
 
-class HistogramChart(SinglePlotGraphicsView):
+class HistogramView(SinglePlotGraphicsView):
     """BaseChart for drawing a histogram."""
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):

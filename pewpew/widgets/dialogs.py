@@ -16,7 +16,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from pewpew.actions import qAction, qToolButton
 from pewpew.charts.calibration import CalibrationView
 from pewpew.charts.colocal import ColocalisationView
-from pewpew.charts.histogram import HistogramChart
+from pewpew.charts.histogram import HistogramView
 from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.lib import kmeans
 from pewpew.lib.pratt import Reducer
@@ -1510,7 +1510,7 @@ class StatsDialog(QtWidgets.QDialog):
         self.units = units
         self.pixel_size = pixel_size
 
-        self.chart = HistogramChart()
+        self.chart = HistogramView()
 
         self.button_clipboard = QtWidgets.QPushButton("Copy to Clipboard")
         self.button_clipboard.pressed.connect(self.copyToClipboard)
