@@ -2,7 +2,7 @@ import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 from pytestqt.qtbot import QtBot
 
-from pewpew.lib.numpyqt import NumpyArrayTableModel
+from pewpew.lib.numpyqt import NumpyRecArrayTableModel
 from pewpew.widgets.modelviews import BasicTable, BasicTableView
 
 
@@ -10,8 +10,10 @@ def test_basic_table_view(qtbot: QtBot):
     view = BasicTableView()
     qtbot.addWidget(view)
 
-    x = np.random.random((5, 5))
-    model = NumpyArrayTableModel(x)
+    x = np.empty((5), dtype=[("A", float), ("B", float)])
+    x["A"] = np.random.random(5)
+    x["B"] = np.random.random(5)
+    model = NumpyRecArrayTableModel(x)
     view.setModel(model)
 
     view.setCurrentIndex(view.indexAt(QtCore.QPoint(0, 0)))
@@ -23,13 +25,13 @@ def test_basic_table_view(qtbot: QtBot):
     )
     view._copy()
     mime_data = QtWidgets.QApplication.clipboard().mimeData()
-    assert mime_data.text() == str(x[0, 0]) + "\n" + str(x[1, 0])
+    assert mime_data.text() == str(x["A"][0]) + "\n" + str(x["A"][1])
     view._cut()  # Same as _copy, _delete
     view._delete()
-    assert not np.isnan(x[0, 0])  # Can't delete out of a numpy array
+    assert np.isnan(x["A"][0])  # I can now delete out of a numpy array
     QtWidgets.QApplication.clipboard().setText("2.0")
     view._paste()
-    assert x[0, 0] == 2.0
+    assert x["A"][0] == 2.0
 
     view.contextMenuEvent(
         QtGui.QContextMenuEvent(
