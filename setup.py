@@ -5,7 +5,7 @@ polyext = Extension(
     "pewpew.lib.polyext",
     sources=["src/polyextmodule.c"],
     include_dirs=[numpy.get_include()],
-    define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+    define_macros=[("NPY_NO_DEPRECATED_API", "NPY_2_0_API_VERSION")],
 )
 
 setup(
