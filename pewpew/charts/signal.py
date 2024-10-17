@@ -28,7 +28,7 @@ class SignalView(SinglePlotGraphicsView):
         ys: np.ndarray,
         xs: np.ndarray | None = None,
         pen: QtGui.QPen | None = None,
-    ) -> None:
+    ) -> pyqtgraph.PlotCurveItem:
         """Add a line plot to the chart.
 
         Args:
@@ -49,6 +49,7 @@ class SignalView(SinglePlotGraphicsView):
             x=xs, y=ys, name=name, pen=pen, connect="all", skipFiniteCheck=True
         )
         self.plot.addItem(curve)
+        return curve
 
     def addScatterSeries(
         self,
@@ -56,9 +57,8 @@ class SignalView(SinglePlotGraphicsView):
         ys: np.ndarray,
         xs: np.ndarray,
         brush: QtGui.QBrush | None = None,
-        color: QtGui.QColor = QtCore.Qt.black,
         markersize: float = 10.0,
-    ) -> None:
+    ) -> pyqtgraph.ScatterPlotItem:
         """Add a scatter plot to the chart.
 
         Args:
@@ -72,6 +72,12 @@ class SignalView(SinglePlotGraphicsView):
             brush = QtGui.QBrush(QtCore.Qt.red)
 
         scatter = pyqtgraph.ScatterPlotItem(
-            x=xs, y=ys, size=markersize, pen=None, brush=brush
+            x=xs,
+            y=ys,
+            size=markersize,
+            pen=None,
+            brush=brush,
+            name=name,
         )
         self.plot.addItem(scatter)
+        return scatter
