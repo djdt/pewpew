@@ -84,9 +84,10 @@ class CalibrationView(SinglePlotGraphicsView):
 
         x, y = self.points.getData()
 
-        if weighting != "none":
+        if weighting != "none":  # pragma: no cover
             raise NotImplementedError("Weighting not yet implemented.")
-        if x.size < 2 or np.all(x == x[0]):
+        if x.size < 2 or np.all(x == x[0]):  # pragma: no cover
+
             return
 
         m, b, r2, err = weighted_linreg(x, y, w=None)
