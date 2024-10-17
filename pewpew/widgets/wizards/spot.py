@@ -4,13 +4,13 @@ from pathlib import Path
 
 import numpy as np
 import numpy.lib.recfunctions as rfn
+import pyqtgraph
 from pewlib.config import SpotConfig
 from pewlib.laser import Laser
 from pewlib.process import peakfinding
 from pewlib.process.calc import view_as_blocks
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewpew.charts.colors import sequential
 from pewpew.charts.signal import SignalView
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
@@ -336,7 +336,28 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.combo_peak_method.currentIndexChanged.connect(self.stack.setCurrentIndex)
         self.combo_peak_method.currentIndexChanged.connect(self.updatePeaks)
 
-        self.chart = SignalChart(parent=self)
+        self.chart = SignalView(parent=self)
+        self.series = {
+            "signal": self.chart.addLine("Signal", np.array([0])),
+            "peaks": self.chart.addScatterSeries(
+                "Peaks",
+                np.array([0]),
+                np.array([0]),
+                brush=QtGui.QBrush(QtCore.Qt.GlobalColor.red),
+            ),
+            "lefts": self.chart.addScatterSeries(
+                "Lefts",
+                np.array([0]),
+                np.array([0]),
+                brush=QtGui.QBrush(QtCore.Qt.GlobalColor.darkBlue),
+            ),
+            "rights": self.chart.addScatterSeries(
+                "Rights",
+                np.array([0]),
+                np.array([0]),
+                brush=QtGui.QBrush(QtCore.Qt.GlobalColor.darkGreen),
+            ),
+        }
 
         self.combo_base_method = QtWidgets.QComboBox()
         self.combo_base_method.addItems(
@@ -446,53 +467,30 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.updatePeaks()
 
     def drawSignal(self, data: np.ndarray) -> None:
-        if "signal" in self.chart.series:
-            self.chart.setSeries("signal", data)
-        else:
-            self.chart.addLineSeries("signal", data)
-        self.chart.yaxis.setRange(0, np.amax(data))
-        self.chart.xaxis.setRange(0, data.size)
-        self.chart.yaxis.applyNiceNumbers()
+        self.series["signal"].setData(data)
 
     def clearPeaks(self) -> None:
         self.peaks = None
         self.lineedit_count.setText("0")
-        if "peaks" in self.chart.series:
-            self.chart.series["peaks"].clear()
-            self.chart.series["lefts"].clear()
-            self.chart.series["rights"].clear()
+        for name in ["peaks", "lefts", "rights"]:
+            self.series[name].setVisible(False)
 
     def drawPeaks(self, peaks: np.ndarray) -> None:
-        if "peaks" in self.chart.series:
-            self.chart.setSeries("peaks", peaks["height"] + peaks["base"], peaks["top"])
-            self.chart.setSeries("lefts", peaks["base"], peaks["left"])
-            self.chart.setSeries("rights", peaks["base"], peaks["right"])
-        else:
-            self.chart.addScatterSeries(
-                "peaks",
-                peaks["height"] + peaks["base"],
-                peaks["top"],
-                color=sequential[4],
-                label="Peaks",
-            )
-            self.chart.addScatterSeries(
-                "lefts", peaks["base"], peaks["left"], color=sequential[1], label="Left"
-            )
-            self.chart.addScatterSeries(
-                "rights",
-                peaks["base"],
-                peaks["right"],
-                color=sequential[2],
-                label="Right",
-            )
+        self.series["peaks"].setData(peaks["top"], peaks["height"] + peaks["base"])
+        self.series["lefts"].setData(peaks["left"], peaks["base"])
+        self.series["rights"].setData(peaks["right"], peaks["base"])
+        for name in ["peaks", "lefts", "rights"]:
+            self.series[name].setVisible(True)
 
     def clearThresholds(self) -> None:
+        return
         for name in list(self.chart.series.keys()):
             if name not in ["signal", "peaks", "lefts", "rights"]:
                 self.chart.chart().removeSeries(self.chart.series.pop(name))
 
     def drawThresholds(self, thresholds: dict) -> None:
-        colors = iter(sequential)
+        return
+        # colors = iter(sequential)
         for name, value in thresholds.items():
             color = next(colors)
             if name in self.chart.series:
@@ -597,6 +595,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             min_height=float(self.lineedit_minheight.text()),
             min_width=float(self.lineedit_minwidth.text()),
         )
+        assert isinstance(self.peaks, np.ndarray)
 
         self.drawPeaks(self.peaks)
         self.lineedit_count.setText(f"{self.peaks.size}")
