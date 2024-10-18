@@ -25,7 +25,7 @@ pewpew
 
 ## Documentation
 
-Documentation is available at https://djdt.github.io/pewpew
+Documentation is available at https://pew2.readthedocs.io
 
 
 ## Publications
