@@ -11,7 +11,6 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction, qActionGroup
 from pewpew.graphics.colortable import get_icon
-from pewpew.help import HelpDialog
 from pewpew.log import LoggingDialog
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
@@ -41,7 +40,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setAcceptDrops(True)
 
         self.log = LoggingDialog()
-        self.help = HelpDialog()
 
         self.tabview = LaserTabView()
         self.tabview.fileImported.connect(self.updateRecentFiles)
@@ -174,7 +172,10 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
         self.action_help = qAction(
-            "help-contents", "&Help", "Show the help contents.", self.help.open
+            "documentation",
+            "&Online Documentation",
+            "Opens a link to the pew² documentation.",
+            self.linkToDocumentation,
         )
 
         self.action_log = qAction(
@@ -347,6 +348,9 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_help.addAction(self.action_log)
         menu_help.addAction(self.action_help)
         menu_help.addAction(self.action_about)
+
+    def linkToDocumentation(self) -> None:
+        QtGui.QDesktopServices.openUrl("https://pew2.readthedocs.io")
 
     def openRecentFile(self, action: QtGui.QAction) -> None:
         path = Path(re_strip_amp.sub("", action.text()))
