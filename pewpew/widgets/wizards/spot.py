@@ -12,6 +12,8 @@ from pewlib.process.calc import view_as_blocks
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.charts.signal import SignalView
+from pewpew.graphics.colortable import get_table
+from pewpew.graphics.imageitems import ScaledImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.validators import DecimalValidator, DecimalValidatorNoZero, OddIntValidator
@@ -34,7 +36,7 @@ class SpotImportWizard(QtWidgets.QWizard):
     page_spot_image = 8
     page_spot_config = 9
 
-    laserImported = QtCore.Signal(Laser)
+    laserImported = QtCore.Signal(Path, Laser)
 
     def __init__(
         self,
@@ -170,7 +172,7 @@ class SpotImportWizard(QtWidgets.QWizard):
             raise ValueError("Invalid filetype selection.")
 
         info = self.field("laserinfo")[0]
-        self.laerImported.emit(Laser(data, config=config, info=info))
+        self.laserImported.emit(paths[0], Laser(data, config=config, info=info))
         super().accept()
 
 
@@ -639,6 +641,7 @@ class SpotImagePage(QtWidgets.QWizardPage):
 
         if options is None:
             options = GraphicsOptions()
+        self.image: ScaledImageItem | None = None
 
         self.lineedit_shape_x = QtWidgets.QLineEdit("0")
         self.lineedit_shape_x.setValidator(QtGui.QIntValidator(1, 99999))
@@ -722,6 +725,9 @@ class SpotImagePage(QtWidgets.QWizardPage):
         self.setField("peaks", self.field("peaks")[self.field("element")])
 
     def updateImage(self) -> None:
+        if self.image is not None:
+            self.graphics.scene().removeItem(self.image)
+
         peaks = self.field("peaks")
 
         x = int(self.lineedit_shape_x.text() or 0)
@@ -738,13 +744,11 @@ class SpotImagePage(QtWidgets.QWizardPage):
         if self.check_raster.isChecked():
             image[::2, :] = image[::2, ::-1]
 
-        # todo redo this
-        self.graphics.drawImage(
-            image,
-            rect=QtCore.QRectF(0, 0, x, y),
-            name="Peak Image",
+        table = get_table(self.graphics.options.colortable)
+        self.image = ScaledImageItem.fromArray(
+            image, QtCore.QRectF(0, 0, x, y), list(table)
         )
-        self.graphics.setOverlayItemVisibility(False, False, False)
+        self.graphics.scene().addItem(self.image)
         self.graphics.fitInView(QtCore.QRectF(0, 0, x, y))
 
 
