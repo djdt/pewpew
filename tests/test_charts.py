@@ -1,5 +1,4 @@
 import numpy as np
-from PySide6 import QtCharts, QtCore, QtGui
 from pytestqt.qtbot import QtBot
 
 from pewpew.charts.calibration import CalibrationView
