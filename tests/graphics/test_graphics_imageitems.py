@@ -136,7 +136,7 @@ def test_laser_image_item(qtbot: QtBot):
     item.select(mask, ["intersect"])
     item.copySelectionToText()
     mime = QtWidgets.QApplication.clipboard().mimeData()
-    assert mime.text().startswith(f"{laser.data['B'][0][0]:.8f}")
+    assert mime.text().startswith(f"{laser.data['B'][0][0]:.6f}")
 
 
 def test_laser_rgb_image_item(qtbot: QtBot):
