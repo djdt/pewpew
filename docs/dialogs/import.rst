@@ -147,7 +147,7 @@ The groups page shows all imported patterns and data files.
 Drag the laser files to match with their corresponding laser log patterns.
 
 Checking the *Split data into rows* can be used if data has been collected as one line/sample per pattern.
-This will add a *row X* parameter to each laser line, as in :ref:`nwi_laser_group`.
+This will add a *row X* parameter to each laser line.
 
 Imported data is previewed on the next page, and the back button can be used to make changes to pattern-laser groupings.
 A *Delay* control is provided for instrument setups with a long transport time (time taken for ablations to reach the ICP-MS).
