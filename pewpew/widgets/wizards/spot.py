@@ -1,10 +1,8 @@
 import logging
-from importlib.metadata import version
 from pathlib import Path
 
 import numpy as np
 import numpy.lib.recfunctions as rfn
-import pyqtgraph
 from pewlib.config import SpotConfig
 from pewlib.laser import Laser
 from pewlib.process import peakfinding
