@@ -82,6 +82,38 @@ Parameters from :ref:`laser_parameters` will be automatically read from imports 
    | Scantime  | s    | Acquistion time for each pixel; Total dwell time for all elements. |
    +----------+-------+--------------------------------------------------------------------+
 
+ImzML Import Wizard
+-------------------
+.. index:: ImzML Import Wizard
+
+* **File -> Import -> ImzML Import Wizrd**
+* **Drag-and-Drop -> .imzml and .idb files**
+
+This wizard imports data stored in the Imaging Mass Spectrometry Markup Language (imzML) format.
+Each data set (image) consists of an XML metadata file (.imzML) and an external binary (.ibd).
+Both files should be in the same directory for easiest import.
+
+To use the wizard, first select the paths to the `.imzML` and `.ibd` files.
+The imzML will then be parsed.
+
+.. note::
+    Parsing the imzML can take several seconds for large images, press cancel to stop parsing.
+
+.. figure:: ../images/dialog_imzml_import.png
+    :width: 480px
+    :align: center
+    :name: imzml_page
+
+    An imported imzML showing the currently selected m/z at a mass width of 10 ppm.
+
+Once the imzML has been parsed an image of the TIC is displayed, next to a table of *Target masses*.
+Left-click any pixel to show the recorded mass spectrum below.
+The mass spectrum can then be used to select (single-click) and display (double-click) any m/z with the selected mass window in ppm.
+
+Selected masses will be added to the *Target masses* table, m/z values can also be manually entered or pasted.
+Clicking any m/z in the table will update the displayed image.
+
+Pressing *Finish* will import all the current masses in the *Target masses* table at the selected mass width.
 
 LaserLog Import Wizard
 -----------------------
