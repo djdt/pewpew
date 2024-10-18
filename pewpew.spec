@@ -1,13 +1,13 @@
 # vim: set ft=python:
-from pathlib import Path
 from importlib.metadata import version
+from pathlib import Path
 
 block_cipher = None
 
 a = Analysis(
     [Path("pewpew", "__main__.py")],
     binaries=None,
-    datas=[('pewpew/resources')],
+    datas=[],
     hiddenimports=[],
     hookspath=None,
     runtime_hooks=None,
