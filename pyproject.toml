@@ -22,7 +22,7 @@ tests = ["pytest", "pytest-qt"]
 
 [project.urls]
 Repository = "https://gtihub.com/djdt/pewpew"
-Documentation = "https://djdt.github.io/pewpew"
+Documentation = "https://pew2.readthedocs.io"
 Publication = "https://doi.org/10.1021/acs.analchem.1c02138"
 
 [project.scripts]
