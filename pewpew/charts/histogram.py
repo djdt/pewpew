@@ -1,46 +1,32 @@
-from PySide6 import QtCore, QtGui, QtWidgets
-from PySide6 import QtCharts
-
 import numpy as np
+import pyqtgraph
+from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewpew.charts.base import BaseChart
-from pewpew.charts.colors import light_theme, sequential
+from pewpew.charts.base import SinglePlotGraphicsView, ViewBoxForceScaleAtZero
 
 
-class HistogramChart(BaseChart):
+class HistogramView(SinglePlotGraphicsView):
     """BaseChart for drawing a histogram."""
 
-    def __init__(
-        self, title: str | None = None, parent: QtWidgets.QWidget | None = None
-    ):
-        super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
-        self.setMinimumSize(QtCore.QSize(640, 320))
-        self.setRenderHint(QtGui.QPainter.Antialiasing)
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
+        super().__init__(
+            "Histogram",
+            xlabel="Signal (counts)",
+            ylabel="No. Events",
+            viewbox=ViewBoxForceScaleAtZero(),
+            parent=parent,
+        )
+        self.plot.setLimits(yMin=0.0)
+        self.hist: np.ndarray | None = None
+        self.edges: np.ndarray | None = None
 
-        if title is not None:
-            self.chart().setTitle(title)
+    def dataForExport(self) -> dict[str, np.ndarray]:
+        if self.hist is None or self.edges is None:
+            raise ValueError("not ready for export")
+        return {"counts": self.hist, "bin_edges": self.edges}
 
-        self.chart().legend().hide()
-
-        self._xaxis = QtCharts.QValueAxis()  # Alignment axis
-        self._xaxis.setVisible(False)
-        self.xaxis = QtCharts.QValueAxis()  # Value axis
-        self.xaxis.setGridLineVisible(False)
-
-        self.yaxis = QtCharts.QValueAxis()
-        self.yaxis.setGridLineVisible(False)
-        self.yaxis.setLabelFormat("%d")
-
-        self.addAxis(self._xaxis, QtCore.Qt.AlignBottom)
-        self.addAxis(self.xaxis, QtCore.Qt.AlignBottom)
-        self.addAxis(self.yaxis, QtCore.Qt.AlignLeft)
-
-        self.series = QtCharts.QBarSeries()
-        self.series.setBarWidth(1.0)
-
-        self.chart().addSeries(self.series)
-        self.series.attachAxis(self._xaxis)
-        self.series.attachAxis(self.yaxis)
+    def readyForExport(self) -> bool:
+        return self.hist is not None and self.edges is not None
 
     def setHistogram(
         self,
@@ -48,6 +34,10 @@ class HistogramChart(BaseChart):
         bins: int | str = "auto",
         min_bins: int = 16,
         max_bins: int = 128,
+        bar_width: float = 0.5,
+        bar_offset: float = 0.0,
+        pen: QtGui.QPen | None = None,
+        brush: QtGui.QBrush | None = None,
     ) -> None:
         """Draw 'data' as a histogram.
 
@@ -57,11 +47,17 @@ class HistogramChart(BaseChart):
             min_bins: minimum number of bins
             max_bins: maximum number of bins
         """
-        vmin, vmax = np.percentile(data, 5), np.percentile(data, 95)
+        if pen is None:
+            pen = QtGui.QPen(QtCore.Qt.black, 1.0)
+            pen.setCosmetic(True)
 
-        barset = QtCharts.QBarSet("histogram")
-        barset.setColor(sequential[1])
-        barset.setLabelColor(light_theme["text"])
+        if brush is None:
+            brush = QtGui.QBrush(QtCore.Qt.black)
+
+        assert bar_width > 0.0 and bar_width <= 1.0
+        assert bar_offset >= 0.0 and bar_offset < 1.0
+
+        vmin, vmax = np.percentile(data, 5), np.percentile(data, 95)
 
         bin_edges = np.histogram_bin_edges(data, bins=bins, range=(vmin, vmax))
         if bin_edges.size > max_bins:
@@ -69,13 +65,27 @@ class HistogramChart(BaseChart):
         elif bin_edges.size < min_bins:
             bin_edges = np.histogram_bin_edges(data, bins=min_bins, range=(vmin, vmax))
 
-        hist, edges = np.histogram(data, bins=bin_edges)
-        barset.append(list(hist))
+        self.hist, self.edges = np.histogram(data, bins=bin_edges)
 
-        self.series.clear()
-        self.series.append(barset)
+        widths = np.diff(self.edges)
+        x = np.repeat(self.edges, 2)
 
-        self._xaxis.setRange(-0.5, hist.size - 0.5)
-        self.xaxis.setRange(edges[0], edges[-1])
-        self.yaxis.setRange(0, np.amax(hist))
-        self.yaxis.applyNiceNumbers()
+        # Calculate bar start and end points for width / offset
+        x[1:-1:2] += widths * ((1.0 - bar_width) / 2.0 + bar_offset)
+        x[2::2] -= widths * ((1.0 - bar_width) / 2.0 - bar_offset)
+
+        y = np.zeros(self.hist.size * 2 + 1, dtype=self.hist.dtype)
+        y[1:-1:2] = self.hist
+
+        curve = pyqtgraph.PlotCurveItem(
+            x=x,
+            y=y,
+            stepMode="center",
+            fillLevel=0,
+            fillOutline=True,
+            pen=pen,
+            brush=brush,
+            skipFiniteCheck=True,
+        )
+
+        self.plot.addItem(curve)

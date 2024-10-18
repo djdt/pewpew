@@ -1,6 +1,6 @@
-from PySide6 import QtCore, QtGui, QtWidgets
-
 from typing import Callable
+
+from PySide6 import QtCore, QtGui, QtWidgets
 
 
 class DecimalValidator(QtGui.QDoubleValidator):
@@ -35,6 +35,13 @@ class DecimalValidatorNoZero(DecimalValidator):
         if result[0] == QtGui.QValidator.Acceptable and float(input) == 0.0:
             result = (QtGui.QValidator.Intermediate, input, pos)
         return result
+
+
+class DoubleValidatorWithEmpty(QtGui.QDoubleValidator):
+    def validate(self, input: str, pos: int) -> tuple[QtGui.QValidator.State, str, int]:
+        if input == "":
+            return (QtGui.QValidator.Acceptable, input, pos)
+        return super().validate(input, pos)
 
 
 class LimitValidator(QtGui.QDoubleValidator):
@@ -165,9 +172,17 @@ class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
     Item inputs are also validated using a QDoubleValidator.
     """
 
-    def __init__(self, decimals: int, parent: QtCore.QObject | None = None):
+    def __init__(
+        self,
+        decimals: int,
+        validator: QtGui.QValidator | None = None,
+        parent: QtCore.QObject | None = None,
+    ):
         super().__init__(parent)
         self.decimals = decimals
+        if validator is None:
+            validator = QtGui.QDoubleValidator()
+        self.validator = validator
 
     def createEditor(
         self,
@@ -176,7 +191,7 @@ class DoublePrecisionDelegate(QtWidgets.QStyledItemDelegate):
         index: int,
     ) -> QtWidgets.QWidget:  # pragma: no cover
         lineedit = QtWidgets.QLineEdit(parent)
-        lineedit.setValidator(QtGui.QDoubleValidator())
+        lineedit.setValidator(self.validator)
         return lineedit
 
     def displayText(self, value: str, locale: QtCore.QLocale) -> str:
@@ -193,6 +208,7 @@ class DoubleSignificantFiguresDelegate(QtWidgets.QStyledItemDelegate):
 
     Item inputs are also validated using a QDoubleValidator.
     """
+
     def __init__(self, sigfigs: int, parent: QtCore.QObject | None = None):
         super().__init__(parent)
         self.sigfigs = sigfigs

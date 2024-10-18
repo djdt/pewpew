@@ -1,6 +1,4 @@
 import logging
-import time
-from importlib.metadata import version
 from pathlib import Path
 
 import numpy as np
@@ -11,8 +9,9 @@ from pewlib.process import peakfinding
 from pewlib.process.calc import view_as_blocks
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewpew.charts.colors import sequential
-from pewpew.charts.signal import SignalChart
+from pewpew.charts.signal import SignalView
+from pewpew.graphics.colortable import get_table
+from pewpew.graphics.imageitems import ScaledImageItem
 from pewpew.graphics.lasergraphicsview import LaserGraphicsView
 from pewpew.graphics.options import GraphicsOptions
 from pewpew.validators import DecimalValidator, DecimalValidatorNoZero, OddIntValidator
@@ -35,7 +34,7 @@ class SpotImportWizard(QtWidgets.QWizard):
     page_spot_image = 8
     page_spot_config = 9
 
-    laserImported = QtCore.Signal(Laser)
+    laserImported = QtCore.Signal(Path, Laser)
 
     def __init__(
         self,
@@ -171,7 +170,7 @@ class SpotImportWizard(QtWidgets.QWizard):
             raise ValueError("Invalid filetype selection.")
 
         info = self.field("laserinfo")[0]
-        self.laerImported.emit(Laser(data, config=config, info=info))
+        self.laserImported.emit(paths[0], Laser(data, config=config, info=info))
         super().accept()
 
 
@@ -337,7 +336,28 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.combo_peak_method.currentIndexChanged.connect(self.stack.setCurrentIndex)
         self.combo_peak_method.currentIndexChanged.connect(self.updatePeaks)
 
-        self.chart = SignalChart(parent=self)
+        self.chart = SignalView(parent=self)
+        self.series = {
+            "signal": self.chart.addLine("Signal", np.array([0])),
+            "peaks": self.chart.addScatterSeries(
+                "Peaks",
+                np.array([0]),
+                np.array([0]),
+                brush=QtGui.QBrush(QtCore.Qt.GlobalColor.red),
+            ),
+            "lefts": self.chart.addScatterSeries(
+                "Lefts",
+                np.array([0]),
+                np.array([0]),
+                brush=QtGui.QBrush(QtCore.Qt.GlobalColor.darkBlue),
+            ),
+            "rights": self.chart.addScatterSeries(
+                "Rights",
+                np.array([0]),
+                np.array([0]),
+                brush=QtGui.QBrush(QtCore.Qt.GlobalColor.darkGreen),
+            ),
+        }
 
         self.combo_base_method = QtWidgets.QComboBox()
         self.combo_base_method.addItems(
@@ -447,53 +467,30 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
         self.updatePeaks()
 
     def drawSignal(self, data: np.ndarray) -> None:
-        if "signal" in self.chart.series:
-            self.chart.setSeries("signal", data)
-        else:
-            self.chart.addLineSeries("signal", data)
-        self.chart.yaxis.setRange(0, np.amax(data))
-        self.chart.xaxis.setRange(0, data.size)
-        self.chart.yaxis.applyNiceNumbers()
+        self.series["signal"].setData(data)
 
     def clearPeaks(self) -> None:
         self.peaks = None
         self.lineedit_count.setText("0")
-        if "peaks" in self.chart.series:
-            self.chart.series["peaks"].clear()
-            self.chart.series["lefts"].clear()
-            self.chart.series["rights"].clear()
+        for name in ["peaks", "lefts", "rights"]:
+            self.series[name].setVisible(False)
 
     def drawPeaks(self, peaks: np.ndarray) -> None:
-        if "peaks" in self.chart.series:
-            self.chart.setSeries("peaks", peaks["height"] + peaks["base"], peaks["top"])
-            self.chart.setSeries("lefts", peaks["base"], peaks["left"])
-            self.chart.setSeries("rights", peaks["base"], peaks["right"])
-        else:
-            self.chart.addScatterSeries(
-                "peaks",
-                peaks["height"] + peaks["base"],
-                peaks["top"],
-                color=sequential[4],
-                label="Peaks",
-            )
-            self.chart.addScatterSeries(
-                "lefts", peaks["base"], peaks["left"], color=sequential[1], label="Left"
-            )
-            self.chart.addScatterSeries(
-                "rights",
-                peaks["base"],
-                peaks["right"],
-                color=sequential[2],
-                label="Right",
-            )
+        self.series["peaks"].setData(peaks["top"], peaks["height"] + peaks["base"])
+        self.series["lefts"].setData(peaks["left"], peaks["base"])
+        self.series["rights"].setData(peaks["right"], peaks["base"])
+        for name in ["peaks", "lefts", "rights"]:
+            self.series[name].setVisible(True)
 
     def clearThresholds(self) -> None:
+        return
         for name in list(self.chart.series.keys()):
             if name not in ["signal", "peaks", "lefts", "rights"]:
                 self.chart.chart().removeSeries(self.chart.series.pop(name))
 
     def drawThresholds(self, thresholds: dict) -> None:
-        colors = iter(sequential)
+        return
+        # colors = iter(sequential)
         for name, value in thresholds.items():
             color = next(colors)
             if name in self.chart.series:
@@ -598,6 +595,7 @@ class SpotPeaksPage(QtWidgets.QWizardPage):
             min_height=float(self.lineedit_minheight.text()),
             min_width=float(self.lineedit_minwidth.text()),
         )
+        assert isinstance(self.peaks, np.ndarray)
 
         self.drawPeaks(self.peaks)
         self.lineedit_count.setText(f"{self.peaks.size}")
@@ -641,6 +639,7 @@ class SpotImagePage(QtWidgets.QWizardPage):
 
         if options is None:
             options = GraphicsOptions()
+        self.image: ScaledImageItem | None = None
 
         self.lineedit_shape_x = QtWidgets.QLineEdit("0")
         self.lineedit_shape_x.setValidator(QtGui.QIntValidator(1, 99999))
@@ -724,6 +723,9 @@ class SpotImagePage(QtWidgets.QWizardPage):
         self.setField("peaks", self.field("peaks")[self.field("element")])
 
     def updateImage(self) -> None:
+        if self.image is not None:
+            self.graphics.scene().removeItem(self.image)
+
         peaks = self.field("peaks")
 
         x = int(self.lineedit_shape_x.text() or 0)
@@ -740,13 +742,11 @@ class SpotImagePage(QtWidgets.QWizardPage):
         if self.check_raster.isChecked():
             image[::2, :] = image[::2, ::-1]
 
-        # todo redo this
-        self.graphics.drawImage(
-            image,
-            rect=QtCore.QRectF(0, 0, x, y),
-            name="Peak Image",
+        table = get_table(self.graphics.options.colortable)
+        self.image = ScaledImageItem.fromArray(
+            image, QtCore.QRectF(0, 0, x, y), list(table)
         )
-        self.graphics.setOverlayItemVisibility(False, False, False)
+        self.graphics.scene().addItem(self.image)
         self.graphics.fitInView(QtCore.QRectF(0, 0, x, y))
 
 

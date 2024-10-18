@@ -248,6 +248,23 @@ class CsvLinesOptions(_OptionsBase):
             self.lineedit_header_preview.setText("")
 
     def updateForPath(self, path: Path) -> None:
+        option = io.csv.option_for_path(path)
+        if isinstance(option, io.csv.NuOption):
+            self.lineedit_regex.setText(option.regex.pattern)
+            self.combo_sortkey.setCurrentText("Numerical")
+            self.combo_delimiter.setCurrentText(",")
+            self.spinbox_header.setValue(11)
+        elif isinstance(option, io.csv.TofwerkOption):
+            self.lineedit_regex.setText(option.regex.pattern)
+            self.combo_sortkey.setCurrentText("Timestamp")
+            self.lineedit_sortkey.setText("%Y.%m.%d-%Hh%Mm%Ss")
+            self.spinbox_header.setValue(0)
+        elif isinstance(option, io.csv.ThermoLDROption):
+            self.lineedit_regex.setText(option.regex.pattern)
+            self.combo_delimiter.setCurrentText(",")
+            self.spinbox_header.setValue(13)
+            self.combo_sortkey.setCurrentText("Numerical")
+
         self.csvs = list(path.glob("*.csv"))
         self.regexChanged()
         self.updateHeaderPreview(self.spinbox_header.value())
@@ -469,7 +486,7 @@ class _PathSelectBase(QtWidgets.QWidget):
     def validPath(self, path: Path) -> bool:
         if not path.exists():
             return False
-        if not path.suffix.lower() in self.exts:
+        if not path.suffix.lower() in [ext.lower() for ext in self.exts]:
             return False
         if self.mode == "File":
             return path.is_file()
@@ -506,7 +523,13 @@ class PathSelectWidget(_PathSelectBase):
     ):
         super().__init__(filetype, exts, mode, parent)
 
-        self.lineedit_path = QtWidgets.QLineEdit(str(path.resolve()))
+        # dumb check to see if 'empty' path is used
+        if path == Path():
+            text = ""
+        else:
+            text = str(path.resolve())
+
+        self.lineedit_path = QtWidgets.QLineEdit(text)
         self.lineedit_path.setPlaceholderText(f"Path to {self.mode}...")
         self.lineedit_path.textChanged.connect(self.pathChanged)
         self.lineedit_path.installEventFilter(DragDropRedirectFilter(self))

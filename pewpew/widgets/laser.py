@@ -95,8 +95,11 @@ class LaserTabView(TabView):
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
             paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
-            # logs go to mainwindow for wizard
-            if not any(io.laser.is_nwi_laser_log(path) for path in paths):
+            # logs / imzml go to mainwindow for wizard
+            if not any(
+                io.laser.is_nwi_laser_log(path) or io.imzml.is_imzml(path)
+                for path in paths
+            ):
                 event.acceptProposedAction()
         super().dragEnterEvent(event)
 

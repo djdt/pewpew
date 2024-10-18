@@ -68,7 +68,7 @@ class StandardsTool(ToolWidget):
         self.combo_element.currentIndexChanged.connect(self.comboElement)
 
         self.table = StandardsTable(Calibration(), self)
-        self.table.model().setRowCount(6)
+        self.table.model().insertRows(0, 5)  # 6 rows
         self.table.model().dataChanged.connect(self.completeChanged)
         self.table.model().dataChanged.connect(self.updateResults)
 
@@ -289,7 +289,13 @@ class StandardsTool(ToolWidget):
         self.dlg = None
 
     def spinBoxLevels(self) -> None:
-        self.table.model().setRowCount(self.spinbox_levels.value())
+        current_rows = self.table.model().rowCount()
+        new_rows = self.spinbox_levels.value()
+
+        if current_rows > new_rows:
+            self.table.model().removeRows(new_rows, current_rows - new_rows)
+        elif new_rows > current_rows:
+            self.table.model().insertRows(current_rows, new_rows - current_rows)
         self.table.updateGeometry()
         self.refresh()
 
@@ -358,14 +364,9 @@ class StandardsTable(BasicTableView):
         self.setItemDelegate(DoubleSignificantFiguresDelegate(4))
 
     def isComplete(self) -> bool:
-        if np.nan in self.model().array[:, StandardsTable.COLUMN_COUNT]:
+        if np.nan in self.model().array["y"]:
             return False
-        if (
-            np.count_nonzero(
-                ~np.isnan(self.model().array[:, StandardsTable.COLUMN_CONC])
-            )
-            < 2
-        ):
+        if np.count_nonzero(~np.isnan(self.model().array["x"])) < 2:
             return False
         return True
 

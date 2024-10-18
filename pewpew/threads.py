@@ -3,7 +3,8 @@ import time
 from importlib.metadata import version
 from pathlib import Path
 
-from pewlib import Config, io
+from pewlib import io
+from pewlib.config import Config, SpotConfig
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui
 
@@ -69,11 +70,6 @@ class ImportThread(QtCore.QThread):
         self.progressChanged.emit(len(self.paths))
 
     def importPath(self, path: Path) -> Laser:
-        config = Config(
-            spotsize=self.config.spotsize,
-            speed=self.config.speed,
-            scantime=self.config.scantime,
-        )
         info = {
             "Name": path.stem,
             "File Path": str(path.resolve()),
@@ -126,11 +122,14 @@ class ImportThread(QtCore.QThread):
             else:  # pragma: no cover
                 raise ValueError(f"{path.name}: Unknown extention '{path.suffix}'.")
 
-        if "spotsize" in params:
-            config.spotsize = params["spotsize"]
-        if "speed" in params:
-            config.speed = params["speed"]
-        if "scantime" in params:
-            config.scantime = params["scantime"]
+        # Check for SpotConfig (x and y in spotsize)
+        try:
+            config = SpotConfig(*params["spotsize"])
+        except (KeyError, TypeError):
+            config = Config(
+                spotsize=params.get("spotsize", self.config.spotsize),
+                speed=params.get("speed", self.config.speed),
+                scantime=params.get("scantime", self.config.scantime),
+            )
 
         return Laser(data=data, config=config, info=info)

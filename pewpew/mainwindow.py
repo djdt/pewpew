@@ -1,22 +1,31 @@
 import logging
+import re
 import sys
 from pathlib import Path
 from types import TracebackType
 
 from pewlib.config import Config, SpotConfig
+from pewlib.io.imzml import is_imzml, is_imzml_binary_data
 from pewlib.io.laser import is_nwi_laser_log
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction, qActionGroup
+from pewpew.graphics.colortable import get_icon
 from pewpew.help import HelpDialog
 from pewpew.log import LoggingDialog
 from pewpew.widgets import dialogs
 from pewpew.widgets.exportdialogs import ExportAllDialog
 from pewpew.widgets.laser import LaserTabView
-from pewpew.widgets.wizards import ImportWizard, LaserLogImportWizard, SpotImportWizard
-from pewpew.graphics.colortable import get_icon
+from pewpew.widgets.wizards import (
+    ImportWizard,
+    ImzMLImportWizard,
+    LaserLogImportWizard,
+    SpotImportWizard,
+)
 
 logger = logging.getLogger(__name__)
+
+re_strip_amp = re.compile("\\&(?!\\&)")
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -59,30 +68,54 @@ class MainWindow(QtWidgets.QMainWindow):
         self.default_config = Config()
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
+        paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
         if event.mimeData().hasUrls():
             paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
             if any(is_nwi_laser_log(path) for path in paths):
+                event.acceptProposedAction()
+            elif any(is_imzml(path) for path in paths):
                 event.acceptProposedAction()
         super().dragEnterEvent(event)
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
         if not event.mimeData().hasUrls():
             return super().dropEvent(event)
-        log_paths = []
-        paths = []
-        for url in event.mimeData().urls():
-            path = Path(url.toLocalFile())
-            if is_nwi_laser_log(path):
-                log_paths.append(path)
-            else:
-                paths.append(path)
 
-        wiz = LaserLogImportWizard(
-            path=log_paths[0],
-            laser_paths=paths,
-            options=self.tabview.options,
-            parent=self,
-        )
+        paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
+
+        if any(is_nwi_laser_log(path) for path in paths):
+            # laser log import
+            log_paths, laser_paths = [], []
+            for path in paths:
+                if is_nwi_laser_log(path):
+                    log_paths.append(path)
+                else:
+                    laser_paths.append(path)
+            wiz = LaserLogImportWizard(
+                path=log_paths[0],
+                laser_paths=laser_paths,
+                options=self.tabview.options,
+                parent=self,
+            )
+        elif any(is_imzml(path) for path in paths):
+            # imzml import
+            imzml_paths, binary_paths = [], []
+            for path in paths:
+                if is_imzml(path):
+                    imzml_paths.append(path)
+                elif is_imzml_binary_data(path):
+                    binary_paths.append(path)
+
+            wiz = ImzMLImportWizard(
+                path=imzml_paths[0],
+                binary_path=binary_paths[0] if len(binary_paths) > 0 else None,
+                options=self.tabview.options,
+                parent=self,
+            )
+        else:
+            event.ignore()
+            return
+
         wiz.laserImported.connect(self.tabview.importFile)
         wiz.laserImported.connect(
             lambda: self.tabview.activeWidget().graphics.zoomReset()
@@ -160,10 +193,9 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_open.setShortcut("Ctrl+O")
 
+        re
         self.action_open_recent = QtGui.QActionGroup(self)
-        self.action_open_recent.triggered.connect(
-            lambda a: self.tabview.openDocument(a.text())
-        )
+        self.action_open_recent.triggered.connect(self.openRecentFile)
 
         self.action_process = qAction(
             "view-process-tree",
@@ -222,6 +254,12 @@ class MainWindow(QtWidgets.QMainWindow):
             "Start the line-wise import wizard.",
             self.actionWizardImport,
         )
+        self.action_wizard_imzml = qAction(
+            "",
+            "ImzML Wizard",
+            "Import data from a .imzML and binary (.ibd).",
+            self.actionWizardImzML,
+        )
         self.action_wizard_laserlog = qAction(
             "",
             "ESL Laser Log Wizard",
@@ -253,6 +291,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # File -> Import
         menu_import = menu_file.addMenu("&Import")
         menu_import.addAction(self.action_wizard_import)
+        menu_import.addAction(self.action_wizard_imzml)
         menu_import.addAction(self.action_wizard_laserlog)
         menu_import.addAction(self.action_wizard_spot)
         # menu_import.addAction(self.action_wizard_srr)
@@ -309,6 +348,16 @@ class MainWindow(QtWidgets.QMainWindow):
         menu_help.addAction(self.action_help)
         menu_help.addAction(self.action_about)
 
+    def openRecentFile(self, action: QtGui.QAction) -> None:
+        path = Path(re_strip_amp.sub("", action.text()))
+
+        if is_imzml(path):
+            self.actionWizardImzML(path=path)
+        elif is_nwi_laser_log(path):
+            self.actionWizardLaserLog(path=path)
+        else:
+            self.tabview.openDocument(path)
+
     def updateRecentFiles(self, new_path: Path | None = None) -> None:
         settings = QtCore.QSettings()
         num = settings.beginReadArray("RecentFiles")
@@ -345,7 +394,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # === Actions ===
     def actionDialogColorTableRange(self) -> QtWidgets.QDialog:
-        """Open a `:class:pewpew.widgets.dialogs.ColocalisationDialog` and apply result."""
+        """
+        Open a `:class:pewpew.widgets.dialogs.ColocalisationDialog` and apply result.
+        """
 
         def applyDialog(dialog: dialogs.ApplyDialog) -> None:
             self.tabview.options._colorranges = dialog.ranges
@@ -433,21 +484,37 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.open()
         return dlg
 
-    def actionWizardImport(self) -> QtWidgets.QWizard:
-        wiz = ImportWizard(config=self.tabview.config, parent=self)
+    def actionWizardImport(
+        self, checked: bool = False, path: Path | str = ""
+    ) -> QtWidgets.QWizard:
+        wiz = ImportWizard(path, config=self.tabview.config, parent=self)
         wiz.laserImported.connect(self.tabview.importFile)
         wiz.open()
         return wiz
 
-    def actionWizardSpot(self) -> QtWidgets.QWizard:
+    def actionWizardImzML(
+        self, checked: bool = False, path: Path | str = ""
+    ) -> QtWidgets.QWizard:
+        wiz = ImzMLImportWizard(path, options=self.tabview.options, parent=self)
+        wiz.laserImported.connect(self.tabview.importFile)
+        wiz.open()
+        return wiz
+
+    def actionWizardSpot(
+        self, checked: bool = False, path: Path | str = ""
+    ) -> QtWidgets.QWizard:
         config = SpotConfig(self.tabview.config.spotsize, self.tabview.config.spotsize)
-        wiz = SpotImportWizard(config=config, options=self.tabview.options, parent=self)
+        wiz = SpotImportWizard(
+            [path], config=config, options=self.tabview.options, parent=self
+        )
         wiz.laserImported.connect(self.tabview.importFile)
         wiz.open()
         return wiz
 
-    def actionWizardLaserLog(self) -> QtWidgets.QWizard:
-        wiz = LaserLogImportWizard(options=self.tabview.options, parent=self)
+    def actionWizardLaserLog(
+        self, checked: bool = False, path: Path | str = ""
+    ) -> QtWidgets.QWizard:
+        wiz = LaserLogImportWizard(path, options=self.tabview.options, parent=self)
         wiz.laserImported.connect(self.tabview.importFile)
         wiz.laserImported.connect(
             lambda: self.tabview.activeWidget().graphics.zoomReset()

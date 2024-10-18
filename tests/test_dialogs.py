@@ -42,7 +42,7 @@ def test_calibration_dialog(qtbot: QtBot):
 
     dialog.combo_element.setCurrentIndex(0)
     assert dialog.combo_element.currentText() == "A"
-    assert dialog.points.model.array.size == 6
+    assert dialog.points.model.array.size == 2
     assert dialog.button_plot.isEnabled()
 
     # Points enabled on remove / add

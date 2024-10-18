@@ -1,113 +1,101 @@
 import numpy as np
-from PySide6 import QtCharts, QtCore, QtGui, QtWidgets
+import pyqtgraph
+from pewlib.calibration import weighted_linreg
+from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewpew.charts.base import BaseChart
-from pewpew.charts.colors import highlights, light_theme, sequential
-from pewpew.lib.numpyqt import array_to_polygonf
+from pewpew.charts.base import SinglePlotGraphicsView
 
 
-class CalibrationChart(BaseChart):
-    """BaseChart for displaying a calibration curve.
-
-    To use call setPoints, setLine and setText.
-    Hovering calibration points reveals their values.
-    """
-
+class CalibrationView(SinglePlotGraphicsView):
     def __init__(
-        self, title: str | None = None, parent: QtWidgets.QWidget | None = None
+        self,
+        parent: QtWidgets.QWidget | None = None,
     ):
-        super().__init__(QtCharts.QChart(), theme=light_theme, parent=parent)
-        self.setRubberBand(QtCharts.QChartView.RectangleRubberBand)
-        self.setMinimumSize(QtCore.QSize(640, 480))
-        self.setRenderHint(QtGui.QPainter.Antialiasing)
+        super().__init__("Calibration", "Concentration", "Response", parent=parent)
+        self.setMinimumSize(320, 320)
 
-        if title is not None:
-            self.chart().setTitle(title)
+        self.points = None
+        self.plot.setMouseEnabled(x=False, y=False)
+        self.plot.enableAutoRange(x=True, y=True)
 
-        self.chart().legend().hide()
+    def sizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(480, 480)
 
-        self.xaxis = QtCharts.QValueAxis()
-        self.yaxis = QtCharts.QValueAxis()
+    def dataForExport(self) -> dict[str, np.ndarray]:
+        if self.points is None:
+            raise ValueError("no data for export")
 
-        self.addAxis(self.xaxis, QtCore.Qt.AlignBottom)
-        self.addAxis(self.yaxis, QtCore.Qt.AlignLeft)
+        x, y = self.points.getData()
+        return {"concentration": x, "response": y}
 
-        self.label_series = QtCharts.QScatterSeries()
-        self.label_series.append(0, 0)
-        self.label_series.setBrush(QtGui.QBrush(QtCore.Qt.black, QtCore.Qt.NoBrush))
-        self.label_series.setPointLabelsFormat("(@xPoint, @yPoint)")
-        self.label_series.setPointLabelsColor(light_theme["text"])
-        self.label_series.setPointLabelsVisible(False)
-        self.label_series.setVisible(True)
+    def readyForExport(self) -> bool:
+        return self.points is not None
 
-        self.chart().addSeries(self.label_series)
-        self.label_series.attachAxis(self.xaxis)
-        self.label_series.attachAxis(self.yaxis)
+    def drawPoints(
+        self,
+        points: np.ndarray,
+        name: str | None = None,
+        draw_trendline: bool = False,
+        pen: QtGui.QPen | None = None,
+        brush: QtGui.QPen | None = None,
+    ) -> None:
+        if brush is None:
+            brush = QtGui.QBrush(QtCore.Qt.red)
+        if pen is None:
+            pen = QtGui.QPen(QtCore.Qt.black, 1.0)
+            pen.setCosmetic(True)
 
-        self.line = QtCharts.QLineSeries()
-        self.line.setPen(QtGui.QPen(sequential[1], 1.5))
-        # self.line.setColor(QtCore.Qt.red)
+        hover_brush = QtGui.QBrush(brush)
+        hover_brush.setColor(brush.color().lighter())
 
-        self.chart().addSeries(self.line)
-        self.line.attachAxis(self.xaxis)
-        self.line.attachAxis(self.yaxis)
+        if self.points is not None:
+            self.plot.removeItem(self.points)
 
-        self.series = QtCharts.QScatterSeries()
-        self.series.setPen(QtGui.QPen(sequential[1], 1.5))
-        self.series.setBrush(QtGui.QBrush(highlights[1]))
-        self.series.setMarkerSize(12)
-
-        self.chart().addSeries(self.series)
-        self.series.attachAxis(self.xaxis)
-        self.series.attachAxis(self.yaxis)
-
-        self.series.hovered.connect(self.showPointPosition)
-
-        self.label = QtWidgets.QGraphicsTextItem()
-        self.label.setPlainText("hats")
-        self.label.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations)
-        self.chart().scene().addItem(self.label)
-        self.chart().plotAreaChanged.connect(self.moveLabel)
-
-    def moveLabel(self, rect: QtCore.QRectF) -> None:
-        self.label.setPos(rect.topLeft())
-
-    def setPoints(self, points: np.ndarray) -> None:
-        if not (points.ndim == 2 and points.shape[1] == 2):  # pragma: no cover
-            raise ValueError("points must have shape (n, 2).")
-
-        xmin, xmax = np.amin(points[:, 0]), np.amax(points[:, 0])
-        ymin, ymax = np.amin(points[:, 1]), np.amax(points[:, 1])
-
-        self.xaxis.setRange(xmin, xmax)
-        self.yaxis.setRange(ymin, ymax)
-
-        poly = array_to_polygonf(points)
-        self.series.replace(poly)
-
-        self.xaxis.applyNiceNumbers()
-        self.yaxis.applyNiceNumbers()
-
-    def setLine(self, x0: float, x1: float, gradient: float, intercept: float) -> None:
-        self.line.replace(
-            [
-                QtCore.QPointF(x0, gradient * x0 + intercept),
-                QtCore.QPointF(x1, gradient * x1 + intercept),
-            ]
+        self.points = pyqtgraph.ScatterPlotItem(
+            points[:, 0],
+            points[:, 1],
+            symbol="o",
+            size=10,
+            pen=pen,
+            brush=brush,
+            hoverBrush=hover_brush,
+            hoverable=True,
+            tip="x: {x:.3g}\ny: {y:.3g}".format,
         )
+        self.plot.addItem(self.points)
 
-    def setText(self, text: str) -> None:
-        self.label.setPlainText(text)
+        if name is not None:
+            self.plot.legend.addItem(self.points, name)
 
-    def showPointPosition(self, point: QtCore.QPointF, state: bool):
-        self.label_series.setPointLabelsVisible(state)
-        if state:
-            self.label_series.replace(0, point)
+        if draw_trendline:
+            pen = QtGui.QPen(brush.color(), 1.0)
+            pen.setCosmetic(True)
+            self.drawTrendline(pen=pen)
 
-    def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
-        if event.button() == QtCore.Qt.RightButton:
-            self.chart().zoomReset()
-        else:
-            super().mouseReleaseEvent(event)
-        self.xaxis.applyNiceNumbers()
-        self.yaxis.applyNiceNumbers()
+    def drawTrendline(
+        self, weighting: str = "none", pen: QtGui.QPen | None = None
+    ) -> None:
+        if self.points is None:
+            return
+
+        if pen is None:
+            pen = QtGui.QPen(QtCore.Qt.red, 1.0)
+            pen.setCosmetic(True)
+
+        x, y = self.points.getData()
+
+        if weighting != "none":  # pragma: no cover
+            raise NotImplementedError("Weighting not yet implemented.")
+        if x.size < 2 or np.all(x == x[0]):  # pragma: no cover
+
+            return
+
+        m, b, r2, err = weighted_linreg(x, y, w=None)
+        x0, x1 = x.min(), x.max()
+
+        line = pyqtgraph.PlotCurveItem([x0, x1], [m * x0 + b, m * x1 + b], pen=pen)
+        self.plot.addItem(line)
+
+        text = pyqtgraph.LabelItem(f"r² = {r2:.4f}", parent=self.yaxis)
+        text.anchor(itemPos=(0, 0), parentPos=(1, 0), offset=(10, 10))
+        text.setPos(x1, m * x1 + b)

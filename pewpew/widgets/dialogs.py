@@ -14,9 +14,9 @@ from pewlib.srr import SRRConfig
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction, qToolButton
-from pewpew.charts.calibration import CalibrationChart
-from pewpew.charts.colocal import ColocalisationChart
-from pewpew.charts.histogram import HistogramChart
+from pewpew.charts.calibration import CalibrationView
+from pewpew.charts.colocal import ColocalisationView
+from pewpew.charts.histogram import HistogramView
 from pewpew.graphics.imageitems import LaserImageItem
 from pewpew.lib import kmeans
 from pewpew.lib.pratt import Reducer
@@ -128,7 +128,7 @@ class CalibrationPointsWidget(CollapsableWidget):
 
         self.model = CalibrationPointsTableModel(
             Calibration(),
-            axes=(1, 0),
+            orientation=QtCore.Qt.Orientation.Horizontal,
             counts_editable=True,
             parent=self,
         )
@@ -411,7 +411,8 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
     ):
         super().__init__(parent)
         self.setWindowTitle("Calibration Curve")
-        self.chart = CalibrationChart(title, parent=self)
+        self.chart = CalibrationView(parent=self)
+        self.chart.plot.setTitle(title)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.chart)
@@ -420,20 +421,11 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
         self.updateChart(calibration)
 
     def updateChart(self, calibration: Calibration) -> None:
-        self.chart.xaxis.setTitleText(calibration.unit)
+        self.chart.xaxis.setLabel(calibration.unit)
         no_nans = ~np.isnan(calibration.points).any(axis=1)
         points = calibration.points[no_nans]
-        self.chart.setPoints(points)
-        self.chart.setLine(
-            0.0,
-            np.nanmax(calibration.x) * 1.1,
-            calibration.gradient,
-            calibration.intercept,
-        )
-        text = f"{calibration.gradient:.4f} × x + {calibration.intercept:.4f}"
-        if calibration.rsq is not None:
-            text += f"\nr² = {calibration.rsq:.4f}"
-        self.chart.setText(text)
+        self.chart.drawPoints(points)
+        self.chart.drawTrendline()
 
 
 class ColorRangeDialog(ApplyDialog):
@@ -564,7 +556,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.data = data
         self.mask = mask
 
-        self.chart = ColocalisationChart()
+        self.chart = ColocalisationView()
 
         self.combo_name1 = QtWidgets.QComboBox()
         self.combo_name1.addItems(data.dtype.names)
@@ -640,6 +632,9 @@ class ColocalisationDialog(QtWidgets.QDialog):
         if self.mask is not None:
             x, y = x[self.mask], y[self.mask]
 
+        x = x[~np.isnan(x)]
+        y = y[~np.isnan(y)]
+
         x, y = normalise(x), normalise(y)
 
         # Pearson
@@ -669,12 +664,13 @@ class ColocalisationDialog(QtWidgets.QDialog):
 
         self.button_p.setEnabled(True)
 
+        self.chart.clear()
         self.chart.drawPoints(x, y)
         self.chart.drawLine(a, b)
         self.chart.drawThresholds(t1, t2)
 
-        self.chart.xaxis.setTitleText(n1)
-        self.chart.yaxis.setTitleText(n2)
+        self.chart.xaxis.setLabel(n1)
+        self.chart.yaxis.setLabel(n2)
 
     def calculatePearsonsProbablity(self) -> None:
         x = self.data[self.combo_name1.currentText()]
@@ -1514,7 +1510,7 @@ class StatsDialog(QtWidgets.QDialog):
         self.units = units
         self.pixel_size = pixel_size
 
-        self.chart = HistogramChart()
+        self.chart = HistogramView()
 
         self.button_clipboard = QtWidgets.QPushButton("Copy to Clipboard")
         self.button_clipboard.pressed.connect(self.copyToClipboard)
@@ -1638,7 +1634,9 @@ class StatsDialog(QtWidgets.QDialog):
         self.label_median.setText(f"{np.median(data):.4g} {unit}")
         self.label_stddev.setText(f"{np.std(data):.4g} {unit}")
 
-        self.chart.setHistogram(data)
+        self.chart.clear()
+        self.chart.setHistogram(data.astype(float))
+        self.chart.setDataLimits(xMin=-0.05, xMax=1.05, yMax=1.05)
 
     def isCalibrate(self) -> bool:
         return False  # pragma: no cover
