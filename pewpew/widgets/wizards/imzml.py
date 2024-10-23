@@ -2,12 +2,11 @@ import logging
 import time
 from importlib.metadata import version
 from pathlib import Path
-from xml.etree import ElementTree
 
 import numpy as np
 import numpy.lib.recfunctions as rfn
 from pewlib.config import SpotConfig
-from pewlib.io.imzml import MZML_NS, ImzML, ParamGroup, ScanSettings, Spectrum
+from pewlib.io.imzml import ImzML, fast_parse_imzml
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -163,52 +162,19 @@ class ImzMLImportPage(QtWidgets.QWizardPage):
         dlg.setMinimumWidth(320)
         dlg.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
 
-        spectra: dict[tuple[int, int], Spectrum] = {}
+        def update_progress(tell: int) -> bool:
+            dlg.setValue(tell)
+            return not dlg.wasCanceled()
 
-        fp = self.path.path.open()
-        iter = ElementTree.iterparse(fp, events=("end",))
-        for event, elem in iter:
-            if dlg.wasCanceled():
-                return False
-            if elem.tag == f"{{{MZML_NS['mz']}}}scanSettingsList":
-                scan = elem.find("mz:scanSettings", MZML_NS)
-                scan_settings = ScanSettings.from_xml_element(scan)
-                elem.clear()
-            elif elem.tag == f"{{{MZML_NS['mz']}}}referenceableParamGroup":
-                if (
-                    elem.find(
-                        f"mz:cvParam[@accession='{ParamGroup.mz_array_cv}']", MZML_NS
-                    )
-                    is not None
-                ):
-                    mz_params = ParamGroup.from_xml_element(elem)
-                elif (
-                    elem.find(
-                        f"mz:cvParam[@accession='{ParamGroup.intensity_array_cv}']",
-                        MZML_NS,
-                    )
-                    is not None
-                ):
-                    intensity_params = ParamGroup.from_xml_element(elem)
-                elem.clear()
-            elif elem.tag == f"{{{MZML_NS['mz']}}}spectrum":
-                spectrum = Spectrum.from_xml_element(elem)
-                spectra[(spectrum.x, spectrum.y)] = spectrum
+        try:
+            imzml = fast_parse_imzml(
+                self.path.path, self.path_binary.path, callback=update_progress
+            )
+        except UserWarning:
+            return False
 
-                # Update dialog on spectrum ends
-                dlg.setValue(fp.tell())
-                elem.clear()
-
-        dlg.hide()
-
-        imzml = ImzML(
-            scan_settings,
-            mz_params,
-            intensity_params,
-            spectra,
-            external_binary=self.path_binary.path,
-        )
         self.setField("imzml", imzml)
+        dlg.close()
         return True
 
     def getImzML(self) -> ImzML:
