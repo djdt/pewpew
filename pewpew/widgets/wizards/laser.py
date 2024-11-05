@@ -199,6 +199,29 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
 
         self.group_tree.expandAll()
 
+    def validatePage(self) -> bool:
+        groups = self.field("groups")
+
+        log = self.field("laserlog")
+        params = self.field("laserparam")
+
+        # Find the maximum time recorded in data
+        for seq, idx in groups.items():
+            log_max_time = np.ptp(
+                log[np.isin(log["sequence"], seq)]["time"].astype(float) / 1000.0
+            )
+            seq_max_time = np.amax([np.amax(params[i]["times"]) for i, _ in idx])
+
+            # Check if this time is less than requested by the log
+            if log_max_time > seq_max_time:
+                # Set item color to red
+                for i in range(self.group_tree.topLevelItemCount()):
+                    item = self.group_tree.topLevelItem(i)
+                    if item.data(0, QtCore.Qt.ItemDataRole.UserRole) == seq:
+                        item.setForeground(1, QtGui.QBrush(QtCore.Qt.GlobalColor.red))
+                return False
+        return True
+
     def getGroups(self) -> dict[int, list[tuple[int, int]]]:
         """Returns dict of sequence: idx of 'laserdata'"""
         groups: dict[int, list[tuple[int, int]]] = {}
