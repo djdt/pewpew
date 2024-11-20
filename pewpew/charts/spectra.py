@@ -100,6 +100,17 @@ class SpectraView(SinglePlotGraphicsView):
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(640, 240)
 
+    def readyForExport(self) -> bool:
+        if self.spectra is None:
+            return False
+        if self.spectra.xData.size == 0:
+            return False
+        return True
+
+    def dataForExport(self) -> dict[str, np.ndarray]:
+        assert self.spectra is not None
+        return {"m/z": self.spectra.xData, "signal": self.spectra.yData}
+
     def drawCentroidSpectra(
         self,
         x: np.ndarray,
