@@ -318,7 +318,7 @@ class ImzMLTargetMassPage(QtWidgets.QWizardPage):
         imzml: ImzML = self.field("imzml")
 
         # convert mapToData pos to stored spectrum pos
-        px, py = pos.x() + 1, imzml.scan_settings.image_size[1] - pos.y()
+        px, py = pos.x() + 1, pos.y() + 1
         try:
             spectrum = imzml.spectra[(px, py)]
         except KeyError:
