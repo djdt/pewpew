@@ -109,7 +109,7 @@ class SpectraView(SinglePlotGraphicsView):
 
     def dataForExport(self) -> dict[str, np.ndarray]:
         assert self.spectra is not None
-        return {"m/z": self.spectra.xData, "signal": self.spectra.yData}
+        return {"m/z": self.spectra.xData[1::2], "signal": self.spectra.yData[1::2]}
 
     def drawCentroidSpectra(
         self,
