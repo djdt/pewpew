@@ -568,14 +568,17 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.combo_name2.currentIndexChanged.connect(self.refresh)
 
         self.label_r = QtWidgets.QLabel()
-        self.label_p = QtWidgets.QLabel()
-        self.label_icq = QtWidgets.QLabel()
-        self.label_m1 = QtWidgets.QLabel()
-        self.label_m2 = QtWidgets.QLabel()
 
-        self.button_p = qToolButton("view-refresh")
-        self.button_p.setToolTip("Calculate Pearson r probability.")
-        self.button_p.pressed.connect(self.calculatePearsonsProbablity)
+        self.label_costes_r = QtWidgets.QLabel()
+        self.label_costes_p = QtWidgets.QLabel()
+        self.label_costes_m1 = QtWidgets.QLabel()
+        self.label_costes_m2 = QtWidgets.QLabel()
+
+        self.label_icq = QtWidgets.QLabel()
+
+        self.button_costes_p = qToolButton("view-refresh")
+        self.button_costes_p.setToolTip("Calculate Pearson r probability.")
+        self.button_costes_p.pressed.connect(self.calculatePearsonsProbablity)
 
         self.button_box = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Close)
         self.button_box.rejected.connect(self.close)
@@ -583,17 +586,18 @@ class ColocalisationDialog(QtWidgets.QDialog):
         group_pearson = QtWidgets.QGroupBox("Pearson")
         layout_pearson = QtWidgets.QFormLayout()
         layout_pearson.addRow("r:", self.label_r)
-        layout_p = QtWidgets.QHBoxLayout()
-        layout_p.addWidget(self.label_p, 1)
-        layout_p.addWidget(self.button_p, 0)
-        layout_pearson.addRow("ρ:", layout_p)
         group_pearson.setLayout(layout_pearson)
 
-        group_manders = QtWidgets.QGroupBox("Manders")
-        layout_manders = QtWidgets.QFormLayout()
-        layout_manders.addRow("M1:", self.label_m1)
-        layout_manders.addRow("M2:", self.label_m2)
-        group_manders.setLayout(layout_manders)
+        group_costes = QtWidgets.QGroupBox("Costes")
+        layout_costes = QtWidgets.QFormLayout()
+        layout_costes.addRow("r:", self.label_costes_r)
+        layout_p = QtWidgets.QHBoxLayout()
+        layout_p.addWidget(self.label_costes_p, 1)
+        layout_p.addWidget(self.button_costes_p, 0)
+        layout_costes.addRow("ρ:", layout_p)
+        layout_costes.addRow("M1:", self.label_costes_m1)
+        layout_costes.addRow("M2:", self.label_costes_m2)
+        group_costes.setLayout(layout_costes)
 
         group_li = QtWidgets.QGroupBox("Li")
         layout_li = QtWidgets.QFormLayout()
@@ -607,7 +611,7 @@ class ColocalisationDialog(QtWidgets.QDialog):
         layout_vert = QtWidgets.QVBoxLayout()
         layout_vert.addSpacing(12)
         layout_vert.addWidget(group_pearson)
-        layout_vert.addWidget(group_manders)
+        layout_vert.addWidget(group_costes)
         layout_vert.addWidget(group_li)
         layout_vert.addStretch(1)
         layout_vert.addLayout(layout_combos)
@@ -638,31 +642,29 @@ class ColocalisationDialog(QtWidgets.QDialog):
 
         x, y = normalise(x), normalise(y)
 
-        # # Pearson
-        # r = colocal.pearsonr(x, y)
-
         # Li
+        r = colocal.pearsonr(x, y)
         icq = colocal.li_icq(x, y)
 
-        x, y = x.ravel(), y.ravel()
-
-        # Choose a more approriate threshold?
-        # TODO this is really slow, python loops?
         t, a, b = colocal.costes_threshold(x, y)
         tx, ty = t, t * a + b
-        r = colocal.pearsonr(
+        cr = colocal.pearsonr(
             x[np.logical_and(x > tx, y > ty)], y[np.logical_and(x > tx, y > ty)]
         )
-        m1, m2 = colocal.manders(x, y, tx, ty)
+        m1, m2 = np.sum(x, where=x > tx) / x.sum(), np.sum(y, where=y > ty) / y.sum()
 
         self.label_r.setText(f"{r:.2f}")
-        self.label_p.setText("")
+
+        self.label_costes_r.setText(f"{cr:.2f}")
+        self.label_costes_p.setText("")
+        self.label_costes_m1.setText(f"{m1:.2f}")
+        self.label_costes_m2.setText(f"{m2:.2f}")
+
         self.label_icq.setText(f"{icq:.2f}")
-        self.label_m1.setText(f"{m1:.2f}")
-        self.label_m2.setText(f"{m2:.2f}")
 
-        self.button_p.setEnabled(True)
+        self.button_costes_p.setEnabled(True)
 
+        # limit points for plotting
         if x.size > 10000:  # pragma: no cover
             n = np.random.choice(x.size, 10000)
             x, y = x[n], y[n]
@@ -680,9 +682,9 @@ class ColocalisationDialog(QtWidgets.QDialog):
         y = self.data[self.combo_name2.currentText()]
 
         _, p = colocal.pearsonr_probablity(x, y, mask=self.mask, n=500)
-        self.label_p.setText(f"{p:.2f}")
+        self.label_costes_p.setText(f"{p:.2f}")
 
-        self.button_p.setEnabled(False)
+        self.button_costes_p.setEnabled(False)
 
 
 class ConfigDialog(ApplyDialog):
