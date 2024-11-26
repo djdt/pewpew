@@ -626,35 +626,34 @@ class ColocalisationDialog(QtWidgets.QDialog):
     def refresh(self) -> None:
         n1 = self.combo_name1.currentText()
         n2 = self.combo_name2.currentText()
-        x = self.data[n1]
-        y = self.data[n2]
+        x = self.data[n1].astype(float)
+        y = self.data[n2].astype(float)
 
         if self.mask is not None:
             x, y = x[self.mask], y[self.mask]
 
-        x = x[~np.isnan(x)]
-        y = y[~np.isnan(y)]
+        nan_mask = np.logical_or(np.isnan(x), np.isnan(y))
+        x = x[~nan_mask]
+        y = y[~nan_mask]
 
         x, y = normalise(x), normalise(y)
 
-        # Pearson
-        r = colocal.pearsonr(x, y)
+        # # Pearson
+        # r = colocal.pearsonr(x, y)
 
         # Li
         icq = colocal.li_icq(x, y)
 
         x, y = x.ravel(), y.ravel()
-        if x.size > 10000:  # pragma: no cover
-            n = np.random.choice(x.size, 10000)
-            x, y = x[n], y[n]
 
         # Choose a more approriate threshold?
         # TODO this is really slow, python loops?
-        t1, a, b = colocal.costes_threshold(x, y)
-        t2 = a * t1 + b
-        m1, m2 = colocal.manders(
-            x, y, t2, t1
-        )  # Pass thresholds backwards as per Costes
+        t, a, b = colocal.costes_threshold(x, y)
+        tx, ty = t, t * a + b
+        r = colocal.pearsonr(
+            x[np.logical_and(x > tx, y > ty)], y[np.logical_and(x > tx, y > ty)]
+        )
+        m1, m2 = colocal.manders(x, y, tx, ty)
 
         self.label_r.setText(f"{r:.2f}")
         self.label_p.setText("")
@@ -664,10 +663,14 @@ class ColocalisationDialog(QtWidgets.QDialog):
 
         self.button_p.setEnabled(True)
 
+        if x.size > 10000:  # pragma: no cover
+            n = np.random.choice(x.size, 10000)
+            x, y = x[n], y[n]
+
         self.chart.clear()
-        self.chart.drawPoints(x, y)
+        self.chart.drawPoints(x, y, tx, ty)
         self.chart.drawLine(a, b)
-        self.chart.drawThresholds(t1, t2)
+        self.chart.drawThresholds(tx, ty)
 
         self.chart.xaxis.setLabel(n1)
         self.chart.yaxis.setLabel(n2)

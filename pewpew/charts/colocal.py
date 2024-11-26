@@ -24,6 +24,8 @@ class ColocalisationView(SinglePlotGraphicsView):
         self,
         x: np.ndarray,
         y: np.ndarray,
+        tx: float,
+        ty: float,
         pen: QtGui.QPen | None = None,
         brush: QtGui.QPen | None = None,
     ) -> None:
@@ -33,18 +35,25 @@ class ColocalisationView(SinglePlotGraphicsView):
             pen = QtGui.QPen(QtCore.Qt.black, 1.0)
             pen.setCosmetic(True)
 
+        below = np.logical_or(x < tx, y < ty)
+        below_brush = QtGui.QBrush(brush.color().lighter())
+
+        brush = np.where(below, below_brush, brush)
+
         points = pyqtgraph.ScatterPlotItem(
-            x, y, symbol="o", size=10, pen=pen, brush=brush
+            x, y, symbol="o", size=5, pen=pen, brush=brush
         )
         self.plot.addItem(points)
 
-    def drawLine(self, a: float, b: float, pen: QtGui.QPen | None = None) -> None:
+    def drawLine(
+        self, a: float, b: float, pen: QtGui.QPen | None = None
+    ) -> None:
         """Plot a line with gradient 'a' and intercept 'b'."""
         if pen is None:
-            pen = QtGui.QPen(QtCore.Qt.red, 1.0)
+            pen = QtGui.QPen(QtCore.Qt.blue, 1.0)
             pen.setCosmetic(True)
 
-        line = pyqtgraph.PlotCurveItem([b, 1.0], [0.0, a + b], pen=pen)
+        line = pyqtgraph.PlotCurveItem([0.0, 1.0], [b, 1.0 * a + b], pen=pen)
         self.plot.addItem(line)
 
     def drawThresholds(
@@ -52,7 +61,7 @@ class ColocalisationView(SinglePlotGraphicsView):
     ) -> None:
         """Draw horizontal and vertical lines at 't1' and 't2'."""
         if pen is None:
-            pen = QtGui.QPen(QtCore.Qt.black, 1.0, QtCore.Qt.PenStyle.DashLine)
+            pen = QtGui.QPen(QtCore.Qt.blue, 1.0, QtCore.Qt.PenStyle.DashLine)
             pen.setCosmetic(True)
 
         line = pyqtgraph.PlotCurveItem([t1, t1], [0.0, 1.0], pen=pen)
