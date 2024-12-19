@@ -203,6 +203,9 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         groups = self.field("groups")
 
         log = self.field("laserlog")
+
+        start_idx = np.flatnonzero(log["state"] == "On")
+        log = log[np.stack((start_idx, start_idx + 1), axis=1).flat]
         params = self.field("laserparam")
 
         # Find the maximum time recorded in data
@@ -210,7 +213,11 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
             log_max_time = np.ptp(
                 log[np.isin(log["sequence"], seq)]["time"].astype(float) / 1000.0
             )
-            seq_max_time = np.amax([np.amax(params[i]["times"]) for i, _ in idx])
+            seq_times = [
+                params[i]["times"][j] if j > -1 else params[i]["times"].flat
+                for i, j in idx
+            ]
+            seq_max_time = np.amax(seq_times)
 
             # Check if this time is less than requested by the log
             if log_max_time > seq_max_time:
