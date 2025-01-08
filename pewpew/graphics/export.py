@@ -220,7 +220,7 @@ def generate_laser_image(
     # Draw the scale-bar
     if scalebar_alignment is not None:
         x0, x1, y0, y1 = laser.extent
-        scale = (x1 - x0) / pixmap.width() / scale
+        scale = (x1 - x0) / pixmap.width()
         paint_scalebar(painter, xh * 10.0, text_bounds, scalebar_alignment, scale)
 
     painter.end()
