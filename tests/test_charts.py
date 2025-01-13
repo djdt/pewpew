@@ -33,7 +33,7 @@ def test_colocal_view(qtbot: QtBot):
     x = np.random.random(10)
     y = np.random.random(10)
 
-    chart.drawPoints(x, y)
+    chart.drawPoints(x, y, 0.2, 0.2)
     chart.drawLine(1.0, 0.5)
     chart.drawThresholds(0.2, 0.2)
 
