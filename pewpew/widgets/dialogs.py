@@ -425,7 +425,7 @@ class CalibrationCurveDialog(QtWidgets.QDialog):
         no_nans = ~np.isnan(calibration.points).any(axis=1)
         points = calibration.points[no_nans]
         self.chart.drawPoints(points)
-        self.chart.drawTrendline()
+        self.chart.drawTrendline(weights=calibration.weights)
 
 
 class ColorRangeDialog(ApplyDialog):
