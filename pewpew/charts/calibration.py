@@ -1,6 +1,6 @@
 import numpy as np
 import pyqtgraph
-from pewlib.calibration import weighted_linreg
+from pewlib.calibration import weighted_linreg, weights_from_weighting
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.charts.base import SinglePlotGraphicsView
@@ -15,6 +15,8 @@ class CalibrationView(SinglePlotGraphicsView):
         self.setMinimumSize(320, 320)
 
         self.points = None
+        self.line = None
+        self.text = None
         self.plot.setMouseEnabled(x=False, y=False)
         self.plot.enableAutoRange(x=True, y=True)
 
@@ -35,7 +37,6 @@ class CalibrationView(SinglePlotGraphicsView):
         self,
         points: np.ndarray,
         name: str | None = None,
-        draw_trendline: bool = False,
         pen: QtGui.QPen | None = None,
         brush: QtGui.QPen | None = None,
     ) -> None:
@@ -67,14 +68,7 @@ class CalibrationView(SinglePlotGraphicsView):
         if name is not None:
             self.plot.legend.addItem(self.points, name)
 
-        if draw_trendline:
-            pen = QtGui.QPen(brush.color(), 1.0)
-            pen.setCosmetic(True)
-            self.drawTrendline(pen=pen)
-
-    def drawTrendline(
-        self, weighting: str = "none", pen: QtGui.QPen | None = None
-    ) -> None:
+    def drawTrendline(self, weights: np.ndarray, pen: QtGui.QPen | None = None) -> None:
         if self.points is None:
             return
 
@@ -84,18 +78,23 @@ class CalibrationView(SinglePlotGraphicsView):
 
         x, y = self.points.getData()
 
-        if weighting != "none":  # pragma: no cover
-            raise NotImplementedError("Weighting not yet implemented.")
         if x.size < 2 or np.all(x == x[0]):  # pragma: no cover
-
             return
 
-        m, b, r2, err = weighted_linreg(x, y, w=None)
+        m, b, r2, err = weighted_linreg(x, y, w=weights)
         x0, x1 = x.min(), x.max()
 
-        line = pyqtgraph.PlotCurveItem([x0, x1], [m * x0 + b, m * x1 + b], pen=pen)
-        self.plot.addItem(line)
+        if self.line is None:
+            self.line = pyqtgraph.PlotCurveItem(
+                [x0, x1], [m * x0 + b, m * x1 + b], pen=pen
+            )
+            self.plot.addItem(self.line)
+        else:
+            self.line.setData([x0, x1], [m * x0 + b, m * x1 + b])
 
-        text = pyqtgraph.LabelItem(f"r² = {r2:.4f}", parent=self.yaxis)
-        text.anchor(itemPos=(0, 0), parentPos=(1, 0), offset=(10, 10))
-        text.setPos(x1, m * x1 + b)
+        if self.text is None:
+            self.text = pyqtgraph.LabelItem(f"r² = {r2:.4f}", parent=self.yaxis)
+            self.text.anchor(itemPos=(0, 0), parentPos=(1, 0), offset=(10, 10))
+            self.text.setPos(x1, m * x1 + b)
+        else:
+            self.text.setText(f"r² = {r2:.4f}")
