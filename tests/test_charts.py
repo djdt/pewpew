@@ -14,7 +14,7 @@ def test_calibration_view(qtbot: QtBot):
     points = np.stack((np.arange(5.0), np.random.random(5)), axis=1)
 
     chart.drawPoints(points, name="test")
-    chart.drawTrendline(np.ones_like(points))
+    chart.drawTrendline(np.ones(points.shape[0]))
 
     assert chart.readyForExport()
     data = chart.dataForExport()
