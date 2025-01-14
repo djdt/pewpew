@@ -107,20 +107,20 @@ def test_colocalisation_dialog(qtbot: QtBot):
 
     assert dialog.label_r.text() == "0.00"
     assert dialog.label_icq.text() == "0.00"
-    assert dialog.label_m1.text() == "0.00"
-    assert dialog.label_m2.text() == "0.50"
-    assert dialog.label_p.text() == ""
+    assert dialog.label_costes_m1.text() == "0.00"
+    assert dialog.label_costes_m2.text() == "0.79"
+    assert dialog.label_costes_p.text() == ""
 
     dialog.combo_name2.setCurrentText("a")
 
     assert dialog.label_r.text() == "1.00"
     assert dialog.label_icq.text() == "0.50"
-    assert dialog.label_m1.text() == "1.00"
-    assert dialog.label_m2.text() == "1.00"
-    assert dialog.label_p.text() == ""
+    assert dialog.label_costes_m1.text() == "1.00"
+    assert dialog.label_costes_m2.text() == "1.00"
+    assert dialog.label_costes_p.text() == ""
 
     dialog.calculatePearsonsProbablity()
-    assert dialog.label_p.text() == "1.00"
+    assert dialog.label_costes_p.text() == "0.00"
 
 
 def test_colorrange_dialog(qtbot: QtBot):
