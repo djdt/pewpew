@@ -1698,7 +1698,7 @@ class TransformDialog(QtWidgets.QDialog):
 
         # combine pos and translation
         self._transform = transform
-        self.transform = transform.translate(pos.x(), pos.y())
+        self.transform = transform * QtGui.QTransform.fromTranslate(pos.x(), pos.y())
         self.pos = pos
         self.default_path = default_path
 
@@ -1767,7 +1767,7 @@ class TransformDialog(QtWidgets.QDialog):
 
     def accept(self) -> None:
         transform = QtGui.QTransform(*self.currentCoefs())
-        if transform != self.transform:
+        if transform != self.transform:  # todo: isclose?
             # remove pos from translation
             transform.translate(-self.pos.x(), -self.pos.y())
             self.transformChanged.emit(transform)
