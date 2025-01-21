@@ -30,16 +30,17 @@ from pewpew.validators import (
 )
 from pewpew.widgets.ext import CollapsableWidget, ValidColorLineEdit
 from pewpew.widgets.modelviews import BasicTableView
-from pewpew.widgets.tools.calculator import CalculatorFormula, CalculatorTool
+from pewpew.widgets.tools.calculator import CalculatorTool
 from pewpew.widgets.tools.filtering import FilteringTool
 
 
 class ApplyDialog(QtWidgets.QDialog):
     """A dialog with Apply, Ok and Close buttons.
 
-    When Apply is pressed the signal `applyPressed` is emitted, with the dialog as an argument.
-    Implement `isComplete` and connect `completeChanged` to disable the Apply and Ok buttons
-    in specific circumstances.
+    When Apply is pressed the signal `applyPressed` is emitted, with the dialog as an
+    argument.
+    Implement `isComplete` and connect `completeChanged` to disable the Apply and Ok
+    buttons in specific circumstances.
     Widgets should be added to the `layout_main` layout.
     """
 
