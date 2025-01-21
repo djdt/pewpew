@@ -1689,28 +1689,35 @@ class TransformDialog(QtWidgets.QDialog):
     def __init__(
         self,
         transform: QtGui.QTransform,
-        origin: QtCore.QPointF,
+        pos: QtCore.QPointF,
         default_path: str = "",
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
         self.setWindowTitle("Transform")
 
-        self.transform = transform
-        self.origin = origin
+        # combine pos and translation
+        self._transform = transform
+        self.transform = transform.translate(pos.x(), pos.y())
+        self.pos = pos
         self.default_path = default_path
 
         self.matrix = QtWidgets.QTableWidget(3, 3)
         self.matrix.setItemDelegate(DoubleSignificantFiguresDelegate(4))
         self.matrix.setItem(0, 0, QtWidgets.QTableWidgetItem(str(transform.m11())))
-        self.matrix.setItem(0, 1, QtWidgets.QTableWidgetItem(str(transform.m12())))
-        self.matrix.setItem(0, 2, QtWidgets.QTableWidgetItem(str(transform.m13())))
-        self.matrix.setItem(1, 0, QtWidgets.QTableWidgetItem(str(transform.m21())))
+        self.matrix.setItem(1, 0, QtWidgets.QTableWidgetItem(str(transform.m12())))
+        self.matrix.setItem(2, 0, QtWidgets.QTableWidgetItem(str(transform.m13())))
+        self.matrix.setItem(0, 1, QtWidgets.QTableWidgetItem(str(transform.m21())))
         self.matrix.setItem(1, 1, QtWidgets.QTableWidgetItem(str(transform.m22())))
-        self.matrix.setItem(1, 2, QtWidgets.QTableWidgetItem(str(transform.m23())))
-        self.matrix.setItem(2, 0, QtWidgets.QTableWidgetItem(str(transform.m31())))
-        self.matrix.setItem(2, 1, QtWidgets.QTableWidgetItem(str(transform.m32())))
+        self.matrix.setItem(2, 1, QtWidgets.QTableWidgetItem(str(transform.m23())))
+        self.matrix.setItem(0, 2, QtWidgets.QTableWidgetItem(str(transform.m31())))
+        self.matrix.setItem(1, 2, QtWidgets.QTableWidgetItem(str(transform.m32())))
         self.matrix.setItem(2, 2, QtWidgets.QTableWidgetItem(str(transform.m33())))
+
+        for i in range(3):  # make 0,0,1 readonly
+            item = self.matrix.item(2, i)
+            item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
+
         self.matrix.setSizeAdjustPolicy(
             QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents
         )
@@ -1742,7 +1749,7 @@ class TransformDialog(QtWidgets.QDialog):
     def currentCoefs(self) -> Generator[float, None, None]:
         for i in range(3):
             for j in range(3):
-                yield float(self.matrix.item(i, j).text())
+                yield float(self.matrix.item(j, i).text())
 
     def save(self) -> None:
         file, ok = QtWidgets.QFileDialog.getSaveFileName(
@@ -1752,14 +1759,16 @@ class TransformDialog(QtWidgets.QDialog):
             coefs = list(self.currentCoefs())
             with open(file, "w") as fp:
                 fp.write(
-                    "# pew2 transform\n"
-                    f"{coefs[0]},{coefs[1]},{coefs[2]}\n"
-                    f"{coefs[3]},{coefs[4]},{coefs[5]}\n"
-                    f"{coefs[6]},{coefs[7]},{coefs[8]}"
+                    "# pew2 transform [abcdef001]\n"
+                    f"{coefs[0]},{coefs[3]},{coefs[6]}\n"
+                    f"{coefs[1]},{coefs[4]},{coefs[7]}\n"
+                    f"{coefs[2]},{coefs[5]},{coefs[8]}"
                 )
 
     def accept(self) -> None:
         transform = QtGui.QTransform(*self.currentCoefs())
         if transform != self.transform:
+            # remove pos from translation
+            transform.translate(-self.pos.x(), -self.pos.y())
             self.transformChanged.emit(transform)
         super().accept()

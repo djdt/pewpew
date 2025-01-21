@@ -558,7 +558,7 @@ class LaserTabWidget(TabViewWidget):
             dlg.sizeSelected.connect(item.setPixelSize)
         elif dialog == "Transform":
             dlg = dialogs.TransformDialog(
-                item.transform(), item.transformOriginPoint(), parent=self
+                item.transform(), item.pos(), parent=self
             )
             dlg.transformChanged.connect(item.setTransform)
         elif not isinstance(item, LaserImageItem):
