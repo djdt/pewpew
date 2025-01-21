@@ -291,10 +291,10 @@ class ImageOverlayItem(ScaledImageItem):
         )
 
         self.action_export_transform = qAction(
-            "export",
-            "Export Transform",
-            "Save the affine matrix coordinates of the image.",
-            lambda: self.requestDialog.emit("Export Transform", self, False),
+            "dialog-transform",
+            "Edit Transform",
+            "Edit or save the affine matrix coordinates of the image.",
+            lambda: self.requestDialog.emit("Transform", self, False),
         )
 
     def lock(self) -> None:

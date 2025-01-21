@@ -556,7 +556,7 @@ class LaserTabWidget(TabViewWidget):
         if dialog == "Pixel Size":
             dlg = dialogs.PixelSizeDialog(item.pixelSize(), parent=self)
             dlg.sizeSelected.connect(item.setPixelSize)
-        elif dialog == "Export Transform":
+        elif dialog == "Transform":
             dlg = dialogs.TransformDialog(
                 item.transform(), item.transformOriginPoint(), parent=self
             )
