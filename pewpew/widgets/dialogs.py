@@ -981,9 +981,12 @@ class PixelSizeDialog(ApplyDialog):
         self.ysize.setValidator(DecimalValidator(0.001, 999.999, 3))
         self.ysize.setEnabled(False)
 
-        self.button_link = qToolButton("link", "Linked", self.buttonLink)
-        self.button_link.setCheckable(True)
-        self.button_link.setChecked(True)
+        self.action_link = qAction(
+            "link", "Linked", "Link X and Y size", self.updateLink
+        )
+        self.action_link.setCheckable(True)
+        self.action_link.setChecked(True)
+        self.button_link = qToolButton(action=self.action_link)
 
         layoutx = QtWidgets.QHBoxLayout()
         layoutx.addWidget(self.xsize, 1)
@@ -999,7 +1002,7 @@ class PixelSizeDialog(ApplyDialog):
 
         self.layout_main.addLayout(layout_form)
 
-    def buttonLink(self) -> None:
+    def updateLink(self) -> None:
         if self.button_link.isChecked():
             self.updateYSize()
 
