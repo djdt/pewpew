@@ -2,7 +2,7 @@
 
 import copy
 from io import BytesIO
-from typing import Callable
+from typing import Callable, Generator
 
 import numpy as np
 from pewlib import Calibration, Config, Laser
@@ -1679,3 +1679,87 @@ class StatsDialog(QtWidgets.QDialog):
                 np.nan,
             )
         return data
+
+
+class TransformDialog(QtWidgets.QDialog):
+    """Displays an affine matrix and open to save."""
+
+    transformChanged = QtCore.Signal(QtGui.QTransform)
+
+    def __init__(
+        self,
+        transform: QtGui.QTransform,
+        origin: QtCore.QPointF,
+        default_path: str = "",
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(parent)
+        self.setWindowTitle("Transform")
+
+        self.transform = transform
+        self.origin = origin
+        self.default_path = default_path
+
+        self.matrix = QtWidgets.QTableWidget(3, 3)
+        self.matrix.setItemDelegate(DoubleSignificantFiguresDelegate(4))
+        self.matrix.setItem(0, 0, QtWidgets.QTableWidgetItem(str(transform.m11())))
+        self.matrix.setItem(0, 1, QtWidgets.QTableWidgetItem(str(transform.m12())))
+        self.matrix.setItem(0, 2, QtWidgets.QTableWidgetItem(str(transform.m13())))
+        self.matrix.setItem(1, 0, QtWidgets.QTableWidgetItem(str(transform.m21())))
+        self.matrix.setItem(1, 1, QtWidgets.QTableWidgetItem(str(transform.m22())))
+        self.matrix.setItem(1, 2, QtWidgets.QTableWidgetItem(str(transform.m23())))
+        self.matrix.setItem(2, 0, QtWidgets.QTableWidgetItem(str(transform.m31())))
+        self.matrix.setItem(2, 1, QtWidgets.QTableWidgetItem(str(transform.m32())))
+        self.matrix.setItem(2, 2, QtWidgets.QTableWidgetItem(str(transform.m33())))
+        self.matrix.setSizeAdjustPolicy(
+            QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents
+        )
+        self.matrix.resizeColumnsToContents()
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Cancel
+            | QtWidgets.QDialogButtonBox.Ok
+            | QtWidgets.QDialogButtonBox.Save,
+        )
+        self.button_box.clicked.connect(self.buttonBoxClicked)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.matrix, 1, QtCore.Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self.button_box, 0)
+
+        self.setLayout(layout)
+
+    def buttonBoxClicked(self, button: QtWidgets.QAbstractButton) -> None:
+        sb = self.button_box.standardButton(button)
+
+        if sb == QtWidgets.QDialogButtonBox.StandardButton.Ok:
+            self.accept()
+        elif sb == QtWidgets.QDialogButtonBox.StandardButton.Save:
+            self.save()
+        else:
+            self.reject()
+
+    def currentCoefs(self) -> Generator[float, None, None]:
+        for i in range(3):
+            for j in range(3):
+                yield float(self.matrix.item(i, j).text())
+
+    def save(self) -> None:
+        file, ok = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Save Transform", self.default_path, filter="CSV files(*.csv)"
+        )
+        if ok:
+            coefs = list(self.currentCoefs())
+            with open(file, "w") as fp:
+                fp.write(
+                    "# pew2 transform\n"
+                    f"{coefs[0]},{coefs[1]},{coefs[2]}\n"
+                    f"{coefs[3]},{coefs[4]},{coefs[5]}\n"
+                    f"{coefs[6]},{coefs[7]},{coefs[8]}"
+                )
+
+    def accept(self) -> None:
+        transform = QtGui.QTransform(*self.currentCoefs())
+        if transform != self.transform:
+            self.transformChanged.emit(transform)
+        super().accept()
