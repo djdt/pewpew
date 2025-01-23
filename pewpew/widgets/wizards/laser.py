@@ -271,17 +271,28 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
         self.spinbox_delay.setMinimum(0.0)
         self.spinbox_delay.setMaximum(10.0)
         self.spinbox_delay.setDecimals(4)
-        self.spinbox_delay.setSuffix(" s")
         self.spinbox_delay.setSingleStep(0.001)
+        self.spinbox_delay.setSuffix(" s")
         self.spinbox_delay.setSpecialValueText("Automatic")
-        self.spinbox_delay.editingFinished.connect(self.initializePage)
+        self.spinbox_delay.valueChanged.connect(self.initializePage)
+
+        self.spinbox_correction = QtWidgets.QDoubleSpinBox()
+        self.spinbox_correction.setValue(0.0)
+        self.spinbox_correction.setMinimum(-10.0)
+        self.spinbox_correction.setMaximum(10.0)
+        self.spinbox_correction.setDecimals(4)
+        self.spinbox_correction.setSuffix(" ms")
+        self.spinbox_correction.setSingleStep(0.001)
+        self.spinbox_correction.valueChanged.connect(self.initializePage)
 
         self.checkbox_collapse = QtWidgets.QCheckBox("Remove space between images.")
         self.checkbox_collapse.checkStateChanged.connect(self.initializePage)
+        self.checkbox_collapse.checkStateChanged.connect(self.graphics.zoomReset)
 
         controls_box = QtWidgets.QGroupBox("Import Options")
         controls_box.setLayout(QtWidgets.QFormLayout())
         controls_box.layout().addRow("Delay", self.spinbox_delay)
+        controls_box.layout().addRow("Timing correction", self.spinbox_correction)
         controls_box.layout().addRow(self.checkbox_collapse)
 
         layout = QtWidgets.QVBoxLayout()
@@ -312,7 +323,6 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
             seq_times = []
             for i, r in idx:
                 x = datas[i]
-                t = params[i]["times"]
                 if r == -1:
                     seq_datas.append(x.flat)
                     seq_times.append(t.flat)
@@ -361,7 +371,6 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
             self.graphics.scene().addItem(laser_item)
 
         self.laserItemsChanged.emit()
-        self.graphics.zoomReset()
 
     def showEvent(self, event: QtGui.QShowEvent) -> None:
         super().showEvent(event)
