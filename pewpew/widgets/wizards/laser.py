@@ -268,21 +268,25 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
         self.graphics.show()
 
         self.spinbox_delay = QtWidgets.QDoubleSpinBox()
-        self.spinbox_delay.setMinimum(0.0)
-        self.spinbox_delay.setMaximum(10.0)
-        self.spinbox_delay.setDecimals(4)
-        self.spinbox_delay.setSingleStep(0.001)
-        self.spinbox_delay.setSuffix(" s")
-        self.spinbox_delay.setSpecialValueText("Automatic")
+        self.spinbox_delay.setMinimum(-1.0)
+        self.spinbox_delay.setMaximum(100.0)
+        self.spinbox_delay.setDecimals(2)
+        self.spinbox_delay.setSingleStep(1.0)
+        self.spinbox_delay.setSuffix(" ms")
+        self.spinbox_delay.setSpecialValueText("Auto")
+        self.spinbox_delay.setMinimumWidth(
+            QtGui.QFontMetrics(self.spinbox_delay.font())
+            .boundingRect("Automatic (00.00)")
+            .width() + self.spinbox_delay.baseSize().width()
+        )
         self.spinbox_delay.valueChanged.connect(self.initializePage)
 
         self.spinbox_correction = QtWidgets.QDoubleSpinBox()
-        self.spinbox_correction.setValue(0.0)
-        self.spinbox_correction.setMinimum(-10.0)
-        self.spinbox_correction.setMaximum(10.0)
-        self.spinbox_correction.setDecimals(4)
+        self.spinbox_correction.setMinimum(-100.0)
+        self.spinbox_correction.setMaximum(100.0)
+        self.spinbox_correction.setDecimals(2)
         self.spinbox_correction.setSuffix(" ms")
-        self.spinbox_correction.setSingleStep(0.001)
+        self.spinbox_correction.setSingleStep(1.0)
         self.spinbox_correction.valueChanged.connect(self.initializePage)
 
         self.checkbox_collapse = QtWidgets.QCheckBox("Remove space between images.")
@@ -312,10 +316,12 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
         for item in self.graphics.laserItems():
             item.close()
 
-        if self.spinbox_delay.value() == 0.0:
+        if self.spinbox_delay.value() < 0.0:
             delay = None
         else:
-            delay = self.spinbox_delay.value()
+            delay = self.spinbox_delay.value() / 1000.0
+
+        corr = self.spinbox_correction.value() / 1000.0
 
         extents = QtCore.QRectF()
         for seq, idx in groups.items():
@@ -323,12 +329,14 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
             seq_times = []
             for i, r in idx:
                 x = datas[i]
+                t = params[i]["times"]
+
                 if r == -1:
                     seq_datas.append(x.flat)
-                    seq_times.append(t.flat)
+                    seq_times.append(t.flat + np.linspace(0.0, corr, t.size))
                 else:
                     seq_datas.append(x[r])
-                    seq_times.append(t[r])
+                    seq_times.append(t[r] + np.linspace(0.0, corr, t.shape[1]))
             data = np.concatenate(seq_datas)
             times = np.concatenate(seq_times)
 
@@ -336,8 +344,9 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
                 data, times, log, delay=delay, sequence=seq
             )
             if delay is None:
+                self.spinbox_delay.setValue(-1.0)
                 self.spinbox_delay.setSpecialValueText(
-                    f"Automatic ({sync_params['delay']:.4f})"
+                    f"Auto ({sync_params['delay'] * 1000.0:.2f})"
                 )
 
             laser = Laser(
