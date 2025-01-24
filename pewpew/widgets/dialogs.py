@@ -1685,6 +1685,7 @@ class TransformDialog(QtWidgets.QDialog):
     """Displays an affine matrix and open to save."""
 
     transformChanged = QtCore.Signal(QtGui.QTransform)
+    posChanged = QtCore.Signal(QtCore.QPointF)
 
     def __init__(
         self,
@@ -1697,8 +1698,8 @@ class TransformDialog(QtWidgets.QDialog):
         self.setWindowTitle("Transform")
 
         # combine pos and translation
-        self._transform = transform
-        self.transform = transform * QtGui.QTransform.fromTranslate(pos.x(), pos.y())
+        transform.translate(pos.x(), pos.y())
+        self.transform = transform
         self.pos = pos
         self.default_path = default_path
 
