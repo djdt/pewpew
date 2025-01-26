@@ -421,3 +421,37 @@ def test_stats_dialog(qtbot: QtBot):
     )
 
     dialog.copyToClipboard()
+
+
+def test_transform_dialog(qtbot: QtBot):
+    t = QtGui.QTransform.fromScale(2.0, 3.0)
+    t.translate(1.0, 2.0)
+    p = QtCore.QPointF(2.0, 40.0)
+    dialog = dialogs.TransformDialog(t, p)
+
+    qtbot.addWidget(dialog)
+    dialog.open()
+
+    assert dialog.matrix.item(0, 0).text() == "2.0"
+    assert dialog.matrix.item(1, 1).text() == "3.0"
+    assert dialog.matrix.item(0, 2).text() == "6.0"
+    assert dialog.matrix.item(1, 2).text() == "126.0"
+
+    with qtbot.assert_not_emitted(dialog.transformChanged):
+        dialog.accept()
+
+    dialog.matrix.item(0, 0).setText("3.0")
+
+    def check_transform(t: QtGui.QTransform) -> bool:
+        if t.m11() != 3.0:
+            return False
+        if t.m31() != 0.0:
+            return False
+        if t.m32() != 6.0:
+            return False
+        return True
+
+    with qtbot.wait_signal(
+        dialog.transformChanged, timeout=500, check_params_cb=check_transform
+    ):
+        dialog.accept()
