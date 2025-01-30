@@ -1,4 +1,3 @@
-
 import numpy as np
 from PySide6 import QtCore, QtGui
 
@@ -36,7 +35,9 @@ class GraphicsOptions(QtCore.QObject):
         super().__init__()
         self.color_ranges: dict[str, tuple[float | str, float | str]] = {}
         self.color_range_default: tuple[float | str, float | str] = (0.0, "99%")
+        self.color_ranges_global: dict[str, tuple[float, float]] = {}
 
+        self.global_color_range = True
         self.scalebar = True
         self.highlight_focus = True
         self.smoothing = False
@@ -93,9 +94,13 @@ class GraphicsOptions(QtCore.QObject):
 
         Converts percentile ranges to float values.
         """
-        vmin, vmax = self.color_ranges.get(name, self.color_range_default)
         if data.dtype == bool:
             return 0, 1
+
+        if self.global_color_range:
+            return self.color_ranges_global.get(name, (0.0, 1.0))
+
+        vmin, vmax = self.color_ranges.get(name, self.color_range_default)
 
         if isinstance(vmin, str):
             vmin = np.nanpercentile(data, float(vmin.rstrip("%")))

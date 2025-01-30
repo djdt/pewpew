@@ -55,6 +55,8 @@ class LaserTabView(TabView):
         self.options = GraphicsOptions()
         self.tabs.setAutoHide(True)
 
+        self.numLaserItemsChanged.connect(self.updateGlobalColorRange)
+
     def insertTab(self, index: int, text: str, widget: "LaserTabWidget") -> int:
         index = super().insertTab(index, text, widget)
         if isinstance(widget, LaserTabWidget):
@@ -177,6 +179,17 @@ class LaserTabView(TabView):
         for widget in self.widgets():
             if isinstance(widget, LaserTabWidget):
                 widget.laser_controls.elements.setCurrentText(element)
+
+    def updateGlobalColorRange(self) -> None:
+        ranges: dict[str, tuple[float, float]] = {}
+        for item in self.laserItems():
+            for name in item.laser.elements:
+                data = item.laser.get(name, calibrate=self.options.calibrate, flat=True)
+                vmin, vmax = ranges.get(name, (0.0, 0.0))
+                ranges[name] = (min(vmin, np.nanmin(data)), max(vmax, np.nanmax(data)))
+        self.options.color_ranges_global = ranges
+        for item in self.laserItems():
+            item.redraw()
 
 
 class LaserTabWidget(TabViewWidget):
@@ -404,7 +417,7 @@ class LaserTabWidget(TabViewWidget):
         image = QtGui.QImage(path)
 
         item = ImageOverlayItem(
-            image, QtCore.QRectF(0, 0, image.width(), image.height()), path=path
+            image, QtCore.QRectF(0, 0, image.width(), image.height()), path=Path(path)
         )
         item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
         item.requestDialog.connect(self.openDialog)
@@ -557,9 +570,7 @@ class LaserTabWidget(TabViewWidget):
             dlg = dialogs.PixelSizeDialog(item.pixelSize(), parent=self)
             dlg.sizeSelected.connect(item.setPixelSize)
         elif dialog == "Transform":
-            dlg = dialogs.TransformDialog(
-                item.transform(), item.pos(), parent=self
-            )
+            dlg = dialogs.TransformDialog(item.transform(), item.pos(), parent=self)
             dlg.transformChanged.connect(item.setTransform)
         elif not isinstance(item, LaserImageItem):
             raise ValueError(
