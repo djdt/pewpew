@@ -2,7 +2,7 @@
 
 import copy
 from io import BytesIO
-from typing import Callable
+from typing import Callable, Generator
 
 import numpy as np
 from pewlib import Calibration, Config, Laser
@@ -30,16 +30,17 @@ from pewpew.validators import (
 )
 from pewpew.widgets.ext import CollapsableWidget, ValidColorLineEdit
 from pewpew.widgets.modelviews import BasicTableView
-from pewpew.widgets.tools.calculator import CalculatorFormula, CalculatorTool
+from pewpew.widgets.tools.calculator import CalculatorTool
 from pewpew.widgets.tools.filtering import FilteringTool
 
 
 class ApplyDialog(QtWidgets.QDialog):
     """A dialog with Apply, Ok and Close buttons.
 
-    When Apply is pressed the signal `applyPressed` is emitted, with the dialog as an argument.
-    Implement `isComplete` and connect `completeChanged` to disable the Apply and Ok buttons
-    in specific circumstances.
+    When Apply is pressed the signal `applyPressed` is emitted, with the dialog as an
+    argument.
+    Implement `isComplete` and connect `completeChanged` to disable the Apply and Ok
+    buttons in specific circumstances.
     Widgets should be added to the `layout_main` layout.
     """
 
@@ -975,9 +976,18 @@ class PixelSizeDialog(ApplyDialog):
 
         self.xsize = QtWidgets.QLineEdit(str(size.width()))
         self.xsize.setValidator(DecimalValidator(0.001, 999.999, 3))
+        self.xsize.textEdited.connect(self.updateYSize)
 
         self.ysize = QtWidgets.QLineEdit(str(size.height()))
         self.ysize.setValidator(DecimalValidator(0.001, 999.999, 3))
+        self.ysize.setEnabled(False)
+
+        self.action_link = qAction(
+            "link", "Linked", "Link X and Y size", self.updateLink
+        )
+        self.action_link.setCheckable(True)
+        self.action_link.setChecked(True)
+        self.button_link = qToolButton(action=self.action_link)
 
         layoutx = QtWidgets.QHBoxLayout()
         layoutx.addWidget(self.xsize, 1)
@@ -985,12 +995,23 @@ class PixelSizeDialog(ApplyDialog):
         layouty = QtWidgets.QHBoxLayout()
         layouty.addWidget(self.ysize, 1)
         layouty.addWidget(QtWidgets.QLabel("μm"), 0, QtCore.Qt.AlignRight)
+        layouty.addWidget(self.button_link, 0, QtCore.Qt.AlignRight)
 
         layout_form = QtWidgets.QFormLayout()
         layout_form.addRow("x:", layoutx)
         layout_form.addRow("y:", layouty)
 
         self.layout_main.addLayout(layout_form)
+
+    def updateLink(self) -> None:
+        if self.button_link.isChecked():
+            self.updateYSize()
+
+        self.ysize.setEnabled(not self.button_link.isChecked())
+
+    def updateYSize(self) -> None:
+        if self.button_link.isChecked():
+            self.ysize.setText(self.xsize.text())
 
     def size(self) -> QtCore.QSizeF:
         return QtCore.QSizeF(float(self.xsize.text()), float(self.ysize.text()))
@@ -1658,3 +1679,97 @@ class StatsDialog(QtWidgets.QDialog):
                 np.nan,
             )
         return data
+
+
+class TransformDialog(QtWidgets.QDialog):
+    """Displays an affine matrix and open to save."""
+
+    transformChanged = QtCore.Signal(QtGui.QTransform)
+    posChanged = QtCore.Signal(QtCore.QPointF)
+
+    def __init__(
+        self,
+        transform: QtGui.QTransform,
+        pos: QtCore.QPointF,
+        default_path: str = "",
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(parent)
+        self.setWindowTitle("Transform")
+
+        # combine pos and translation
+        transform.translate(pos.x(), pos.y())
+        self.transform = transform
+        self.pos = pos
+        self.default_path = default_path
+
+        self.matrix = QtWidgets.QTableWidget(3, 3)
+        self.matrix.setItemDelegate(DoubleSignificantFiguresDelegate(4))
+        self.matrix.setItem(0, 0, QtWidgets.QTableWidgetItem(str(transform.m11())))
+        self.matrix.setItem(1, 0, QtWidgets.QTableWidgetItem(str(transform.m12())))
+        self.matrix.setItem(2, 0, QtWidgets.QTableWidgetItem(str(transform.m13())))
+        self.matrix.setItem(0, 1, QtWidgets.QTableWidgetItem(str(transform.m21())))
+        self.matrix.setItem(1, 1, QtWidgets.QTableWidgetItem(str(transform.m22())))
+        self.matrix.setItem(2, 1, QtWidgets.QTableWidgetItem(str(transform.m23())))
+        self.matrix.setItem(0, 2, QtWidgets.QTableWidgetItem(str(transform.m31())))
+        self.matrix.setItem(1, 2, QtWidgets.QTableWidgetItem(str(transform.m32())))
+        self.matrix.setItem(2, 2, QtWidgets.QTableWidgetItem(str(transform.m33())))
+
+        for i in range(3):  # make 0,0,1 readonly
+            item = self.matrix.item(2, i)
+            item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
+
+        self.matrix.setSizeAdjustPolicy(
+            QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents
+        )
+        self.matrix.resizeColumnsToContents()
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Cancel
+            | QtWidgets.QDialogButtonBox.Ok
+            | QtWidgets.QDialogButtonBox.Save,
+        )
+        self.button_box.clicked.connect(self.buttonBoxClicked)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.matrix, 1, QtCore.Qt.AlignmentFlag.AlignHCenter)
+        layout.addWidget(self.button_box, 0)
+
+        self.setLayout(layout)
+
+    def buttonBoxClicked(self, button: QtWidgets.QAbstractButton) -> None:
+        sb = self.button_box.standardButton(button)
+
+        if sb == QtWidgets.QDialogButtonBox.StandardButton.Ok:
+            self.accept()
+        elif sb == QtWidgets.QDialogButtonBox.StandardButton.Save:
+            self.save()
+        else:
+            self.reject()
+
+    def currentCoefs(self) -> Generator[float, None, None]:
+        for i in range(3):
+            for j in range(3):
+                yield float(self.matrix.item(j, i).text())
+
+    def save(self) -> None:
+        file, ok = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Save Transform", self.default_path, filter="CSV files(*.csv)"
+        )
+        if ok:
+            coefs = list(self.currentCoefs())
+            with open(file, "w") as fp:
+                fp.write(
+                    "# pew2 transform [abcdef001]\n"
+                    f"{coefs[0]},{coefs[3]},{coefs[6]}\n"
+                    f"{coefs[1]},{coefs[4]},{coefs[7]}\n"
+                    f"{coefs[2]},{coefs[5]},{coefs[8]}"
+                )
+
+    def accept(self) -> None:
+        transform = QtGui.QTransform(*self.currentCoefs())
+        if transform != self.transform:  # todo: isclose?
+            # remove pos from translation
+            transform.translate(-self.pos.x(), -self.pos.y())
+            self.transformChanged.emit(transform)
+        super().accept()

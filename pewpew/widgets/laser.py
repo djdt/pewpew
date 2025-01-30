@@ -404,7 +404,7 @@ class LaserTabWidget(TabViewWidget):
         image = QtGui.QImage(path)
 
         item = ImageOverlayItem(
-            image, QtCore.QRectF(0, 0, image.width(), image.height())
+            image, QtCore.QRectF(0, 0, image.width(), image.height()), path=path
         )
         item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
         item.requestDialog.connect(self.openDialog)
@@ -556,6 +556,11 @@ class LaserTabWidget(TabViewWidget):
         if dialog == "Pixel Size":
             dlg = dialogs.PixelSizeDialog(item.pixelSize(), parent=self)
             dlg.sizeSelected.connect(item.setPixelSize)
+        elif dialog == "Transform":
+            dlg = dialogs.TransformDialog(
+                item.transform(), item.pos(), parent=self
+            )
+            dlg.transformChanged.connect(item.setTransform)
         elif not isinstance(item, LaserImageItem):
             raise ValueError(
                 f"Item {item} is not a LaserImageItem, dialog {dialog} invalid."

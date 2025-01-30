@@ -45,7 +45,7 @@ def test_laserlog_import_wizard(qtbot: QtBot):
     # Laser view page
     wiz.next()
     page = wiz.currentPage()
-    assert page.spinbox_delay.specialValueText() == "Automatic (0.0000)"
+    assert page.spinbox_delay.specialValueText() == "Auto"
 
     item_positions = [(1000.0, 1000.0), (1000.0, 1100.0), (1000.0, 1200.0)]
     for item, pos in zip(page.getLaserItems()[::-1], item_positions):

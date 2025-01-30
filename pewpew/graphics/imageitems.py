@@ -258,9 +258,12 @@ class ImageOverlayItem(ScaledImageItem):
         self,
         image: QtGui.QImage,
         rect: QtCore.QRectF,
+        path: Path | None = None,
         parent: QtWidgets.QGraphicsItem | None = None,
     ):
         super().__init__(image, rect, parent=parent)
+
+        self.path = path
 
         self.action_pixel_size = qAction(
             "zoom-pixels",
@@ -283,8 +286,15 @@ class ImageOverlayItem(ScaledImageItem):
         self.action_unlock = qAction(
             "folder-unlocked",
             "Unlock Image",
-            "unlocks the image, allowing interaction.",
+            "Unlocks the image, allowing interaction.",
             self.unlock,
+        )
+
+        self.action_export_transform = qAction(
+            "dialog-transform",
+            "Edit Transform",
+            "Edit or save the affine matrix coordinates of the image.",
+            lambda: self.requestDialog.emit("Transform", self, False),
         )
 
     def lock(self) -> None:
@@ -325,6 +335,7 @@ class ImageOverlayItem(ScaledImageItem):
             menu.addAction(self.action_unlock)
         else:
             menu.addAction(self.action_lock)
+        menu.addAction(self.action_export_transform)
         menu.addSeparator()
         menu.addAction(self.action_close)
 
