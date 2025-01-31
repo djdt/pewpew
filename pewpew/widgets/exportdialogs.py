@@ -449,7 +449,6 @@ class _ExportDialogBase(QtWidgets.QDialog):
         if not Path(self.lineedit_directory.text()).exists():
             return False
         # if self.options.indexForExt(Path(self.lineedit_filename.text()).suffix) == -1:
-        #     print("indexForExt")
         #     return False
         if not self.options.isComplete():
             return False

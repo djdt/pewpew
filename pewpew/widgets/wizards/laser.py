@@ -47,7 +47,6 @@ class LaserLogImportPage(QtWidgets.QWizardPage):
         self.registerField("laserlog", self, "log_prop")
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
-        print(event.mimeData())
         if event.mimeData().hasUrls():
             for url in event.mimeData().urls():
                 path = Path(url.toLocalFile())

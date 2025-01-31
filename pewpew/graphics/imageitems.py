@@ -489,7 +489,6 @@ class LaserImageItem(SnapImageItem):
             self.element(), calibrate=self.options.calibrate, flat=True
         )
         self.raw_data = np.ascontiguousarray(data)
-        print(data.dtype)
         if data.dtype == bool:
             self.vmin, self.vmax = 0, 1
         elif self.scene() is not None and self.options.global_color_range:
