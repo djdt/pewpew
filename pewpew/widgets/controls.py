@@ -62,6 +62,7 @@ class ControlBar(QtWidgets.QWidget):
 class LaserControlBar(ControlBar):
     alphaChanged = QtCore.Signal(float)
     elementChanged = QtCore.Signal(str, bool)
+    lockChanged = QtCore.Signal(bool)
 
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
@@ -81,6 +82,7 @@ class LaserControlBar(ControlBar):
         )
         self.element_lock.setCheckable(True)
         self.element_lock.setChecked(True)
+        self.element_lock.toggled.connect(self.lockChanged)
 
         self.layout().addWidget(QtWidgets.QLabel("Alpha:"), 0, QtCore.Qt.AlignRight)
         self.layout().addWidget(self.alpha, 0, QtCore.Qt.AlignRight)

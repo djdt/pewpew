@@ -55,8 +55,6 @@ class LaserTabView(TabView):
         self.options = GraphicsOptions()
         self.tabs.setAutoHide(True)
 
-        self.numLaserItemsChanged.connect(self.updateGlobalColorRange)
-
     def insertTab(self, index: int, text: str, widget: "LaserTabWidget") -> int:
         index = super().insertTab(index, text, widget)
         if isinstance(widget, LaserTabWidget):
@@ -179,17 +177,6 @@ class LaserTabView(TabView):
         for widget in self.widgets():
             if isinstance(widget, LaserTabWidget):
                 widget.laser_controls.elements.setCurrentText(element)
-
-    def updateGlobalColorRange(self) -> None:
-        ranges: dict[str, tuple[float, float]] = {}
-        for item in self.laserItems():
-            for name in item.laser.elements:
-                data = item.laser.get(name, calibrate=self.options.calibrate, flat=True)
-                vmin, vmax = ranges.get(name, (0.0, 0.0))
-                ranges[name] = (min(vmin, np.nanmin(data)), max(vmax, np.nanmax(data)))
-        self.options.color_ranges_global = ranges
-        for item in self.laserItems():
-            item.redraw()
 
 
 class LaserTabWidget(TabViewWidget):
@@ -331,6 +318,13 @@ class LaserTabWidget(TabViewWidget):
         self.controls.addWidget(self.laser_controls)
         self.controls.addWidget(self.rgb_laser_controls)
         self.controls.addWidget(self.image_controls)
+
+        self.laser_controls.lockChanged.connect(
+            self.graphics.options.setUseGlobalColorRange
+        )
+        self.laser_controls.lockChanged.connect(
+            self.refresh
+        )
 
         for index in range(self.controls.count()):
             self.controls.widget(index).toolbar.addActions([self.action_zoom_out])
