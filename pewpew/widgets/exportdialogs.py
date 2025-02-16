@@ -648,6 +648,7 @@ class ExportDialog(_ExportDialogBase):
                         label_alignment=option.labelAlignment(),
                         scalebar_alignment=option.scalebarAlignment(),
                         colorbar=option.useColorbar(),
+                        calibrate=self.isCalibrate(),
                         raw=option.isRaw(),
                         size=size,
                         scale=scale,

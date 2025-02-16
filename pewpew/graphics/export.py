@@ -140,6 +140,7 @@ def generate_laser_image(
     label_alignment: QtCore.Qt.AlignmentFlag | None = QtCore.Qt.AlignmentFlag.AlignTop
     | QtCore.Qt.AlignmentFlag.AlignLeft,
     colorbar: bool = True,
+    calibrate: bool = True,
     raw: bool = False,
     size: QtCore.QSize | None = None,
     scale: float = 1.0,
@@ -174,7 +175,7 @@ def generate_laser_image(
     if colorbar:  # make room for colorbar
         colorbar_height = xh + xh / 2.0 + fm.height()
         unit = laser.calibration[element].unit
-        if unit is not None and len(unit) > 0:
+        if calibrate and unit is not None and len(unit) > 0:
             colorbar_height += fm.height()
         output_size = output_size.grownBy(QtCore.QMargins(0, 0, 0, colorbar_height))
 
