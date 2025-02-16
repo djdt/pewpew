@@ -146,7 +146,7 @@ def generate_laser_image(
     scale: float = 1.0,
     dpi: int = 96,
 ) -> QtGui.QImage:
-    data = laser.get(element, calibrate=options.calibrate, flat=True)
+    data = laser.get(element, calibrate=calibrate, flat=True)
     data = np.ascontiguousarray(data)
 
     vmin, vmax = options.get_color_range_as_float(element, data)
