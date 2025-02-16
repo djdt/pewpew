@@ -100,6 +100,9 @@ class GraphicsOptions(QtCore.QObject):
         """
         vmin, vmax = self.color_ranges.get(name, self.color_range_default)
 
+        if data.dtype == np.bool:
+            return 0.0, 1.0
+
         if isinstance(vmin, str):
             vmin = np.nanpercentile(data, float(vmin.rstrip("%")))
         if isinstance(vmax, str):
