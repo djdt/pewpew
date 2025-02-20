@@ -86,7 +86,7 @@ class LaserTabView(TabView):
             assert isinstance(data[1], QtCore.QPointF)
             widget.addLaser(data[0], pos=data[1])
         else:
-            widget.addImage(data)
+            widget.addImage(data, path)
 
         self.fileImported.emit(path)
         return widget
@@ -405,10 +405,9 @@ class LaserTabWidget(TabViewWidget):
 
         self.numLaserItemsChanged.emit()
 
-    def addImage(self, path: str | Path) -> "ImageOverlayItem":
+    def addImage(self, image: QtGui.QImage, path: str | Path) -> "ImageOverlayItem":
         if isinstance(path, Path):
             path = str(path.absolute())
-        image = QtGui.QImage(path)
 
         item = ImageOverlayItem(
             image, QtCore.QRectF(0, 0, image.width(), image.height()), path=Path(path)
