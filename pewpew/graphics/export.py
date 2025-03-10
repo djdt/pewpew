@@ -163,7 +163,9 @@ def generate_laser_image(
         return image
 
     if size is None:
-        size = image.size() * 2
+        output_size = image.size() * scale
+    else:
+        output_size = size
 
     font = QtGui.QFont(options.font)
     font_scale = dpi / QtGui.QFontMetrics(options.font).fontDpi()
@@ -221,8 +223,8 @@ def generate_laser_image(
     # Draw the scale-bar
     if scalebar_alignment is not None:
         x0, x1, y0, y1 = laser.extent
-        scale = (x1 - x0) / pixmap.width()
-        paint_scalebar(painter, xh * 10.0, text_bounds, scalebar_alignment, scale)
+        bar_scale = (x1 - x0) / pixmap.width()
+        paint_scalebar(painter, xh * 10.0, text_bounds, scalebar_alignment, bar_scale)
 
     painter.end()
     return pixmap.toImage()
@@ -275,8 +277,9 @@ def generate_rgb_laser_image(
         return image
 
     if size is None:
-        size = image.size() * 2
-    output_size = size
+        output_size = image.size() * scale
+    else:
+        output_size = size
 
     font = QtGui.QFont(options.font)
     font_scale = dpi / QtGui.QFontMetrics(options.font).fontDpi()
@@ -322,8 +325,8 @@ def generate_rgb_laser_image(
     # Draw the scale-bar
     if scalebar_alignment is not None:
         x0, x1, y0, y1 = laser.extent
-        scale = (x1 - x0) / image.rect().width() / scale
-        paint_scalebar(painter, xh * 10.0, text_bounds, scalebar_alignment, scale)
+        bar_scale = (x1 - x0) / pixmap.width()
+        paint_scalebar(painter, xh * 10.0, text_bounds, scalebar_alignment, bar_scale)
 
     # Draw the color Venn
     if venn_alignment is not None:
