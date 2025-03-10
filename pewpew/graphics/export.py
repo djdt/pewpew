@@ -163,9 +163,9 @@ def generate_laser_image(
         return image
 
     if size is None:
-        output_size = image.size() * scale
-    else:
-        output_size = size
+        size = image.size() * scale
+
+    output_size = size
 
     font = QtGui.QFont(options.font)
     font_scale = dpi / QtGui.QFontMetrics(options.font).fontDpi()
@@ -173,7 +173,6 @@ def generate_laser_image(
     fm = QtGui.QFontMetrics(font)
     xh = fm.xHeight()
 
-    output_size = size
     if colorbar:  # make room for colorbar
         colorbar_height = xh + xh / 2.0 + fm.height()
         unit = laser.calibration[element].unit
@@ -277,9 +276,8 @@ def generate_rgb_laser_image(
         return image
 
     if size is None:
-        output_size = image.size() * scale
-    else:
-        output_size = size
+        size = image.size() * scale
+    output_size = size
 
     font = QtGui.QFont(options.font)
     font_scale = dpi / QtGui.QFontMetrics(options.font).fontDpi()
