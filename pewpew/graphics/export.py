@@ -151,6 +151,7 @@ def generate_laser_image(
 
     vmin, vmax = options.get_color_range_as_float(element, data)
     table = colortable.get_table(options.colortable)
+    table[0] = options.nan_color.rgba()
 
     data = np.clip(data, vmin, vmax)
     if vmin != vmax:  # Avoid div 0
