@@ -1027,7 +1027,7 @@ class RGBLaserImageItem(LaserImageItem):
                 [
                     self.laser.get(
                         element.element, calibrate=self.options.calibrate, flat=True
-                    )
+                    ).astype(float)
                     for element in self.current_elements[:3]
                 ],
                 axis=2,
