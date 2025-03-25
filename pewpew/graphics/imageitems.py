@@ -501,7 +501,11 @@ class LaserImageItem(SnapImageItem):
         if self.vmin != self.vmax:  # Avoid div 0
             data = (data - self.vmin) / (self.vmax - self.vmin)
 
-        unit = self.laser.calibration[self.element()].unit
+        unit = (
+            self.laser.calibration[self.element()].unit
+            if self.options.calibrate
+            else ""
+        )
         table = colortable.get_table(self.options.colortable)
         table[0] = self.options.nan_color.rgba()
 
