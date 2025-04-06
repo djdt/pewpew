@@ -473,14 +473,14 @@ class LaserImageItem(SnapImageItem):
         return self.raw_data
 
     def sceneColorRange(self, element: str) -> tuple[float, float]:
-        scene_vmin, scene_vmax = 0.0, 0.0
+        scene_vmin, scene_vmax = np.inf, 0.0
         for item in self.scene().items():
             if isinstance(item, LaserImageItem) and element in item.laser.elements:
                 data = item.laser.get(
                     element, calibrate=self.options.calibrate, flat=True
                 )
                 vmin, vmax = self.options.get_color_range_as_float(element, data)
-                scene_vmin = min(scene_vmin, vmin)
+                scene_vmin = np.amin((scene_vmin, vmin))
                 scene_vmax = max(scene_vmax, vmax)
         return scene_vmin, scene_vmax
 
