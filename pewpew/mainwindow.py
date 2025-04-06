@@ -233,7 +233,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "Toggle calibration.",
             lambda checked: [
                 setattr(self.tabview.options, "calibrate", checked),
-                self.tabview.refresh,
+                self.tabview.refresh(),
             ],
         )
         self.action_toggle_calibrate.setShortcut("Ctrl+L")

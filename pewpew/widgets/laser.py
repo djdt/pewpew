@@ -55,6 +55,8 @@ class LaserTabView(TabView):
         self.options = GraphicsOptions()
         self.tabs.setAutoHide(True)
 
+        self.options.imageOptionsChanged.connect(self.refresh)
+
     def insertTab(self, index: int, text: str, widget: "LaserTabWidget") -> int:
         index = super().insertTab(index, text, widget)
         if isinstance(widget, LaserTabWidget):
@@ -86,7 +88,7 @@ class LaserTabView(TabView):
             assert isinstance(data[1], QtCore.QPointF)
             widget.addLaser(data[0], pos=data[1])
         else:
-            widget.addImage(data)
+            widget.addImage(data, path)
 
         self.fileImported.emit(path)
         return widget
@@ -319,6 +321,13 @@ class LaserTabWidget(TabViewWidget):
         self.controls.addWidget(self.rgb_laser_controls)
         self.controls.addWidget(self.image_controls)
 
+        self.laser_controls.lockChanged.connect(
+            self.graphics.options.setUseGlobalColorRange
+        )
+        self.laser_controls.lockChanged.connect(
+            self.refresh
+        )
+
         for index in range(self.controls.count()):
             self.controls.widget(index).toolbar.addActions([self.action_zoom_out])
             self.controls.widget(index).toolbar.addSeparator()
@@ -398,13 +407,12 @@ class LaserTabWidget(TabViewWidget):
 
         self.numLaserItemsChanged.emit()
 
-    def addImage(self, path: str | Path) -> "ImageOverlayItem":
+    def addImage(self, image: QtGui.QImage, path: str | Path) -> "ImageOverlayItem":
         if isinstance(path, Path):
             path = str(path.absolute())
-        image = QtGui.QImage(path)
 
         item = ImageOverlayItem(
-            image, QtCore.QRectF(0, 0, image.width(), image.height()), path=path
+            image, QtCore.QRectF(0, 0, image.width(), image.height()), path=Path(path)
         )
         item.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
         item.requestDialog.connect(self.openDialog)
@@ -557,9 +565,7 @@ class LaserTabWidget(TabViewWidget):
             dlg = dialogs.PixelSizeDialog(item.pixelSize(), parent=self)
             dlg.sizeSelected.connect(item.setPixelSize)
         elif dialog == "Transform":
-            dlg = dialogs.TransformDialog(
-                item.transform(), item.pos(), parent=self
-            )
+            dlg = dialogs.TransformDialog(item.transform(), item.pos(), parent=self)
             dlg.transformChanged.connect(item.setTransform)
         elif not isinstance(item, LaserImageItem):
             raise ValueError(

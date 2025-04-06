@@ -449,7 +449,6 @@ class _ExportDialogBase(QtWidgets.QDialog):
         if not Path(self.lineedit_directory.text()).exists():
             return False
         # if self.options.indexForExt(Path(self.lineedit_filename.text()).suffix) == -1:
-        #     print("indexForExt")
         #     return False
         if not self.options.isComplete():
             return False
@@ -618,7 +617,6 @@ class ExportDialog(_ExportDialogBase):
         elif option.ext == ".png":
             assert graphics_options is not None
             if isinstance(option, RBGOptionsBox):
-                size = option.imageSize()
                 scale = option.scale()
                 if any(x in laser.elements for x in option.elements()):
                     image = generate_rgb_laser_image(
@@ -631,7 +629,6 @@ class ExportDialog(_ExportDialogBase):
                         scalebar_alignment=option.scalebarAlignment(),
                         venn_alignment=option.vennAlignment(),
                         raw=option.isRaw(),
-                        size=size,
                         scale=scale,
                         dpi=option.dpi(),
                     )
@@ -639,7 +636,6 @@ class ExportDialog(_ExportDialogBase):
                     image.setDotsPerMeterY(option.dpi() * 39.37007874)
                     image.save(str(path.absolute()))
             else:
-                size = option.imageSize()
                 scale = option.scale()
                 if element is not None and element in laser.elements:
                     image = generate_laser_image(
@@ -649,8 +645,8 @@ class ExportDialog(_ExportDialogBase):
                         label_alignment=option.labelAlignment(),
                         scalebar_alignment=option.scalebarAlignment(),
                         colorbar=option.useColorbar(),
+                        calibrate=self.isCalibrate(),
                         raw=option.isRaw(),
-                        size=size,
                         scale=scale,
                         dpi=option.dpi(),
                     )

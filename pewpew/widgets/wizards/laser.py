@@ -47,7 +47,6 @@ class LaserLogImportPage(QtWidgets.QWizardPage):
         self.registerField("laserlog", self, "log_prop")
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
-        print(event.mimeData())
         if event.mimeData().hasUrls():
             for url in event.mimeData().urls():
                 path = Path(url.toLocalFile())
@@ -265,7 +264,6 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
 
         self.graphics = LaserGraphicsView(options, parent=self)
         self.graphics.setMinimumSize(QtCore.QSize(640, 480))
-        self.graphics.show()
 
         self.spinbox_delay = QtWidgets.QDoubleSpinBox()
         self.spinbox_delay.setMinimum(-1.0)
@@ -296,12 +294,12 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
         controls_box = QtWidgets.QGroupBox("Import Options")
         controls_box.setLayout(QtWidgets.QFormLayout())
         controls_box.layout().addRow("Delay", self.spinbox_delay)
-        controls_box.layout().addRow("Timing correction", self.spinbox_correction)
+        controls_box.layout().addRow("Drift", self.spinbox_correction)
         controls_box.layout().addRow(self.checkbox_collapse)
 
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.graphics, 1)
+        layout = QtWidgets.QHBoxLayout()
         layout.addWidget(controls_box, 0)
+        layout.addWidget(self.graphics, 1)
         self.setLayout(layout)
 
         self.registerField("laseritems", self, "laser_item_prop")

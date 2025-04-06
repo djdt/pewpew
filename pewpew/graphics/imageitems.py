@@ -472,19 +472,40 @@ class LaserImageItem(SnapImageItem):
     def rawData(self) -> np.ndarray:
         return self.raw_data
 
+    def sceneColorRange(self, element: str) -> tuple[float, float]:
+        scene_vmin, scene_vmax = np.inf, 0.0
+        for item in self.scene().items():
+            if isinstance(item, LaserImageItem) and element in item.laser.elements:
+                data = item.laser.get(
+                    element, calibrate=self.options.calibrate, flat=True
+                )
+                vmin, vmax = self.options.get_color_range_as_float(element, data)
+                scene_vmin = np.amin((scene_vmin, vmin))
+                scene_vmax = max(scene_vmax, vmax)
+        return scene_vmin, scene_vmax
+
     def redraw(self) -> None:
         data = self.laser.get(
             self.element(), calibrate=self.options.calibrate, flat=True
         )
         self.raw_data = np.ascontiguousarray(data)
-        self.vmin, self.vmax = self.options.get_color_range_as_float(
-            self.element(), self.raw_data
-        )
+        if data.dtype == bool:
+            self.vmin, self.vmax = 0, 1
+        elif self.scene() is not None and self.options.global_color_range:
+            self.vmin, self.vmax = self.sceneColorRange(self.element())
+        else:
+            self.vmin, self.vmax = self.options.get_color_range_as_float(
+                self.element(), self.raw_data
+            )
         data = np.clip(self.raw_data, self.vmin, self.vmax)
         if self.vmin != self.vmax:  # Avoid div 0
             data = (data - self.vmin) / (self.vmax - self.vmin)
 
-        unit = self.laser.calibration[self.element()].unit
+        unit = (
+            self.laser.calibration[self.element()].unit
+            if self.options.calibrate
+            else ""
+        )
         table = colortable.get_table(self.options.colortable)
         table[0] = self.options.nan_color.rgba()
 
@@ -1010,7 +1031,7 @@ class RGBLaserImageItem(LaserImageItem):
                 [
                     self.laser.get(
                         element.element, calibrate=self.options.calibrate, flat=True
-                    )
+                    ).astype(float)
                     for element in self.current_elements[:3]
                 ],
                 axis=2,

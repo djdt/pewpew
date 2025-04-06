@@ -51,7 +51,7 @@ def test_standards_tool(qtbot: QtBot):
     assert tool.combo_weighting.currentIndex() == 0
     assert tool.lineedit_units.text() == ""
     tool.lineedit_units.setText("none")
-    assert tool.calibration["B2"].gradient == 1.75
+    assert np.isclose(tool.calibration["B2"].gradient, 1.75)
 
     # Check weighting updates results
     tool.combo_weighting.setCurrentText("y")
