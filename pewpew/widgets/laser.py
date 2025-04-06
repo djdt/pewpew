@@ -55,6 +55,8 @@ class LaserTabView(TabView):
         self.options = GraphicsOptions()
         self.tabs.setAutoHide(True)
 
+        self.options.imageOptionsChanged.connect(self.refresh)
+
     def insertTab(self, index: int, text: str, widget: "LaserTabWidget") -> int:
         index = super().insertTab(index, text, widget)
         if isinstance(widget, LaserTabWidget):
