@@ -56,6 +56,21 @@ def test_laser_tab_view(qtbot: QtBot):
     view.setElement("D4")
     assert view.activeWidget().laser_controls.elements.currentText() == "A1"
     assert view.stack.widget(1).laser_controls.elements.currentText() == "D4"
+
+    # Test global color config
+    for item in view.activeWidget().laserItems():
+        item.element == "A1"
+
+    view.activeWidget().laser_controls.elements.setCurrentText("B2")
+    for item in view.activeWidget().laserItems():
+        item.element == "B2"
+
+    view.activeWidget().laser_controls.element_lock.toggle()
+    view.activeWidget().laser_controls.elements.setCurrentText("A1")
+
+    for item, element in zip(view.activeWidget().laserItems(), ["A1", "B2"]):
+        item.element == element
+
     # Close all
     for widget in view.widgets():
         widget.close()
@@ -123,20 +138,6 @@ def test_laser_tab_widget(qtbot: QtBot):
         view.dropEvent(drop_event)
     assert drop_event.isAccepted()
     assert len(widget.laserItems()) == 2
-
-
-# def test_laser_widget_combo(qtbot: QtBot):
-#     box = LaserComboBox()
-#     qtbot.addWidget(box)
-
-#     box.addItems("abcde")
-
-#     dlg = box.actionNameEditDialog()
-#     dlg.close()
-
-#     box.contextMenuEvent(
-#         QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Mouse, QtCore.QPoint(0, 0))
-#     )
 
 
 def test_laser_widget_cursor(qtbot: QtBot):
