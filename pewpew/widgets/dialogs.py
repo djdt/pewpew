@@ -1698,7 +1698,6 @@ class TransformDialog(QtWidgets.QDialog):
         self.setWindowTitle("Transform")
 
         # combine pos and translation
-        transform.translate(pos.x(), pos.y())
         self.transform = transform
         self.pos = pos
         self.default_path = default_path
@@ -1763,13 +1762,13 @@ class TransformDialog(QtWidgets.QDialog):
                     "# pew2 transform [abcdef001]\n"
                     f"{coefs[0]},{coefs[3]},{coefs[6]}\n"
                     f"{coefs[1]},{coefs[4]},{coefs[7]}\n"
-                    f"{coefs[2]},{coefs[5]},{coefs[8]}"
+                    f"{coefs[2]},{coefs[5]},{coefs[8]}\n"
+                    "# pew2 pos [xy]\n"
+                    f"{self.pos.x()},{self.pos.y()}"
                 )
 
     def accept(self) -> None:
         transform = QtGui.QTransform(*self.currentCoefs())
         if transform != self.transform:  # todo: isclose?
-            # remove pos from translation
-            transform.translate(-self.pos.x(), -self.pos.y())
             self.transformChanged.emit(transform)
         super().accept()
