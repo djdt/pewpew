@@ -975,11 +975,11 @@ class PixelSizeDialog(ApplyDialog):
         self.setWindowTitle("Set Pixel Size")
 
         self.xsize = QtWidgets.QLineEdit(str(size.width()))
-        self.xsize.setValidator(DecimalValidator(0.001, 999.999, 3))
+        self.xsize.setValidator(DecimalValidator(0.001, 999.999, 6))
         self.xsize.textEdited.connect(self.updateYSize)
 
         self.ysize = QtWidgets.QLineEdit(str(size.height()))
-        self.ysize.setValidator(DecimalValidator(0.001, 999.999, 3))
+        self.ysize.setValidator(DecimalValidator(0.001, 999.999, 6))
         self.ysize.setEnabled(False)
 
         self.action_link = qAction(
