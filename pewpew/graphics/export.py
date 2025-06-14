@@ -158,6 +158,7 @@ def generate_laser_image(
         data = (data - vmin) / (vmax - vmin)
 
     image = array_to_image(data)
+    image.setDevicePixelRatio
     image.setColorTable(table)
     image.setColorCount(len(table))
     if raw:
@@ -165,8 +166,14 @@ def generate_laser_image(
 
     if size is None:
         size = image.size() * scale
-
     output_size = size
+
+    aspect = laser.config.get_pixel_width() / laser.config.get_pixel_height()
+
+    if aspect > 1.0:
+        output_size.setWidth(int(output_size.width() * aspect))
+    elif aspect < 1.0:
+        output_size.setHeight(int(output_size.height() / aspect))
 
     font = QtGui.QFont(options.font)
     font_scale = dpi / QtGui.QFontMetrics(options.font).fontDpi()
