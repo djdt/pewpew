@@ -92,6 +92,7 @@ class LaserGraphicsView(OverlayGraphicsView):
         items = self.selectedLaserItems()
         if len(items) == 0:
             items = self.laserItems()
+        items = sorted(items, key=lambda item: item.pos().x())
 
         base = items[0]
         pos = base.pos() + QtCore.QPointF(base.boundingRect().width(), 0.0)
@@ -103,6 +104,7 @@ class LaserGraphicsView(OverlayGraphicsView):
         items = self.selectedLaserItems()
         if len(items) == 0:
             items = self.laserItems()
+        items = sorted(items, key=lambda item: item.pos().y())
 
         base = items[0]
         pos = base.pos() + QtCore.QPointF(0.0, base.boundingRect().height())
