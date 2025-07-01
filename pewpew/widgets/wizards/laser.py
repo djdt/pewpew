@@ -1,3 +1,4 @@
+import datetime
 import logging
 from pathlib import Path
 
@@ -157,7 +158,7 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
             item.setText(1, comment)
             item.setText(2, str(num))
             item.setFlags(
-                QtCore.Qt.ItemIsEnabled
+                QtCore.Qt.ItemFlag.ItemIsEnabled
                 | QtCore.Qt.ItemFlag.ItemIsDropEnabled
                 | QtCore.Qt.ItemFlag.ItemIsUserCheckable
             )
@@ -165,6 +166,23 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
 
         datas = self.field("laserdata")
         infos = self.field("laserinfo")
+
+        valid_date_fields = ["Acquisition Date"]  # only Agilent so far
+        for field in valid_date_fields:
+            if all(field in info for info in infos):
+                info_times = np.array(
+                    [
+                        datetime.datetime.fromisoformat(info[field]).replace(
+                            tzinfo=None  # drop timezone, no such thing in laser
+                        )
+                        for info in infos
+                    ],
+                    dtype=np.datetime64,
+                )
+                order = np.argsort(info_times)
+                datas = [datas[i] for i in order]
+                infos = [infos[i] for i in order]
+
         tree_idx = 0
         for data_idx, (info, data) in enumerate(zip(infos, datas)):
             for row in range(data.shape[0] if self.checkbox_split.isChecked() else 1):
@@ -177,13 +195,13 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
                 child.setText(1, info["Name"])
                 child.setData(1, QtCore.Qt.ItemDataRole.UserRole, data_idx)
                 if self.checkbox_split.isChecked():
-                    child.setText(2, f"row {row+1}")
+                    child.setText(2, f"row {row + 1}")
                     child.setData(2, QtCore.Qt.ItemDataRole.UserRole, row)
                 else:
                     child.setData(2, QtCore.Qt.ItemDataRole.UserRole, -1)
                 child.setFlags(
-                    QtCore.Qt.ItemIsSelectable
-                    | QtCore.Qt.ItemIsEnabled
+                    QtCore.Qt.ItemFlag.ItemIsSelectable
+                    | QtCore.Qt.ItemFlag.ItemIsEnabled
                     | QtCore.Qt.ItemFlag.ItemIsDragEnabled
                 )
                 item.addChild(child)
@@ -193,7 +211,9 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         item.setData(0, QtCore.Qt.ItemDataRole.UserRole, -1)
         item.setText(0, "None")
         item.setCheckState(0, QtCore.Qt.CheckState.Unchecked)
-        item.setFlags(QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsDropEnabled)
+        item.setFlags(
+            QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsDropEnabled
+        )
         self.group_tree.addTopLevelItem(item)
 
         self.group_tree.expandAll()
@@ -275,7 +295,8 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
         self.spinbox_delay.setMinimumWidth(
             QtGui.QFontMetrics(self.spinbox_delay.font())
             .boundingRect("Automatic (00.00)")
-            .width() + self.spinbox_delay.baseSize().width()
+            .width()
+            + self.spinbox_delay.baseSize().width()
         )
         self.spinbox_delay.valueChanged.connect(self.initializePage)
 
