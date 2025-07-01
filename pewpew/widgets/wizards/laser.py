@@ -182,7 +182,6 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         valid_date_fields = ["Acquisition Date"]  # only Agilent so far
         for field in valid_date_fields:
             if all(field in info for info in infos):
-                print("true")
                 info_times = np.array(
                     [
                         datetime.datetime.fromisoformat(info[field]).replace(
