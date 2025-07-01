@@ -149,18 +149,6 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
             for i in sequences
         ]
 
-        # seq_times = np.array(
-        #     [
-        #         np.amin(
-        #             log_data["time"][
-        #                 (log_data["sequence"] == i) & (log_data["state"] == "On")
-        #             ]
-        #         )
-        #         for i in sequences
-        #     ],
-        #     dtype=np.datetime64,
-        # )
-
         self.group_tree.clear()
         for row, (seq, comment, num) in enumerate(zip(sequences, comments, num_lines)):
             item = QtWidgets.QTreeWidgetItem()
