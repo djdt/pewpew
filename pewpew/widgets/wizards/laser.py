@@ -230,7 +230,16 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         log = log[np.stack((start_idx, start_idx + 1), axis=1).flat]
         params = self.field("laserparam")
 
+        text_color = self.palette().color(
+            QtGui.QPalette.ColorGroup.Normal, QtGui.QPalette.ColorRole.Text
+        )
+        for i in range(self.group_tree.topLevelItemCount()):
+            item = self.group_tree.topLevelItem(i)
+            if item is not None:
+                item.setForeground(1, QtGui.QBrush(text_color))
+
         # Find the maximum time recorded in data
+        invalid_items = {}
         for seq, idx in groups.items():
             log_max_time = np.ptp(
                 log[np.isin(log["sequence"], seq)]["time"].astype(float) / 1000.0
@@ -242,12 +251,32 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
             seq_max_time = np.amax(seq_times)
 
             # Check if this time is less than requested by the log
-            if log_max_time > seq_max_time:
-                # Set item color to red
-                for i in range(self.group_tree.topLevelItemCount()):
-                    item = self.group_tree.topLevelItem(i)
-                    if item.data(0, QtCore.Qt.ItemDataRole.UserRole) == seq:
-                        item.setForeground(1, QtGui.QBrush(QtCore.Qt.GlobalColor.red))
+            items = self.group_tree.findItems(
+                str(seq), QtCore.Qt.MatchFlag.MatchExactly, 0
+            )
+            for item in items:
+                if log_max_time > seq_max_time:
+                    item.setForeground(1, QtGui.QBrush(QtCore.Qt.GlobalColor.red))
+                    invalid_items[item.data(1, QtCore.Qt.ItemDataRole.DisplayRole)] = (
+                        seq_max_time,
+                        log_max_time,
+                    )
+                else:
+                    item.setForeground(1, QtGui.QBrush(text_color))
+
+        if len(invalid_items) > 0:
+            text = "\n".join(
+                f"{k}: {v[0]:.2f} s > {v[1]:.2f} s" for k, v in invalid_items.items()
+            )
+            response = QtWidgets.QMessageBox.warning(
+                self,
+                "Invalid Laser Data Match",
+                "Some laser patterns have longer acquistion times than their assigned ICP data files.\n"
+                + text,
+                buttons=QtWidgets.QMessageBox.StandardButton.Ok
+                | QtWidgets.QMessageBox.StandardButton.Cancel,
+            )
+            if response == QtWidgets.QMessageBox.StandardButton.Cancel:
                 return False
         return True
 
