@@ -9,7 +9,7 @@ dependencies = [
     "numpy>=1.22",
     "pewlib>=0.10.1",
     "pyqtgraph",
-    "PySide6",
+    "PySide6!=6.9.1",
 ]
 description = "GUI for visualisation and manipulation of LA-ICP-MS data."
 readme = "README.md"
