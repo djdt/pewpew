@@ -353,7 +353,7 @@ class CalibrationDialog(ApplyDialog):
     def updatePlotEnabled(self) -> None:
         points = self.calibrations[self.combo_element.currentText()].points
         no_nans = ~np.isnan(points).any(axis=1)
-        self.button_plot.setEnabled(np.count_nonzero(no_nans) >= 2)
+        self.button_plot.setEnabled(bool(np.count_nonzero(no_nans) >= 2))
 
     def showCurve(self) -> None:
         """Plot the current calibration in a new dialog."""
