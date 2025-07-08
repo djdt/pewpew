@@ -129,6 +129,9 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         )
         self.group_tree.model().dataChanged.connect(self.groupsChanged)
 
+        root = self.group_tree.invisibleRootItem()
+        root.setFlags(root.flags() ^ QtCore.Qt.ItemFlag.ItemIsDropEnabled)
+
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.group_tree)
         layout.addWidget(self.checkbox_split)
