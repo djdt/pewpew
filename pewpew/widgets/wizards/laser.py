@@ -170,6 +170,8 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         datas = self.field("laserdata")
         infos = self.field("laserinfo")
 
+        order = np.arange(len(datas))
+
         valid_date_fields = ["Acquisition Date"]  # only Agilent so far
         for field in valid_date_fields:
             if all(field in info for info in infos):
@@ -183,11 +185,11 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
                     dtype=np.datetime64,
                 )
                 order = np.argsort(info_times)
-                datas = [datas[i] for i in order]
-                infos = [infos[i] for i in order]
 
         tree_idx = 0
-        for data_idx, (info, data) in enumerate(zip(infos, datas)):
+        for idx in order:
+            info = infos[idx]
+            data = datas[idx]
             for row in range(data.shape[0] if self.checkbox_split.isChecked() else 1):
                 item = self.group_tree.topLevelItem(
                     tree_idx % self.group_tree.topLevelItemCount()
@@ -196,7 +198,7 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
                 child.setText(0, "---")
                 child.setIcon(1, QtGui.QIcon.fromTheme("handle-sort"))
                 child.setText(1, info["Name"])
-                child.setData(1, QtCore.Qt.ItemDataRole.UserRole, data_idx)
+                child.setData(1, QtCore.Qt.ItemDataRole.UserRole, idx)
                 if self.checkbox_split.isChecked():
                     child.setText(2, f"row {row + 1}")
                     child.setData(2, QtCore.Qt.ItemDataRole.UserRole, row)
