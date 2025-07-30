@@ -1,7 +1,7 @@
-import numpy as np
 import logging
-
 from typing import Callable
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -170,64 +170,5 @@ def kmedians(
     return kcluster(x, np.median, k, init, max_iterations)
 
 
-def kmeans1d(
-    x: np.ndarray, k: int, method: str = "ckmeans1d", method_kws: dict | None = None
-) -> np.ndarray:
-    """1-dim k-means clustering.
-    Uses Ckmeans.1d.dp through ``ckwrap`` if it is installed and `method` is
-    'ckmeans1d'.
-
-    Args:
-        x: flattened to 1d
-        k: number of clusters
-        method: if 'ckmeans1d' ckwrap is used, otherwise 'kmeans' in 1d
-        method_kws: passed through to the implementaion used
-
-    Returns:
-        array of labels mapping clusters to objects
-
-    See Also:
-        :func:`pewpew.lib.kmeans.kmeans`
-    """
-    kwargs = {
-        "init": "kmeans++",
-        "max_iterations": 1000,
-        "weights": None,
-        "method": "linear",
-    }
-    if method_kws is not None:
-        kwargs.update(method_kws)
-
-    if method == "ckmeans1d":  # pragma: no cover
-        try:
-            from ckwrap import ckmeans
-
-            idx = ckmeans(
-                x.ravel(),
-                (k, k),
-                weights=kwargs["weights"],
-                method=kwargs["method"],
-            ).labels
-        except ImportError:
-            logger.warning("Unable to use ckmeans1d as ckwrap package not found.")
-            return kmeans1d(x, k, method="kmeans", method_kws=method_kws)
-    elif method == "kmeans":
-        idx = kmeans(
-            x.ravel(),
-            k,
-            init=kwargs["init"],  # type: ignore
-            max_iterations=kwargs["max_iterations"],  # type: ignore
-        ).labels
-    else:  # pragma: no cover
-        raise ValueError(f"Unknown method {method}.")
-    return np.reshape(idx, x.shape)
-
-
-def thresholds(x: np.ndarray, k: int) -> np.ndarray:
-    """Produces thresholds from minimum cluster values.
-
-    Uses k-means clustering to group array into k clusters and produces k - 1
-    thresholds using the minimum value of each cluster.
-    """
-    idx = kmeans1d(x, k)
-    return np.array([np.amin(x[idx == i]) for i in range(1, k)])
+def thresholds(x: np.ndarray, idx: np.ndarray) -> np.ndarray:
+    return np.sort([x[idx == i].min() for i in np.unique(idx)])

@@ -5,6 +5,7 @@ from io import BytesIO
 from typing import Callable, Generator
 
 import numpy as np
+from ckwrap import ckmeans, ckmedians
 from pewlib import Calibration, Config, Laser
 from pewlib.config import SpotConfig
 from pewlib.process import colocal
@@ -18,7 +19,6 @@ from pewpew.charts.calibration import CalibrationView
 from pewpew.charts.colocal import ColocalisationView
 from pewpew.charts.histogram import HistogramView
 from pewpew.graphics.imageitems import LaserImageItem
-from pewpew.lib import kmeans
 from pewpew.lib.pratt import Reducer
 from pewpew.models import CalibrationPointsTableModel
 from pewpew.validators import (
@@ -1391,11 +1391,12 @@ class SelectionDialog(ApplyDialog):
     maskSelected = QtCore.Signal(np.ndarray, "QStringList")
 
     METHODS = {
-        "Manual": (None, None),
-        "Mean": (np.mean, None),
-        "Median": (np.median, None),
-        "Otsu": (otsu, None),
-        "K-means": (kmeans.thresholds, ("k: ", 3, (2, 9))),
+        "Manual": None,
+        "Mean": np.mean,
+        "Median": np.median,
+        "Otsu": otsu,
+        "K-means": lambda x, k: ckmeans(x.ravel(), (k, k)).labels,
+        "K-medians": lambda x, k: ckmedians(x.ravel(), (k, k)).labels,
     }
     COMPARISION = {">": np.greater, "<": np.less, "=": np.equal}
 
@@ -1421,7 +1422,7 @@ class SelectionDialog(ApplyDialog):
 
         self.spinbox_comparison = QtWidgets.QSpinBox()
         self.spinbox_comparison.setEnabled(False)
-        self.spinbox_comparison.setPrefix("t: ")
+        self.spinbox_comparison.setPrefix("k=")
         self.spinbox_comparison.valueChanged.connect(self.refresh)
 
         self.lineedit_manual = QtWidgets.QLineEdit("0.0")
@@ -1462,10 +1463,9 @@ class SelectionDialog(ApplyDialog):
         if self.check_limit_threshold.isChecked() and self.item.mask_image is not None:
             data = data[self.item.mask]
 
-        # Remove nans
-        data = data[~np.isnan(data)]
-
-        op, var = SelectionDialog.METHODS[method]
+        # Nans
+        nans = np.isnan(data)
+        op = SelectionDialog.METHODS[method]
 
         # Compute new threshold
         if method == "Manual":
@@ -1473,26 +1473,28 @@ class SelectionDialog(ApplyDialog):
             self.spinbox_method.setEnabled(False)
             self.spinbox_comparison.setEnabled(False)
             self.threshold = float(self.lineedit_manual.text() or np.inf)
+        elif method in ["K-means", "K-medians"]:
+            self.lineedit_manual.setEnabled(False)
+            self.spinbox_method.setRange(2, 9)
+            if not self.spinbox_method.isEnabled():  # First show
+                self.spinbox_method.setValue(3)
+                self.spinbox_method.setEnabled(True)
+
+            self.spinbox_method.setPrefix("k: ")
+            self.spinbox_comparison.setEnabled(True)
+            self.spinbox_comparison.setRange(1, self.spinbox_method.value() - 1)
+
+            labels = op(data[~nans], self.spinbox_method.value())
+            self.threshold = np.amin(
+                data[~nans][labels == self.spinbox_comparison.value()]
+            )
+            self.lineedit_manual.setText(f"{self.threshold:.4g}")
         else:
             self.lineedit_manual.setEnabled(False)
-            if var is not None:
-                self.spinbox_method.setRange(*var[2])
-                if not self.spinbox_method.isEnabled():  # First show
-                    self.spinbox_method.setValue(var[1])
-                    self.spinbox_method.setEnabled(True)
+            self.spinbox_method.setEnabled(False)
+            self.spinbox_comparison.setEnabled(False)
 
-                self.spinbox_method.setPrefix(var[0])
-                self.spinbox_comparison.setEnabled(True)
-                self.spinbox_comparison.setRange(1, self.spinbox_method.value() - 1)
-
-                self.threshold = op(data, self.spinbox_method.value())[
-                    self.spinbox_comparison.value() - 1
-                ]
-            else:
-                self.spinbox_method.setEnabled(False)
-                self.spinbox_comparison.setEnabled(False)
-
-                self.threshold = op(data)
+            self.threshold = op(data[~nans])
             self.lineedit_manual.setText(f"{self.threshold:.4g}")
 
     def apply(self) -> None:
