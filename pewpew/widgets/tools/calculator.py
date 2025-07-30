@@ -5,7 +5,6 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.graphics import colortable
 from pewpew.graphics.imageitems import LaserImageItem, ScaledImageItem
-from pewpew.lib import kmeans
 from pewpew.lib.pratt import (
     BinaryFunction,
     Parser,
@@ -156,14 +155,6 @@ class CalculatorTool(ToolWidget):
         "abs": (
             (UnaryFunction("abs"), "(<x>)", "The absolute value of <x>."),
             (np.abs, 1),
-        ),
-        "kmeans": (
-            (
-                BinaryFunction("kmeans"),
-                "(<x>, <k>)",
-                "Returns lower bounds of 1 to <k> kmeans clusters.",
-            ),
-            (kmeans.thresholds, 2),
         ),
         "mask": (
             (
