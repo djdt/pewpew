@@ -1670,6 +1670,7 @@ class StatsDialog(QtWidgets.QDialog):
         return False  # pragma: no cover
 
     def prepareData(self, structured: np.ndarray, mask: np.ndarray) -> np.ndarray:
+        assert structured.dtype.names is not None
         ix, iy = np.nonzero(mask)
         x0, x1, y0, y1 = np.min(ix), np.max(ix) + 1, np.min(iy), np.max(iy) + 1
 
@@ -1699,10 +1700,8 @@ class TransformDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle("Transform")
 
-        # combine pos and translation
-        transform.translate(pos.x(), pos.y())
         self.transform = transform
-        self.pos = pos
+        self.item_pos = pos
         self.default_path = default_path
 
         self.matrix = QtWidgets.QTableWidget(3, 3)
@@ -1719,7 +1718,7 @@ class TransformDialog(QtWidgets.QDialog):
 
         for i in range(3):  # make 0,0,1 readonly
             item = self.matrix.item(2, i)
-            item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
+            item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable) # type: ignore
 
         self.matrix.setSizeAdjustPolicy(
             QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents
@@ -1727,9 +1726,9 @@ class TransformDialog(QtWidgets.QDialog):
         self.matrix.resizeColumnsToContents()
 
         self.button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Cancel
-            | QtWidgets.QDialogButtonBox.Ok
-            | QtWidgets.QDialogButtonBox.Save,
+            QtWidgets.QDialogButtonBox.StandardButton.Cancel
+            | QtWidgets.QDialogButtonBox.StandardButton.Ok
+            | QtWidgets.QDialogButtonBox.StandardButton.Save,
         )
         self.button_box.clicked.connect(self.buttonBoxClicked)
 
@@ -1752,7 +1751,7 @@ class TransformDialog(QtWidgets.QDialog):
     def currentCoefs(self) -> Generator[float, None, None]:
         for i in range(3):
             for j in range(3):
-                yield float(self.matrix.item(j, i).text())
+                yield float(self.matrix.item(j, i).text())  # type: ignore
 
     def save(self) -> None:
         file, ok = QtWidgets.QFileDialog.getSaveFileName(
@@ -1765,13 +1764,14 @@ class TransformDialog(QtWidgets.QDialog):
                     "# pew2 transform [abcdef001]\n"
                     f"{coefs[0]},{coefs[3]},{coefs[6]}\n"
                     f"{coefs[1]},{coefs[4]},{coefs[7]}\n"
-                    f"{coefs[2]},{coefs[5]},{coefs[8]}"
+                    f"{coefs[2]},{coefs[5]},{coefs[8]}\n"
+                    "# pew2 position [xy]\n"
+                    f"{self.item_pos.x()},{self.item_pos.y()}"
                 )
 
     def accept(self) -> None:
         transform = QtGui.QTransform(*self.currentCoefs())
         if transform != self.transform:  # todo: isclose?
             # remove pos from translation
-            transform.translate(-self.pos.x(), -self.pos.y())
             self.transformChanged.emit(transform)
         super().accept()
