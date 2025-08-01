@@ -378,7 +378,9 @@ class StandardsTable(BasicTableView):
             )
         self.model().blockSignals(False)
         self.model().dataChanged.emit(
-            QtCore.QModelIndex(), QtCore.QModelIndex(), [QtCore.Qt.EditRole]
+            self.model().index(0, StandardsTable.COLUMN_COUNT),
+            self.model().index(self.model().rowCount() - 1, StandardsTable.COLUMN_COUNT),
+            [QtCore.Qt.ItemDataRole.EditRole],
         )
 
 
