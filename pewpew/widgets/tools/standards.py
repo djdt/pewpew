@@ -84,7 +84,9 @@ class StandardsTool(ToolWidget):
         element = self.combo_element.currentText()
         self.combo_weighting.setCurrentText(self.calibration[element].weighting)
         self.lineedit_units.setText(self.calibration[element].unit)
-        self.table.model().setCalibration(self.calibration[element], resize=False)
+        self.table.calibration_model.setCalibration(
+            self.calibration[element], resize=False
+        )
 
         layout_cal_form = QtWidgets.QFormLayout()
         layout_cal_form.addRow("Levels:", self.spinbox_levels)
@@ -254,7 +256,9 @@ class StandardsTool(ToolWidget):
     # Widget callbacks
     def comboElement(self, text: str) -> None:
         element = self.combo_element.currentText()
-        self.table.model().setCalibration(self.calibration[element], resize=False)
+        self.table.calibration_model.setCalibration(
+            self.calibration[element], resize=False
+        )
 
         self.lineedit_units.setText(self.calibration[element].unit)
 
@@ -341,6 +345,18 @@ class StandardsResultsTable(BasicTable):
             item.setText(f"{v:.4f}")
 
 
+class ReverseProxyModel(QtCore.QSortFilterProxyModel):
+    def __init__(self, parent: QtCore.QObject | None = None):
+        super().__init__(parent)
+
+    def lessThan(
+        self,
+        source_left: QtCore.QModelIndex | QtCore.QPersistentModelIndex,
+        source_right: QtCore.QModelIndex | QtCore.QPersistentModelIndex,
+    ) -> bool:
+        return source_left.row() < source_right.row()
+
+
 class StandardsTable(BasicTableView):
     ROW_LABELS = [c for c in "ABCDEFGHIJKLMNOPQRST"]
     COLUMN_CONC = 0
@@ -352,8 +368,11 @@ class StandardsTable(BasicTableView):
     ):
         super().__init__(parent)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        model = CalibrationPointsTableModel(calibration, parent=self)
-        self.setModel(model)
+        proxy = ReverseProxyModel()
+        self.calibration_model = CalibrationPointsTableModel(calibration, parent=self)
+        proxy.setSourceModel(self.calibration_model)
+        self.setModel(proxy)
+        self.setSortingEnabled(True)
 
         self.hideColumn(2)  # Hide weights column
         self.horizontalHeader().setStretchLastSection(True)
@@ -364,22 +383,24 @@ class StandardsTable(BasicTableView):
         self.setItemDelegate(DoubleSignificantFiguresDelegate(4))
 
     def isComplete(self) -> bool:
-        if np.nan in self.model().array["y"]:
+        if np.nan in self.calibration_model.array["y"]:
             return False
-        if np.count_nonzero(~np.isnan(self.model().array["x"])) < 2:
+        if np.count_nonzero(~np.isnan(self.calibration_model.array["x"])) < 2:
             return False
         return True
 
     def setCounts(self, counts: np.ndarray) -> None:
-        self.model().blockSignals(True)
-        for i in range(0, self.model().rowCount()):
-            self.model().setData(
-                self.model().index(i, StandardsTable.COLUMN_COUNT), counts[i]
+        self.calibration_model.blockSignals(True)
+        for i in range(0, self.calibration_model.rowCount()):
+            self.calibration_model.setData(
+                self.calibration_model.index(i, StandardsTable.COLUMN_COUNT), counts[i]
             )
-        self.model().blockSignals(False)
-        self.model().dataChanged.emit(
-            self.model().index(0, StandardsTable.COLUMN_COUNT),
-            self.model().index(self.model().rowCount() - 1, StandardsTable.COLUMN_COUNT),
+        self.calibration_model.blockSignals(False)
+        self.calibration_model.dataChanged.emit(
+            self.calibration_model.index(0, StandardsTable.COLUMN_COUNT),
+            self.calibration_model.index(
+                self.calibration_model.rowCount() - 1, StandardsTable.COLUMN_COUNT
+            ),
             [QtCore.Qt.ItemDataRole.EditRole],
         )
 
