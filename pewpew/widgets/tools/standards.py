@@ -26,8 +26,10 @@ class StandardsTool(ToolWidget):
         super().__init__(item, control_label="Calibration", apply_all=True, view=view)
         self.setWindowTitle("Calibration Tool")
 
+        assert isinstance(self.item, LaserImageItem)
+
         self.graphics.setInteractionFlag("tool")
-        self.graphics.setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
+        self.graphics.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
         self.image: ScaledImageItem | None = None
         self.levels: list[CalibrationRectItem] = []
 
@@ -44,7 +46,7 @@ class StandardsTool(ToolWidget):
 
         self.lineedit_units = QtWidgets.QLineEdit()
         self.lineedit_units.setSizePolicy(
-            QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum
+            QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum
         )
         self.lineedit_units.editingFinished.connect(self.lineeditUnits)
 
@@ -54,7 +56,7 @@ class StandardsTool(ToolWidget):
 
         self.results = StandardsResultsTable(self)
         self.results.setSizeAdjustPolicy(
-            QtWidgets.QAbstractScrollArea.AdjustToContentsOnFirstShow
+            QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContentsOnFirstShow
         )
         self.results.horizontalHeader().setStretchLastSection(True)
         self.button_plot = QtWidgets.QPushButton("Plot")
@@ -98,9 +100,13 @@ class StandardsTool(ToolWidget):
         layout_results = QtWidgets.QHBoxLayout()
         layout_results.addWidget(self.results, 1)
         layout_results.addWidget(
-            self.button_plot, 0, QtCore.Qt.AlignRight | QtCore.Qt.AlignTop
+            self.button_plot,
+            0,
+            QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignTop,
         )
-        layout_results.addWidget(self.combo_element, 0, QtCore.Qt.AlignTop)
+        layout_results.addWidget(
+            self.combo_element, 0, QtCore.Qt.AlignmentFlag.AlignTop
+        )
 
         self.box_graphics.layout().addLayout(layout_results, 0)
 
@@ -119,7 +125,10 @@ class StandardsTool(ToolWidget):
     def applyAll(self) -> None:
         self.view.applyCalibration(self.calibration)  # pragma: no cover
 
-    def drawLevels(self, labels: str, n: int) -> None:
+    def drawLevels(self, labels: list[str], n: int) -> None:
+        if self.image is None:
+            return
+
         for item in self.levels:
             self.graphics.scene().removeItem(item)
         self.levels = []
@@ -151,6 +160,8 @@ class StandardsTool(ToolWidget):
         return self.table.isComplete()
 
     def refresh(self) -> None:
+        assert isinstance(self.item, LaserImageItem)
+
         element = self.combo_element.currentText()
         if element not in self.item.laser.elements:  # pragma: no cover
             return
@@ -316,7 +327,7 @@ class StandardsResultsTable(BasicTable):
         for r in range(2):
             for c in range(len(StandardsResultsTable.LABELS)):
                 item = QtWidgets.QTableWidgetItem()
-                item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
+                item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
                 self.setItem(r, c, item)
 
         for i, label in enumerate(StandardsResultsTable.LABELS):
@@ -367,7 +378,7 @@ class StandardsTable(BasicTableView):
         self, calibration: Calibration, parent: QtWidgets.QWidget | None = None
     ):
         super().__init__(parent)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         proxy = ReverseProxyModel()
         self.calibration_model = CalibrationPointsTableModel(calibration, parent=self)
         proxy.setSourceModel(self.calibration_model)
@@ -376,9 +387,11 @@ class StandardsTable(BasicTableView):
 
         self.hideColumn(2)  # Hide weights column
         self.horizontalHeader().setStretchLastSection(True)
-        self.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        self.horizontalHeader().setSectionResizeMode(
+            QtWidgets.QHeaderView.ResizeMode.Stretch
+        )
         self.verticalHeader().setSectionResizeMode(
-            QtWidgets.QHeaderView.ResizeToContents
+            QtWidgets.QHeaderView.ResizeMode.ResizeToContents
         )
         self.setItemDelegate(DoubleSignificantFiguresDelegate(4))
 
@@ -418,7 +431,7 @@ class CalibrationRectItem(ResizeableRectItem):
         super().__init__(rect, parent=item)
         self.item = item
 
-        pen = QtGui.QPen(QtCore.Qt.white, 2.0)
+        pen = QtGui.QPen(QtCore.Qt.GlobalColor.white, 2.0)
         pen.setCosmetic(True)
         self.setPen(pen)
 
@@ -447,19 +460,19 @@ class CalibrationRectItem(ResizeableRectItem):
         painter.save()
         painter.resetTransform()
         painter.setPen(self.pen)
-        painter.drawText(pos.x() + 5, pos.y() + fm.ascent(), self.label)
+        painter.drawText(int(pos.x()) + 5, int(pos.y()) + fm.ascent(), self.label)
         painter.restore()
 
     def itemChange(
         self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
     ) -> Any:
-        if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+        if change == QtWidgets.QGraphicsItem.GraphicsItemChange.ItemPositionChange:
             pos = QtCore.QPointF(value)
             pos = self.item.snapPos(pos)
             if self.pos() != pos:
                 self.changed.emit()
             return pos
-        elif change == QtWidgets.QGraphicsItem.ItemSelectedChange:
+        elif change == QtWidgets.QGraphicsItem.GraphicsItemChange.ItemSelectedChange:
             if value == 1:
                 self.setZValue(self.zValue() + 1)
             else:
