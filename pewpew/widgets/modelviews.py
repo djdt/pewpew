@@ -1,20 +1,15 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
 
-
 class BasicTableView(QtWidgets.QTableView):
     def contextMenuEvent(self, event: QtGui.QContextMenuEvent) -> None:
         event.accept()
         menu = QtWidgets.QMenu(self)
         cut_action = QtGui.QAction(QtGui.QIcon.fromTheme("edit-cut"), "Cut", self)
         cut_action.triggered.connect(self._cut)
-        copy_action = QtGui.QAction(
-            QtGui.QIcon.fromTheme("edit-copy"), "Copy", self
-        )
+        copy_action = QtGui.QAction(QtGui.QIcon.fromTheme("edit-copy"), "Copy", self)
         copy_action.triggered.connect(self._copy)
-        paste_action = QtGui.QAction(
-            QtGui.QIcon.fromTheme("edit-paste"), "Paste", self
-        )
+        paste_action = QtGui.QAction(QtGui.QIcon.fromTheme("edit-paste"), "Paste", self)
         paste_action.triggered.connect(self._paste)
 
         menu.addAction(cut_action)
@@ -75,7 +70,7 @@ class BasicTableView(QtWidgets.QTableView):
 
     def _delete(self) -> None:
         for i in self.selectedIndexes():
-            if i.flags() & QtCore.Qt.ItemIsEditable:
+            if i.flags() & QtCore.Qt.ItemFlag.ItemIsEditable:
                 self.model().setData(i, "", QtCore.Qt.ItemDataRole.EditRole)
 
     def _paste(self) -> None:
@@ -87,11 +82,14 @@ class BasicTableView(QtWidgets.QTableView):
         for row, row_text in enumerate(text.split("\n")):
             for column, text in enumerate(row_text.split("\t")):
                 if self.model().hasIndex(start_row + row, start_column + column):
-                    index = self.model().createIndex(
-                        start_row + row, start_column + column
-                    )
-                    if index.isValid() and index.flags() & QtCore.Qt.ItemIsEditable:
-                        self.model().setData(index, text, QtCore.Qt.ItemDataRole.EditRole)
+                    index = self.model().index(start_row + row, start_column + column)
+                    if (
+                        index.isValid()
+                        and index.flags() & QtCore.Qt.ItemFlag.ItemIsEditable
+                    ):
+                        self.model().setData(
+                            index, text, QtCore.Qt.ItemDataRole.EditRole
+                        )
 
 
 class BasicTable(QtWidgets.QTableWidget):
@@ -100,13 +98,9 @@ class BasicTable(QtWidgets.QTableWidget):
         menu = QtWidgets.QMenu(self)
         cut_action = QtGui.QAction(QtGui.QIcon.fromTheme("edit-cut"), "Cut", self)
         cut_action.triggered.connect(self._cut)
-        copy_action = QtGui.QAction(
-            QtGui.QIcon.fromTheme("edit-copy"), "Copy", self
-        )
+        copy_action = QtGui.QAction(QtGui.QIcon.fromTheme("edit-copy"), "Copy", self)
         copy_action.triggered.connect(self._copy)
-        paste_action = QtGui.QAction(
-            QtGui.QIcon.fromTheme("edit-paste"), "Paste", self
-        )
+        paste_action = QtGui.QAction(QtGui.QIcon.fromTheme("edit-paste"), "Paste", self)
         paste_action.triggered.connect(self._paste)
 
         menu.addAction(cut_action)
