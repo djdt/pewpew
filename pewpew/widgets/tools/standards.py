@@ -360,6 +360,18 @@ class ReverseProxyModel(QtCore.QSortFilterProxyModel):
     def __init__(self, parent: QtCore.QObject | None = None):
         super().__init__(parent)
 
+    def sort(
+        self,
+        column: int,
+        order: QtCore.Qt.SortOrder = QtCore.Qt.SortOrder.AscendingOrder,
+    ) -> None:
+        # reverse
+        if order == QtCore.Qt.SortOrder.AscendingOrder:
+            order = QtCore.Qt.SortOrder.DescendingOrder
+        else:
+            order = QtCore.Qt.SortOrder.AscendingOrder
+        return super().sort(column, order)
+
     def lessThan(
         self,
         source_left: QtCore.QModelIndex | QtCore.QPersistentModelIndex,
