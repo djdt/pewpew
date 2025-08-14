@@ -249,7 +249,7 @@ def generate_rgb_laser_image(
     | QtCore.Qt.AlignmentFlag.AlignRight,
     label_alignment: QtCore.Qt.AlignmentFlag | None = QtCore.Qt.AlignmentFlag.AlignTop
     | QtCore.Qt.AlignmentFlag.AlignLeft,
-    venn_alignment: QtCore.Qt.AlignmentFlag | None = QtCore.Qt.AlignmentFlag.AlignTop
+    venn_alignment: QtCore.Qt.AlignmentFlag | None = QtCore.Qt.AlignmentFlag.AlignBottom
     | QtCore.Qt.AlignmentFlag.AlignLeft,
     raw: bool = False,
     subtractive: bool = False,
