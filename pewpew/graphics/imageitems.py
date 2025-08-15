@@ -22,7 +22,7 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
     imageChanged = QtCore.Signal()
 
     def __init__(self, parent: QtWidgets.QGraphicsObject | None = None):
-        super().__init__(parent)
+        super().__init__(parent=parent)
 
         self.setFlags(
             QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
@@ -1118,5 +1118,5 @@ class RGBLaserImageItem(LaserImageItem):
                 info=item.laser.info,
             ),
             options,
-            parent=item.parent,
+            parent=item.parent(),
         )
