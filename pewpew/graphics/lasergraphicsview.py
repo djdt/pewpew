@@ -44,7 +44,7 @@ class LaserGraphicsView(OverlayGraphicsView):
         self.setDragMode(QtWidgets.QGraphicsView.DragMode.RubberBandDrag)
 
         self.options = options
-        self.cursors["selection"] = QtCore.Qt.ArrowCursor
+        self.cursors["selection"] = QtCore.Qt.CursorShape.ArrowCursor
 
         self.scalebar = MetricScaleBarOverlay(
             font=self.options.font, color=self.options.font_color
@@ -62,7 +62,7 @@ class LaserGraphicsView(OverlayGraphicsView):
         return [
             item
             for item in self.scene().items(
-                self.sceneRect(), QtCore.Qt.IntersectsItemBoundingRect
+                self.sceneRect(), QtCore.Qt.ItemSelectionMode.IntersectsItemBoundingRect
             )
             if isinstance(item, LaserImageItem)
         ]
@@ -76,7 +76,7 @@ class LaserGraphicsView(OverlayGraphicsView):
 
     def alignLaserItemsFFT(self) -> None:
         items = self.selectedLaserItems()
-        if len(items) == 0:
+        if len(items) < 2:
             items = self.laserItems()
 
         base = items[0]
@@ -90,7 +90,7 @@ class LaserGraphicsView(OverlayGraphicsView):
 
     def alignLaserItemsLeftToRight(self) -> None:
         items = self.selectedLaserItems()
-        if len(items) == 0:
+        if len(items) < 2:
             items = self.laserItems()
         items = sorted(items, key=lambda item: item.pos().x())
 
@@ -102,7 +102,7 @@ class LaserGraphicsView(OverlayGraphicsView):
 
     def alignLaserItemsTopToBottom(self) -> None:
         items = self.selectedLaserItems()
-        if len(items) == 0:
+        if len(items) < 2:
             items = self.laserItems()
         items = sorted(items, key=lambda item: item.pos().y())
 
