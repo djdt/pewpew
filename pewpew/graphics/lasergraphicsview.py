@@ -231,7 +231,7 @@ class LaserGraphicsView(OverlayGraphicsView):
                 rect = rect.united(item.sceneBoundingRect())
         self.fitInView(
             rect.marginsAdded(QtCore.QMarginsF(100, 100, 100, 100)),
-            QtCore.Qt.KeepAspectRatio,
+            QtCore.Qt.AspectRatioMode.KeepAspectRatio,
         )
 
         # Get the actual bounding rect

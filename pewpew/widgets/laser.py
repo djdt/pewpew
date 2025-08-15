@@ -699,14 +699,15 @@ class LaserTabWidget(TabViewWidget):
         event.accept()
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
-        if event.matches(QtGui.QKeySequence.Close):
+        if event.matches(QtGui.QKeySequence.StandardKey.Close):
+            items = self.selectedLaserItems()
             for item in self.graphics.scene().selectedItems():
                 item.close()
-        elif event.matches(QtGui.QKeySequence.Cancel):
+        elif event.matches(QtGui.QKeySequence.StandardKey.Cancel):
             self.graphics.endSelection()
             self.graphics.endWidget()
             self.graphics.endTransform()
-        elif event.matches(QtGui.QKeySequence.Paste):
+        elif event.matches(QtGui.QKeySequence.StandardKey.Paste):
             mime = QtWidgets.QApplication.clipboard().mimeData()
 
             # Get all selected items, or the focussed item
@@ -717,11 +718,11 @@ class LaserTabWidget(TabViewWidget):
                 items.append(self.graphics.scene().focusItem())
 
             if mime.hasFormat("application/x-pew2laser"):
-                with BytesIO(mime.data("application/x-pew2laser")) as fp:
+                with BytesIO(mime.data("application/x-pew2laser").data()) as fp:
                     data = np.load(fp)
 
                 if mime.hasFormat("application/x-pew2config"):
-                    with BytesIO(mime.data("application/x-pew2config")) as fp:
+                    with BytesIO(mime.data("application/x-pew2config").data()) as fp:
                         array = np.load(fp)
                         if array["spotsize"].size == 2:
                             config = SpotConfig.from_array(array)
@@ -731,14 +732,14 @@ class LaserTabWidget(TabViewWidget):
                     config = None
 
                 if mime.hasFormat("application/x-pew2calibration"):
-                    with BytesIO(mime.data("application/x-pew2calibration")) as fp:
+                    with BytesIO(mime.data("application/x-pew2calibration").data()) as fp:
                         npy = np.load(fp)
                         calibration = {k: Calibration.from_array(npy[k]) for k in npy}
                 else:
                     calibration = None
 
                 if mime.hasFormat("application/x-pew2info"):
-                    with BytesIO(mime.data("application/x-pew2info")) as fp:
+                    with BytesIO(mime.data("application/x-pew2info").data()) as fp:
                         array = np.load(fp)
                         info = io.npz.unpack_info(array)
                 else:
@@ -748,7 +749,7 @@ class LaserTabWidget(TabViewWidget):
                 origin = self.graphics.mapFromGlobal(QtGui.QCursor.pos())
                 self.addLaser(laser, self.graphics.mapToScene(origin))
             elif mime.hasFormat("application/x-pew2config"):
-                with BytesIO(mime.data("application/x-pew2config")) as fp:
+                with BytesIO(mime.data("application/x-pew2config").data()) as fp:
                     array = np.load(fp)
                     if array["spotsize"].size == 2:
                         config = SpotConfig.from_array(array)
@@ -757,7 +758,7 @@ class LaserTabWidget(TabViewWidget):
                 for item in items:
                     item.applyConfig(config)
             elif mime.hasFormat("application/x-pew2calibration"):
-                with BytesIO(mime.data("application/x-pew2calibration")) as fp:
+                with BytesIO(mime.data("application/x-pew2calibration").data()) as fp:
                     npy = np.load(fp)
                     calibrations = {k: Calibration.from_array(npy[k]) for k in npy}
                 for item in items:
