@@ -21,14 +21,14 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
     selectionChanged = QtCore.Signal()
     imageChanged = QtCore.Signal()
 
-    def __init__(self, parent: QtWidgets.QGraphicsItem | None = None):
+    def __init__(self, parent: QtWidgets.QGraphicsObject | None = None):
         super().__init__(parent)
 
         self.setFlags(
-            QtWidgets.QGraphicsItem.ItemIsMovable
-            | QtWidgets.QGraphicsItem.ItemIsFocusable
-            | QtWidgets.QGraphicsItem.ItemIsSelectable
-            | QtWidgets.QGraphicsItem.ItemSendsGeometryChanges
+            QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
+            | QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsFocusable
+            | QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable
+            | QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges
         )
 
         self.actions_order = [
@@ -61,22 +61,25 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         self.action_close = qAction(
             "view-close", "Close", "Close the image.", self.close
         )
-        self.action_close.setShortcut(QtGui.QKeySequence.Close)
+        self.action_close.setShortcut(QtGui.QKeySequence.StandardKey.Close)
 
     def itemChange(
         self, change: QtWidgets.QGraphicsItem.GraphicsItemChange, value: Any
     ) -> Any:
-        if change == QtWidgets.QGraphicsItem.ItemPositionChange:
+        if change == QtWidgets.QGraphicsItem.GraphicsItemChange.ItemPositionChange:
             pos = QtCore.QPointF(value)
             return self.snapPos(pos)
         return super().itemChange(change, value)
 
     def dataAt(self, pos: QtCore.QPointF) -> float:
-        pos = self.mapToData(pos)
-        return self.rawData()[pos.y(), pos.x()]
+        data_pos = self.mapToData(pos)
+        return self.rawData()[data_pos.y(), data_pos.x()]
 
     def selectedAt(self, pos: QtCore.QPointF) -> bool:
         return False
+
+    def copyToClipboard(self) -> None:
+        raise NotImplementedError
 
     def imageSize(self) -> QtCore.QSize:
         raise NotImplementedError
@@ -117,7 +120,8 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         stack = [
             item
             for item in self.scene().items(
-                self.sceneBoundingRect(), QtCore.Qt.IntersectsItemBoundingRect
+                self.sceneBoundingRect(),
+                QtCore.Qt.ItemSelectionMode.IntersectsItemBoundingRect,
             )
             if isinstance(item, SnapImageItem)
         ]
@@ -140,7 +144,8 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
         stack = [
             item
             for item in self.scene().items(
-                self.sceneBoundingRect(), QtCore.Qt.IntersectsItemBoundingRect
+                self.sceneBoundingRect(),
+                QtCore.Qt.ItemSelectionMode.IntersectsItemBoundingRect,
             )
             if isinstance(item, SnapImageItem)
         ]
@@ -161,18 +166,20 @@ class SnapImageItem(QtWidgets.QGraphicsObject):
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if event.matches(QtGui.QKeySequence.StandardKey.Close):
+            event.ignore()  # propagate to parent
             self.close()
         elif event.matches(QtGui.QKeySequence.StandardKey.Copy):
+            event.accept()
             self.copyToClipboard()
         else:
             super().keyPressEvent(event)
 
     def mousePressEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
         if (
-            event.button() == QtCore.Qt.LeftButton
-            and self.flags() & QtWidgets.QGraphicsItem.ItemIsMovable
+            event.button() == QtCore.Qt.MouseButton.LeftButton
+            and self.flags() & QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsMovable
         ):
-            self.setCursor(QtCore.Qt.SizeAllCursor)
+            self.setCursor(QtCore.Qt.CursorShape.SizeAllCursor)
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QtWidgets.QGraphicsSceneMouseEvent) -> None:
@@ -185,7 +192,7 @@ class ScaledImageItem(SnapImageItem):
         self,
         image: QtGui.QImage,
         rect: QtCore.QRectF,
-        parent: QtWidgets.QGraphicsItem | None = None,
+        parent: QtWidgets.QGraphicsObject | None = None,
     ):
         super().__init__(parent=parent)
         self.setAcceptHoverEvents(True)
@@ -224,7 +231,9 @@ class ScaledImageItem(SnapImageItem):
         if self.isSelected() and not isinstance(
             painter.device(), QtGui.QPixmap
         ):  # Only paint focus if option is active and not painting to a pixmap
-            pen = QtGui.QPen(QtGui.QColor(255, 255, 255, 127), 2.0, QtCore.Qt.SolidLine)
+            pen = QtGui.QPen(
+                QtGui.QColor(255, 255, 255, 127), 2.0, QtCore.Qt.PenStyle.SolidLine
+            )
             pen.setCosmetic(True)
             painter.setPen(pen)
             painter.drawRect(self.boundingRect())
@@ -239,7 +248,7 @@ class ScaledImageItem(SnapImageItem):
         array: np.ndarray,
         rect: QtCore.QRectF,
         colortable: list[int] | None = None,
-        parent: QtWidgets.QGraphicsItem | None = None,
+        parent: QtWidgets.QGraphicsObject | None = None,
     ) -> "ScaledImageItem":
         image = array_to_image(array)
         if colortable is not None:
@@ -259,7 +268,7 @@ class ImageOverlayItem(ScaledImageItem):
         image: QtGui.QImage,
         rect: QtCore.QRectF,
         path: Path | None = None,
-        parent: QtWidgets.QGraphicsItem | None = None,
+        parent: QtWidgets.QGraphicsObject | None = None,
     ):
         super().__init__(image, rect, parent=parent)
 
@@ -299,19 +308,21 @@ class ImageOverlayItem(ScaledImageItem):
 
     def lock(self) -> None:
         """Locking is performed by preventing focus and use of left mouse button."""
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, False)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsFocusable, False)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
         self.setAcceptedMouseButtons(
-            self.acceptedMouseButtons() & (~QtCore.Qt.LeftButton)
+            self.acceptedMouseButtons() & (~QtCore.Qt.MouseButton.LeftButton)
         )
 
     def unlock(self) -> None:
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsFocusable, True)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
-        self.setAcceptedMouseButtons(self.acceptedMouseButtons() | QtCore.Qt.LeftButton)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsFocusable, True)
+        self.setFlag(QtWidgets.QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
+        self.setAcceptedMouseButtons(
+            self.acceptedMouseButtons() | QtCore.Qt.MouseButton.LeftButton
+        )
 
     def isLocked(self) -> bool:
-        return not self.acceptedMouseButtons() & QtCore.Qt.LeftButton
+        return not self.acceptedMouseButtons() & QtCore.Qt.MouseButton.LeftButton
 
     def setPixelSize(self, size: QtCore.QSizeF) -> None:
         image_size = self.imageSize()
@@ -368,7 +379,7 @@ class LaserImageItem(SnapImageItem):
         laser: Laser,
         options: GraphicsOptions,
         current_element: str | None = None,
-        parent: QtWidgets.QGraphicsItem | None = None,
+        parent: QtWidgets.QGraphicsObject | None = None,
     ):
         super().__init__(parent=parent)
         self.setAcceptHoverEvents(True)
@@ -397,7 +408,8 @@ class LaserImageItem(SnapImageItem):
             self.laser.info["Name"],
             "Laser Name",
             font=self.options.font,
-            alignment=QtCore.Qt.AlignTop | QtCore.Qt.AlignRight,
+            alignment=QtCore.Qt.AlignmentFlag.AlignTop
+            | QtCore.Qt.AlignmentFlag.AlignRight,
         )
         self.label.labelChanged.connect(self.setName)
 
@@ -463,8 +475,8 @@ class LaserImageItem(SnapImageItem):
 
     # Virtual SnapImageItem methods
     def selectedAt(self, pos: QtCore.QPointF) -> bool:
-        pos = self.mapToData(pos)
-        return self.mask[pos.y(), pos.x()]
+        data_pos = self.mapToData(pos)
+        return self.mask[data_pos.y(), data_pos.x()]
 
     def imageSize(self) -> QtCore.QSize:
         return QtCore.QSize(self.laser.shape[1], self.laser.shape[0])
@@ -560,7 +572,7 @@ class LaserImageItem(SnapImageItem):
     ):
         painter.save()
         if self.options.smoothing:
-            painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform)
+            painter.setRenderHint(QtGui.QPainter.RenderHint.SmoothPixmapTransform)
 
         rect = self.boundingRect()
 
@@ -573,7 +585,9 @@ class LaserImageItem(SnapImageItem):
         if self.isSelected() and not isinstance(
             painter.device(), QtGui.QPixmap
         ):  # Only paint focus if option is active and not painting to a pixmap
-            pen = QtGui.QPen(QtGui.QColor(255, 255, 255, 127), 2.0, QtCore.Qt.SolidLine)
+            pen = QtGui.QPen(
+                QtGui.QColor(255, 255, 255, 127), 2.0, QtCore.Qt.PenStyle.SolidLine
+            )
             pen.setCosmetic(True)
             painter.setPen(pen)
             painter.drawRect(self.boundingRect())
@@ -641,7 +655,7 @@ class LaserImageItem(SnapImageItem):
             "Copy item to clipboard.",
             self.copyToClipboard,
         )
-        self.action_copy.setShortcut(QtGui.QKeySequence.Copy)
+        self.action_copy.setShortcut(QtGui.QKeySequence.StandardKey.Copy)
         self.action_copy_image = qAction(
             "insert-image",
             "Copy &Image",
@@ -663,7 +677,7 @@ class LaserImageItem(SnapImageItem):
             "Save document to numpy archive.",
             lambda: self.requestSave.emit(self),
         )
-        self.action_save.setShortcut(QtGui.QKeySequence.Save)
+        self.action_save.setShortcut(QtGui.QKeySequence.StandardKey.Save)
 
         self.action_convert_rgb = qAction(
             "adjustrgb",
@@ -984,7 +998,7 @@ class RGBLaserImageItem(LaserImageItem):
         laser: Laser,
         options: GraphicsOptions,
         current_elements: list[RGBElement] | None = None,
-        parent: QtWidgets.QGraphicsItem | None = None,
+        parent: QtWidgets.QGraphicsObject | None = None,
     ):
         if current_elements is None:
             colors = [
@@ -996,7 +1010,7 @@ class RGBLaserImageItem(LaserImageItem):
                 RGBLaserImageItem.RGBElement(element, color, (0.0, 99.0))
                 for element, color in zip(laser.elements[:3], colors)
             ]
-        super().__init__(laser, options, current_elements[0].element)
+        super().__init__(laser, options, current_elements[0].element, parent=parent)
         # self.setAcceptHoverEvents(False)
 
         # Redo action
@@ -1020,12 +1034,13 @@ class RGBLaserImageItem(LaserImageItem):
             [rgb.element for rgb in self.current_elements],
             [rgb.color for rgb in self.current_elements],
             font=self.options.font,
-            alignment=QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft,
+            alignment=QtCore.Qt.AlignmentFlag.AlignTop
+            | QtCore.Qt.AlignmentFlag.AlignLeft,
         )
 
     def redraw(self) -> None:
         if len(self.current_elements) == 0:
-            self.raw_data == np.zeros((*self.laser.shape[:2], 3))
+            self.raw_data = np.zeros((*self.laser.shape[:2], 3))
         else:
             self.raw_data = np.stack(
                 [
