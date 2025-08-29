@@ -280,9 +280,9 @@ class VtiOptionsBox(OptionsBox):
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(QtWidgets.QLabel("Spacing:"), 0)
         layout.addWidget(self.lineedits[0], 0)  # X
-        layout.addWidget(QtWidgets.QLabel("x"), 0, QtCore.Qt.AlignCenter)
+        layout.addWidget(QtWidgets.QLabel("x"), 0, QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.lineedits[1], 0)  # Y
-        layout.addWidget(QtWidgets.QLabel("x"), 0, QtCore.Qt.AlignCenter)
+        layout.addWidget(QtWidgets.QLabel("x"), 0, QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.lineedits[2], 0)  # Z
         layout.addStretch(1)
 
@@ -314,7 +314,7 @@ class ExportOptions(QtWidgets.QWidget):
     ):
         super().__init__(parent)
         self.setSizePolicy(
-            QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Expanding
+            QtWidgets.QSizePolicy.Policy.Ignored, QtWidgets.QSizePolicy.Policy.Expanding
         )
         self.stack = _ExportOptionsStack()
         self.stack.currentChanged.connect(self.currentIndexChanged)
@@ -339,20 +339,29 @@ class ExportOptions(QtWidgets.QWidget):
 
     def addOption(self, option: OptionsBox) -> int:
         index = self.stack.addWidget(option)
-        self.stack.widget(index).inputChanged.connect(self.inputChanged)
+        option.inputChanged.connect(self.inputChanged)
 
         item = f"{option.filetype} ({option.ext})"
         self.combo.insertItem(index, item)
         return index
 
     def currentOption(self) -> OptionsBox:
-        return self.stack.currentWidget()
+        widget = self.stack.currentWidget()
+        if not isinstance(widget, OptionsBox):
+            raise ValueError("widgets in the stack must be an OptionsBox")
+        return widget
+
+    def optionAt(self, index: int) -> OptionsBox:
+        widget = self.stack.widget(index)
+        if not isinstance(widget, OptionsBox):
+            raise ValueError("widgets in the stack must be an OptionsBox")
+        return widget
 
     def count(self) -> int:
         return self.stack.count()
 
     def currentExt(self) -> str:
-        return self.stack.currentWidget().ext
+        return self.currentOption().ext
 
     def currentIndex(self) -> int:
         return self.stack.currentIndex()
@@ -366,17 +375,20 @@ class ExportOptions(QtWidgets.QWidget):
         self.stack.setCurrentIndex(index)
         self.combo.setCurrentIndex(index)
 
-        self.stack.setVisible(self.stack.currentWidget().visible)
+        self.stack.setVisible(self.currentOption().visible)
 
     def indexForExt(self, ext: str) -> int:
         for i in range(self.stack.count()):
-            if self.stack.widget(i).ext == ext:
+            if self.optionAt(i).ext == ext:
                 return i
         return -1
 
     def isComplete(self, current_only: bool = True) -> bool:
         indicies = [self.currentIndex()] if current_only else range(0, self.count())
-        return all(self.stack.widget(i).isComplete() for i in indicies)
+        for i in indicies:
+            if not self.optionAt(i).isComplete():
+                return False
+        return True
 
 
 class _ExportDialogBase(QtWidgets.QDialog):
@@ -416,7 +428,8 @@ class _ExportDialogBase(QtWidgets.QDialog):
         self.options.currentIndexChanged.connect(self.typeChanged)
 
         self.button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+            QtWidgets.QDialogButtonBox.StandardButton.Ok
+            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
         )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
@@ -425,16 +438,16 @@ class _ExportDialogBase(QtWidgets.QDialog):
         layout_directory.addWidget(self.lineedit_directory)
         layout_directory.addWidget(self.button_directory)
 
-        self.layout = QtWidgets.QVBoxLayout()
+        layout = QtWidgets.QVBoxLayout()
         self.layout_form = QtWidgets.QFormLayout()
         self.layout_form.addRow("Directory:", layout_directory)
         self.layout_form.addRow("Filename:", self.lineedit_filename)
         self.layout_form.addRow("Preview:", self.lineedit_preview)
 
-        self.layout.addLayout(self.layout_form)
-        self.layout.addWidget(self.options, 1, QtCore.Qt.AlignTop)
-        self.layout.addWidget(self.button_box)
-        self.setLayout(self.layout)
+        layout.addLayout(self.layout_form)
+        layout.addWidget(self.options, 1, QtCore.Qt.AlignmentFlag.AlignTop)
+        layout.addWidget(self.button_box)
+        self.setLayout(layout)
 
     def getPath(self, name: str | None = None) -> Path:
         if name is None:
@@ -455,7 +468,7 @@ class _ExportDialogBase(QtWidgets.QDialog):
         return True
 
     def validate(self) -> None:
-        ok = self.button_box.button(QtWidgets.QDialogButtonBox.Ok)
+        ok = self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Ok)
         ok.setEnabled(self.isComplete())
 
     def updatePreview(self) -> None:
@@ -479,9 +492,9 @@ class _ExportDialogBase(QtWidgets.QDialog):
         dlg = QtWidgets.QFileDialog(
             self, "Select Directory", self.lineedit_directory.text()
         )
-        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
-        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
-        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptMode.AcceptOpen)
+        dlg.setFileMode(QtWidgets.QFileDialog.FileMode.Directory)
+        dlg.setOption(QtWidgets.QFileDialog.Option.ShowDirsOnly, True)
         dlg.fileSelected.connect(self.lineedit_directory.setText)
         dlg.open()
         return dlg
@@ -519,7 +532,7 @@ class ExportDialog(_ExportDialogBase):
                 PngOptionsBox(apparent_size),
                 VtiOptionsBox(spacing),
             ]
-        super().__init__(options, parent)
+        super().__init__(options, parent)  # type: ignore
 
         self.item = item
 
@@ -534,8 +547,8 @@ class ExportDialog(_ExportDialogBase):
         )
         self.check_export_all.clicked.connect(self.updatePreview)
 
-        self.layout.insertWidget(2, self.check_calibrate)
-        self.layout.insertWidget(3, self.check_export_all)
+        self.layout().insertWidget(2, self.check_calibrate)  # type: ignore
+        self.layout().insertWidget(3, self.check_export_all)  # type: ignore
 
         # A default path
         path = self.pathForLaser(self.item.laser).resolve()
@@ -632,10 +645,10 @@ class ExportDialog(_ExportDialogBase):
                         scale=scale,
                         dpi=option.dpi(),
                     )
-                    image.setDotsPerMeterX(option.dpi() * 39.37007874)
-                    image.setDotsPerMeterY(option.dpi() * 39.37007874)
+                    image.setDotsPerMeterX(int(option.dpi() * 39.37007874))
+                    image.setDotsPerMeterY(int(option.dpi() * 39.37007874))
                     image.save(str(path.absolute()))
-            else:
+            elif isinstance(option, PngOptionsBox):
                 scale = option.scale()
                 if element is not None and element in laser.elements:
                     image = generate_laser_image(
@@ -650,10 +663,12 @@ class ExportDialog(_ExportDialogBase):
                         scale=scale,
                         dpi=option.dpi(),
                     )
-                    image.setDotsPerMeterX(option.dpi() * 39.37007874)
-                    image.setDotsPerMeterY(option.dpi() * 39.37007874)
+                    image.setDotsPerMeterX(int(option.dpi() * 39.37007874))
+                    image.setDotsPerMeterY(int(option.dpi() * 39.37007874))
                     image.save(str(path.absolute()))
-        elif option.ext == ".vti":
+            else:
+                raise ValueError("incorrect option type for '.png'")
+        elif isinstance(option, VtiOptionsBox):
             spacing = option.spacing()
             # Last axis (z) is negative for layer order
             spacing = spacing[0], spacing[1], -spacing[2]
@@ -714,6 +729,7 @@ class ExportAllDialog(ExportDialog):
         # Adjust widgets for all
         self.lineedit_filename.setText("<name>.npz")
         label = self.layout_form.labelForField(self.lineedit_filename)
+        assert isinstance(label, QtWidgets.QLabel)
         label.setText("Prefix:")
         self.layout_form.replaceWidget(self.lineedit_filename, self.lineedit_prefix)
 
