@@ -42,6 +42,9 @@ class OptionsBox(QtWidgets.QGroupBox):
 
     def isComplete(self) -> bool:
         return True
+    
+    def saveSettings(self) -> None:
+        return
 
 
 class PngOptionsBox(OptionsBox):
@@ -64,12 +67,16 @@ class PngOptionsBox(OptionsBox):
         self.label_x = QtWidgets.QLabel()
         self.label_y = QtWidgets.QLabel()
 
+        settings = QtCore.QSettings()
+        scale = settings.value("ExportOptions/PNG/Scale", 1)
+        dpi = settings.value("ExportOptions/PNG/DPI", 96)
+
         self.spin_scale = QtWidgets.QSpinBox()
         self.spin_scale.valueChanged.connect(self.updateSizeLabel)
-        self.spin_scale.setValue(int(600.0 / size.width()))
+        self.spin_scale.setValue(int(scale))  # type: ignore
         self.spin_scale.setRange(1, 100)
 
-        self.le_dpi = QtWidgets.QLineEdit("96")
+        self.le_dpi = QtWidgets.QLineEdit(str(dpi))
         self.le_dpi.setValidator(QtGui.QIntValidator(1, 1000))
         self.le_dpi.textEdited.connect(self.inputChanged)
 
@@ -141,6 +148,11 @@ class PngOptionsBox(OptionsBox):
     def isComplete(self) -> bool:
         return self.le_dpi.hasAcceptableInput()
 
+    def saveSettings(self) -> None:
+        settings = QtCore.QSettings()
+        settings.setValue("ExportOptions/PNG/Scale", self.scale())
+        settings.setValue("ExportOptions/PNG/DPI", self.dpi())
+
 
 class RBGOptionsBox(OptionsBox):
     item_positions = {
@@ -175,12 +187,16 @@ class RBGOptionsBox(OptionsBox):
         self.label_x = QtWidgets.QLabel()
         self.label_y = QtWidgets.QLabel()
 
+        settings = QtCore.QSettings()
+        scale = settings.value("ExportOptions/PNG/Scale", 1)
+        dpi = settings.value("ExportOptions/PNG/DPI", 96)
+
         self.spin_scale = QtWidgets.QSpinBox()
         self.spin_scale.valueChanged.connect(self.updateSizeLabel)
-        self.spin_scale.setValue(int(600.0 / size.width()))
+        self.spin_scale.setValue(int(scale))  # type: ignore
         self.spin_scale.setRange(1, 100)
 
-        self.le_dpi = QtWidgets.QLineEdit("96")
+        self.le_dpi = QtWidgets.QLineEdit(str(dpi))
         self.le_dpi.setValidator(QtGui.QIntValidator(1, 1000))
         self.le_dpi.textEdited.connect(self.inputChanged)
 
@@ -261,6 +277,11 @@ class RBGOptionsBox(OptionsBox):
 
     def isComplete(self) -> bool:
         return self.le_dpi.hasAcceptableInput()
+
+    def saveSettings(self) -> None:
+        settings = QtCore.QSettings()
+        settings.setValue("ExportOptions/PNG/Scale", self.scale())
+        settings.setValue("ExportOptions/PNG/DPI", self.dpi())
 
 
 class VtiOptionsBox(OptionsBox):
@@ -683,6 +704,7 @@ class ExportDialog(_ExportDialogBase):
         else:
             raise ValueError(f"Unable to export file as '{option.ext}'.")
 
+        option.saveSettings()
         logger.info(f"Exported {laser.info['Name']} to {path.name}.")
 
     def accept(self) -> None:
