@@ -71,6 +71,7 @@ class PngOptionsBox(OptionsBox):
 
         self.le_dpi = QtWidgets.QLineEdit("96")
         self.le_dpi.setValidator(QtGui.QIntValidator(1, 1000))
+        self.le_dpi.textEdited.connect(self.inputChanged)
 
         self.combo_scalebar = QtWidgets.QComboBox()
         self.combo_scalebar.addItems(list(PngOptionsBox.item_positions.keys()))
@@ -181,6 +182,7 @@ class RBGOptionsBox(OptionsBox):
 
         self.le_dpi = QtWidgets.QLineEdit("96")
         self.le_dpi.setValidator(QtGui.QIntValidator(1, 1000))
+        self.le_dpi.textEdited.connect(self.inputChanged)
 
         self.combo_scalebar = QtWidgets.QComboBox()
         self.combo_scalebar.addItems(list(PngOptionsBox.item_positions.keys()))
