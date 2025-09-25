@@ -641,6 +641,9 @@ class ColocalisationDialog(QtWidgets.QDialog):
         x = x[~nan_mask]
         y = y[~nan_mask]
 
+        if x.size == 0 or y.size == 0:
+            return
+
         x, y = normalise(x), normalise(y)
 
         # Li
@@ -1718,7 +1721,7 @@ class TransformDialog(QtWidgets.QDialog):
 
         for i in range(3):  # make 0,0,1 readonly
             item = self.matrix.item(2, i)
-            item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable) # type: ignore
+            item.setFlags(item.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)  # type: ignore
 
         self.matrix.setSizeAdjustPolicy(
             QtWidgets.QAbstractScrollArea.SizeAdjustPolicy.AdjustToContents
