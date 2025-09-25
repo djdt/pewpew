@@ -1,3 +1,5 @@
+from typing import Callable
+
 import numpy as np
 from ckwrap import ckmeans, ckmedians
 from pewlib.process.calc import normalise
@@ -20,7 +22,18 @@ from pewpew.widgets.tools import ToolWidget
 from pewpew.widgets.views import TabView
 
 
-def segment_image(x: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
+def calc_cluster_labels(
+    x: np.ndarray,
+    k: int,
+    fn: Callable,
+) -> np.ndarray:
+    nans = np.isnan(x)
+    labels = np.zeros(x.shape, dtype=np.int32)
+    labels[~nans] = fn(x[~nans], (k, k)).labels
+    return labels
+
+
+def calc_segment_image(x: np.ndarray, thresholds: np.ndarray) -> np.ndarray:
     mask = np.zeros(x.shape, dtype=int)
     for i, t in enumerate(np.atleast_1d(thresholds)):
         mask[x > t] = i + 1
@@ -163,29 +176,19 @@ class CalculatorTool(ToolWidget):
         ),
         "kmeans": (
             (
-                TernaryFunction("kmeans"),
-                "(<x>, <k>, <n>)",
-                "The minimum value of the <n>th group formed by k-mean clustering of <x>.",
+                BinaryFunction("kmeans"),
+                "(<x>, <k>)",
+                "K-means clustering of <x> with a k of <k>.",
             ),
-            (
-                lambda x, k, n: np.amin(
-                    x[~np.isnan(x)][ckmeans(x[~np.isnan(x)], (k, k)).labels == n]
-                ),
-                3,
-            ),
+            (lambda x, k: calc_cluster_labels(x, k, ckmeans), 2),
         ),
         "kmedians": (
             (
-                TernaryFunction("kmedians"),
-                "(<x>, <k>, <n>)",
-                "The minimum value of the <n>th group formed by k-median clustering of <x>.",
+                BinaryFunction("kmedians"),
+                "(<x>, <k>)",
+                "K-medians clustering of <x> with a k of <k>.",
             ),
-            (
-                lambda x, k, n: np.amin(
-                    x[~np.isnan(x)][ckmedians(x[~np.isnan(x)], (k, k)).labels == n]
-                ),
-                3,
-            ),
+            (lambda x, k: calc_cluster_labels(x, k, ckmedians), 2),
         ),
         "mask": (
             (
@@ -241,7 +244,7 @@ class CalculatorTool(ToolWidget):
                 "(<x>, <threshold(s)>)",
                 "Create a masking image from the given thrshold(s).",
             ),
-            (segment_image, 2),
+            (calc_segment_image, 2),
         ),
         "threshold": (
             (
