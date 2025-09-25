@@ -249,7 +249,7 @@ class Parser(object):
     function_token = "[a-z]+[a-zA-Z0-9_]*"
     null_token = "[\\[\\]\\(\\)\\,]|if|then|else"
     number_token = "\\d*\\.?\\d+(?:[eE][+\\-]?\\d+)?|nan"
-    operator_token = "[+\\-\\*/^!=<>?:]+"
+    operator_token = "[+\\&\\|\\-\\*/^!=<>?:]+"
     base_tokens = "|".join([function_token, null_token, number_token, operator_token])
 
     def __init__(self, variables: list[str] | None = None):
@@ -262,25 +262,31 @@ class Parser(object):
 
         self.nulls: dict[str, Null] = {
             "(": Parens(),
-            "if": Ternary("?", "then", "else", 11),
+            "if": Ternary("?", "then", "else", 1),
             "nan": NaN(),
-            "-": Unary("u-", 30),
+            "-": Unary("u-", 8),
+            "!": Unary("u!", 8),
+            "not": Unary("u!", 8),
         }
         self.lefts: dict[str, Left] = {
-            "?": LeftTernary("?", ":", 10),
-            "<": LeftBinary("<", 10),
-            "<=": LeftBinary("<=", 10),
-            ">": LeftBinary(">", 10),
-            ">=": LeftBinary(">=", 10),
-            "=": LeftBinary("=", 10),
-            "==": LeftBinary("=", 10),
-            "!=": LeftBinary("!=", 10),
-            "+": LeftBinary("+", 20),
-            "-": LeftBinary("-", 20),
-            "*": LeftBinary("*", 40),
-            "/": LeftBinary("/", 40),
-            "^": LeftBinary("^", 50, right=True),
-            "[": LeftIndex("[", 80),
+            "?": LeftTernary("?", ":", 1),
+            "||": LeftBinary("|", 2),
+            "or": LeftBinary("|", 2),
+            "&&": LeftBinary("&", 3),
+            "and": LeftBinary("&", 3),
+            "=": LeftBinary("=", 4),
+            "==": LeftBinary("=", 4),
+            "!=": LeftBinary("!=", 4),
+            "<": LeftBinary("<", 5),
+            "<=": LeftBinary("<=", 5),
+            ">": LeftBinary(">", 5),
+            ">=": LeftBinary(">=", 5),
+            "+": LeftBinary("+", 6),
+            "-": LeftBinary("-", 6),
+            "*": LeftBinary("*", 7),
+            "/": LeftBinary("/", 7),
+            "^": LeftBinary("^", 9, right=True),
+            "[": LeftIndex("[", 10),
         }
 
     @property
@@ -357,6 +363,7 @@ class Reducer(object):
 
         self.operations = {
             "u-": (np.negative, 1),
+            "u!": (np.logical_not, 1),
             "+": (np.add, 2),
             "-": (np.subtract, 2),
             "*": (np.multiply, 2),
@@ -369,6 +376,8 @@ class Reducer(object):
             "=": (np.equal, 2),
             "!=": (np.not_equal, 2),
             "?": (np.where, 3),
+            "&": (np.logical_and, 2),
+            "|": (np.logical_or, 2),
             "[": (lambda x, i: x[int(i)], 2),
         }
 

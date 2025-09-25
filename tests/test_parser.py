@@ -1,8 +1,15 @@
-import pytest
 import numpy as np
+import pytest
 
-from pewpew.lib.pratt import Parser, ParserException, Reducer, ReducerException
-from pewpew.lib.pratt import UnaryFunction, BinaryFunction, TernaryFunction
+from pewpew.lib.pratt import (
+    BinaryFunction,
+    Parser,
+    ParserException,
+    Reducer,
+    ReducerException,
+    TernaryFunction,
+    UnaryFunction,
+)
 
 
 def test_parser_basic():
@@ -17,6 +24,12 @@ def test_parser_basic():
     assert str(parser.parse("1a")) == "1a"
     assert str(parser.parse("nan")) == "nan"
     assert str(parser.parse("1a+a1")) == "+ 1a a1"
+    # Test and / or
+    assert str(parser.parse("0 && 1 || 0")) == "| & 0 1 0"
+    assert str(parser.parse("0 || 1 && 0")) == "| 0 & 1 0"
+    assert str(parser.parse("0 and 1 or 0")) == "| & 0 1 0"
+    assert str(parser.parse("!0")) == "u! 0"
+    assert str(parser.parse("not 0")) == "u! 0"
     # Test ops
     assert str(parser.parse("1 + 2 - 3")) == "- + 1 2 3"
     assert str(parser.parse("1 * 2 / 3")) == "/ * 1 2 3"
@@ -140,6 +153,11 @@ def test_reduce_basic():
     assert reducer.reduce("< 1 2")
     assert reducer.reduce("> 2 1")
     assert reducer.reduce("<= >= 1 2 3")
+    # Logical
+    assert reducer.reduce("& 0 1") == 0
+    assert reducer.reduce("& u! 0 1") == 1
+    assert reducer.reduce("| 0 1") == 1
+    assert reducer.reduce("| & 0 1 0") == 0
     # If
     assert reducer.reduce("? < 1 2 3 4") == 3.0
     assert reducer.reduce("? > 1 2 3 4") == 4.0
