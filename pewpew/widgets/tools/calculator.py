@@ -1,4 +1,5 @@
 import numpy as np
+from ckwrap import ckmeans, ckmedians
 from pewlib.process.calc import normalise
 from pewlib.process.threshold import otsu
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -97,10 +98,11 @@ class CalculatorFormula(ValidColorTextEdit):
 
         self.completer = completer
         self.completer.setWidget(self)
-        self.completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.completer.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
         self.completer.activated.connect(self.insertCompletion)
 
     def insertCompletion(self, completion: str) -> None:
+        assert self.completer is not None
         tc = self.textCursor()
         for _ in range(len(self.completer.completionPrefix())):
             tc.deletePreviousChar()
@@ -110,21 +112,24 @@ class CalculatorFormula(ValidColorTextEdit):
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
         if self.completer is not None and self.completer.popup().isVisible():
             if event.key() in [  # Ignore keys when popup is present
-                QtCore.Qt.Key_Enter,
-                QtCore.Qt.Key_Return,
-                QtCore.Qt.Key_Escape,
-                QtCore.Qt.Key_Tab,
-                QtCore.Qt.Key_Down,
-                QtCore.Qt.Key_Up,
+                QtCore.Qt.Key.Key_Enter,
+                QtCore.Qt.Key.Key_Return,
+                QtCore.Qt.Key.Key_Escape,
+                QtCore.Qt.Key.Key_Tab,
+                QtCore.Qt.Key.Key_Down,
+                QtCore.Qt.Key.Key_Up,
             ]:
                 event.ignore()
                 return
 
         super().keyPressEvent(event)
 
+        if self.completer is None:
+            return
+
         eow = "~!@#$%^&*()+{}|:\"<>?,./;'[]\\-="
         tc = self.textCursor()
-        tc.select(QtGui.QTextCursor.WordUnderCursor)
+        tc.select(QtGui.QTextCursor.SelectionType.WordUnderCursor)
         prefix = tc.selectedText()
         if prefix != self.completer.completionPrefix():
             self.completer.setCompletionPrefix(prefix)
@@ -155,6 +160,32 @@ class CalculatorTool(ToolWidget):
         "abs": (
             (UnaryFunction("abs"), "(<x>)", "The absolute value of <x>."),
             (np.abs, 1),
+        ),
+        "kmeans": (
+            (
+                TernaryFunction("kmeans"),
+                "(<x>, <k>, <n>)",
+                "The minimum value of the <n>th group formed by k-mean clustering of <x>.",
+            ),
+            (
+                lambda x, k, n: np.amin(
+                    x[~np.isnan(x)][ckmeans(x[~np.isnan(x)], (k, k)).labels == n]
+                ),
+                3,
+            ),
+        ),
+        "kmedians": (
+            (
+                TernaryFunction("kmedians"),
+                "(<x>, <k>, <n>)",
+                "The minimum value of the <n>th group formed by k-median clustering of <x>.",
+            ),
+            (
+                lambda x, k, n: np.amin(
+                    x[~np.isnan(x)][ckmedians(x[~np.isnan(x)], (k, k)).labels == n]
+                ),
+                3,
+            ),
         ),
         "mask": (
             (
