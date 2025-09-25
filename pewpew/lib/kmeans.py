@@ -168,7 +168,3 @@ def kmedians(
         :func:`pewpew.lib.kmeans.kmeans`
     """
     return kcluster(x, np.median, k, init, max_iterations)
-
-
-def thresholds(x: np.ndarray, idx: np.ndarray) -> np.ndarray:
-    return np.sort([x[idx == i].min() for i in np.unique(idx)])

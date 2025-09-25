@@ -60,13 +60,3 @@ def test_kmedians():
     assert np.all(result.labels == [0, 0, 1, 1, 2, 2, 2, 2])
     result = kmeans.kmedians(x, 3, init="kmeans++")
     assert np.all(result.labels == [0, 0, 0, 0, 1, 1, 1, 2])
-
-
-def test_kmeans_threshold():
-    x = np.zeros(100)
-    x[:25] += 1.0
-    x[:50] += 1.0
-    x[:75] += 1.0
-
-    t = kmeans.thresholds(x, 4)
-    assert np.allclose(t, [1.0, 2.0, 3.0])
