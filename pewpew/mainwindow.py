@@ -6,7 +6,7 @@ from types import TracebackType
 
 from pewlib.config import Config, SpotConfig
 from pewlib.io.imzml import is_imzml, is_imzml_binary_data
-from pewlib.io.laser import is_nwi_laser_log
+from pewlib.io.laser import is_iolite_laser_log
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.actions import qAction, qActionGroup
@@ -69,7 +69,7 @@ class MainWindow(QtWidgets.QMainWindow):
         paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
         if event.mimeData().hasUrls():
             paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
-            if any(is_nwi_laser_log(path) for path in paths):
+            if any(is_iolite_laser_log(path) for path in paths):
                 event.acceptProposedAction()
             elif any(is_imzml(path) for path in paths):
                 event.acceptProposedAction()
@@ -81,11 +81,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
 
-        if any(is_nwi_laser_log(path) for path in paths):
+        if any(is_iolite_laser_log(path) for path in paths):
             # laser log import
             log_paths, laser_paths = [], []
             for path in paths:
-                if is_nwi_laser_log(path):
+                if is_iolite_laser_log(path):
                     log_paths.append(path)
                 else:
                     laser_paths.append(path)
@@ -264,7 +264,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.action_wizard_laserlog = qAction(
             "",
             "ESL Laser Log Wizard",
-            "Import data and sync to a ESL ActiveView2 log file.",
+            "Import data and sync to an Iolite log file.",
             self.actionWizardLaserLog,
         )
         self.action_wizard_spot = qAction(
@@ -357,7 +357,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if is_imzml(path):
             self.actionWizardImzML(path=path)
-        elif is_nwi_laser_log(path):
+        elif is_iolite_laser_log(path):
             self.actionWizardLaserLog(path=path)
         else:
             self.tabview.openDocument(path)
@@ -439,7 +439,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def actionAbout(self) -> QtWidgets.QDialog:
         dlg = QtWidgets.QMessageBox(
-            QtWidgets.QMessageBox.Information,
+            QtWidgets.QMessageBox.Icon.Information,
             "About pew²",
             (
                 "Import, process and export of LA-ICP-MS data.\n"
@@ -483,7 +483,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "All files(*)",
         )
         dlg.selectNameFilter("All files(*)")
-        dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+        dlg.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)
         dlg.filesSelected.connect(self.tabview.openDocument)
         dlg.open()
         return dlg
@@ -570,7 +570,7 @@ class MainWindow(QtWidgets.QMainWindow):
         dlg.setLabelText("Fontisze:")
         dlg.setIntValue(self.tabview.options.font.pointSize())
         dlg.setIntRange(2, 96)
-        dlg.setInputMode(QtWidgets.QInputDialog.IntInput)
+        dlg.setInputMode(QtWidgets.QInputDialog.InputMode.IntInput)
         dlg.intValueSelected.connect(self.tabview.options.setFontSize)
         dlg.intValueSelected.connect(self.tabview.refresh)
         dlg.open()
@@ -597,7 +597,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self, etype: type, value: BaseException, tb: TracebackType
     ) -> None:  # pragma: no cover
         """Redirect errors to the log."""
-        if etype == KeyboardInterrupt:
+        if etype is KeyboardInterrupt:
             logger.info("Keyboard interrupt, exiting.")
             sys.exit(1)
         logger.exception("Uncaught exception", exc_info=(etype, value, tb))

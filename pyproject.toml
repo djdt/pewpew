@@ -7,7 +7,7 @@ name = "pewpew"
 version = "1.7.5"
 dependencies = [
     "numpy>=1.22",
-    "pewlib>=0.10.3",
+    "pewlib>=0.10.4",
     "pyqtgraph",
     "PySide6!=6.9.1",
     "ckwrap==1.2.3",

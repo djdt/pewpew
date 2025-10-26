@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 from pewlib.config import SpotConfig
-from pewlib.io.laser import read_nwi_laser_log, sync_data_nwi_laser_log
+from pewlib.io.laser import read_iolite_laser_log, sync_data_with_laser_log
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -77,7 +77,7 @@ class LaserLogImportPage(QtWidgets.QWizardPage):
         self.logChanged.emit()
 
     def validatePage(self) -> bool:
-        log_data = read_nwi_laser_log(self.path.path)
+        log_data = read_iolite_laser_log(self.path.path)
         self.setField("laserlog", log_data)
 
         return True
@@ -393,7 +393,7 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
             data = np.concatenate(seq_datas)
             times = np.concatenate(seq_times)
 
-            sync, sync_params = sync_data_nwi_laser_log(
+            sync, sync_params = sync_data_with_laser_log(
                 data, times, log, delay=delay, sequence=seq
             )
             if delay is None:
