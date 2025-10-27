@@ -263,7 +263,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_wizard_laserlog = qAction(
             "",
-            "ESL Laser Log Wizard",
+            "Iolite Laser Log Wizard",
             "Import data and sync to an Iolite log file.",
             self.actionWizardLaserLog,
         )

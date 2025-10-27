@@ -29,7 +29,7 @@ class LaserLogImportPage(QtWidgets.QWizardPage):
 
         overview = (
             "This wizard will guide you through importing and aligning LA-ICP-MS data "
-            "with a laser log, a file that records the laser line locations. "
+            "with an Iolite laser log, a file that records the laser line locations. "
             "To begin, select the path to the laser log file below."
         )
 
@@ -39,13 +39,26 @@ class LaserLogImportPage(QtWidgets.QWizardPage):
         self.path = PathSelectWidget(path, "LaserLog", [".csv"], "File")
         self.path.pathChanged.connect(self.completeChanged)
 
+        self.radio_activeview = QtWidgets.QRadioButton("ActiveView2")
+        self.radio_activeview.setChecked(True)
+        self.radio_chromium = QtWidgets.QRadioButton("Chromium3")
+
+        gbox_style = QtWidgets.QGroupBox("Log Style")
+        gbox_style_layout = QtWidgets.QVBoxLayout()
+        gbox_style_layout.addWidget(self.radio_activeview)
+        gbox_style_layout.addWidget(self.radio_chromium)
+        gbox_style.setLayout(gbox_style_layout)
+
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(label)
         layout.addWidget(self.path)
+        layout.addWidget(gbox_style)
         layout.addStretch(1)
         self.setLayout(layout)
 
         self.registerField("laserlog", self, "log_prop")
+        self.registerField("styleActiveView2", self.radio_activeview)
+        self.registerField("styleChromium3", self.radio_chromium)
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
@@ -77,7 +90,8 @@ class LaserLogImportPage(QtWidgets.QWizardPage):
         self.logChanged.emit()
 
     def validatePage(self) -> bool:
-        log_data = read_iolite_laser_log(self.path.path)
+        log_style = "activeview2" if self.radio_activeview.isChecked() else "chromium3"
+        log_data = read_iolite_laser_log(self.path.path, log_style=log_style)
         self.setField("laserlog", log_data)
 
         return True
@@ -149,7 +163,7 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         comments = log_data["comment"][seq_idx]
         num_lines = [
             np.count_nonzero(
-                log_data[(log_data["sequence"] == i) & (log_data["state"] == "On")]
+                log_data[(log_data["sequence"] == i) & (log_data["state"] == 1)]
             )
             for i in sequences
         ]
@@ -228,12 +242,11 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         self.group_tree.expandAll()
 
     def validatePage(self) -> bool:
+        print("validate start")
         groups = self.field("groups")
 
         log = self.field("laserlog")
 
-        start_idx = np.flatnonzero(log["state"] == "On")
-        log = log[np.stack((start_idx, start_idx + 1), axis=1).flat]
         params = self.field("laserparam")
 
         text_color = self.palette().color(
@@ -270,6 +283,7 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
                 else:
                     item.setForeground(1, QtGui.QBrush(text_color))
 
+        print("validate complete")
         if len(invalid_items) > 0:
             text = "\n".join(
                 f"{k}: {v[0]:.2f} s > {v[1]:.2f} s" for k, v in invalid_items.items()
@@ -494,10 +508,10 @@ class LaserLogImportWizard(QtWidgets.QWizard):
                 "agilent": self.page_agilent,
                 # "csv": self.page_csv,
                 # "numpy": self.page_numpy,
+                "nu": self.page_nu,
                 "perkinelmer": self.page_perkinelmer,
                 # "text": self.page_text,
                 "thermo": self.page_thermo,
-                "nu": self.page_nu,
             },
             parent=self,
         )

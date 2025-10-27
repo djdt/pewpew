@@ -489,7 +489,7 @@ class PeriodicTableButton(QtWidgets.QToolButton):
 
     def setEnabledIsotopes(self, enabled: np.ndarray):
         for isotope, action in self.isotope_actions.items():
-            if isotope in enabled["Isotope"]:
+            if isotope in enabled["isotope"]:
                 action.setEnabled(True)
             else:
                 action.setEnabled(False)
@@ -685,6 +685,13 @@ class PeriodicTableSelector(QtWidgets.QWidget):
                 button.setIcon(QtGui.QIcon.fromTheme("folder-important"))
             else:
                 button.setIcon(QtGui.QIcon())
+
+    isotopes = QtCore.Property(
+        "QVariant",  # type: ignore
+        selectedIsotopes,
+        setSelectedIsotopes,
+        notify=isotopesChanged,  # type: ignore
+    )
 
 
 if __name__ == "__main__":

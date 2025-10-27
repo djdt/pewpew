@@ -99,7 +99,7 @@ class LaserTabView(TabView):
             paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
             # logs / imzml go to mainwindow for wizard
             if not any(
-                io.laser.is_nwi_laser_log(path) or io.imzml.is_imzml(path)
+                io.laser.is_iolite_laser_log(path) or io.imzml.is_imzml(path)
                 for path in paths
             ):
                 event.acceptProposedAction()
@@ -324,9 +324,7 @@ class LaserTabWidget(TabViewWidget):
         self.laser_controls.lockChanged.connect(
             self.graphics.options.setUseGlobalColorRange
         )
-        self.laser_controls.lockChanged.connect(
-            self.refresh
-        )
+        self.laser_controls.lockChanged.connect(self.refresh)
 
         for index in range(self.controls.count()):
             self.controls.widget(index).toolbar.addActions([self.action_zoom_out])
@@ -732,7 +730,9 @@ class LaserTabWidget(TabViewWidget):
                     config = None
 
                 if mime.hasFormat("application/x-pew2calibration"):
-                    with BytesIO(mime.data("application/x-pew2calibration").data()) as fp:
+                    with BytesIO(
+                        mime.data("application/x-pew2calibration").data()
+                    ) as fp:
                         npy = np.load(fp)
                         calibration = {k: Calibration.from_array(npy[k]) for k in npy}
                 else:

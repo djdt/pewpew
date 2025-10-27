@@ -14,6 +14,10 @@ from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog
 from pewpew.widgets.periodictable import PeriodicTableSelector, isotope_data
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class _OptionsBase(QtWidgets.QGroupBox):  # pragma: no cover
     optionsChanged = QtCore.Signal()
@@ -278,6 +282,7 @@ class NuOptions(_OptionsBase):
         super().__init__("Nu Vitesse", "Directory", [""], parent)
 
         self.table = PeriodicTableSelector()
+        self.table.isotopesChanged.connect(self.optionsChanged)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.table)
@@ -288,7 +293,7 @@ class NuOptions(_OptionsBase):
             (
                 "selectedIsotopes",
                 self.table,
-                "selectedIsotopes",
+                "isotopes",
                 "isotopesChanged",
             )
         ]
@@ -305,7 +310,7 @@ class NuOptions(_OptionsBase):
             dir, autoblank=False, max_integs=1
         )
         idx = search_sorted_closest(masses, isotope_data["mass"])
-        selected = isotope_data[np.abs(masses[idx] - masses["mass"]) < 0.05]
+        selected = isotope_data[np.abs(masses[idx] - isotope_data["mass"]) < 0.05]
         self.table.setEnabledIsotopes(selected)
 
 
@@ -825,6 +830,9 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             elif self.field("csv"):
                 paths = [Path(p) for p in self.field("csv.paths")]
                 datas, params, infos = self.readMultiple(self.readCsv, paths)
+            elif self.field("nu"):
+                paths = [Path(p) for p in self.field("nu.paths")]
+                datas, params, infos = self.readMultiple(self.readNu, paths)
             elif self.field("numpy"):
                 paths = [Path(p) for p in self.field("numpy.paths")]
                 datas, params, infos = self.readMultiple(self.readNumpy, paths)
@@ -838,10 +846,11 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
                 paths = [Path(p) for p in self.field("thermo.paths")]
                 datas, params, infos = self.readMultiple(self.readThermo, paths)
             else:
-                raise ValueError
+                raise ValueError("Unknown field")
 
         except ValueError as e:
             QtWidgets.QMessageBox.critical(self, "Import Error", str(e))
+            logger.exception(e)
             return False
 
         self.setField("laserdata", datas)
