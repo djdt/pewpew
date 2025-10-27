@@ -82,7 +82,7 @@ class LaserLogImportPage(QtWidgets.QWizardPage):
 
         return True
 
-    log_prop = QtCore.Property("QVariant", getLog, setLog, notify=logChanged)
+    log_prop = QtCore.Property("QVariant", getLog, setLog, notify=logChanged)  # type: ignore
 
 
 class LaserGroupListItem(QtWidgets.QListWidgetItem):
@@ -98,8 +98,10 @@ class LaserGroupListItem(QtWidgets.QListWidgetItem):
         layout = QtWidgets.QHBoxLayout()
 
         gbox = QtWidgets.QGroupBox("Lasers")
-        gbox.setLayout(QtWidgets.QVBoxLayout())
-        gbox.layout().addWidget(self.lasers)
+        gbox_layout = QtWidgets.QVBoxLayout()
+        gbox_layout.addWidget(self.lasers)
+        gbox.setLayout(gbox_layout)
+
         layout.addWidget(label, 0)
         layout.addWidget(gbox, 1)
         self.setLayout(layout)
@@ -209,6 +211,8 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
                     | QtCore.Qt.ItemFlag.ItemIsEnabled
                     | QtCore.Qt.ItemFlag.ItemIsDragEnabled
                 )
+                if item is None:
+                    raise ValueError("missing item")
                 item.addChild(child)
                 tree_idx += 1
 
@@ -287,6 +291,8 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         groups: dict[int, list[tuple[int, int]]] = {}
         for i in range(self.group_tree.topLevelItemCount()):
             item = self.group_tree.topLevelItem(i)
+            if item is None:
+                raise ValueError("missing item")
             if item.checkState(0) == QtCore.Qt.CheckState.Checked:
                 seq = item.data(0, QtCore.Qt.ItemDataRole.UserRole)
                 idx = [
@@ -300,7 +306,7 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
                     groups[seq] = idx
         return groups
 
-    groups_prop = QtCore.Property("QVariant", getGroups, notify=groupsChanged)
+    groups_prop = QtCore.Property("QVariant", getGroups, notify=groupsChanged)  # type: ignore
 
 
 class LaserLogImagePage(QtWidgets.QWizardPage):
@@ -347,10 +353,11 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
         self.checkbox_collapse.checkStateChanged.connect(self.graphics.zoomReset)
 
         controls_box = QtWidgets.QGroupBox("Import Options")
-        controls_box.setLayout(QtWidgets.QFormLayout())
-        controls_box.layout().addRow("Delay", self.spinbox_delay)
-        controls_box.layout().addRow("Drift", self.spinbox_correction)
-        controls_box.layout().addRow(self.checkbox_collapse)
+        controls_box_layout = QtWidgets.QFormLayout()
+        controls_box_layout.addRow("Delay", self.spinbox_delay)
+        controls_box_layout.addRow("Drift", self.spinbox_correction)
+        controls_box_layout.addRow(self.checkbox_collapse)
+        controls_box.setLayout(controls_box_layout)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(controls_box, 0)
@@ -455,8 +462,9 @@ class LaserLogImportWizard(QtWidgets.QWizard):
     page_perkinelmer = 5
     page_text = 6
     page_thermo = 7
-    page_groups = 8
-    page_image = 9
+    page_nu = 8
+    page_groups = 9
+    page_image = 10
 
     laserImported = QtCore.Signal(Path, tuple)
 
@@ -489,6 +497,7 @@ class LaserLogImportWizard(QtWidgets.QWizard):
                 "perkinelmer": self.page_perkinelmer,
                 # "text": self.page_text,
                 "thermo": self.page_thermo,
+                "nu": self.page_nu,
             },
             parent=self,
         )
@@ -515,6 +524,12 @@ class LaserLogImportWizard(QtWidgets.QWizard):
             self.page_numpy,
             PathAndOptionsPage(
                 paths, "numpy", nextid=self.page_groups, multiplepaths=True, parent=self
+            ),
+        )
+        self.setPage(
+            self.page_nu,
+            PathAndOptionsPage(
+                paths, "nu", nextid=self.page_groups, multiplepaths=True, parent=self
             ),
         )
         # self.setPage(

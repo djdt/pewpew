@@ -1,6 +1,4 @@
 import logging
-import time
-from importlib.metadata import version
 from pathlib import Path
 
 import numpy as np
@@ -223,9 +221,9 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.lineedit_aspect.setEnabled(False)
 
         layout_elements = QtWidgets.QHBoxLayout()
-        layout_elements.addWidget(QtWidgets.QLabel("Elements:"), 0, QtCore.Qt.AlignLeft)
+        layout_elements.addWidget(QtWidgets.QLabel("Elements:"), 0, QtCore.Qt.AlignmentFlag.AlignLeft)
         layout_elements.addWidget(self.label_elements, 1)
-        layout_elements.addWidget(self.button_elements, 0, QtCore.Qt.AlignRight)
+        layout_elements.addWidget(self.button_elements, 0, QtCore.Qt.AlignmentFlag.AlignRight)
 
         config_box = QtWidgets.QGroupBox("Config")
         layout_config = QtWidgets.QFormLayout()
@@ -294,7 +292,7 @@ class ConfigPage(QtWidgets.QWizardPage):
     def setElidedNames(self, names: list[str]) -> None:
         text = ", ".join(name for name in names)
         fm = QtGui.QFontMetrics(self.label_elements.font())
-        text = fm.elidedText(text, QtCore.Qt.ElideRight, self.label_elements.width())
+        text = fm.elidedText(text, QtCore.Qt.TextElideMode.ElideRight, self.label_elements.width())
         self.label_elements.setText(text)
 
     def updateNames(self, rename: dict) -> None:

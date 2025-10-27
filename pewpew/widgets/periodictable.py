@@ -596,7 +596,6 @@ class PeriodicTableSelector(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
-
     def animate(self):
         geom = self.buttons["Mn"].geometry()
         new_geom = geom.adjusted(-5, -5, 5, 5)
