@@ -1,3 +1,4 @@
+import logging
 import re
 import time
 from importlib.metadata import version
@@ -7,16 +8,34 @@ from typing import Any, Callable
 import numpy as np
 import numpy.lib.recfunctions as rfn
 from pewlib import io
-from pewlib.process.calc import search_sorted_closest
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog
 from pewpew.widgets.periodictable import PeriodicTableSelector, isotope_data
 
-import logging
-
 logger = logging.getLogger(__name__)
+
+
+def search_sorted_closest(x: np.ndarray, v: np.ndarray):
+    """Get the idx of the closest values in ``x`` for ``v``.
+
+    If ``check_max_diff`` is a value, the maximum distance must be lower.
+
+    Args:
+        x: sorted array
+        y: values to find closest idx of in x
+    Returns:
+        idx of closest ``x`` values for ``v``
+    """
+    idx = np.searchsorted(x, v, side="left")
+    prev_less = np.abs(v - x[np.maximum(idx - 1, 0)]) < np.abs(
+        v - x[np.minimum(idx, len(x) - 1)]
+    )
+    prev_less = (idx == len(x)) | prev_less
+    idx[prev_less] -= 1
+
+    return idx
 
 
 class _OptionsBase(QtWidgets.QGroupBox):  # pragma: no cover
