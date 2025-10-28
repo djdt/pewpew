@@ -41,7 +41,7 @@ class LaserLogImportPage(QtWidgets.QWizardPage):
 
         self.radio_activeview = QtWidgets.QRadioButton("ActiveView2")
         self.radio_activeview.setChecked(True)
-        self.radio_chromium = QtWidgets.QRadioButton("Chromium3")
+        self.radio_chromium = QtWidgets.QRadioButton("Chromium2")
 
         gbox_style = QtWidgets.QGroupBox("Log Style")
         gbox_style_layout = QtWidgets.QVBoxLayout()
@@ -58,7 +58,7 @@ class LaserLogImportPage(QtWidgets.QWizardPage):
 
         self.registerField("laserlog", self, "log_prop")
         self.registerField("styleActiveView2", self.radio_activeview)
-        self.registerField("styleChromium3", self.radio_chromium)
+        self.registerField("styleChromium2", self.radio_chromium)
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
@@ -90,7 +90,7 @@ class LaserLogImportPage(QtWidgets.QWizardPage):
         self.logChanged.emit()
 
     def validatePage(self) -> bool:
-        log_style = "activeview2" if self.radio_activeview.isChecked() else "chromium3"
+        log_style = "activeview2" if self.radio_activeview.isChecked() else "chromium2"
         log_data = read_iolite_laser_log(self.path.path, log_style=log_style)
         self.setField("laserlog", log_data)
 
