@@ -323,7 +323,10 @@ class NuOptions(_OptionsBase):
 
     def updateForPath(self, path: Path):
         if not io.nu.is_nu_image_directory(path):
-            raise ValueError("not a valid Nu image directory")
+            try:
+                path = next(d for d in path.iterdir() if io.nu.is_nu_image_directory(d))
+            except StopIteration:
+                raise ValueError(f"{path} is not a valid Nu image directory")
 
         acq_dir = next(
             d for d in path.iterdir() if io.nu.is_nu_acquisition_directory(d)
