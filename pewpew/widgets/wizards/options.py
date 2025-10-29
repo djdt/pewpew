@@ -322,11 +322,14 @@ class NuOptions(_OptionsBase):
         return selected is not None and selected.size > 0
 
     def updateForPath(self, path: Path):
-        dir = next(
-            d for d in path.iterdir() if d.is_dir() and d.joinpath("run.info").exists()
+        if not io.nu.is_nu_image_directory(path):
+            raise ValueError("not a valid Nu image directory")
+
+        acq_dir = next(
+            d for d in path.iterdir() if io.nu.is_nu_acquisition_directory(d)
         )
-        signals, masses, times, pulses, info = io.nu.read_laser_directory(
-            dir, autoblank=False, max_integs=1
+        signals, masses, times, pulses, info = io.nu.read_laser_acquisition(
+            acq_dir, autoblank=False, max_integs=1
         )
         idx = search_sorted_closest(masses, isotope_data["mass"])
         selected = isotope_data[np.abs(masses[idx] - isotope_data["mass"]) < 0.05]
@@ -483,16 +486,16 @@ class _PathSelectBase(QtWidgets.QWidget):
         self.setAcceptDrops(True)
 
     @QtCore.Property("QString")  # type: ignore
-    def _path(self) -> str:  # pragma: no cover
+    def _path(self) -> str:
+        raise NotImplementedError
+
+    @QtCore.Property("QStringList")  # type: ignore
+    def _paths(self) -> list[str]:
         raise NotImplementedError
 
     @property
     def path(self) -> Path:
         return Path(self._path)  # type: ignore
-
-    @QtCore.Property("QStringList")  # type: ignore
-    def _paths(self) -> list[str]:  # pragma: no cover
-        raise NotImplementedError
 
     @property
     def paths(self) -> list[Path]:
@@ -851,6 +854,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
                 datas, params, infos = self.readMultiple(self.readCsv, paths)
             elif self.field("nu"):
                 paths = [Path(p) for p in self.field("nu.paths")]
+                print(paths)
                 datas, params, infos = self.readMultiple(self.readNu, paths)
             elif self.field("numpy"):
                 paths = [Path(p) for p in self.field("numpy.paths")]
