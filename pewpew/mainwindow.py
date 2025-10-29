@@ -194,7 +194,6 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.action_open.setShortcut("Ctrl+O")
 
-        re
         self.action_open_recent = QtGui.QActionGroup(self)
         self.action_open_recent.triggered.connect(self.openRecentFile)
 
