@@ -42,12 +42,15 @@ class LaserLogImportPage(QtWidgets.QWizardPage):
         self.radio_activeview = QtWidgets.QRadioButton("ActiveView2")
         self.radio_chromium = QtWidgets.QRadioButton("Chromium2")
 
+        style = "activeview2"
         # attempt to pick correct Iolite style
-        with path.open("r") as fp:
-            if "Vertix" in fp.readline():
-                self.radio_chromium.setChecked(True)
-            else:
-                self.radio_activeview.setChecked(True)
+        if path.exists() and path.is_file():
+            with path.open("r") as fp:
+                if "Vertix" in fp.readline():
+                    style = "chromium2"
+
+        self.radio_activeview.setChecked(style == "activeview2")
+        self.radio_chromium.setChecked(style == "chromium2")
 
         gbox_style = QtWidgets.QGroupBox("Log Style")
         gbox_style_layout = QtWidgets.QVBoxLayout()
