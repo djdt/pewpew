@@ -34,6 +34,7 @@ class ImportWizard(QtWidgets.QWizard):
     ):
         super().__init__(parent)
         self.setWindowTitle("Import Wizard")
+        self.setMinimumSize(860, 680)
 
         if isinstance(path, str):  # pragma: no cover
             path = Path(path)
