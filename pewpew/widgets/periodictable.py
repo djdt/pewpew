@@ -1,6 +1,5 @@
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
-
 from spcal.gui.objects import KeepMenuOpenFilter
 
 isotope_data = np.array(
@@ -425,7 +424,6 @@ class PeriodicTableButton(QtWidgets.QToolButton):
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
-
         self.isotopes = isotopes
         self.symbol = isotopes["symbol"][0]
         self.name = element_positions[self.symbol][0]
@@ -435,7 +433,7 @@ class PeriodicTableButton(QtWidgets.QToolButton):
 
         self.setPopupMode(QtWidgets.QToolButton.ToolButtonPopupMode.DelayedPopup)
         self.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.setMinimumSize(QtCore.QSize(45, 45))
+        self.setMinimumSize(QtCore.QSize(35, 35))
 
         self.action = QtGui.QAction(self.symbol, parent=self)
         self.action.setToolTip(self.name)
