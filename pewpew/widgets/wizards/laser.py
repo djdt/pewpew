@@ -40,8 +40,14 @@ class LaserLogImportPage(QtWidgets.QWizardPage):
         self.path.pathChanged.connect(self.completeChanged)
 
         self.radio_activeview = QtWidgets.QRadioButton("ActiveView2")
-        self.radio_activeview.setChecked(True)
         self.radio_chromium = QtWidgets.QRadioButton("Chromium2")
+
+        # attempt to pick correct Iolite style
+        with path.open("r") as fp:
+            if "Vertix" in fp.readline():
+                self.radio_chromium.setChecked(True)
+            else:
+                self.radio_activeview.setChecked(True)
 
         gbox_style = QtWidgets.QGroupBox("Log Style")
         gbox_style_layout = QtWidgets.QVBoxLayout()
@@ -242,7 +248,6 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         self.group_tree.expandAll()
 
     def validatePage(self) -> bool:
-        print("validate start")
         groups = self.field("groups")
 
         log = self.field("laserlog")
@@ -283,7 +288,6 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
                 else:
                     item.setForeground(1, QtGui.QBrush(text_color))
 
-        print("validate complete")
         if len(invalid_items) > 0:
             text = "\n".join(
                 f"{k}: {v[0]:.2f} s > {v[1]:.2f} s" for k, v in invalid_items.items()
@@ -515,6 +519,8 @@ class LaserLogImportWizard(QtWidgets.QWizard):
             },
             parent=self,
         )
+        if len(paths) > 0:
+            format_page.guessFormat(paths[0])
 
         self.setPage(self.page_format, format_page)
         self.setPage(

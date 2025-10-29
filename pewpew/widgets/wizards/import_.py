@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import numpy.lib.recfunctions as rfn
+from pewlib import io
 from pewlib.config import Config
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -167,6 +168,13 @@ class FormatPage(QtWidgets.QWizardPage):
         self.registerField("text", self.radio_text)
         self.registerField("thermo", self.radio_thermo)
 
+    def guessFormat(self, path: Path):
+        if path.is_dir():
+            if path.suffix == ".b":
+                self.radio_agilent.setChecked(True)
+            elif io.nu.is_nu_image_directory(path):
+                self.radio_nu.setChecked(True)
+
     def initializePage(self) -> None:
         if self.page_id_dict is not None:
             self.radio_agilent.setVisible("agilent" in self.page_id_dict)
@@ -225,9 +233,13 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.lineedit_aspect.setEnabled(False)
 
         layout_elements = QtWidgets.QHBoxLayout()
-        layout_elements.addWidget(QtWidgets.QLabel("Elements:"), 0, QtCore.Qt.AlignmentFlag.AlignLeft)
+        layout_elements.addWidget(
+            QtWidgets.QLabel("Elements:"), 0, QtCore.Qt.AlignmentFlag.AlignLeft
+        )
         layout_elements.addWidget(self.label_elements, 1)
-        layout_elements.addWidget(self.button_elements, 0, QtCore.Qt.AlignmentFlag.AlignRight)
+        layout_elements.addWidget(
+            self.button_elements, 0, QtCore.Qt.AlignmentFlag.AlignRight
+        )
 
         config_box = QtWidgets.QGroupBox("Config")
         layout_config = QtWidgets.QFormLayout()
@@ -296,7 +308,9 @@ class ConfigPage(QtWidgets.QWizardPage):
     def setElidedNames(self, names: list[str]) -> None:
         text = ", ".join(name for name in names)
         fm = QtGui.QFontMetrics(self.label_elements.font())
-        text = fm.elidedText(text, QtCore.Qt.TextElideMode.ElideRight, self.label_elements.width())
+        text = fm.elidedText(
+            text, QtCore.Qt.TextElideMode.ElideRight, self.label_elements.width()
+        )
         self.label_elements.setText(text)
 
     def updateNames(self, rename: dict) -> None:
