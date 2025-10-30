@@ -857,7 +857,6 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
                 datas, params, infos = self.readMultiple(self.readCsv, paths)
             elif self.field("nu"):
                 paths = [Path(p) for p in self.field("nu.paths")]
-                print(paths)
                 datas, params, infos = self.readMultiple(self.readNu, paths)
             elif self.field("numpy"):
                 paths = [Path(p) for p in self.field("numpy.paths")]
