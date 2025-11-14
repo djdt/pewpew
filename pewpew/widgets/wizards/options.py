@@ -88,7 +88,7 @@ class AgilentOptions(_OptionsBase):
             "Read names from Acquistion Method."
         )
 
-        self.check_flatten = QtWidgets.QCheckBox("Multiple images per batch.")
+        self.flatten = False
 
         dfile_layout = QtWidgets.QFormLayout()
         dfile_layout.addRow("Data File Collection:", self.combo_dfile_method)
@@ -97,7 +97,6 @@ class AgilentOptions(_OptionsBase):
         layout = QtWidgets.QVBoxLayout()
         layout.addLayout(dfile_layout, 1)
         layout.addWidget(self.check_name_acq_xml, 0)
-        layout.addWidget(self.check_flatten, 0)
         self.setLayout(layout)
 
     def countDatafiles(self) -> None:
@@ -144,7 +143,6 @@ class AgilentOptions(_OptionsBase):
                 "currentTextChanged",
             ),
             ("useAcqNames", self.check_name_acq_xml, "checked", "toggled"),
-            ("flatten", self.check_flatten, "checked", "toggled"),
         ]
 
     def isComplete(self) -> bool:
@@ -790,6 +788,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         multiplepaths: bool = False,
         nextid: int | None = None,
         register_laser_fields: bool = False,
+        flatten: bool = False,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
@@ -800,6 +799,8 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         self._laser_datas: list[np.ndarray] = []
         self._laser_params: list[dict] = []
         self._laser_infos: list[dict] = []
+
+        self.flatten = flatten
 
         if multiplepaths:
             self.path = MultiplePathSelectWidget(paths, ftype, exts, fmode)
@@ -935,7 +936,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             path,
             collection_methods=method,
             use_acq_for_names=self.field("agilent.useAcqNames"),
-            flatten=self.field("agilent.flatten"),
+            flatten=self.flatten,
             full=True,
         )
         info = io.agilent.load_info(path)

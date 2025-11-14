@@ -279,7 +279,9 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
             for i, r in idx:
                 seq_time = params[i]["times"].flat
                 if r > -1:
-                    seq_time = seq_time[params[i]["acq_starts"][r] : params[i]["acq_ends"][r]]
+                    seq_time = seq_time[
+                        params[i]["acq_starts"][r] : params[i]["acq_ends"][r]
+                    ]
                 seq_times.append(seq_time)
 
             seq_max_time = np.amax(seq_times)
@@ -490,7 +492,6 @@ class LaserLogImportWizard(QtWidgets.QWizard):
     page_laser = 0
     page_format = 1
     page_agilent = 2
-    page_agilent = 2
     page_csv = 3
     page_numpy = 4
     page_perkinelmer = 5
@@ -547,6 +548,7 @@ class LaserLogImportWizard(QtWidgets.QWizard):
                 nextid=self.page_groups,
                 multiplepaths=True,
                 register_laser_fields=True,
+                flatten=True,
                 parent=self,
             ),
         )
