@@ -88,6 +88,8 @@ class AgilentOptions(_OptionsBase):
             "Read names from Acquistion Method."
         )
 
+        self.check_flatten = QtWidgets.QCheckBox("Multiple images per batch.")
+
         dfile_layout = QtWidgets.QFormLayout()
         dfile_layout.addRow("Data File Collection:", self.combo_dfile_method)
         dfile_layout.addRow("Data Files Found:", self.lineedit_dfile)
@@ -95,6 +97,7 @@ class AgilentOptions(_OptionsBase):
         layout = QtWidgets.QVBoxLayout()
         layout.addLayout(dfile_layout, 1)
         layout.addWidget(self.check_name_acq_xml, 0)
+        layout.addWidget(self.check_flatten, 0)
         self.setLayout(layout)
 
     def countDatafiles(self) -> None:
@@ -141,6 +144,7 @@ class AgilentOptions(_OptionsBase):
                 "currentTextChanged",
             ),
             ("useAcqNames", self.check_name_acq_xml, "checked", "toggled"),
+            ("flatten", self.check_flatten, "checked", "toggled"),
         ]
 
     def isComplete(self) -> bool:
@@ -931,6 +935,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             path,
             collection_methods=method,
             use_acq_for_names=self.field("agilent.useAcqNames"),
+            flatten=self.field("agilent.flatten"),
             full=True,
         )
         info = io.agilent.load_info(path)

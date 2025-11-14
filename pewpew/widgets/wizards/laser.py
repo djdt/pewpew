@@ -139,7 +139,7 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         self._datas: list[np.ndarray] = []
         self._infos: list[dict] = []
 
-        self.checkbox_split = QtWidgets.QCheckBox("Split data into rows.")
+        self.checkbox_split = QtWidgets.QCheckBox("Split batch into acquitions.")
         self.checkbox_split.clicked.connect(self.initializePage)
 
         self.group_tree = QtWidgets.QTreeWidget()
@@ -193,6 +193,7 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
             self.group_tree.addTopLevelItem(item)
 
         datas = self.field("laserdata")
+        params = self.field("laserparam")
         infos = self.field("laserinfo")
 
         order = np.arange(len(datas))
@@ -214,8 +215,10 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         tree_idx = 0
         for idx in order:
             info = infos[idx]
-            data = datas[idx]
-            for row in range(data.shape[0] if self.checkbox_split.isChecked() else 1):
+            # data = datas[idx]
+            for row in range(
+                len(params[idx]["acq_starts"]) if self.checkbox_split.isChecked() else 1
+            ):
                 item = self.group_tree.topLevelItem(
                     tree_idx % self.group_tree.topLevelItemCount()
                 )
@@ -271,10 +274,14 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
             log_max_time = np.ptp(
                 log[np.isin(log["sequence"], seq)]["time"].astype(float) / 1000.0
             )
-            seq_times = [
-                params[i]["times"][j] if j > -1 else params[i]["times"].flat
-                for i, j in idx
-            ]
+
+            seq_times = []
+            for i, r in idx:
+                seq_time = params[i]["times"].flat
+                if r > -1:
+                    seq_time = seq_time[params[i]["acq_starts"][r] : params[i]["acq_ends"][r]]
+                seq_times.append(seq_time)
+
             seq_max_time = np.amax(seq_times)
 
             # Check if this time is less than requested by the log
@@ -409,15 +416,20 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
             seq_datas = []
             seq_times = []
             for i, r in idx:
-                x = datas[i]
-                t = params[i]["times"]
+                seq_data = datas[i].flat
+                seq_time = params[i]["times"].ravel()
 
-                if r == -1:
-                    seq_datas.append(x.flat)
-                    seq_times.append(t.flat + np.linspace(0.0, corr, t.size))
-                else:
-                    seq_datas.append(x[r])
-                    seq_times.append(t[r] + np.linspace(0.0, corr, t.shape[1]))
+                if r > -1:
+                    seq_time = seq_time[
+                        params[i]["acq_starts"][r] : params[i]["acq_ends"][r]
+                    ]
+                    seq_data = seq_data[
+                        params[i]["acq_starts"][r] : params[i]["acq_ends"][r]
+                    ]
+
+                seq_datas.append(seq_data)
+                seq_times.append(seq_time + np.linspace(0.0, corr, seq_time.size))
+
             data = np.concatenate(seq_datas)
             times = np.concatenate(seq_times)
 
@@ -477,6 +489,7 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
 class LaserLogImportWizard(QtWidgets.QWizard):
     page_laser = 0
     page_format = 1
+    page_agilent = 2
     page_agilent = 2
     page_csv = 3
     page_numpy = 4
