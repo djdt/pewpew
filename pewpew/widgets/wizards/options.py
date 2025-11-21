@@ -981,13 +981,18 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
 
     def readNu(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, Any]]:
         isotopes = self.field("nu.selectedIsotopes")
-        signals, masses, times = io.nu.read_laser_image(path)
+        signals, masses, times, pulses, info = io.nu.read_laser_image(path)
         idx = search_sorted_closest(masses, isotopes["mass"])
 
         dtype = [(f"{iso['isotope']}{iso['symbol']}", float) for iso in isotopes]
         signals = rfn.unstructured_to_structured(signals[:, idx], dtype=dtype)
 
-        params = {"masses": masses, "times": times}
+        params = {
+            "masses": masses,
+            "times": times - pulses[0],
+            "pulses": pulses,
+            "laserinfo": info,
+        }
         return signals, params, {}
 
     def readNumpy(
