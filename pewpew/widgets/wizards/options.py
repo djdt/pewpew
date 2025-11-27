@@ -937,7 +937,6 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             collection_methods=method,
             use_acq_for_names=self.field("agilent.useAcqNames"),
             flatten=self.flatten,
-            full=True,
         )
         info = io.agilent.load_info(path)
         return data, params, info

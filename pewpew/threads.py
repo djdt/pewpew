@@ -90,9 +90,7 @@ class ImportThread(QtCore.QThread):
                 data = None
                 for methods in [["batch_xml", "batch_csv"], ["acq_method_xml"]]:
                     try:
-                        data, params = io.agilent.load(
-                            path, collection_methods=methods, full=True
-                        )
+                        data, params = io.agilent.load(path, collection_methods=methods)
                         info.update(io.agilent.load_info(path))
                         break
                     except ValueError as e:
