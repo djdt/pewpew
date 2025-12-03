@@ -1,6 +1,5 @@
 import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
-from spcal.gui.objects import KeepMenuOpenFilter
 
 isotope_data = np.array(
     [
@@ -412,6 +411,22 @@ element_positions = {
     "No": ("Nobelium", 8, 15),
     "Lr": ("Lawrencium", 8, 16),
 }
+
+
+class KeepMenuOpenFilter(QtCore.QObject):
+    """Keeps menu open when action is triggered."""
+
+    def eventFilter(self, obj: QtCore.QObject, event: QtCore.QEvent) -> bool:
+        if event.type() in [
+            QtCore.QEvent.Type.MouseButtonPress,
+            QtCore.QEvent.Type.MouseButtonDblClick,
+        ] and isinstance(obj, QtWidgets.QMenu):
+            if obj.activeAction() and not obj.activeAction().menu():
+                obj.activeAction().trigger()
+                return True
+        elif event.type() in [QtCore.QEvent.Type.MouseButtonRelease]:
+            return True
+        return super().eventFilter(obj, event)
 
 
 class PeriodicTableButton(QtWidgets.QToolButton):
