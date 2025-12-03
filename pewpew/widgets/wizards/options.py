@@ -1,3 +1,4 @@
+import logging
 import re
 import time
 from importlib.metadata import version
@@ -5,11 +6,36 @@ from pathlib import Path
 from typing import Any, Callable
 
 import numpy as np
+import numpy.lib.recfunctions as rfn
 from pewlib import io
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.events import DragDropRedirectFilter
 from pewpew.widgets.ext import MultipleDirDialog
+from pewpew.widgets.periodictable import PeriodicTableSelector, isotope_data
+
+logger = logging.getLogger(__name__)
+
+
+def search_sorted_closest(x: np.ndarray, v: np.ndarray):
+    """Get the idx of the closest values in ``x`` for ``v``.
+
+    If ``check_max_diff`` is a value, the maximum distance must be lower.
+
+    Args:
+        x: sorted array
+        y: values to find closest idx of in x
+    Returns:
+        idx of closest ``x`` values for ``v``
+    """
+    idx = np.searchsorted(x, v, side="left")
+    prev_less = np.abs(v - x[np.maximum(idx - 1, 0)]) < np.abs(
+        v - x[np.minimum(idx, len(x) - 1)]
+    )
+    prev_less = (idx == len(x)) | prev_less
+    idx[prev_less] -= 1
+
+    return idx
 
 
 class _OptionsBase(QtWidgets.QGroupBox):  # pragma: no cover
@@ -50,7 +76,7 @@ class AgilentOptions(_OptionsBase):
 
         self.combo_dfile_method = QtWidgets.QComboBox()
         self.combo_dfile_method.setSizeAdjustPolicy(
-            QtWidgets.QComboBox.AdjustToContents
+            QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToContents
         )
         self.combo_dfile_method.activated.connect(self.countDatafiles)
         self.combo_dfile_method.activated.connect(self.optionsChanged)
@@ -61,6 +87,8 @@ class AgilentOptions(_OptionsBase):
         self.check_name_acq_xml = QtWidgets.QCheckBox(
             "Read names from Acquistion Method."
         )
+
+        self.flatten = False
 
         dfile_layout = QtWidgets.QFormLayout()
         dfile_layout.addRow("Data File Collection:", self.combo_dfile_method)
@@ -270,6 +298,49 @@ class CsvLinesOptions(_OptionsBase):
         self.updateHeaderPreview(self.spinbox_header.value())
 
 
+class NuOptions(_OptionsBase):
+    def __init__(self, parent: QtWidgets.QWidget | None = None):
+        super().__init__("Nu Vitesse", "Directory", [""], parent)
+
+        self.table = PeriodicTableSelector()
+        self.table.isotopesChanged.connect(self.optionsChanged)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.table)
+        self.setLayout(layout)
+
+    def fieldArgs(self) -> list[tuple[str, QtWidgets.QWidget, str, str]]:
+        return [
+            (
+                "selectedIsotopes",
+                self.table,
+                "isotopes",
+                "isotopesChanged",
+            )
+        ]
+
+    def isComplete(self) -> bool:
+        selected = self.table.selectedIsotopes()
+        return selected is not None and selected.size > 0
+
+    def updateForPath(self, path: Path):
+        if not io.nu.is_nu_image_directory(path):
+            try:
+                path = next(d for d in path.iterdir() if io.nu.is_nu_image_directory(d))
+            except StopIteration:
+                raise ValueError(f"{path} is not a valid Nu image directory")
+
+        acq_dir = next(
+            d for d in path.iterdir() if io.nu.is_nu_acquisition_directory(d)
+        )
+        signals, masses, times, pulses, info = io.nu.read_laser_acquisition(
+            acq_dir, autoblank=False, max_integs=1
+        )
+        idx = search_sorted_closest(masses, isotope_data["mass"])
+        selected = isotope_data[np.abs(masses[idx] - isotope_data["mass"]) < 0.05]
+        self.table.setEnabledIsotopes(selected)
+
+
 class NumpyOptions(_OptionsBase):
     def __init__(self, parent: QtWidgets.QWidget | None = None):
         super().__init__("Numpy Archive", "File", [".npz"], parent)
@@ -419,21 +490,21 @@ class _PathSelectBase(QtWidgets.QWidget):
 
         self.setAcceptDrops(True)
 
-    @QtCore.Property("QString")
-    def _path(self) -> str:  # pragma: no cover
+    @QtCore.Property("QString")  # type: ignore
+    def _path(self) -> str:
+        raise NotImplementedError
+
+    @QtCore.Property("QStringList")  # type: ignore
+    def _paths(self) -> list[str]:
         raise NotImplementedError
 
     @property
     def path(self) -> Path:
-        return Path(self._path)
-
-    @QtCore.Property("QStringList")
-    def _paths(self) -> list[str]:  # pragma: no cover
-        raise NotImplementedError
+        return Path(self._path)  # type: ignore
 
     @property
     def paths(self) -> list[Path]:
-        return [Path(p) for p in self._paths]
+        return [Path(p) for p in self._paths]  # type: ignore
 
     def addPath(self, path: str | Path) -> None:  # pragma: no cover
         raise NotImplementedError
@@ -445,13 +516,13 @@ class _PathSelectBase(QtWidgets.QWidget):
         dlg = QtWidgets.QFileDialog(
             self, f"Select {self.mode}", str(self.currentDir().resolve())
         )
-        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
+        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptMode.AcceptOpen)
         if self.mode == "File":
             dlg.setNameFilters([self.nameFilter(), "All Files(*)"])
-            dlg.setFileMode(QtWidgets.QFileDialog.ExistingFile)
+            dlg.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
         else:
-            dlg.setFileMode(QtWidgets.QFileDialog.Directory)
-            dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+            dlg.setFileMode(QtWidgets.QFileDialog.FileMode.Directory)
+            dlg.setOption(QtWidgets.QFileDialog.Option.ShowDirsOnly, True)
         dlg.fileSelected.connect(self.addPath)
         dlg.open()
         return dlg
@@ -461,9 +532,9 @@ class _PathSelectBase(QtWidgets.QWidget):
             dlg = QtWidgets.QFileDialog(
                 self, "Select Files", str(self.currentDir().resolve())
             )
-            dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
+            dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptMode.AcceptOpen)
             dlg.setNameFilters([self.nameFilter(), "All Files(*)"])
-            dlg.setFileMode(QtWidgets.QFileDialog.ExistingFiles)
+            dlg.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFiles)
         else:
             dlg = MultipleDirDialog(
                 self, "Select Directories", str(self.currentDir().resolve())
@@ -486,7 +557,7 @@ class _PathSelectBase(QtWidgets.QWidget):
     def validPath(self, path: Path) -> bool:
         if not path.exists():
             return False
-        if not path.suffix.lower() in [ext.lower() for ext in self.exts]:
+        if path.suffix.lower() not in [ext.lower() for ext in self.exts]:
             return False
         if self.mode == "File":
             return path.is_file()
@@ -539,15 +610,15 @@ class PathSelectWidget(_PathSelectBase):
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(self.lineedit_path, 1)
-        layout.addWidget(self.button_path, 0, QtCore.Qt.AlignRight)
+        layout.addWidget(self.button_path, 0, QtCore.Qt.AlignmentFlag.AlignRight)
 
         self.setLayout(layout)
 
-    @QtCore.Property("QString")
+    @QtCore.Property("QString")  # type: ignore
     def _path(self) -> str:
         return self.lineedit_path.text()
 
-    @QtCore.Property("QStringList")
+    @QtCore.Property("QStringList")  # type: ignore
     def _paths(self) -> list[str]:
         return [self.lineedit_path.text()]
 
@@ -569,11 +640,15 @@ class MultiplePathSelectWidget(_PathSelectBase):
         super().__init__(filetype, exts, mode, parent)
 
         self.list = QtWidgets.QListWidget()
-        self.list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-        self.list.setTextElideMode(QtCore.Qt.ElideLeft)
-        self.list.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.list.setDefaultDropAction(QtCore.Qt.MoveAction)
-        self.list.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        self.list.setSelectionMode(
+            QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection
+        )
+        self.list.setTextElideMode(QtCore.Qt.TextElideMode.ElideLeft)
+        self.list.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.list.setDefaultDropAction(QtCore.Qt.DropAction.MoveAction)
+        self.list.setDragDropMode(QtWidgets.QAbstractItemView.DragDropMode.InternalMove)
 
         self.list.model().rowsInserted.connect(self.pathChanged)
         self.list.model().rowsRemoved.connect(self.pathChanged)
@@ -589,8 +664,8 @@ class MultiplePathSelectWidget(_PathSelectBase):
 
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addStretch(1)
-        button_layout.addWidget(self.button_path, 0, QtCore.Qt.AlignRight)
-        button_layout.addWidget(self.button_dir, 0, QtCore.Qt.AlignRight)
+        button_layout.addWidget(self.button_path, 0, QtCore.Qt.AlignmentFlag.AlignRight)
+        button_layout.addWidget(self.button_dir, 0, QtCore.Qt.AlignmentFlag.AlignRight)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.list)
@@ -599,12 +674,12 @@ class MultiplePathSelectWidget(_PathSelectBase):
 
         self.setLayout(layout)
 
-    @QtCore.Property("QString")
+    @QtCore.Property("QString")  # type: ignore
     def _path(self) -> str:
         first = self.list.item(0)
         return first.text() if first is not None else ""
 
-    @QtCore.Property("QStringList")
+    @QtCore.Property("QStringList")  # type: ignore
     def _paths(self) -> list[str]:
         return [self.list.item(i).text() for i in range(0, self.list.count())]
 
@@ -627,7 +702,7 @@ class MultiplePathSelectWidget(_PathSelectBase):
         self.list.addItems(sorted(files))
 
     def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
-        if event.key() in [QtCore.Qt.Key_Backspace, QtCore.Qt.Key_Delete]:
+        if event.key() in [QtCore.Qt.Key.Key_Backspace, QtCore.Qt.Key.Key_Delete]:
             items = self.list.selectedItems()
             for item in items:
                 self.list.takeItem(self.list.row(item))
@@ -636,9 +711,9 @@ class MultiplePathSelectWidget(_PathSelectBase):
         dlg = QtWidgets.QFileDialog(
             self, "Select Directory", str(self.currentDir().resolve())
         )
-        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptOpen)
-        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
-        dlg.setOption(QtWidgets.QFileDialog.ShowDirsOnly, True)
+        dlg.setAcceptMode(QtWidgets.QFileDialog.AcceptMode.AcceptOpen)
+        dlg.setFileMode(QtWidgets.QFileDialog.FileMode.Directory)
+        dlg.setOption(QtWidgets.QFileDialog.Option.ShowDirsOnly, True)
         dlg.fileSelected.connect(self.addPathsInDirectory)
         dlg.open()
         return dlg
@@ -665,6 +740,15 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             ),
             CsvLinesOptions,
         ),
+        "nu": (
+            (
+                "Nu Vitesse Images",
+                [""],
+                "Directory",
+                "Select Nu images directories.\nThese have the format 'Image00X'.",
+            ),
+            NuOptions,
+        ),
         "numpy": (
             ("Numpy Archive", [".npz"], "File", "Select Pew² export."),
             NumpyOptions,
@@ -674,7 +758,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
                 "Perkin-Elmer 'XL'",
                 [""],
                 "Directory",
-                "Select export directory containing '.xl' files.\n",
+                "Select export directory containing '.xl' files.",
             ),
             PerkinElmerOptions,
         ),
@@ -704,6 +788,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         multiplepaths: bool = False,
         nextid: int | None = None,
         register_laser_fields: bool = False,
+        flatten: bool = False,
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
@@ -714,6 +799,8 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         self._laser_datas: list[np.ndarray] = []
         self._laser_params: list[dict] = []
         self._laser_infos: list[dict] = []
+
+        self.flatten = flatten
 
         if multiplepaths:
             self.path = MultiplePathSelectWidget(paths, ftype, exts, fmode)
@@ -773,6 +860,9 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             elif self.field("csv"):
                 paths = [Path(p) for p in self.field("csv.paths")]
                 datas, params, infos = self.readMultiple(self.readCsv, paths)
+            elif self.field("nu"):
+                paths = [Path(p) for p in self.field("nu.paths")]
+                datas, params, infos = self.readMultiple(self.readNu, paths)
             elif self.field("numpy"):
                 paths = [Path(p) for p in self.field("numpy.paths")]
                 datas, params, infos = self.readMultiple(self.readNumpy, paths)
@@ -786,10 +876,11 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
                 paths = [Path(p) for p in self.field("thermo.paths")]
                 datas, params, infos = self.readMultiple(self.readThermo, paths)
             else:
-                raise ValueError
+                raise ValueError("Unknown field")
 
         except ValueError as e:
             QtWidgets.QMessageBox.critical(self, "Import Error", str(e))
+            logger.exception(e)
             return False
 
         self.setField("laserdata", datas)
@@ -845,7 +936,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             path,
             collection_methods=method,
             use_acq_for_names=self.field("agilent.useAcqNames"),
-            full=True,
+            flatten=self.flatten,
         )
         info = io.agilent.load_info(path)
         return data, params, info
@@ -887,15 +978,31 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         data, params = io.csv.load(path, option=option, full=True)
         return data, params, {}
 
+    def readNu(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, Any]]:
+        isotopes = self.field("nu.selectedIsotopes")
+        signals, masses, times, pulses, info = io.nu.read_laser_image(path)
+        idx = search_sorted_closest(masses, isotopes["mass"])
+
+        dtype = [(f"{iso['isotope']}{iso['symbol']}", float) for iso in isotopes]
+        signals = rfn.unstructured_to_structured(signals[:, idx], dtype=dtype)
+
+        params = {
+            "masses": masses,
+            "times": times - pulses[0],
+            "pulses": pulses,
+            "laserinfo": info,
+        }
+        return signals, params, {}
+
     def readNumpy(
         self, path: Path
     ) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
         laser = io.npz.load(path)
-        param = dict(
-            scantime=laser.config.scantime,
-            speed=laser.config.speed,
-            spotsize=laser.config.spotsize,
-        )
+        param = {
+            "scantime": laser.config.scantime,
+            "speed": laser.config.speed,
+            "spotsize": laser.config.spotsize,
+        }
         return laser.data, param, laser.info
 
     def readPerkinElmer(
@@ -950,6 +1057,6 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         self._laser_infos = infos
         self.infoChanged.emit()
 
-    data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)
-    param_prop = QtCore.Property("QVariant", getParams, setParams, notify=paramsChanged)
-    info_prop = QtCore.Property("QVariant", getInfo, setInfo, notify=infoChanged)
+    data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)  # type: ignore
+    param_prop = QtCore.Property("QVariant", getParams, setParams, notify=paramsChanged)  # type: ignore
+    info_prop = QtCore.Property("QVariant", getInfo, setInfo, notify=infoChanged)  # type: ignore

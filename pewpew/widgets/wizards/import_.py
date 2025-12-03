@@ -1,10 +1,9 @@
 import logging
-import time
-from importlib.metadata import version
 from pathlib import Path
 
 import numpy as np
 import numpy.lib.recfunctions as rfn
+from pewlib import io
 from pewlib.config import Config
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -35,6 +34,7 @@ class ImportWizard(QtWidgets.QWizard):
     ):
         super().__init__(parent)
         self.setWindowTitle("Import Wizard")
+        self.setMinimumSize(860, 680)
 
         if isinstance(path, str):  # pragma: no cover
             path = Path(path)
@@ -139,6 +139,7 @@ class FormatPage(QtWidgets.QWizardPage):
         self.radio_agilent = QtWidgets.QRadioButton("&Agilent Batches")
         self.radio_agilent.setChecked(True)
         self.radio_csv = QtWidgets.QRadioButton("&CSV Lines")
+        self.radio_nu = QtWidgets.QRadioButton("N&u Vitesse Images")
         self.radio_numpy = QtWidgets.QRadioButton("&Numpy Archives")
         self.radio_perkinelmer = QtWidgets.QRadioButton("&Perkin-Elmer 'XL'")
         self.radio_text = QtWidgets.QRadioButton("Text and &CSV Images")
@@ -148,6 +149,7 @@ class FormatPage(QtWidgets.QWizardPage):
         layout_format = QtWidgets.QVBoxLayout()
         layout_format.addWidget(self.radio_agilent)
         layout_format.addWidget(self.radio_csv)
+        layout_format.addWidget(self.radio_nu)
         layout_format.addWidget(self.radio_numpy)
         layout_format.addWidget(self.radio_perkinelmer)
         layout_format.addWidget(self.radio_text)
@@ -162,14 +164,23 @@ class FormatPage(QtWidgets.QWizardPage):
         self.registerField("agilent", self.radio_agilent)
         self.registerField("csv", self.radio_csv)
         self.registerField("perkinelmer", self.radio_perkinelmer)
+        self.registerField("nu", self.radio_nu)
         self.registerField("numpy", self.radio_numpy)
         self.registerField("text", self.radio_text)
         self.registerField("thermo", self.radio_thermo)
+
+    def guessFormat(self, path: Path):
+        if path.is_dir():
+            if path.suffix == ".b":
+                self.radio_agilent.setChecked(True)
+            elif io.nu.is_nu_image_directory(path):
+                self.radio_nu.setChecked(True)
 
     def initializePage(self) -> None:
         if self.page_id_dict is not None:
             self.radio_agilent.setVisible("agilent" in self.page_id_dict)
             self.radio_csv.setVisible("csv" in self.page_id_dict)
+            self.radio_nu.setVisible("nu" in self.page_id_dict)
             self.radio_numpy.setVisible("numpy" in self.page_id_dict)
             self.radio_perkinelmer.setVisible("perkinelmer" in self.page_id_dict)
             self.radio_text.setVisible("text" in self.page_id_dict)
@@ -223,9 +234,13 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.lineedit_aspect.setEnabled(False)
 
         layout_elements = QtWidgets.QHBoxLayout()
-        layout_elements.addWidget(QtWidgets.QLabel("Elements:"), 0, QtCore.Qt.AlignLeft)
+        layout_elements.addWidget(
+            QtWidgets.QLabel("Elements:"), 0, QtCore.Qt.AlignmentFlag.AlignLeft
+        )
         layout_elements.addWidget(self.label_elements, 1)
-        layout_elements.addWidget(self.button_elements, 0, QtCore.Qt.AlignRight)
+        layout_elements.addWidget(
+            self.button_elements, 0, QtCore.Qt.AlignmentFlag.AlignRight
+        )
 
         config_box = QtWidgets.QGroupBox("Config")
         layout_config = QtWidgets.QFormLayout()
@@ -294,7 +309,9 @@ class ConfigPage(QtWidgets.QWizardPage):
     def setElidedNames(self, names: list[str]) -> None:
         text = ", ".join(name for name in names)
         fm = QtGui.QFontMetrics(self.label_elements.font())
-        text = fm.elidedText(text, QtCore.Qt.ElideRight, self.label_elements.width())
+        text = fm.elidedText(
+            text, QtCore.Qt.TextElideMode.ElideRight, self.label_elements.width()
+        )
         self.label_elements.setText(text)
 
     def updateNames(self, rename: dict) -> None:
