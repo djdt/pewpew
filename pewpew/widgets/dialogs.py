@@ -691,6 +691,65 @@ class ColocalisationDialog(QtWidgets.QDialog):
         self.button_costes_p.setEnabled(False)
 
 
+class ConfigCalulateDialog(QtWidgets.QDialog):
+    spotsizeSelected = QtCore.Signal(float)
+
+    def __init__(
+        self,
+        speed: float | None = None,
+        scantime: float | None = None,
+        parent: QtWidgets.QWidget | None = None,
+    ):
+        super().__init__(parent)
+
+        self.lineedit_speed = QtWidgets.QLineEdit()
+        self.lineedit_speed.setValidator(DecimalValidator(0, 1e9, 4))
+        if speed is not None:
+            self.lineedit_speed.setText(str(speed))
+        self.lineedit_speed.textChanged.connect(self.completeChanged)
+
+        self.lineedit_scantime = QtWidgets.QLineEdit()
+        self.lineedit_scantime.setValidator(DecimalValidator(0, 1e9, 4))
+        if scantime is not None:
+            self.lineedit_scantime.setText(str(scantime))
+        self.lineedit_scantime.textChanged.connect(self.completeChanged)
+
+        form_layout = QtWidgets.QFormLayout()
+        form_layout.addRow("Speed (µm/s):", self.lineedit_speed)
+        form_layout.addRow("Scantime (s):", self.lineedit_scantime)
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.StandardButton.Ok
+            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addLayout(form_layout, 1)
+        layout.addWidget(self.button_box, 0)
+        self.setLayout(layout)
+
+        self.completeChanged()
+
+    def completeChanged(self):
+        self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Ok).setEnabled(
+            self.isComplete()
+        )
+
+    def isComplete(self) -> bool:
+        return (
+            self.lineedit_speed.hasAcceptableInput()
+            and self.lineedit_scantime.hasAcceptableInput()
+        )
+
+    def accept(self):
+        self.spotsizeSelected.emit(
+            float(self.lineedit_speed.text()) * float(self.lineedit_scantime.text())
+        )
+        super().accept()
+
+
 class ConfigDialog(ApplyDialog):
     """Dialog view viewing and editing laser configurations."""
 
@@ -710,6 +769,13 @@ class ConfigDialog(ApplyDialog):
         )
         self.button_copy = qToolButton(action=self.action_copy)
 
+        self.action_calculate_x = qAction(
+            "folder-calculate",
+            "Calculate Size",
+            "Determine the size for a speed and acuqistion time.",
+            self.dialogCalculateX,
+        )
+
         # Line edits
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setText(str(self.config.spotsize))
@@ -722,6 +788,10 @@ class ConfigDialog(ApplyDialog):
             self.lineedit_spotsize_y.setText(str(self.config.spotsize_y))
             self.lineedit_spotsize_y.setValidator(DecimalValidator(0, 1e9, 4))
             self.lineedit_spotsize_y.textChanged.connect(self.completeChanged)
+            self.lineedit_spotsize.addAction(
+                self.action_calculate_x,
+                QtWidgets.QLineEdit.ActionPosition.TrailingPosition,
+            )
 
         self.lineedit_speed = QtWidgets.QLineEdit()
         self.lineedit_speed.setText(str(self.config.speed))
@@ -771,6 +841,11 @@ class ConfigDialog(ApplyDialog):
 
         self.layout_main.addLayout(layout_horz)
         self.layout_main.addWidget(self.check_all)
+
+    def dialogCalculateX(self):
+        dlg = ConfigCalulateDialog(parent=self)
+        dlg.spotsizeSelected.connect(lambda x: self.lineedit_spotsize.setText(str(x)))
+        dlg.open()
 
     def updateConfig(self) -> None:
         self.config.spotsize = float(self.lineedit_spotsize.text())

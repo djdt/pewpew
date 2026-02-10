@@ -98,10 +98,10 @@ class ImportThread(QtCore.QThread):
                 if data is None:
                     raise ValueError(f"Unable to import batch '{path.name}'!")
             elif io.perkinelmer.is_valid_directory(path):
-                data, params = io.perkinelmer.load(path, full=True)
+                data, params = io.perkinelmer.load(path)
                 info["Instrument Vendor"] = "PerkinElemer"
             elif io.csv.is_valid_directory(path):
-                data, params = io.csv.load(path, full=True)
+                data, params = io.csv.load(path)
             else:  # pragma: no cover
                 raise ValueError(f"{path.name}: Unknown extention '{path.suffix}'.")
         else:
@@ -111,7 +111,7 @@ class ImportThread(QtCore.QThread):
             if path.suffix.lower() == ".csv":
                 sample_format = io.thermo.icap_csv_sample_format(path)
                 if sample_format in ["columns", "rows"]:
-                    data, params = io.thermo.load(path, full=True)
+                    data, params = io.thermo.load(path)
                     info["Instrument Vendor"] = "Thermo"
                 else:
                     data = io.textimage.load(path, name="_element_")
@@ -124,10 +124,9 @@ class ImportThread(QtCore.QThread):
         try:
             config = SpotConfig(*params["spotsize"])
         except (KeyError, TypeError):
-            config = Config(
-                spotsize=params.get("spotsize", self.config.spotsize),
-                speed=params.get("speed", self.config.speed),
-                scantime=params.get("scantime", self.config.scantime),
+            spot_x = params.get("speed", self.config.speed) * params.get(
+                "scantime", self.config.scantime
             )
+            config = SpotConfig(spot_x, params.get("spotsize", self.config.spotsize))
 
         return Laser(data=data, config=config, info=info)
