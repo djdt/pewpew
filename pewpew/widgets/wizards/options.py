@@ -975,7 +975,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
 
             option.sortkey = sortTimestamp
 
-        data, params = io.csv.load(path, option=option, full=True)
+        data, params = io.csv.load(path, option=option)
         return data, params, {}
 
     def readNu(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, Any]]:
@@ -1008,7 +1008,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
     def readPerkinElmer(
         self, path: Path
     ) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
-        data, params = io.perkinelmer.load(path, full=True)
+        data, params = io.perkinelmer.load(path)
         return data, params, {"Instrument Vendor": "PerkinElemer"}
 
     def readText(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, str]]:
