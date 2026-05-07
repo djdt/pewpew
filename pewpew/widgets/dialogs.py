@@ -1,5 +1,7 @@
 """This module contains dialogs used in pewpew."""
 
+from pewpew.widgets.periodictable import PeriodicTableSelector
+
 import copy
 from io import BytesIO
 from typing import Callable, Generator
@@ -772,7 +774,7 @@ class ConfigDialog(ApplyDialog):
         self.action_calculate_x = qAction(
             "folder-calculate",
             "Calculate Size",
-            "Determine the size for a speed and acuqistion time.",
+            "Determine the size for a speed and acquistion time.",
             self.dialogCalculateX,
         )
 
@@ -978,6 +980,49 @@ class InformationDialog(QtWidgets.QDialog):
             if key != "":
                 info[key] = self.table.item(i, 1).text()
         return info
+
+
+class IsotopeSelectionDialog(QtWidgets.QDialog):
+    isotopesSelected = QtCore.Signal(object)
+
+    def __init__(self, enabled: np.ndarray, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent=parent)
+
+        self.table = PeriodicTableSelector(enabled_isotopes=enabled)
+
+        self.button_box = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.StandardButton.Ok
+            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+            | QtWidgets.QDialogButtonBox.StandardButton.Reset
+        )
+        self.button_box.clicked.connect(self.buttonClicked)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.table, 1)
+        layout.addWidget(self.button_box, 0)
+        self.setLayout(layout)
+
+        self.completeChanged()
+
+    def buttonClicked(self, button: QtWidgets.QAbstractButton):
+        sb = self.button_box.standardButton(button)
+
+        if sb == QtWidgets.QDialogButtonBox.StandardButton.Ok:
+            self.accept()
+        elif sb == QtWidgets.QDialogButtonBox.StandardButton.Reset:
+            self.table.setSelectedIsotopes(None)
+        else:
+            self.reject()
+
+    def isComplete(self) -> bool:
+        return self.table.selectedIsotopes() is not None
+    
+    def completeChanged(self):
+        self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Ok).setEnabled(self.isComplete())
+
+    def accept(self):
+        self.isotopesSelected.emit(self.table.selectedIsotopes())
+        super().accept()
 
 
 class NameEditDialog(QtWidgets.QDialog):

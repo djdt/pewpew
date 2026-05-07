@@ -192,11 +192,10 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
             )
             self.group_tree.addTopLevelItem(item)
 
-        datas = self.field("laserdata")
         params = self.field("laserparam")
         infos = self.field("laserinfo")
 
-        order = np.arange(len(datas))
+        order = np.arange(len(params))
 
         valid_date_fields = ["Acquisition Date"]  # only Agilent so far
         for field in valid_date_fields:
@@ -215,7 +214,6 @@ class LaserGroupsImportPage(QtWidgets.QWizardPage):
         tree_idx = 0
         for idx in order:
             info = infos[idx]
-            # data = datas[idx]
             for row in range(
                 len(params[idx]["acq_starts"]) if self.checkbox_split.isChecked() else 1
             ):
@@ -418,7 +416,10 @@ class LaserLogImagePage(QtWidgets.QWizardPage):
             seq_datas = []
             seq_times = []
             for i, r in idx:
-                seq_data = datas[i].flat
+                if isinstance(datas[i], list):
+                    seq_data = np.concatenate(datas[i])
+                else:
+                    seq_data = datas[i].flat
                 seq_time = params[i]["times"].ravel()
 
                 if r > -1:
@@ -547,7 +548,6 @@ class LaserLogImportWizard(QtWidgets.QWizard):
                 "agilent",
                 nextid=self.page_groups,
                 multiplepaths=True,
-                register_laser_fields=True,
                 flatten=True,
                 parent=self,
             ),
@@ -567,7 +567,12 @@ class LaserLogImportWizard(QtWidgets.QWizard):
         self.setPage(
             self.page_nu,
             PathAndOptionsPage(
-                paths, "nu", nextid=self.page_groups, multiplepaths=True, parent=self
+                paths,
+                "nu",
+                nextid=self.page_groups,
+                multiplepaths=True,
+                flatten=True,
+                parent=self,
             ),
         )
         # self.setPage(

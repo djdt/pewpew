@@ -88,8 +88,6 @@ class AgilentOptions(_OptionsBase):
             "Read names from Acquistion Method."
         )
 
-        self.flatten = False
-
         dfile_layout = QtWidgets.QFormLayout()
         dfile_layout.addRow("Data File Collection:", self.combo_dfile_method)
         dfile_layout.addRow("Data Files Found:", self.lineedit_dfile)
@@ -299,7 +297,9 @@ class CsvLinesOptions(_OptionsBase):
 
 
 class NuOptions(_OptionsBase):
-    def __init__(self, parent: QtWidgets.QWidget | None = None):
+    def __init__(
+        self, image_info_import: bool = False, parent: QtWidgets.QWidget | None = None
+    ):
         super().__init__("Nu Vitesse", "Directory", [""], parent)
 
         self.table = PeriodicTableSelector()
@@ -316,7 +316,7 @@ class NuOptions(_OptionsBase):
                 self.table,
                 "isotopes",
                 "isotopesChanged",
-            )
+            ),
         ]
 
     def isComplete(self) -> bool:
@@ -328,7 +328,8 @@ class NuOptions(_OptionsBase):
             try:
                 path = next(d for d in path.iterdir() if io.nu.is_nu_image_directory(d))
             except StopIteration:
-                raise ValueError(f"{path} is not a valid Nu image directory")
+                self.table.setEnabledIsotopes(np.array([], dtype=isotope_data.dtype))
+                return
 
         acq_dir = next(
             d for d in path.iterdir() if io.nu.is_nu_acquisition_directory(d)
@@ -777,17 +778,12 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         ),
     }
 
-    dataChanged = QtCore.Signal()
-    paramsChanged = QtCore.Signal()
-    infoChanged = QtCore.Signal()
-
     def __init__(
         self,
         paths: list[Path],
         format: str,
         multiplepaths: bool = False,
         nextid: int | None = None,
-        register_laser_fields: bool = False,
         flatten: bool = False,
         parent: QtWidgets.QWidget | None = None,
     ):
@@ -795,10 +791,6 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         (ftype, exts, fmode, fdesc), otype = self.formats[format]
         self.setTitle(ftype + " Import")
         self.nextid = nextid
-
-        self._laser_datas: list[np.ndarray] = []
-        self._laser_params: list[dict] = []
-        self._laser_infos: list[dict] = []
 
         self.flatten = flatten
 
@@ -826,11 +818,6 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         self.registerField(format + ".path", self.path, "_path")
         self.registerField(format + ".paths", self.path, "_paths")
 
-        if register_laser_fields:
-            self.registerField("laserdata", self, "data_prop")
-            self.registerField("laserparam", self, "param_prop")
-            self.registerField("laserinfo", self, "info_prop")
-
     def cleanupPage(self) -> None:
         pass
 
@@ -842,6 +829,7 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
 
     def nextId(self) -> int:  # pragma: no cover
         if self.nextid is not None:
+            print(self.nextid)
             return self.nextid
         return super().nextId()
 
@@ -979,16 +967,34 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         return data, params, {}
 
     def readNu(self, path: Path) -> tuple[np.ndarray, dict[str, Any], dict[str, Any]]:
+        """Reads Nu file and returns signals as a 1-d array."""
         isotopes = self.field("nu.selectedIsotopes")
         signals, masses, times, pulses, info = io.nu.read_laser_image(path)
+
+        if self.flatten:  # raw import
+            signals = np.concatenate(signals)
+            overlap = 1
+        else:
+            signals, overlap = io.nu.sync_data_with_laser_info(
+                signals, times, pulses, info, overlap=None
+            )
+
+        times = np.concatenate(times)
+        pulses = np.concatenate(pulses)
+
         idx = search_sorted_closest(masses, isotopes["mass"])
 
         dtype = [(f"{iso['isotope']}{iso['symbol']}", float) for iso in isotopes]
-        signals = rfn.unstructured_to_structured(signals[:, idx], dtype=dtype)
+        signals = rfn.unstructured_to_structured(signals[..., idx], dtype=dtype)
+
+        spotsize_x = info["LaserLineInfo"][0]["sp"] * overlap
+        spotsize_y = np.median(np.diff([li["sy"] for li in info["LaserLineInfo"]]))
 
         params = {
+            "spotsize": spotsize_x,
+            "spotsize_y": spotsize_y,
             "masses": masses,
-            "times": times - pulses[0],
+            "times": times,
             "pulses": pulses,
             "laserinfo": info,
         }
@@ -1035,28 +1041,3 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
             )
             params = io.thermo.icap_csv_columns_read_params(path, **kwargs)
         return data, params, {"Instrument Vendor": "Thermo"}
-
-    def getData(self) -> list[np.ndarray]:
-        return self._laser_datas
-
-    def setData(self, datas: list[np.ndarray]) -> None:
-        self._laser_datas = datas
-        self.dataChanged.emit()
-
-    def getParams(self) -> list[dict]:
-        return self._laser_params
-
-    def setParams(self, params: list[dict]) -> None:
-        self._laser_params = params
-        self.paramsChanged.emit()
-
-    def getInfo(self) -> list[dict]:
-        return self._laser_infos
-
-    def setInfo(self, infos: list[dict]) -> None:
-        self._laser_infos = infos
-        self.infoChanged.emit()
-
-    data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)  # type: ignore
-    param_prop = QtCore.Property("QVariant", getParams, setParams, notify=paramsChanged)  # type: ignore
-    info_prop = QtCore.Property("QVariant", getInfo, setInfo, notify=infoChanged)  # type: ignore

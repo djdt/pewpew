@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import numpy.lib.recfunctions as rfn
 from pewlib import io
-from pewlib.config import Config
+from pewlib.config import Config, SpotConfig
 from pewlib.laser import Laser
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -22,7 +22,8 @@ class ImportWizard(QtWidgets.QWizard):
     page_perkinelmer = 3
     page_text = 4
     page_thermo = 5
-    page_config = 6
+    page_nu = 6
+    page_config = 7
 
     laserImported = QtCore.Signal(Path, Laser)
 
@@ -39,7 +40,7 @@ class ImportWizard(QtWidgets.QWizard):
         if isinstance(path, str):  # pragma: no cover
             path = Path(path)
 
-        config = config or Config()
+        config = config or SpotConfig()
 
         overview = (
             "This wizard will guide you through importing LA-ICP-MS data "
@@ -52,6 +53,7 @@ class ImportWizard(QtWidgets.QWizard):
             page_id_dict={
                 "agilent": self.page_agilent,
                 "csv": self.page_csv,
+                "nu": self.page_nu,
                 "numpy": -1,
                 "perkinelmer": self.page_perkinelmer,
                 "text": self.page_text,
@@ -65,13 +67,7 @@ class ImportWizard(QtWidgets.QWizard):
         self.setPage(self.page_format, format_page)
         self.setPage(
             self.page_agilent,
-            PathAndOptionsPage(
-                [path],
-                "agilent",
-                nextid=self.page_config,
-                register_laser_fields=True,
-                parent=self,
-            ),
+            PathAndOptionsPage([path], "agilent", nextid=self.page_config, parent=self),
         )
         self.setPage(
             self.page_csv,
@@ -91,6 +87,10 @@ class ImportWizard(QtWidgets.QWizard):
             self.page_thermo,
             PathAndOptionsPage([path], "thermo", nextid=self.page_config, parent=self),
         )
+        self.setPage(
+            self.page_nu,
+            PathAndOptionsPage([path], "nu", nextid=self.page_config, parent=self),
+        )
 
         self.setPage(self.page_config, ConfigPage(config, parent=self))
 
@@ -105,6 +105,8 @@ class ImportWizard(QtWidgets.QWizard):
             paths = [Path(p) for p in self.field("text.paths")]
         elif self.field("thermo"):
             paths = [Path(p) for p in self.field("thermo.paths")]
+        elif self.field("nu"):
+            paths = [Path(p) for p in self.field("nu.paths")]
         else:  # pragma: no cover
             raise ValueError("Invalid filetype selection.")
 
@@ -112,16 +114,19 @@ class ImportWizard(QtWidgets.QWizard):
         infos = self.field("laserinfo")
 
         for path, data, info in zip(paths, datas, infos):
-            config = Config(
+            config = SpotConfig(
                 spotsize=float(self.field("spotsize")),
-                scantime=float(self.field("scantime")),
-                speed=float(self.field("speed")),
+                spotsize_y=float(self.field("spotsize_y")),
             )
             self.laserImported.emit(path, Laser(data, config=config, info=info))
         super().accept()
 
 
 class FormatPage(QtWidgets.QWizardPage):
+    dataChanged = QtCore.Signal()
+    paramsChanged = QtCore.Signal()
+    infoChanged = QtCore.Signal()
+
     def __init__(
         self,
         text: str,
@@ -132,6 +137,10 @@ class FormatPage(QtWidgets.QWizardPage):
         self.setTitle("Import Format")
 
         self.page_id_dict = page_id_dict
+
+        self._laser_datas: list[np.ndarray] = []
+        self._laser_params: list[dict] = []
+        self._laser_infos: list[dict] = []
 
         label = QtWidgets.QLabel(text)
         label.setWordWrap(True)
@@ -169,6 +178,10 @@ class FormatPage(QtWidgets.QWizardPage):
         self.registerField("text", self.radio_text)
         self.registerField("thermo", self.radio_thermo)
 
+        self.registerField("laserdata", self, "data_prop")
+        self.registerField("laserparam", self, "param_prop")
+        self.registerField("laserinfo", self, "info_prop")
+
     def guessFormat(self, path: Path):
         if path.is_dir():
             if path.suffix == ".b":
@@ -192,9 +205,35 @@ class FormatPage(QtWidgets.QWizardPage):
 
         for field, page_id in self.page_id_dict.items():
             if self.field(field):
+                print("format", page_id)
                 return page_id
 
         return 0  # pragma: no cover
+
+    def getData(self) -> list[np.ndarray]:
+        return self._laser_datas
+
+    def setData(self, datas: list[np.ndarray]) -> None:
+        self._laser_datas = datas
+        self.dataChanged.emit()
+
+    def getParams(self) -> list[dict]:
+        return self._laser_params
+
+    def setParams(self, params: list[dict]) -> None:
+        self._laser_params = params
+        self.paramsChanged.emit()
+
+    def getInfo(self) -> list[dict]:
+        return self._laser_infos
+
+    def setInfo(self, infos: list[dict]) -> None:
+        self._laser_infos = infos
+        self.infoChanged.emit()
+
+    data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)  # type: ignore
+    param_prop = QtCore.Property("QVariant", getParams, setParams, notify=paramsChanged)  # type: ignore
+    info_prop = QtCore.Property("QVariant", getInfo, setInfo, notify=infoChanged)  # type: ignore
 
 
 class ConfigPage(QtWidgets.QWizardPage):
@@ -205,6 +244,11 @@ class ConfigPage(QtWidgets.QWizardPage):
         self._datas: list[np.ndarray] = []
         self._infos: list[dict] = []
 
+        if isinstance(config, SpotConfig):
+            spotsize_y = config.spotsize_y
+        else:
+            spotsize_y = config.scantime * config.speed
+
         self.label_elements = QtWidgets.QLabel()
         self.button_elements = QtWidgets.QPushButton("Edit Names")
         self.button_elements.pressed.connect(self.buttonNamesPressed)
@@ -212,25 +256,19 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.lineedit_spotsize = QtWidgets.QLineEdit()
         self.lineedit_spotsize.setText(str(config.spotsize))
         self.lineedit_spotsize.setValidator(DecimalValidatorNoZero(0, 1e9, 4))
-        self.lineedit_spotsize.setToolTip("Diameter of the laser spot in μm.")
+        self.lineedit_spotsize.setToolTip("Spot spacing in x direction in μm.")
         self.lineedit_spotsize.textChanged.connect(self.aspectChanged)
         self.lineedit_spotsize.textChanged.connect(self.completeChanged)
-        self.lineedit_speed = QtWidgets.QLineEdit()
-        self.lineedit_speed.setText(str(config.speed))
-        self.lineedit_speed.setValidator(DecimalValidatorNoZero(0, 1e9, 4))
-        self.lineedit_speed.setToolTip("Scanning speed of the laser in μm/s.")
-        self.lineedit_speed.textChanged.connect(self.aspectChanged)
-        self.lineedit_speed.textChanged.connect(self.completeChanged)
-        self.lineedit_scantime = QtWidgets.QLineEdit()
-        self.lineedit_scantime.setText(str(config.scantime))
-        self.lineedit_scantime.setValidator(DecimalValidatorNoZero(0, 1e9, 4))
-        self.lineedit_scantime.setToolTip(
-            "Total dwell time for one aquistion (pixel) in s."
-        )
-        self.lineedit_scantime.textChanged.connect(self.aspectChanged)
-        self.lineedit_scantime.textChanged.connect(self.completeChanged)
+
+        self.lineedit_spotsize_y = QtWidgets.QLineEdit()
+        self.lineedit_spotsize_y.setText(str(spotsize_y))
+        self.lineedit_spotsize_y.setValidator(DecimalValidatorNoZero(0, 1e9, 4))
+        self.lineedit_spotsize_y.setToolTip("Spot spacing in y direction in μm.")
+        self.lineedit_spotsize_y.textChanged.connect(self.aspectChanged)
+        self.lineedit_spotsize_y.textChanged.connect(self.completeChanged)
 
         self.lineedit_aspect = QtWidgets.QLineEdit()
+        self.lineedit_aspect.setText(f"{config.spotsize / spotsize_y:.2f}")
         self.lineedit_aspect.setEnabled(False)
 
         layout_elements = QtWidgets.QHBoxLayout()
@@ -244,9 +282,8 @@ class ConfigPage(QtWidgets.QWizardPage):
 
         config_box = QtWidgets.QGroupBox("Config")
         layout_config = QtWidgets.QFormLayout()
-        layout_config.addRow("Spotsize (μm):", self.lineedit_spotsize)
-        layout_config.addRow("Speed (μm/s):", self.lineedit_speed)
-        layout_config.addRow("Scantime (s):", self.lineedit_scantime)
+        layout_config.addRow("Spotsize X (μm):", self.lineedit_spotsize)
+        layout_config.addRow("Spotsize Y (μm):", self.lineedit_spotsize_y)
         layout_config.addRow("Aspect:", self.lineedit_aspect)
         config_box.setLayout(layout_config)
 
@@ -260,8 +297,7 @@ class ConfigPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
         self.registerField("spotsize", self.lineedit_spotsize)
-        self.registerField("speed", self.lineedit_speed)
-        self.registerField("scantime", self.lineedit_scantime)
+        self.registerField("spotsize_y", self.lineedit_spotsize_y)
 
     def initializePage(self) -> None:
         params = self.field("laserparam")[0]
@@ -271,10 +307,10 @@ class ConfigPage(QtWidgets.QWizardPage):
 
         if "spotsize" in params:
             self.setField("spotsize", f"{params['spotsize']:.6g}")
-        if "speed" in params:
-            self.setField("speed", f"{params['speed']:.6g}")
-        if "scantime" in params:
-            self.setField("scantime", f"{params['scantime']:.6g}")
+        if "spotsize_y" in params:
+            self.setField("spotsize_y", f"{params['spotsize_y']:.6g}")
+        elif "speed" in params and "scantime" in params:
+            self.setField("spotsize_y", f"{params['scantime'] * params['speed']:.6g}")
 
     def getNames(self) -> list[str]:
         data = self.field("laserdata")[0]
@@ -282,11 +318,7 @@ class ConfigPage(QtWidgets.QWizardPage):
 
     def aspectChanged(self) -> None:
         try:
-            aspect = (
-                float(self.field("speed"))
-                * float(self.field("scantime"))
-                / float(self.field("spotsize"))
-            )
+            aspect = float(self.field("spotsize_y")) / float(self.field("spotsize"))
             self.lineedit_aspect.setText(f"{aspect:.2f}")
         except (ValueError, ZeroDivisionError):
             self.lineedit_aspect.clear()
@@ -300,9 +332,7 @@ class ConfigPage(QtWidgets.QWizardPage):
     def isComplete(self) -> bool:
         if not self.lineedit_spotsize.hasAcceptableInput():
             return False
-        if not self.lineedit_speed.hasAcceptableInput():
-            return False
-        if not self.lineedit_scantime.hasAcceptableInput():
+        if not self.lineedit_spotsize_y.hasAcceptableInput():
             return False
         return True
 
