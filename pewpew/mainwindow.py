@@ -1,3 +1,4 @@
+from pewlib.io.nu import is_nu_image_directory, contains_nu_image_directory
 import logging
 import re
 import sys
@@ -19,6 +20,7 @@ from pewpew.widgets.wizards import (
     ImportWizard,
     ImzMLImportWizard,
     LaserLogImportWizard,
+    NuVitesseImportWizard,
     SpotImportWizard,
 )
 
@@ -73,6 +75,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 event.acceptProposedAction()
             elif any(is_imzml(path) for path in paths):
                 event.acceptProposedAction()
+            elif any(
+                is_nu_image_directory(path) or contains_nu_image_directory(path)
+                for path in paths
+            ):
+                event.acceptProposedAction()
         super().dragEnterEvent(event)
 
     def dropEvent(self, event: QtGui.QDropEvent) -> None:
@@ -110,6 +117,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 options=self.tabview.options,
                 parent=self,
             )
+        elif any(
+            is_nu_image_directory(path) or contains_nu_image_directory(path)
+            for path in paths
+        ):
+            wiz = NuVitesseImportWizard(paths, parent=self)
         else:
             event.ignore()
             return
