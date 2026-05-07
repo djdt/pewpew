@@ -12,7 +12,7 @@ from pewlib.io.nu import (
     sync_data_with_laser_info,
 )
 from pewlib.laser import Laser
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from pewpew.widgets.periodictable import PeriodicTableSelector, isotope_data
 from pewpew.widgets.wizards.options import search_sorted_closest
@@ -147,14 +147,17 @@ class IsotopeSelectionPage(QtWidgets.QWizardPage):
         all_masses = self.field("masses")
 
         idx = search_sorted_closest(all_masses[0], isotope_data["mass"])
-        valid = np.abs(all_masses[0][idx] - isotope_data["mass"] < 0.05)
-        enabled = set(idx[valid])
+        isotopes = isotope_data[
+            np.abs(all_masses[0][idx] - isotope_data["mass"]) < 0.05
+        ]
         for masses in all_masses[1:]:
-            idx = search_sorted_closest(masses, isotope_data["mass"])
-            valid = np.abs(masses[idx] - isotope_data["mass"] < 0.05)
-            enabled.update(idx[valid])
+            idx = search_sorted_closest(all_masses[0], isotope_data["mass"])
+            _isotopes = isotope_data[
+                np.abs(all_masses[0][idx] - isotope_data["mass"]) < 0.05
+            ]
+            isotopes = np.intersect1d(isotopes, _isotopes)
 
-        self.table.setEnabledIsotopes(isotope_data[np.array(list(enabled))])
+        self.table.setEnabledIsotopes(isotopes)
 
 
 class NuVitesseImportWizard(QtWidgets.QWizard):
