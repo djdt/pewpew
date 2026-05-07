@@ -87,7 +87,6 @@ class MainWindow(QtWidgets.QMainWindow):
             return super().dropEvent(event)
 
         paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
-        print('drop')
 
         if any(is_iolite_laser_log(path) for path in paths):
             # laser log import
