@@ -90,8 +90,9 @@ class LaserImagePathsPage(QtWidgets.QWizardPage):
             else:  # catch root folders
                 for dir in path.iterdir():
                     if is_nu_image_directory(dir):
-                        item.setText(str(path))
-                        item.setData(QtCore.Qt.ItemDataRole.UserRole, path)
+                        item = QtWidgets.QListWidgetItem()
+                        item.setText(str(dir))
+                        item.setData(QtCore.Qt.ItemDataRole.UserRole, dir)
                         item.setCheckState(QtCore.Qt.CheckState.Checked)
                         self.image_list.addItem(item)
         self.pathsChanged.emit()

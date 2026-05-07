@@ -101,7 +101,10 @@ class LaserTabView(TabView):
             if not any(
                 io.laser.is_iolite_laser_log(path)
                 or io.imzml.is_imzml(path)
-                or io.nu.is_nu_image_directory(path)
+                or (
+                    io.nu.is_nu_image_directory(path)
+                    or io.nu.contains_nu_image_directory(path)
+                )
                 for path in paths
             ):
                 event.acceptProposedAction()
