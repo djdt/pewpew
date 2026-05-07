@@ -772,7 +772,7 @@ class ConfigDialog(ApplyDialog):
         self.action_calculate_x = qAction(
             "folder-calculate",
             "Calculate Size",
-            "Determine the size for a speed and acuqistion time.",
+            "Determine the size for a speed and acquistion time.",
             self.dialogCalculateX,
         )
 
