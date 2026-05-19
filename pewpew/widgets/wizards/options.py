@@ -829,7 +829,6 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
 
     def nextId(self) -> int:  # pragma: no cover
         if self.nextid is not None:
-            print(self.nextid)
             return self.nextid
         return super().nextId()
 

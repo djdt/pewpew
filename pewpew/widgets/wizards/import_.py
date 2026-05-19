@@ -205,7 +205,6 @@ class FormatPage(QtWidgets.QWizardPage):
 
         for field, page_id in self.page_id_dict.items():
             if self.field(field):
-                print("format", page_id)
                 return page_id
 
         return 0  # pragma: no cover
