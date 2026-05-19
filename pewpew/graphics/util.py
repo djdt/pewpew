@@ -27,7 +27,8 @@ def closest_nice_value(
 
     with np.errstate(divide="ignore"):
         e = np.floor(np.log10(np.abs(values)))
-    nice = np.divide(values, 10**e, where=values != 0.0)
+    nice = values.copy()
+    np.divide(values, 10**e, where=values != 0.0, out=nice)
 
     if mode == "upper":
         idx = np.searchsorted(allowed, np.abs(nice), side="left")
