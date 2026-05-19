@@ -4,6 +4,34 @@ Pew² is a GUI for importing and processing line-by-line, spot-wise and ablation
 
 ![pew2](https://github.com/djdt/djdt.github.io/blob/main/img/pewpew_splash_1.4.3.png)
 
+## Supported formats
+
+Agilent
+ * Drag-and-drop import of batches (.b directories), with one sample per line
+ * Import of both binary and csv data
+ * Syncing with Iolite laser logs (one sample per image pattern)
+
+Thermo iCap
+  * CSV exports
+  * LDR (laser-data-reduction) exports
+
+Perkin Elemer
+  * ELAN .xl directories
+
+Nu Intruments
+  * Vitesse images
+
+CSV Images and Lines
+  * Importer for generic one-file-per-csv style data
+
+ImzML
+  * Import wizard for data in the imzML format
+  * Mass selection and exploration
+
+Iolite Laser Logs
+  * Wizard to sync laser and ICP data
+  * Both ActiveView2 and Chromium3 style logs
+
 ## Installation
 
 Windows executables are available for each [release](https://github.com/djdt/pewpew/releases).
