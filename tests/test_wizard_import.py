@@ -3,6 +3,7 @@ from pytestqt.qtbot import QtBot
 from pathlib import Path
 
 from pewpew.widgets.wizards import ImportWizard
+from pewpew.widgets.wizards.import_ import ConfigPage, FormatPage
 
 path = Path(__file__).parent.joinpath("data", "io")
 
@@ -17,20 +18,18 @@ def test_wizard_import_config(qtbot: QtBot):
     wiz.next()
 
     page = wiz.currentPage()
+    assert isinstance(page, ConfigPage)
     assert page.isComplete()
     assert page.getNames() == ("P31", "Eu153", "W182")
-    assert page.lineedit_aspect.text() == "2.00"
+    assert page.lineedit_aspect.text() == "1.00"
 
-    page.lineedit_scantime.setText("0")
+    page.lineedit_spotsize.setText("20")
+    assert page.isComplete()
+    assert page.lineedit_aspect.text() == "5.00"
+
+    page.lineedit_spotsize_y.setText("0")
     assert not page.isComplete()
     assert page.lineedit_aspect.text() == "0.00"
-
-    page.lineedit_speed.setText("0")
-    assert not page.isComplete()
-
-    page.lineedit_spotsize.setText("0")
-    assert not page.isComplete()
-    assert page.lineedit_aspect.text() == ""
 
     dlg = page.buttonNamesPressed()
     dlg.close()
@@ -47,6 +46,7 @@ def test_wizard_import_agilent(qtbot: QtBot):
 
     # Format
     page = wiz.currentPage()
+    assert isinstance(page, FormatPage)
     page.radio_agilent.setChecked(True)
     wiz.next()
     assert wiz.currentId() == wiz.page_agilent
@@ -56,7 +56,6 @@ def test_wizard_import_agilent(qtbot: QtBot):
 
     # Config
     page = wiz.currentPage()
-    assert page.lineedit_scantime.text() == "0.5"
 
     with qtbot.waitSignal(wiz.laserImported) as emit:
         wiz.accept()
@@ -71,6 +70,7 @@ def test_wizard_import_perkinelemer(qtbot: QtBot):
 
     # Format
     page = wiz.currentPage()
+    assert isinstance(page, FormatPage)
     page.radio_perkinelmer.setChecked(True)
     wiz.next()
     assert wiz.currentId() == wiz.page_perkinelmer
@@ -80,9 +80,9 @@ def test_wizard_import_perkinelemer(qtbot: QtBot):
 
     # Config
     page = wiz.currentPage()
-    assert page.lineedit_speed.text() == "100"
-    assert page.lineedit_scantime.text() == "0.2"
+    assert isinstance(page, ConfigPage)
     assert page.lineedit_spotsize.text() == "300"
+    assert page.lineedit_spotsize_y.text() == "20"
 
     with qtbot.waitSignal(wiz.laserImported) as emit:
         wiz.accept()
@@ -97,6 +97,7 @@ def test_wizard_import_text(qtbot: QtBot):
 
     # Format
     page = wiz.currentPage()
+    assert isinstance(page, FormatPage)
     page.radio_text.setChecked(True)
     wiz.next()
     assert wiz.currentId() == wiz.page_text
@@ -120,6 +121,7 @@ def test_wizard_import_thermo(qtbot: QtBot):
 
     # Format
     page = wiz.currentPage()
+    assert isinstance(page, FormatPage)
     page.radio_thermo.setChecked(True)
     wiz.next()
     assert wiz.currentId() == wiz.page_thermo
@@ -129,7 +131,6 @@ def test_wizard_import_thermo(qtbot: QtBot):
 
     # Config
     page = wiz.currentPage()
-    assert page.lineedit_scantime.text() == "1.0049"
 
     with qtbot.waitSignal(wiz.laserImported) as emit:
         wiz.accept()
