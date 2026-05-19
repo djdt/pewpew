@@ -25,6 +25,7 @@ class LaserImagePathsPage(QtWidgets.QWizardPage):
     dataChanged = QtCore.Signal()
     massesChanged = QtCore.Signal()
     laserInfosChanged = QtCore.Signal()
+    positionsChanged = QtCore.Signal()
 
     def __init__(self, paths: list[Path], parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
@@ -33,6 +34,7 @@ class LaserImagePathsPage(QtWidgets.QWizardPage):
         self._laser_datas: list[np.ndarray] = []
         self._laser_masses: list[np.ndarray] = []
         self._laser_infos: list[dict] = []
+        self._laser_positions: list[QtCore.QPointF] = []
 
         self.image_list = QtWidgets.QListWidget()
 
@@ -48,6 +50,7 @@ class LaserImagePathsPage(QtWidgets.QWizardPage):
         self.registerField("laserdata", self, "data_prop")
         self.registerField("masses", self, "mass_prop")
         self.registerField("laserinfo", self, "info_prop")
+        self.registerField("positions", self, "pos_prop")
 
     def isComplete(self) -> bool:
         for i in range(self.image_list.count()):
@@ -60,13 +63,15 @@ class LaserImagePathsPage(QtWidgets.QWizardPage):
         self._laser_datas.clear()
         self._laser_masses.clear()
         self._laser_infos.clear()
+        self._laser_positions.clear()
 
         for path in self.getPaths():
             signals, masses, times, pulses, info = read_laser_image(path)
-            image, _ = sync_data_with_laser_info(signals, times, pulses, info)
+            image, pos = sync_data_with_laser_info(signals, times, pulses, info)
             self._laser_datas.append(image)
             self._laser_masses.append(masses)
             self._laser_infos.append(info)
+            self._laser_positions.append(QtCore.QPointF(pos[0], pos[1]))
 
         return len(self._laser_datas) > 0
 
@@ -118,10 +123,23 @@ class LaserImagePathsPage(QtWidgets.QWizardPage):
         self._laser_infos = infos
         self.laserInfosChanged.emit()
 
+    def getPositions(self) -> list[QtCore.QPointF]:
+        return self._laser_positions
+
+    def setPositions(self, positions: list[QtCore.QPointF]) -> None:
+        self._laser_pos = positions
+        self.laserInfosChanged.emit()
+
     paths_prop = QtCore.Property("QVariant", getPaths, setPaths, notify=pathsChanged)  # type: ignore
     data_prop = QtCore.Property("QVariant", getData, setData, notify=dataChanged)  # type: ignore
     mass_prop = QtCore.Property("QVariant", getMasses, setMasses, notify=massesChanged)  # type: ignore
     info_prop = QtCore.Property("QVariant", getInfo, setInfo, notify=laserInfosChanged)  # type: ignore
+    pos_prop = QtCore.Property(
+        "QVariant",  # type: ignore
+        getPositions,
+        setPositions,
+        notify=positionsChanged,
+    )
 
 
 class IsotopeSelectionPage(QtWidgets.QWizardPage):
@@ -179,10 +197,13 @@ class NuVitesseImportWizard(QtWidgets.QWizard):
         datas = self.field("laserdata")
         all_masses = self.field("masses")
         infos = self.field("laserinfo")
+        positions = self.field("positions")
 
         isotopes = self.field("selectedIsotopes")
 
-        for data, masses, laser_info, path in zip(datas, all_masses, infos, paths):
+        for data, masses, laser_info, pos, path in zip(
+            datas, all_masses, infos, positions, paths
+        ):
             idx = search_sorted_closest(masses, isotopes["mass"])
 
             dtype = [(f"{iso['isotope']}{iso['symbol']}", float) for iso in isotopes]
@@ -214,7 +235,6 @@ class NuVitesseImportWizard(QtWidgets.QWizard):
                 info.update({k: str(v) for k, v in first_line["Metadata"].items()})
 
             laser = Laser(data, config=SpotConfig(spotsize_x, spotsize_y), info=info)
-            pos = QtCore.QPointF(first_line["sx"], first_line["sy"])
 
             self.laserImported.emit(path, (laser, pos))
 
