@@ -169,10 +169,8 @@ class IsotopeSelectionPage(QtWidgets.QWizardPage):
             np.abs(all_masses[0][idx] - isotope_data["mass"]) < 0.05
         ]
         for masses in all_masses[1:]:
-            idx = search_sorted_closest(all_masses[0], isotope_data["mass"])
-            _isotopes = isotope_data[
-                np.abs(all_masses[0][idx] - isotope_data["mass"]) < 0.05
-            ]
+            idx = search_sorted_closest(masses, isotope_data["mass"])
+            _isotopes = isotope_data[np.abs(masses[idx] - isotope_data["mass"]) < 0.05]
             isotopes = np.intersect1d(isotopes, _isotopes)
 
         self.table.setEnabledIsotopes(isotopes)
