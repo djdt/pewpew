@@ -68,7 +68,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.default_config = Config()
 
     def dragEnterEvent(self, event: QtGui.QDragEnterEvent) -> None:
-        paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
         if event.mimeData().hasUrls():
             paths = [Path(url.toLocalFile()) for url in event.mimeData().urls()]
             if any(is_iolite_laser_log(path) for path in paths):
