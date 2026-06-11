@@ -364,6 +364,8 @@ class ImzMLImportWizard(QtWidgets.QWizard):
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
+        if self.wizardStyle() != QtWidgets.QWizard.WizardStyle.MacStyle:
+            self.setWizardStyle(QtWidgets.QWizard.WizardStyle.ModernStyle)
         self.setWindowTitle("ImzML Import")
         self.setMinimumSize(860, 680)
 

@@ -184,6 +184,8 @@ class NuVitesseImportWizard(QtWidgets.QWizard):
 
     def __init__(self, paths: list[Path], parent: QtWidgets.QWidget | None = None):
         super().__init__(parent)
+        if self.wizardStyle() != QtWidgets.QWizard.WizardStyle.MacStyle:
+            self.setWizardStyle(QtWidgets.QWizard.WizardStyle.ModernStyle)
         self.setWindowTitle("Nu Vitesse Import")
         self.setMinimumSize(860, 680)
 

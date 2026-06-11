@@ -7,7 +7,8 @@ from pathlib import Path
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from pewpew import resources  # noqa: F401
+from pewpew.resources import app_icon, icons, darkicons  # noqa: F401
+
 from pewpew.mainwindow import MainWindow
 
 logger = logging.getLogger()
@@ -47,9 +48,29 @@ def main() -> int:
     app.setApplicationVersion(version("pewpew"))
     app.setWindowIcon(QtGui.QIcon(":/app.ico"))
 
+    # Set the icon theme
+    scheme = app.styleHints().colorScheme()
+    if scheme == QtCore.Qt.ColorScheme.Unknown:
+        if (
+            app.palette().window().color().lightness()
+            > app.palette().windowText().color().lightness()
+        ):
+            scheme = QtCore.Qt.ColorScheme.Light
+        else:
+            scheme = QtCore.Qt.ColorScheme.Dark
+
+    if app.platformName() == "windows" and "-style" not in args.qtargs:
+        app.setStyle("fusion")
+
+    if scheme == QtCore.Qt.ColorScheme.Dark:
+        QtGui.QIcon.setThemeName("pewpew-dark")
+    else:
+        QtGui.QIcon.setThemeName("pewpew")
+
     window = MainWindow()
     if not args.nohook:
         sys.excepthook = window.exceptHook
+
     logger.addHandler(window.log.handler)
     logger.info(f"Pew² {app.applicationVersion()} started.")
     logger.info(f"Using Pewlib {version('pewlib')}.")

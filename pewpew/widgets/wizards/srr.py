@@ -29,6 +29,8 @@ class SRRImportWizard(QtWidgets.QWizard):
         parent: QtWidgets.QWidget | None = None,
     ):
         super().__init__(parent)
+        if self.wizardStyle() != QtWidgets.QWizard.WizardStyle.MacStyle:
+            self.setWizardStyle(QtWidgets.QWizard.WizardStyle.ModernStyle)
         self.setWindowTitle("SRR Import Wizard")
 
         _config = SRRConfig()
@@ -121,7 +123,7 @@ class SRRImportWizard(QtWidgets.QWizard):
                 datas,
                 calibration=calibration,
                 config=config,
-                info={"Name": path.stem, "File Path": str(path.resolve())}
+                info={"Name": path.stem, "File Path": str(path.resolve())},
             )
         )
         super().accept()
