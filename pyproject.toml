@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pewpew"
-version = "1.7.10"
+version = "1.7.11"
 dependencies = [
     "numpy>=1.22",
-    "pewlib>=0.10.9",
+    "pewlib>=0.10.10",
     "pyqtgraph",
     "PySide6!=6.9.1",
     "ckwrap==1.2.3",
