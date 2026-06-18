@@ -12,7 +12,7 @@ from pewlib.io.nu import (
     sync_data_with_laser_info,
 )
 from pewlib.laser import Laser
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from pewpew.widgets.periodictable import PeriodicTableSelector, isotope_data
 from pewpew.widgets.wizards.options import search_sorted_closest
@@ -211,16 +211,16 @@ class NuVitesseImportWizard(QtWidgets.QWizard):
 
             first_line = laser_info["LaserLineInfo"][0]
 
-            if first_line["lt"] > 2:  # vertical
-                spotsize_x = first_line["ss"]
-                spotsize_y = np.median(
-                    np.diff([li["sy"] for li in laser_info["LaserLineInfo"]])
-                )
-            else:
+            if first_line["lt"] >= 2:  # vertical
                 spotsize_x = np.median(
                     np.diff([li["sx"] for li in laser_info["LaserLineInfo"]])
                 )
                 spotsize_y = first_line["ss"]
+            else:
+                spotsize_x = first_line["ss"]
+                spotsize_y = np.median(
+                    np.diff([li["sy"] for li in laser_info["LaserLineInfo"]])
+                )
 
             if first_line["imna"] != "":
                 name = first_line["imna"]
