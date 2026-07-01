@@ -67,6 +67,13 @@ class LaserImagePathsPage(QtWidgets.QWizardPage):
 
         for path in self.getPaths():
             signals, masses, times, pulses, info = read_laser_image(path)
+            if any(pulse.size == 0 for pulse in pulses):
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Import Failed",
+                    f"Unable to import '{path}', missing pulse data.",
+                )
+                return False
             image, pos = sync_data_with_laser_info(signals, times, pulses, info)
             self._laser_datas.append(image)
             self._laser_masses.append(masses)
