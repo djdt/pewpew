@@ -219,16 +219,25 @@ class NuVitesseImportWizard(QtWidgets.QWizard):
             first_line = laser_info["LaserLineInfo"][0]
 
             if first_line["lt"] >= 2:  # vertical
-                spotsize_x = np.median(
-                    np.diff([li["sx"] for li in laser_info["LaserLineInfo"]])
-                )
                 spotsize_y = first_line["ss"]
+                if (
+                    len(laser_info["LaserLineInfo"]) == 1
+                ):  # if only one line then use other spotsize
+                    spotsize_x = spotsize_y
+                else:
+                    spotsize_x = np.median(
+                        np.diff([li["sx"] for li in laser_info["LaserLineInfo"]])
+                    )
             else:
                 spotsize_x = first_line["ss"]
-                spotsize_y = np.median(
-                    np.diff([li["sy"] for li in laser_info["LaserLineInfo"]])
-                )
-
+                if (
+                    len(laser_info["LaserLineInfo"]) == 1
+                ):  # if only one line then use other spotsize
+                    spotsize_y = spotsize_x
+                else:
+                    spotsize_y = np.median(
+                        np.diff([li["sy"] for li in laser_info["LaserLineInfo"]])
+                    )
             if first_line["imna"] != "":
                 name = first_line["imna"]
             else:
