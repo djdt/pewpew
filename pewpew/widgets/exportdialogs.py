@@ -42,7 +42,7 @@ class OptionsBox(QtWidgets.QGroupBox):
 
     def isComplete(self) -> bool:
         return True
-    
+
     def saveSettings(self) -> None:
         return
 
@@ -61,7 +61,7 @@ class PngOptionsBox(OptionsBox):
     }
 
     def __init__(self, size: QtCore.QSize, parent: QtWidgets.QWidget | None = None):
-        super().__init__("PNG Images", ".png", visible=True)
+        super().__init__("PNG Images", ".png", visible=True, parent=parent)
 
         self.base_size = size
         self.label_x = QtWidgets.QLabel()
@@ -179,6 +179,7 @@ class RBGOptionsBox(OptionsBox):
             visible=True,
             allow_export_all=False,
             allow_calibrate=False,
+            parent=parent,
         )
 
         self.rgb_elements = elements
@@ -320,7 +321,10 @@ class VtiOptionsBox(OptionsBox):
 
 class _ExportOptionsStack(QtWidgets.QStackedWidget):
     def sizeHint(self) -> QtCore.QSize:
-        sizes = [self.widget(i).sizeHint() for i in range(0, self.count())]
+        widgets = [self.widget(i) for i in range(0, self.count())]
+        sizes = [w.sizeHint() for w in widgets if w is not None]
+        if len(sizes) == 0:
+            return super().sizeHint()
         return QtCore.QSize(
             max(s.width() for s in sizes), max(s.height() for s in sizes)
         )
