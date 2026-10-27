@@ -972,11 +972,8 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
 
         if self.flatten:  # raw import
             signals = np.concatenate(signals)
-            overlap = 1
         else:
-            signals, overlap = io.nu.sync_data_with_laser_info(
-                signals, times, pulses, info, overlap=None
-            )
+            signals, _ = io.nu.sync_data_with_laser_info(signals, times, pulses, info)
 
         times = np.concatenate(times)
         pulses = np.concatenate(pulses)
@@ -986,9 +983,28 @@ class PathAndOptionsPage(QtWidgets.QWizardPage):
         dtype = [(f"{iso['isotope']}{iso['symbol']}", float) for iso in isotopes]
         signals = rfn.unstructured_to_structured(signals[..., idx], dtype=dtype)
 
-        spotsize_x = info["LaserLineInfo"][0]["sp"] * overlap
-        spotsize_y = np.median(np.diff([li["sy"] for li in info["LaserLineInfo"]]))
+        first_line = info["LaserLineInfo"][0]
 
+        if first_line["lt"] >= 2:  # vertical
+            spotsize_y = first_line["ss"]
+            if (
+                len(info["LaserLineInfo"]) == 1
+            ):  # if only one line then use other spotsize
+                spotsize_x = spotsize_y
+            else:
+                spotsize_x = np.median(
+                    np.diff([li["sx"] for li in info["LaserLineInfo"]])
+                )
+        else:
+            spotsize_x = first_line["ss"]
+            if (
+                len(info["LaserLineInfo"]) == 1
+            ):  # if only one line then use other spotsize
+                spotsize_y = spotsize_x
+            else:
+                spotsize_y = np.median(
+                    np.diff([li["sy"] for li in info["LaserLineInfo"]])
+                )
         params = {
             "spotsize": spotsize_x,
             "spotsize_y": spotsize_y,
